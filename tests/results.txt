@@ -1,0 +1,16 @@
+All tests are run on an instance of Azure Database for PostgreSQL Flexible Server, Standard_D32ds_v4 (32 vcpus, 128 GiB memory), with 512 GiB / 2300 iops storage.
+
+test1 : time to loadFromSingleCSV, 50.37s, chunk_size: 64, direct_loading: False
+test2 : time to loadFromSingleCSV, 5.45s, chunk_size: 64, direct_loading: True
+test3 : time to loadFromCSVs, 10.52s, chunk_size: 64, direct_loading: False
+test4 : time to loadFromCSVs, 4.68s, chunk_size: 64, direct_loading: True
+
+test1 : time to loadFromSingleCSV, 12.17s, chunk_size: 96, direct_loading: False
+test2 : time to loadFromSingleCSV, 5.45s, chunk_size: 96, direct_loading: True
+test3 : time to loadFromCSVs, 10.48s, chunk_size: 96, direct_loading: False
+test4 : time to loadFromCSVs, 4.59s, chunk_size: 96, direct_loading: True
+
+test1 : time to loadFromSingleCSV, 23.78s, chunk_size: 128, direct_loading: False
+test2 : time to loadFromSingleCSV, 5.46s, chunk_size: 128, direct_loading: True
+test3 : time to loadFromCSVs, 10.55s, chunk_size: 128, direct_loading: False
+test4 : time to loadFromCSVs, 4.69s, chunk_size: 128, direct_loading: True
