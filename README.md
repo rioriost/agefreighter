@@ -48,7 +48,6 @@ async def test1(af: AgeFreighter, chunk_size: int = 96) -> None:
     )
 
 async def test2(af: AgeFreighter, chunk_size: int = 96) -> None:
-    start_time = time.time()
     await af.loadFromCSVs(
         graph_name="cities_countries",
         vertex_csvs=["countries.csv", "cities.csv"],
