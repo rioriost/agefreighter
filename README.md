@@ -32,7 +32,7 @@ from agefreighter import AgeFreighter
 import asyncio
 import os
 
-async def test(af: AgeFreighter, chunk_size: int = 96) -> None:
+async def test1(af: AgeFreighter, chunk_size: int = 96) -> None:
     await af.loadFromSingleCSV(
         graph_name="actorfilms",
         csv="actorfilms.csv",
@@ -47,11 +47,24 @@ async def test(af: AgeFreighter, chunk_size: int = 96) -> None:
         direct_loading = True
     )
 
+async def test2(af: AgeFreighter, chunk_size: int = 96) -> None:
+    start_time = time.time()
+    await af.loadFromCSVs(
+        graph_name="cities_countries",
+        vertex_csvs=["countries.csv", "cities.csv"],
+        vertex_labels=["Country", "City"],
+        edge_csvs=["edges.csv"],
+        edge_labels=["has_city"],
+        chunk_size=chunk_size,
+        direct_loading = True
+    )
+
 async def main() -> None:
     connection_string = os.environ["PG_CONNECTION_STRING"]
     af = await AgeFreighter.connect(dsn = connection_string)
     try:
-        await test(af, chunk_size = 96)
+        await test1(af, chunk_size = 96)
+        await test2(af, chunk_size = 96)
     finally:
         await af.pool.close()
 
