@@ -6,14 +6,14 @@ import time
 import asyncio
 from agefreighter import AgeFreighter
 
-# for environment where PostgreSQL is not capable of loading data from local files, e.g. Azure Database for PostgreSQL
+# for environment where PostgreSQL is not capable of loading data from local files, e.g. Azure Database for PostgreSQLv
 
-# test1 for loadFromSingleCSV
+# test for loadFromSingleCSV
 #
 # file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
 # actorfilms.csv: Actor,ActorID,Film,Year,Votes,Rating,FilmID
 # # of actors: 9,623, # of films: 44,456, # of edges: 191,873
-async def test1(af: AgeFreighter, chunk_size: int = 96) -> None:
+async def test_loadFromSingleCSV(af: AgeFreighter, chunk_size: int = 96, direct_loading: bool = False) -> None:
     start_time = time.time()
     await af.loadFromSingleCSV(
         graph_name="actorfilms",
@@ -26,37 +26,18 @@ async def test1(af: AgeFreighter, chunk_size: int = 96) -> None:
         end_id="FilmID",
         end_properties=["Film", "Year", "Votes", "Rating"],
         chunk_size=chunk_size,
-        direct_loading=False
+        direct_loading = direct_loading,
+        drop_graph = True
     )
-    print(f"test1 : time to loadFromSingleCSV, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: False")
+    print(f"test_loadFromSingleCSV : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}")
 
-# test2 for directLoadFromSingleCSV
-async def test2(af: AgeFreighter, chunk_size: int = 96) -> None:
-    start_time = time.time()
-    await af.loadFromSingleCSV(
-        graph_name="actorfilms",
-        csv="actorfilms.csv",
-        start_vertex_type="Actor",
-        start_id="ActorID",
-        start_properties=["Actor"],
-        edge_label="ACTED_IN",
-        end_vertex_type="Film",
-        end_id="FilmID",
-        end_properties=["Film", "Year", "Votes", "Rating"],
-        chunk_size=chunk_size,
-        direct_loading = True
-    )
-    print(f"test2 : time to loadFromSingleCSV, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: True")
-
-# test3 for loadfromCSVs
-# loadFromCSV is a substitute for load_labels_from_file() and load_edges_from_file()
-# https://age.apache.org/age-manual/master/intro/agload.html
+# test for loadfromCSVs
 #
 # cities.csv: id,name,state_id,state_code,country_id,country_code,latitude,longitude
 # continents.csv: id,name,iso3,iso2,numeric_code,phone_code,capital,currency,currency_symbol,tld,native,region,subregion,latitude,longitude,emoji,emojiU
 # edges.csv: start_id,start_vertex_type,end_id,end_vertex_type
 # # of countries: 53, # of cities: 72,485, # of edges: 72,485
-async def test3(af: AgeFreighter, chunk_size: int = 96) -> None:
+async def test_loadFromCSVs(af: AgeFreighter, chunk_size: int = 96, direct_loading: bool = False) -> None:
     start_time = time.time()
     await af.loadFromCSVs(
         graph_name="cities_countries",
@@ -65,23 +46,71 @@ async def test3(af: AgeFreighter, chunk_size: int = 96) -> None:
         edge_csvs=["edges.csv"],
         edge_labels=["has_city"],
         chunk_size=chunk_size,
-        direct_loading=False
+        direct_loading = direct_loading,
+        drop_graph = True
     )
-    print(f"test3 : time to loadFromCSVs, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: False")
+    print(f"test_loadFromCSVs : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}")
 
-# test4 for directLoadfromCSVs
-async def test4(af: AgeFreighter, chunk_size: int = 96) -> None:
+# test for copyFromSingleCSV, the function uses COPY command to load data from CSV files
+async def test_copyFromSingleCSV(af: AgeFreighter, chunk_size: int = 96) -> None:
     start_time = time.time()
-    await af.loadFromCSVs(
+    await af.copyFromSingleCSV(
+        graph_name="actorfilms",
+        csv="actorfilms.csv",
+        start_vertex_type="Actor",
+        start_id="ActorID",
+        start_properties=["Actor"],
+        edge_label="ACTED_IN",
+        end_vertex_type="Film",
+        end_id="FilmID",
+        end_properties=["Film", "Year", "Votes", "Rating"],
+        chunk_size=chunk_size,
+        drop_graph = True
+    )
+    print(f"test_copyFromSingleCSV : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}")
+
+# test for copyFromCSVs, the function uses COPY command to load data from CSV files
+async def test_copyFromCSVs(af: AgeFreighter, chunk_size: int = 96) -> None:
+    start_time = time.time()
+    await af.copyFromCSVs(
         graph_name="cities_countries",
         vertex_csvs=["countries.csv", "cities.csv"],
         vertex_labels=["Country", "City"],
         edge_csvs=["edges.csv"],
         edge_labels=["has_city"],
         chunk_size=chunk_size,
-        direct_loading = True
+        drop_graph = True
     )
-    print(f"test4 : time to loadFromCSVs, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: True")
+    print(f"test_copyFromCSVs : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}")
+
+# test for loadfromCSVs with very large data generated by tests/dummy_generator.py
+async def test_loadFromCSVs_large_data(af: AgeFreighter, chunk_size: int = 96) -> None:
+    start_time = time.time()
+    await af.loadFromCSVs(
+        graph_name="purchase_history",
+        vertex_csvs=["customers.csv", "products.csv"],
+        vertex_labels=["Customer", "Product"],
+        edge_csvs=["boughts.csv"],
+        edge_labels=["BUY"],
+        chunk_size=chunk_size,
+        direct_loading = True,
+        drop_graph = True
+    )
+    print(f"test_loadFromCSVs_large_data : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}")
+
+# test for copyfromCSVs with very large data generated by tests/dummy_generator.py
+async def test_copyFromCSVs_large_data(af: AgeFreighter, chunk_size: int = 96) -> None:
+    start_time = time.time()
+    await af.loadFromCSVs(
+        graph_name="purchase_history",
+        vertex_csvs=["customers.csv", "products.csv"],
+        vertex_labels=["Customer", "Product"],
+        edge_csvs=["boughts.csv"],
+        edge_labels=["BUY"],
+        chunk_size=chunk_size,
+        drop_graph = True
+    )
+    print(f"test_copyFromCSVs_large_data : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}")
 
 async def main() -> None:
     # export PG_CONNECTION_STRING="host=your_server.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
@@ -91,23 +120,33 @@ async def main() -> None:
         print("Please set the environment variable PG_CONNECTION_STRING")
         return
 
-    af = await AgeFreighter.connect(dsn = connection_string)
+    af = await AgeFreighter.connect(dsn = connection_string, max_connections = 64)
 #    ag = await Age.connect(dsn = connection_string, log_level=logging.INFO)
     try:
         # Strongly reccomended to define chunk_size with your data and server before loading large amount of data
         # Especially, the number of properties in the vertex affects the complecity of the query
         # Due to asynchronous nature of the library, the duration for loading data is not linear to the number of rows
-        chunk_size = 128
-        await test1(af, chunk_size = chunk_size)
-        await asyncio.sleep(10)
+        #
+        # Addition to the chunk_size, max_wal_size and checkpoint_timeout in the postgresql.conf should be considered
+        for chunk_size in range(32, 264, 8):
+            await test_loadFromSingleCSV(af, chunk_size = chunk_size, direct_loading = False)
+            await asyncio.sleep(10)
+            await test_loadFromSingleCSV(af, chunk_size = chunk_size, direct_loading = True)
+            await asyncio.sleep(10)
+            await test_copyFromSingleCSV(af, chunk_size = chunk_size)
+            await asyncio.sleep(10)
 
-        await test2(af, chunk_size = chunk_size)
-        await asyncio.sleep(10)
+            await test_loadFromCSVs(af, chunk_size = chunk_size, direct_loading = False)
+            await asyncio.sleep(10)
+            await test_loadFromCSVs(af, chunk_size = chunk_size, direct_loading = True)
+            await asyncio.sleep(10)
+            await test_copyFromCSVs(af, chunk_size = chunk_size)
+            await asyncio.sleep(10)
 
-        await test3(af, chunk_size = chunk_size)
-        await asyncio.sleep(10)
+#        chunk_size = 128
+#        await test_loadFromCSVs_large_data(af, chunk_size = chunk_size)
+#        await test_copyFromCSVs_large_data(af, chunk_size = chunk_size)
 
-        await test4(af, chunk_size = chunk_size)
     finally:
         await af.pool.close()
 
