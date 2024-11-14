@@ -128,6 +128,7 @@ async def main() -> None:
         # Due to asynchronous nature of the library, the duration for loading data is not linear to the number of rows
         #
         # Addition to the chunk_size, max_wal_size and checkpoint_timeout in the postgresql.conf should be considered
+'''
         for chunk_size in range(32, 264, 8):
             await test_loadFromSingleCSV(af, chunk_size = chunk_size, direct_loading = False)
             await asyncio.sleep(10)
@@ -142,6 +143,22 @@ async def main() -> None:
             await asyncio.sleep(10)
             await test_copyFromCSVs(af, chunk_size = chunk_size)
             await asyncio.sleep(10)
+'''
+
+        chunk_size = 128
+        await test_loadFromSingleCSV(af, chunk_size = chunk_size, direct_loading = False)
+        await asyncio.sleep(10)
+        await test_loadFromSingleCSV(af, chunk_size = chunk_size, direct_loading = True)
+        await asyncio.sleep(10)
+        await test_copyFromSingleCSV(af, chunk_size = chunk_size)
+        await asyncio.sleep(10)
+
+        await test_loadFromCSVs(af, chunk_size = chunk_size, direct_loading = False)
+        await asyncio.sleep(10)
+        await test_loadFromCSVs(af, chunk_size = chunk_size, direct_loading = True)
+        await asyncio.sleep(10)
+        await test_copyFromCSVs(af, chunk_size = chunk_size)
+        await asyncio.sleep(10)
 
 #        chunk_size = 128
 #        await test_loadFromCSVs_large_data(af, chunk_size = chunk_size)
