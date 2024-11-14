@@ -73,8 +73,7 @@ async def test_loadFromCSVs(af: AgeFreighter, chunk_size: int = 96, direct_loadi
     )
 
 async def test_copyFromSingleCSV(af: AgeFreighter, chunk_size: int = 96) -> None:
-    start_time = time.time()
-    await af.copyFromSingleCSV(
+    await af.loadFromSingleCSV(
         graph_name="actorfilms",
         csv="actorfilms.csv",
         start_vertex_type="Actor",
@@ -85,19 +84,20 @@ async def test_copyFromSingleCSV(af: AgeFreighter, chunk_size: int = 96) -> None
         end_id="FilmID",
         end_properties=["Film", "Year", "Votes", "Rating"],
         chunk_size=chunk_size,
-        drop_graph = True
+        drop_graph=True,
+        use_copy=True,
     )
 
 async def test_copyFromCSVs(af: AgeFreighter, chunk_size: int = 96) -> None:
-    start_time = time.time()
-    await af.copyFromCSVs(
+    await af.loadFromCSVs(
         graph_name="cities_countries",
         vertex_csvs=["countries.csv", "cities.csv"],
         vertex_labels=["Country", "City"],
         edge_csvs=["edges.csv"],
         edge_labels=["has_city"],
         chunk_size=chunk_size,
-        drop_graph = True
+        drop_graph=True,
+        use_copy=True,
     )
 
 async def main() -> None:
