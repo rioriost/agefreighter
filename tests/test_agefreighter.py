@@ -144,7 +144,7 @@ async def main() -> None:
             await test_copyFromCSVs(af, chunk_size = chunk_size)
             await asyncio.sleep(10)
 '''
-
+'''
         chunk_size = 128
         await test_loadFromSingleCSV(af, chunk_size = chunk_size, direct_loading = False)
         await asyncio.sleep(10)
@@ -159,10 +159,10 @@ async def main() -> None:
         await asyncio.sleep(10)
         await test_copyFromCSVs(af, chunk_size = chunk_size)
         await asyncio.sleep(10)
-
-#        chunk_size = 128
-#        await test_loadFromCSVs_large_data(af, chunk_size = chunk_size)
-#        await test_copyFromCSVs_large_data(af, chunk_size = chunk_size)
+'''
+        chunk_size = 128
+        await test_loadFromCSVs_large_data(af, chunk_size = chunk_size)
+        await test_copyFromCSVs_large_data(af, chunk_size = chunk_size)
 
     finally:
         await af.pool.close()
