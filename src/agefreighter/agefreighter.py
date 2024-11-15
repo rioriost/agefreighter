@@ -19,7 +19,7 @@ class AgeFreighter:
         self.graphName: str = ""
         self.graphNameAgType: str = ""
         self.name = "AgeLoader"
-        self.version = "0.1.2"
+        self.version = "0.1.3"
         self.description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
         self.author = "Rio Fujita"
 
@@ -220,26 +220,36 @@ class AgeFreighter:
 
     # copy vertices
     async def copyVertices(
-        self, vertices: pd.DataFrame = None, label: str = "", chunk_size: int = 0
+        self,
+        vertices: pd.DataFrame = None,
+        label: str = "",
+        chunk_size: int = 0,
+        drop_graph: bool = False,
     ) -> None:
         chunk_multiplier = 1000
         first_id = await self.getFirstId(self, label)
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
-                async with cur.copy(
-                    f'COPY {self.graphName}."{label}" FROM STDIN (FORMAT TEXT)'
-                ) as copy:
+                query = f'COPY {self.graphName}."{label}" FROM STDIN (FORMAT TEXT)'
+                if drop_graph:
+                    await cur.execute(f'TRUNCATE {self.graphName}."{label}"')
+                    query = f'COPY {self.graphName}."{label}" FROM STDIN (FORMAT TEXT, FREEZE)'
+                async with cur.copy(query) as copy:
                     for i in range(0, len(vertices), chunk_size * chunk_multiplier):
-                        query = ""
+                        args = ""
                         for idx, cols in vertices[
                             i : i + chunk_size * chunk_multiplier
                         ].iterrows():
                             properties = [f'"{k}": "{v}"' for k, v in cols.items()]
-                            query += f"{first_id + i}\t{{{', '.join(properties)}}}\n"
-                        await copy.write(query)
+                            args += f"{first_id + i}\t{{{', '.join(properties)}}}\n"
+                        await copy.write(args)
 
     async def copyEdges(
-        self, edges: pd.DataFrame = None, label: str = "", chunk_size: int = 0
+        self,
+        edges: pd.DataFrame = None,
+        label: str = "",
+        chunk_size: int = 0,
+        drop_graph: bool = False,
     ) -> None:
         chunk_multiplier = 1000
         # create idmaps to convert entry_id to id(graphid)
@@ -263,11 +273,13 @@ class AgeFreighter:
         first_id = await self.getFirstId(self, label=label)
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
-                async with cur.copy(
-                    f'COPY {self.graphName}."{label}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT)'
-                ) as copy:
+                query = f'COPY {self.graphName}."{label}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT)'
+                if drop_graph:
+                    await cur.execute(f'TRUNCATE {self.graphName}."{label}"')
+                    query = f'COPY {self.graphName}."{label}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT, FREEZE)'
+                async with cur.copy(query) as copy:
                     for i in range(0, len(edges), chunk_size * chunk_multiplier):
-                        query = ""
+                        args = ""
                         for idx, cols in edges[
                             i : i + chunk_size * chunk_multiplier
                         ].iterrows():
@@ -277,8 +289,8 @@ class AgeFreighter:
                             end_id = idmaps[str(cols["end_vertex_type"])][
                                 str(cols["end_id"])
                             ]
-                            query += f"{first_id + i}\t{start_id}\t{end_id}\n"
-                        await copy.write(query)
+                            args += f"{first_id + i}\t{start_id}\t{end_id}\n"
+                        await copy.write(args)
 
     # get the first id for vertex / edge
     async def getFirstId(self, label: str = "") -> int:
@@ -385,7 +397,9 @@ class AgeFreighter:
                     )
                 else:
                     if use_copy:
-                        await cls.copyVertices(cls, vertices, vertex_type, chunk_size)
+                        await cls.copyVertices(
+                            cls, vertices, vertex_type, chunk_size, drop_graph
+                        )
                     else:
                         await cls.createVertices(cls, vertices, vertex_type, chunk_size)
             logging.info(
@@ -408,7 +422,7 @@ class AgeFreighter:
                 await cls.createEdgesDirectly(cls, edges, edge_label, chunk_size)
             else:
                 if use_copy:
-                    await cls.copyEdges(cls, edges, edge_label, chunk_size)
+                    await cls.copyEdges(cls, edges, edge_label, chunk_size, drop_graph)
                 else:
                     await cls.createEdges(cls, edges, edge_label, chunk_size)
             logging.info(
