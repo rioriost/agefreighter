@@ -2,6 +2,8 @@ import logging
 import time
 
 import asyncio
+import networkx as nx
+from networkx import DiGraph
 import numpy as np
 import pandas as pd
 from psycopg import sql
@@ -19,7 +21,7 @@ class AgeFreighter:
         self.graphName: str = ""
         self.graphNameAgType: str = ""
         self.name = "AgeLoader"
-        self.version = "0.1.3"
+        self.version = "0.1.4"
         self.description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
         self.author = "Rio Fujita"
 
@@ -385,17 +387,15 @@ class AgeFreighter:
                 )
                 if direct_loading:
                     for i in properties:
-                        if type(vertices[i].values[0]) is str:
+                        if isinstance(vertices[i].values[0], str):
                             vertices[i] = vertices[i].str.replace("'", "''")
-                else:
-                    for i in properties:
-                        if type(vertices[i].values[0]) is str:
-                            vertices[i] = vertices[i].str.replace("'", r"\'")
-                if direct_loading:
                     await cls.createVerticesDirectly(
                         cls, vertices, vertex_type, chunk_size
                     )
                 else:
+                    for i in properties:
+                        if isinstance(vertices[i].values[0], str):
+                            vertices[i] = vertices[i].str.replace("'", r"\'")
                     if use_copy:
                         await cls.copyVertices(
                             cls, vertices, vertex_type, chunk_size, drop_graph
@@ -501,3 +501,60 @@ class AgeFreighter:
         logging.info(
             f"loadFromCSVs : time to create edges, {time.time() - start_time}, chunk_size: {chunk_size}"
         )
+
+    @classmethod
+    async def loadFromNetworkx(
+        cls,
+        graph_name: str = "",
+        networkx_graph: DiGraph = None,
+        chunk_size: int = 3,
+        direct_loading: bool = False,
+        drop_graph: bool = False,
+        use_copy: bool = False,
+    ) -> None:
+        await cls.setUpGraph(cls, graph_name, drop_graph)
+
+        vertex_types = []
+        for vertex_type in set(
+            nx.get_node_attributes(networkx_graph, "label").values()
+        ):
+            vertex_types.append(vertex_type)
+            await cls.createLabel(cls, label_type="vertex", label=vertex_type)
+            nodes = [
+                {"id": node, **data}
+                for node, data in networkx_graph.nodes(data=True)
+                if data.get("label") == vertex_type
+            ]
+            columns = [k for k in list(nodes[0].keys()) if k != "label"]
+            vertices = pd.DataFrame(nodes, columns=columns)
+            if direct_loading:
+                vertices = vertices.map(
+                    lambda x: x.replace("'", "''") if isinstance(x, str) else x
+                )
+                await cls.createVerticesDirectly(cls, vertices, vertex_type, chunk_size)
+            else:
+                vertices = vertices.map(
+                    lambda x: x.replace("'", r"\'") if isinstance(x, str) else x
+                )
+                if use_copy:
+                    await cls.copyVertices(
+                        cls, vertices, vertex_type, chunk_size, drop_graph
+                    )
+                else:
+                    await cls.createVertices(cls, vertices, vertex_type, chunk_size)
+
+        for edge_type in set(nx.get_edge_attributes(networkx_graph, "label").values()):
+            await cls.createLabel(cls, label_type="edge", label=edge_type)
+            edges = nx.to_pandas_edgelist(networkx_graph)
+            edges.insert(0, "start_vertex_type", vertex_types[0])
+            edges.insert(0, "end_vertex_type", vertex_types[1])
+            edges.rename(
+                columns={"source": "start_id", "target": "end_id"}, inplace=True
+            )
+            if direct_loading:
+                await cls.createEdgesDirectly(cls, edges, edge_type, chunk_size)
+            else:
+                if use_copy:
+                    await cls.copyEdges(cls, edges, edge_type, chunk_size, drop_graph)
+                else:
+                    await cls.createEdges(cls, edges, edge_type, chunk_size)
