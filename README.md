@@ -100,6 +100,37 @@ async def test_copyFromCSVs(af: AgeFreighter, chunk_size: int = 96) -> None:
         use_copy=True,
     )
 
+# test for copyfromNetworkx
+async def test_copyFromNetworkx(af: AgeFreighter, chunk_size: int = 96) -> None:
+    df = pd.read_csv("actorfilms.csv")
+    G = nx.DiGraph()
+
+    for name, group in df.groupby("ActorID"):
+        for idx, row in group.iterrows():
+            G.add_node(row["ActorID"], label="Actor", name=row["Actor"])
+            G.add_node(
+                row["FilmID"],
+                label="Film",
+                name=row["Film"],
+                year=row["Year"],
+                votes=row["Votes"],
+                rating=row["Rating"],
+            )
+            G.add_edge(row["ActorID"], row["FilmID"], label="ACTED_IN")
+
+    start_time = time.time()
+    await af.loadFromNetworkx(
+        graph_name="actorfilms",
+        networkx_graph=G,
+        chunk_size=chunk_size,
+        direct_loading=False,
+        drop_graph=True,
+        use_copy=True,
+    )
+    print(
+        f"test_copyFromNetworkx : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}"
+    )
+
 async def main() -> None:
     # export PG_CONNECTION_STRING="host=your_server.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
     try:
@@ -129,6 +160,8 @@ async def main() -> None:
         await asyncio.sleep(10)
         await test_copyFromCSVs(af, chunk_size = chunk_size)
         await asyncio.sleep(10)
+
+        await test_copyFromNetworkx(af, chunk_size=chunk_size)
 
     finally:
         await af.pool.close()
