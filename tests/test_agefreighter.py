@@ -6,6 +6,9 @@ import time
 import asyncio
 from agefreighter import AgeFreighter
 
+import networkx as nx
+import pandas as pd
+
 # for environment where PostgreSQL is not capable of loading data from local files, e.g. Azure Database for PostgreSQLv
 
 
@@ -137,6 +140,38 @@ async def test_copyFromCSVs_large_data(af: AgeFreighter, chunk_size: int = 96) -
     )
 
 
+# test for copyfromNetworkx
+async def test_copyFromNetworkx(af: AgeFreighter, chunk_size: int = 96) -> None:
+    df = pd.read_csv("actorfilms.csv")
+    G = nx.DiGraph()
+
+    for name, group in df.groupby("ActorID"):
+        for idx, row in group.iterrows():
+            G.add_node(row["ActorID"], label="Actor", name=row["Actor"])
+            G.add_node(
+                row["FilmID"],
+                label="Film",
+                name=row["Film"],
+                year=row["Year"],
+                votes=row["Votes"],
+                rating=row["Rating"],
+            )
+            G.add_edge(row["ActorID"], row["FilmID"], label="ACTED_IN")
+
+    start_time = time.time()
+    await af.loadFromNetworkx(
+        graph_name="actorfilms",
+        networkx_graph=G,
+        chunk_size=chunk_size,
+        direct_loading=False,
+        drop_graph=True,
+        use_copy=True,
+    )
+    print(
+        f"test_copyFromNetworkx : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}"
+    )
+
+
 async def main() -> None:
     # export PG_CONNECTION_STRING="host=your_server.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
     try:
@@ -153,6 +188,7 @@ async def main() -> None:
         # Due to asynchronous nature of the library, the duration for loading data is not linear to the number of rows
         #
         # Addition to the chunk_size, max_wal_size and checkpoint_timeout in the postgresql.conf should be considered
+
         chunk_size = 128
         await test_loadFromSingleCSV(af, chunk_size=chunk_size, direct_loading=False)
         await asyncio.sleep(10)
@@ -168,9 +204,11 @@ async def main() -> None:
         await test_copyFromCSVs(af, chunk_size=chunk_size)
         await asyncio.sleep(10)
 
-        # chunk_size = 128
-        # await test_loadFromCSVs_large_data(af, chunk_size = chunk_size)
-        # await test_copyFromCSVs_large_data(af, chunk_size = chunk_size)
+        await test_copyFromNetworkx(af, chunk_size=chunk_size)
+
+    # chunk_size = 128
+    # await test_loadFromCSVs_large_data(af, chunk_size = chunk_size)
+    # await test_copyFromCSVs_large_data(af, chunk_size = chunk_size)
 
     finally:
         await af.pool.close()
