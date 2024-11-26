@@ -131,15 +131,15 @@ async def main() -> None:
         # Addition to the chunk_size, max_wal_size and checkpoint_timeout in the postgresql.conf should be considered
 
         chunk_size = 128
-        #        await test_loadFromSingleCSV(af, chunk_size=chunk_size, direct_loading=False)
-        #        await asyncio.sleep(5)
+        # await test_loadFromSingleCSV(af, chunk_size=chunk_size, direct_loading=False)
+        # await asyncio.sleep(5)
         await test_loadFromSingleCSV(af, chunk_size=chunk_size, direct_loading=True)
         await asyncio.sleep(5)
         await test_loadFromSingleCSV(af, chunk_size=chunk_size, use_copy=True)
         await asyncio.sleep(5)
 
-        #        await test_loadFromCSVs(af, chunk_size=chunk_size, direct_loading=False)
-        #        await asyncio.sleep(5)
+        # await test_loadFromCSVs(af, chunk_size=chunk_size, direct_loading=False)
+        # await asyncio.sleep(5)
         await test_loadFromCSVs(af, chunk_size=chunk_size, direct_loading=True)
         await asyncio.sleep(5)
         await test_loadFromCSVs(af, chunk_size=chunk_size, use_copy=True)
