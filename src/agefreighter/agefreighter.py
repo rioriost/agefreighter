@@ -21,7 +21,7 @@ class AgeFreighter:
         self.graphName: str = ""
         self.graphNameAgType: str = ""
         self.name = "AgeLoader"
-        self.version = "0.1.5"
+        self.version = "0.1.6"
         self.description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
         self.author = "Rio Fujita"
 
@@ -220,7 +220,7 @@ class AgeFreighter:
                 time.sleep(1)
                 pass
 
-    # copy vertices
+    # create vertices via COPY protocol
     async def copyVertices(
         self,
         vertices: pd.DataFrame = None,
@@ -247,7 +247,7 @@ class AgeFreighter:
                         await copy.write(args)
                 await cur.execute("COMMIT")
 
-    # copy edges
+    # create edges via COPY protocol
     async def copyEdges(
         self,
         edges: pd.DataFrame = None,
@@ -283,6 +283,7 @@ class AgeFreighter:
                             args += f"{first_id + i}\t{start_id}\t{end_id}\n"
                         await copy.write(args)
 
+    # get idmaps between entry_id and id(graphid)
     async def getIdMaps(self, edges: pd.DataFrame = None) -> Dict:
         # create idmaps to convert entry_id to id(graphid)
         idmaps = {}
@@ -510,6 +511,7 @@ class AgeFreighter:
             f"loadFromCSVs : time to create edges, {time.time() - start_time}, chunk_size: {chunk_size}"
         )
 
+    # load data from networkx graph
     @classmethod
     async def loadFromNetworkx(
         cls,
@@ -562,8 +564,30 @@ class AgeFreighter:
         for edge_type in set(nx.get_edge_attributes(networkx_graph, "label").values()):
             await cls.createLabel(cls, label_type="edge", label=edge_type)
             edges = nx.to_pandas_edgelist(networkx_graph)
-            edges.insert(0, "start_vertex_type", vertex_types[0])
-            edges.insert(0, "end_vertex_type", vertex_types[1])
+            # it's a little bit tricky to get the vertex types of the start and end vertices
+            # nodes keeps the last vertex information, it might be the start or end vertex. It's not guaranteed.
+            first_source_id = edges["source"][0]
+            first_target_id = edges["target"][0]
+            try:
+                start_vertex_type = [
+                    item["label"] for item in nodes if item["id"] == first_source_id
+                ][0]
+                end_vertex_type = (
+                    vertex_types[1]
+                    if vertex_types[0] == start_vertex_type
+                    else vertex_types[0]
+                )
+            except IndexError:
+                end_vertex_type = [
+                    item["label"] for item in nodes if item["id"] == first_target_id
+                ][0]
+                start_vertex_type = (
+                    vertex_types[1]
+                    if vertex_types[0] == end_vertex_type
+                    else vertex_types[0]
+                )
+            edges.insert(0, "start_vertex_type", start_vertex_type)
+            edges.insert(0, "end_vertex_type", end_vertex_type)
             edges.rename(
                 columns={"source": "start_id", "target": "end_id"}, inplace=True
             )
@@ -577,3 +601,25 @@ class AgeFreighter:
         logging.info(
             f"loadFromNetworkx : time to create edges, {time.time() - start_time}, chunk_size: {chunk_size}"
         )
+
+    # load data from neo4j
+    @classmethod
+    async def loadFromNeo4j(
+        cls,
+        uri: str = "bolt://localhost:7687",
+        user: str = "neo4j",
+        password: str = "password",
+        graph_name_to_use: str = "",
+    ) -> None:
+        # get all nodes and edges from neo4j
+        from neo4j import AsyncGraphDatabase
+
+        async with AsyncGraphDatabase.driver(uri, auth=(user, password)) as driver:
+            records, _, _ = await driver.execute_query(
+                "MATCH (n) RETURN n", database_=graph_name_to_use
+            )
+            all_nodes = records
+            records, _, _ = await driver.execute_query(
+                "MATCH (m)-[r]->(n) RETURN m,n,r", database_=graph_name_to_use
+            )
+            all_edges = records
