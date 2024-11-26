@@ -19,7 +19,10 @@ import pandas as pd
 # actorfilms.csv: Actor,ActorID,Film,Year,Votes,Rating,FilmID
 # # of actors: 9,623, # of films: 44,456, # of edges: 191,873
 async def test_loadFromSingleCSV(
-    af: AgeFreighter, chunk_size: int = 96, direct_loading: bool = False
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
 ) -> None:
     start_time = time.time()
     await af.loadFromSingleCSV(
@@ -35,7 +38,7 @@ async def test_loadFromSingleCSV(
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
-        use_copy=True,
+        use_copy=use_copy,
     )
     print(
         f"test_loadFromSingleCSV : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
@@ -49,7 +52,10 @@ async def test_loadFromSingleCSV(
 # edges.csv: start_id,start_vertex_type,end_id,end_vertex_type
 # # of countries: 53, # of cities: 72,485, # of edges: 72,485
 async def test_loadFromCSVs(
-    af: AgeFreighter, chunk_size: int = 96, direct_loading: bool = False
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
 ) -> None:
     start_time = time.time()
     await af.loadFromCSVs(
@@ -61,7 +67,7 @@ async def test_loadFromCSVs(
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
-        use_copy=True,
+        use_copy=use_copy,
     )
     print(
         f"test_loadFromCSVs : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
