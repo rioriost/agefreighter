@@ -10,7 +10,7 @@ from psycopg import sql
 from psycopg.rows import namedtuple_row
 from psycopg_pool import AsyncConnectionPool
 import resource
-from typing import Self, List
+from typing import Self, List, Dict
 from typing_extensions import Callable
 
 
@@ -21,7 +21,7 @@ class AgeFreighter:
         self.graphName: str = ""
         self.graphNameAgType: str = ""
         self.name = "AgeLoader"
-        self.version = "0.1.4"
+        self.version = "0.1.5"
         self.description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
         self.author = "Rio Fujita"
 
@@ -245,7 +245,9 @@ class AgeFreighter:
                             properties = [f'"{k}": "{v}"' for k, v in cols.items()]
                             args += f"{first_id + i}\t{{{', '.join(properties)}}}\n"
                         await copy.write(args)
+                await cur.execute("COMMIT")
 
+    # copy edges
     async def copyEdges(
         self,
         edges: pd.DataFrame = None,
@@ -254,22 +256,9 @@ class AgeFreighter:
         drop_graph: bool = False,
     ) -> None:
         chunk_multiplier = 1000
+
         # create idmaps to convert entry_id to id(graphid)
-        async with self.pool.connection() as conn:
-            async with conn.cursor(row_factory=namedtuple_row) as cur:
-                idmaps = {}
-                for e_label in [
-                    edges["start_vertex_type"][0],
-                    edges["end_vertex_type"][0],
-                ]:
-                    query = sql.SQL(
-                        f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
-                    )
-                    await cur.execute(query)
-                    rows = await cur.fetchall()
-                    idmaps[e_label] = {
-                        row.entry_id.replace('"', ""): row.id for row in rows
-                    }
+        idmaps = await self.getIdMaps(self, edges=edges)
 
         # create queries for edges
         first_id = await self.getFirstId(self, label=label)
@@ -293,6 +282,25 @@ class AgeFreighter:
                             ]
                             args += f"{first_id + i}\t{start_id}\t{end_id}\n"
                         await copy.write(args)
+
+    async def getIdMaps(self, edges: pd.DataFrame = None) -> Dict:
+        # create idmaps to convert entry_id to id(graphid)
+        idmaps = {}
+        async with self.pool.connection() as conn:
+            async with conn.cursor(row_factory=namedtuple_row) as cur:
+                for e_label in [
+                    edges["start_vertex_type"][0],
+                    edges["end_vertex_type"][0],
+                ]:
+                    query = sql.SQL(
+                        f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
+                    )
+                    await cur.execute(query)
+                    rows = await cur.fetchall()
+                    idmaps[e_label] = {
+                        row.entry_id.replace('"', ""): row.id for row in rows
+                    }
+        return idmaps
 
     # get the first id for vertex / edge
     async def getFirstId(self, label: str = "") -> int:
@@ -514,6 +522,8 @@ class AgeFreighter:
     ) -> None:
         await cls.setUpGraph(cls, graph_name, drop_graph)
 
+        # create vertices
+        start_time = time.time()
         vertex_types = []
         for vertex_type in set(
             nx.get_node_attributes(networkx_graph, "label").values()
@@ -543,6 +553,12 @@ class AgeFreighter:
                 else:
                     await cls.createVertices(cls, vertices, vertex_type, chunk_size)
 
+        logging.info(
+            f"loadFromNetworkx : time to create vertices, {time.time() - start_time}, chunk_size: {chunk_size}"
+        )
+
+        # create edges
+        start_time = time.time()
         for edge_type in set(nx.get_edge_attributes(networkx_graph, "label").values()):
             await cls.createLabel(cls, label_type="edge", label=edge_type)
             edges = nx.to_pandas_edgelist(networkx_graph)
@@ -558,3 +574,6 @@ class AgeFreighter:
                     await cls.copyEdges(cls, edges, edge_type, chunk_size, drop_graph)
                 else:
                     await cls.createEdges(cls, edges, edge_type, chunk_size)
+        logging.info(
+            f"loadFromNetworkx : time to create edges, {time.time() - start_time}, chunk_size: {chunk_size}"
+        )
