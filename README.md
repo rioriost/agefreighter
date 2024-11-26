@@ -49,7 +49,10 @@ import pandas as pd
 
 
 async def test_loadFromSingleCSV(
-    af: AgeFreighter, chunk_size: int = 96, direct_loading: bool = False
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
 ) -> None:
     start_time = time.time()
     await af.loadFromSingleCSV(
@@ -65,7 +68,7 @@ async def test_loadFromSingleCSV(
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
-        use_copy=True,
+        use_copy=use_copy,
     )
     print(
         f"test_loadFromSingleCSV : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
@@ -73,7 +76,10 @@ async def test_loadFromSingleCSV(
 
 
 async def test_loadFromCSVs(
-    af: AgeFreighter, chunk_size: int = 96, direct_loading: bool = False
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
 ) -> None:
     start_time = time.time()
     await af.loadFromCSVs(
@@ -85,7 +91,7 @@ async def test_loadFromCSVs(
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
-        use_copy=True,
+        use_copy=use_copy,
     )
     print(
         f"test_loadFromCSVs : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
