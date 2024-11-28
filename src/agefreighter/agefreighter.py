@@ -1,6 +1,3 @@
-import logging
-import time
-
 import asyncio
 import networkx as nx
 from networkx import DiGraph
@@ -21,7 +18,7 @@ class AgeFreighter:
         self.graphName: str = ""
         self.graphNameAgType: str = ""
         self.name = "AgeLoader"
-        self.version = "0.1.7"
+        self.version = "0.2.0"
         self.description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
         self.author = "Rio Fujita"
 
@@ -57,48 +54,95 @@ class AgeFreighter:
                             sql.SQL(f"SELECT create_graph({self.graphNameAgType})")
                         )
 
-    def checkKeys(self, keys: List = [], elements: List = []):
+    async def checkKeys(keys: List = [], elements: List = []):
         if not np.all(np.isin(elements, keys)):
             raise ValueError(
                 f"CSV file must have {elements} columns, but {keys} columns were found."
             )
 
-    async def createLabel(self, label_type: str = "", label: str = "") -> None:
+    async def createLabelType(self, label_type: str = "", value: str = "") -> None:
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
                 if label_type == "vertex":
                     await cur.execute(
                         sql.SQL(
-                            f"SELECT create_vlabel({self.graphNameAgType}, '{label}');"
+                            f"SELECT create_vlabel({self.graphNameAgType}, '{value}');"
                         )
                     )
                     await cur.execute(
                         sql.SQL(
-                            f'CREATE INDEX ON {self.graphName}."{label}" USING GIN (properties);'
+                            f'CREATE INDEX ON {self.graphName}."{value}" USING GIN (properties);'
                         )
                     )
                     await cur.execute(
                         sql.SQL(
-                            f'CREATE INDEX ON {self.graphName}."{label}" USING BTREE (id);'
+                            f'CREATE INDEX ON {self.graphName}."{value}" USING BTREE (id);'
                         )
                     )
                 elif label_type == "edge":
                     await cur.execute(
                         sql.SQL(
-                            f"SELECT create_elabel({self.graphNameAgType}, '{label}');"
+                            f"SELECT create_elabel({self.graphNameAgType}, '{value}');"
                         )
                     )
                     await cur.execute(
                         sql.SQL(
-                            f'CREATE INDEX ON {self.graphName}."{label}" (start_id);'
+                            f'CREATE INDEX ON {self.graphName}."{value}" (start_id);'
                         )
                     )
                     await cur.execute(
-                        sql.SQL(f'CREATE INDEX ON {self.graphName}."{label}" (end_id);')
+                        sql.SQL(f'CREATE INDEX ON {self.graphName}."{value}" (end_id);')
                     )
 
-    # create vertices via Cypher
+    # create vertices
     async def createVertices(
+        self,
+        vertices: pd.DataFrame = None,
+        vertex_label: str = "",
+        chunk_size: int = 3,
+        direct_loading: bool = False,
+        drop_graph: bool = False,
+        use_copy: bool = False,
+    ) -> None:
+        if direct_loading:
+            vertices = vertices.map(
+                lambda x: x.replace("'", "''") if isinstance(x, str) else x
+            )
+            await self.createVerticesDirectly(self, vertices, vertex_label, chunk_size)
+        else:
+            vertices = vertices.map(
+                lambda x: x.replace("'", r"\'") if isinstance(x, str) else x
+            )
+            if use_copy:
+                await self.copyVertices(
+                    self, vertices, vertex_label, chunk_size, drop_graph
+                )
+            else:
+                await self.createVerticesCypher(
+                    self, vertices, vertex_label, chunk_size
+                )
+
+    # create vertices
+    async def createEdges(
+        self,
+        edges: pd.DataFrame = None,
+        edge_type: str = "",
+        chunk_size: int = 3,
+        direct_loading: bool = False,
+        drop_graph: bool = False,
+        use_copy: bool = False,
+    ) -> None:
+        # create edges
+        if direct_loading:
+            await self.createEdgesDirectly(self, edges, edge_type, chunk_size)
+        else:
+            if use_copy:
+                await self.copyEdges(self, edges, edge_type, chunk_size, drop_graph)
+            else:
+                await self.createEdgesCypher(self, edges, edge_type, chunk_size)
+
+    # create vertices via Cypher
+    async def createVerticesCypher(
         self, vertices: pd.DataFrame = None, label: str = "", chunk_size: int = 0
     ) -> None:
         chunk_multiplier = 1
@@ -115,8 +159,8 @@ class AgeFreighter:
         await self.executeWithTasks(self, self.executeQuery, args)
 
     # create edges via Cypher
-    async def createEdges(
-        self, edges: pd.DataFrame = None, label: str = "", chunk_size: int = 0
+    async def createEdgesCypher(
+        self, edges: pd.DataFrame = None, type: str = "", chunk_size: int = 0
     ) -> None:
         chunk_multiplier = 2
         args = []
@@ -124,7 +168,7 @@ class AgeFreighter:
             parts = []
             for idx, cols in edges[i : i + chunk_size * chunk_multiplier].iterrows():
                 parts.append(
-                    f"MATCH (n:{cols['start_vertex_type']} {{id: '{cols['start_id']}'}}), (m:{cols['end_vertex_type']} {{id: '{cols['end_id']}'}}) CREATE (n)-[:{label}]->(m)"
+                    f"MATCH (n:{cols['start_v_label']} {{id: '{cols['start_id']}'}}), (m:{cols['end_v_label']} {{id: '{cols['end_id']}'}}) CREATE (n)-[:{type}]->(m)"
                 )
             query = sql.SQL(
                 "".join(
@@ -159,7 +203,7 @@ class AgeFreighter:
 
     # create edges directly, not via Cypher
     async def createEdgesDirectly(
-        self, edges: pd.DataFrame = None, label: str = "", chunk_size: int = 0
+        self, edges: pd.DataFrame = None, type: str = "", chunk_size: int = 0
     ) -> None:
         chunk_multiplier = 2
         # create idmaps to convert entry_id to id(graphid)
@@ -167,8 +211,8 @@ class AgeFreighter:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
                 idmaps = {}
                 for e_label in [
-                    edges["start_vertex_type"][0],
-                    edges["end_vertex_type"][0],
+                    edges["start_v_label"][0],
+                    edges["end_v_label"][0],
                 ]:
                     query = sql.SQL(
                         f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
@@ -185,15 +229,15 @@ class AgeFreighter:
             values = []
             for idx, cols in edges[i : i + chunk_size * chunk_multiplier].iterrows():
                 values.append(
-                    f"('{idmaps[str(cols['start_vertex_type'])][str(cols['start_id'])]}'::graphid, '{idmaps[str(cols['end_vertex_type'])][str(cols['end_id'])]}'::graphid)"
+                    f"('{idmaps[str(cols['start_v_label'])][str(cols['start_id'])]}'::graphid, '{idmaps[str(cols['end_v_label'])][str(cols['end_id'])]}'::graphid)"
                 )
             query = "".join(
-                f"INSERT INTO {self.graphName}.\"{label}\" (start_id, end_id) VALUES {','.join(values)};"
+                f"INSERT INTO {self.graphName}.\"{type}\" (start_id, end_id) VALUES {','.join(values)};"
             )
             args.append(
                 sql.SQL(
                     "".join(
-                        f"INSERT INTO {self.graphName}.\"{label}\" (start_id, end_id) VALUES {','.join(values)};"
+                        f"INSERT INTO {self.graphName}.\"{type}\" (start_id, end_id) VALUES {','.join(values)};"
                     )
                 )
             )
@@ -217,7 +261,7 @@ class AgeFreighter:
                         break
             except Exception as e:
                 print(e)
-                time.sleep(1)
+                await asyncio.sleep(1)
                 pass
 
     # create vertices via COPY protocol
@@ -253,7 +297,7 @@ class AgeFreighter:
     async def copyEdges(
         self,
         edges: pd.DataFrame = None,
-        label: str = "",
+        type: str = "",
         chunk_size: int = 0,
         drop_graph: bool = False,
     ) -> None:
@@ -263,23 +307,23 @@ class AgeFreighter:
         idmaps = await self.getIdMaps(self, edges=edges)
 
         # create queries for edges
-        first_id = await self.getFirstId(self, label=label)
+        first_id = await self.getFirstId(self, label_type=type)
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
-                query = f'COPY {self.graphName}."{label}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT)'
+                query = f'COPY {self.graphName}."{type}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT)'
                 if drop_graph:
-                    await cur.execute(f'TRUNCATE {self.graphName}."{label}"')
-                    query = f'COPY {self.graphName}."{label}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT, FREEZE)'
+                    await cur.execute(f'TRUNCATE {self.graphName}."{type}"')
+                    query = f'COPY {self.graphName}."{type}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT, FREEZE)'
                 async with cur.copy(query) as copy:
                     for i in range(0, len(edges), chunk_size * chunk_multiplier):
                         args = ""
                         for idx, cols in edges[
                             i : i + chunk_size * chunk_multiplier
                         ].iterrows():
-                            start_id = idmaps[str(cols["start_vertex_type"])][
+                            start_id = idmaps[str(cols["start_v_label"])][
                                 str(cols["start_id"])
                             ]
-                            end_id = idmaps[str(cols["end_vertex_type"])][
+                            end_id = idmaps[str(cols["end_v_label"])][
                                 str(cols["end_id"])
                             ]
                             args += f"{first_id + i + idx}\t{start_id}\t{end_id}\n"
@@ -292,12 +336,13 @@ class AgeFreighter:
         async with self.pool.connection() as conn:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
                 for e_label in [
-                    edges["start_vertex_type"][0],
-                    edges["end_vertex_type"][0],
+                    edges["start_v_label"][0],
+                    edges["end_v_label"][0],
                 ]:
                     query = sql.SQL(
                         f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
                     )
+
                     await cur.execute(query)
                     rows = await cur.fetchall()
                     idmaps[e_label] = {
@@ -306,10 +351,10 @@ class AgeFreighter:
         return idmaps
 
     # get the first id for vertex / edge
-    async def getFirstId(self, label: str = "") -> int:
+    async def getFirstId(self, label_type: str = "") -> int:
         async with self.pool.connection() as conn:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
-                query = sql.SQL(f"SELECT id FROM ag_label WHERE name='{label}'")
+                query = sql.SQL(f"SELECT id FROM ag_label WHERE name='{label_type}'")
                 await cur.execute(query)
                 row = await cur.fetchone()
 
@@ -321,6 +366,39 @@ class AgeFreighter:
 
                 return first_id
 
+    # rename columns name
+    async def renameColumns(df: pd.DataFrame = None) -> pd.DataFrame:
+        cols_to_rename = {}
+        for col in df.columns.tolist():
+            if col.startswith("a().prop."):
+                cols_to_rename[col] = col.replace("a().prop.", "")
+            elif col.startswith("a()."):
+                cols_to_rename[col] = col.replace("a().", "")
+            if col.startswith("a->.prop."):
+                cols_to_rename[col] = col.replace("a->.prop.", "")
+            elif col.startswith("a->."):
+                cols_to_rename[col] = col.replace("a->.", "")
+        return df.rename(columns=cols_to_rename)
+
+    # get start/end vertex labels
+    async def getVertexLabels(
+        nodes: pd.DataFrame = None,
+        v_labels: List = [],
+        first_source_id: str = "",
+        first_target_id: str = "",
+    ) -> List:
+        try:
+            start_v_label = [
+                item["label"] for item in nodes if item["id"] == first_source_id
+            ][0]
+            end_v_label = v_labels[1] if v_labels[0] == start_v_label else v_labels[0]
+        except IndexError:
+            end_v_label = [
+                item["label"] for item in nodes if item["id"] == first_target_id
+            ][0]
+            start_v_label = v_labels[1] if v_labels[0] == end_v_label else v_labels[0]
+        return start_v_label, end_v_label
+
     # open connection pool
     @classmethod
     async def connect(
@@ -329,13 +407,6 @@ class AgeFreighter:
         # to make large number of connections
         current_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
         resource.setrlimit(resource.RLIMIT_NOFILE, (8192, current_limit[1]))
-
-        if log_level is not None:
-            logging.basicConfig(
-                level=log_level,
-                format="%(asctime)s %(levelname)s %(name)s %(message)s",
-                datefmt="[%X]",
-            )
         cls.dsn = dsn + " options='-c search_path=ag_catalog,\"$user\",public'"
         cls.pool = AsyncConnectionPool(
             cls.dsn,
@@ -354,13 +425,13 @@ class AgeFreighter:
         cls,
         graph_name: str = "",
         csv: str = "",
-        start_vertex_type: str = "",
+        start_v_label: str = "",
         start_id: str = "",
-        start_properties: List = [],
-        edge_label: str = "",
-        end_vertex_type: str = "",
+        start_props: List = [],
+        edge_type: str = "",
+        end_v_label: str = "",
         end_id: str = "",
-        end_properties: List = [],
+        end_props: List = [],
         chunk_size: int = 3,
         direct_loading: bool = False,
         drop_graph: bool = False,
@@ -371,73 +442,50 @@ class AgeFreighter:
         for df in reader:
             if first_chunk:
                 # check if the first column is 'id'. Rest of the columns are properties
-                cls.checkKeys(
-                    cls,
+                await cls.checkKeys(
                     df.keys(),
-                    [start_id] + start_properties + [end_id] + end_properties,
+                    [start_id] + start_props + [end_id] + end_props,
                 )
 
                 await cls.setUpGraph(cls, graph_name, drop_graph)
 
-                await cls.createLabel(cls, label_type="vertex", label=start_vertex_type)
-                await cls.createLabel(cls, label_type="vertex", label=end_vertex_type)
-                await cls.createLabel(cls, label_type="edge", label=edge_label)
+                await cls.createLabelType(cls, label_type="vertex", value=start_v_label)
+                await cls.createLabelType(cls, label_type="vertex", value=end_v_label)
+                await cls.createLabelType(cls, label_type="edge", value=edge_type)
                 first_chunk = False
 
-            start_time = time.time()
             # create vertices
-            for vertex_type, id, properties in zip(
-                [start_vertex_type, end_vertex_type],
+            for v_label, id, props in zip(
+                [start_v_label, end_v_label],
                 [start_id, end_id],
-                [start_properties, end_properties],
+                [start_props, end_props],
             ):
                 vertices = (
-                    df.loc[:, [id, *properties]]
-                    .drop_duplicates()
-                    .rename(columns={id: "id"})
+                    df.loc[:, [id, *props]].drop_duplicates().rename(columns={id: "id"})
                 )
-                if direct_loading:
-                    for i in properties:
-                        if isinstance(vertices[i].values[0], str):
-                            vertices[i] = vertices[i].str.replace("'", "''")
-                    await cls.createVerticesDirectly(
-                        cls, vertices, vertex_type, chunk_size
-                    )
-                else:
-                    for i in properties:
-                        if isinstance(vertices[i].values[0], str):
-                            vertices[i] = vertices[i].str.replace("'", r"\'")
-                    if use_copy:
-                        await cls.copyVertices(
-                            cls, vertices, vertex_type, chunk_size, drop_graph
-                        )
-                    else:
-                        await cls.createVertices(cls, vertices, vertex_type, chunk_size)
-            logging.info(
-                f"loadFromSingleCSV : time to create vertices, {time.time() - start_time}, chunk_size: {chunk_size}"
-            )
+                await cls.createVertices(
+                    cls,
+                    vertices,
+                    v_label,
+                    chunk_size,
+                    direct_loading,
+                    drop_graph,
+                    use_copy,
+                )
 
-            start_time = time.time()
             # extract unique edges (maybe already done)
-            # start_id,start_vertex_type,end_id,end_vertex_type
+            # start_id,start_v_label,end_id,end_v_label
             edges = (
                 df.loc[:, [start_id, end_id]]
                 .drop_duplicates()
                 .rename(columns={start_id: "start_id", end_id: "end_id"})
             )
-            edges["start_vertex_type"] = start_vertex_type
-            edges["end_vertex_type"] = end_vertex_type
+            edges["start_v_label"] = start_v_label
+            edges["end_v_label"] = end_v_label
 
             # create edges with tasks
-            if direct_loading:
-                await cls.createEdgesDirectly(cls, edges, edge_label, chunk_size)
-            else:
-                if use_copy:
-                    await cls.copyEdges(cls, edges, edge_label, chunk_size, drop_graph)
-                else:
-                    await cls.createEdges(cls, edges, edge_label, chunk_size)
-            logging.info(
-                f"loadFromSingleCSV : time to create edges, {time.time() - start_time}, chunk_size: {chunk_size}"
+            await cls.createEdges(
+                cls, edges, edge_type, chunk_size, direct_loading, drop_graph, use_copy
             )
 
     # this is a wrapper for load_labels_from_file() / load_edges_from_file()
@@ -446,72 +494,76 @@ class AgeFreighter:
         cls,
         graph_name: str = "",
         vertex_csvs: List = [],
-        vertex_labels: List = [],
+        v_labels: List = [],
         edge_csvs: List = [],
-        edge_labels: List = [],
-        num_per_thread: int = 3,
+        e_types: List = [],
         chunk_size: int = 10,
         direct_loading: bool = False,
         drop_graph: bool = False,
         use_copy: bool = False,
     ) -> None:
+        # setup graph
         await cls.setUpGraph(cls, graph_name, drop_graph)
 
         # create vertices
-        start_time = time.time()
-        for vertex_csv, vertex_label in zip(vertex_csvs, vertex_labels):
+        for vertex_csv, v_label in zip(vertex_csvs, v_labels):
             first_chunk = True
             reader = pd.read_csv(vertex_csv, chunksize=1000000)
-            for df in reader:
+            for vertices in reader:
                 if first_chunk:
                     # check if the first column is 'id'. Rest of the columns are properties
-                    cls.checkKeys(cls, df.keys(), ["id"])
+                    await cls.checkKeys(vertices.keys(), ["id"])
 
                     # we need to create vlabel before create vertices with tasks
-                    await cls.createLabel(cls, label_type="vertex", label=vertex_label)
+                    await cls.createLabelType(cls, label_type="vertex", value=v_label)
                     first_chunk = False
 
-                # create vertices with tasks
-                if direct_loading:
-                    await cls.createVerticesDirectly(cls, df, vertex_label, chunk_size)
-                else:
-                    if use_copy:
-                        await cls.copyVertices(cls, df, vertex_label, chunk_size)
-                    else:
-                        await cls.createVertices(cls, df, vertex_label, chunk_size)
-        logging.info(
-            f"loadFromCSVs : time to create vertices, {time.time() - start_time}, chunk_size: {chunk_size}"
-        )
+                    await cls.createVertices(
+                        cls,
+                        vertices,
+                        v_label,
+                        chunk_size,
+                        direct_loading,
+                        drop_graph,
+                        use_copy,
+                    )
 
         # create edges
-        start_time = time.time()
-        for edge_csv, edge_label in zip(edge_csvs, edge_labels):
+        for edge_csv, edge_type in zip(edge_csvs, e_types):
             first_chunk = True
             reader = pd.read_csv(edge_csv, chunksize=1000000)
-            for df in reader:
+            for edges in reader:
                 if first_chunk:
                     # check if the columns include 'start_id', 'start_vertex_type', 'end_id', 'end_vertex_type'
-                    cls.checkKeys(
-                        cls,
-                        df.keys(),
-                        ["start_id", "start_vertex_type", "end_id", "end_vertex_type"],
+                    await cls.checkKeys(
+                        edges.keys(),
+                        [
+                            "start_id",
+                            "start_vertex_type",
+                            "end_id",
+                            "end_vertex_type",
+                        ],
                     )
 
                     # we need to create vlabel before create vertices with tasks
-                    await cls.createLabel(cls, label_type="edge", label=edge_label)
+                    await cls.createLabelType(cls, label_type="edge", value=edge_type)
                     first_chunk = False
-
-                # create edges with tasks
-                if direct_loading:
-                    await cls.createEdgesDirectly(cls, df, edge_label, chunk_size)
-                else:
-                    if use_copy:
-                        await cls.copyEdges(cls, df, edge_label, chunk_size)
-                    else:
-                        await cls.createEdges(cls, df, edge_label, chunk_size)
-        logging.info(
-            f"loadFromCSVs : time to create edges, {time.time() - start_time}, chunk_size: {chunk_size}"
-        )
+                edges.rename(
+                    columns={
+                        "start_vertex_type": "start_v_label",
+                        "end_vertex_type": "end_v_label",
+                    },
+                    inplace=True,
+                )
+                await cls.createEdges(
+                    cls,
+                    edges,
+                    edge_type,
+                    chunk_size,
+                    direct_loading,
+                    drop_graph,
+                    use_copy,
+                )
 
     # load data from networkx graph
     @classmethod
@@ -524,85 +576,56 @@ class AgeFreighter:
         drop_graph: bool = False,
         use_copy: bool = False,
     ) -> None:
+        # setup graph
         await cls.setUpGraph(cls, graph_name, drop_graph)
 
         # create vertices
-        start_time = time.time()
-        vertex_types = []
-        for vertex_type in set(
-            nx.get_node_attributes(networkx_graph, "label").values()
-        ):
-            vertex_types.append(vertex_type)
-            await cls.createLabel(cls, label_type="vertex", label=vertex_type)
+        v_labels = []
+        for v_label in set(nx.get_node_attributes(networkx_graph, "label").values()):
+            v_labels.append(v_label)
+            await cls.createLabelType(cls, label_type="vertex", value=v_label)
             nodes = [
                 {"id": node, **data}
                 for node, data in networkx_graph.nodes(data=True)
-                if data.get("label") == vertex_type
+                if data.get("label") == v_label
             ]
             columns = [k for k in list(nodes[0].keys()) if k != "label"]
             vertices = pd.DataFrame(nodes, columns=columns)
-            if direct_loading:
-                vertices = vertices.map(
-                    lambda x: x.replace("'", "''") if isinstance(x, str) else x
-                )
-                await cls.createVerticesDirectly(cls, vertices, vertex_type, chunk_size)
-            else:
-                vertices = vertices.map(
-                    lambda x: x.replace("'", r"\'") if isinstance(x, str) else x
-                )
-                if use_copy:
-                    await cls.copyVertices(
-                        cls, vertices, vertex_type, chunk_size, drop_graph
-                    )
-                else:
-                    await cls.createVertices(cls, vertices, vertex_type, chunk_size)
-
-        logging.info(
-            f"loadFromNetworkx : time to create vertices, {time.time() - start_time}, chunk_size: {chunk_size}"
-        )
+            await cls.createVertices(
+                cls,
+                vertices,
+                v_label,
+                chunk_size,
+                direct_loading,
+                drop_graph,
+                use_copy,
+            )
 
         # create edges
-        start_time = time.time()
         for edge_type in set(nx.get_edge_attributes(networkx_graph, "label").values()):
-            await cls.createLabel(cls, label_type="edge", label=edge_type)
+            await cls.createLabelType(cls, label_type="edge", value=edge_type)
             edges = nx.to_pandas_edgelist(networkx_graph)
             # it's a little bit tricky to get the vertex types of the start and end vertices
             # nodes keeps the last vertex information, it might be the start or end vertex. It's not guaranteed.
             first_source_id = edges["source"][0]
             first_target_id = edges["target"][0]
-            try:
-                start_vertex_type = [
-                    item["label"] for item in nodes if item["id"] == first_source_id
-                ][0]
-                end_vertex_type = (
-                    vertex_types[1]
-                    if vertex_types[0] == start_vertex_type
-                    else vertex_types[0]
-                )
-            except IndexError:
-                end_vertex_type = [
-                    item["label"] for item in nodes if item["id"] == first_target_id
-                ][0]
-                start_vertex_type = (
-                    vertex_types[1]
-                    if vertex_types[0] == end_vertex_type
-                    else vertex_types[0]
-                )
-            edges.insert(0, "start_vertex_type", start_vertex_type)
-            edges.insert(0, "end_vertex_type", end_vertex_type)
+            start_v_label, end_v_label = await cls.getVertexLabels(
+                nodes, v_labels, first_source_id, first_target_id
+            )
+            edges.insert(0, "start_v_label", start_v_label)
+            edges.insert(0, "end_v_label", end_v_label)
             edges.rename(
                 columns={"source": "start_id", "target": "end_id"}, inplace=True
             )
-            if direct_loading:
-                await cls.createEdgesDirectly(cls, edges, edge_type, chunk_size)
-            else:
-                if use_copy:
-                    await cls.copyEdges(cls, edges, edge_type, chunk_size, drop_graph)
-                else:
-                    await cls.createEdges(cls, edges, edge_type, chunk_size)
-        logging.info(
-            f"loadFromNetworkx : time to create edges, {time.time() - start_time}, chunk_size: {chunk_size}"
-        )
+            await cls.createEdges(
+                cls,
+                edges,
+                edge_type,
+                chunk_size,
+                direct_loading,
+                drop_graph,
+                use_copy,
+            )
 
     # load data from neo4j
     # Not completed yet
@@ -611,71 +634,107 @@ class AgeFreighter:
         cls,
         uri: str = "bolt://localhost:7687",
         user: str = "neo4j",
-        password: str = "password",
+        password: str = "neo4jpass",
         neo4j_database: str = "neo4j",
         graph_name: str = "",
+        id_map: Dict = {},
         chunk_size: int = 3,
         direct_loading: bool = False,
         drop_graph: bool = False,
         use_copy: bool = False,
     ) -> None:
-        # get all nodes and edges from neo4j
         import neo4j
 
+        # setup graph
         await cls.setUpGraph(cls, graph_name, drop_graph)
 
+        # get all nodes and edges from neo4j
         chunk_multiplier = 500
         async with neo4j.AsyncGraphDatabase.driver(
             uri, auth=(user, password)
         ) as driver:
+            # create vertices
             records, _, _ = await driver.execute_query(
                 "MATCH (n) RETURN distinct labels(n)",
                 db=neo4j_database,
             )
+            v_labels = []
             for record in records:
-                label = record["labels(n)"][0]
+                v_label = record["labels(n)"][0]
+                v_labels.append(v_label)
                 # create label
-                await cls.createLabel(cls, label_type="vertex", label=label)
+                await cls.createLabelType(cls, label_type="vertex", value=v_label)
                 # need to know the number of nodes
                 result = await driver.execute_query(
-                    f"MATCH (a:{label}) RETURN count(a) AS count",
+                    f"MATCH (a:{v_label}) RETURN count(a) AS count",
                     db=neo4j_database,
                     result_transformer_=neo4j.AsyncResult.single,
                 )
                 cnt = result["count"]
                 for i in range(0, cnt, chunk_size * chunk_multiplier):
-                    nodes = await driver.execute_query(
-                        f"MATCH (a:{label}) RETURN a SKIP $skip LIMIT $limit",
+                    vertices = await driver.execute_query(
+                        f"MATCH (a:{v_label}) RETURN a SKIP $skip LIMIT $limit",
                         skip=i,
                         limit=chunk_size * chunk_multiplier,
                         db=neo4j_database,
                         result_transformer_=lambda res: res.to_df(expand=True),
                     )
+                    vertices.drop(columns=["a().labels"], inplace=True)
+                    vertices = await cls.renameColumns(vertices)
+                    vertices.rename(columns={id_map[v_label]: "id"}, inplace=True)
+                    await cls.createVertices(
+                        cls,
+                        vertices,
+                        v_label,
+                        chunk_size,
+                        direct_loading,
+                        drop_graph,
+                        use_copy,
+                    )
 
-                    print(nodes)
-                # create vertices
-
+            # create edges
             records, _, _ = await driver.execute_query(
                 "MATCH ()-[n]->() RETURN distinct type(n)",
                 db=neo4j_database,
             )
             for record in records:
-                type = record["type(n)"]
+                edge_type = record["type(n)"]
                 # create edge label
-                await cls.createLabel(cls, label_type="edge", label=type)
+                await cls.createLabelType(cls, label_type="edge", value=edge_type)
                 # need to know the number of edges
                 result = await driver.execute_query(
-                    f"MATCH ()-[a:{type}]->() RETURN count(a) AS count",
+                    f"MATCH ()-[a:{edge_type}]->() RETURN count(a) AS count",
                     result_transformer_=neo4j.AsyncResult.single,
                 )
                 cnt = result["count"]
+                result = await driver.execute_query(
+                    f"MATCH (m) - [a:{edge_type}] -> (n) RETURN m, n LIMIT 1",
+                    result_transformer_=lambda res: res.to_df(expand=True),
+                )
+                # fix me if the nodes have multiple labels
+                start_v_label = "".join(map(str, result["m().labels"][0]))
+                end_v_label = "".join(map(str, result["n().labels"][0]))
                 for i in range(0, cnt, chunk_size * chunk_multiplier):
                     edges = await driver.execute_query(
-                        f"MATCH (a) - [r:{type}] -> (b) RETURN r SKIP $skip LIMIT $limit",
+                        f"MATCH () - [a:{edge_type}] -> () RETURN a SKIP $skip LIMIT $limit",
                         skip=i,
                         limit=chunk_size * chunk_multiplier,
                         db=neo4j_database,
                         result_transformer_=lambda res: res.to_df(expand=True),
                     )
-                    print(edges)
-                    # create edges
+                    edges.drop(columns=["a->.type"], inplace=True)
+                    edges = await cls.renameColumns(edges)
+                    edges.rename(
+                        columns={"from": "start_id", "to": "end_id"}, inplace=True
+                    )
+                    edges.insert(0, "start_v_label", start_v_label)
+                    edges.insert(0, "end_v_label", end_v_label)
+                    await cls.createEdges(
+                        cls,
+                        edges,
+                        edge_type,
+                        chunk_size,
+                        direct_loading,
+                        drop_graph,
+                        use_copy,
+                    )
