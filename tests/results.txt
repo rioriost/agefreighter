@@ -1,16 +1,22 @@
-All tests are run on an instance of Azure Database for PostgreSQL Flexible Server, Standard_D32ds_v4 (32 vcpus, 128 GiB memory), with 512 GiB / 2300 iops storage.
+All tests are run on an instance of Azure Database for PostgreSQL Flexible Server, Standard_D16ds_v4 (16 vcpus, 64 GiB memory), with 256 GiB / 2300 iops storage.
 
-test1 : time to loadFromSingleCSV, 50.37s, chunk_size: 64, direct_loading: False
-test2 : time to loadFromSingleCSV, 5.45s, chunk_size: 64, direct_loading: True
-test3 : time to loadFromCSVs, 10.52s, chunk_size: 64, direct_loading: False
-test4 : time to loadFromCSVs, 4.68s, chunk_size: 64, direct_loading: True
+test_loadFromSingleCSV : time, 29.46, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromSingleCSV : time, 5.33, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromSingleCSV : time, 5.75, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromSingleCSV done
 
-test1 : time to loadFromSingleCSV, 12.17s, chunk_size: 96, direct_loading: False
-test2 : time to loadFromSingleCSV, 5.45s, chunk_size: 96, direct_loading: True
-test3 : time to loadFromCSVs, 10.48s, chunk_size: 96, direct_loading: False
-test4 : time to loadFromCSVs, 4.59s, chunk_size: 96, direct_loading: True
+test_loadFromCSVs : time, 17.36, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromCSVs : time, 4.86, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromCSVs : time, 5.32, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromCSVs done
 
-test1 : time to loadFromSingleCSV, 23.78s, chunk_size: 128, direct_loading: False
-test2 : time to loadFromSingleCSV, 5.46s, chunk_size: 128, direct_loading: True
-test3 : time to loadFromCSVs, 10.55s, chunk_size: 128, direct_loading: False
-test4 : time to loadFromCSVs, 4.69s, chunk_size: 128, direct_loading: True
+test_loadFromNetworkx : time, 61.78, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromNetworkx : time, 6.08, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromNetworkx : time, 5.69, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromNetworkx done
+
+test_loadFromNeo4j : time, 61.13, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromNeo4j : time, 36.10, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromNeo4j : time, 35.73, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromNeo4j done
+##### The duration for test_loadFromNeo4j depends on the performance of the neo4j server. #####
