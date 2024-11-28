@@ -9,7 +9,6 @@ from agefreighter import AgeFreighter
 import networkx as nx
 import pandas as pd
 
-
 # for environment where PostgreSQL is not capable of loading data from local files, e.g. Azure Database for PostgreSQL
 
 
@@ -28,13 +27,13 @@ async def test_loadFromSingleCSV(
     await af.loadFromSingleCSV(
         graph_name="actorfilms",
         csv="actorfilms.csv",
-        start_vertex_type="Actor",
+        start_v_label="Actor",
         start_id="ActorID",
-        start_properties=["Actor"],
-        edge_label="ACTED_IN",
-        end_vertex_type="Film",
+        start_props=["Actor"],
+        edge_type="ACTED_IN",
+        end_v_label="Film",
         end_id="FilmID",
-        end_properties=["Film", "Year", "Votes", "Rating"],
+        end_props=["Film", "Year", "Votes", "Rating"],
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
@@ -61,9 +60,9 @@ async def test_loadFromCSVs(
     await af.loadFromCSVs(
         graph_name="cities_countries",
         vertex_csvs=["countries.csv", "cities.csv"],
-        vertex_labels=["Country", "City"],
+        v_labels=["Country", "City"],
         edge_csvs=["edges.csv"],
-        edge_labels=["has_city"],
+        e_types=["has_city"],
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
@@ -76,6 +75,7 @@ async def test_loadFromCSVs(
 
 # test for loadFromNetworkx
 # create networkx graph from actorfilms.csv
+# file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
 # after creating networkx graph, load it to the database
 async def test_loadFromNetworkx(
     af: AgeFreighter,
@@ -109,8 +109,142 @@ async def test_loadFromNetworkx(
         use_copy=use_copy,
     )
     print(
-        f"test_copyFromNetworkx : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+        f"test_loadFromNetworkx : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
     )
+
+
+# test for loadFromNeo4j
+# create networkx graph from actorfilms.csv
+# after creating networkx graph, load it to the database
+async def test_loadFromNeo4j(
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+    init_neo4j: bool = False,
+) -> None:
+    try:
+        n4j_uri = os.environ["NEO4J_URI"]
+        n4j_user = os.environ["NEO4J_USER"]
+        n4j_password = os.environ["NEO4J_PASSWORD"]
+    except KeyError:
+        print(
+            "Please set the environment variables NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD"
+        )
+        return
+
+    # prepare test data for neo4j
+    if init_neo4j:
+        await loadTestDataToNeo4j(n4j_uri, n4j_user, n4j_password)
+
+    start_time = time.time()
+    graph_name = "actorfilms"
+    await af.loadFromNeo4j(
+        uri=n4j_uri,
+        user=n4j_user,
+        password=n4j_password,
+        neo4j_database="neo4j",
+        graph_name=graph_name,
+        id_map={"Actor": "ActorID", "Film": "FilmID"},
+        chunk_size=chunk_size,
+        direct_loading=direct_loading,
+        drop_graph=True,
+        use_copy=use_copy,
+    )
+    print(
+        f"test_loadFromNeo4j : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+    )
+
+
+# load test data to neo4j
+# file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
+async def loadTestDataToNeo4j(
+    n4j_uri: str = "",
+    n4j_user: str = "",
+    n4j_password: str = "",
+) -> None:
+    from neo4j import AsyncGraphDatabase
+
+    batch_size = 1000
+    df = pd.read_csv("actorfilms.csv")
+    uniq_actors = df[["ActorID", "Actor"]].drop_duplicates()
+    uniq_films = df[["FilmID", "Film", "Year", "Votes", "Rating"]].drop_duplicates()
+
+    async with AsyncGraphDatabase.driver(
+        n4j_uri, auth=(n4j_user, n4j_password)
+    ) as driver:
+        async with driver.session() as session:
+            # clear the database
+            await session.run("MATCH (a)-[r]->() DELETE a, r")
+            await session.run("MATCH (a) DELETE a")
+            await session.run("DROP INDEX actor_index_id IF EXISTS")
+            await session.run("DROP INDEX film_index_id IF EXISTS")
+            await session.run(
+                "CREATE INDEX actor_index_id FOR (n:Actor) ON (n.ActorID)"
+            )
+            await session.run("CREATE INDEX film_index_id FOR (n:Film) ON (n.FilmID)")
+            # create actor nodes
+            for idx in range(0, len(uniq_actors), batch_size):
+                actors = [
+                    {"Actor": actor, "ActorID": actorid}
+                    for i, (actor, actorid) in enumerate(
+                        zip(
+                            uniq_actors["Actor"][idx : idx + batch_size].tolist(),
+                            uniq_actors["ActorID"][idx : idx + batch_size].tolist(),
+                        )
+                    )
+                ]
+                await session.run(
+                    """UNWIND $actors AS row
+                    CREATE (a:Actor)
+                    SET a += row""",
+                    actors=actors,
+                )
+            # create film nodes
+            for idx in range(0, len(uniq_films), batch_size):
+                films = [
+                    {
+                        "Film": film,
+                        "FilmID": filmid,
+                        "Year": year,
+                        "Votes": votes,
+                        "Rating": rating,
+                    }
+                    for i, (film, filmid, year, votes, rating) in enumerate(
+                        zip(
+                            uniq_films["Film"][idx : idx + batch_size].tolist(),
+                            uniq_films["FilmID"][idx : idx + batch_size].tolist(),
+                            uniq_films["Year"][idx : idx + batch_size].tolist(),
+                            uniq_films["Votes"][idx : idx + batch_size].tolist(),
+                            uniq_films["Rating"][idx : idx + batch_size].tolist(),
+                        )
+                    )
+                ]
+                await session.run(
+                    """UNWIND $films AS row
+                    CREATE (f:Film)
+                    SET f += row""",
+                    films=films,
+                )
+            # create edges
+            for idx in range(0, len(df), batch_size):
+                acted_ins = [
+                    {"from": actorid, "to": filmid}
+                    for i, (actorid, filmid) in enumerate(
+                        zip(
+                            df["ActorID"][idx : idx + batch_size].tolist(),
+                            df["FilmID"][idx : idx + batch_size].tolist(),
+                        )
+                    )
+                ]
+                await session.run(
+                    """UNWIND $acted_ins AS row
+                    MATCH (from:Actor {ActorID: row.from})
+                    MATCH (to:Film {FilmID: row.to})
+                    CREATE (from)-[r:ACTED_IN]->(to)
+                    SET r += row""",
+                    acted_ins=acted_ins,
+                )
 
 
 async def main() -> None:
@@ -121,31 +255,76 @@ async def main() -> None:
         print("Please set the environment variable PG_CONNECTION_STRING")
         return
 
-    af = await AgeFreighter.connect(dsn=connection_string, max_connections=64)
-    #    ag = await Age.connect(dsn = connection_string, log_level=logging.INFO)
     try:
+        af = await AgeFreighter.connect(dsn=connection_string, max_connections=64)
         # Strongly reccomended to define chunk_size with your data and server before loading large amount of data
         # Especially, the number of properties in the vertex affects the complecity of the query
         # Due to asynchronous nature of the library, the duration for loading data is not linear to the number of rows
         #
         # Addition to the chunk_size, max_wal_size and checkpoint_timeout in the postgresql.conf should be considered
 
+        test_set = [
+            [False, False],
+            [True, False],
+            [False, True],
+        ]
+
         chunk_size = 128
-        # await test_loadFromSingleCSV(af, chunk_size=chunk_size, direct_loading=False)
-        # await asyncio.sleep(5)
-        await test_loadFromSingleCSV(af, chunk_size=chunk_size, direct_loading=True)
-        await asyncio.sleep(5)
-        await test_loadFromSingleCSV(af, chunk_size=chunk_size, use_copy=True)
-        await asyncio.sleep(5)
+        do = True
+        if do:
+            [
+                await test_loadFromSingleCSV(
+                    af,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
+                )
+                for idx, (direct_loading, use_copy) in enumerate(test_set)
+            ]
+            print("test_loadFromSingleCSV done\n")
 
-        # await test_loadFromCSVs(af, chunk_size=chunk_size, direct_loading=False)
-        # await asyncio.sleep(5)
-        await test_loadFromCSVs(af, chunk_size=chunk_size, direct_loading=True)
-        await asyncio.sleep(5)
-        await test_loadFromCSVs(af, chunk_size=chunk_size, use_copy=True)
-        await asyncio.sleep(5)
+        do = True
+        if do:
+            [
+                await test_loadFromCSVs(
+                    af,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
+                )
+                for idx, (direct_loading, use_copy) in enumerate(test_set)
+            ]
+            print("test_loadFromCSVs done\n")
 
-        await test_loadFromNetworkx(af, chunk_size=chunk_size, use_copy=True)
+        do = True
+        if do:
+            [
+                await test_loadFromNetworkx(
+                    af,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
+                )
+                for idx, (direct_loading, use_copy) in enumerate(test_set)
+            ]
+            print("test_loadFromNetworkx done\n")
+
+        do = True
+        if do:
+            [
+                await test_loadFromNeo4j(
+                    af,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
+                    init_neo4j=False,
+                )
+                for idx, (direct_loading, use_copy) in enumerate(test_set)
+            ]
+            print(
+                "test_loadFromNeo4j done\n"
+                "##### The duration for test_loadFromNeo4j depends on the performance of the neo4j server. #####\n"
+            )
 
     finally:
         await af.pool.close()
