@@ -21,7 +21,7 @@ class AgeFreighter:
         self.graphName: str = ""
         self.graphNameAgType: str = ""
         self.name = "AgeLoader"
-        self.version = "0.1.6"
+        self.version = "0.1.7"
         self.description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
         self.author = "Rio Fujita"
 
@@ -243,7 +243,9 @@ class AgeFreighter:
                             i : i + chunk_size * chunk_multiplier
                         ].iterrows():
                             properties = [f'"{k}": "{v}"' for k, v in cols.items()]
-                            args += f"{first_id + i}\t{{{', '.join(properties)}}}\n"
+                            args += (
+                                f"{first_id + i + idx}\t{{{', '.join(properties)}}}\n"
+                            )
                         await copy.write(args)
                 await cur.execute("COMMIT")
 
@@ -280,7 +282,7 @@ class AgeFreighter:
                             end_id = idmaps[str(cols["end_vertex_type"])][
                                 str(cols["end_id"])
                             ]
-                            args += f"{first_id + i}\t{start_id}\t{end_id}\n"
+                            args += f"{first_id + i + idx}\t{start_id}\t{end_id}\n"
                         await copy.write(args)
 
     # get idmaps between entry_id and id(graphid)
@@ -603,23 +605,77 @@ class AgeFreighter:
         )
 
     # load data from neo4j
+    # Not completed yet
     @classmethod
     async def loadFromNeo4j(
         cls,
         uri: str = "bolt://localhost:7687",
         user: str = "neo4j",
         password: str = "password",
-        graph_name_to_use: str = "",
+        neo4j_database: str = "neo4j",
+        graph_name: str = "",
+        chunk_size: int = 3,
+        direct_loading: bool = False,
+        drop_graph: bool = False,
+        use_copy: bool = False,
     ) -> None:
         # get all nodes and edges from neo4j
-        from neo4j import AsyncGraphDatabase
+        import neo4j
 
-        async with AsyncGraphDatabase.driver(uri, auth=(user, password)) as driver:
+        await cls.setUpGraph(cls, graph_name, drop_graph)
+
+        chunk_multiplier = 500
+        async with neo4j.AsyncGraphDatabase.driver(
+            uri, auth=(user, password)
+        ) as driver:
             records, _, _ = await driver.execute_query(
-                "MATCH (n) RETURN n", database_=graph_name_to_use
+                "MATCH (n) RETURN distinct labels(n)",
+                db=neo4j_database,
             )
-            all_nodes = records
+            for record in records:
+                label = record["labels(n)"][0]
+                # create label
+                await cls.createLabel(cls, label_type="vertex", label=label)
+                # need to know the number of nodes
+                result = await driver.execute_query(
+                    f"MATCH (a:{label}) RETURN count(a) AS count",
+                    db=neo4j_database,
+                    result_transformer_=neo4j.AsyncResult.single,
+                )
+                cnt = result["count"]
+                for i in range(0, cnt, chunk_size * chunk_multiplier):
+                    nodes = await driver.execute_query(
+                        f"MATCH (a:{label}) RETURN a SKIP $skip LIMIT $limit",
+                        skip=i,
+                        limit=chunk_size * chunk_multiplier,
+                        db=neo4j_database,
+                        result_transformer_=lambda res: res.to_df(expand=True),
+                    )
+
+                    print(nodes)
+                # create vertices
+
             records, _, _ = await driver.execute_query(
-                "MATCH (m)-[r]->(n) RETURN m,n,r", database_=graph_name_to_use
+                "MATCH ()-[n]->() RETURN distinct type(n)",
+                db=neo4j_database,
             )
-            all_edges = records
+            for record in records:
+                type = record["type(n)"]
+                # create edge label
+                await cls.createLabel(cls, label_type="edge", label=type)
+                # need to know the number of edges
+                result = await driver.execute_query(
+                    f"MATCH ()-[a:{type}]->() RETURN count(a) AS count",
+                    result_transformer_=neo4j.AsyncResult.single,
+                )
+                cnt = result["count"]
+                for i in range(0, cnt, chunk_size * chunk_multiplier):
+                    edges = await driver.execute_query(
+                        f"MATCH (a) - [r:{type}] -> (b) RETURN r SKIP $skip LIMIT $limit",
+                        skip=i,
+                        limit=chunk_size * chunk_multiplier,
+                        db=neo4j_database,
+                        result_transformer_=lambda res: res.to_df(expand=True),
+                    )
+                    print(edges)
+                    # create edges
