@@ -20,3 +20,9 @@ test_loadFromNeo4j : time, 36.10, chunk_size: 128, direct_loading: True, use_cop
 test_loadFromNeo4j : time, 35.73, chunk_size: 128, direct_loading: False, use_copy: True
 test_loadFromNeo4j done
 ##### The duration for test_loadFromNeo4j depends on the performance of the neo4j server. #####
+
+test_loadFromPGSQL : time, 37.90, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromPGSQL : time, 8.35, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromPGSQL : time, 8.50, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromPGSQL done
+##### The duration for test_loadFromPGSQL depends on the performance of the source pgsql server. #####
