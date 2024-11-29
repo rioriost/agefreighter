@@ -18,7 +18,7 @@ class AgeFreighter:
         self.graphName: str = ""
         self.graphNameAgType: str = ""
         self.name = "AgeLoader"
-        self.version = "0.2.0"
+        self.version = "0.2.1"
         self.description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
         self.author = "Rio Fujita"
 
@@ -628,7 +628,6 @@ class AgeFreighter:
             )
 
     # load data from neo4j
-    # Not completed yet
     @classmethod
     async def loadFromNeo4j(
         cls,
@@ -738,3 +737,80 @@ class AgeFreighter:
                         drop_graph,
                         use_copy,
                     )
+
+    # load data from pgsql
+    # Not completed yet
+    @classmethod
+    async def loadFromPGSQL(
+        cls,
+        src_con_string: str = "",
+        src_tables: List = [],
+        graph_name: str = "",
+        id_maps: Dict = {},
+        chunk_size: int = 3,
+        direct_loading: bool = False,
+        drop_graph: bool = False,
+        use_copy: bool = False,
+    ) -> None:
+        import psycopg as pg
+
+        chunk_multiplier = 500
+
+        try:
+            with pg.connect(src_con_string) as conn:
+                with conn.cursor(row_factory=namedtuple_row) as cur:
+                    # setup graph
+                    await cls.setUpGraph(cls, graph_name, drop_graph)
+                    for src_table in src_tables.values():
+                        if id_maps.get(src_table) is not None:  # nodes
+                            id_map = id_maps[src_table]
+                            # create label
+                            await cls.createLabelType(
+                                cls, label_type="vertex", value=src_table
+                            )
+                            cur.execute(f"SELECT COUNT(*) FROM {src_table}")
+                            cnt = cur.fetchone()[0]
+                            for i in range(0, cnt, chunk_size * chunk_multiplier):
+                                cur.execute(
+                                    f"SELECT * FROM {src_table} LIMIT {chunk_size * chunk_multiplier} OFFSET {i}"
+                                )
+                                rows = cur.fetchall()
+                                vertices = pd.DataFrame(rows)
+                                vertices.rename(columns={id_map: "id"}, inplace=True)
+                                await cls.createVertices(
+                                    cls,
+                                    vertices,
+                                    src_table,
+                                    chunk_size,
+                                    direct_loading,
+                                    drop_graph,
+                                    use_copy,
+                                )
+                        else:  # edges
+                            # create label
+                            await cls.createLabelType(
+                                cls, label_type="edge", value=src_table
+                            )
+                            cur.execute(f"SELECT COUNT(*) FROM {src_table}")
+                            cnt = cur.fetchone()[0]
+                            for i in range(0, cnt, chunk_size * chunk_multiplier):
+                                cur.execute(
+                                    f"SELECT * FROM {src_table} LIMIT {chunk_size * chunk_multiplier} OFFSET {i}"
+                                )
+                                rows = cur.fetchall()
+                                edges = pd.DataFrame(rows)
+                                edges.insert(
+                                    0, "start_v_label", list(id_maps.keys())[0]
+                                )
+                                edges.insert(0, "end_v_label", list(id_maps.keys())[1])
+                                await cls.createEdges(
+                                    cls,
+                                    edges,
+                                    src_table,
+                                    chunk_size,
+                                    direct_loading,
+                                    drop_graph,
+                                    use_copy,
+                                )
+        except Exception as e:
+            raise e
