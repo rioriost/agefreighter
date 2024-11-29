@@ -18,6 +18,7 @@ a Python package that helps you to create a graph database using Azure Database 
 * 'loadFromCSVs()' expects multiple CSV files. Two CSV files for vertices and one CSV file for edges.
 * 'loadFromNetworkx()' expects a NetworkX graph object.
 * 'loadFromNeo4j()' expects a Neo4j as a source.
+* 'loadFromPGSQL()' expects a PGSQL as a source.
 * Many more coming soon...
 
 ### Install
@@ -40,6 +41,8 @@ CREATE EXTENSION IF NOT EXISTS age CASCADE;
 See, [tests/test_agefreighter.py](https://github.com/rioriost/agefreighter/blob/6c61f53ec2cf3daf79356690096fee2d18e37631/tests/test_agefreighter.py) for more details.
 
 ```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import os
 import time
 
@@ -155,7 +158,7 @@ async def test_loadFromNetworkx(
 
 # test for loadFromNeo4j
 # create networkx graph from actorfilms.csv
-# after creating networkx graph, load it to the database
+# after creating networkx graph, load it to a graph
 async def test_loadFromNeo4j(
     af: AgeFreighter,
     chunk_size: int = 96,
@@ -287,6 +290,107 @@ async def loadTestDataToNeo4j(
                 )
 
 
+# test for loadFromPGSQL
+# create tables from actorfilms.csv
+# after creating table, load it to a graph
+async def test_loadFromPGSQL(
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+    init_pgsql: bool = False,
+) -> None:
+    try:
+        src_connection_string = os.environ["SRC_PG_CONNECTION_STRING"]
+    except KeyError:
+        print("Please set the environment variables SRC_PG_CONNECTION_STRING")
+        return
+
+    src_tables = {"from_nodes": "Actor", "to_nodes": "Film", "edges": "ACTED_IN"}
+
+    if init_pgsql:
+        # prepare test data for pgsql
+        await loadTestDataToPGSQL(
+            con_string=src_connection_string,
+            src_tables=src_tables,
+            src_csv="actorfilms.csv",
+        )
+
+    start_time = time.time()
+    graph_name = "actorfilms"
+    await af.loadFromPGSQL(
+        src_con_string=src_connection_string,
+        src_tables=src_tables,
+        graph_name=graph_name,
+        # values are culumn name with small caps
+        id_maps={
+            "Actor": "actorid",
+            "Film": "filmid",
+        },
+        chunk_size=chunk_size,
+        direct_loading=direct_loading,
+        drop_graph=True,
+        use_copy=use_copy,
+    )
+    print(
+        f"test_loadFromPGSQL : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+    )
+
+
+# load test data to PGSQL
+# file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
+async def loadTestDataToPGSQL(
+    con_string: str = "",
+    src_tables: dict = {},
+    src_csv: str = "",
+) -> None:
+    import psycopg as pg
+
+    df = pd.read_csv(src_csv)
+
+    datum = [None, None, None]
+    types = [None, None, None]
+
+    datum[0] = df[["ActorID", "Actor"]].drop_duplicates()
+    datum[0].insert(0, "serial", range(1, len(datum[0]) + 1))
+    types[0] = ["SERIAL", "TEXT", "TEXT"]
+
+    datum[1] = df[["FilmID", "Film", "Year", "Votes", "Rating"]].drop_duplicates()
+    datum[1].insert(0, "serial", range(1, len(datum[1]) + 1))
+    types[1] = ["SERIAL", "TEXT", "TEXT", "INT", "INT", "REAL"]
+
+    datum[2] = df[["ActorID", "FilmID"]].rename(
+        columns={"ActorID": "start_id", "FilmID": "end_id"}
+    )
+    datum[2].insert(0, "serial", range(1, len(datum[2]) + 1))
+    types[2] = ["SERIAL", "TEXT", "TEXT"]
+
+    with pg.connect(con_string) as conn:
+        with conn.cursor() as cur:
+            for idx, (table, data, type) in enumerate(
+                zip(src_tables.values(), datum, types)
+            ):
+                cur.execute(f"DROP TABLE IF EXISTS {table}")
+                cols = ",".join(
+                    [
+                        col + " " + tp
+                        for _, (col, tp) in enumerate(zip(data.columns, type))
+                    ]
+                )
+                cur.execute(f"CREATE TABLE {table} ({cols})")
+                query = f"COPY {table} FROM STDIN (FORMAT TEXT, FREEZE)"
+                with cur.copy(query) as copy:
+                    copy.write(
+                        "\n".join(
+                            [
+                                "\t".join(map(str, row))
+                                for row in data.itertuples(index=False)
+                            ]
+                        )
+                    )
+            cur.execute("COMMIT")
+
+
 async def main() -> None:
     # export PG_CONNECTION_STRING="host=your_server.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
     try:
@@ -357,7 +461,7 @@ async def main() -> None:
                     chunk_size=chunk_size,
                     direct_loading=direct_loading,
                     use_copy=use_copy,
-                    init_neo4j=False,
+                    init_neo4j=True,
                 )
                 for idx, (direct_loading, use_copy) in enumerate(test_set)
             ]
@@ -366,12 +470,30 @@ async def main() -> None:
                 "##### The duration for test_loadFromNeo4j depends on the performance of the neo4j server. #####\n"
             )
 
+        do = True
+        if do:
+            [
+                await test_loadFromPGSQL(
+                    af,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
+                    init_pgsql=True,
+                )
+                for idx, (direct_loading, use_copy) in enumerate(test_set)
+            ]
+            print(
+                "test_loadFromPGSQL done\n"
+                "##### The duration for test_loadFromPGSQL depends on the performance of the source pgsql server. #####\n"
+            )
+
     finally:
         await af.pool.close()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 ```
 
 ### Test & Samples
