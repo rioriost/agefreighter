@@ -348,6 +348,43 @@ async def loadTestDataToPGSQL(
             cur.execute("COMMIT")
 
 
+# test for loadFromParquet
+# create parquet from actorfilms.csv
+# after creating parquet, load it to a graph
+async def test_loadFromParquet(
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+    init_parquet: bool = False,
+) -> None:
+    src_parquet = "actorfilms.parquet"
+
+    if init_parquet:
+        pd.read_csv("actorfilms.csv").to_parquet(src_parquet)
+
+    start_time = time.time()
+    graph_name = "actorfilms"
+    await af.loadFromParquet(
+        src_parquet=src_parquet,
+        graph_name=graph_name,
+        start_v_label="Actor",
+        start_id="ActorID",
+        start_props=["Actor"],
+        edge_type="ACTED_IN",
+        end_v_label="Film",
+        end_id="FilmID",
+        end_props=["Film", "Year", "Votes", "Rating"],
+        chunk_size=chunk_size,
+        direct_loading=direct_loading,
+        drop_graph=True,
+        use_copy=use_copy,
+    )
+    print(
+        f"test_loadFromParquet : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+    )
+
+
 async def main() -> None:
     # export PG_CONNECTION_STRING="host=your_server.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
     try:
@@ -443,6 +480,20 @@ async def main() -> None:
                 "test_loadFromPGSQL done\n"
                 "##### The duration for test_loadFromPGSQL depends on the performance of the source pgsql server. #####\n"
             )
+
+        do = True
+        if do:
+            [
+                await test_loadFromParquet(
+                    af,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
+                    init_parquet=False,
+                )
+                for idx, (direct_loading, use_copy) in enumerate(test_set)
+            ]
+            print("test_loadFromParquet done\n")
 
     finally:
         await af.pool.close()
