@@ -4,6 +4,7 @@ from networkx import DiGraph
 import numpy as np
 import pandas as pd
 from psycopg import sql
+from psycopg.errors import UniqueViolation
 from psycopg.rows import namedtuple_row
 from psycopg_pool import AsyncConnectionPool
 import resource
@@ -18,7 +19,7 @@ class AgeFreighter:
         self.graphName: str = ""
         self.graphNameAgType: str = ""
         self.name = "AgeLoader"
-        self.version = "0.2.1"
+        self.version = "0.2.2"
         self.description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
         self.author = "Rio Fujita"
 
@@ -152,9 +153,7 @@ class AgeFreighter:
             for idx, cols in vertices[i : i + chunk_size * chunk_multiplier].iterrows():
                 properties = [f"{k}:'{v}'" for k, v in cols.items()]
                 parts.append(f"(v{idx}:{label} {{{','.join(properties)}}})")
-            query = sql.SQL(
-                f"SELECT * FROM cypher({self.graphNameAgType}, $$ CREATE {','.join(parts)} $$) AS (a agtype);"
-            )
+            query = f"SELECT * FROM cypher({self.graphNameAgType}, $$ CREATE {','.join(parts)} $$) AS (a agtype);"
             args.append(query)
         await self.executeWithTasks(self, self.executeQuery, args)
 
@@ -170,14 +169,13 @@ class AgeFreighter:
                 parts.append(
                     f"MATCH (n:{cols['start_v_label']} {{id: '{cols['start_id']}'}}), (m:{cols['end_v_label']} {{id: '{cols['end_id']}'}}) CREATE (n)-[:{type}]->(m)"
                 )
-            query = sql.SQL(
-                "".join(
-                    [
-                        f"SELECT * FROM cypher({self.graphNameAgType}, $$ {part} $$) AS (a agtype);"
-                        for part in parts
-                    ]
-                )
+            query = "".join(
+                [
+                    f"SELECT * FROM cypher({self.graphNameAgType}, $$ {part} $$) AS (a agtype);"
+                    for part in parts
+                ]
             )
+
             args.append(query)
         await self.executeWithTasks(self, self.executeQuery, args)
 
@@ -193,10 +191,8 @@ class AgeFreighter:
                 properties = [f'"{k}":"{v}"' for k, v in cols.items()]
                 values.append(f"('{{{','.join(properties)}}}')")
             args.append(
-                sql.SQL(
-                    "".join(
-                        f"INSERT INTO {self.graphName}.\"{label}\" (properties) VALUES {','.join(values)};"
-                    )
+                "".join(
+                    f"INSERT INTO {self.graphName}.\"{label}\" (properties) VALUES {','.join(values)};"
                 )
             )
         await self.executeWithTasks(self, self.executeQuery, args)
@@ -211,13 +207,11 @@ class AgeFreighter:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
                 idmaps = {}
                 for e_label in [
-                    edges["start_v_label"][0],
-                    edges["end_v_label"][0],
+                    edges.iloc[0]["start_v_label"],
+                    edges.iloc[0]["end_v_label"],
                 ]:
-                    query = sql.SQL(
-                        f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
-                    )
-                    await cur.execute(query)
+                    query = f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
+                    await cur.execute(sql.SQL(query))
                     rows = await cur.fetchall()
                     idmaps[e_label] = {
                         row.entry_id.replace('"', ""): row.id for row in rows
@@ -235,10 +229,8 @@ class AgeFreighter:
                 f"INSERT INTO {self.graphName}.\"{type}\" (start_id, end_id) VALUES {','.join(values)};"
             )
             args.append(
-                sql.SQL(
-                    "".join(
-                        f"INSERT INTO {self.graphName}.\"{type}\" (start_id, end_id) VALUES {','.join(values)};"
-                    )
+                "".join(
+                    f"INSERT INTO {self.graphName}.\"{type}\" (start_id, end_id) VALUES {','.join(values)};"
                 )
             )
         await self.executeWithTasks(self, self.executeQuery, args)
@@ -257,7 +249,7 @@ class AgeFreighter:
             try:
                 async with pool.connection() as conn:
                     async with conn.cursor() as cur:
-                        await cur.execute(query)
+                        await cur.execute(sql.SQL(query))
                         break
             except Exception as e:
                 print(e)
@@ -277,10 +269,7 @@ class AgeFreighter:
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
                 query = f'COPY {self.graphName}."{label}" FROM STDIN (FORMAT TEXT)'
-                if drop_graph:
-                    await cur.execute(f'TRUNCATE {self.graphName}."{label}"')
-                    query = f'COPY {self.graphName}."{label}" FROM STDIN (FORMAT TEXT, FREEZE)'
-                async with cur.copy(query) as copy:
+                async with cur.copy(sql.SQL(query)) as copy:
                     for i in range(0, len(vertices), chunk_size * chunk_multiplier):
                         args = ""
                         for idx, cols in vertices[
@@ -291,7 +280,7 @@ class AgeFreighter:
                                 f"{first_id + i + idx}\t{{{', '.join(properties)}}}\n"
                             )
                         await copy.write(args)
-                await cur.execute("COMMIT")
+                await cur.execute(sql.SQL("COMMIT"))
 
     # create edges via COPY protocol
     async def copyEdges(
@@ -312,9 +301,9 @@ class AgeFreighter:
             async with conn.cursor() as cur:
                 query = f'COPY {self.graphName}."{type}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT)'
                 if drop_graph:
-                    await cur.execute(f'TRUNCATE {self.graphName}."{type}"')
+                    await cur.execute(sql.SQL(f'TRUNCATE {self.graphName}."{type}"'))
                     query = f'COPY {self.graphName}."{type}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT, FREEZE)'
-                async with cur.copy(query) as copy:
+                async with cur.copy(sql.SQL(query)) as copy:
                     for i in range(0, len(edges), chunk_size * chunk_multiplier):
                         args = ""
                         for idx, cols in edges[
@@ -336,14 +325,12 @@ class AgeFreighter:
         async with self.pool.connection() as conn:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
                 for e_label in [
-                    edges["start_v_label"][0],
-                    edges["end_v_label"][0],
+                    edges.iloc[0]["start_v_label"],
+                    edges.iloc[0]["end_v_label"],
                 ]:
-                    query = sql.SQL(
-                        f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
-                    )
+                    query = f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
 
-                    await cur.execute(query)
+                    await cur.execute(sql.SQL(query))
                     rows = await cur.fetchall()
                     idmaps[e_label] = {
                         row.entry_id.replace('"', ""): row.id for row in rows
@@ -354,8 +341,8 @@ class AgeFreighter:
     async def getFirstId(self, label_type: str = "") -> int:
         async with self.pool.connection() as conn:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
-                query = sql.SQL(f"SELECT id FROM ag_label WHERE name='{label_type}'")
-                await cur.execute(query)
+                query = f"SELECT id FROM ag_label WHERE name='{label_type}'"
+                await cur.execute(sql.SQL(query))
                 row = await cur.fetchone()
 
                 ENTRY_ID_BITS = 32 + 16
@@ -439,6 +426,7 @@ class AgeFreighter:
     ) -> None:
         first_chunk = True
         reader = pd.read_csv(csv, chunksize=1000000)
+        existing_node_ids = []
         for df in reader:
             if first_chunk:
                 # check if the first column is 'id'. Rest of the columns are properties
@@ -463,6 +451,10 @@ class AgeFreighter:
                 vertices = (
                     df.loc[:, [id, *props]].drop_duplicates().rename(columns={id: "id"})
                 )
+                if not first_chunk:
+                    vertices = vertices[~vertices["id"].isin(existing_node_ids)]
+                existing_node_ids.extend(vertices["id"].tolist())
+
                 await cls.createVertices(
                     cls,
                     vertices,
@@ -482,7 +474,6 @@ class AgeFreighter:
             )
             edges["start_v_label"] = start_v_label
             edges["end_v_label"] = end_v_label
-
             # create edges with tasks
             await cls.createEdges(
                 cls, edges, edge_type, chunk_size, direct_loading, drop_graph, use_copy
@@ -648,7 +639,7 @@ class AgeFreighter:
         await cls.setUpGraph(cls, graph_name, drop_graph)
 
         # get all nodes and edges from neo4j
-        chunk_multiplier = 500
+        chunk_multiplier = 1000
         async with neo4j.AsyncGraphDatabase.driver(
             uri, auth=(user, password)
         ) as driver:
@@ -739,7 +730,6 @@ class AgeFreighter:
                     )
 
     # load data from pgsql
-    # Not completed yet
     @classmethod
     async def loadFromPGSQL(
         cls,
@@ -754,7 +744,7 @@ class AgeFreighter:
     ) -> None:
         import psycopg as pg
 
-        chunk_multiplier = 500
+        chunk_multiplier = 1000
 
         try:
             with pg.connect(src_con_string) as conn:
@@ -768,11 +758,13 @@ class AgeFreighter:
                             await cls.createLabelType(
                                 cls, label_type="vertex", value=src_table
                             )
-                            cur.execute(f"SELECT COUNT(*) FROM {src_table}")
+                            cur.execute(sql.SQL(f"SELECT COUNT(*) FROM {src_table}"))
                             cnt = cur.fetchone()[0]
                             for i in range(0, cnt, chunk_size * chunk_multiplier):
                                 cur.execute(
-                                    f"SELECT * FROM {src_table} LIMIT {chunk_size * chunk_multiplier} OFFSET {i}"
+                                    sql.SQL(
+                                        f"SELECT * FROM {src_table} LIMIT {chunk_size * chunk_multiplier} OFFSET {i}"
+                                    )
                                 )
                                 rows = cur.fetchall()
                                 vertices = pd.DataFrame(rows)
@@ -795,7 +787,9 @@ class AgeFreighter:
                             cnt = cur.fetchone()[0]
                             for i in range(0, cnt, chunk_size * chunk_multiplier):
                                 cur.execute(
-                                    f"SELECT * FROM {src_table} LIMIT {chunk_size * chunk_multiplier} OFFSET {i}"
+                                    sql.SQL(
+                                        f"SELECT * FROM {src_table} LIMIT {chunk_size * chunk_multiplier} OFFSET {i}"
+                                    )
                                 )
                                 rows = cur.fetchall()
                                 edges = pd.DataFrame(rows)
@@ -814,3 +808,84 @@ class AgeFreighter:
                                 )
         except Exception as e:
             raise e
+
+    # load data from parquet file
+    # Not completed yet
+    @classmethod
+    async def loadFromParquet(
+        cls,
+        src_parquet: str = "",
+        graph_name: str = "",
+        start_v_label: str = "",
+        start_id: str = "",
+        start_props: List = [],
+        edge_type: str = "",
+        end_v_label: str = "",
+        end_id: str = "",
+        end_props: List = [],
+        chunk_size: int = 3,
+        direct_loading: bool = False,
+        drop_graph: bool = False,
+        use_copy: bool = False,
+    ) -> None:
+        import pyarrow as pa
+        from pyarrow.parquet import ParquetFile
+
+        chunk_multiplier = 1000
+
+        pf = ParquetFile(src_parquet)
+        first_chunk = True
+        existing_node_ids = []
+        for batch in pf.iter_batches(chunk_size * chunk_multiplier):
+            df = batch.to_pandas()
+
+            if first_chunk:
+                # check if the first column is 'id'. Rest of the columns are properties
+                await cls.checkKeys(
+                    df.keys(),
+                    [start_id] + start_props + [end_id] + end_props,
+                )
+
+                await cls.setUpGraph(cls, graph_name, drop_graph)
+
+                await cls.createLabelType(cls, label_type="vertex", value=start_v_label)
+                await cls.createLabelType(cls, label_type="vertex", value=end_v_label)
+                await cls.createLabelType(cls, label_type="edge", value=edge_type)
+                first_chunk = False
+
+            # create vertices
+            for v_label, id, props in zip(
+                [start_v_label, end_v_label],
+                [start_id, end_id],
+                [start_props, end_props],
+            ):
+                vertices = (
+                    df.loc[:, [id, *props]].drop_duplicates().rename(columns={id: "id"})
+                )
+                if not first_chunk:
+                    vertices = vertices[~vertices["id"].isin(existing_node_ids)]
+                existing_node_ids.extend(vertices["id"].tolist())
+
+                await cls.createVertices(
+                    cls,
+                    vertices,
+                    v_label,
+                    chunk_size,
+                    direct_loading,
+                    drop_graph,
+                    use_copy,
+                )
+
+            # extract unique edges (maybe already done)
+            # start_id,start_v_label,end_id,end_v_label
+            edges = (
+                df.loc[:, [start_id, end_id]]
+                .drop_duplicates()
+                .rename(columns={start_id: "start_id", end_id: "end_id"})
+            )
+            edges["start_v_label"] = start_v_label
+            edges["end_v_label"] = end_v_label
+            # create edges with tasks
+            await cls.createEdges(
+                cls, edges, edge_type, chunk_size, direct_loading, drop_graph, use_copy
+            )
