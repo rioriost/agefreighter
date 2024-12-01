@@ -3,7 +3,7 @@ name = "agefreighter"
 authors = [
     {name = "Rio Fujita", email = "rifujita@microsoft.com"},
 ]
-version = "0.2.1"
+version = "0.2.2"
 license = {file = "LICENSE"}
 description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = "README.md"
@@ -16,6 +16,7 @@ dependencies = [
     "pandas>=2.2.3",
     "psycopg>=3.2.3",
     "psycopg-pool>=3.2.4",
+    "pyarrow>=18.1.0",
     "typing-extensions>=4.12.2",
     "typing>=3.10.0.0",
 ]
