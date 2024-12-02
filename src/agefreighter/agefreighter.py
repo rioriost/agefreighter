@@ -4,7 +4,6 @@ from networkx import DiGraph
 import numpy as np
 import pandas as pd
 from psycopg import sql
-from psycopg.errors import UniqueViolation
 from psycopg.rows import namedtuple_row
 from psycopg_pool import AsyncConnectionPool
 import resource
@@ -19,7 +18,7 @@ class AgeFreighter:
         self.graphName: str = ""
         self.graphNameAgType: str = ""
         self.name = "AgeLoader"
-        self.version = "0.2.2"
+        self.version = "0.2.3"
         self.description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
         self.author = "Rio Fujita"
 
@@ -509,15 +508,15 @@ class AgeFreighter:
                     await cls.createLabelType(cls, label_type="vertex", value=v_label)
                     first_chunk = False
 
-                    await cls.createVertices(
-                        cls,
-                        vertices,
-                        v_label,
-                        chunk_size,
-                        direct_loading,
-                        drop_graph,
-                        use_copy,
-                    )
+                await cls.createVertices(
+                    cls,
+                    vertices,
+                    v_label,
+                    chunk_size,
+                    direct_loading,
+                    drop_graph,
+                    use_copy,
+                )
 
         # create edges
         for edge_csv, edge_type in zip(edge_csvs, e_types):
