@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
+import sys
 import time
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../src/"))
 
 import asyncio
 from agefreighter import AgeFreighter
@@ -26,7 +29,7 @@ async def test_loadFromSingleCSV(
     start_time = time.time()
     await af.loadFromSingleCSV(
         graph_name="actorfilms",
-        csv="actorfilms.csv",
+        csv="../data/actorfilms.csv",
         start_v_label="Actor",
         start_id="ActorID",
         start_props=["Actor"],
@@ -59,9 +62,9 @@ async def test_loadFromCSVs(
     start_time = time.time()
     await af.loadFromCSVs(
         graph_name="cities_countries",
-        vertex_csvs=["countries.csv", "cities.csv"],
+        vertex_csvs=["../data/countries.csv", "../data/cities.csv"],
         v_labels=["Country", "City"],
-        edge_csvs=["edges.csv"],
+        edge_csvs=["../data/edges.csv"],
         e_types=["has_city"],
         chunk_size=chunk_size,
         direct_loading=direct_loading,
@@ -70,6 +73,29 @@ async def test_loadFromCSVs(
     )
     print(
         f"test_loadFromCSVs : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+    )
+
+
+async def test_loadFrom2CSVs(
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+) -> None:
+    start_time = time.time()
+    await af.loadFromCSVs(
+        graph_name="war_btw_countries",
+        vertex_csvs=["../data/countries.csv"],
+        v_labels=["Country"],
+        edge_csvs=["../data/fight_with.csv"],
+        e_types=["FIGHT_WITH"],
+        chunk_size=chunk_size,
+        direct_loading=direct_loading,
+        drop_graph=True,
+        use_copy=use_copy,
+    )
+    print(
+        f"test_loadFrom2CSVs : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
     )
 
 
@@ -83,7 +109,7 @@ async def test_loadFromNetworkx(
     direct_loading: bool = False,
     use_copy: bool = False,
 ) -> None:
-    df = pd.read_csv("actorfilms.csv")
+    df = pd.read_csv("../data/actorfilms.csv")
     G = nx.DiGraph()
 
     for name, group in df.groupby("ActorID"):
@@ -166,7 +192,7 @@ async def loadTestDataToNeo4j(
     from neo4j import AsyncGraphDatabase
 
     batch_size = 1000
-    df = pd.read_csv("actorfilms.csv")
+    df = pd.read_csv("../data/actorfilms.csv")
     uniq_actors = df[["ActorID", "Actor"]].drop_duplicates()
     uniq_films = df[["FilmID", "Film", "Year", "Votes", "Rating"]].drop_duplicates()
 
@@ -258,7 +284,8 @@ async def test_loadFromPGSQL(
     init_pgsql: bool = False,
 ) -> None:
     try:
-        src_connection_string = os.environ["SRC_PG_CONNECTION_STRING"]
+        src_connection_string = os.environ["PG_CONNECTION_STRING"]
+    #    src_connection_string = os.environ["SRC_PG_CONNECTION_STRING"]
     except KeyError:
         print("Please set the environment variables SRC_PG_CONNECTION_STRING")
         return
@@ -270,7 +297,7 @@ async def test_loadFromPGSQL(
         await loadTestDataToPGSQL(
             con_string=src_connection_string,
             src_tables=src_tables,
-            src_csv="actorfilms.csv",
+            src_csv="../data/actorfilms.csv",
         )
 
     start_time = time.time()
@@ -358,10 +385,10 @@ async def test_loadFromParquet(
     use_copy: bool = False,
     init_parquet: bool = False,
 ) -> None:
-    src_parquet = "actorfilms.parquet"
+    src_parquet = "../data/actorfilms.parquet"
 
     if init_parquet:
-        pd.read_csv("actorfilms.csv").to_parquet(src_parquet)
+        pd.read_csv("../data/actorfilms.csv").to_parquet(src_parquet)
 
     start_time = time.time()
     graph_name = "actorfilms"
@@ -383,6 +410,65 @@ async def test_loadFromParquet(
     print(
         f"test_loadFromParquet : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
     )
+
+
+# test for loadFromAvro
+# create avro from actorfilms.csv
+# after creating avro, load it to a graph
+async def test_loadFromAvro(
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+    init_avro: bool = False,
+) -> None:
+    src_avro = "../data/actorfilms.avro"
+
+    if init_avro:
+        await convertCSVtoAvro(src_csv="../data/actorfilms.csv", tgt_avro=src_avro)
+
+    start_time = time.time()
+    graph_name = "actorfilms"
+    await af.loadFromAvro(
+        src_avro=src_avro,
+        graph_name=graph_name,
+        start_v_label="Actor",
+        start_id="ActorID",
+        start_props=["Actor"],
+        edge_type="ACTED_IN",
+        end_v_label="Film",
+        end_id="FilmID",
+        end_props=["Film", "Year", "Votes", "Rating"],
+        chunk_size=chunk_size,
+        direct_loading=direct_loading,
+        drop_graph=True,
+        use_copy=use_copy,
+    )
+    print(
+        f"test_loadFromAvro : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+    )
+
+
+async def convertCSVtoAvro(src_csv: str = "", tgt_avro: str = "") -> None:
+    import fastavro as fa
+
+    records = pd.read_csv(src_csv).to_dict(orient="records")
+    schema = {
+        "type": "record",
+        "name": "actorfilms",
+        "fields": [
+            {"name": "ActorID", "type": "string"},
+            {"name": "Actor", "type": "string"},
+            {"name": "FilmID", "type": "string"},
+            {"name": "Film", "type": "string"},
+            {"name": "Year", "type": "int"},
+            {"name": "Votes", "type": "int"},
+            {"name": "Rating", "type": "float"},
+        ],
+    }
+    parsed_schema = fa.parse_schema(schema)
+    with open(tgt_avro, "wb") as f:
+        fa.writer(f, parsed_schema, records)
 
 
 async def main() -> None:
@@ -489,11 +575,26 @@ async def main() -> None:
                     chunk_size=chunk_size,
                     direct_loading=direct_loading,
                     use_copy=use_copy,
-                    init_parquet=False,
+                    init_parquet=True,
                 )
                 for idx, (direct_loading, use_copy) in enumerate(test_set)
             ]
             print("test_loadFromParquet done\n")
+
+        # not implemented yet
+        do = False
+        if do:
+            [
+                await test_loadFromAvro(
+                    af,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
+                    init_avro=True,
+                )
+                for idx, (direct_loading, use_copy) in enumerate(test_set)
+            ]
+            print("test_loadFromAvro done\n")
 
     finally:
         await af.pool.close()
