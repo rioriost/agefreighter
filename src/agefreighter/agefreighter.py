@@ -1,13 +1,15 @@
-import asyncio
-import networkx as nx
+import logging
 from networkx import DiGraph
-import numpy as np
 import pandas as pd
 from psycopg import sql
 from psycopg.rows import namedtuple_row
 from psycopg_pool import AsyncConnectionPool
-import resource
 from typing_extensions import Callable
+import nest_asyncio
+
+nest_asyncio.apply()
+
+log = logging.getLogger("agefreighter")
 
 
 class AgeFreighter:
@@ -16,11 +18,12 @@ class AgeFreighter:
     """
 
     def __init__(self):
+        log.info("Creating AgeFreighter.")
         self.pool: AsyncConnectionPool = None
         self.dsn: str = ""
-        self.graphName: str = ""
+        self.graph_name: str = ""
         self.name = "AgeLoader"
-        self.version = "0.3.0"
+        self.version = "0.3.2"
         self.author = "Rio Fujita"
 
     async def __aenter__(self):
@@ -28,6 +31,32 @@ class AgeFreighter:
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.pool.close()
+
+    def checkKeys(keys: list = [], elements: list = []):
+        """
+        Check if the keys of the CSV file match the elements.
+
+        Args:
+            keys (list): The keys of the CSV file.
+            elements (list): The elements to check.
+        """
+        import numpy as np
+
+        if not np.all(np.isin(elements, keys)):
+            raise ValueError(
+                f"CSV file must have {elements} columns, but {keys} columns were found."
+            )
+
+    def quotedGraphName(graph_name: str = "") -> str:
+        """
+        Quote the graph name.
+
+        Args:
+            graph_name (str): The name of the graph.
+        """
+        if graph_name.lower() != graph_name:
+            return f'"{graph_name}"'
+        return graph_name
 
     async def setUpGraph(self, graph_name: str = "", drop_graph: bool = False) -> None:
         """
@@ -40,7 +69,11 @@ class AgeFreighter:
         Returns:
             None
         """
-        self.graphName = sql.Identifier(graph_name).as_string().strip('"')  # escaped
+        log.info("Setting up graph '%s'", graph_name)
+        # for more precise graph name,
+        # see https://github.com/apache/age/blob/master/src/include/utils/name_validation.h
+        self.graph_name = sql.Identifier(graph_name).as_string().strip('"')
+        log.info("self.graph_name is '%s'", self.graph_name)
         if drop_graph:
             async with self.pool.connection() as conn:
                 async with conn.cursor(row_factory=namedtuple_row) as cur:
@@ -49,30 +82,17 @@ class AgeFreighter:
                     )
                     await cur.execute(
                         sql.SQL(
-                            f"SELECT count(*) FROM ag_graph WHERE name='{self.graphName}'"
+                            f"SELECT count(*) FROM ag_graph WHERE name='{self.graph_name}'"
                         )
                     )
                     if (row := await cur.fetchone()) is not None:
                         if row.count == 1:
                             await cur.execute(
-                                sql.SQL(f"SELECT drop_graph('{self.graphName}', true)")
+                                sql.SQL(f"SELECT drop_graph('{self.graph_name}', true)")
                             )
                         await cur.execute(
-                            sql.SQL(f"SELECT create_graph('{self.graphName}')")
+                            sql.SQL(f"SELECT create_graph('{self.graph_name}')")
                         )
-
-    async def checkKeys(keys: list = [], elements: list = []):
-        """
-        Check if the keys of the CSV file match the elements.
-
-        Args:
-            keys (list): The keys of the CSV file.
-            elements (list): The elements to check.
-        """
-        if not np.all(np.isin(elements, keys)):
-            raise ValueError(
-                f"CSV file must have {elements} columns, but {keys} columns were found."
-            )
 
     async def createLabelType(self, label_type: str = "", value: str = "") -> None:
         """
@@ -85,30 +105,52 @@ class AgeFreighter:
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
                 if label_type == "vertex":
+                    log.debug("Creating a vlabel '%s'", value)
                     await cur.execute(
-                        sql.SQL(f"SELECT create_vlabel('{self.graphName}', '{value}');")
-                    )
-                    await cur.execute(
-                        sql.SQL(
-                            f'CREATE INDEX ON {self.graphName}."{value}" USING GIN (properties);'
+                        sql.SQL("SELECT create_vlabel({schema}, {label});").format(
+                            schema=self.graph_name,
+                            label=sql.Literal(value),
                         )
                     )
+                    log.debug("Creating index using GIN")
                     await cur.execute(
                         sql.SQL(
-                            f'CREATE INDEX ON {self.graphName}."{value}" USING BTREE (id);'
+                            "CREATE INDEX ON {schema}.{label} USING GIN (properties);"
+                        ).format(
+                            schema=sql.Identifier(self.graph_name),
+                            label=sql.Identifier(value),
+                        )
+                    )
+                    log.debug("Creating index using BTREE")
+                    await cur.execute(
+                        sql.SQL(
+                            "CREATE INDEX ON {schema}.{label} USING BTREE (id);"
+                        ).format(
+                            schema=sql.Identifier(self.graph_name),
+                            label=sql.Identifier(value),
                         )
                     )
                 elif label_type == "edge":
+                    log.debug("Creating an elabel '%s'", value)
                     await cur.execute(
-                        sql.SQL(f"SELECT create_elabel('{self.graphName}', '{value}');")
-                    )
-                    await cur.execute(
-                        sql.SQL(
-                            f'CREATE INDEX ON {self.graphName}."{value}" (start_id);'
+                        sql.SQL("SELECT create_elabel({schema}, {label});").format(
+                            schema=self.graph_name,
+                            label=sql.Literal(value),
                         )
                     )
+                    log.debug("Creating index using BTREE")
                     await cur.execute(
-                        sql.SQL(f'CREATE INDEX ON {self.graphName}."{value}" (end_id);')
+                        sql.SQL("CREATE INDEX ON {schema}.{label} (start_id);").format(
+                            schema=sql.Identifier(self.graph_name),
+                            label=sql.Identifier(value),
+                        )
+                    )
+                    log.debug("Creating index using BTREE")
+                    await cur.execute(
+                        sql.SQL("CREATE INDEX ON {schema}.{label} (end_id);").format(
+                            schema=sql.Identifier(self.graph_name),
+                            label=sql.Identifier(value),
+                        )
                     )
 
     async def createVertices(
@@ -131,6 +173,8 @@ class AgeFreighter:
             drop_graph (bool): Whether to drop the existing graph if it exists.
             use_copy (bool): Whether to use the COPY protocol to load the vertices.
         """
+        log.info("Creating vertices")
+        log.debug("Number of vertices to be created: '%s'", len(vertices))
         if direct_loading:
             vertices = vertices.map(
                 lambda x: x.replace("'", "''") if isinstance(x, str) else x
@@ -169,6 +213,8 @@ class AgeFreighter:
             drop_graph (bool): Whether to drop the existing graph if it exists.
             use_copy (bool): Whether to use the COPY protocol to load the edges.
         """
+        log.info("Creating edges")
+        log.debug("Number of edges to be created: '%s'", len(edges))
         # create edges
         if direct_loading:
             await self.createEdgesDirectly(self, edges, edge_type, chunk_size)
@@ -189,6 +235,7 @@ class AgeFreighter:
             label (str): The label of the vertices.
             chunk_size (int): The size of the chunks to create.
         """
+        log.info("Creating vertices via Cypher")
         chunk_multiplier = 1
         args = []
         for i in range(0, len(vertices), chunk_size * chunk_multiplier):
@@ -196,9 +243,9 @@ class AgeFreighter:
             for idx, cols in vertices[i : i + chunk_size * chunk_multiplier].iterrows():
                 properties = [f"{k}:'{v}'" for k, v in cols.items()]
                 parts.append(f"(v{idx}:{label} {{{','.join(properties)}}})")
-            args.append(
-                f"SELECT * FROM cypher('{self.graphName}', $$ CREATE {','.join(parts)} $$) AS (a agtype);"
-            )
+            query = f"SELECT * FROM cypher('{self.graph_name}', $$ CREATE {','.join(parts)} $$) AS (a agtype);"
+            log.debug("Query to be excecuted: '%s'", query)
+            args.append(query)
         await self.executeWithTasks(self, self.executeQuery, args)
 
     async def createEdgesCypher(
@@ -212,6 +259,7 @@ class AgeFreighter:
             type (str): The type of the edges.
             chunk_size (int): The size of the chunks to create.
         """
+        log.info("Creating edges via Cypher")
         chunk_multiplier = 2
         args = []
         for i in range(0, len(edges), chunk_size * chunk_multiplier):
@@ -222,11 +270,11 @@ class AgeFreighter:
                 )
             query = "".join(
                 [
-                    f"SELECT * FROM cypher('{self.graphName}', $$ {part} $$) AS (a agtype);"
+                    f"SELECT * FROM cypher('{self.graph_name}', $$ {part} $$) AS (a agtype);"
                     for part in parts
                 ]
             )
-
+            log.debug("Query to be excecuted: '%s'", query)
             args.append(query)
         await self.executeWithTasks(self, self.executeQuery, args)
 
@@ -241,8 +289,10 @@ class AgeFreighter:
             label (str): The label of the vertices.
             chunk_size (int): The size of the chunks to create.
         """
+        log.info("Creating vertices with SQL query")
         chunk_multiplier = 1
         args = []
+        graph_name = self.quotedGraphName(self.graph_name)
         for i in range(0, len(vertices), chunk_size * chunk_multiplier):
             values = []
             for idx, cols in vertices[i : i + chunk_size * chunk_multiplier].iterrows():
@@ -250,9 +300,10 @@ class AgeFreighter:
                 values.append(f"('{{{','.join(properties)}}}')")
             args.append(
                 "".join(
-                    f"INSERT INTO {self.graphName}.\"{label}\" (properties) VALUES {','.join(values)};"
+                    f"INSERT INTO {graph_name}.\"{label}\" (properties) VALUES {','.join(values)};"
                 )
             )
+            log.debug("Query to be excecuted: '%s'", args)
         await self.executeWithTasks(self, self.executeQuery, args)
 
     async def createEdgesDirectly(
@@ -266,27 +317,15 @@ class AgeFreighter:
             type (str): The type of the edges.
             chunk_size (int): The size of the chunks to create.
         """
+        log.info("Creating edges with SQL query")
         chunk_multiplier = 2
         # create idmaps to convert entry_id to id(graphid)
-        async with self.pool.connection() as conn:
-            async with conn.cursor(row_factory=namedtuple_row) as cur:
-                idmaps = {}
-                for e_label in [
-                    edges.iloc[0]["start_v_label"],
-                    edges.iloc[0]["end_v_label"],
-                ]:
-                    await cur.execute(
-                        sql.SQL(
-                            f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
-                        )
-                    )
-                    rows = await cur.fetchall()
-                    idmaps[e_label] = {
-                        row.entry_id.replace('"', ""): row.id for row in rows
-                    }
+        idmaps = await self.getIdMaps(self, edges=edges)
+        log.debug("IDmaps: '%s'", idmaps)
 
         # create queries for edges
         args = []
+        graph_name = self.quotedGraphName(self.graph_name)
         for i in range(0, len(edges), chunk_size * chunk_multiplier):
             values = []
             for idx, cols in edges[i : i + chunk_size * chunk_multiplier].iterrows():
@@ -295,9 +334,10 @@ class AgeFreighter:
                 )
             args.append(
                 "".join(
-                    f"INSERT INTO {self.graphName}.\"{type}\" (start_id, end_id) VALUES {','.join(values)};"
+                    f"INSERT INTO {graph_name}.\"{type}\" (start_id, end_id) VALUES {','.join(values)};"
                 )
             )
+            log.debug("Query to be excecuted: '%s'", args)
         await self.executeWithTasks(self, self.executeQuery, args)
 
     async def executeWithTasks(self, target: Callable = None, args: list = []) -> None:
@@ -308,6 +348,8 @@ class AgeFreighter:
             target (Callable): The target function to execute.
             args (list): The arguments to pass to the target function.
         """
+        import asyncio
+
         tasks = []
         for arg in args:
             task = asyncio.create_task(target(self.pool, arg))
@@ -322,6 +364,8 @@ class AgeFreighter:
             pool (AsyncConnectionPool): The async connection pool to use.
             query (str): The query to execute.
         """
+        import asyncio
+
         while True:
             try:
                 async with pool.connection() as conn:
@@ -349,13 +393,15 @@ class AgeFreighter:
             chunk_size (int): The size of the chunks to create.
             drop_graph (bool): Whether to drop the existing graph if it exists.
         """
+        log.info("Copying vertices via COPY protocol")
         chunk_multiplier = 1000
         first_id = await self.getFirstId(self, label)
+        graph_name = self.quotedGraphName(self.graph_name)
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
-                async with cur.copy(
-                    f'COPY {self.graphName}."{label}" FROM STDIN (FORMAT TEXT)'
-                ) as copy:
+                query = f'COPY {graph_name}."{label}" FROM STDIN (FORMAT TEXT)'
+                log.debug("Query to be excecuted: '%s'", query)
+                async with cur.copy(query) as copy:
                     for i in range(0, len(vertices), chunk_size * chunk_multiplier):
                         args = ""
                         for idx, cols in vertices[
@@ -366,6 +412,7 @@ class AgeFreighter:
                                 f"{first_id + i + idx}\t{{{', '.join(properties)}}}\n"
                             )
                         await copy.write(args)
+                        log.debug("Args to be passed to COPY: '%s'", args)
                 await cur.execute(sql.SQL("COMMIT"))
 
     async def copyEdges(
@@ -383,18 +430,21 @@ class AgeFreighter:
             chunk_size (int): The size of the chunks to create.
             drop_graph (bool): Whether to drop the existing graph if it exists.
         """
+        log.info("Copying vertices via COPY protocol")
         chunk_multiplier = 1000
 
         # create idmaps to convert entry_id to id(graphid)
         idmaps = await self.getIdMaps(self, edges=edges)
+        log.debug("IDmaps: '%s'", idmaps)
 
         # create queries for edges
         first_id = await self.getFirstId(self, label_type=type)
+        graph_name = self.quotedGraphName(self.graph_name)
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
-                async with cur.copy(
-                    f'COPY {self.graphName}."{type}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT)'
-                ) as copy:
+                query = f'COPY {graph_name}."{type}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT)'
+                log.debug("Query to be excecuted: '%s'", query)
+                async with cur.copy(query) as copy:
                     for i in range(0, len(edges), chunk_size * chunk_multiplier):
                         args = ""
                         for idx, cols in edges[
@@ -408,6 +458,7 @@ class AgeFreighter:
                             ]
                             args += f"{first_id + i + idx}\t{start_id}\t{end_id}\n"
                         await copy.write(args)
+                        log.debug("Args to be passed to COPY: '%s'", args)
 
     async def getIdMaps(self, edges: pd.DataFrame = None) -> dict:
         """
@@ -418,6 +469,7 @@ class AgeFreighter:
         """
         # create idmaps to convert entry_id to id(graphid)
         idmaps = {}
+        graph_name = self.quotedGraphName(self.graph_name)
         async with self.pool.connection() as conn:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
                 for e_label in [
@@ -426,13 +478,14 @@ class AgeFreighter:
                 ]:
                     await cur.execute(
                         sql.SQL(
-                            f'SELECT id, properties->\'"id"\' AS entry_id FROM {self.graphName}."{e_label}"'
+                            f'SELECT id, properties->\'"id"\' AS entry_id FROM {graph_name}."{e_label}"'
                         )
                     )
                     rows = await cur.fetchall()
                     idmaps[e_label] = {
                         row.entry_id.replace('"', ""): row.id for row in rows
                     }
+
         return idmaps
 
     async def getFirstId(self, label_type: str = "") -> int:
@@ -442,6 +495,8 @@ class AgeFreighter:
         Args:
             label_type (str): The type of the label to get the first id for.
         """
+        import numpy as np
+
         async with self.pool.connection() as conn:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
                 await cur.execute(
@@ -474,6 +529,7 @@ class AgeFreighter:
                 cols_to_rename[col] = col.replace("a->.prop.", "")
             elif col.startswith("a->."):
                 cols_to_rename[col] = col.replace("a->.", "")
+
         return df.rename(columns=cols_to_rename)
 
     async def getVertexLabels(
@@ -501,6 +557,7 @@ class AgeFreighter:
                 item["label"] for item in nodes if item["id"] == first_target_id
             ][0]
             start_v_label = v_labels[1] if v_labels[0] == end_v_label else v_labels[0]
+
         return start_v_label, end_v_label
 
     @classmethod
@@ -516,9 +573,13 @@ class AgeFreighter:
             log_level: The log level.
             **kwargs: Additional keyword arguments.
         """
+        log.info("Opening connection pool")
         # to make large number of connections
+        import resource
+
         current_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
         resource.setrlimit(resource.RLIMIT_NOFILE, (8192, current_limit[1]))
+
         cls.dsn = dsn + " options='-c search_path=ag_catalog,\"$user\",public'"
         cls.pool = AsyncConnectionPool(
             cls.dsn,
@@ -528,10 +589,12 @@ class AgeFreighter:
             timeout=600,
             **kwargs,
         )
+        log.debug("Connection pool: '%s'", cls.pool)
         await cls.pool.open()
+
         return cls
 
-    async def createGraphFromRelations(
+    async def createGraphFromDataFrame(
         cls,
         graph_name: str = "",
         src: pd.DataFrame = None,
@@ -564,13 +627,10 @@ class AgeFreighter:
             end_v_label (str): The label of the end vertex.
             end_id (str): The ID of the end vertex.
             end_props (list): The properties of the end vertex.
-            chunk_size (int): The size of the chunks to create.
-            direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
-            use_copy (bool): Whether to use the COPY protocol to load the data.
         """
+        log.info("Creating a graph from DataFrame")
         if first_chunk:
-            await cls.checkKeys(
+            cls.checkKeys(
                 src.keys(),
                 [start_id] + start_props + [end_id] + end_props,
             )
@@ -626,10 +686,10 @@ class AgeFreighter:
         end_v_label: str = "",
         end_id: str = "",
         end_props: list = [],
-        chunk_size: int = 3,
+        chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
-        use_copy: bool = False,
+        use_copy: bool = True,
     ) -> None:
         """
         Load data from a single CSV file.
@@ -649,12 +709,13 @@ class AgeFreighter:
             drop_graph (bool): Whether to drop the existing graph if it exists.
             use_copy (bool): Whether to use the COPY protocol to load the data.
         """
+        log.info("Loading data from a single CSV file")
         chunk_multiplier = 10000
         existing_node_ids = []
         first_chunk = True
         reader = pd.read_csv(csv, chunksize=chunk_size * chunk_multiplier)
         for df in reader:
-            await cls.createGraphFromRelations(
+            await cls.createGraphFromDataFrame(
                 cls,
                 graph_name=graph_name,
                 src=df,
@@ -684,7 +745,7 @@ class AgeFreighter:
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
-        use_copy: bool = False,
+        use_copy: bool = True,
     ) -> None:
         """
         Load data from multiple CSV files.
@@ -695,11 +756,8 @@ class AgeFreighter:
             v_labels (list): The labels of the vertices.
             edge_csvs (list): The paths to the edge CSV files.
             e_types (list): The types of the edges.
-            chunk_size (int): The size of the chunks to create.
-            direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
-            use_copy (bool): Whether to use the COPY protocol to load the data.
         """
+        log.info("Loading data from multiple CSV files")
         chunk_multiplier = 10000
         await cls.setUpGraph(cls, graph_name, drop_graph)
         for vertex_csv, v_label in zip(vertex_csvs, v_labels):
@@ -707,7 +765,7 @@ class AgeFreighter:
             reader = pd.read_csv(vertex_csv, chunksize=chunk_size * chunk_multiplier)
             for vertices in reader:
                 if first_chunk:
-                    await cls.checkKeys(vertices.keys(), ["id"])
+                    cls.checkKeys(vertices.keys(), ["id"])
 
                     await cls.createLabelType(cls, label_type="vertex", value=v_label)
                     first_chunk = False
@@ -727,7 +785,7 @@ class AgeFreighter:
             reader = pd.read_csv(edge_csv, chunksize=chunk_size * chunk_multiplier)
             for edges in reader:
                 if first_chunk:
-                    await cls.checkKeys(
+                    cls.checkKeys(
                         edges.keys(),
                         [
                             "start_id",
@@ -764,7 +822,7 @@ class AgeFreighter:
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
-        use_copy: bool = False,
+        use_copy: bool = True,
     ) -> None:
         """
         Load data from a NetworkX graph.
@@ -772,11 +830,10 @@ class AgeFreighter:
         Args:
             graph_name (str): The name of the graph to load the data into.
             networkx_graph (DiGraph): The NetworkX graph.
-            chunk_size (int): The size of the chunks to create.
-            direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
-            use_copy (bool): Whether to use the COPY protocol to load the data.
         """
+        log.info("Loading data from a NetworkX graph")
+        import networkx as nx
+
         await cls.setUpGraph(cls, graph_name, drop_graph)
 
         v_labels = []
@@ -837,7 +894,7 @@ class AgeFreighter:
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
-        use_copy: bool = False,
+        use_copy: bool = True,
     ) -> None:
         """
         Load data from a Neo4j graph.
@@ -849,11 +906,8 @@ class AgeFreighter:
             neo4j_database (str): The name of the Neo4j database.
             graph_name (str): The name of the graph to load the data into.
             id_map (dict): The ID map.
-            chunk_size (int): The size of the chunks to create.
-            direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
-            use_copy (bool): Whether to use the COPY protocol to load the data.
         """
+        log.info("Loading data from a Neo4j graph")
         import neo4j
 
         await cls.setUpGraph(cls, graph_name, drop_graph)
@@ -953,7 +1007,7 @@ class AgeFreighter:
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
-        use_copy: bool = False,
+        use_copy: bool = True,
     ) -> None:
         """
         Load data from a PostgreSQL database.
@@ -963,11 +1017,8 @@ class AgeFreighter:
             src_tables (list): The source tables.
             graph_name (str): The name of the graph to load the data into.
             id_maps (dict): The ID maps.
-            chunk_size (int): The size of the chunks to create.
-            direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
-            use_copy (bool): Whether to use the COPY protocol to load the data.
         """
+        log.info("Loading data from a PostgreSQL database")
         import psycopg as pg
 
         chunk_multiplier = 1000
@@ -1047,27 +1098,15 @@ class AgeFreighter:
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
-        use_copy: bool = False,
+        use_copy: bool = True,
     ) -> None:
         """
         Load data from a Parquet file.
 
         Args:
             src_parquet (str): The path to the Parquet file.
-            graph_name (str): The name of the graph to load the data into.
-            start_v_label (str): The label of the start vertex.
-            start_id (str): The ID of the start vertex.
-            start_props (list): The properties of the start vertex.
-            edge_type (str): The type of the edge.
-            end_v_label (str): The label of the end vertex.
-            end_id (str): The ID of the end vertex.
-            end_props (list): The properties of the end vertex.
-            chunk_size (int): The size of the chunks to create.
-            direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
-            use_copy (bool): Whether to use the COPY protocol to load the data.
         """
-        import pyarrow as pa
+        log.info("Loading data from a Parquet file")
         from pyarrow.parquet import ParquetFile
 
         chunk_multiplier = 10000
@@ -1078,7 +1117,7 @@ class AgeFreighter:
 
         for batch in pf.iter_batches(chunk_size * chunk_multiplier):
             df = batch.to_pandas()
-            await cls.createGraphFromRelations(
+            await cls.createGraphFromDataFrame(
                 cls,
                 graph_name=graph_name,
                 src=df,
@@ -1113,26 +1152,15 @@ class AgeFreighter:
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
-        use_copy: bool = False,
+        use_copy: bool = True,
     ) -> None:
         """
         Load data from an Avro file.
 
         Args:
             src_avro (str): The path to the Avro file.
-            graph_name (str): The name of the graph to load the data into.
-            start_v_label (str): The label of the start vertex.
-            start_id (str): The ID of the start vertex.
-            start_props (list): The properties of the start vertex.
-            edge_type (str): The type of the edge.
-            end_v_label (str): The label of the end vertex.
-            end_id (str): The ID of the end vertex.
-            end_props (list): The properties of the end vertex.
-            chunk_size (int): The size of the chunks to create.
-            direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
-            use_copy (bool): Whether to use the COPY protocol to load the data.
         """
+        log.info("Loading data from an Avro file")
         import fastavro as fa
 
         chunk_multiplier = 10000
@@ -1144,7 +1172,7 @@ class AgeFreighter:
 
             for records in reader:
                 df = pd.DataFrame.from_records(records, index=[0])
-                await cls.createGraphFromRelations(
+                await cls.createGraphFromDataFrame(
                     cls,
                     graph_name=graph_name,
                     src=df,
@@ -1163,3 +1191,62 @@ class AgeFreighter:
                     use_copy=use_copy,
                 )
                 first_chunk = False
+
+    @classmethod
+    async def loadFromGremlin(
+        cls,
+        cosmos_gremlin_endpoint: str = "",
+        cosmos_gremlin_key: str = "",
+        cosmos_username: str = "",
+        graph_name: str = "",
+        id_map: dict = {},
+        chunk_size: int = 128,
+        direct_loading: bool = False,
+        drop_graph: bool = False,
+        use_copy: bool = True,
+    ) -> None:
+        """
+        Load data from a Gremlin graph.
+
+        Args:
+            cosmos_gremlin_endpoint (str): The Cosmos Gremlin endpoint.
+            cosmos_gremlin_key (str): The Cosmos Gremlin key.
+            cosmos_username (str): The Cosmos username.
+            graph_name (str): The name of the graph to load the data into.
+            id_map (dict): The ID map.
+        """
+        log.info("Loading data from a Gremlin graph")
+        from gremlin_python.driver import client, serializer
+
+        await cls.setUpGraph(cls, graph_name, drop_graph)
+
+        chunk_multiplier = 1
+
+        try:
+            g = client.Client(
+                url=cosmos_gremlin_endpoint,
+                traversal_source="g",
+                username=cosmos_username,
+                password=cosmos_gremlin_key,
+                message_serializer=serializer.GraphSONSerializersV2d0(),
+            )
+        except Exception as e:
+            print(f"Failed to connect to Gremlin server: {e}")
+            return
+
+        v_labels = []
+        records = g.submit_async("g.V().label().dedup()").result().next()
+        for v_label in [rec for rec in records]:
+            v_labels.append(v_label)
+            await cls.createLabelType(cls, label_type="vertex", value=v_label)
+            query = f"g.V().has('{v_label}').count()"
+            results = g.submit_async(query).result().next()
+            cnt = results[0]
+            for i in range(0, cnt, chunk_size * chunk_multiplier):
+                query = f"g.V().has('{v_label}').range({i}, {i + chunk_size * chunk_multiplier})"
+                log.debug("Query to be executed: '%s'", query)
+                results = g.submit_async(query).result()
+                df = pd.DataFrame.from_dict([result[0] for result in results])
+                df.to_csv(f"{v_label}_{i}_{i + chunk_size * chunk_multiplier}.csv")
+
+        g.close()
