@@ -25,6 +25,7 @@ a Python package that helps you to create a graph database using Azure Database 
 
 ### Release Notes
 * 0.4.0 : Added 'loadFromCosmosGremlin()' function.
+* 0.4.1 : Changed base Python version to 3.9 to run on Azure Cloud Shell and Databricks 15.4ML.
 
 ### Install
 
