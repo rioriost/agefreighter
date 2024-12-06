@@ -22,8 +22,8 @@ class AgeFreighter:
         self.pool: AsyncConnectionPool = None
         self.dsn: str = ""
         self.graph_name: str = ""
-        self.name = "AgeLoader"
-        self.version = "0.4.1"
+        self.name = "AgeFreighter"
+        self.version = "0.4.2"
         self.author = "Rio Fujita"
 
     async def __aenter__(self):
@@ -640,7 +640,6 @@ class AgeFreighter:
             await cls.createLabelType(cls, label_type="vertex", value=start_v_label)
             await cls.createLabelType(cls, label_type="vertex", value=end_v_label)
             await cls.createLabelType(cls, label_type="edge", value=edge_type)
-            first_chunk = False
 
         for v_label, id, props in zip(
             [start_v_label, end_v_label],
@@ -733,6 +732,7 @@ class AgeFreighter:
                 drop_graph=drop_graph,
                 use_copy=use_copy,
             )
+            first_chunk = False
 
     @classmethod
     async def loadFromCSVs(
@@ -1219,9 +1219,7 @@ class AgeFreighter:
         log.info("Loading data from a Gremlin graph")
         from gremlin_python.driver import client, serializer
 
-        await cls.setUpGraph(cls, graph_name, drop_graph)
-
-        chunk_multiplier = 10
+        chunk_multiplier = 100
 
         try:
             g = client.Client(
@@ -1235,90 +1233,64 @@ class AgeFreighter:
             print(f"Failed to connect to Gremlin server: {e}")
             return
 
-        v_labels = []
-        query = "g.V().label().dedup()"
-        log.debug("Query to be executed: '%s'", query)
-        v_label_records = g.submit_async(query).result().next()
-        for v_label in [v_label_record for v_label_record in v_label_records]:
-            v_labels.append(v_label)
-            await cls.createLabelType(cls, label_type="vertex", value=v_label)
-            query = f"g.V().has('{v_label}').count()"
-            log.debug("Query to be executed: '%s'", query)
-            cnt_results = g.submit_async(query).result().next()
-            cnt = cnt_results[0]
-            for i in range(0, cnt, chunk_size * chunk_multiplier):
-                query = f"g.V().hasLabel('{v_label}').range({i}, {i + chunk_size * chunk_multiplier}).as('v').select('v').by(valueMap())"
-                log.debug("Query to be executed: '%s'", query)
-                callback = g.submit_async(query)
-                v_records = callback.result().all().result()
-                # convert the records to a DataFrame
-                vertices = pd.DataFrame.from_dict(
-                    [
-                        {
-                            item[0]: item[1][0]
-                            for item in v_record.items()
-                            if item[0] != "pk"
-                        }
-                        for v_record in v_records
-                    ]
-                )
-                vertices.rename(columns={id_map[v_label]: "id"}, inplace=True)
-                await cls.createVertices(
-                    cls,
-                    vertices,
-                    v_label,
-                    chunk_size,
-                    direct_loading,
-                    drop_graph,
-                    use_copy,
-                )
-
         query = "g.E().label().dedup()"
         log.debug("Query to be executed: '%s'", query)
-        e_type_records = g.submit_async(query).result().next()
-        for edge_type in e_type_records:
-            await cls.createLabelType(cls, label_type="edge", value=edge_type)
+        edge_types = [
+            edge_type for edge_type in g.submit_async(query).result().all().result()
+        ]
+
+        for edge_type in edge_types:
+            query = f"g.E().hasLabel('{edge_type}').count()"
+            log.debug("Query to be executed: '%s'", query)
+            cnt = g.submit_async(query).result().all().result()[0]
             query = f"g.E().hasLabel('{edge_type}').limit(1)"
             log.debug("Query to be executed: '%s'", query)
-            label_results = g.submit_async(query).result().next()
-            start_v_label = label_results[0]["outVLabel"]
-            end_v_label = label_results[0]["inVLabel"]
-
-            query = f"g.V().has('{start_v_label}').as('s').select('s').by(valueMap())"
-            log.debug("Query to be executed: '%s'", query)
-            from_results = g.submit_async(query).result().all().result()
-            cnt = len(from_results)
+            v_labels = g.submit_async(query).result().all().result()
+            in_v_label = v_labels[0]["inVLabel"]
+            out_v_label = v_labels[0]["outVLabel"]
+            existing_node_ids = []
+            first_chunk = True
             for i in range(0, cnt, chunk_size * chunk_multiplier):
-                within = ",".join(
-                    [
-                        f"'{from_result[cosmos_pkey][0]}'"
-                        for from_result in from_results[
-                            i : i + chunk_size * chunk_multiplier
-                        ]
-                    ]
-                )
-                query = f"g.V().has('{cosmos_pkey}', within({within})).outE('{edge_type}').project('edge', 'inV', 'outV').by(valueMap()).by(inV().valueMap()).by(outV().valueMap())"
+                query = f"g.E().hasLabel('{edge_type}').range({i}, {i + chunk_size * chunk_multiplier}).bothV()"
                 log.debug("Query to be executed: '%s'", query)
-                e_records = g.submit_async(query).result().all().result()
-                edges = pd.DataFrame.from_dict(
-                    [
-                        {
-                            "start_id": e_record["outV"][id_map[start_v_label]][0],
-                            "start_v_label": start_v_label,
-                            "end_id": e_record["inV"][id_map[end_v_label]][0],
-                            "end_v_label": end_v_label,
-                            "label": edge_type,
-                        }
-                        for e_record in e_records
-                    ]
-                )
-                await cls.createEdges(
+                records = g.submit_async(query).result().all().result()
+                dicts = []
+                for j in range(0, len(records), 2):
+                    dc = {}
+                    for k, v in records[j]["properties"].items():
+                        if k != "pk":
+                            dc[k] = v[0]["value"]
+                    for k, v in records[j + 1]["properties"].items():
+                        if k != "pk":
+                            dc[k] = v[0]["value"]
+                    dicts.append(dc)
+                df = pd.DataFrame.from_dict(dicts)
+                await cls.createGraphFromDataFrame(
                     cls,
-                    edges,
-                    edge_type,
-                    chunk_size,
-                    direct_loading,
-                    drop_graph,
-                    use_copy,
+                    graph_name=graph_name,
+                    src=df,
+                    existing_node_ids=existing_node_ids,
+                    first_chunk=first_chunk,
+                    start_v_label=out_v_label,
+                    start_id=id_map[out_v_label],
+                    start_props=[
+                        k
+                        for k in records[1]["properties"].keys()
+                        if k != "pk" and k != id_map[out_v_label]
+                    ],
+                    edge_type=edge_type,
+                    end_v_label=in_v_label,
+                    end_id=id_map[in_v_label],
+                    end_props=[
+                        k
+                        for k in records[0]["properties"].keys()
+                        if k != "pk" and k != id_map[in_v_label]
+                    ],
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    drop_graph=drop_graph,
+                    use_copy=use_copy,
                 )
+                first_chunk = False
+
         g.close()
