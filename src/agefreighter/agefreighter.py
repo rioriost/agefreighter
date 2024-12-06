@@ -23,7 +23,7 @@ class AgeFreighter:
         self.dsn: str = ""
         self.graph_name: str = ""
         self.name = "AgeLoader"
-        self.version = "0.3.2"
+        self.version = "0.4.0"
         self.author = "Rio Fujita"
 
     async def __aenter__(self):
@@ -319,9 +319,9 @@ class AgeFreighter:
         """
         log.info("Creating edges with SQL query")
         chunk_multiplier = 2
-        # create idmaps to convert entry_id to id(graphid)
-        idmaps = await self.getIdMaps(self, edges=edges)
-        log.debug("IDmaps: '%s'", idmaps)
+        # create id_maps to convert entry_id to id(graphid)
+        id_maps = await self.getIdMaps(self, edges=edges)
+        log.debug("ID_maps: '%s'", id_maps)
 
         # create queries for edges
         args = []
@@ -330,7 +330,7 @@ class AgeFreighter:
             values = []
             for idx, cols in edges[i : i + chunk_size * chunk_multiplier].iterrows():
                 values.append(
-                    f"('{idmaps[str(cols['start_v_label'])][str(cols['start_id'])]}'::graphid, '{idmaps[str(cols['end_v_label'])][str(cols['end_id'])]}'::graphid)"
+                    f"('{id_maps[str(cols['start_v_label'])][str(cols['start_id'])]}'::graphid, '{id_maps[str(cols['end_v_label'])][str(cols['end_id'])]}'::graphid)"
                 )
             args.append(
                 "".join(
@@ -433,9 +433,9 @@ class AgeFreighter:
         log.info("Copying vertices via COPY protocol")
         chunk_multiplier = 1000
 
-        # create idmaps to convert entry_id to id(graphid)
-        idmaps = await self.getIdMaps(self, edges=edges)
-        log.debug("IDmaps: '%s'", idmaps)
+        # create id_maps to convert entry_id to id(graphid)
+        id_maps = await self.getIdMaps(self, edges=edges)
+        log.debug("IDmaps: '%s'", id_maps)
 
         # create queries for edges
         first_id = await self.getFirstId(self, label_type=type)
@@ -450,10 +450,10 @@ class AgeFreighter:
                         for idx, cols in edges[
                             i : i + chunk_size * chunk_multiplier
                         ].iterrows():
-                            start_id = idmaps[str(cols["start_v_label"])][
+                            start_id = id_maps[str(cols["start_v_label"])][
                                 str(cols["start_id"])
                             ]
-                            end_id = idmaps[str(cols["end_v_label"])][
+                            end_id = id_maps[str(cols["end_v_label"])][
                                 str(cols["end_id"])
                             ]
                             args += f"{first_id + i + idx}\t{start_id}\t{end_id}\n"
@@ -467,8 +467,8 @@ class AgeFreighter:
         Args:
             edges (pd.DataFrame): The edges to create.
         """
-        # create idmaps to convert entry_id to id(graphid)
-        idmaps = {}
+        # create id_maps to convert entry_id to id(graphid)
+        id_maps = {}
         graph_name = self.quotedGraphName(self.graph_name)
         async with self.pool.connection() as conn:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
@@ -482,11 +482,11 @@ class AgeFreighter:
                         )
                     )
                     rows = await cur.fetchall()
-                    idmaps[e_label] = {
+                    id_maps[e_label] = {
                         row.entry_id.replace('"', ""): row.id for row in rows
                     }
 
-        return idmaps
+        return id_maps
 
     async def getFirstId(self, label_type: str = "") -> int:
         """
@@ -1003,7 +1003,7 @@ class AgeFreighter:
         src_con_string: str = "",
         src_tables: list = [],
         graph_name: str = "",
-        id_maps: dict = {},
+        id_map: dict = {},
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
@@ -1016,7 +1016,7 @@ class AgeFreighter:
             src_con_string (str): The connection string of the source PostgreSQL database.
             src_tables (list): The source tables.
             graph_name (str): The name of the graph to load the data into.
-            id_maps (dict): The ID maps.
+            id_map (dict): The ID map.
         """
         log.info("Loading data from a PostgreSQL database")
         import psycopg as pg
@@ -1028,8 +1028,8 @@ class AgeFreighter:
                 with conn.cursor(row_factory=namedtuple_row) as cur:
                     await cls.setUpGraph(cls, graph_name, drop_graph)
                     for src_table in src_tables.values():
-                        if id_maps.get(src_table) is not None:  # nodes
-                            id_map = id_maps[src_table]
+                        if id_map.get(src_table) is not None:  # nodes
+                            id_col_name = id_map[src_table]
                             await cls.createLabelType(
                                 cls, label_type="vertex", value=src_table
                             )
@@ -1043,7 +1043,9 @@ class AgeFreighter:
                                 )
                                 rows = cur.fetchall()
                                 vertices = pd.DataFrame(rows)
-                                vertices.rename(columns={id_map: "id"}, inplace=True)
+                                vertices.rename(
+                                    columns={id_col_name: "id"}, inplace=True
+                                )
                                 await cls.createVertices(
                                     cls,
                                     vertices,
@@ -1067,10 +1069,8 @@ class AgeFreighter:
                                 )
                                 rows = cur.fetchall()
                                 edges = pd.DataFrame(rows)
-                                edges.insert(
-                                    0, "start_v_label", list(id_maps.keys())[0]
-                                )
-                                edges.insert(0, "end_v_label", list(id_maps.keys())[1])
+                                edges.insert(0, "start_v_label", list(id_map.keys())[0])
+                                edges.insert(0, "end_v_label", list(id_map.keys())[1])
                                 await cls.createEdges(
                                     cls,
                                     edges,
@@ -1193,11 +1193,12 @@ class AgeFreighter:
                 first_chunk = False
 
     @classmethod
-    async def loadFromGremlin(
+    async def loadFromCosmosGremlin(
         cls,
         cosmos_gremlin_endpoint: str = "",
         cosmos_gremlin_key: str = "",
         cosmos_username: str = "",
+        cosmos_pkey: str = "",
         graph_name: str = "",
         id_map: dict = {},
         chunk_size: int = 128,
@@ -1220,7 +1221,7 @@ class AgeFreighter:
 
         await cls.setUpGraph(cls, graph_name, drop_graph)
 
-        chunk_multiplier = 1
+        chunk_multiplier = 10
 
         try:
             g = client.Client(
@@ -1235,18 +1236,89 @@ class AgeFreighter:
             return
 
         v_labels = []
-        records = g.submit_async("g.V().label().dedup()").result().next()
-        for v_label in [rec for rec in records]:
+        query = "g.V().label().dedup()"
+        log.debug("Query to be executed: '%s'", query)
+        v_label_records = g.submit_async(query).result().next()
+        for v_label in [v_label_record for v_label_record in v_label_records]:
             v_labels.append(v_label)
             await cls.createLabelType(cls, label_type="vertex", value=v_label)
             query = f"g.V().has('{v_label}').count()"
-            results = g.submit_async(query).result().next()
-            cnt = results[0]
+            log.debug("Query to be executed: '%s'", query)
+            cnt_results = g.submit_async(query).result().next()
+            cnt = cnt_results[0]
             for i in range(0, cnt, chunk_size * chunk_multiplier):
-                query = f"g.V().has('{v_label}').range({i}, {i + chunk_size * chunk_multiplier})"
+                query = f"g.V().hasLabel('{v_label}').range({i}, {i + chunk_size * chunk_multiplier}).as('v').select('v').by(valueMap())"
                 log.debug("Query to be executed: '%s'", query)
-                results = g.submit_async(query).result()
-                df = pd.DataFrame.from_dict([result[0] for result in results])
-                df.to_csv(f"{v_label}_{i}_{i + chunk_size * chunk_multiplier}.csv")
+                callback = g.submit_async(query)
+                v_records = callback.result().all().result()
+                # convert the records to a DataFrame
+                vertices = pd.DataFrame.from_dict(
+                    [
+                        {
+                            item[0]: item[1][0]
+                            for item in v_record.items()
+                            if item[0] != "pk"
+                        }
+                        for v_record in v_records
+                    ]
+                )
+                vertices.rename(columns={id_map[v_label]: "id"}, inplace=True)
+                await cls.createVertices(
+                    cls,
+                    vertices,
+                    v_label,
+                    chunk_size,
+                    direct_loading,
+                    drop_graph,
+                    use_copy,
+                )
 
+        query = "g.E().label().dedup()"
+        log.debug("Query to be executed: '%s'", query)
+        e_type_records = g.submit_async(query).result().next()
+        for edge_type in e_type_records:
+            await cls.createLabelType(cls, label_type="edge", value=edge_type)
+            query = f"g.E().hasLabel('{edge_type}').limit(1)"
+            log.debug("Query to be executed: '%s'", query)
+            label_results = g.submit_async(query).result().next()
+            start_v_label = label_results[0]["outVLabel"]
+            end_v_label = label_results[0]["inVLabel"]
+
+            query = f"g.V().has('{start_v_label}').as('s').select('s').by(valueMap())"
+            log.debug("Query to be executed: '%s'", query)
+            from_results = g.submit_async(query).result().all().result()
+            cnt = len(from_results)
+            for i in range(0, cnt, chunk_size * chunk_multiplier):
+                within = ",".join(
+                    [
+                        f"'{from_result[cosmos_pkey][0]}'"
+                        for from_result in from_results[
+                            i : i + chunk_size * chunk_multiplier
+                        ]
+                    ]
+                )
+                query = f"g.V().has('{cosmos_pkey}', within({within})).outE('{edge_type}').project('edge', 'inV', 'outV').by(valueMap()).by(inV().valueMap()).by(outV().valueMap())"
+                log.debug("Query to be executed: '%s'", query)
+                e_records = g.submit_async(query).result().all().result()
+                edges = pd.DataFrame.from_dict(
+                    [
+                        {
+                            "start_id": e_record["outV"][id_map[start_v_label]][0],
+                            "start_v_label": start_v_label,
+                            "end_id": e_record["inV"][id_map[end_v_label]][0],
+                            "end_v_label": end_v_label,
+                            "label": edge_type,
+                        }
+                        for e_record in e_records
+                    ]
+                )
+                await cls.createEdges(
+                    cls,
+                    edges,
+                    edge_type,
+                    chunk_size,
+                    direct_loading,
+                    drop_graph,
+                    use_copy,
+                )
         g.close()
