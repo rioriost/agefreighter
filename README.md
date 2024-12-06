@@ -20,7 +20,11 @@ a Python package that helps you to create a graph database using Azure Database 
 * 'loadFromNeo4j()' expects a Neo4j as a source.
 * 'loadFromPGSQL()' expects a PGSQL as a source.
 * 'loadFromParquet()' expects a Parquet file as a source.
+* 'loadFromCosmosGremlin()' expects a Cosmos Gremlin API as a source.
 * Many more coming soon...
+
+### Release Notes
+* 0.4.0 : Added 'loadFromCosmosGremlin()' function.
 
 ### Install
 
@@ -29,7 +33,7 @@ pip install agefreighter
 ```
 
 ### Prerequisites
-* over Python 3.11
+* over Python 3.10
 * This module runs on [psycopg](https://www.psycopg.org/) and [psycopg_pool](https://www.psycopg.org/)
 * Enable the Apache AGE extension in your Azure Database for PostgreSQL instance. Login Azure Portal, go to 'server parameters' blade, and check 'AGE" on within 'azure.extensions' and 'shared_preload_libraries' parameters. See, above blog post for more information.
 * Load the AGE extension in your PostgreSQL database.
@@ -45,32 +49,37 @@ See, [tests/test_agefreighter.py](https://github.com/rioriost/agefreighter/blob/
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
+import sys
 import time
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../src/"))
 
 import asyncio
 from agefreighter import AgeFreighter
 
 import networkx as nx
 import pandas as pd
+import nest_asyncio
 
-# for environment where PostgreSQL is not capable of loading data from local files, e.g. Azure Database for PostgreSQL
+nest_asyncio.apply()
 
 
-# test for loadFromSingleCSV
-#
-# file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
-# actorfilms.csv: Actor,ActorID,Film,Year,Votes,Rating,FilmID
-# # of actors: 9,623, # of films: 44,456, # of edges: 191,873
 async def test_loadFromSingleCSV(
     af: AgeFreighter,
     chunk_size: int = 96,
     direct_loading: bool = False,
     use_copy: bool = False,
 ) -> None:
+    """
+    Test for loadFromSingleCSV()
+    file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
+    actorfilms.csv: Actor,ActorID,Film,Year,Votes,Rating,FilmID
+    # of actors: 9,623, # of films: 44,456, # of edges: 191,873
+    """
     start_time = time.time()
     await af.loadFromSingleCSV(
-        graph_name="actorfilms",
-        csv="actorfilms.csv",
+        graph_name="ActorFilms",
+        csv="../data/actorfilms.csv",
         start_v_label="Actor",
         start_id="ActorID",
         start_props=["Actor"],
@@ -88,24 +97,25 @@ async def test_loadFromSingleCSV(
     )
 
 
-# test for loadfromCSVs
-#
-# cities.csv: id,name,state_id,state_code,country_id,country_code,latitude,longitude
-# countries.csv: id,name,iso3,iso2,numeric_code,phone_code,capital,currency,currency_symbol,tld,native,region,subregion,latitude,longitude,emoji,emojiU
-# edges.csv: start_id,start_vertex_type,end_id,end_vertex_type
-# # of countries: 53, # of cities: 72,485, # of edges: 72,485
 async def test_loadFromCSVs(
     af: AgeFreighter,
     chunk_size: int = 96,
     direct_loading: bool = False,
     use_copy: bool = False,
 ) -> None:
+    """
+    Test for loadFromCSVs()
+    cities.csv: id,name,state_id,state_code,country_id,country_code,latitude,longitude
+    countries.csv: id,name,iso3,iso2,numeric_code,phone_code,capital,currency,currency_symbol,tld,native,region,subregion,latitude,longitude,emoji,emojiU
+    edges.csv: start_id,start_vertex_type,end_id,end_vertex_type
+    # of countries: 53, # of cities: 72,485, # of edges: 72,485
+    """
     start_time = time.time()
     await af.loadFromCSVs(
         graph_name="cities_countries",
-        vertex_csvs=["countries.csv", "cities.csv"],
+        vertex_csvs=["../data/countries.csv", "../data/cities.csv"],
         v_labels=["Country", "City"],
-        edge_csvs=["edges.csv"],
+        edge_csvs=["../data/edges.csv"],
         e_types=["has_city"],
         chunk_size=chunk_size,
         direct_loading=direct_loading,
@@ -117,17 +127,46 @@ async def test_loadFromCSVs(
     )
 
 
-# test for loadFromNetworkx
-# create networkx graph from actorfilms.csv
-# file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
-# after creating networkx graph, load it to the database
+async def test_loadFrom2CSVs(
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+) -> None:
+    """
+    Test for loadFromCSVs()
+    start and end vertices are in the same csv file
+    """
+    start_time = time.time()
+    await af.loadFromCSVs(
+        graph_name="war_btw_countries",
+        vertex_csvs=["../data/countries.csv"],
+        v_labels=["Country"],
+        edge_csvs=["../data/fight_with.csv"],
+        e_types=["FIGHT_WITH"],
+        chunk_size=chunk_size,
+        direct_loading=direct_loading,
+        drop_graph=True,
+        use_copy=use_copy,
+    )
+    print(
+        f"test_loadFrom2CSVs : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+    )
+
+
 async def test_loadFromNetworkx(
     af: AgeFreighter,
     chunk_size: int = 96,
     direct_loading: bool = False,
     use_copy: bool = False,
 ) -> None:
-    df = pd.read_csv("actorfilms.csv")
+    """
+    Test for loadFromNetworkx()
+    create networkx graph from actorfilms.csv
+    file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
+    after creating networkx graph, load it to the database
+    """
+    df = pd.read_csv("../data/actorfilms.csv")
     G = nx.DiGraph()
 
     for name, group in df.groupby("ActorID"):
@@ -145,7 +184,7 @@ async def test_loadFromNetworkx(
 
     start_time = time.time()
     await af.loadFromNetworkx(
-        graph_name="actorfilms",
+        graph_name="ActorFilms",
         networkx_graph=G,
         chunk_size=chunk_size,
         direct_loading=direct_loading,
@@ -157,9 +196,6 @@ async def test_loadFromNetworkx(
     )
 
 
-# test for loadFromNeo4j
-# create networkx graph from actorfilms.csv
-# after creating networkx graph, load it to a graph
 async def test_loadFromNeo4j(
     af: AgeFreighter,
     chunk_size: int = 96,
@@ -167,6 +203,11 @@ async def test_loadFromNeo4j(
     use_copy: bool = False,
     init_neo4j: bool = False,
 ) -> None:
+    """
+    Test for loadFromNeo4j()
+    create networkx graph from actorfilms.csv
+    after creating networkx graph, load it to a graph
+    """
     try:
         n4j_uri = os.environ["NEO4J_URI"]
         n4j_user = os.environ["NEO4J_USER"]
@@ -182,7 +223,7 @@ async def test_loadFromNeo4j(
         await loadTestDataToNeo4j(n4j_uri, n4j_user, n4j_password)
 
     start_time = time.time()
-    graph_name = "actorfilms"
+    graph_name = "Actor_Films"
     await af.loadFromNeo4j(
         uri=n4j_uri,
         user=n4j_user,
@@ -200,17 +241,19 @@ async def test_loadFromNeo4j(
     )
 
 
-# load test data to neo4j
-# file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
 async def loadTestDataToNeo4j(
     n4j_uri: str = "",
     n4j_user: str = "",
     n4j_password: str = "",
 ) -> None:
+    """
+    Load test data to Neo4j
+    file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
+    """
     from neo4j import AsyncGraphDatabase
 
     batch_size = 1000
-    df = pd.read_csv("actorfilms.csv")
+    df = pd.read_csv("../data/actorfilms.csv")
     uniq_actors = df[["ActorID", "Actor"]].drop_duplicates()
     uniq_films = df[["FilmID", "Film", "Year", "Votes", "Rating"]].drop_duplicates()
 
@@ -291,9 +334,6 @@ async def loadTestDataToNeo4j(
                 )
 
 
-# test for loadFromPGSQL
-# create tables from actorfilms.csv
-# after creating table, load it to a graph
 async def test_loadFromPGSQL(
     af: AgeFreighter,
     chunk_size: int = 96,
@@ -301,6 +341,11 @@ async def test_loadFromPGSQL(
     use_copy: bool = False,
     init_pgsql: bool = False,
 ) -> None:
+    """
+    Test for loadFromPGSQL()
+    create tables from actorfilms.csv
+    after creating table, load it to a graph
+    """
     try:
         src_connection_string = os.environ["SRC_PG_CONNECTION_STRING"]
     except KeyError:
@@ -314,7 +359,7 @@ async def test_loadFromPGSQL(
         await loadTestDataToPGSQL(
             con_string=src_connection_string,
             src_tables=src_tables,
-            src_csv="actorfilms.csv",
+            src_csv="../data/actorfilms.csv",
         )
 
     start_time = time.time()
@@ -324,7 +369,7 @@ async def test_loadFromPGSQL(
         src_tables=src_tables,
         graph_name=graph_name,
         # values are culumn name with small caps
-        id_maps={
+        id_map={
             "Actor": "actorid",
             "Film": "filmid",
         },
@@ -338,13 +383,15 @@ async def test_loadFromPGSQL(
     )
 
 
-# load test data to PGSQL
-# file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
 async def loadTestDataToPGSQL(
     con_string: str = "",
     src_tables: dict = {},
     src_csv: str = "",
 ) -> None:
+    """
+    Load test data to PGSQL
+    file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
+    """
     import psycopg as pg
 
     df = pd.read_csv(src_csv)
@@ -392,9 +439,6 @@ async def loadTestDataToPGSQL(
             cur.execute("COMMIT")
 
 
-# test for loadFromParquet
-# create parquet from actorfilms.csv
-# after creating parquet, load it to a graph
 async def test_loadFromParquet(
     af: AgeFreighter,
     chunk_size: int = 96,
@@ -402,10 +446,15 @@ async def test_loadFromParquet(
     use_copy: bool = False,
     init_parquet: bool = False,
 ) -> None:
-    src_parquet = "actorfilms.parquet"
+    """
+    Test for loadFromParquet()
+    create parquet from actorfilms.csv
+    after creating parquet, load it to a graph
+    """
+    src_parquet = "../data/actorfilms.parquet"
 
     if init_parquet:
-        pd.read_csv("actorfilms.csv").to_parquet(src_parquet)
+        pd.read_csv("../data/actorfilms.csv").to_parquet(src_parquet)
 
     start_time = time.time()
     graph_name = "actorfilms"
@@ -429,8 +478,212 @@ async def test_loadFromParquet(
     )
 
 
+async def test_loadFromAvro(
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+    init_avro: bool = False,
+) -> None:
+    """
+    NOT IMPLEMENTED YET
+
+    Test for loadFromAvro()
+    create avro from actorfilms.csv
+    after creating avro, load it to a graph
+    """
+    src_avro = "../data/actorfilms.avro"
+
+    if init_avro:
+        await convertCSVtoAvro(src_csv="../data/actorfilms.csv", tgt_avro=src_avro)
+
+    start_time = time.time()
+    graph_name = "actorfilms"
+    await af.loadFromAvro(
+        src_avro=src_avro,
+        graph_name=graph_name,
+        start_v_label="Actor",
+        start_id="ActorID",
+        start_props=["Actor"],
+        edge_type="ACTED_IN",
+        end_v_label="Film",
+        end_id="FilmID",
+        end_props=["Film", "Year", "Votes", "Rating"],
+        chunk_size=chunk_size,
+        direct_loading=direct_loading,
+        drop_graph=True,
+        use_copy=use_copy,
+    )
+    print(
+        f"test_loadFromAvro : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+    )
+
+
+async def convertCSVtoAvro(src_csv: str = "", tgt_avro: str = "") -> None:
+    """
+    Convert CSV to Avro
+    """
+    import fastavro as fa
+
+    records = pd.read_csv(src_csv).to_dict(orient="records")
+    schema = {
+        "type": "record",
+        "name": "actorfilms",
+        "fields": [
+            {"name": "ActorID", "type": "string"},
+            {"name": "Actor", "type": "string"},
+            {"name": "FilmID", "type": "string"},
+            {"name": "Film", "type": "string"},
+            {"name": "Year", "type": "int"},
+            {"name": "Votes", "type": "int"},
+            {"name": "Rating", "type": "float"},
+        ],
+    }
+    parsed_schema = fa.parse_schema(schema)
+    with open(tgt_avro, "wb") as f:
+        fa.writer(f, parsed_schema, records)
+
+
+async def test_loadFromCosmosGremlin(
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+    init_gremlin: bool = True,
+) -> None:
+    """
+    NEED MORE TUNING
+
+    Test for loadFromCosmosGremlin()
+    create graph via Gremlin from actorfilms.csv
+    after creating graph, load it to a graph
+
+    export COSMOS_GREMLIN_ENDPOINT='wss://account_name.gremlin.cosmos.azure.com:443/'
+    export COSMOS_GREMLIN_KEY='OwA3fVHzGzs8LsTN...........'
+    """
+    try:
+        cosmos_gremlin_endpoint = os.environ["COSMOS_GREMLIN_ENDPOINT"]
+        cosmos_gremlin_key = os.environ["COSMOS_GREMLIN_KEY"]
+    except KeyError:
+        print(
+            "Please set the environment variables COSMOS_GREMLIN_ENDPOINT / COSMOS_GREMLIN_KEY"
+        )
+        return
+
+    cosmos_db_name = "db1"
+    cosmos_graph_name = "actorfilms"
+    cosmos_username = f"/dbs/{cosmos_db_name}/colls/{cosmos_graph_name}"
+    cosmos_pkey = "pk"
+
+    if init_gremlin:
+        await loadTestDataViaGremlin(
+            cosmos_gremlin_endpoint=cosmos_gremlin_endpoint,
+            cosmos_gremlin_key=cosmos_gremlin_key,
+            cosmos_username=cosmos_username,
+            cosmos_pkey=cosmos_pkey,
+            src_csv="../data/actorfilms.csv",
+        )
+
+    start_time = time.time()
+    graph_name = "actorfilms"
+    await af.loadFromCosmosGremlin(
+        cosmos_gremlin_endpoint=cosmos_gremlin_endpoint,
+        cosmos_gremlin_key=cosmos_gremlin_key,
+        cosmos_username=cosmos_username,
+        cosmos_pkey=cosmos_pkey,
+        graph_name=graph_name,
+        id_map={"Actor": "ActorID", "Film": "FilmID"},
+        chunk_size=chunk_size,
+        direct_loading=direct_loading,
+        drop_graph=True,
+        use_copy=use_copy,
+    )
+    print(
+        f"test_loadFromCosmosGremlin : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+    )
+
+
+async def loadTestDataViaGremlin(
+    cosmos_gremlin_endpoint: str = "",
+    cosmos_gremlin_key: str = "",
+    cosmos_username: str = "",
+    cosmos_pkey: str = "",
+    src_csv: str = "",
+) -> None:
+    """
+    Load test data to Cosmos Gremlin
+    file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
+    """
+    from gremlin_python.driver import client, serializer
+
+    try:
+        g_client = client.Client(
+            url=cosmos_gremlin_endpoint,
+            traversal_source="g",
+            username=cosmos_username,
+            password=cosmos_gremlin_key,
+            message_serializer=serializer.GraphSONSerializersV2d0(),
+        )
+    except Exception as e:
+        print(f"Failed to connect to Gremlin server: {e}")
+        return
+
+    # g_client.submitAsync("g.V().drop()")
+
+    df = pd.read_csv(src_csv)
+    actors = df[["Actor", "ActorID"]].drop_duplicates()
+    actors = actors.map(lambda x: x.replace("'", r"\'") if isinstance(x, str) else x)
+    films = df[["Film", "FilmID", "Year", "Votes", "Rating"]].drop_duplicates()
+    films = films.map(lambda x: x.replace("'", r"\'") if isinstance(x, str) else x)
+    for idx, (actor, actorid) in actors.iterrows():
+        query = "g.addV('Actor').property('Actor', '{actor}').property('ActorID', '{actorid}').property('{pk}', '{actorid}')".format(
+            actorid=actorid, actor=actor, pk=cosmos_pkey
+        )
+        # fixed partition key for small data
+        # query = "g.addV('Actor').property('Actor', '{actor}').property('ActorID', '{actorid}').property('{pk}', 'pk')".format(
+        #    actorid=actorid, actor=actor, pk=cosmos_pkey
+        # )
+        g_client.submitAsync(query)
+    for idx, (film, filmid, year, votes, rating) in films.iterrows():
+        query = "g.addV('Film').property('Film', '{film}').property('FilmID', '{filmid}').property('Year', {year}).property('Votes', {votes}).property('Rating', {rating}).property('{pk}', '{filmid}')".format(
+            filmid=filmid,
+            film=film,
+            year=year,
+            votes=votes,
+            rating=rating,
+            pk=cosmos_pkey,
+        )
+        # fixed partition key for small data
+        # query = "g.addV('Film').property('Film', '{film}').property('FilmID', '{filmid}').property('Year', {year}).property('Votes', {votes}).property('Rating', {rating}).property('{pk}', 'pk')".format(
+        #    filmid=filmid,
+        #    film=film,
+        #    year=year,
+        #    votes=votes,
+        #    rating=rating,
+        #    pk=cosmos_pkey,
+        # )
+        g_client.submitAsync(query)
+    # can not avoid cross-partition query when the total size of documents exceeds the maximum size of logical partition, 20GB, because actor and film are in different partition
+    for row in df.itertuples(index=False):
+        query = "g.V().has('{pk}', '{actorid}').addE('ACTED_IN').to(g.V().has('{pk}', '{filmid}'))".format(
+            actorid=row.ActorID, filmid=row.FilmID, pk=cosmos_pkey
+        )
+        g_client.submitAsync(query)
+    g_client.close()
+
+
 async def main() -> None:
-    # export PG_CONNECTION_STRING="host=your_server.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
+    """
+    Test for AgeFreighter
+
+    export PG_CONNECTION_STRING="host=your_server.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
+
+    Strongly reccomend to adjust chunk_size with your data and server before loading large amount of data
+    Especially, the number of properties in the vertex affects the complecity of the query
+    Due to asynchronous nature of the library, the duration for loading data is not linear to the number of rows
+
+    Addition to the chunk_size, max_wal_size and checkpoint_timeout in the postgresql.conf should be considered
+    """
     try:
         connection_string = os.environ["PG_CONNECTION_STRING"]
     except KeyError:
@@ -439,12 +692,6 @@ async def main() -> None:
 
     try:
         af = await AgeFreighter.connect(dsn=connection_string, max_connections=64)
-        # Strongly reccomended to define chunk_size with your data and server before loading large amount of data
-        # Especially, the number of properties in the vertex affects the complecity of the query
-        # Due to asynchronous nature of the library, the duration for loading data is not linear to the number of rows
-        #
-        # Addition to the chunk_size, max_wal_size and checkpoint_timeout in the postgresql.conf should be considered
-
         test_set = [
             [False, False],
             [True, False],
@@ -533,11 +780,44 @@ async def main() -> None:
                     chunk_size=chunk_size,
                     direct_loading=direct_loading,
                     use_copy=use_copy,
-                    init_parquet=False,
+                    init_parquet=True,
                 )
                 for idx, (direct_loading, use_copy) in enumerate(test_set)
             ]
             print("test_loadFromParquet done\n")
+
+        # NEED MORE TUNING
+        do = True
+        if do:
+            [
+                await test_loadFromCosmosGremlin(
+                    af,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
+                    init_gremlin=False,
+                )
+                for idx, (direct_loading, use_copy) in enumerate(test_set)
+            ]
+            print(
+                "test_loadFromCosmosGremlin done\n"
+                "##### The duration for test_loadFromCosmosGremlin depends on the performance of the source Cosmos DB. #####\n"
+            )
+
+        # NOT IMPLEMENTED YET
+        do = False
+        if do:
+            [
+                await test_loadFromAvro(
+                    af,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
+                    init_avro=True,
+                )
+                for idx, (direct_loading, use_copy) in enumerate(test_set)
+            ]
+            print("test_loadFromAvro done\n")
 
     finally:
         await af.pool.close()
