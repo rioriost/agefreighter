@@ -23,7 +23,7 @@ class AgeFreighter:
         self.dsn: str = ""
         self.graph_name: str = ""
         self.name = "AgeLoader"
-        self.version = "0.4.0"
+        self.version = "0.4.1"
         self.author = "Rio Fujita"
 
     async def __aenter__(self):
