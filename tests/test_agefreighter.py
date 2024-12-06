@@ -568,6 +568,12 @@ async def loadTestDataViaGremlin(
     """
     from gremlin_python.driver import client, serializer
 
+    # edge are automaticaly located in the same partirion as the 'from' node
+    # AVERAGE_SIZE_OF_DOCUMENT includes the estimated size of the edge document
+    LOGICAL_PARTITION_SIZE = 20 * 1024 * 1024 * 1024  # 20GB
+    AVERAGE_SIZE_OF_DOCUMENT = 512  # 512bytes
+    num_of_documents_per_partition = LOGICAL_PARTITION_SIZE // AVERAGE_SIZE_OF_DOCUMENT
+
     try:
         g_client = client.Client(
             url=cosmos_gremlin_endpoint,
@@ -582,45 +588,44 @@ async def loadTestDataViaGremlin(
 
     # g_client.submitAsync("g.V().drop()")
 
+    num_of_pk = 1
+
     df = pd.read_csv(src_csv)
     actors = df[["Actor", "ActorID"]].drop_duplicates()
     actors = actors.map(lambda x: x.replace("'", r"\'") if isinstance(x, str) else x)
+    total_num_of_documents = 0
+    for idx, (actor, actorid) in actors.iterrows():
+        query = "g.addV('Actor').property('Actor', '{actor}').property('ActorID', '{actorid}').property('{pk}', '{num_of_pk}')".format(
+            actorid=actorid, actor=actor, pk=cosmos_pkey, num_of_pk=num_of_pk
+        )
+        g_client.submitAsync(query).result()
+        total_num_of_documents += 1
+        if total_num_of_documents % num_of_documents_per_partition == 0:
+            num_of_pk += 1
+
     films = df[["Film", "FilmID", "Year", "Votes", "Rating"]].drop_duplicates()
     films = films.map(lambda x: x.replace("'", r"\'") if isinstance(x, str) else x)
-    for idx, (actor, actorid) in actors.iterrows():
-        query = "g.addV('Actor').property('Actor', '{actor}').property('ActorID', '{actorid}').property('{pk}', '{actorid}')".format(
-            actorid=actorid, actor=actor, pk=cosmos_pkey
-        )
-        # fixed partition key for small data
-        # query = "g.addV('Actor').property('Actor', '{actor}').property('ActorID', '{actorid}').property('{pk}', 'pk')".format(
-        #    actorid=actorid, actor=actor, pk=cosmos_pkey
-        # )
-        g_client.submitAsync(query)
     for idx, (film, filmid, year, votes, rating) in films.iterrows():
-        query = "g.addV('Film').property('Film', '{film}').property('FilmID', '{filmid}').property('Year', {year}).property('Votes', {votes}).property('Rating', {rating}).property('{pk}', '{filmid}')".format(
+        query = "g.addV('Film').property('Film', '{film}').property('FilmID', '{filmid}').property('Year', {year}).property('Votes', {votes}).property('Rating', {rating}).property('{pk}', '{num_of_pk}')".format(
             filmid=filmid,
             film=film,
             year=year,
             votes=votes,
             rating=rating,
             pk=cosmos_pkey,
+            num_of_pk=num_of_pk,
         )
-        # fixed partition key for small data
-        # query = "g.addV('Film').property('Film', '{film}').property('FilmID', '{filmid}').property('Year', {year}).property('Votes', {votes}).property('Rating', {rating}).property('{pk}', 'pk')".format(
-        #    filmid=filmid,
-        #    film=film,
-        #    year=year,
-        #    votes=votes,
-        #    rating=rating,
-        #    pk=cosmos_pkey,
-        # )
-        g_client.submitAsync(query)
+        g_client.submitAsync(query).result()
+        total_num_of_documents += 1
+        if total_num_of_documents % num_of_documents_per_partition == 0:
+            num_of_pk += 1
+
     # can not avoid cross-partition query when the total size of documents exceeds the maximum size of logical partition, 20GB, because actor and film are in different partition
     for row in df.itertuples(index=False):
-        query = "g.V().has('{pk}', '{actorid}').addE('ACTED_IN').to(g.V().has('{pk}', '{filmid}'))".format(
-            actorid=row.ActorID, filmid=row.FilmID, pk=cosmos_pkey
+        query = "g.V().has('ActorID', '{actorid}').addE('ACTED_IN').to(g.V().has('FilmID', '{filmid}'))".format(
+            actorid=row.ActorID, filmid=row.FilmID
         )
-        g_client.submitAsync(query)
+        g_client.submitAsync(query).result()
     g_client.close()
 
 
@@ -651,7 +656,7 @@ async def main() -> None:
         ]
 
         chunk_size = 128
-        do = True
+        do = False
         if do:
             [
                 await test_loadFromSingleCSV(
@@ -664,7 +669,7 @@ async def main() -> None:
             ]
             print("test_loadFromSingleCSV done\n")
 
-        do = True
+        do = False
         if do:
             [
                 await test_loadFromCSVs(
@@ -677,7 +682,7 @@ async def main() -> None:
             ]
             print("test_loadFromCSVs done\n")
 
-        do = True
+        do = False
         if do:
             [
                 await test_loadFromNetworkx(
@@ -690,7 +695,7 @@ async def main() -> None:
             ]
             print("test_loadFromNetworkx done\n")
 
-        do = True
+        do = False
         if do:
             [
                 await test_loadFromNeo4j(
@@ -707,7 +712,7 @@ async def main() -> None:
                 "##### The duration for test_loadFromNeo4j depends on the performance of the neo4j server. #####\n"
             )
 
-        do = True
+        do = False
         if do:
             [
                 await test_loadFromPGSQL(
@@ -724,7 +729,7 @@ async def main() -> None:
                 "##### The duration for test_loadFromPGSQL depends on the performance of the source pgsql server. #####\n"
             )
 
-        do = True
+        do = False
         if do:
             [
                 await test_loadFromParquet(
