@@ -229,10 +229,15 @@ async def test_loadFromNetworkx(
             G.add_edge(row["ActorID"], row["FilmID"], label="ACTED_IN")
 
     graph_name = "ActorFilmsFromNetworkx"
+    id_map = {
+        "Actor": "ActorID",
+        "Film": "FilmID",
+    }
     start_time = time.time()
     await af.loadFromNetworkx(
         graph_name=graph_name,
         networkx_graph=G,
+        id_map=id_map,
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
@@ -573,7 +578,7 @@ async def test_loadFromParquet(
     execution_time = time.time() - start_time
     if not await is_graph_created(
         af,
-        graph_name="actorfilms",
+        graph_name=graph_name,
         vertex_labels=["Actor", "Film"],
         vertex_counts=[9623, 44456],
         edge_type=edge_type,
@@ -644,9 +649,24 @@ async def test_loadFromCosmosGremlin(
         drop_graph=True,
         use_copy=use_copy,
     )
-    print(
-        f"test_loadFromCosmosGremlin : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
-    )
+    execution_time = time.time() - start_time
+    if not await is_graph_created(
+        af,
+        graph_name=graph_name,
+        vertex_labels=["Actor", "Film"],
+        vertex_counts=[9623, 44456],
+        edge_type="ACTED_IN",
+        edge_count=191873,
+    ):
+        print(f"{sys._getframe().f_code.co_name} failed")
+    else:
+        await show_test_result(
+            sys._getframe().f_code.co_name,
+            execution_time,
+            chunk_size,
+            direct_loading,
+            use_copy,
+        )
 
 
 async def loadTestDataViaGremlin(
