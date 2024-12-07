@@ -6,10 +6,38 @@ from psycopg.rows import namedtuple_row
 from psycopg_pool import AsyncConnectionPool
 from typing_extensions import Callable
 import nest_asyncio
+from neo4j import AsyncGraphDatabase
 
 nest_asyncio.apply()
 
 log = logging.getLogger("agefreighter")
+
+
+class Neo4jHandler:
+    def __init__(self, uri, user, password):
+        self.driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
+
+    def close(self):
+        self.driver.close()
+
+    def get_edges_with_nodes(self, chunk_size):
+        with self.driver.session() as session:
+            skip = 0
+            while True:
+                result = session.run(
+                    """
+                    MATCH (start)-[r]->(end)
+                    RETURN start, r, end
+                    SKIP $skip LIMIT $limit
+                    """,
+                    skip=skip,
+                    limit=chunk_size,
+                )
+                records = result.data()
+                if not records:
+                    break
+                yield records
+                skip += chunk_size
 
 
 class AgeFreighter:
@@ -23,7 +51,7 @@ class AgeFreighter:
         self.dsn: str = ""
         self.graph_name: str = ""
         self.name = "AgeFreighter"
-        self.version = "0.4.3"
+        self.version = "0.4.4"
         self.author = "Rio Fujita"
 
     async def __aenter__(self):
@@ -248,16 +276,21 @@ class AgeFreighter:
             None
         """
         log.info("Creating vertices via Cypher")
-        chunk_multiplier = 1
+        chunk_multiplier = 2
         args = []
         for i in range(0, len(vertices), chunk_size * chunk_multiplier):
-            parts = []
-            for idx, cols in vertices[i : i + chunk_size * chunk_multiplier].iterrows():
-                properties = [f"{k}:'{v}'" for k, v in cols.items()]
-                parts.append(f"(v{idx}:{label} {{{','.join(properties)}}})")
-            query = f"SELECT * FROM cypher('{self.graph_name}', $$ CREATE {','.join(parts)} $$) AS (a agtype);"
-            log.debug("Query to be excecuted: '%s'", query)
-            args.append(query)
+            chunk = vertices.iloc[i : i + chunk_size * chunk_multiplier]
+            parts = chunk.apply(
+                lambda row: "(v{0}:{1} {{{2}}})".format(
+                    row.name,
+                    label,
+                    ",".join([f"{k}:'{v}'" for k, v in row.items()]),
+                ),
+                axis=1,
+            ).tolist()
+            args.append(
+                f"SELECT * FROM cypher('{self.graph_name}', $$ CREATE {','.join(parts)} $$) AS (a agtype);"
+            )
         await self.executeWithTasks(self, self.executeQuery, args)
 
     async def createEdgesCypher(
@@ -278,18 +311,23 @@ class AgeFreighter:
         chunk_multiplier = 2
         args = []
         for i in range(0, len(edges), chunk_size * chunk_multiplier):
-            parts = []
-            for idx, cols in edges[i : i + chunk_size * chunk_multiplier].iterrows():
-                parts.append(
-                    f"MATCH (n:{cols['start_v_label']} {{id: '{cols['start_id']}'}}), (m:{cols['end_v_label']} {{id: '{cols['end_id']}'}}) CREATE (n)-[:{type}]->(m)"
-                )
+            chunk = edges.iloc[i : i + chunk_size * chunk_multiplier]
+            parts = chunk.apply(
+                lambda row: (
+                    f"MATCH (n:{row['start_v_label']} {{id: '{row['start_id']}'}}), "
+                    f"(m:{row['end_v_label']} {{id: '{row['end_id']}'}}) "
+                    f"CREATE (n)-[:{type}]->(m)"
+                ),
+                axis=1,
+            ).tolist()
+
             query = "".join(
                 [
                     f"SELECT * FROM cypher('{self.graph_name}', $$ {part} $$) AS (a agtype);"
                     for part in parts
                 ]
             )
-            log.debug("Query to be excecuted: '%s'", query)
+            log.debug("Query to be executed: '%s'", query)
             args.append(query)
         await self.executeWithTasks(self, self.executeQuery, args)
 
@@ -308,20 +346,20 @@ class AgeFreighter:
             None
         """
         log.info("Creating vertices with SQL query")
-        chunk_multiplier = 1
+        chunk_multiplier = 2
         args = []
         graph_name = self.quotedGraphName(self.graph_name)
         for i in range(0, len(vertices), chunk_size * chunk_multiplier):
-            values = []
-            for idx, cols in vertices[i : i + chunk_size * chunk_multiplier].iterrows():
-                properties = [f'"{k}":"{v}"' for k, v in cols.items()]
-                values.append(f"('{{{','.join(properties)}}}')")
+            chunk = vertices.iloc[i : i + chunk_size * chunk_multiplier]
+            values = chunk.apply(
+                lambda row: "('{"
+                + ",".join([f'"{k}":"{v}"' for k, v in row.items()])
+                + "}')",
+                axis=1,
+            ).tolist()
             args.append(
-                "".join(
-                    f"INSERT INTO {graph_name}.\"{label}\" (properties) VALUES {','.join(values)};"
-                )
+                f"INSERT INTO {graph_name}.\"{label}\" (properties) VALUES {','.join(values)};"
             )
-            log.debug("Query to be excecuted: '%s'", args)
         await self.executeWithTasks(self, self.executeQuery, args)
 
     async def createEdgesDirectly(
@@ -348,15 +386,13 @@ class AgeFreighter:
         args = []
         graph_name = self.quotedGraphName(self.graph_name)
         for i in range(0, len(edges), chunk_size * chunk_multiplier):
-            values = []
-            for idx, cols in edges[i : i + chunk_size * chunk_multiplier].iterrows():
-                values.append(
-                    f"('{id_maps[str(cols['start_v_label'])][str(cols['start_id'])]}'::graphid, '{id_maps[str(cols['end_v_label'])][str(cols['end_id'])]}'::graphid)"
-                )
+            chunk = edges.iloc[i : i + chunk_size * chunk_multiplier]
+            values = chunk.apply(
+                lambda row: f"('{id_maps[str(row['start_v_label'])][str(row['start_id'])]}'::graphid, '{id_maps[str(row['end_v_label'])][str(row['end_id'])]}'::graphid)",
+                axis=1,
+            ).tolist()
             args.append(
-                "".join(
-                    f"INSERT INTO {graph_name}.\"{type}\" (start_id, end_id) VALUES {','.join(values)};"
-                )
+                f"INSERT INTO {graph_name}.\"{type}\" (start_id, end_id) VALUES {','.join(values)};"
             )
             log.debug("Query to be excecuted: '%s'", args)
         await self.executeWithTasks(self, self.executeQuery, args)
@@ -394,7 +430,7 @@ class AgeFreighter:
             try:
                 async with pool.connection() as conn:
                     async with conn.cursor() as cur:
-                        await cur.execute(sql.SQL(query))
+                        await cur.execute(query)
                         break
             except Exception as e:
                 print(e)
@@ -429,15 +465,18 @@ class AgeFreighter:
                 query = f'COPY {graph_name}."{label}" FROM STDIN (FORMAT TEXT)'
                 log.debug("Query to be excecuted: '%s'", query)
                 async with cur.copy(query) as copy:
+                    args_list = []
                     for i in range(0, len(vertices), chunk_size * chunk_multiplier):
-                        args = ""
-                        for idx, cols in vertices[
-                            i : i + chunk_size * chunk_multiplier
-                        ].iterrows():
-                            properties = [f'"{k}": "{v}"' for k, v in cols.items()]
-                            args += (
-                                f"{first_id + i + idx}\t{{{', '.join(properties)}}}\n"
-                            )
+                        chunk = vertices.iloc[i : i + chunk_size * chunk_multiplier]
+                        chunk_args = chunk.apply(
+                            lambda row: "{0}\t{{{1}}}\n".format(
+                                first_id + row.name,
+                                ", ".join([f'"{k}": "{v}"' for k, v in row.items()]),
+                            ),
+                            axis=1,
+                        ).tolist()
+                        args_list.extend(chunk_args)
+                        args = "".join(args_list)
                         await copy.write(args)
                         log.debug("Args to be passed to COPY: '%s'", args)
                 await cur.execute(sql.SQL("COMMIT"))
@@ -476,17 +515,20 @@ class AgeFreighter:
                 log.debug("Query to be excecuted: '%s'", query)
                 async with cur.copy(query) as copy:
                     for i in range(0, len(edges), chunk_size * chunk_multiplier):
-                        args = ""
-                        for idx, cols in edges[
-                            i : i + chunk_size * chunk_multiplier
-                        ].iterrows():
-                            start_id = id_maps[str(cols["start_v_label"])][
-                                str(cols["start_id"])
-                            ]
-                            end_id = id_maps[str(cols["end_v_label"])][
-                                str(cols["end_id"])
-                            ]
-                            args += f"{first_id + i + idx}\t{start_id}\t{end_id}\n"
+                        args_list = []
+                        chunk = edges.iloc[i : i + chunk_size * chunk_multiplier]
+                        chunk_args = chunk.apply(
+                            lambda row: "{0}\t{1}\t{2}\n".format(
+                                first_id + row.name,
+                                id_maps[str(row["start_v_label"])][
+                                    str(row["start_id"])
+                                ],
+                                id_maps[str(row["end_v_label"])][str(row["end_id"])],
+                            ),
+                            axis=1,
+                        ).tolist()
+                        args_list.extend(chunk_args)
+                        args = "".join(args_list)
                         await copy.write(args)
                         log.debug("Args to be passed to COPY: '%s'", args)
 
@@ -609,6 +651,37 @@ class AgeFreighter:
             )
 
         return start_v_label, end_v_label
+
+    def getChunks(df: pd.DataFrame = None, chunk_size: int = 0) -> pd.DataFrame:
+        """
+        Get the DataFrame in chunks.
+
+        Args:
+            df (DataFrame): The DataFrame to get the edges from.
+            chunk_size (int): The size of the chunks to get the edges in.
+
+        Returns:
+            DataFrame: chunk of the DataFrame
+        """
+        for i in range(0, len(df), chunk_size):
+            yield df.iloc[i : i + chunk_size].copy()
+
+    def get_node_attributes(graph, node_ids, attributes):
+        """
+        Get node attributes.
+
+        Args:
+            graph: The graph.
+            node_ids: The node IDs.
+            attributes: The attributes.
+
+        Returns:
+            dict: The node attributes.
+        """
+        return {
+            attr: [graph.nodes[node_id].get(attr, None) for node_id in node_ids]
+            for attr in attributes
+        }
 
     @classmethod
     async def connect(
@@ -883,6 +956,7 @@ class AgeFreighter:
         cls,
         networkx_graph: DiGraph = None,
         graph_name: str = "",
+        id_map: dict = {},
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
@@ -894,6 +968,7 @@ class AgeFreighter:
         Args:
             networkx_graph (DiGraph): The NetworkX graph.
             graph_name (str): The name of the graph to load the data into.
+            id_map (dict): The ID map.
 
         Returns:
             None
@@ -901,57 +976,112 @@ class AgeFreighter:
         log.info("Loading data from a NetworkX graph")
         import networkx as nx
 
-        await cls.setUpGraph(cls, graph_name, drop_graph)
+        chunk_multiplier = 1000
 
-        vertex_labels = []
-        for vertex_label in set(
-            nx.get_node_attributes(networkx_graph, "label").values()
-        ):
-            vertex_labels.append(vertex_label)
-            await cls.createLabelType(cls, label_type="vertex", value=vertex_label)
-            nodes = [
-                {"id": node, **data}
-                for node, data in networkx_graph.nodes(data=True)
-                if data.get("label") == vertex_label
-            ]
-            columns = [k for k in list(nodes[0].keys()) if k != "label"]
-            vertices = pd.DataFrame(nodes, columns=columns)
-            await cls.createVertices(
+        first_chunk = True
+        existing_node_ids = []
+        edges = nx.to_pandas_edgelist(networkx_graph)
+        start_v_label = networkx_graph.nodes[edges.iloc[0]["source"]]["label"]
+        start_id = id_map[start_v_label]
+        end_v_label = networkx_graph.nodes[edges.iloc[0]["target"]]["label"]
+        end_id = id_map[end_v_label]
+        edge_type = edges.iloc[0]["label"]
+        start_props = [
+            prop
+            for prop in networkx_graph.nodes[edges.iloc[0]["source"]]
+            if prop not in ["label", "name"]
+        ]
+        end_props = [
+            prop
+            for prop in networkx_graph.nodes[edges.iloc[0]["target"]]
+            if prop not in ["label", "name"]
+        ]
+        for chunk in cls.getChunks(edges, chunk_size * chunk_multiplier):
+            source_ids = chunk["source"].tolist()
+            target_ids = chunk["target"].tolist()
+
+            start_attributes = cls.get_node_attributes(
+                networkx_graph, source_ids, ["name"] + start_props
+            )
+            end_attributes = cls.get_node_attributes(
+                networkx_graph, target_ids, ["name"] + end_props
+            )
+
+            chunk[start_v_label] = start_attributes["name"]
+            for start_prop in start_props:
+                chunk[start_prop] = start_attributes[start_prop]
+
+            chunk[end_v_label] = end_attributes["name"]
+            for end_prop in end_props:
+                chunk[end_prop] = end_attributes[end_prop]
+
+            chunk.rename(columns={"source": start_id, "target": end_id}, inplace=True)
+            chunk.drop(columns=["label"], inplace=True)
+            await cls.createGraphFromDataFrame(
                 cls,
-                vertices,
-                vertex_label,
-                chunk_size,
-                direct_loading,
-                drop_graph,
-                use_copy,
+                graph_name=graph_name,
+                src=chunk,
+                existing_node_ids=existing_node_ids,
+                first_chunk=first_chunk,
+                start_v_label=start_v_label,
+                start_id=start_id,
+                start_props=start_props,
+                edge_type=edge_type,
+                end_v_label=end_v_label,
+                end_id=end_id,
+                end_props=end_props,
+                chunk_size=chunk_size,
+                direct_loading=direct_loading,
+                drop_graph=drop_graph,
+                use_copy=use_copy,
             )
+            first_chunk = False
 
-        for edge_type in set(nx.get_edge_attributes(networkx_graph, "label").values()):
-            await cls.createLabelType(cls, label_type="edge", value=edge_type)
-            edges = nx.to_pandas_edgelist(networkx_graph)
-            # it's a little bit tricky to get the vertex types of the start and end vertices
-            # nodes keeps the last vertex information, it might be the start or end vertex. It's not guaranteed.
-            start_v_label, end_v_label = await cls.getVertexLabels(
-                nodes=nodes,
-                vertex_labels=vertex_labels,
-                first_source_id=edges["source"][0],
-                first_target_id=edges["target"][0],
-            )
+    @classmethod
+    async def loadFromNeo4jNew(
+        cls,
+        uri: str = "bolt://localhost:7687",
+        user: str = "neo4j",
+        password: str = "neo4jpass",
+        neo4j_database: str = "neo4j",
+        graph_name: str = "",
+        id_map: dict = {},
+        chunk_size: int = 128,
+        direct_loading: bool = False,
+        drop_graph: bool = False,
+        use_copy: bool = True,
+    ) -> None:
+        """
+        Load data from a Neo4j graph.
 
-            edges.insert(0, "start_v_label", start_v_label)
-            edges.insert(0, "end_v_label", end_v_label)
-            edges.rename(
-                columns={"source": "start_id", "target": "end_id"}, inplace=True
-            )
-            await cls.createEdges(
-                cls,
-                edges,
-                edge_type,
-                chunk_size,
-                direct_loading,
-                drop_graph,
-                use_copy,
-            )
+        Args:
+            uri (str): The URI of the Neo4j database.
+            user (str): The user of the Neo4j database.
+            password (str): The password of the Neo4j database.
+            neo4j_database (str): The name of the Neo4j database.
+            graph_name (str): The name of the graph to load the data into.
+            id_map (dict): The ID map.
+
+        Returns:
+            None
+        """
+        log.info("Loading data from a Neo4j graph")
+
+        chunk_multiplier = 100
+        neo4j_handler = Neo4jHandler(uri, user, password)
+        try:
+            for chunk in neo4j_handler.get_edges_with_nodes(
+                chunk_size * chunk_multiplier
+            ):
+                # チャンクごとに処理を行う
+                for record in chunk:
+                    print(record)
+                    start_node = record["start"]
+                    edge = record["r"]
+                    end_node = record["end"]
+                    # ここでstart_node, edge, end_nodeのプロパティを処理する
+        finally:
+            neo4j_handler.close()
 
     @classmethod
     async def loadFromNeo4j(
