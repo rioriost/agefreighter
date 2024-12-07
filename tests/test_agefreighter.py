@@ -12,8 +12,47 @@ from agefreighter import AgeFreighter
 import networkx as nx
 import pandas as pd
 import nest_asyncio
+from psycopg.rows import namedtuple_row
 
 nest_asyncio.apply()
+
+
+async def is_graph_created(
+    af: AgeFreighter,
+    graph_name: str = "",
+    vertex_labels: list = [],
+    vertex_counts: list = [],
+    edge_type: str = "",
+    edge_count: int = 0,
+) -> None:
+    """
+    Check the number of vertices and edges in the graph
+    """
+    result = True
+    if graph_name.lower() != graph_name:
+        graph_name = f'"{graph_name}"'
+    async with af.pool.connection() as conn:
+        async with conn.cursor(row_factory=namedtuple_row) as cur:
+            for idx, (v_label, v_count) in enumerate(zip(vertex_labels, vertex_counts)):
+                await cur.execute(f'SELECT COUNT(*) FROM {graph_name}."{v_label}";')
+                cnt_result = await cur.fetchone()
+                result &= cnt_result.count == v_count
+            await cur.execute(f'SELECT COUNT(*) FROM {graph_name}."{edge_type}";')
+            cnt_result = await cur.fetchone()
+            result &= cnt_result.count == edge_count
+    return result
+
+
+async def show_test_result(
+    func_name: str = "",
+    execution_time: float = 0.0,
+    chunk_size: int = 0,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+) -> None:
+    print(
+        f"{func_name} : time, {execution_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
+    )
 
 
 async def test_loadFromSingleCSV(
@@ -28,15 +67,19 @@ async def test_loadFromSingleCSV(
     actorfilms.csv: Actor,ActorID,Film,Year,Votes,Rating,FilmID
     # of actors: 9,623, # of films: 44,456, # of edges: 191,873
     """
+    graph_name = "ActorFilmsSingleCSV"
+    start_v_label = "Actor"
+    edge_type = "ACTED_IN"
+    end_v_label = "Film"
     start_time = time.time()
     await af.loadFromSingleCSV(
-        graph_name="ActorFilms",
+        graph_name=graph_name,
         csv="../data/actorfilms.csv",
-        start_v_label="Actor",
+        start_v_label=start_v_label,
         start_id="ActorID",
         start_props=["Actor"],
-        edge_type="ACTED_IN",
-        end_v_label="Film",
+        edge_type=edge_type,
+        end_v_label=end_v_label,
         end_id="FilmID",
         end_props=["Film", "Year", "Votes", "Rating"],
         chunk_size=chunk_size,
@@ -44,9 +87,24 @@ async def test_loadFromSingleCSV(
         drop_graph=True,
         use_copy=use_copy,
     )
-    print(
-        f"test_loadFromSingleCSV : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
-    )
+    execution_time = time.time() - start_time
+    if not await is_graph_created(
+        af,
+        graph_name=graph_name,
+        vertex_labels=[start_v_label, end_v_label],
+        vertex_counts=[9623, 44456],
+        edge_type=edge_type,
+        edge_count=191873,
+    ):
+        print(f"{sys._getframe().f_code.co_name} failed")
+    else:
+        await show_test_result(
+            sys._getframe().f_code.co_name,
+            execution_time,
+            chunk_size,
+            direct_loading,
+            use_copy,
+        )
 
 
 async def test_loadFromCSVs(
@@ -62,21 +120,39 @@ async def test_loadFromCSVs(
     edges.csv: start_id,start_vertex_type,end_id,end_vertex_type
     # of countries: 53, # of cities: 72,485, # of edges: 72,485
     """
+    graph_name = "cities_countries_from_csvs"
+    vertex_labels = ["Country", "City"]
+    edge_types = ["has_city"]
     start_time = time.time()
     await af.loadFromCSVs(
-        graph_name="cities_countries",
+        graph_name=graph_name,
         vertex_csvs=["../data/countries.csv", "../data/cities.csv"],
-        v_labels=["Country", "City"],
+        vertex_labels=vertex_labels,
         edge_csvs=["../data/edges.csv"],
-        e_types=["has_city"],
+        edge_types=edge_types,
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
         use_copy=use_copy,
     )
-    print(
-        f"test_loadFromCSVs : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
-    )
+    execution_time = time.time() - start_time
+    if not await is_graph_created(
+        af,
+        graph_name=graph_name,
+        vertex_labels=vertex_labels,
+        vertex_counts=[53, 72485],
+        edge_type=edge_types[0],
+        edge_count=72485,
+    ):
+        print(f"{sys._getframe().f_code.co_name} failed")
+    else:
+        await show_test_result(
+            sys._getframe().f_code.co_name,
+            execution_time,
+            chunk_size,
+            direct_loading,
+            use_copy,
+        )
 
 
 async def test_loadFrom2CSVs(
@@ -89,21 +165,39 @@ async def test_loadFrom2CSVs(
     Test for loadFromCSVs()
     start and end vertices are in the same csv file
     """
+    graph_name = "war_btw_countries_from_2csvs"
+    vertex_labels = ["Country"]
+    edge_types = ["FIGHT_WITH"]
     start_time = time.time()
     await af.loadFromCSVs(
-        graph_name="war_btw_countries",
+        graph_name=graph_name,
         vertex_csvs=["../data/countries.csv"],
-        v_labels=["Country"],
+        vertex_labels=vertex_labels,
         edge_csvs=["../data/fight_with.csv"],
-        e_types=["FIGHT_WITH"],
+        edge_types=edge_types,
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
         use_copy=use_copy,
     )
-    print(
-        f"test_loadFrom2CSVs : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
-    )
+    execution_time = time.time() - start_time
+    if not await is_graph_created(
+        af,
+        graph_name=graph_name,
+        vertex_labels=vertex_labels,
+        vertex_counts=[53],
+        edge_type=edge_types[0],
+        edge_count=3,
+    ):
+        print(f"{sys._getframe().f_code.co_name} failed")
+    else:
+        await show_test_result(
+            sys._getframe().f_code.co_name,
+            execution_time,
+            chunk_size,
+            direct_loading,
+            use_copy,
+        )
 
 
 async def test_loadFromNetworkx(
@@ -134,18 +228,34 @@ async def test_loadFromNetworkx(
             )
             G.add_edge(row["ActorID"], row["FilmID"], label="ACTED_IN")
 
+    graph_name = "ActorFilmsFromNetworkx"
     start_time = time.time()
     await af.loadFromNetworkx(
-        graph_name="ActorFilms",
+        graph_name=graph_name,
         networkx_graph=G,
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
         use_copy=use_copy,
     )
-    print(
-        f"test_loadFromNetworkx : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
-    )
+    execution_time = time.time() - start_time
+    if not await is_graph_created(
+        af,
+        graph_name=graph_name,
+        vertex_labels=["Actor", "Film"],
+        vertex_counts=[9623, 44456],
+        edge_type="ACTED_IN",
+        edge_count=191873,
+    ):
+        print(f"{sys._getframe().f_code.co_name} failed")
+    else:
+        await show_test_result(
+            sys._getframe().f_code.co_name,
+            execution_time,
+            chunk_size,
+            direct_loading,
+            use_copy,
+        )
 
 
 async def test_loadFromNeo4j(
@@ -175,22 +285,38 @@ async def test_loadFromNeo4j(
         await loadTestDataToNeo4j(n4j_uri, n4j_user, n4j_password)
 
     start_time = time.time()
-    graph_name = "Actor_Films"
+    graph_name = "Actor_FilmsFromNeo4j"
+    id_map = {"Actor": "ActorID", "Film": "FilmID"}
     await af.loadFromNeo4j(
         uri=n4j_uri,
         user=n4j_user,
         password=n4j_password,
         neo4j_database="neo4j",
         graph_name=graph_name,
-        id_map={"Actor": "ActorID", "Film": "FilmID"},
+        id_map=id_map,
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
         use_copy=use_copy,
     )
-    print(
-        f"test_loadFromNeo4j : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
-    )
+    execution_time = time.time() - start_time
+    if not await is_graph_created(
+        af,
+        graph_name=graph_name,
+        vertex_labels=id_map.keys(),
+        vertex_counts=[9623, 44456],
+        edge_type="ACTED_IN",
+        edge_count=191873,
+    ):
+        print(f"{sys._getframe().f_code.co_name} failed")
+    else:
+        await show_test_result(
+            sys._getframe().f_code.co_name,
+            execution_time,
+            chunk_size,
+            direct_loading,
+            use_copy,
+        )
 
 
 async def loadTestDataToNeo4j(
@@ -315,24 +441,40 @@ async def test_loadFromPGSQL(
         )
 
     start_time = time.time()
-    graph_name = "actorfilms"
+    graph_name = "actorfilmsFromPGSQL"
+    id_map = {
+        "Actor": "actorid",
+        "Film": "filmid",
+    }
     await af.loadFromPGSQL(
         src_con_string=src_connection_string,
         src_tables=src_tables,
         graph_name=graph_name,
         # values are culumn name with small caps
-        id_map={
-            "Actor": "actorid",
-            "Film": "filmid",
-        },
+        id_map=id_map,
         chunk_size=chunk_size,
         direct_loading=direct_loading,
         drop_graph=True,
         use_copy=use_copy,
     )
-    print(
-        f"test_loadFromPGSQL : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
-    )
+    execution_time = time.time() - start_time
+    if not await is_graph_created(
+        af,
+        graph_name=graph_name,
+        vertex_labels=id_map.keys(),
+        vertex_counts=[9623, 44456],
+        edge_type="ACTED_IN",
+        edge_count=191873,
+    ):
+        print(f"{sys._getframe().f_code.co_name} failed")
+    else:
+        await show_test_result(
+            sys._getframe().f_code.co_name,
+            execution_time,
+            chunk_size,
+            direct_loading,
+            use_copy,
+        )
 
 
 async def loadTestDataToPGSQL(
@@ -408,16 +550,19 @@ async def test_loadFromParquet(
     if init_parquet:
         pd.read_csv("../data/actorfilms.csv").to_parquet(src_parquet)
 
+    graph_name = "actorfilmsFromParquet"
+    start_v_label = "Actor"
+    edge_type = "ACTED_IN"
+    end_v_label = "Film"
     start_time = time.time()
-    graph_name = "actorfilms"
     await af.loadFromParquet(
         src_parquet=src_parquet,
         graph_name=graph_name,
-        start_v_label="Actor",
+        start_v_label=start_v_label,
         start_id="ActorID",
         start_props=["Actor"],
-        edge_type="ACTED_IN",
-        end_v_label="Film",
+        edge_type=edge_type,
+        end_v_label=end_v_label,
         end_id="FilmID",
         end_props=["Film", "Year", "Votes", "Rating"],
         chunk_size=chunk_size,
@@ -425,75 +570,24 @@ async def test_loadFromParquet(
         drop_graph=True,
         use_copy=use_copy,
     )
-    print(
-        f"test_loadFromParquet : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
-    )
-
-
-async def test_loadFromAvro(
-    af: AgeFreighter,
-    chunk_size: int = 96,
-    direct_loading: bool = False,
-    use_copy: bool = False,
-    init_avro: bool = False,
-) -> None:
-    """
-    NOT IMPLEMENTED YET
-
-    Test for loadFromAvro()
-    create avro from actorfilms.csv
-    after creating avro, load it to a graph
-    """
-    src_avro = "../data/actorfilms.avro"
-
-    if init_avro:
-        await convertCSVtoAvro(src_csv="../data/actorfilms.csv", tgt_avro=src_avro)
-
-    start_time = time.time()
-    graph_name = "actorfilms"
-    await af.loadFromAvro(
-        src_avro=src_avro,
-        graph_name=graph_name,
-        start_v_label="Actor",
-        start_id="ActorID",
-        start_props=["Actor"],
-        edge_type="ACTED_IN",
-        end_v_label="Film",
-        end_id="FilmID",
-        end_props=["Film", "Year", "Votes", "Rating"],
-        chunk_size=chunk_size,
-        direct_loading=direct_loading,
-        drop_graph=True,
-        use_copy=use_copy,
-    )
-    print(
-        f"test_loadFromAvro : time, {time.time() - start_time:.2f}, chunk_size: {chunk_size}, direct_loading: {direct_loading}, use_copy: {use_copy}"
-    )
-
-
-async def convertCSVtoAvro(src_csv: str = "", tgt_avro: str = "") -> None:
-    """
-    Convert CSV to Avro
-    """
-    import fastavro as fa
-
-    records = pd.read_csv(src_csv).to_dict(orient="records")
-    schema = {
-        "type": "record",
-        "name": "actorfilms",
-        "fields": [
-            {"name": "ActorID", "type": "string"},
-            {"name": "Actor", "type": "string"},
-            {"name": "FilmID", "type": "string"},
-            {"name": "Film", "type": "string"},
-            {"name": "Year", "type": "int"},
-            {"name": "Votes", "type": "int"},
-            {"name": "Rating", "type": "float"},
-        ],
-    }
-    parsed_schema = fa.parse_schema(schema)
-    with open(tgt_avro, "wb") as f:
-        fa.writer(f, parsed_schema, records)
+    execution_time = time.time() - start_time
+    if not await is_graph_created(
+        af,
+        graph_name="actorfilms",
+        vertex_labels=["Actor", "Film"],
+        vertex_counts=[9623, 44456],
+        edge_type=edge_type,
+        edge_count=191873,
+    ):
+        print(f"{sys._getframe().f_code.co_name} failed")
+    else:
+        await show_test_result(
+            sys._getframe().f_code.co_name,
+            execution_time,
+            chunk_size,
+            direct_loading,
+            use_copy,
+        )
 
 
 async def test_loadFromCosmosGremlin(
@@ -537,7 +631,7 @@ async def test_loadFromCosmosGremlin(
         )
 
     start_time = time.time()
-    graph_name = "actorfilms"
+    graph_name = "actorfilmsfromgremlin"
     await af.loadFromCosmosGremlin(
         cosmos_gremlin_endpoint=cosmos_gremlin_endpoint,
         cosmos_gremlin_key=cosmos_gremlin_key,
@@ -629,6 +723,90 @@ async def loadTestDataViaGremlin(
     g_client.close()
 
 
+async def test_loadFromAvro(
+    af: AgeFreighter,
+    chunk_size: int = 96,
+    direct_loading: bool = False,
+    use_copy: bool = False,
+    init_avro: bool = False,
+) -> None:
+    """
+    NOT IMPLEMENTED YET
+
+    Test for loadFromAvro()
+    create avro from actorfilms.csv
+    after creating avro, load it to a graph
+    """
+    src_avro = "../data/actorfilms.avro"
+
+    if init_avro:
+        await convertCSVtoAvro(src_csv="../data/actorfilms.csv", tgt_avro=src_avro)
+
+    graph_name = "actorfilmsfrom_avro"
+    start_time = time.time()
+    start_v_label = "Actor"
+    edge_type = "ACTED_IN"
+    end_v_label = "Film"
+    await af.loadFromAvro(
+        src_avro=src_avro,
+        graph_name=graph_name,
+        start_v_label=start_v_label,
+        start_id="ActorID",
+        start_props=["Actor"],
+        edge_type=edge_type,
+        end_v_label=end_v_label,
+        end_id="FilmID",
+        end_props=["Film", "Year", "Votes", "Rating"],
+        chunk_size=chunk_size,
+        direct_loading=direct_loading,
+        drop_graph=True,
+        use_copy=use_copy,
+    )
+    execution_time = time.time() - start_time
+    if not await is_graph_created(
+        af,
+        graph_name=graph_name,
+        vertex_labels=[start_v_label, end_v_label],
+        vertex_counts=[9623, 44456],
+        edge_type=edge_type,
+        edge_count=191873,
+    ):
+        print(f"{sys._getframe().f_code.co_name} failed")
+    else:
+        await show_test_result(
+            sys._getframe().f_code.co_name,
+            execution_time,
+            chunk_size,
+            direct_loading,
+            use_copy,
+        )
+
+
+async def convertCSVtoAvro(src_csv: str = "", tgt_avro: str = "") -> None:
+    """
+    Convert CSV to Avro
+    """
+    import fastavro as fa
+
+    records = pd.read_csv(src_csv).to_dict(orient="records")
+    schema = {
+        "type": "record",
+        "name": "actorfilms",
+        "fields": [
+            {"name": "ActorID", "type": "string"},
+            {"name": "Actor", "type": "string"},
+            {"name": "FilmID", "type": "string"},
+            {"name": "Film", "type": "string"},
+            {"name": "Year", "type": "int"},
+            {"name": "Votes", "type": "int"},
+            {"name": "Rating", "type": "float"},
+        ],
+    }
+    parsed_schema = fa.parse_schema(schema)
+    with open(tgt_avro, "wb") as f:
+        fa.writer(f, parsed_schema, records)
+
+
 async def main() -> None:
     """
     Test for AgeFreighter
@@ -656,7 +834,7 @@ async def main() -> None:
         ]
 
         chunk_size = 128
-        do = False
+        do = True
         if do:
             [
                 await test_loadFromSingleCSV(
@@ -669,7 +847,7 @@ async def main() -> None:
             ]
             print("test_loadFromSingleCSV done\n")
 
-        do = False
+        do = True
         if do:
             [
                 await test_loadFromCSVs(
@@ -682,7 +860,7 @@ async def main() -> None:
             ]
             print("test_loadFromCSVs done\n")
 
-        do = False
+        do = True
         if do:
             [
                 await test_loadFromNetworkx(
@@ -695,7 +873,7 @@ async def main() -> None:
             ]
             print("test_loadFromNetworkx done\n")
 
-        do = False
+        do = True
         if do:
             [
                 await test_loadFromNeo4j(
@@ -712,7 +890,7 @@ async def main() -> None:
                 "##### The duration for test_loadFromNeo4j depends on the performance of the neo4j server. #####\n"
             )
 
-        do = False
+        do = True
         if do:
             [
                 await test_loadFromPGSQL(
@@ -729,7 +907,7 @@ async def main() -> None:
                 "##### The duration for test_loadFromPGSQL depends on the performance of the source pgsql server. #####\n"
             )
 
-        do = False
+        do = True
         if do:
             [
                 await test_loadFromParquet(
