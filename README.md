@@ -30,11 +30,13 @@ a Python package that helps you to create a graph database using Azure Database 
   *  end_props (list): The properties of the end vertex.
 * 'loadFromCSVs()' expects multiple CSV files, two CSV files for vertices and one CSV file for edges as sources.
   *  vertex_csvs (list): The list of CSV files for vertices.
-  *  v_labels (list): The list of labels for vertices.
+  *  vertex_labels (list): The list of labels for vertices.
   *  edge_csvs (list): The list of CSV files for edges.
-  *  e_types (list): The list of types for edges.
+  *  edge_types (list): The list of types for edges.
 * 'loadFromNetworkx()' expects a NetworkX graph object as a source.
-  *  networkx_graph (DiGraph): The NetworkX graph.
+  * networkx_graph (DiGraph): The NetworkX graph.
+  *  graph_name (str): The name of the graph to load the data into.
+  *  id_map (dict): The ID map.
 * 'loadFromNeo4j()' expects a Neo4j as a source.
   *  uri (str): The URI of the Neo4j server.
   *  user (str): The user name of the Neo4j server.
@@ -67,6 +69,7 @@ a Python package that helps you to create a graph database using Azure Database 
 * 0.4.1 : Changed base Python version to 3.9 to run on Azure Cloud Shell and Databricks 15.4ML.
 * 0.4.2 : Tuning for 'loadFromCosmosGremlin()' function.
 * 0.4.3 : Standardized the argument names. Enhanced the tests for each functions.
+* 0.4.4 : Performance tuning.
 
 ### Install
 
@@ -85,7 +88,7 @@ CREATE EXTENSION IF NOT EXISTS age CASCADE;
 ```
 
 ### Usage
-See, [tests/test_agefreighter.py](https://github.com/rioriost/agefreighter/blob/6c61f53ec2cf3daf79356690096fee2d18e37631/tests/test_agefreighter.py) for more details.
+See, [tests/test_agefreighter.py](https://github.com/rioriost/agefreighter/blob/main/tests/test_agefreighter.py) for more details.
 
 ### Test & Samples
 ```sql
