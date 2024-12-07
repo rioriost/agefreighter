@@ -23,7 +23,7 @@ class AgeFreighter:
         self.dsn: str = ""
         self.graph_name: str = ""
         self.name = "AgeFreighter"
-        self.version = "0.4.2"
+        self.version = "0.4.3"
         self.author = "Rio Fujita"
 
     async def __aenter__(self):
@@ -101,6 +101,9 @@ class AgeFreighter:
         Args:
             label_type (str): The type of the label to create. It can be either "vertex" or "edge".
             value (str): The value of the label to create.
+
+        Returns:
+            None
         """
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
@@ -172,6 +175,9 @@ class AgeFreighter:
             direct_loading (bool): Whether to load the vertices directly.
             drop_graph (bool): Whether to drop the existing graph if it exists.
             use_copy (bool): Whether to use the COPY protocol to load the vertices.
+
+        Returns:
+            None
         """
         log.info("Creating vertices")
         log.debug("Number of vertices to be created: '%s'", len(vertices))
@@ -212,6 +218,9 @@ class AgeFreighter:
             direct_loading (bool): Whether to load the edges directly.
             drop_graph (bool): Whether to drop the existing graph if it exists.
             use_copy (bool): Whether to use the COPY protocol to load the edges.
+
+        Returns:
+            None
         """
         log.info("Creating edges")
         log.debug("Number of edges to be created: '%s'", len(edges))
@@ -234,6 +243,9 @@ class AgeFreighter:
             vertices (pd.DataFrame): The vertices to create.
             label (str): The label of the vertices.
             chunk_size (int): The size of the chunks to create.
+
+        Returns:
+            None
         """
         log.info("Creating vertices via Cypher")
         chunk_multiplier = 1
@@ -258,6 +270,9 @@ class AgeFreighter:
             edges (pd.DataFrame): The edges to create.
             type (str): The type of the edges.
             chunk_size (int): The size of the chunks to create.
+
+        Returns:
+            None
         """
         log.info("Creating edges via Cypher")
         chunk_multiplier = 2
@@ -288,6 +303,9 @@ class AgeFreighter:
             vertices (pd.DataFrame): The vertices to create.
             label (str): The label of the vertices.
             chunk_size (int): The size of the chunks to create.
+
+        Returns:
+            None
         """
         log.info("Creating vertices with SQL query")
         chunk_multiplier = 1
@@ -316,6 +334,9 @@ class AgeFreighter:
             edges (pd.DataFrame): The edges to create.
             type (str): The type of the edges.
             chunk_size (int): The size of the chunks to create.
+
+        Returns:
+            None
         """
         log.info("Creating edges with SQL query")
         chunk_multiplier = 2
@@ -363,6 +384,9 @@ class AgeFreighter:
         Args:
             pool (AsyncConnectionPool): The async connection pool to use.
             query (str): The query to execute.
+
+        Returns:
+            None
         """
         import asyncio
 
@@ -392,6 +416,9 @@ class AgeFreighter:
             label (str): The label of the vertices.
             chunk_size (int): The size of the chunks to create.
             drop_graph (bool): Whether to drop the existing graph if it exists.
+
+        Returns:
+            None
         """
         log.info("Copying vertices via COPY protocol")
         chunk_multiplier = 1000
@@ -429,6 +456,9 @@ class AgeFreighter:
             type (str): The type of the edges.
             chunk_size (int): The size of the chunks to create.
             drop_graph (bool): Whether to drop the existing graph if it exists.
+
+        Returns:
+            None
         """
         log.info("Copying vertices via COPY protocol")
         chunk_multiplier = 1000
@@ -466,6 +496,9 @@ class AgeFreighter:
 
         Args:
             edges (pd.DataFrame): The edges to create.
+
+        Returns:
+            dict: The ID maps.
         """
         # create id_maps to convert entry_id to id(graphid)
         id_maps = {}
@@ -494,6 +527,9 @@ class AgeFreighter:
 
         Args:
             label_type (str): The type of the label to get the first id for.
+
+        Returns:
+            int: The first id.
         """
         import numpy as np
 
@@ -518,6 +554,9 @@ class AgeFreighter:
 
         Args:
             df (pd.DataFrame): The DataFrame to rename the columns of.
+
+        Returns:
+            pd.DataFrame: The DataFrame with the renamed columns
         """
         cols_to_rename = {}
         for col in df.columns.tolist():
@@ -534,7 +573,7 @@ class AgeFreighter:
 
     async def getVertexLabels(
         nodes: pd.DataFrame = None,
-        v_labels: list = [],
+        vertex_labels: list = [],
         first_source_id: str = "",
         first_target_id: str = "",
     ) -> list:
@@ -543,20 +582,31 @@ class AgeFreighter:
 
         Args:
             nodes (pd.DataFrame): The nodes to get the start and end vertex labels from.
-            v_labels (list): The vertex labels.
+            vertex_labels (list): The vertex labels.
             first_source_id (str): The first source id.
             first_target_id (str): The first target id.
+
+        Returns:
+            list: The start and end vertex labels.
         """
         try:
             start_v_label = [
                 item["label"] for item in nodes if item["id"] == first_source_id
             ][0]
-            end_v_label = v_labels[1] if v_labels[0] == start_v_label else v_labels[0]
+            end_v_label = (
+                vertex_labels[1]
+                if vertex_labels[0] == start_v_label
+                else vertex_labels[0]
+            )
         except IndexError:
             end_v_label = [
                 item["label"] for item in nodes if item["id"] == first_target_id
             ][0]
-            start_v_label = v_labels[1] if v_labels[0] == end_v_label else v_labels[0]
+            start_v_label = (
+                vertex_labels[1]
+                if vertex_labels[0] == end_v_label
+                else vertex_labels[0]
+            )
 
         return start_v_label, end_v_label
 
@@ -572,6 +622,9 @@ class AgeFreighter:
             max_connections (int): The maximum number of connections.
             log_level: The log level.
             **kwargs: Additional keyword arguments.
+
+        Returns:
+            AgeFreighter: The AgeFreighter object.
         """
         log.info("Opening connection pool")
         # to make large number of connections
@@ -627,6 +680,9 @@ class AgeFreighter:
             end_v_label (str): The label of the end vertex.
             end_id (str): The ID of the end vertex.
             end_props (list): The properties of the end vertex.
+
+        Returns:
+            None
         """
         log.info("Creating a graph from DataFrame")
         if first_chunk:
@@ -641,7 +697,7 @@ class AgeFreighter:
             await cls.createLabelType(cls, label_type="vertex", value=end_v_label)
             await cls.createLabelType(cls, label_type="edge", value=edge_type)
 
-        for v_label, id, props in zip(
+        for vertex_label, id, props in zip(
             [start_v_label, end_v_label],
             [start_id, end_id],
             [start_props, end_props],
@@ -655,7 +711,7 @@ class AgeFreighter:
             await cls.createVertices(
                 cls,
                 vertices,
-                v_label,
+                vertex_label,
                 chunk_size,
                 direct_loading,
                 drop_graph,
@@ -676,8 +732,8 @@ class AgeFreighter:
     @classmethod
     async def loadFromSingleCSV(
         cls,
-        graph_name: str = "",
         csv: str = "",
+        graph_name: str = "",
         start_v_label: str = "",
         start_id: str = "",
         start_props: list = [],
@@ -694,8 +750,8 @@ class AgeFreighter:
         Load data from a single CSV file.
 
         Args:
-            graph_name (str): The name of the graph to load the data into.
             csv (str): The path to the CSV file.
+            graph_name (str): The name of the graph to load the data into.
             start_v_label (str): The label of the start vertex.
             start_id (str): The ID of the start vertex.
             start_props (list): The properties of the start vertex.
@@ -707,6 +763,9 @@ class AgeFreighter:
             direct_loading (bool): Whether to load the data directly.
             drop_graph (bool): Whether to drop the existing graph if it exists.
             use_copy (bool): Whether to use the COPY protocol to load the data.
+
+        Returns:
+            None
         """
         log.info("Loading data from a single CSV file")
         chunk_multiplier = 10000
@@ -737,11 +796,11 @@ class AgeFreighter:
     @classmethod
     async def loadFromCSVs(
         cls,
-        graph_name: str = "",
         vertex_csvs: list = [],
-        v_labels: list = [],
+        vertex_labels: list = [],
         edge_csvs: list = [],
-        e_types: list = [],
+        edge_types: list = [],
+        graph_name: str = "",
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
@@ -753,34 +812,39 @@ class AgeFreighter:
         Args:
             graph_name (str): The name of the graph to load the data into.
             vertex_csvs (list): The paths to the vertex CSV files.
-            v_labels (list): The labels of the vertices.
+            vertex_labels (list): The labels of the vertices.
             edge_csvs (list): The paths to the edge CSV files.
-            e_types (list): The types of the edges.
+            edge_types (list): The types of the edges.
+
+        Returns:
+            None
         """
         log.info("Loading data from multiple CSV files")
         chunk_multiplier = 10000
         await cls.setUpGraph(cls, graph_name, drop_graph)
-        for vertex_csv, v_label in zip(vertex_csvs, v_labels):
+        for vertex_csv, vertex_label in zip(vertex_csvs, vertex_labels):
             first_chunk = True
             reader = pd.read_csv(vertex_csv, chunksize=chunk_size * chunk_multiplier)
             for vertices in reader:
                 if first_chunk:
                     cls.checkKeys(vertices.keys(), ["id"])
 
-                    await cls.createLabelType(cls, label_type="vertex", value=v_label)
+                    await cls.createLabelType(
+                        cls, label_type="vertex", value=vertex_label
+                    )
                     first_chunk = False
 
                 await cls.createVertices(
                     cls,
                     vertices,
-                    v_label,
+                    vertex_label,
                     chunk_size,
                     direct_loading,
                     drop_graph,
                     use_copy,
                 )
 
-        for edge_csv, edge_type in zip(edge_csvs, e_types):
+        for edge_csv, edge_type in zip(edge_csvs, edge_types):
             first_chunk = True
             reader = pd.read_csv(edge_csv, chunksize=chunk_size * chunk_multiplier)
             for edges in reader:
@@ -817,8 +881,8 @@ class AgeFreighter:
     @classmethod
     async def loadFromNetworkx(
         cls,
-        graph_name: str = "",
         networkx_graph: DiGraph = None,
+        graph_name: str = "",
         chunk_size: int = 128,
         direct_loading: bool = False,
         drop_graph: bool = False,
@@ -828,29 +892,34 @@ class AgeFreighter:
         Load data from a NetworkX graph.
 
         Args:
-            graph_name (str): The name of the graph to load the data into.
             networkx_graph (DiGraph): The NetworkX graph.
+            graph_name (str): The name of the graph to load the data into.
+
+        Returns:
+            None
         """
         log.info("Loading data from a NetworkX graph")
         import networkx as nx
 
         await cls.setUpGraph(cls, graph_name, drop_graph)
 
-        v_labels = []
-        for v_label in set(nx.get_node_attributes(networkx_graph, "label").values()):
-            v_labels.append(v_label)
-            await cls.createLabelType(cls, label_type="vertex", value=v_label)
+        vertex_labels = []
+        for vertex_label in set(
+            nx.get_node_attributes(networkx_graph, "label").values()
+        ):
+            vertex_labels.append(vertex_label)
+            await cls.createLabelType(cls, label_type="vertex", value=vertex_label)
             nodes = [
                 {"id": node, **data}
                 for node, data in networkx_graph.nodes(data=True)
-                if data.get("label") == v_label
+                if data.get("label") == vertex_label
             ]
             columns = [k for k in list(nodes[0].keys()) if k != "label"]
             vertices = pd.DataFrame(nodes, columns=columns)
             await cls.createVertices(
                 cls,
                 vertices,
-                v_label,
+                vertex_label,
                 chunk_size,
                 direct_loading,
                 drop_graph,
@@ -862,11 +931,13 @@ class AgeFreighter:
             edges = nx.to_pandas_edgelist(networkx_graph)
             # it's a little bit tricky to get the vertex types of the start and end vertices
             # nodes keeps the last vertex information, it might be the start or end vertex. It's not guaranteed.
-            first_source_id = edges["source"][0]
-            first_target_id = edges["target"][0]
             start_v_label, end_v_label = await cls.getVertexLabels(
-                nodes, v_labels, first_source_id, first_target_id
+                nodes=nodes,
+                vertex_labels=vertex_labels,
+                first_source_id=edges["source"][0],
+                first_target_id=edges["target"][0],
             )
+
             edges.insert(0, "start_v_label", start_v_label)
             edges.insert(0, "end_v_label", end_v_label)
             edges.rename(
@@ -906,6 +977,9 @@ class AgeFreighter:
             neo4j_database (str): The name of the Neo4j database.
             graph_name (str): The name of the graph to load the data into.
             id_map (dict): The ID map.
+
+        Returns:
+            None
         """
         log.info("Loading data from a Neo4j graph")
         import neo4j
@@ -920,20 +994,20 @@ class AgeFreighter:
                 "MATCH (n) RETURN distinct labels(n)",
                 db=neo4j_database,
             )
-            v_labels = []
+            vertex_labels = []
             for record in records:
-                v_label = record["labels(n)"][0]
-                v_labels.append(v_label)
-                await cls.createLabelType(cls, label_type="vertex", value=v_label)
+                vertex_label = record["labels(n)"][0]
+                vertex_labels.append(vertex_label)
+                await cls.createLabelType(cls, label_type="vertex", value=vertex_label)
                 result = await driver.execute_query(
-                    f"MATCH (a:{v_label}) RETURN count(a) AS count",
+                    f"MATCH (a:{vertex_label}) RETURN count(a) AS count",
                     db=neo4j_database,
                     result_transformer_=neo4j.AsyncResult.single,
                 )
                 cnt = result["count"]
                 for i in range(0, cnt, chunk_size * chunk_multiplier):
                     vertices = await driver.execute_query(
-                        f"MATCH (a:{v_label}) RETURN a SKIP $skip LIMIT $limit",
+                        f"MATCH (a:{vertex_label}) RETURN a SKIP $skip LIMIT $limit",
                         skip=i,
                         limit=chunk_size * chunk_multiplier,
                         db=neo4j_database,
@@ -941,11 +1015,11 @@ class AgeFreighter:
                     )
                     vertices.drop(columns=["a().labels"], inplace=True)
                     vertices = await cls.renameColumns(vertices)
-                    vertices.rename(columns={id_map[v_label]: "id"}, inplace=True)
+                    vertices.rename(columns={id_map[vertex_label]: "id"}, inplace=True)
                     await cls.createVertices(
                         cls,
                         vertices,
-                        v_label,
+                        vertex_label,
                         chunk_size,
                         direct_loading,
                         drop_graph,
@@ -1017,6 +1091,9 @@ class AgeFreighter:
             src_tables (list): The source tables.
             graph_name (str): The name of the graph to load the data into.
             id_map (dict): The ID map.
+
+        Returns:
+            None
         """
         log.info("Loading data from a PostgreSQL database")
         import psycopg as pg
@@ -1105,6 +1182,9 @@ class AgeFreighter:
 
         Args:
             src_parquet (str): The path to the Parquet file.
+
+        Returns:
+            None
         """
         log.info("Loading data from a Parquet file")
         from pyarrow.parquet import ParquetFile
@@ -1159,6 +1239,9 @@ class AgeFreighter:
 
         Args:
             src_avro (str): The path to the Avro file.
+
+        Returns:
+            None
         """
         log.info("Loading data from an Avro file")
         import fastavro as fa
@@ -1215,6 +1298,9 @@ class AgeFreighter:
             cosmos_username (str): The Cosmos username.
             graph_name (str): The name of the graph to load the data into.
             id_map (dict): The ID map.
+
+        Returns:
+            None
         """
         log.info("Loading data from a Gremlin graph")
         from gremlin_python.driver import client, serializer
@@ -1245,9 +1331,9 @@ class AgeFreighter:
             cnt = g.submit_async(query).result().all().result()[0]
             query = f"g.E().hasLabel('{edge_type}').limit(1)"
             log.debug("Query to be executed: '%s'", query)
-            v_labels = g.submit_async(query).result().all().result()
-            in_v_label = v_labels[0]["inVLabel"]
-            out_v_label = v_labels[0]["outVLabel"]
+            vertex_labels = g.submit_async(query).result().all().result()
+            in_v_label = vertex_labels[0]["inVLabel"]
+            out_v_label = vertex_labels[0]["outVLabel"]
             existing_node_ids = []
             first_chunk = True
             for i in range(0, cnt, chunk_size * chunk_multiplier):
