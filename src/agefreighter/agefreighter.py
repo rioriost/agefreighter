@@ -23,7 +23,7 @@ class AgeFreighter:
         self.dsn: str = ""
         self.graph_name: str = ""
         self.name = "AgeFreighter"
-        self.version = "0.4.5"
+        self.version = "0.4.6"
         self.author = "Rio Fujita"
 
     async def __aenter__(self):
@@ -229,39 +229,6 @@ class AgeFreighter:
             else:
                 await self.createEdgesCypher(self, edges, edge_type, chunk_size)
 
-    async def createVerticesCypherNew(
-        self, vertices: pd.DataFrame = None, label: str = "", chunk_size: int = 0
-    ) -> None:
-        """
-        Create vertices in the PostgreSQL database via Cypher.
-
-        Args:
-            vertices (pd.DataFrame): The vertices to create.
-            label (str): The label of the vertices.
-            chunk_size (int): The size of the chunks to create.
-
-        Returns:
-            None
-        """
-        log.info("Creating vertices via Cypher")
-        chunk_multiplier = 2
-        args = []
-        for i in range(0, len(vertices), chunk_size * chunk_multiplier):
-            chunk = vertices.iloc[i : i + chunk_size * chunk_multiplier]
-            params = []
-            for _, row in chunk.iterrows():
-                params.append(dict(row))
-
-            query = f"""
-            SELECT * FROM cypher(%s, $$
-            UNWIND $vertices AS vertex
-            CREATE (v:{label} {{ {', '.join([f'{col}: vertex.{col}' for col in chunk.columns])} }})
-            $$) AS (a agtype);
-            """
-            args.append((query, [self.graph_name, {"vertices": params}]))
-
-        await self.executeWithTasksNew(self.executeQueryNew, args)
-
     async def createVerticesCypher(
         self, vertices: pd.DataFrame = None, label: str = "", chunk_size: int = 0
     ) -> None:
@@ -275,6 +242,9 @@ class AgeFreighter:
 
         Returns:
             None
+
+        Note:
+            psycopg can not handle Cypher's UNWIND as of 9th Dec 2024.
         """
         log.info("Creating vertices via Cypher")
         chunk_multiplier = 2
@@ -397,20 +367,6 @@ class AgeFreighter:
             )
             log.debug("Query to be excecuted: '%s'", args)
         await self.executeWithTasks(self, self.executeQuery, args)
-
-    async def executeQueryNew(
-        pool: AsyncConnectionPool = None, query: str = "", params=None
-    ):
-        async with await pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(query, params)
-                await conn.commit()
-
-    async def executeWithTasksNew(self, func, args_list):
-        import asyncio
-
-        tasks = [func(*args) for args in args_list]
-        await asyncio.gather(*tasks)
 
     async def executeWithTasks(self, target: Callable = None, args: list = []) -> None:
         """
@@ -1204,6 +1160,10 @@ class AgeFreighter:
 
         Returns:
             None
+
+        Note:
+            loadFromPGSQLObsoleted shows poor performance.
+            It's better to inject the vertices at first, and then the edges.
         """
         log.info("Loading data from a PostgreSQL database")
         import psycopg as pg
@@ -1271,7 +1231,7 @@ class AgeFreighter:
             raise e
 
     @classmethod
-    async def loadFromPGSQLNew(
+    async def loadFromPGSQLObsoleted(
         cls,
         source_con_string: str = "",
         source_schema: str = "",
@@ -1444,6 +1404,32 @@ class AgeFreighter:
             )
             first_chunk = False
 
+    def read_avro_in_chunks(file_path: str = "", chunk_size: int = 128):
+        """
+        Read Avro file in chunks.
+
+        Args:
+            file_path (str): The path to the Avro file.
+            chunk_size (int): The size of the chunks to read the Avro file in.
+
+        Returns:
+            None
+        """
+        import fastavro as fa
+
+        with open(file_path, "rb") as f:
+            avro_reader = fa.reader(f)
+
+            chunk = []
+            for record in avro_reader:
+                chunk.append(record)
+                if len(chunk) >= chunk_size:
+                    yield chunk
+                    chunk = []
+
+            if chunk:
+                yield chunk
+
     @classmethod
     async def loadFromAvro(
         cls,
@@ -1466,6 +1452,14 @@ class AgeFreighter:
 
         Args:
             src_avro (str): The path to the Avro file.
+            graph_name (str): The name of the graph to load the data into.
+            start_v_label (str): The label of the start vertex.
+            start_id (str): The ID of the start vertex.
+            start_props (list): The properties of the start vertex.
+            edge_type (str): The type of the edge.
+            end_v_label (str): The label of the end vertex.
+            end_id (str): The ID of the end vertex.
+            end_props (list): The properties of the end vertex.
 
         Returns:
             None
@@ -1475,32 +1469,29 @@ class AgeFreighter:
 
         chunk_multiplier = 10000
 
-        with open(src_avro, "rb") as f:
-            reader = fa.reader(f)
-            first_chunk = True
-            existing_node_ids = []
-
-            for records in reader:
-                df = pd.DataFrame.from_records(records, index=[0])
-                await cls.createGraphFromDataFrame(
-                    cls,
-                    graph_name=graph_name,
-                    src=df,
-                    existing_node_ids=existing_node_ids,
-                    first_chunk=first_chunk,
-                    start_v_label=start_v_label,
-                    start_id=start_id,
-                    start_props=start_props,
-                    edge_type=edge_type,
-                    end_v_label=end_v_label,
-                    end_id=end_id,
-                    end_props=end_props,
-                    chunk_size=chunk_size,
-                    direct_loading=direct_loading,
-                    drop_graph=drop_graph,
-                    use_copy=use_copy,
-                )
-                first_chunk = False
+        first_chunk = True
+        existing_node_ids = []
+        for chunk in cls.read_avro_in_chunks(src_avro, chunk_size * chunk_multiplier):
+            df = pd.DataFrame.from_records(chunk)
+            await cls.createGraphFromDataFrame(
+                cls,
+                graph_name=graph_name,
+                src=df,
+                existing_node_ids=[],
+                first_chunk=True,
+                start_v_label=start_v_label,
+                start_id=start_id,
+                start_props=start_props,
+                edge_type=edge_type,
+                end_v_label=end_v_label,
+                end_id=end_id,
+                end_props=end_props,
+                chunk_size=chunk_size,
+                direct_loading=direct_loading,
+                drop_graph=drop_graph,
+                use_copy=use_copy,
+            )
+            first_chunk = False
 
     @classmethod
     async def loadFromCosmosGremlin(
