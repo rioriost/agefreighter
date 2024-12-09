@@ -80,3 +80,43 @@ test_loadFromCosmosGremlin : time, 82.90, chunk_size: 128, direct_loading: True,
 test_loadFromCosmosGremlin : time, 85.72, chunk_size: 128, direct_loading: False, use_copy: True
 test_loadFromCosmosGremlin done
 ##### The duration for test_loadFromCosmosGremlin depends on the performance of the source Cosmos DB. #####
+
+### agefreighter-0.4.5
+
+test_loadFromSingleCSV : time, 53.02, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromSingleCSV : time, 3.70, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromSingleCSV : time, 3.68, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromSingleCSV done
+
+test_loadFromCSVs : time, 32.55, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromCSVs : time, 3.43, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromCSVs : time, 4.07, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromCSVs done
+
+test_loadFromNetworkx : time, 63.99, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromNetworkx : time, 4.23, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromNetworkx : time, 4.39, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromNetworkx done
+
+test_loadFromNeo4j : time, 97.78, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromNeo4j : time, 22.30, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromNeo4j : time, 23.03, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromNeo4j done
+##### The duration for test_loadFromNeo4j depends on the performance of the neo4j server. #####
+
+test_loadFromPGSQL : time, 32.43, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromPGSQL : time, 5.61, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromPGSQL : time, 5.75, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromPGSQL done
+##### The duration for test_loadFromPGSQL depends on the performance of the source pgsql server. #####
+
+test_loadFromParquet : time, 42.80, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromParquet : time, 3.59, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromParquet : time, 3.73, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromParquet done
+
+test_loadFromCosmosGremlin : time, 156.66, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromCosmosGremlin : time, 84.32, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromCosmosGremlin : time, 84.95, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromCosmosGremlin done
+##### The duration for test_loadFromCosmosGremlin depends on the performance of the source Cosmos DB. #####
