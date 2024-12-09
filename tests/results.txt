@@ -120,3 +120,10 @@ test_loadFromCosmosGremlin : time, 84.32, chunk_size: 128, direct_loading: True,
 test_loadFromCosmosGremlin : time, 84.95, chunk_size: 128, direct_loading: False, use_copy: True
 test_loadFromCosmosGremlin done
 ##### The duration for test_loadFromCosmosGremlin depends on the performance of the source Cosmos DB. #####
+
+### agefreighter-0.4.6
+
+test_loadFromAvro : time, 70.92, chunk_size: 128, direct_loading: False, use_copy: False
+test_loadFromAvro : time, 3.73, chunk_size: 128, direct_loading: True, use_copy: False
+test_loadFromAvro : time, 3.90, chunk_size: 128, direct_loading: False, use_copy: True
+test_loadFromAvro done
