@@ -62,6 +62,15 @@ a Python package that helps you to create a graph database using Azure Database 
   *  cosmos_username (str): The username of the Cosmos Gremlin API.
   *  cosmos_pkey (str): The partition key of the Cosmos Gremlin API.
   *  id_map (dict): The ID map.
+* 'loadFromAvro()' expects an Avro file as a source.
+  *  src_avro (str): The path to the Avro file.
+  *  start_v_label (str): The label of the start vertex.
+  *  start_id (str): The ID of the start vertex.
+  *  start_props (list): The properties of the start vertex.
+  *  edge_type (str): The type of the edge.
+  *  end_v_label (str): The label of the end vertex.
+  *  end_id (str): The ID of the end vertex.
+  *  end_props (list): The properties of the end vertex.
 * Many more coming soon...
 
 ### Release Notes
@@ -70,6 +79,8 @@ a Python package that helps you to create a graph database using Azure Database 
 * 0.4.2 : Tuning for 'loadFromCosmosGremlin()' function.
 * 0.4.3 : Standardized the argument names. Enhanced the tests for each functions.
 * 0.4.4 : Performance tuning.
+* 0.4.5 : Simplified 'loadFromNeo4j'.
+* 0.4.6 : Added 'loadFromAvro()' function.
 
 ### Install
 
