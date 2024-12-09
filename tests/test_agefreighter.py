@@ -21,7 +21,7 @@ nest_asyncio.apply()
 log = logging.getLogger("test_agefreighter")
 
 logging.basicConfig(
-    level=logging.ERROR,
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
@@ -980,8 +980,7 @@ async def main() -> None:
                 "##### The duration for test_loadFromCosmosGremlin depends on the performance of the source Cosmos DB. #####\n"
             )
 
-        # NOT IMPLEMENTED YET
-        do = False
+        do = True
         if do:
             [
                 await test_loadFromAvro(
