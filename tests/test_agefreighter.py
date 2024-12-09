@@ -14,7 +14,16 @@ import pandas as pd
 import nest_asyncio
 from psycopg.rows import namedtuple_row
 
+import logging
+
 nest_asyncio.apply()
+
+log = logging.getLogger("test_agefreighter")
+
+logging.basicConfig(
+    level=logging.ERROR,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 
 async def is_graph_created(
@@ -67,7 +76,7 @@ async def test_loadFromSingleCSV(
     actorfilms.csv: Actor,ActorID,Film,Year,Votes,Rating,FilmID
     # of actors: 9,623, # of films: 44,456, # of edges: 191,873
     """
-    graph_name = "ActorFilmsSingleCSV"
+    graph_name = "gCSV"
     start_v_label = "Actor"
     edge_type = "ACTED_IN"
     end_v_label = "Film"
@@ -120,7 +129,7 @@ async def test_loadFromCSVs(
     edges.csv: start_id,start_vertex_type,end_id,end_vertex_type
     # of countries: 53, # of cities: 72,485, # of edges: 72,485
     """
-    graph_name = "cities_countries_from_csvs"
+    graph_name = "gCSVs"
     vertex_labels = ["Country", "City"]
     edge_types = ["has_city"]
     start_time = time.time()
@@ -165,7 +174,7 @@ async def test_loadFrom2CSVs(
     Test for loadFromCSVs()
     start and end vertices are in the same csv file
     """
-    graph_name = "war_btw_countries_from_2csvs"
+    graph_name = "g2CSVs"
     vertex_labels = ["Country"]
     edge_types = ["FIGHT_WITH"]
     start_time = time.time()
@@ -228,7 +237,7 @@ async def test_loadFromNetworkx(
             )
             G.add_edge(row["ActorID"], row["FilmID"], label="ACTED_IN")
 
-    graph_name = "ActorFilmsFromNetworkx"
+    graph_name = "gNX"
     id_map = {
         "Actor": "ActorID",
         "Film": "FilmID",
@@ -290,7 +299,7 @@ async def test_loadFromNeo4j(
         await loadTestDataToNeo4j(n4j_uri, n4j_user, n4j_password)
 
     start_time = time.time()
-    graph_name = "Actor_FilmsFromNeo4j"
+    graph_name = "gN4"
     id_map = {"Actor": "ActorID", "Film": "FilmID"}
     await af.loadFromNeo4j(
         uri=n4j_uri,
@@ -430,30 +439,33 @@ async def test_loadFromPGSQL(
     after creating table, load it to a graph
     """
     try:
-        src_connection_string = os.environ["SRC_PG_CONNECTION_STRING"]
+        source_connection_string = os.environ["SRC_PG_CONNECTION_STRING"]
     except KeyError:
         print("Please set the environment variables SRC_PG_CONNECTION_STRING")
         return
 
-    src_tables = {"from_nodes": "Actor", "to_nodes": "Film", "edges": "ACTED_IN"}
+    schema = "public"
+    source_tables = {"start": "Actor", "end": "Film", "edges": "ACTED_IN"}
 
     if init_pgsql:
         # prepare test data for pgsql
         await loadTestDataToPGSQL(
-            con_string=src_connection_string,
-            src_tables=src_tables,
+            con_string=source_connection_string,
+            schema=schema,
+            src_tables=source_tables,
             src_csv="../data/actorfilms.csv",
         )
 
     start_time = time.time()
-    graph_name = "actorfilmsFromPGSQL"
+    graph_name = "gPG"
     id_map = {
-        "Actor": "actorid",
-        "Film": "filmid",
+        "Actor": "ActorID",
+        "Film": "FilmID",
     }
     await af.loadFromPGSQL(
-        src_con_string=src_connection_string,
-        src_tables=src_tables,
+        source_con_string=source_connection_string,
+        source_schema=schema,
+        source_tables=source_tables,
         graph_name=graph_name,
         # values are culumn name with small caps
         id_map=id_map,
@@ -484,6 +496,7 @@ async def test_loadFromPGSQL(
 
 async def loadTestDataToPGSQL(
     con_string: str = "",
+    schema: str = "public",
     src_tables: dict = {},
     src_csv: str = "",
 ) -> None:
@@ -491,6 +504,7 @@ async def loadTestDataToPGSQL(
     Load test data to PGSQL
     file downloaded from https://www.kaggle.com/datasets/darinhawley/imdb-films-by-actor-for-10k-actors
     """
+    log.info("Loading test data to PGSQL")
     import psycopg as pg
 
     df = pd.read_csv(src_csv)
@@ -499,33 +513,33 @@ async def loadTestDataToPGSQL(
     types = [None, None, None]
 
     datum[0] = df[["ActorID", "Actor"]].drop_duplicates()
-    datum[0].insert(0, "serial", range(1, len(datum[0]) + 1))
+    datum[0].insert(0, "ActorSerial", range(1, len(datum[0]) + 1))
     types[0] = ["SERIAL", "TEXT", "TEXT"]
 
     datum[1] = df[["FilmID", "Film", "Year", "Votes", "Rating"]].drop_duplicates()
-    datum[1].insert(0, "serial", range(1, len(datum[1]) + 1))
+    datum[1].insert(0, "FilmSerial", range(1, len(datum[1]) + 1))
     types[1] = ["SERIAL", "TEXT", "TEXT", "INT", "INT", "REAL"]
 
     datum[2] = df[["ActorID", "FilmID"]].rename(
         columns={"ActorID": "start_id", "FilmID": "end_id"}
     )
-    datum[2].insert(0, "serial", range(1, len(datum[2]) + 1))
+    datum[2].insert(0, "ActedSerial", range(1, len(datum[2]) + 1))
     types[2] = ["SERIAL", "TEXT", "TEXT"]
 
     with pg.connect(con_string) as conn:
         with conn.cursor() as cur:
-            for idx, (table, data, type) in enumerate(
-                zip(src_tables.values(), datum, types)
+            for idx, ((table_k, table_v), data, type) in enumerate(
+                zip(src_tables.items(), datum, types)
             ):
-                cur.execute(f"DROP TABLE IF EXISTS {table}")
+                cur.execute(f'DROP TABLE IF EXISTS {schema}."{table_v}"')
                 cols = ",".join(
                     [
-                        col + " " + tp
+                        f'"{col}"' + " " + tp
                         for _, (col, tp) in enumerate(zip(data.columns, type))
                     ]
                 )
-                cur.execute(f"CREATE TABLE {table} ({cols})")
-                query = f"COPY {table} FROM STDIN (FORMAT TEXT, FREEZE)"
+                cur.execute(f'CREATE TABLE {schema}."{table_v}" ({cols})')
+                query = f'COPY {schema}."{table_v}" FROM STDIN (FORMAT TEXT, FREEZE)'
                 with cur.copy(query) as copy:
                     copy.write(
                         "\n".join(
@@ -535,6 +549,13 @@ async def loadTestDataToPGSQL(
                             ]
                         )
                     )
+                if table_k == "edges":
+                    cur.execute(f'CREATE INDEX ON {schema}."{table_v}"(start_id)')
+                    cur.execute(f'CREATE INDEX ON {schema}."{table_v}"(end_id)')
+                elif table_k == "start":
+                    cur.execute(f'CREATE INDEX ON {schema}."{table_v}"("ActorID")')
+                elif table_k == "end":
+                    cur.execute(f'CREATE INDEX ON {schema}."{table_v}"("FilmID")')
             cur.execute("COMMIT")
 
 
@@ -555,7 +576,7 @@ async def test_loadFromParquet(
     if init_parquet:
         pd.read_csv("../data/actorfilms.csv").to_parquet(src_parquet)
 
-    graph_name = "actorfilmsFromParquet"
+    graph_name = "gPR"
     start_v_label = "Actor"
     edge_type = "ACTED_IN"
     end_v_label = "Film"
@@ -636,7 +657,7 @@ async def test_loadFromCosmosGremlin(
         )
 
     start_time = time.time()
-    graph_name = "actorfilmsfromgremlin"
+    graph_name = "gGR"
     await af.loadFromCosmosGremlin(
         cosmos_gremlin_endpoint=cosmos_gremlin_endpoint,
         cosmos_gremlin_key=cosmos_gremlin_key,
@@ -901,7 +922,7 @@ async def main() -> None:
                     chunk_size=chunk_size,
                     direct_loading=direct_loading,
                     use_copy=use_copy,
-                    init_neo4j=True,
+                    init_neo4j=False,
                 )
                 for idx, (direct_loading, use_copy) in enumerate(test_set)
             ]
