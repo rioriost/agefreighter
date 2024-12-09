@@ -1,43 +1,15 @@
 import logging
 from networkx import DiGraph
 import pandas as pd
-from psycopg import sql
+from psycopg import sql, AsyncConnection, AsyncCursor
 from psycopg.rows import namedtuple_row
 from psycopg_pool import AsyncConnectionPool
 from typing_extensions import Callable
 import nest_asyncio
-from neo4j import AsyncGraphDatabase
 
 nest_asyncio.apply()
 
 log = logging.getLogger("agefreighter")
-
-
-class Neo4jHandler:
-    def __init__(self, uri, user, password):
-        self.driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
-
-    def close(self):
-        self.driver.close()
-
-    def get_edges_with_nodes(self, chunk_size):
-        with self.driver.session() as session:
-            skip = 0
-            while True:
-                result = session.run(
-                    """
-                    MATCH (start)-[r]->(end)
-                    RETURN start, r, end
-                    SKIP $skip LIMIT $limit
-                    """,
-                    skip=skip,
-                    limit=chunk_size,
-                )
-                records = result.data()
-                if not records:
-                    break
-                yield records
-                skip += chunk_size
 
 
 class AgeFreighter:
@@ -51,7 +23,7 @@ class AgeFreighter:
         self.dsn: str = ""
         self.graph_name: str = ""
         self.name = "AgeFreighter"
-        self.version = "0.4.4"
+        self.version = "0.4.5"
         self.author = "Rio Fujita"
 
     async def __aenter__(self):
@@ -60,7 +32,7 @@ class AgeFreighter:
     async def __aexit__(self, exc_type, exc, tb):
         await self.pool.close()
 
-    def checkKeys(keys: list = [], elements: list = []):
+    def checkKeys(keys: list = [], elements: list = [], error_msg: str = ""):
         """
         Check if the keys of the CSV file match the elements.
 
@@ -71,9 +43,7 @@ class AgeFreighter:
         import numpy as np
 
         if not np.all(np.isin(elements, keys)):
-            raise ValueError(
-                f"CSV file must have {elements} columns, but {keys} columns were found."
-            )
+            raise ValueError(error_msg.format(elements=elements, keys=keys))
 
     def quotedGraphName(graph_name: str = "") -> str:
         """
@@ -136,14 +106,14 @@ class AgeFreighter:
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
                 if label_type == "vertex":
-                    log.debug("Creating a vlabel '%s'", value)
+                    log.info("Creating a vlabel '%s'", value)
                     await cur.execute(
                         sql.SQL("SELECT create_vlabel({schema}, {label});").format(
                             schema=self.graph_name,
                             label=sql.Literal(value),
                         )
                     )
-                    log.debug("Creating index using GIN")
+                    log.info("Creating indices")
                     await cur.execute(
                         sql.SQL(
                             "CREATE INDEX ON {schema}.{label} USING GIN (properties);"
@@ -152,7 +122,6 @@ class AgeFreighter:
                             label=sql.Identifier(value),
                         )
                     )
-                    log.debug("Creating index using BTREE")
                     await cur.execute(
                         sql.SQL(
                             "CREATE INDEX ON {schema}.{label} USING BTREE (id);"
@@ -162,21 +131,20 @@ class AgeFreighter:
                         )
                     )
                 elif label_type == "edge":
-                    log.debug("Creating an elabel '%s'", value)
+                    log.info("Creating an elabel '%s'", value)
                     await cur.execute(
                         sql.SQL("SELECT create_elabel({schema}, {label});").format(
                             schema=self.graph_name,
                             label=sql.Literal(value),
                         )
                     )
-                    log.debug("Creating index using BTREE")
+                    log.info("Creating indices")
                     await cur.execute(
                         sql.SQL("CREATE INDEX ON {schema}.{label} (start_id);").format(
                             schema=sql.Identifier(self.graph_name),
                             label=sql.Identifier(value),
                         )
                     )
-                    log.debug("Creating index using BTREE")
                     await cur.execute(
                         sql.SQL("CREATE INDEX ON {schema}.{label} (end_id);").format(
                             schema=sql.Identifier(self.graph_name),
@@ -208,7 +176,7 @@ class AgeFreighter:
             None
         """
         log.info("Creating vertices")
-        log.debug("Number of vertices to be created: '%s'", len(vertices))
+        log.info("Number of vertices to be created: '%s'", len(vertices))
         if direct_loading:
             vertices = vertices.map(
                 lambda x: x.replace("'", "''") if isinstance(x, str) else x
@@ -251,7 +219,7 @@ class AgeFreighter:
             None
         """
         log.info("Creating edges")
-        log.debug("Number of edges to be created: '%s'", len(edges))
+        log.info("Number of edges to be created: '%s'", len(edges))
         # create edges
         if direct_loading:
             await self.createEdgesDirectly(self, edges, edge_type, chunk_size)
@@ -260,6 +228,39 @@ class AgeFreighter:
                 await self.copyEdges(self, edges, edge_type, chunk_size)
             else:
                 await self.createEdgesCypher(self, edges, edge_type, chunk_size)
+
+    async def createVerticesCypherNew(
+        self, vertices: pd.DataFrame = None, label: str = "", chunk_size: int = 0
+    ) -> None:
+        """
+        Create vertices in the PostgreSQL database via Cypher.
+
+        Args:
+            vertices (pd.DataFrame): The vertices to create.
+            label (str): The label of the vertices.
+            chunk_size (int): The size of the chunks to create.
+
+        Returns:
+            None
+        """
+        log.info("Creating vertices via Cypher")
+        chunk_multiplier = 2
+        args = []
+        for i in range(0, len(vertices), chunk_size * chunk_multiplier):
+            chunk = vertices.iloc[i : i + chunk_size * chunk_multiplier]
+            params = []
+            for _, row in chunk.iterrows():
+                params.append(dict(row))
+
+            query = f"""
+            SELECT * FROM cypher(%s, $$
+            UNWIND $vertices AS vertex
+            CREATE (v:{label} {{ {', '.join([f'{col}: vertex.{col}' for col in chunk.columns])} }})
+            $$) AS (a agtype);
+            """
+            args.append((query, [self.graph_name, {"vertices": params}]))
+
+        await self.executeWithTasksNew(self.executeQueryNew, args)
 
     async def createVerticesCypher(
         self, vertices: pd.DataFrame = None, label: str = "", chunk_size: int = 0
@@ -397,6 +398,20 @@ class AgeFreighter:
             log.debug("Query to be excecuted: '%s'", args)
         await self.executeWithTasks(self, self.executeQuery, args)
 
+    async def executeQueryNew(
+        pool: AsyncConnectionPool = None, query: str = "", params=None
+    ):
+        async with await pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, params)
+                await conn.commit()
+
+    async def executeWithTasksNew(self, func, args_list):
+        import asyncio
+
+        tasks = [func(*args) for args in args_list]
+        await asyncio.gather(*tasks)
+
     async def executeWithTasks(self, target: Callable = None, args: list = []) -> None:
         """
         Execute queries with tasks.
@@ -465,8 +480,8 @@ class AgeFreighter:
                 query = f'COPY {graph_name}."{label}" FROM STDIN (FORMAT TEXT)'
                 log.debug("Query to be excecuted: '%s'", query)
                 async with cur.copy(query) as copy:
-                    args_list = []
                     for i in range(0, len(vertices), chunk_size * chunk_multiplier):
+                        args_list = []
                         chunk = vertices.iloc[i : i + chunk_size * chunk_multiplier]
                         chunk_args = chunk.apply(
                             lambda row: "{0}\t{{{1}}}\n".format(
@@ -683,6 +698,61 @@ class AgeFreighter:
             for attr in attributes
         }
 
+    def fetch_edges_in_chunks(driver, chunk_size) -> list:
+        """
+        Fetch edges in chunks.
+
+        Args:
+            driver: The driver.
+            chunk_size: The size of the chunks to fetch the edges in.
+
+        Returns:
+            None
+        """
+        with driver.session() as session:
+            skip = 0
+            while True:
+                result = session.run(
+                    "MATCH (m)-[r]->(n) RETURN m,r,n SKIP $skip LIMIT $limit",
+                    skip=skip,
+                    limit=chunk_size,
+                )
+                records = list(result)
+                if not records:
+                    break
+                yield records
+                skip += chunk_size
+
+    async def fetch_prop_names(
+        acur: AsyncConnection = None,
+        schema: str = "",
+        table_name: str = "",
+        exception: str = "",
+    ) -> list:
+        """
+        Fetch names of property columns.
+
+        Args:
+            acur (AsyncConnection): The async connection.
+            schema (str): The schema.
+            table_name (str): The table name.
+            exception (str): The exception.
+
+        Returns:
+            list: The names of the property columns.
+        """
+        props_query = """SELECT column_name FROM information_schema.columns
+            WHERE table_schema = {table_schema} AND table_name = {table_nm}""".format(
+            table_schema=f"'{schema}'", table_nm=f"'{table_name}'"
+        )
+        log.info("props_query: '%s'", props_query)
+        await acur.execute(props_query)
+        props_res = await acur.fetchall()
+        props = [
+            prop.column_name for prop in props_res if prop.column_name != exception
+        ]
+        return props
+
     @classmethod
     async def connect(
         cls, dsn: str = "", max_connections: int = 64, log_level=None, **kwargs
@@ -762,6 +832,7 @@ class AgeFreighter:
             cls.checkKeys(
                 src.keys(),
                 [start_id] + start_props + [end_id] + end_props,
+                "CSV file must have {elements} columns, but {keys} columns were found.",
             )
 
             await cls.setUpGraph(cls, graph_name, drop_graph)
@@ -900,7 +971,11 @@ class AgeFreighter:
             reader = pd.read_csv(vertex_csv, chunksize=chunk_size * chunk_multiplier)
             for vertices in reader:
                 if first_chunk:
-                    cls.checkKeys(vertices.keys(), ["id"])
+                    cls.checkKeys(
+                        vertices.keys(),
+                        ["id"],
+                        "CSV file must have {elements} columns, but {keys} columns were found.",
+                    )
 
                     await cls.createLabelType(
                         cls, label_type="vertex", value=vertex_label
@@ -930,6 +1005,7 @@ class AgeFreighter:
                             "end_id",
                             "end_vertex_type",
                         ],
+                        "CSV file must have {elements} columns, but {keys} columns were found.",
                     )
 
                     await cls.createLabelType(cls, label_type="edge", value=edge_type)
@@ -1038,52 +1114,6 @@ class AgeFreighter:
             first_chunk = False
 
     @classmethod
-    async def loadFromNeo4jNew(
-        cls,
-        uri: str = "bolt://localhost:7687",
-        user: str = "neo4j",
-        password: str = "neo4jpass",
-        neo4j_database: str = "neo4j",
-        graph_name: str = "",
-        id_map: dict = {},
-        chunk_size: int = 128,
-        direct_loading: bool = False,
-        drop_graph: bool = False,
-        use_copy: bool = True,
-    ) -> None:
-        """
-        Load data from a Neo4j graph.
-
-        Args:
-            uri (str): The URI of the Neo4j database.
-            user (str): The user of the Neo4j database.
-            password (str): The password of the Neo4j database.
-            neo4j_database (str): The name of the Neo4j database.
-            graph_name (str): The name of the graph to load the data into.
-            id_map (dict): The ID map.
-
-        Returns:
-            None
-        """
-        log.info("Loading data from a Neo4j graph")
-
-        chunk_multiplier = 100
-        neo4j_handler = Neo4jHandler(uri, user, password)
-        try:
-            for chunk in neo4j_handler.get_edges_with_nodes(
-                chunk_size * chunk_multiplier
-            ):
-                # チャンクごとに処理を行う
-                for record in chunk:
-                    print(record)
-                    start_node = record["start"]
-                    edge = record["r"]
-                    end_node = record["end"]
-                    # ここでstart_node, edge, end_nodeのプロパティを処理する
-        finally:
-            neo4j_handler.close()
-
-    @classmethod
     async def loadFromNeo4j(
         cls,
         uri: str = "bolt://localhost:7687",
@@ -1111,101 +1141,51 @@ class AgeFreighter:
         Returns:
             None
         """
-        log.info("Loading data from a Neo4j graph")
-        import neo4j
+        from neo4j import GraphDatabase
 
-        await cls.setUpGraph(cls, graph_name, drop_graph)
+        log.info("Loading data from a Neo4j graph")
 
         chunk_multiplier = 100
-        async with neo4j.AsyncGraphDatabase.driver(
-            uri, auth=(user, password)
-        ) as driver:
-            records, _, _ = await driver.execute_query(
-                "MATCH (n) RETURN distinct labels(n)",
-                db=neo4j_database,
+        existing_node_ids = []
+        first_chunk = True
+        driver = GraphDatabase.driver(uri, auth=(user, password))
+        for chunk in cls.fetch_edges_in_chunks(
+            driver=driver, chunk_size=chunk_size * chunk_multiplier
+        ):
+            start_v_label = list(chunk[0]["m"].labels)[0]
+            start_id = id_map[start_v_label]
+            start_props = [prop for prop in chunk[0]["m"].keys() if prop != start_id]
+            end_v_label = list(chunk[0]["n"].labels)[0]
+            end_id = id_map[end_v_label]
+            end_props = [prop for prop in chunk[0]["n"].keys() if prop != end_id]
+            edge_type = chunk[0]["r"].type
+            df = pd.DataFrame([{**record["m"], **record["n"]} for record in chunk])
+            await cls.createGraphFromDataFrame(
+                cls,
+                graph_name=graph_name,
+                src=df,
+                existing_node_ids=existing_node_ids,
+                first_chunk=first_chunk,
+                start_v_label=start_v_label,
+                start_id=start_id,
+                start_props=start_props,
+                edge_type=edge_type,
+                end_v_label=end_v_label,
+                end_id=end_id,
+                end_props=end_props,
+                chunk_size=chunk_size,
+                direct_loading=direct_loading,
+                drop_graph=drop_graph,
+                use_copy=use_copy,
             )
-            vertex_labels = []
-            for record in records:
-                vertex_label = record["labels(n)"][0]
-                vertex_labels.append(vertex_label)
-                await cls.createLabelType(cls, label_type="vertex", value=vertex_label)
-                result = await driver.execute_query(
-                    f"MATCH (a:{vertex_label}) RETURN count(a) AS count",
-                    db=neo4j_database,
-                    result_transformer_=neo4j.AsyncResult.single,
-                )
-                cnt = result["count"]
-                for i in range(0, cnt, chunk_size * chunk_multiplier):
-                    vertices = await driver.execute_query(
-                        f"MATCH (a:{vertex_label}) RETURN a SKIP $skip LIMIT $limit",
-                        skip=i,
-                        limit=chunk_size * chunk_multiplier,
-                        db=neo4j_database,
-                        result_transformer_=lambda res: res.to_df(expand=True),
-                    )
-                    vertices.drop(columns=["a().labels"], inplace=True)
-                    vertices = await cls.renameColumns(vertices)
-                    vertices.rename(columns={id_map[vertex_label]: "id"}, inplace=True)
-                    await cls.createVertices(
-                        cls,
-                        vertices,
-                        vertex_label,
-                        chunk_size,
-                        direct_loading,
-                        drop_graph,
-                        use_copy,
-                    )
-
-            records, _, _ = await driver.execute_query(
-                "MATCH ()-[n]->() RETURN distinct type(n)",
-                db=neo4j_database,
-            )
-            for record in records:
-                edge_type = record["type(n)"]
-                await cls.createLabelType(cls, label_type="edge", value=edge_type)
-                # need to know the number of edges
-                result = await driver.execute_query(
-                    f"MATCH ()-[a:{edge_type}]->() RETURN count(a) AS count",
-                    result_transformer_=neo4j.AsyncResult.single,
-                )
-                cnt = result["count"]
-                result = await driver.execute_query(
-                    f"MATCH (m) - [a:{edge_type}] -> (n) RETURN m, n LIMIT 1",
-                    result_transformer_=lambda res: res.to_df(expand=True),
-                )
-                # fix me if the nodes have multiple labels
-                start_v_label = "".join(map(str, result["m().labels"][0]))
-                end_v_label = "".join(map(str, result["n().labels"][0]))
-                for i in range(0, cnt, chunk_size * chunk_multiplier):
-                    edges = await driver.execute_query(
-                        f"MATCH () - [a:{edge_type}] -> () RETURN a SKIP $skip LIMIT $limit",
-                        skip=i,
-                        limit=chunk_size * chunk_multiplier,
-                        db=neo4j_database,
-                        result_transformer_=lambda res: res.to_df(expand=True),
-                    )
-                    edges.drop(columns=["a->.type"], inplace=True)
-                    edges = await cls.renameColumns(edges)
-                    edges.rename(
-                        columns={"from": "start_id", "to": "end_id"}, inplace=True
-                    )
-                    edges.insert(0, "start_v_label", start_v_label)
-                    edges.insert(0, "end_v_label", end_v_label)
-                    await cls.createEdges(
-                        cls,
-                        edges,
-                        edge_type,
-                        chunk_size,
-                        direct_loading,
-                        drop_graph,
-                        use_copy,
-                    )
+            first_chunk = False
 
     @classmethod
     async def loadFromPGSQL(
         cls,
-        src_con_string: str = "",
-        src_tables: list = [],
+        source_con_string: str = "",
+        source_schema: str = "",
+        source_tables: list = [],
         graph_name: str = "",
         id_map: dict = {},
         chunk_size: int = 128,
@@ -1231,22 +1211,22 @@ class AgeFreighter:
         chunk_multiplier = 1000
 
         try:
-            with pg.connect(src_con_string) as conn:
+            with pg.connect(source_con_string) as conn:
                 with conn.cursor(row_factory=namedtuple_row) as cur:
                     await cls.setUpGraph(cls, graph_name, drop_graph)
-                    for src_table in src_tables.values():
+                    for src_table in source_tables.values():
                         if id_map.get(src_table) is not None:  # nodes
                             id_col_name = id_map[src_table]
                             await cls.createLabelType(
                                 cls, label_type="vertex", value=src_table
                             )
-                            cur.execute(sql.SQL(f"SELECT COUNT(*) FROM {src_table}"))
+                            cur.execute(
+                                f'SELECT COUNT(*) FROM {source_schema}."{src_table}"'
+                            )
                             cnt = cur.fetchone()[0]
                             for i in range(0, cnt, chunk_size * chunk_multiplier):
                                 cur.execute(
-                                    sql.SQL(
-                                        f"SELECT * FROM {src_table} LIMIT {chunk_size * chunk_multiplier} OFFSET {i}"
-                                    )
+                                    f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * chunk_multiplier} OFFSET {i}'
                                 )
                                 rows = cur.fetchall()
                                 vertices = pd.DataFrame(rows)
@@ -1266,13 +1246,13 @@ class AgeFreighter:
                             await cls.createLabelType(
                                 cls, label_type="edge", value=src_table
                             )
-                            cur.execute(sql.SQL(f"SELECT COUNT(*) FROM {src_table}"))
+                            cur.execute(
+                                f'SELECT COUNT(*) FROM {source_schema}."{src_table}"'
+                            )
                             cnt = cur.fetchone()[0]
                             for i in range(0, cnt, chunk_size * chunk_multiplier):
                                 cur.execute(
-                                    sql.SQL(
-                                        f"SELECT * FROM {src_table} LIMIT {chunk_size * chunk_multiplier} OFFSET {i}"
-                                    )
+                                    f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * chunk_multiplier} OFFSET {i}'
                                 )
                                 rows = cur.fetchall()
                                 edges = pd.DataFrame(rows)
@@ -1287,6 +1267,123 @@ class AgeFreighter:
                                     drop_graph,
                                     use_copy,
                                 )
+        except Exception as e:
+            raise e
+
+    @classmethod
+    async def loadFromPGSQLNew(
+        cls,
+        source_con_string: str = "",
+        source_schema: str = "",
+        source_tables: list = [],
+        graph_name: str = "",
+        id_map: dict = {},
+        chunk_size: int = 128,
+        direct_loading: bool = False,
+        drop_graph: bool = False,
+        use_copy: bool = True,
+    ) -> None:
+        """
+        Load data from a PostgreSQL database.
+
+        Args:
+            source_con_string (str): The connection string of the source PostgreSQL database.
+            source_tables (list): The source tables.
+            graph_name (str): The name of the graph to load the data into.
+            id_map (dict): The ID map.
+
+        Returns:
+            None
+        """
+        log.info("Loading data from a PostgreSQL database")
+        import psycopg as pg
+
+        chunk_multiplier = 1000
+
+        cls.checkKeys(
+            list(source_tables.keys()),
+            ["start", "end", "edges"],
+            "source_tables must have {elements}, but {keys} were found.",
+        )
+
+        try:
+            async with await pg.AsyncConnection.connect(source_con_string) as aconn:
+                async with aconn.cursor(row_factory=namedtuple_row) as acur:
+                    cnt_query = (
+                        'SELECT COUNT(*) AS count FROM {schema}."{table}"'.format(
+                            schema=source_schema, table=source_tables["edges"]
+                        )
+                    )
+                    log.info("Query to be executed: '%s'", cnt_query)
+                    await acur.execute(cnt_query)
+                    cnt_res = await acur.fetchone()
+                    cnt = cnt_res.count
+                    start_props = await cls.fetch_prop_names(
+                        acur=acur,
+                        schema=source_schema,
+                        table_name=source_tables["start"],
+                        exception=id_map[source_tables["start"]],
+                    )
+                    # Truely???
+                    start_v_label = source_tables["start"]
+                    start_id = id_map[start_v_label]
+                    end_props = await cls.fetch_prop_names(
+                        acur=acur,
+                        schema=source_schema,
+                        table_name=source_tables["end"],
+                        exception=id_map[source_tables["end"]],
+                    )
+                    end_v_label = source_tables["end"]
+                    end_id = id_map[end_v_label]
+                    edge_type = source_tables["edges"]
+                    first_chunk = True
+                    existing_node_ids = []
+                    for i in range(0, cnt, chunk_size * chunk_multiplier):
+                        chunk_query = """SELECT {start_cols}, {end_cols} FROM {schema}.{edge_table} AS e
+                            JOIN {schema}.{start_table} AS s ON e.start_id = s.{start_id}
+                            JOIN {schema}.{end_table} AS t ON e.end_id = t.{end_id}
+                            LIMIT {limit} OFFSET {offset}""".format(
+                            schema=source_schema,
+                            start_cols="s.*",
+                            end_cols="t.*",
+                            # start_cols=",".join(
+                            #    [f's."{start_prop}"' for start_prop in start_props]
+                            # ),
+                            # end_cols=",".join(
+                            #    [f't."{end_prop}"' for end_prop in end_props]
+                            # ),
+                            edge_table=f'"{source_tables["edges"]}"',
+                            start_table=f'"{source_tables["start"]}"',
+                            start_id=f'"{id_map[source_tables["start"]]}"',
+                            end_table=f'"{source_tables["end"]}"',
+                            end_id=f'"{id_map[source_tables["end"]]}"',
+                            limit=chunk_size * chunk_multiplier,
+                            offset=i,
+                        )
+                        log.info("Query to be executed: '%s'", chunk_query)
+                        await acur.execute(chunk_query)
+                        rows = await acur.fetchall()
+                        df = pd.DataFrame(rows)
+                        await cls.createGraphFromDataFrame(
+                            cls,
+                            graph_name=graph_name,
+                            src=df,
+                            existing_node_ids=existing_node_ids,
+                            first_chunk=first_chunk,
+                            start_v_label=start_v_label,
+                            start_id=start_id,
+                            start_props=start_props,
+                            edge_type=edge_type,
+                            end_v_label=end_v_label,
+                            end_id=end_id,
+                            end_props=end_props,
+                            chunk_size=chunk_size,
+                            direct_loading=direct_loading,
+                            drop_graph=drop_graph,
+                            use_copy=use_copy,
+                        )
+                        first_chunk = False
+
         except Exception as e:
             raise e
 
