@@ -1,0 +1,160 @@
+2024-12-11 16:24:42,376 - __main__ - INFO - AgeFreighter version: 0.5.0
+2024-12-11 16:24:42,377 - __main__ - INFO - Testing all the freighter classes.
+2024-12-11 16:24:42,377 - __main__ - INFO - Instantiating AvroFreighter.
+2024-12-11 16:24:42,377 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:24:43,427 - __main__ - INFO - Loading graph data to PostgreSQL with AvroFreighter.
+2024-12-11 16:25:41,578 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:25:41,719 - __main__ - INFO - Test: AvroFreighter SUCCEEDED, direct_loading(False), use_copy(False), 58.15 seconds
+2024-12-11 16:25:41,719 - __main__ - INFO - Instantiating AvroFreighter.
+2024-12-11 16:25:41,719 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:25:42,802 - __main__ - INFO - Loading graph data to PostgreSQL with AvroFreighter.
+2024-12-11 16:25:48,040 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:25:48,135 - __main__ - INFO - Test: AvroFreighter SUCCEEDED, direct_loading(True), use_copy(False), 5.24 seconds
+2024-12-11 16:25:48,135 - __main__ - INFO - Instantiating AvroFreighter.
+2024-12-11 16:25:48,135 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:25:49,151 - __main__ - INFO - Loading graph data to PostgreSQL with AvroFreighter.
+2024-12-11 16:25:53,512 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:25:53,600 - __main__ - INFO - Test: AvroFreighter SUCCEEDED, direct_loading(False), use_copy(True), 4.36 seconds
+2024-12-11 16:25:53,600 - __main__ - INFO - Instantiating CosmosGremlinFreighter.
+2024-12-11 16:25:53,600 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:25:54,630 - __main__ - INFO - Loading graph data to PostgreSQL with CosmosGremlinFreighter.
+2024-12-11 16:25:54,694 - gremlinpython - INFO - Creating Client with url 'wss://actorfilms.gremlin.cosmos.azure.com:443/'
+2024-12-11 16:26:55,130 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:26:55,245 - __main__ - INFO - Test: CosmosGremlinFreighter SUCCEEDED, direct_loading(False), use_copy(False), 60.50 seconds
+2024-12-11 16:26:55,245 - __main__ - INFO - Instantiating CosmosGremlinFreighter.
+2024-12-11 16:26:55,245 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:26:55,274 - psycopg.pool - WARNING - error connecting in 'pool-5': [Errno 8] nodename nor servname provided, or not known
+2024-12-11 16:26:56,306 - __main__ - INFO - Loading graph data to PostgreSQL with CosmosGremlinFreighter.
+2024-12-11 16:26:56,306 - gremlinpython - INFO - Creating Client with url 'wss://actorfilms.gremlin.cosmos.azure.com:443/'
+2024-12-11 16:27:20,342 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:27:20,453 - __main__ - INFO - Test: CosmosGremlinFreighter SUCCEEDED, direct_loading(True), use_copy(False), 24.04 seconds
+2024-12-11 16:27:20,453 - __main__ - INFO - Instantiating CosmosGremlinFreighter.
+2024-12-11 16:27:20,453 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:27:21,475 - __main__ - INFO - Loading graph data to PostgreSQL with CosmosGremlinFreighter.
+2024-12-11 16:27:21,475 - gremlinpython - INFO - Creating Client with url 'wss://actorfilms.gremlin.cosmos.azure.com:443/'
+2024-12-11 16:27:45,866 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:27:48,406 - __main__ - INFO - Test: CosmosGremlinFreighter SUCCEEDED, direct_loading(False), use_copy(True), 24.39 seconds
+2024-12-11 16:27:48,406 - __main__ - INFO - Instantiating CSVFreighter.
+2024-12-11 16:27:48,407 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:27:49,437 - __main__ - INFO - Loading graph data to PostgreSQL with CSVFreighter.
+2024-12-11 16:28:48,847 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:28:48,966 - __main__ - INFO - Test: CSVFreighter SUCCEEDED, direct_loading(False), use_copy(False), 59.41 seconds
+2024-12-11 16:28:48,966 - __main__ - INFO - Instantiating CSVFreighter.
+2024-12-11 16:28:48,966 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:28:49,999 - __main__ - INFO - Loading graph data to PostgreSQL with CSVFreighter.
+2024-12-11 16:28:54,904 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:28:54,987 - __main__ - INFO - Test: CSVFreighter SUCCEEDED, direct_loading(True), use_copy(False), 4.90 seconds
+2024-12-11 16:28:54,988 - __main__ - INFO - Instantiating CSVFreighter.
+2024-12-11 16:28:54,988 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:28:56,015 - __main__ - INFO - Loading graph data to PostgreSQL with CSVFreighter.
+2024-12-11 16:28:59,731 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:28:59,825 - __main__ - INFO - Test: CSVFreighter SUCCEEDED, direct_loading(False), use_copy(True), 3.72 seconds
+2024-12-11 16:28:59,825 - __main__ - INFO - Instantiating MultiCSVFreighter.
+2024-12-11 16:28:59,825 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:29:00,848 - __main__ - INFO - Loading graph data to PostgreSQL with MultiCSVFreighter.
+2024-12-11 16:29:28,171 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:29:28,296 - __main__ - INFO - Test: MultiCSVFreighter SUCCEEDED, direct_loading(False), use_copy(False), 27.32 seconds
+2024-12-11 16:29:28,296 - __main__ - INFO - Instantiating MultiCSVFreighter.
+2024-12-11 16:29:28,296 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:29:29,311 - __main__ - INFO - Loading graph data to PostgreSQL with MultiCSVFreighter.
+2024-12-11 16:29:33,232 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:29:33,336 - __main__ - INFO - Test: MultiCSVFreighter SUCCEEDED, direct_loading(True), use_copy(False), 3.92 seconds
+2024-12-11 16:29:33,336 - __main__ - INFO - Instantiating MultiCSVFreighter.
+2024-12-11 16:29:33,336 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:29:34,349 - __main__ - INFO - Loading graph data to PostgreSQL with MultiCSVFreighter.
+2024-12-11 16:29:38,474 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:29:38,567 - __main__ - INFO - Test: MultiCSVFreighter SUCCEEDED, direct_loading(False), use_copy(True), 4.12 seconds
+2024-12-11 16:29:38,567 - __main__ - INFO - Instantiating Neo4jFreighter.
+2024-12-11 16:29:38,567 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:29:39,578 - __main__ - INFO - Loading graph data to PostgreSQL with Neo4jFreighter.
+2024-12-11 16:30:50,698 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:30:50,817 - __main__ - INFO - Test: Neo4jFreighter SUCCEEDED, direct_loading(False), use_copy(False), 71.12 seconds
+2024-12-11 16:30:50,817 - __main__ - INFO - Instantiating Neo4jFreighter.
+2024-12-11 16:30:50,817 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:30:51,853 - __main__ - INFO - Loading graph data to PostgreSQL with Neo4jFreighter.
+2024-12-11 16:31:11,884 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:31:11,984 - __main__ - INFO - Test: Neo4jFreighter SUCCEEDED, direct_loading(True), use_copy(False), 20.03 seconds
+2024-12-11 16:31:11,984 - __main__ - INFO - Instantiating Neo4jFreighter.
+2024-12-11 16:31:11,984 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:31:13,070 - __main__ - INFO - Loading graph data to PostgreSQL with Neo4jFreighter.
+2024-12-11 16:31:31,812 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:31:31,957 - __main__ - INFO - Test: Neo4jFreighter SUCCEEDED, direct_loading(False), use_copy(True), 18.74 seconds
+2024-12-11 16:31:31,957 - __main__ - INFO - Instantiating NetworkXFreighter.
+2024-12-11 16:31:31,957 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:31:32,983 - __main__ - INFO - Loading graph data to PostgreSQL with NetworkXFreighter.
+2024-12-11 16:31:57,975 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:31:58,089 - __main__ - INFO - Test: NetworkXFreighter SUCCEEDED, direct_loading(False), use_copy(False), 24.99 seconds
+2024-12-11 16:31:58,089 - __main__ - INFO - Instantiating NetworkXFreighter.
+2024-12-11 16:31:58,089 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:31:59,103 - __main__ - INFO - Loading graph data to PostgreSQL with NetworkXFreighter.
+2024-12-11 16:32:04,265 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:32:04,371 - __main__ - INFO - Test: NetworkXFreighter SUCCEEDED, direct_loading(True), use_copy(False), 5.16 seconds
+2024-12-11 16:32:04,371 - __main__ - INFO - Instantiating NetworkXFreighter.
+2024-12-11 16:32:04,371 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:32:05,381 - __main__ - INFO - Loading graph data to PostgreSQL with NetworkXFreighter.
+2024-12-11 16:32:09,141 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:32:09,230 - __main__ - INFO - Test: NetworkXFreighter SUCCEEDED, direct_loading(False), use_copy(True), 3.76 seconds
+2024-12-11 16:32:09,230 - __main__ - INFO - Instantiating ParquetFreighter.
+2024-12-11 16:32:09,230 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:32:10,280 - __main__ - INFO - Loading graph data to PostgreSQL with ParquetFreighter.
+2024-12-11 16:32:53,418 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:32:53,543 - __main__ - INFO - Test: ParquetFreighter SUCCEEDED, direct_loading(False), use_copy(False), 43.14 seconds
+2024-12-11 16:32:53,543 - __main__ - INFO - Instantiating ParquetFreighter.
+2024-12-11 16:32:53,543 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:32:54,667 - __main__ - INFO - Loading graph data to PostgreSQL with ParquetFreighter.
+2024-12-11 16:32:59,842 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:32:59,923 - __main__ - INFO - Test: ParquetFreighter SUCCEEDED, direct_loading(True), use_copy(False), 5.17 seconds
+2024-12-11 16:32:59,923 - __main__ - INFO - Instantiating ParquetFreighter.
+2024-12-11 16:32:59,923 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:33:01,094 - __main__ - INFO - Loading graph data to PostgreSQL with ParquetFreighter.
+2024-12-11 16:33:04,751 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:33:04,842 - __main__ - INFO - Test: ParquetFreighter SUCCEEDED, direct_loading(False), use_copy(True), 3.66 seconds
+2024-12-11 16:33:04,842 - __main__ - INFO - Instantiating PGFreighter.
+2024-12-11 16:33:04,842 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:33:05,976 - __main__ - INFO - Loading graph data to PostgreSQL with PGFreighter.
+2024-12-11 16:33:53,560 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:33:53,676 - __main__ - INFO - Test: PGFreighter SUCCEEDED, direct_loading(False), use_copy(False), 47.58 seconds
+2024-12-11 16:33:53,676 - __main__ - INFO - Instantiating PGFreighter.
+2024-12-11 16:33:53,676 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:33:54,676 - __main__ - INFO - Loading graph data to PostgreSQL with PGFreighter.
+2024-12-11 16:34:01,687 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:34:01,804 - __main__ - INFO - Test: PGFreighter SUCCEEDED, direct_loading(True), use_copy(False), 7.01 seconds
+2024-12-11 16:34:01,804 - __main__ - INFO - Instantiating PGFreighter.
+2024-12-11 16:34:01,804 - __main__ - INFO - Connecting to PostgreSQL.
+2024-12-11 16:34:02,835 - __main__ - INFO - Loading graph data to PostgreSQL with PGFreighter.
+2024-12-11 16:34:08,165 - __main__ - INFO - Checking the number of vertices and edges in the graph.
+2024-12-11 16:34:08,253 - __main__ - INFO - Test: PGFreighter SUCCEEDED, direct_loading(False), use_copy(True), 5.33 seconds
+Summary of all tests are as followings:
+Test Result for AvroFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 58.15 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 5.24 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 4.36 seconds
+Test Result for CosmosGremlinFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 60.50 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 24.04 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 24.39 seconds
+Test Result for CSVFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 59.41 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 4.90 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.72 seconds
+Test Result for MultiCSVFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 27.32 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 3.92 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 4.12 seconds
+Test Result for Neo4jFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 71.12 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 20.03 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 18.74 seconds
+Test Result for NetworkXFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 24.99 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 5.16 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.76 seconds
+Test Result for ParquetFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 43.14 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 5.17 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.66 seconds
+Test Result for PGFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 47.58 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 7.01 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 5.33 seconds
+2024-12-11 16:34:08,253 - __main__ - INFO - Cleaning up all the graphs for test.
