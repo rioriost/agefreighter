@@ -8,70 +8,94 @@ a Python package that helps you to create a graph database using Azure Database 
 
 [Introducing support for Graph data in Azure Database for PostgreSQL (Preview)](https://techcommunity.microsoft.com/blog/adforpostgresql/introducing-support-for-graph-data-in-azure-database-for-postgresql-preview/4275628).
 
+## 0.5.0 Release
+Refactored the code to make it more readable and maintainable with the separated classes for factory model.
+Please note how to use the new version of the package is tottally different from the previous versions.
+
 ### Features
 * Asynchronous connection pool support for psycopg PostgreSQL driver
 * 'direct_loading' option for loading data directly into the graph. If 'direct_loading' is True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries.
 * 'COPY' protocol support for loading data into the graph. If 'use_copy' is True, the data is loaded into the graph using the 'COPY' protocol.
 
-### Functions
+### Classes
+* AvroFreighter
+* CosmosGremlinFreighter
+* CSVFreighter
+* MultiCSVFreighter
+* Neo4jFreighter
+* NetworkXFreighter
+* ParquetFreighter
+* PGFreighter
+
+### Method
+All the classes have the same load() method. The method loads data into the graph database.
+
+### Arguments for each class
 * common arguments
   * graph_name (str) : the name of the graph
   * chunk_size (int) : the number of rows to be loaded at once
   * direct_loading (bool) : if True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries
   * use_copy (bool) : if True, the data is loaded into the graph using the 'COPY' protocol
   * drop_graph (bool) : if True, the graph is dropped before loading the data
-* 'loadFromSingleCSV()' expects a single CSV file that contains the data for the graph as a source.
-  *  start_v_label (str): The label of the start vertex.
-  *  start_id (str): The ID of the start vertex.
-  *  start_props (list): The properties of the start vertex.
-  *  edge_type (str): The type of the edge.
-  *  end_v_label (str): The label of the end vertex.
-  *  end_id (str): The ID of the end vertex.
-  *  end_props (list): The properties of the end vertex.
-* 'loadFromCSVs()' expects multiple CSV files, two CSV files for vertices and one CSV file for edges as sources.
-  *  vertex_csvs (list): The list of CSV files for vertices.
-  *  vertex_labels (list): The list of labels for vertices.
-  *  edge_csvs (list): The list of CSV files for edges.
-  *  edge_types (list): The list of types for edges.
-* 'loadFromNetworkx()' expects a NetworkX graph object as a source.
-  * networkx_graph (DiGraph): The NetworkX graph.
-  *  graph_name (str): The name of the graph to load the data into.
-  *  id_map (dict): The ID map.
-* 'loadFromNeo4j()' expects a Neo4j as a source.
-  *  uri (str): The URI of the Neo4j server.
-  *  user (str): The user name of the Neo4j server.
-  *  password (str): The password of the Neo4j server.
-  *  neo4j_database (str): The name of the Neo4j database.
-  *  id_map (dict): The mapping of the vertex label to the vertex ID.
-* 'loadFromPGSQL()' expects a PGSQL as a source.
-  *  src_con_string (str): The connection string of the source PostgreSQL database.
-  *  src_tables (list): The source tables.
-  *  id_map (dict): The ID map.
-* 'loadFromParquet()' expects a Parquet file as a source.
-  *  src_parquet (str): The source Parquet file.
-  *  start_v_label (str): The label of the start vertex.
-  *  start_id (str): The ID of the start vertex.
-  *  start_props (list): The properties of the start vertex.
-  *  edge_type (str): The type of the edge.
-  *  end_v_label (str): The label of the end vertex.
-  *  end_id (str): The ID of the end vertex.
-  *  end_props (list): The properties of the end vertex.
-* 'loadFromCosmosGremlin()' expects a Cosmos Gremlin API as a source.
-  *  cosmos_gremlin_endpoint (str): The endpoint of the Cosmos Gremlin API.
-  *  cosmos_gremlin_key (str): The key of the Cosmos Gremlin API.
-  *  cosmos_username (str): The username of the Cosmos Gremlin API.
-  *  cosmos_pkey (str): The partition key of the Cosmos Gremlin API.
-  *  id_map (dict): The ID map.
-* 'loadFromAvro()' expects an Avro file as a source.
-  *  src_avro (str): The path to the Avro file.
-  *  start_v_label (str): The label of the start vertex.
-  *  start_id (str): The ID of the start vertex.
-  *  start_props (list): The properties of the start vertex.
-  *  edge_type (str): The type of the edge.
-  *  end_v_label (str): The label of the end vertex.
-  *  end_id (str): The ID of the end vertex.
-  *  end_props (list): The properties of the end vertex.
-* Many more coming soon...
+
+* AvroFreighter
+  * source_avro (str): The path to the Avro file.
+  * start_v_label (str): The label of the start vertex.
+  * start_id (str): The ID of the start vertex.
+  * start_props (list): The properties of the start vertex.
+  * edge_type (str): The type of the edge.
+  * end_v_label (str): The label of the end vertex.
+  * end_id (str): The ID of the end vertex.
+  * end_props (list): The properties of the end vertex.
+
+* CosmosGremlinFreighter
+  * cosmos_gremlin_endpoint (str): The Cosmos Gremlin endpoint.
+  * cosmos_gremlin_key (str): The Cosmos Gremlin key.
+  * cosmos_username (str): The Cosmos username.
+  * id_map (dict): The ID map.
+
+* CSVFreighter
+  * csv (str): The path to the CSV file.
+  * start_v_label (str): The label of the start vertex.
+  * start_id (str): The ID of the start vertex.
+  * start_props (list): The properties of the start vertex.
+  * edge_type (str): The type of the edge.
+  * end_v_label (str): The label of the end vertex.
+  * end_id (str): The ID of the end vertex.
+  * end_props (list): The properties of the end vertex.
+
+* MultiCSVFreighter
+  * vertex_csvs (list): The paths to the vertex CSV files.
+  * vertex_labels (list): The labels of the vertices.
+  * edge_csvs (list): The paths to the edge CSV files.
+  * edge_types (list): The types of the edges.
+
+* Neo4jFreighter
+  * neo4j_uri (str): The URI of the Neo4j database.
+  * neo4j_user (str): The username of the Neo4j database.
+  * neo4j_password (str): The password of the Neo4j database.
+  * neo4j_database (str): The database of the Neo4j database.
+  * id_map (dict): The ID map.
+
+* NetworkXFreighter
+  * networkx_graph (nx.Graph): The NetworkX graph.
+  * id_map (dict): The ID map.
+
+* ParquetFreighter
+  * source_parquet (str): The path to the Parquet file.
+  * start_v_label (str): The label of the start vertex.
+  * start_id (str): The ID of the start vertex.
+  * start_props (list): The properties of the start vertex.
+  * edge_type (str): The type of the edge.
+  * end_v_label (str): The label of the end vertex.
+  * end_id (str): The ID of the end vertex.
+  * end_props (list): The properties of the end vertex.
+
+* PGFreighter
+  * source_pg_con_string (str): The connection string of the source PostgreSQL database.
+  * source_schema (str): The source schema.
+  * source_tables (list): The source tables.
+  * id_map (dict): The ID map.
 
 ### Release Notes
 * 0.4.0 : Added 'loadFromCosmosGremlin()' function.
@@ -81,6 +105,7 @@ a Python package that helps you to create a graph database using Azure Database 
 * 0.4.4 : Performance tuning.
 * 0.4.5 : Simplified 'loadFromNeo4j'.
 * 0.4.6 : Added 'loadFromAvro()' function.
+* 0.5.0 : Refactored the code to make it more readable and maintainable with the separated classes for factory model. Introduced concurrent.futures for better performance.
 
 ### Install
 
@@ -99,12 +124,23 @@ CREATE EXTENSION IF NOT EXISTS age CASCADE;
 ```
 
 ### Usage
-See, [tests/test_agefreighter.py](https://github.com/rioriost/agefreighter/blob/main/tests/test_agefreighter.py) for more details.
+```python
+from agefreighter import AgeFreighter, Factory
+
+class_name = 'CSVFreighter'
+instance = Factory.create_instance(class_name)
+
+await instance.connect(dsn="host=your_host port=5432 dbname=postgres user=your_account password=your_password", max_connections=64)
+await instance.load(arguments1, arguments2, ...)
+```
+
+See, [tests/agefreightertester.py](https://github.com/rioriost/agefreighter/blob/main/tests/agefreightertester.py) for more details.
 
 ### Test & Samples
 ```sql
-export PG_CONNECTION_STRING="host=your_server.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
-python3 tests/test_agefreighter.py
+export PG_CONNECTION_STRING="host=your_host.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
+cd tests/
+python3.9 agefreightertester.py
 ```
 
 ### For more information about [Apache AGE](https://age.apache.org/)
