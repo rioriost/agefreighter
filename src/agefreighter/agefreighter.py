@@ -62,7 +62,7 @@ class AgeFreighter:
     """
 
     name = "AgeFreighter"
-    version = "0.5.0"
+    version = "0.5.1"
     author = "Rio Fujita"
 
     def __init__(self):
