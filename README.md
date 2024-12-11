@@ -106,6 +106,7 @@ All the classes have the same load() method. The method loads data into the grap
 * 0.4.5 : Simplified 'loadFromNeo4j'.
 * 0.4.6 : Added 'loadFromAvro()' function.
 * 0.5.0 : Refactored the code to make it more readable and maintainable with the separated classes for factory model. Introduced concurrent.futures for better performance.
+* 0.5.1 : Improved the usage
 
 ### Install
 
@@ -125,13 +126,44 @@ CREATE EXTENSION IF NOT EXISTS age CASCADE;
 
 ### Usage
 ```python
-from agefreighter import AgeFreighter, Factory
+import asyncio
+import os
+from agefreighter import Factory
+import logging
 
-class_name = 'CSVFreighter'
-instance = Factory.create_instance(class_name)
+log = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
-await instance.connect(dsn="host=your_host port=5432 dbname=postgres user=your_account password=your_password", max_connections=64)
-await instance.load(arguments1, arguments2, ...)
+
+async def main():
+    class_name = "CSVFreighter"
+    instance = Factory.create_instance(class_name)
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+    await instance.load(
+        graph_name="AgeTester",
+        start_v_label="Actor",
+        start_id="ActorID",
+        start_props=["Actor"],
+        edge_type="ACTED_IN",
+        end_v_label="Film",
+        end_id="FilmID",
+        end_props=["Film", "Year", "Votes", "Rating"],
+        csv="./actorfilms.csv",
+        drop_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
 ```
 
 See, [tests/agefreightertester.py](https://github.com/rioriost/agefreighter/blob/main/tests/agefreightertester.py) for more details.
