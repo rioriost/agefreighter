@@ -63,7 +63,7 @@ class ParquetFreighter(AgeFreighter):
 
         chunk_multiplier = 10000
 
-        pf = ParquetFile(src_parquet)
+        pf = ParquetFile(source_parquet)
         first_chunk = True
         existing_node_ids = []
 

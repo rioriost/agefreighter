@@ -20,7 +20,11 @@ class Factory:
 
     @staticmethod
     def create_instance(type: str = ""):
-        if type == "AvroFreighter":
+        if type == "AzureStorageFreighter":
+            import agefreighter.azurestoragefreighter as azurestoragefreighter
+
+            return azurestoragefreighter.AzureStorageFreighter()
+        elif type == "AvroFreighter":
             import agefreighter.avrofreighter as avrofreighter
 
             return avrofreighter.AvroFreighter()
@@ -62,7 +66,7 @@ class AgeFreighter:
     """
 
     name = "AgeFreighter"
-    version = "0.5.1"
+    version = "0.5.2"
     author = "Rio Fujita"
 
     def __init__(self):
@@ -117,6 +121,7 @@ class AgeFreighter:
         current_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
         resource.setrlimit(resource.RLIMIT_NOFILE, (8192, current_limit[1]))
 
+        self.dsn_wo_options = dsn
         self.dsn = dsn + " options='-c search_path=ag_catalog,\"$user\",public'"
         self.pool = AsyncConnectionPool(
             self.dsn,
