@@ -30,6 +30,7 @@ class AgeFreighterTester:
 
         self.data_dir = "../data/"
         self.target_classes = [
+            {"name": "AzureStorageFreighter", "type": "actorfilms", "do": True},
             {"name": "AvroFreighter", "type": "actorfilms", "do": True},
             {"name": "CosmosGremlinFreighter", "type": "actorfilms", "do": True},
             {"name": "CSVFreighter", "type": "actorfilms", "do": True},
@@ -75,6 +76,8 @@ class AgeFreighterTester:
         }
 
         do_list = {item["name"]: item["do"] for item in self.target_classes}
+        if do_list["AzureStorageFreighter"]:
+            pass
         if do_list["AvroFreighter"]:
             self.params["source_avro"] = f"{self.data_dir}actorfilms.avro"
         if do_list["CosmosGremlinFreighter"]:
@@ -135,7 +138,11 @@ class AgeFreighterTester:
         for target_class in self.target_classes:
             if target_class["do"]:
                 all_results[target_class["name"]] = []
-                for direct_loading, use_copy in self.test_flags:
+                test_flags = self.test_flags
+                # AzureStorageFreighter ignores direct_loading and use_copy
+                if target_class["name"] == "AzureStorageFreighter":
+                    test_flags = [[False, False]]
+                for direct_loading, use_copy in test_flags:
                     attempt_cnt = len(all_results[target_class["name"]])
                     all_results[target_class["name"]].append({})
                     log.info(f"Instantiating {target_class['name']}.")
@@ -154,7 +161,6 @@ class AgeFreighterTester:
                         log.info(f"Failed to connect to the database: {e}")
                         all_results[target_class["name"]][attempt_cnt]["result"] = False
                         break
-
                     log.info(
                         f"Loading graph data to PostgreSQL with {target_class['name']}."
                     )
@@ -179,7 +185,8 @@ class AgeFreighterTester:
                     message = f"Test: {target_class['name']} {'SUCCEEDED' if result else 'FAILED'}, direct_loading({direct_loading}), use_copy({use_copy}), {(end_time - start_time):.2f} seconds"
                     log.info(message)
 
-        summary = ["Summary of all tests are as followings:"]
+        summary = [f"AgeFreighter version: {AgeFreighter.get_version()}"]
+        summary.append("Summary of all tests are as followings:")
         for class_name, attempts in all_results.items():
             summary.append(f"Test Result for {class_name}: ")
             for idx, attempt in enumerate(attempts):
