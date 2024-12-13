@@ -1,0 +1,36 @@
+AgeFreighter version: 0.5.2
+Summary of all tests are as followings:
+Test Result for AzureStorageFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 41.31 seconds
+Test Result for AvroFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 38.54 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 5.62 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 4.25 seconds
+Test Result for CosmosGremlinFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 50.17 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 25.53 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 23.09 seconds
+Test Result for CSVFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 57.33 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 5.36 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.93 seconds
+Test Result for MultiCSVFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 32.07 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 4.42 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 4.17 seconds
+Test Result for Neo4jFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 65.61 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 20.73 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 19.10 seconds
+Test Result for NetworkXFreighter:
+                              case(0) FAILED
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 5.46 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.66 seconds
+Test Result for ParquetFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 44.81 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 4.75 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.68 seconds
+Test Result for PGFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 49.23 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 6.33 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 4.93 seconds

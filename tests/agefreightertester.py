@@ -234,7 +234,7 @@ class AgeFreighterTester:
         log.info("Cleaning up all the graphs for test.")
         import psycopg as pg
 
-        with pg.connect(self.connection_string) as conn:
+        with pg.connect(self.dsn) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                 DO $$
