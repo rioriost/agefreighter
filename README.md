@@ -12,12 +12,24 @@ a Python package that helps you to create a graph database using Azure Database 
 Refactored the code to make it more readable and maintainable with the separated classes for factory model.
 Please note how to use the new version of the package is tottally different from the previous versions.
 
+### 0.5.2 Release -AzureStorageFreighter-
+* AzureStorageFreighter class is used to load data from Azure Storage into the graph database. It's totally different from other classes. The class works as follows:
+  * If the argument, 'subscription_id' is not set, the class tries to find the Azure Subscription ID from your local environment using the 'az' command.
+  * Creates an Azure Storage account and a blob container under the resource group where the PostgreSQL server runs in.
+  * Enables the 'azure_storage' extension in the PostgreSQL server, if it's not enabled.
+  * Uploads the CSV file to the blob container.
+  * Creates a UDF (User Defined Function) named 'load_from_azure_storage' in the PostgreSQL server. The UDF loads data from the Azure Storage into the graph database.
+  * Executes the UDF.
+* The above process takes time to prepare for loading data, making it unsuitable for loading small files, but effective for loading large files. For instance, it takes under 3 seconds to load 'actorfilms.csv' after uploading.
+* However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
+
 ### Features
 * Asynchronous connection pool support for psycopg PostgreSQL driver
 * 'direct_loading' option for loading data directly into the graph. If 'direct_loading' is True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries.
 * 'COPY' protocol support for loading data into the graph. If 'use_copy' is True, the data is loaded into the graph using the 'COPY' protocol.
 
 ### Classes
+* AzureStorageFreighter
 * AvroFreighter
 * CosmosGremlinFreighter
 * CSVFreighter
@@ -37,6 +49,19 @@ All the classes have the same load() method. The method loads data into the grap
   * direct_loading (bool) : if True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries
   * use_copy (bool) : if True, the data is loaded into the graph using the 'COPY' protocol
   * drop_graph (bool) : if True, the graph is dropped before loading the data
+
+* AzureStorageFreighter
+  * csv (str): CSV file path
+  * start_v_label (str): Start Vertex Label
+  * start_id (str): Start Vertex ID
+  * start_props (list): Start Vertex Properties
+  * edge_type (str): Edge Type
+  * end_v_label (str): End Vertex Label
+  * end_id (str): End Vertex ID
+  * end_props (list): End Vertex Properties
+  * graph_name (str): Graph Name
+  * chunk_size (int): Chunk Size
+  * drop_graph (bool): Drop Graph
 
 * AvroFreighter
   * source_avro (str): The path to the Avro file.
@@ -107,6 +132,7 @@ All the classes have the same load() method. The method loads data into the grap
 * 0.4.6 : Added 'loadFromAvro()' function.
 * 0.5.0 : Refactored the code to make it more readable and maintainable with the separated classes for factory model. Introduced concurrent.futures for better performance.
 * 0.5.1 : Improved the usage
+* 0.5.2 : Added AzureStorageFreighter class, fixed a bug in ParquetFreighter class (THX! Reported from my co-worker, Srikanth-san)
 
 ### Install
 
