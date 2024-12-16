@@ -11,7 +11,7 @@ logging.basicConfig(
 
 
 class AgeFreighterTester:
-    def __init__(self):
+    def __init__(self, large_data: bool = False):
         """
         Initialize the AgeTester
         """
@@ -21,108 +21,156 @@ class AgeFreighterTester:
 
         self.name = "AgeFreighterTester"
         self.author = "Rio Fujita"
-        self.test_flags = [[False, False], [True, False], [False, True]]
         try:
             self.connection_string = os.environ["PG_CONNECTION_STRING"]
+            self.dsn = (
+                self.connection_string
+                + " options='-c search_path=ag_catalog,\"$user\",public'"
+            )
         except KeyError:
             print("Please set the environment variable PG_CONNECTION_STRING")
             raise KeyError
-
         self.data_dir = "../data/"
-        self.target_classes = [
-            {"name": "AzureStorageFreighter", "type": "actorfilms", "do": True},
-            {"name": "AvroFreighter", "type": "actorfilms", "do": True},
-            {"name": "CosmosGremlinFreighter", "type": "actorfilms", "do": True},
-            {"name": "CSVFreighter", "type": "actorfilms", "do": True},
-            {"name": "MultiCSVFreighter", "type": "citiescountries", "do": True},
-            {"name": "Neo4jFreighter", "type": "actorfilms", "do": True},
-            {"name": "NetworkXFreighter", "type": "actorfilms", "do": True},
-            {"name": "ParquetFreighter", "type": "actorfilms", "do": True},
-            {"name": "PGFreighter", "type": "actorfilms", "do": True},
-        ]
-        self.params = {
-            "graph_name": "AgeTester",
-            "start_v_label": "Actor",
-            "start_id": "ActorID",
-            "start_props": ["Actor"],
-            "edge_type": "ACTED_IN",
-            "end_v_label": "Film",
-            "end_id": "FilmID",
-            "end_props": ["Film", "Year", "Votes", "Rating"],
-            "csv": f"{self.data_dir}actorfilms.csv",
-            "id_map": {
-                "Actor": "ActorID",
-                "Film": "FilmID",
-            },
-            "vertex_csvs": [
-                f"{self.data_dir}countries.csv",
-                f"{self.data_dir}cities.csv",
-            ],
-            "vertex_labels": ["Country", "City"],
-            "edge_csvs": [f"{self.data_dir}edges.csv"],
-            "edge_types": ["has_city"],
-            "chunk_size": 96,
-            "drop_graph": True,
-        }
-        self.expected_results = {
-            "actorfilms": {
-                "vertices": {"Actor": 9623, "Film": 44456},
-                "edges": {"ACTED_IN": 191873},
-            },
-            "citiescountries": {
-                "vertices": {"Country": 53, "City": 72485},
-                "edges": {"has_city": 72485},
-            },
-        }
 
-        do_list = {item["name"]: item["do"] for item in self.target_classes}
-        if do_list["AzureStorageFreighter"]:
-            pass
-        if do_list["AvroFreighter"]:
-            self.params["source_avro"] = f"{self.data_dir}actorfilms.avro"
-        if do_list["CosmosGremlinFreighter"]:
-            try:
-                self.params["cosmos_gremlin_endpoint"] = os.environ[
-                    "COSMOS_GREMLIN_ENDPOINT"
-                ]
-                self.params["cosmos_gremlin_key"] = os.environ["COSMOS_GREMLIN_KEY"]
-            except KeyError:
-                print(
-                    "Please set the environment variables COSMOS_GREMLIN_ENDPOINT / COSMOS_GREMLIN_KEY"
-                )
-                raise KeyError
-            self.params["cosmos_username"] = "/dbs/db1/colls/actorfilms"
-            self.params["cosmos_pkey"] = "pk"
-        if do_list["Neo4jFreighter"]:
-            try:
-                self.params["neo4j_uri"] = os.environ["NEO4J_URI"]
-                self.params["neo4j_user"] = os.environ["NEO4J_USER"]
-                self.params["neo4j_password"] = os.environ["NEO4J_PASSWORD"]
-                self.params["neo4j_database"] = ""
-            except KeyError:
-                print(
-                    "Please set the environment variables NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD"
-                )
-                raise KeyError
-        if do_list["NetworkXFreighter"]:
-            self.params["networkx_graph"] = pickle.load(
-                open(f"{self.data_dir}actorfilms.pickle", "rb")
-            )
-        if do_list["ParquetFreighter"]:
-            self.params["source_parquet"] = f"{self.data_dir}actorfilms.parquet"
-        if do_list["PGFreighter"]:
-            try:
-                self.params["source_pg_con_string"] = os.environ[
-                    "SRC_PG_CONNECTION_STRING"
-                ]
-            except KeyError:
-                print("Please set the environment variable SRC_PG_CONNECTION_STRING")
-                raise KeyError
-            self.params["source_tables"] = {
-                "start": "Actor",
-                "end": "Film",
-                "edges": "ACTED_IN",
+        if not large_data:
+            self.test_flags = [[False, False], [True, False], [False, True]]
+        else:
+            self.test_flags = [[False, False]]
+
+        self.target_classes = [
+            {"name": "AzureStorageFreighter", "type": "transactions", "do": large_data},
+            {"name": "AvroFreighter", "type": "actorfilms", "do": not large_data},
+            {
+                "name": "CosmosGremlinFreighter",
+                "type": "actorfilms",
+                "do": not large_data,
+            },
+            {"name": "CSVFreighter", "type": "actorfilms", "do": not large_data},
+            {
+                "name": "MultiCSVFreighter",
+                "type": "citiescountries",
+                "do": not large_data,
+            },
+            {"name": "Neo4jFreighter", "type": "actorfilms", "do": not large_data},
+            {"name": "NetworkXFreighter", "type": "actorfilms", "do": not large_data},
+            {"name": "ParquetFreighter", "type": "actorfilms", "do": not large_data},
+            {"name": "PGFreighter", "type": "actorfilms", "do": not large_data},
+        ]
+
+        if not large_data:
+            self.params = {
+                "graph_name": "AgeTester",
+                "start_v_label": "Actor",
+                "start_id": "ActorID",
+                "start_props": ["Actor"],
+                "edge_type": "ACTED_IN",
+                "end_v_label": "Film",
+                "end_id": "FilmID",
+                "end_props": ["Film", "Year", "Votes", "Rating"],
+                "csv": f"{self.data_dir}actorfilms.csv",
+                "id_map": {
+                    "Actor": "ActorID",
+                    "Film": "FilmID",
+                },
+                "vertex_csvs": [
+                    f"{self.data_dir}countries.csv",
+                    f"{self.data_dir}cities.csv",
+                ],
+                "vertex_labels": ["Country", "City"],
+                "edge_csvs": [f"{self.data_dir}edges.csv"],
+                "edge_types": ["has_city"],
+                "chunk_size": 96,
+                "drop_graph": True,
             }
+        else:
+            self.params = {
+                "graph_name": "AgeTester",
+                "start_v_label": "Customer",
+                "start_id": "start_id",
+                "start_props": ["name", "address", "email", "phone"],
+                "edge_type": "TRANSACTION",
+                "end_v_label": "Product",
+                "end_id": "end_id",
+                "end_props": ["description", "SKU", "price", "Color", "Size", "Weight"],
+                "csv": f"{self.data_dir}transactions.csv",
+                "id_map": {
+                    "Customer": "start_id",
+                    "Product": "end_id",
+                },
+                "chunk_size": 96,
+                "drop_graph": True,
+            }
+        if not large_data:
+            self.expected_results = {
+                "actorfilms": {
+                    "vertices": {"Actor": 9623, "Film": 44456},
+                    "edges": {"ACTED_IN": 191873},
+                },
+                "citiescountries": {
+                    "vertices": {"Country": 53, "City": 72485},
+                    "edges": {"has_city": 72485},
+                },
+            }
+        else:
+            self.expected_results = {
+                "transactions": {
+                    "vertices": {"Customer": 10000000, "Product": 9999},
+                    "edges": {"TRANSACTION": 25000604},
+                },
+            }
+
+        for item in self.target_classes:
+            if item["do"]:
+                # for Python 3.9
+                if item["name"] == "AvroFreighter":
+                    self.params["source_avro"] = f"{self.data_dir}actorfilms.avro"
+                if item["name"] == "CosmosGremlinFreighter":
+                    try:
+                        self.params["cosmos_gremlin_endpoint"] = os.environ[
+                            "COSMOS_GREMLIN_ENDPOINT"
+                        ]
+                        self.params["cosmos_gremlin_key"] = os.environ[
+                            "COSMOS_GREMLIN_KEY"
+                        ]
+                    except KeyError:
+                        print(
+                            "Please set the environment variables COSMOS_GREMLIN_ENDPOINT / COSMOS_GREMLIN_KEY"
+                        )
+                        raise KeyError
+                    self.params["cosmos_username"] = "/dbs/db1/colls/actorfilms"
+                    self.params["cosmos_pkey"] = "pk"
+                if item["name"] == "Neo4jFreighter":
+                    try:
+                        self.params["neo4j_uri"] = os.environ["NEO4J_URI"]
+                        self.params["neo4j_user"] = os.environ["NEO4J_USER"]
+                        self.params["neo4j_password"] = os.environ["NEO4J_PASSWORD"]
+                        self.params["neo4j_database"] = ""
+                    except KeyError:
+                        print(
+                            "Please set the environment variables NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD"
+                        )
+                        raise KeyError
+                if item["name"] == "NetworkXFreighter":
+                    self.params["networkx_graph"] = pickle.load(
+                        open(f"{self.data_dir}actorfilms.pickle", "rb")
+                    )
+                if item["name"] == "ParquetFreighter":
+                    self.params["source_parquet"] = f"{self.data_dir}actorfilms.parquet"
+                if item["name"] == "PGFreighter":
+                    try:
+                        self.params["source_pg_con_string"] = os.environ[
+                            "SRC_PG_CONNECTION_STRING"
+                        ]
+                    except KeyError:
+                        print(
+                            "Please set the environment variable SRC_PG_CONNECTION_STRING"
+                        )
+                        raise KeyError
+                    self.params["source_tables"] = {
+                        "start": "Actor",
+                        "end": "Film",
+                        "edges": "ACTED_IN",
+                    }
 
     async def test_all_classes(self):
         """
@@ -138,11 +186,8 @@ class AgeFreighterTester:
         for target_class in self.target_classes:
             if target_class["do"]:
                 all_results[target_class["name"]] = []
-                test_flags = self.test_flags
                 # AzureStorageFreighter ignores direct_loading and use_copy
-                if target_class["name"] == "AzureStorageFreighter":
-                    test_flags = [[False, False]]
-                for direct_loading, use_copy in test_flags:
+                for direct_loading, use_copy in self.test_flags:
                     attempt_cnt = len(all_results[target_class["name"]])
                     all_results[target_class["name"]].append({})
                     log.info(f"Instantiating {target_class['name']}.")
@@ -214,7 +259,7 @@ class AgeFreighterTester:
         graph_name = self.params["graph_name"]
         if graph_name.lower() != self.params["graph_name"]:
             graph_name = f'"{self.params["graph_name"]}"'
-        with pg.connect(self.connection_string) as conn:
+        with pg.connect(self.dsn) as conn:
             with conn.cursor(row_factory=namedtuple_row) as cur:
                 for idx, (v_label, v_count) in enumerate(
                     zip(vertex_labels, vertex_counts)
@@ -244,13 +289,13 @@ class AgeFreighterTester:
                     FOR ns_value IN
                         SELECT name FROM ag_graph
                     LOOP
-                        EXECUTE  format('SELECT drop_graph(%L, true);', ns_value);
+                        EXECUTE format('SELECT drop_graph(%L, true);', ns_value);
                     END LOOP;
                 END $$;""")
 
 
 async def main():
-    tester = AgeFreighterTester()
+    tester = AgeFreighterTester(large_data=True)
     await tester.test_all_classes()
     await tester.cleanUp()
 
