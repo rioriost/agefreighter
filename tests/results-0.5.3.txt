@@ -1,0 +1,65 @@
+- All tests are executed with an instance of Azure Database for PostgreSQL Flexible Server, Standard_D32ds_v4 (32 vcpus, 128 GiB memory), with 512 GiB / 7500 iops storage.
+- CosmosGremlinFreighter is tested with Azure Cosmos DB Gremlin API, with 40000 RU/s.
+- Neo4jFreighter is tested with Docker on Mac Studio.
+- PGFreighter is tested with PostgreSQL Flexible Server, Standard_D16ds_v4 (16 vcpus, 64 GiB memory), with 256 GiB / 2300 iops storage.
+- Client machine: Mac Studio (2022) with Apple M1 Ultra, 10-core CPU, 64 GiB memory connected to the nearest Azure region via 10 Gbps network.
+
+Small dataset: actorfilms, citiescountries(MultiCSVFreighter)
+self.expected_results = {
+    "actorfilms": {
+        "vertices": {"Actor": 9623, "Film": 44456},
+        "edges": {"ACTED_IN": 191873},
+    },
+    "citiescountries": {
+        "vertices": {"Country": 53, "City": 72485},
+        "edges": {"has_city": 72485},
+    },
+}
+
+AgeFreighter version: 0.5.3
+Summary of all tests are as followings:
+Test Result for AvroFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 17.85 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 4.84 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.84 seconds
+Test Result for CosmosGremlinFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 46.03 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 24.57 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 22.98 seconds
+Test Result for CSVFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 57.63 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 4.23 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.39 seconds
+Test Result for MultiCSVFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 11.91 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 3.64 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.87 seconds
+Test Result for Neo4jFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 37.04 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 19.00 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 18.24 seconds
+Test Result for NetworkXFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 18.89 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 4.35 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.39 seconds
+Test Result for ParquetFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 46.93 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 4.17 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 3.33 seconds
+Test Result for PGFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 45.37 seconds
+                              case(1) SUCCEEDED direct_loading(True) and use_copy(False), in 5.79 seconds
+                              case(2) SUCCEEDED direct_loading(False) and use_copy(True), in 4.93 seconds
+
+Large dataset: trasactions
+self.expected_results = {
+    "transactions": {
+        "vertices": {"Customer": 10000000, "Product": 9999},
+        "edges": {"TRANSACTION": 25000604},
+    },
+}
+
+AgeFreighter version: 0.5.3
+Summary of all tests are as followings:
+Test Result for AzureStorageFreighter:
+                              case(0) SUCCEEDED direct_loading(False) and use_copy(False), in 708.46 seconds
