@@ -1,5 +1,6 @@
 from agefreighter import AgeFreighter
-
+from psycopg_pool import AsyncConnectionPool
+import sys
 import logging
 
 log = logging.getLogger(__name__)
@@ -8,6 +9,13 @@ log = logging.getLogger(__name__)
 class AzureStorageFreighter(AgeFreighter):
     def __init__(self):
         super().__init__()
+        self.subscription_id: str = ""
+        self.location: str = ""
+        self.storage_account_name: str = ""
+        self.blob_container_name: str = ""
+        self.access_key: str = ""
+        self.pg_fqdn: str = ""
+        self.pg_server_name: str = ""
 
     async def __aenter__(self):
         await super().__aenter__()
@@ -53,6 +61,12 @@ class AzureStorageFreighter(AgeFreighter):
             subscription_id (str): Azure Subscription ID
         """
         log.debug("Loading data from Azure Storage")
+
+        CHUNK_MULTIPLIER = 10000
+        TBL_FROM_STORAGE = "table_from_azure_storage"
+        TBL_ID_MAP_S = "table_id_map_s"
+        TBL_ID_MAP_E = "table_id_map_e"
+
         # optional
         if "subscription_id" in kwargs.keys():
             if self.isValidAzureSubscriptionID(kwargs["subscription_id"]):
@@ -61,8 +75,9 @@ class AzureStorageFreighter(AgeFreighter):
                 log.error("Invalid Azure Subscription ID.")
                 return
 
-        if not hasattr(self, "subscription_id"):
-            if not await self.findAzureSubscriptionID():
+        if self.subscription_id == "":
+            print("Finding Subscription ID...")
+            if not self.findAzureSubscriptionID():
                 log.error("Azure Subscription ID is not set.")
                 return
 
@@ -70,31 +85,81 @@ class AzureStorageFreighter(AgeFreighter):
             log.error("Parameters are not set.")
             return
 
-        # add azure_storage to azure.extensions and shared_preload_libraries
-        await self.enableExtensions(extension_names=["azure_storage"])
+        # Enable Azure Storage extension
+        print("Enabling extension...")
+        ae = AzureExtensions(
+            subscription_id=self.subscription_id,
+            resource_group_name=self.resource_group_name,
+            pg_server_name=self.pg_server_name,
+            extensions=["azure_storage"],
+            pool=self.pool,
+        )
+        ae.enable()
+        await ae.create()
 
-        # CREATE azure_storage extension
-        await self.createAzureExtensions(extension_names=["azure_storage"])
+        # Create a Storage Account and a Blob Container, and attach it to the PostgreSQL Flex
+        print("Creating storage account...")
+        sa = StorageAccount(
+            subscription_id=self.subscription_id,
+            resource_group_name=self.resource_group_name,
+            location=self.location,
+            pool=self.pool,
+        )
+        sa.create()
+        self.storage_account_name = sa.storage_account_name
+        self.blob_container_name = sa.blob_container_name
+        self.access_key = sa.access_key
+        await sa.attach()
 
-        # create a storage account and a container
-        await self.createStorageAccount()
+        # Upload a CSV file to the blob container
+        print("Uploading file...")
+        bl = BlobUploader(
+            storage_account_name=self.storage_account_name,
+            blob_container_name=self.blob_container_name,
+            access_key=self.access_key,
+            file_path=csv,
+            lines_per_chunk=chunk_size * CHUNK_MULTIPLIER,
+        )
+        await bl.upload()
 
-        # upload a CSV file to the blob container
-        await self.uploadToBlob(csv)
+        # Create temporary tables
+        # They're named 'temp', but not the persistent tables.
+        print("Creating temporary tables...")
+        tt = TempTables(
+            tbl_from_storage=TBL_FROM_STORAGE,
+            columns_in_csv=bl.columns_in_csv,
+            tbl_id_map_s=TBL_ID_MAP_S,
+            tbl_id_map_e=TBL_ID_MAP_E,
+            pool=self.pool,
+        )
+        await tt.create()
 
-        # add the storage account to the PostgreSQL Flex
-        await self.addStorageAccount()
+        # Load the data from the Azure Storage to the temporary table
+        print("Loading files to temporary table...")
+        sl = StorageLoader(
+            file_list=bl.file_list,
+            total_lines=bl.total_lines,
+            storage_account_name=self.storage_account_name,
+            blob_container_name=self.blob_container_name,
+            table_name=TBL_FROM_STORAGE,
+            columns_in_csv=bl.columns_in_csv,
+            columns_in_tbl_from_storage=tt.columns_in_tbl_from_storage,
+            pool=self.pool,
+        )
+        await sl.load()
 
-        columns_in_csv = self.getColumnsInCSV(csv)
-
+        # start to create a graph
+        print("Creating a graph...")
         await self.setUpGraph(graph_name=graph_name, drop_graph=drop_graph)
         await self.createLabelType(label_type="vertex", value=start_v_label)
         await self.createLabelType(label_type="vertex", value=end_v_label)
         await self.createLabelType(label_type="edge", value=edge_type)
 
-        await self.executeUDF(
-            csv=csv,
-            columns_in_csv=columns_in_csv,
+        gl = GraphLoader(
+            tbl_from_storage=TBL_FROM_STORAGE,
+            total_lines=bl.total_lines,
+            tbl_id_map_s=TBL_ID_MAP_S,
+            tbl_id_map_e=TBL_ID_MAP_E,
             start_v_label=start_v_label,
             start_id=start_id,
             start_props=start_props,
@@ -103,12 +168,16 @@ class AzureStorageFreighter(AgeFreighter):
             end_id=end_id,
             end_props=end_props,
             graph_name=graph_name,
-            chunk_size=chunk_size,
+            records_per_thread=chunk_size * CHUNK_MULTIPLIER,
+            pool=self.pool,
         )
+        await gl.load()
 
+        await tt.delete()  # it should be implemented in __del__
         await self.close()
+        print("Creating a graph: Done!")
 
-    async def findAzureSubscriptionID(self) -> bool:
+    def findAzureSubscriptionID(self) -> bool:
         """
         Get the Azure Subscription ID from the Azure CLI.
 
@@ -166,56 +235,45 @@ class AzureStorageFreighter(AgeFreighter):
         log.debug("Setting parameters")
         from azure.identity import DefaultAzureCredential
         from azure.mgmt.postgresqlflexibleservers import PostgreSQLManagementClient
+        import re
 
         client = PostgreSQLManagementClient(
             credential=DefaultAzureCredential(), subscription_id=self.subscription_id
         )
-        self.fqdn = self.getServerFQDN()
-        self.server_name = self.fqdn.split(".")[0]
+        pattern = re.compile(r"host=(?P<host>[^ ]+)")
+        self.pg_fqdn = pattern.match(self.dsn).group("host")
+        self.pg_server_name = self.pg_fqdn.split(".")[0]
         servers = client.servers.list()
+        pattern = re.compile(
+            r"/subscriptions/[^/]+/resourceGroups/(?P<resourceGroup>[^/]+)/providers"
+        )
         for server in servers:
-            if server.fully_qualified_domain_name == self.fqdn:
-                if resource_group_name := self.getResourceGroupName(server.id):
+            if server.fully_qualified_domain_name == self.pg_fqdn:
+                if resource_group_name := pattern.match(server.id).group(
+                    "resourceGroup"
+                ):
                     self.resource_group_name = resource_group_name
                     self.location = server.location
                     return True
         return False
 
-    def getServerFQDN(self) -> str:
-        """
-        Get the PostgreSQL Flex Server Name.
 
-        Returns:
-            str: PostgreSQL Flex Server Name
-        """
-        import re
+class AzureExtensions:
+    def __init__(
+        self,
+        subscription_id: str = "",
+        resource_group_name: str = "",
+        pg_server_name: str = "",
+        pool: AsyncConnectionPool = None,
+        extensions: list = [],
+    ):
+        self.subscription_id = subscription_id
+        self.resource_group_name = resource_group_name
+        self.pg_server_name = pg_server_name
+        self.pool = pool
+        self.extensions = extensions
 
-        if not self.dsn:
-            return None
-        pattern = re.compile(r"host=(?P<host>[^ ]+)")
-        return pattern.match(self.dsn).group("host")
-
-    @staticmethod
-    def getResourceGroupName(id: str = "") -> str:
-        """
-        Get the Resource Group Name from the Azure Resource ID.
-
-        Args:
-            id (str): Azure Resource ID
-
-        Returns:
-            str: Resource Group Name
-        """
-        import re
-
-        if not id:
-            return None
-        pattern = re.compile(
-            r"/subscriptions/[^/]+/resourceGroups/(?P<resourceGroup>[^/]+)/providers"
-        )
-        return pattern.match(id).group("resourceGroup")
-
-    async def enableExtensions(self, extension_names: list = []) -> None:
+    def enable(self) -> None:
         """
         Enable the Azure Storage Extension for PostgreSQL Flex Server.
 
@@ -227,16 +285,17 @@ class AzureStorageFreighter(AgeFreighter):
         from azure.mgmt.postgresqlflexibleservers import PostgreSQLManagementClient
 
         client = PostgreSQLManagementClient(
-            credential=DefaultAzureCredential(), subscription_id=self.subscription_id
+            credential=DefaultAzureCredential(),
+            subscription_id=self.subscription_id,
         )
         configuration_names = ["azure.extensions", "shared_preload_libraries"]
         enabled = True
-        for extension_name in extension_names:
+        for extension_name in self.extensions:
             for configuration_name in configuration_names:
                 try:
                     configuration = client.configurations.get(
                         resource_group_name=self.resource_group_name,
-                        server_name=self.server_name,
+                        server_name=self.pg_server_name,
                         configuration_name=configuration_name,
                     )
                     if extension_name not in configuration.value:
@@ -245,22 +304,25 @@ class AzureStorageFreighter(AgeFreighter):
                         new_value = f"{configuration.value},{extension_name}"
                         client.configurations.begin_update(
                             resource_group_name=self.resource_group_name,
-                            server_name=self.server_name,
+                            server_name=self.pg_server_name,
                             configuration_name=configuration_name,
-                            parameters={"value": new_value, "source": "user-override"},
+                            parameters={
+                                "value": new_value,
+                                "source": "user-override",
+                            },
                         ).result()
 
                 except Exception as e:
                     print(f"An error occurred: {e}")
 
         if not enabled:
-            log.info(f"Restarting server '{self.server_name}'...")
+            log.info(f"Restarting server '{self.pg_server_name}'...")
             client.servers.begin_restart(
                 resource_group_name=self.resource_group_name,
-                server_name=self.server_name,
+                server_name=self.pg_server_name,
             ).result()
 
-    async def createAzureExtensions(self, extension_names: list = []) -> None:
+    async def create(self) -> None:
         """
         Create the Azure Extensions for PostgreSQL Flex Server.
 
@@ -268,13 +330,41 @@ class AzureStorageFreighter(AgeFreighter):
             extension_names (list): Extension Names
         """
         async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                for extension_name in extension_names:
-                    await cur.execute(
-                        f"CREATE EXTENSION IF NOT EXISTS {extension_name}"
-                    )
+            for extension_name in self.extensions:
+                await conn.execute(f"CREATE EXTENSION IF NOT EXISTS {extension_name}")
 
-    async def createStorageAccount(self) -> None:
+
+class StorageAccount:
+    def __init__(
+        self,
+        subscription_id: str = "",
+        resource_group_name: str = "",
+        location: str = "",
+        pool: AsyncConnectionPool = None,
+    ):
+        self.subscription_id = subscription_id
+        self.resource_group_name = resource_group_name
+        self.location = location
+        self.storage_account_name = ""
+        self.blob_container_name = ""
+        self.access_key = ""
+        self.pool = pool
+
+    def __del__(self):
+        from azure.identity import DefaultAzureCredential
+        from azure.mgmt.storage import StorageManagementClient
+
+        client = StorageManagementClient(
+            credential=DefaultAzureCredential(),
+            subscription_id=self.subscription_id,
+        )
+
+        client.storage_accounts.delete(
+            self.resource_group_name,
+            self.storage_account_name,
+        )
+
+    def create(self) -> None:
         """
         Create a Storage Account and a Blob Container.
         """
@@ -289,7 +379,8 @@ class AzureStorageFreighter(AgeFreighter):
         self.blob_container_name = f"bc{prefix}{uid}"
 
         client = StorageManagementClient(
-            credential=DefaultAzureCredential(), subscription_id=self.subscription_id
+            credential=DefaultAzureCredential(),
+            subscription_id=self.subscription_id,
         )
         log.info(f"Creating storage account '{self.storage_account_name}'...")
         client.storage_accounts.begin_create(
@@ -313,33 +404,135 @@ class AzureStorageFreighter(AgeFreighter):
         )
         self.access_key = [v.value for v in keys.keys][0]
 
-    async def uploadToBlob(self, csv: str = "") -> None:
+    async def attach(self) -> None:
+        async with self.pool.connection() as conn:
+            await conn.execute(
+                f"SELECT azure_storage.account_add('{self.storage_account_name}', '{self.access_key}');"
+            )
+
+
+class BlobUploader:
+    def __init__(
+        self,
+        storage_account_name: str = "",
+        access_key: str = "",
+        blob_container_name: str = "",
+        file_path: str = "",
+        lines_per_chunk: int = 10000,
+    ):
+        self.storage_account_name = storage_account_name
+        self.access_key = access_key
+        self.blob_container_name = blob_container_name
+        self.file_path = file_path
+        self.lines_per_chunk = lines_per_chunk
+
+    async def upload(self) -> None:
         """
         Upload a CSV file to the Blob Container.
 
         Args:
-            csv (str): CSV file path
+            file_list (list): List of file paths to upload
         """
-        from azure.storage.blob import BlobServiceClient
+        self.splitFile()
+        log.info("Uploading files...")
+        import asyncio
+        from azure.storage.blob.aio import BlobServiceClient
+
+        try:
+            async with BlobServiceClient(
+                account_url=f"https://{self.storage_account_name}.blob.core.windows.net",
+                credential=self.access_key,
+            ) as blob_service_client:
+                container_client = blob_service_client.get_container_client(
+                    self.blob_container_name
+                )
+                tasks = [
+                    self.uploadBlob(file_path, container_client)
+                    for file_path in self.file_list
+                ]
+                await asyncio.gather(*tasks)
+                log.info("Successfully uploaded all files to blob.")
+
+        except Exception as e:
+            log.error(f"An error occurred while uploading files to blob: {e}")
+
+    async def uploadBlob(self, file_path, container_client):
         import os
 
-        blob_service_client = BlobServiceClient(
-            account_url=f"https://{self.storage_account_name}.blob.core.windows.net",
-            credential=self.access_key,
-        )
-        blob_client = blob_service_client.get_blob_client(
-            container=self.blob_container_name, blob=os.path.basename(csv)
-        )
-        log.info(f"Uploading '{csv}' to '{self.blob_container_name}'...")
-        with open(csv, "rb") as data:
-            blob_client.upload_blob(data)
+        blob_name = os.path.basename(file_path)
+        async with container_client.get_blob_client(blob_name) as blob_client:
+            log.info(f"Uploading {file_path} to blob {blob_name}...")
+            with open(file_path, "rb") as data:
+                await blob_client.upload_blob(data, overwrite=True)
 
-    async def addStorageAccount(self) -> None:
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(
-                    f"SELECT azure_storage.account_add('{self.storage_account_name}', '{self.access_key}');"
-                )
+    def splitFile(self) -> None:
+        log.info("Splitting file into chunks...")
+        import os
+        import mmap
+
+        # column names header
+        columns_in_csv, newline_char = self.getColumnsInCSV(csv_path=self.file_path)
+        self.columns_in_csv = columns_in_csv
+        header_line = ",".join([f'"{col}"' for col in columns_in_csv]) + newline_char
+
+        original_file_name = os.path.basename(self.file_path)
+        original_file_name_without_ext, ext = os.path.splitext(original_file_name)
+        temp_file_name = f"{original_file_name_without_ext}_part_{{count:05d}}{ext}"
+
+        total_lines = 0
+        with open(self.file_path, "r+") as f:
+            mmapped_file = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+            line_iterator = iter(mmapped_file.readline, b"")
+            temp_files = []
+            line_count = 0
+            file_count = 0
+
+            temp_file = self.createTempFile(
+                temp_file_name=temp_file_name,
+                count=file_count,
+                header_line=header_line,
+                add_header=False,
+            )
+            temp_files.append(temp_file.name)
+
+            for line in line_iterator:
+                temp_file.write(line)
+                line_count += 1
+                total_lines += 1
+                if line_count >= self.lines_per_chunk:
+                    temp_file.close()
+                    file_count += 1
+                    line_count = 0
+                    temp_file = self.createTempFile(
+                        temp_file_name=temp_file_name,
+                        count=file_count,
+                        header_line=header_line,
+                        add_header=True,
+                    )
+                    temp_files.append(temp_file.name)
+            temp_file.close()
+            mmapped_file.close()
+
+            self.total_lines = total_lines - 1
+            self.file_list = temp_files
+
+    def createTempFile(
+        self,
+        temp_file_name: str = "",
+        count: int = 0,
+        header_line: str = "",
+        add_header: bool = True,
+    ):
+        import tempfile
+        import os
+
+        temp_file_path = os.path.join(
+            tempfile.gettempdir(), temp_file_name.format(count=count)
+        )
+        temp_file = open(temp_file_path, "w+b")
+        if add_header:
+            temp_file.write(header_line.encode("utf-8"))
+        return temp_file
 
     def getColumnsInCSV(self, csv_path: str = "") -> list:
         """
@@ -353,14 +546,168 @@ class AzureStorageFreighter(AgeFreighter):
         """
         import csv
 
-        with open(csv_path, "r") as f:
-            reader = csv.reader(f)
-            return next(reader)
+        newline_char = None
+        columns = []
 
-    async def executeUDF(
+        with open(csv_path, "r", newline="") as f:
+            # Detect the newline character
+            sample = f.read(8192)
+            if "\r\n" in sample:
+                newline_char = "\r\n"
+            elif "\n" in sample:
+                newline_char = "\n"
+            elif "\r" in sample:
+                newline_char = "\r"
+
+            # Reset the file pointer to the beginning
+            f.seek(0)
+
+            reader = csv.reader(f)
+            columns = next(reader)
+
+        return columns, newline_char
+
+
+class TempTables:
+    def __init__(
         self,
-        csv: str = "",
+        tbl_from_storage: str = "",
         columns_in_csv: list = [],
+        tbl_id_map_s: str = "",
+        tbl_id_map_e: str = "",
+        pool: AsyncConnectionPool = None,
+    ):
+        self.tbl_from_storage = tbl_from_storage
+        self.columns_in_csv = columns_in_csv
+        self.columns_in_tbl_from_storage = ",".join(
+            [f'"{column}" TEXT' for column in columns_in_csv]
+        )
+        self.tbl_id_map_s = tbl_id_map_s
+        self.tbl_id_map_e = tbl_id_map_e
+        self.pool = pool
+
+    async def create(self) -> None:
+        log.info("Creating temporary tables...")
+        async with self.pool.connection() as conn:
+            # create a temporary table to store the data from the Azure Storage
+            query = f"DROP TABLE IF EXISTS public.{self.tbl_from_storage};"
+            await conn.execute(query)
+            query = f"CREATE TABLE public.{self.tbl_from_storage} ({self.columns_in_tbl_from_storage});"
+            await conn.execute(query)
+
+            # create a temporary table to store the mapping between the entryID and the id
+            query = f"DROP TABLE IF EXISTS public.{self.tbl_id_map_s};"
+            await conn.execute(query)
+            query = (
+                f"CREATE TABLE public.{self.tbl_id_map_s} (entryID TEXT, id BIGINT);"
+            )
+            await conn.execute(query)
+            query = f"DROP TABLE IF EXISTS public.{self.tbl_id_map_e};"
+            await conn.execute(query)
+            query = (
+                f"CREATE TABLE public.{self.tbl_id_map_e} (entryID TEXT, id BIGINT);"
+            )
+            await conn.execute(query)
+
+    async def delete(self) -> None:
+        async with self.pool.connection() as conn:
+            query = f"DROP TABLE public.{self.tbl_from_storage};"
+            await conn.execute(query)
+            query = f"DROP TABLE public.{self.tbl_id_map_s};"
+            await conn.execute(query)
+            query = f"DROP TABLE public.{self.tbl_id_map_e};"
+            await conn.execute(query)
+
+
+class StorageLoader:
+    def __init__(
+        self,
+        file_list: list = [],
+        total_lines: int = 0,
+        storage_account_name: str = "",
+        blob_container_name: str = "",
+        table_name: str = "",
+        columns_in_csv: list = [],
+        columns_in_tbl_from_storage: list = [],
+        pool: AsyncConnectionPool = None,
+    ):
+        import os
+
+        self.file_list = list(
+            map(lambda file_path: os.path.basename(file_path), file_list)
+        )
+        self.total_lines = total_lines
+        self.storage_account_name = storage_account_name
+        self.blob_container_name = blob_container_name
+        self.table_name = table_name
+        self.columns_in_csv = columns_in_csv
+        self.columns_in_tbl_from_storage = columns_in_tbl_from_storage
+        self.pool = pool
+
+    async def load(self):
+        import asyncio
+        from psycopg.rows import namedtuple_row
+
+        log.info("Loading files into temporary table...")
+
+        tasks = [
+            self.executeQuery(
+                self.pool,
+                f"""INSERT INTO public.{self.table_name}
+                    SELECT *
+                    FROM azure_storage.blob_get(
+                        '{self.storage_account_name}',
+                        '{self.blob_container_name}',
+                        '{file}',
+                        options := azure_storage.options_csv_get(header := 'true'))
+                    AS res ({self.columns_in_tbl_from_storage});
+                """,
+            )
+            for file in self.file_list
+        ]
+        await asyncio.gather(*tasks)
+
+        async with self.pool.connection() as conn:
+            async with conn.cursor(row_factory=namedtuple_row) as cur:
+                await cur.execute(f"SELECT COUNT(*) FROM {self.table_name}")
+                result = await cur.fetchone()
+                total_rows_in_tbl = result.count
+                if total_rows_in_tbl == self.total_lines:
+                    log.info("Successfully loaded all files to temporary table.")
+                else:
+                    log.error(
+                        f"Total rows in the table '{self.table_name}' is not equal to the total lines in the file."
+                    )
+                    raise ValueError
+
+        log.info("Creating indexes...")
+        tasks = [
+            self.executeQuery(
+                self.pool,
+                f"CREATE INDEX ON public.{self.table_name} USING BTREE ({col});",
+            )
+            for col in self.columns_in_csv
+        ]
+        await asyncio.gather(*tasks)
+
+    async def executeQuery(
+        self, pool: AsyncConnectionPool = None, query: str = ""
+    ) -> None:
+        try:
+            async with pool.connection() as conn:
+                await conn.set_autocommit(True)
+                await conn.execute(query)
+        except Exception as e:
+            log.debug(f"Error: {e}, in {sys._getframe().f_code.co_name}.")
+
+
+class GraphLoader:
+    def __init__(
+        self,
+        tbl_from_storage: str = "",
+        total_lines: int = 0,
+        tbl_id_map_s: str = "",
+        tbl_id_map_e: str = "",
         start_v_label: str = "",
         start_id: str = "",
         start_props: list = [],
@@ -369,148 +716,185 @@ class AzureStorageFreighter(AgeFreighter):
         end_id: str = "",
         end_props: list = [],
         graph_name: str = "",
-        chunk_size: int = 0,
-    ) -> None:
+        records_per_thread: int = 0,
+        pool: AsyncConnectionPool = None,
+    ):
+        self.tbl_from_storage = tbl_from_storage
+        self.total_lines = total_lines
+        self.tbl_id_map_s = tbl_id_map_s
+        self.tbl_id_map_e = tbl_id_map_e
+        self.start_v_label = start_v_label
+        self.start_id = start_id
+        self.start_props = start_props
+        self.edge_type = edge_type
+        self.end_v_label = end_v_label
+        self.end_id = end_id
+        self.end_props = end_props
+        self.graph_name = graph_name
+        self.records_per_thread = records_per_thread
+        self.pool = pool
+
+    async def load(self) -> None:
         """
-        Execute a UDF to load a graph data from the Azure Storage.
-
-        Args:
-            csv (str): CSV file path
-            columns_in_csv (list): Columns in the CSV file
-            start_v_label (str): Start Vertex Label
-            start_id (str): Start Vertex ID
-            start_props (list): Start Vertex Properties
-            edge_type (str): Edge Type
-            end_v_label (str): End Vertex Label
-            end_id (str): End Vertex ID
-            end_props (list): End Vertex Properties
-            graph_name (str): Graph Name
-            chunk_size (int): Chunk Size
+        Load a graph data from the Temporary Table
         """
-        log.debug(
-            "Creating a UDF to load a graph data from the Azure Storage and executing it"
+        log.info(f"Creating graph from table, '{self.tbl_from_storage}'...")
+        import asyncio
+
+        first_id_s = await self.getFirstId(
+            graph_name=self.graph_name, label_type=self.start_v_label
         )
-        import os
-        import psycopg as pg
-
-        chunk_multiplier = 10000
-
-        func_name = "load_graph_from_azure_storage"
-        columns_in_temp_table = ",".join(
-            [f"{column} TEXT" for column in columns_in_csv]
+        first_id_e = await self.getFirstId(
+            graph_name=self.graph_name, label_type=self.end_v_label
         )
-        start_props_formatted = ",".join([f'"{prop}":"%s"' for prop in start_props])
-        end_props_formatted = ",".join([f'"{prop}":"%s"' for prop in end_props])
+        start_props_formatted = ",".join(
+            [f'"{prop}":"%s"' for prop in self.start_props]
+        )
+        end_props_formatted = ",".join([f'"{prop}":"%s"' for prop in self.end_props])
 
-        udf_query = f"""CREATE OR REPLACE FUNCTION {func_name}()
-        RETURNS VOID AS $$
-        DECLARE
-            chunk RECORD;
-            chunk_size BIGINT := {chunk_size * chunk_multiplier};
-            num_offset BIGINT := 0;
-            total_rows BIGINT;
+        log.info("Creating start vertices...")
+        tasks = [
+            self.executeQuery(
+                self.pool,
+                f"""
+                INSERT INTO "{self.graph_name}"."{self.start_v_label}" (properties)
+                    SELECT format('{{"id":"%s", {start_props_formatted}}}', {self.start_id}, {','.join([f'"{start_prop}"' for start_prop in self.start_props])})::agtype
+                    FROM (
+                        SELECT DISTINCT {','.join([f'"{item}"' for item in [self.start_id] + self.start_props])}
+                        FROM {self.tbl_from_storage}
+                        OFFSET {offset} LIMIT {self.records_per_thread}
+                    ) AS distinct_s;
+                INSERT INTO {self.tbl_id_map_s} (entryID, id)
+                    SELECT distinct_s.{self.start_id}, {first_id_s} + {offset} + ROW_NUMBER() OVER () - 1
+                    FROM (
+                        SELECT DISTINCT {self.start_id}
+                        FROM {self.tbl_from_storage}
+                        OFFSET {offset} LIMIT {self.records_per_thread}
+                    ) AS distinct_s;""",
+            )
+            for offset in range(0, self.total_lines, self.records_per_thread)
+        ]
+        await asyncio.gather(*tasks)
 
-            ENTRY_ID_BITS INTEGER := 32 + 16;
-            ENTRY_ID_MASK BIGINT := 0x0000FFFFFFFFFFFF;
-            oid BIGINT;
-            first_id_s BIGINT;
-            first_id_e BIGINT;
-        BEGIN
-            SET search_path = ag_catalog, "$user", public;
+        log.info("Creating end vertices...")
+        tasks = [
+            self.executeQuery(
+                self.pool,
+                f"""
+                INSERT INTO "{self.graph_name}"."{self.end_v_label}" (properties)
+                    SELECT format('{{"id":"%s", {end_props_formatted}}}', {self.end_id}, {','.join([f'"{end_prop}"' for end_prop in self.end_props])})::agtype
+                    FROM (
+                        SELECT DISTINCT {','.join([f'"{item}"' for item in [self.end_id] + self.end_props])}
+                        FROM {self.tbl_from_storage}
+                        OFFSET {offset} LIMIT {self.records_per_thread}
+                    ) AS distinct_e;
+                INSERT INTO {self.tbl_id_map_e} (entryID, id)
+                    SELECT distinct_e.{self.end_id}, {first_id_e} + {offset} + ROW_NUMBER() OVER () - 1
+                    FROM (
+                        SELECT DISTINCT {self.end_id}
+                        FROM {self.tbl_from_storage}
+                        OFFSET {offset} LIMIT {self.records_per_thread}
+                    ) AS distinct_e;""",
+            )
+            for offset in range(0, self.total_lines, self.records_per_thread)
+        ]
+        await asyncio.gather(*tasks)
 
-            -- create a temporary table to store the data from the Azure Storage
-            CREATE TEMP TABLE temp_from_azure_storage ({columns_in_temp_table});
+        log.info(f"Creating indexes on {self.tbl_id_map_s} / {self.tbl_id_map_e}...")
+        query = f"CREATE INDEX ON {self.tbl_id_map_s} USING BTREE (entryID);"
+        await self.executeQuery(self.pool, query)
+        query = f"CREATE INDEX ON {self.tbl_id_map_e} USING BTREE (entryID);"
+        await self.executeQuery(self.pool, query)
 
-            -- bulk load from the Azure Storage into the temporary table
-            INSERT INTO temp_from_azure_storage
-            SELECT *
-            FROM azure_storage.blob_get(
-                '{self.storage_account_name}',
-                '{self.blob_container_name}',
-                '{os.path.basename(csv)}',
-                options := azure_storage.options_csv_get(header := 'true'))
-            AS res ({columns_in_temp_table});
-
-            -- create a temporary table to store the mapping between the entryID and the id
-            CREATE TEMP TABLE temp_id_map (entryID TEXT, id BIGINT);
-
-            SELECT COUNT(*) INTO total_rows FROM temp_from_azure_storage;
-
-            -- determine the first id for the start vertex
-            SELECT id INTO oid FROM ag_label WHERE name='{start_v_label}';
-            first_id_s := ((oid << ENTRY_ID_BITS) | (1 & ENTRY_ID_MASK));
-
-            -- determine the first id for the end vertex
-            SELECT id INTO oid FROM ag_label WHERE name='{end_v_label}';
-            first_id_e := ((oid << ENTRY_ID_BITS) | (1 & ENTRY_ID_MASK));
-
-            WHILE num_offset < total_rows LOOP
-                -- bulk insert the start vertices
-                INSERT INTO "{graph_name}"."{start_v_label}" (properties)
-                SELECT format('{{"id":"%s", {start_props_formatted}}}', {start_id}, {','.join(start_props)})::agtype
-                FROM (
-                    SELECT DISTINCT {','.join([start_id] + start_props)}
-                    FROM temp_from_azure_storage
-                    OFFSET num_offset LIMIT chunk_size
-                ) AS distinct_s;
-
-                -- bulk insert the mapping between the entryID and the id
-                INSERT INTO temp_id_map (entryID, id)
-                SELECT distinct_s.{start_id}, first_id_s + ROW_NUMBER() OVER () - 1
-                FROM (
-                    SELECT DISTINCT {start_id}
-                    FROM temp_from_azure_storage
-                    OFFSET num_offset LIMIT chunk_size
-                ) AS distinct_s;
-
-                -- bulk insert the end vertices
-                INSERT INTO "{graph_name}"."{end_v_label}" (properties)
-                SELECT format('{{"id":"%s", {end_props_formatted}}}', {end_id}, {','.join(end_props)})::agtype
-                FROM (
-                    SELECT DISTINCT {','.join([end_id] + end_props)}
-                    FROM temp_from_azure_storage
-                    OFFSET num_offset LIMIT chunk_size
-                ) AS distinct_e;
-
-                -- bulk insert the mapping between the entryID and the id
-                INSERT INTO temp_id_map (entryID, id)
-                SELECT distinct_e.{end_id}, first_id_e + ROW_NUMBER() OVER () - 1
-                FROM (
-                    SELECT DISTINCT {end_id}
-                    FROM temp_from_azure_storage
-                    OFFSET num_offset LIMIT chunk_size
-                ) AS distinct_e;
-
-                -- bulk insert the edge data
-                INSERT INTO "{graph_name}"."{edge_type}" (start_id, end_id)
+        log.info("Creating edges...")
+        tasks = [
+            self.executeQuery(
+                self.pool,
+                f"""
+                INSERT INTO "{self.graph_name}"."{self.edge_type}" (start_id, end_id)
                 SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid
                 FROM (
-                    SELECT DISTINCT {start_id}, {end_id}
-                    FROM temp_from_azure_storage
-                    OFFSET num_offset LIMIT chunk_size
+                    SELECT {self.start_id}, {self.end_id}
+                    FROM {self.tbl_from_storage}
+                    OFFSET {offset} LIMIT {self.records_per_thread}
                 ) AS af
-                JOIN temp_id_map AS s_map ON af.{start_id} = s_map.entryID
-                JOIN temp_id_map AS e_map ON af.{end_id} = e_map.entryID;
+                JOIN {self.tbl_id_map_s} AS s_map ON af.{self.start_id} = s_map.entryID
+                JOIN {self.tbl_id_map_e} AS e_map ON af.{self.end_id} = e_map.entryID;""",
+            )
+            for offset in range(0, self.total_lines, self.records_per_thread)
+        ]
+        await asyncio.gather(*tasks)
 
-                num_offset := num_offset + chunk_size;
-            END LOOP;
+        log.info("Creating indexes for graph...")
+        tasks = [
+            self.executeQuery(self.pool, query)
+            for query in [
+                f'CREATE INDEX ON "{self.graph_name}"."{self.start_v_label}" USING GIN (properties);',
+                f'CREATE INDEX ON "{self.graph_name}"."{self.start_v_label}" USING BTREE (id);',
+                f'CREATE INDEX ON "{self.graph_name}"."{self.end_v_label}" USING GIN (properties);',
+                f'CREATE INDEX ON "{self.graph_name}"."{self.end_v_label}" USING BTREE (id);',
+                f'CREATE INDEX ON "{self.graph_name}"."{self.edge_type}" USING BTREE (start_id);',
+                f'CREATE INDEX ON "{self.graph_name}"."{self.edge_type}" USING BTREE (end_id);',
+            ]
+        ]
+        await asyncio.gather(*tasks)
 
-            CREATE INDEX ON "{graph_name}"."{start_v_label}" USING GIN (properties);
-            CREATE INDEX ON "{graph_name}"."{start_v_label}" USING BTREE (id);
+        await self.executeQuery(self.pool, query)
 
-            CREATE INDEX ON "{graph_name}"."{end_v_label}" USING GIN (properties);
-            CREATE INDEX ON "{graph_name}"."{end_v_label}" USING BTREE (id);
+    async def executeQuery(
+        self, pool: AsyncConnectionPool = None, query: str = ""
+    ) -> None:
+        try:
+            async with pool.connection() as conn:
+                await conn.set_autocommit(True)
+                await conn.execute("SET statement_timeout = '3600s';")
+                await conn.execute(query)
+        except Exception as e:
+            log.debug(f"Error: {e}, in {sys._getframe().f_code.co_name}.")
 
-            CREATE INDEX ON "{graph_name}"."{edge_type}" USING BTREE (start_id);
-            CREATE INDEX ON "{graph_name}"."{edge_type}" USING BTREE (end_id);
-
-        END;
-        $$ LANGUAGE plpgsql;
+    # avoid to affect agefreighter class
+    async def getFirstId(self, graph_name: str = "", label_type: str = "") -> int:
         """
-        log.debug(udf_query)
-        with pg.connect(self.dsn_wo_options) as conn:
-            with conn.cursor() as cur:
-                cur.execute(udf_query)
-                cur.execute(f"SELECT {func_name}();")
-                result = cur.fetchall()
-                log.debug(result)
+        Get the first id for a vertex or edge.
+
+        Args:
+            label_type (str): The type of the label to get the first id for.
+
+        Returns:
+            int: The first id.
+        """
+        import numpy as np
+        from psycopg.rows import namedtuple_row
+
+        graph_name = self.quotedGraphName(graph_name)
+        async with self.pool.connection() as conn:
+            async with conn.cursor(row_factory=namedtuple_row) as cur:
+                relation = f'{graph_name}."{label_type}"'
+                await cur.execute(
+                    f"SELECT id FROM ag_label WHERE relation='{relation}'::regclass;"
+                )
+                row = await cur.fetchone()
+
+                ENTRY_ID_BITS = 32 + 16
+                ENTRY_ID_MASK = np.uint64(0x0000FFFFFFFFFFFF)
+                first_id = ((np.uint64(row.id)) << ENTRY_ID_BITS) | (
+                    (np.uint64(1)) & ENTRY_ID_MASK
+                )
+
+                return first_id
+
+    # avoid to affect agefreighter class
+    @staticmethod
+    def quotedGraphName(graph_name: str = "") -> str:
+        """
+        Quote the graph name.
+
+        Args:
+            graph_name (str): The name of the graph.
+        """
+        log.debug(
+            f"Quoting graph name {graph_name}, in {sys._getframe().f_code.co_name}."
+        )
+        if graph_name.lower() != graph_name:
+            return f'"{graph_name}"'
+        return graph_name
