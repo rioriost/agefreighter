@@ -23,6 +23,17 @@ Please note how to use the new version of the package is tottally different from
 * The above process takes time to prepare for loading data, making it unsuitable for loading small files, but effective for loading large files. For instance, it takes under 3 seconds to load 'actorfilms.csv' after uploading.
 * However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
 
+### 0.5.3 Release -AzureStorageFreighter-
+* AzureStorageFreighter class is totally refactored for better performance and scalability.
+  * 0.5.2 didn't work well for large files.
+  * Now, it works well for large files.
+    Checked with a 5.4GB CSV file consisting of 10M of start vertices, 10K of end vertices, and 25M edges,
+    it took 512 seconds to load the data into the graph database with PostgreSQL Flex,
+    Standard_D32ds_v4 (32 vcpus, 128 GiB memory) and 512TB / 7500 iops of storage.
+  * Tested data was generated with tests/generate_dummy_data.py.
+  * UDF to load the data to graph is no longer used.
+* However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
+
 ### Features
 * Asynchronous connection pool support for psycopg PostgreSQL driver
 * 'direct_loading' option for loading data directly into the graph. If 'direct_loading' is True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries.
@@ -133,6 +144,7 @@ All the classes have the same load() method. The method loads data into the grap
 * 0.5.0 : Refactored the code to make it more readable and maintainable with the separated classes for factory model. Introduced concurrent.futures for better performance.
 * 0.5.1 : Improved the usage
 * 0.5.2 : Added AzureStorageFreighter class, fixed a bug in ParquetFreighter class (THX! Reported from my co-worker, Srikanth-san)
+* 0.5.3 : Refactored AzureStorageFreighter class for better performance and scalability.
 
 ### Install
 
