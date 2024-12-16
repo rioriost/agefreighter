@@ -4,11 +4,6 @@ import logging
 import pandas as pd
 from psycopg_pool import AsyncConnectionPool
 from typing_extensions import Callable
-import warnings
-
-# ignore asyncio warnings
-# There might be a bug in the psycopg_pool using asyncio
-warnings.filterwarnings("ignore", module="asyncio")
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +61,7 @@ class AgeFreighter:
     """
 
     name = "AgeFreighter"
-    version = "0.5.2"
+    version = "0.5.3"
     author = "Rio Fujita"
 
     def __init__(self):
@@ -394,10 +389,10 @@ class AgeFreighter:
         log.debug(
             f"Creating vertices {len(vertices)} via Cypher, in {sys._getframe().f_code.co_name}."
         )
-        chunk_multiplier = 2
+        CHUNK_MULTIPLIER = 2
         args = []
-        for i in range(0, len(vertices), chunk_size * chunk_multiplier):
-            chunk = vertices.iloc[i : i + chunk_size * chunk_multiplier]
+        for i in range(0, len(vertices), chunk_size * CHUNK_MULTIPLIER):
+            chunk = vertices.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
             parts = chunk.apply(
                 lambda row: "(v{0}:{1} {{{2}}})".format(
                     row.name,
@@ -428,10 +423,10 @@ class AgeFreighter:
         log.debug(
             f"Creating edges {len(edges)} via Cypher, in {sys._getframe().f_code.co_name}."
         )
-        chunk_multiplier = 2
+        CHUNK_MULTIPLIER = 2
         args = []
-        for i in range(0, len(edges), chunk_size * chunk_multiplier):
-            chunk = edges.iloc[i : i + chunk_size * chunk_multiplier]
+        for i in range(0, len(edges), chunk_size * CHUNK_MULTIPLIER):
+            chunk = edges.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
             parts = chunk.apply(
                 lambda row: (
                     f"MATCH (n:{row['start_v_label']} {{id: '{row['start_id']}'}}), "
@@ -467,11 +462,11 @@ class AgeFreighter:
         log.debug(
             f"Creating vertices {len(vertices)} with SQL, in {sys._getframe().f_code.co_name}."
         )
-        chunk_multiplier = 2
+        CHUNK_MULTIPLIER = 2
         args = []
         graph_name = self.quotedGraphName(self.graph_name)
-        for i in range(0, len(vertices), chunk_size * chunk_multiplier):
-            chunk = vertices.iloc[i : i + chunk_size * chunk_multiplier]
+        for i in range(0, len(vertices), chunk_size * CHUNK_MULTIPLIER):
+            chunk = vertices.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
             values = chunk.apply(
                 lambda row: "('{"
                 + ",".join([f'"{k}":"{v}"' for k, v in row.items()])
@@ -500,15 +495,15 @@ class AgeFreighter:
         log.debug(
             f"Creating edges {len(edges)} with SQL, in {sys._getframe().f_code.co_name}."
         )
-        chunk_multiplier = 2
+        CHUNK_MULTIPLIER = 2
         # create id_maps to convert entry_id to id(graphid)
         id_maps = await self.getIdMaps(edges=edges)
 
         # create queries for edges
         args = []
         graph_name = self.quotedGraphName(self.graph_name)
-        for i in range(0, len(edges), chunk_size * chunk_multiplier):
-            chunk = edges.iloc[i : i + chunk_size * chunk_multiplier]
+        for i in range(0, len(edges), chunk_size * CHUNK_MULTIPLIER):
+            chunk = edges.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
             values = chunk.apply(
                 lambda row: f"('{id_maps[str(row['start_v_label'])][str(row['start_id'])]}'::graphid, '{id_maps[str(row['end_v_label'])][str(row['end_id'])]}'::graphid)",
                 axis=1,
@@ -638,16 +633,16 @@ class AgeFreighter:
         log.debug(
             f"Copying vertices {len(vertices)}, in {sys._getframe().f_code.co_name}."
         )
-        chunk_multiplier = 1000
-        first_id = await self.getFirstId(label)
+        CHUNK_MULTIPLIER = 1000
+        first_id = await self.getFirstId(graph_name=self.graph_name, label_type=label)
         graph_name = self.quotedGraphName(self.graph_name)
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
                 query = f'COPY {graph_name}."{label}" FROM STDIN (FORMAT TEXT)'
                 async with cur.copy(query) as copy:
-                    for i in range(0, len(vertices), chunk_size * chunk_multiplier):
+                    for i in range(0, len(vertices), chunk_size * CHUNK_MULTIPLIER):
                         args_list = []
-                        chunk = vertices.iloc[i : i + chunk_size * chunk_multiplier]
+                        chunk = vertices.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
                         chunk_args = chunk.apply(
                             lambda row: "{0}\t{{{1}}}\n".format(
                                 first_id + row.name,
@@ -679,21 +674,21 @@ class AgeFreighter:
             None
         """
         log.debug(f"Copying edges {len(edges)}, in {sys._getframe().f_code.co_name}.")
-        chunk_multiplier = 1000
+        CHUNK_MULTIPLIER = 1000
 
         # create id_maps to convert entry_id to id(graphid)
         id_maps = await self.getIdMaps(edges=edges)
 
         # create queries for edges
-        first_id = await self.getFirstId(label_type=type)
+        first_id = await self.getFirstId(graph_name=self.graph_name, label_type=type)
         graph_name = self.quotedGraphName(self.graph_name)
         async with self.pool.connection() as conn:
             async with conn.cursor() as cur:
                 query = f'COPY {graph_name}."{type}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT)'
                 async with cur.copy(query) as copy:
-                    for i in range(0, len(edges), chunk_size * chunk_multiplier):
+                    for i in range(0, len(edges), chunk_size * CHUNK_MULTIPLIER):
                         args_list = []
-                        chunk = edges.iloc[i : i + chunk_size * chunk_multiplier]
+                        chunk = edges.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
                         chunk_args = chunk.apply(
                             lambda row: "{0}\t{1}\t{2}\n".format(
                                 first_id + row.name,
@@ -742,7 +737,7 @@ class AgeFreighter:
 
         return id_maps
 
-    async def getFirstId(self, label_type: str = "") -> int:
+    async def getFirstId(self, graph_name: str = "", label_type: str = "") -> int:
         """
         Get the first id for a vertex or edge.
 
@@ -754,12 +749,13 @@ class AgeFreighter:
         """
         import numpy as np
         from psycopg.rows import namedtuple_row
-        from psycopg.sql import SQL
 
+        graph_name = self.quotedGraphName(graph_name)
         async with self.pool.connection() as conn:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
+                relation = f'{graph_name}."{label_type}"'
                 await cur.execute(
-                    SQL(f"SELECT id FROM ag_label WHERE name='{label_type}'")
+                    f"SELECT id FROM ag_label WHERE relation='{relation}'::regclass;"
                 )
                 row = await cur.fetchone()
 
