@@ -17,10 +17,10 @@ class AgeFreighterUtils:
         self.name = "AgeUtils"
         self.author = "Rio Fujita"
         self.data_dir = "../data/"
-        self.csv_file = f"{self.data_dir}actorfilms.csv"
-        self.avro_file = f"{self.data_dir}actorfilms.avro"
-        self.parquet_file = f"{self.data_dir}actorfilms.parquet"
-        self.pickle_file = f"{self.data_dir}actorfilms.pickle"
+        self.csv_file = f"{self.data_dir}actorfilms2.csv"
+        self.avro_file = f"{self.data_dir}actorfilms2.avro"
+        self.parquet_file = f"{self.data_dir}actorfilms2.parquet"
+        self.pickle_file = f"{self.data_dir}actorfilms2.pickle"
 
     def __del__(self):
         log.info("Deleting AgeUtils")
@@ -54,7 +54,7 @@ class AgeFreighterUtils:
             return
 
         start_time = time.time()
-        batch_size = 1000
+        BATCH_SIZE = 1000
         df = pd.read_csv(self.csv_file)
         uniq_actors = df[["ActorID", "Actor"]].drop_duplicates()
         uniq_films = df[["FilmID", "Film", "Year", "Votes", "Rating"]].drop_duplicates()
@@ -75,13 +75,13 @@ class AgeFreighterUtils:
                     "CREATE INDEX film_index_id FOR (n:Film) ON (n.FilmID)"
                 )
                 # create actor nodes
-                for idx in range(0, len(uniq_actors), batch_size):
+                for idx in range(0, len(uniq_actors), BATCH_SIZE):
                     actors = [
                         {"Actor": actor, "ActorID": actorid}
                         for i, (actor, actorid) in enumerate(
                             zip(
-                                uniq_actors["Actor"][idx : idx + batch_size].tolist(),
-                                uniq_actors["ActorID"][idx : idx + batch_size].tolist(),
+                                uniq_actors["Actor"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_actors["ActorID"][idx : idx + BATCH_SIZE].tolist(),
                             )
                         )
                     ]
@@ -92,7 +92,7 @@ class AgeFreighterUtils:
                         actors=actors,
                     )
                 # create film nodes
-                for idx in range(0, len(uniq_films), batch_size):
+                for idx in range(0, len(uniq_films), BATCH_SIZE):
                     films = [
                         {
                             "Film": film,
@@ -103,11 +103,11 @@ class AgeFreighterUtils:
                         }
                         for i, (film, filmid, year, votes, rating) in enumerate(
                             zip(
-                                uniq_films["Film"][idx : idx + batch_size].tolist(),
-                                uniq_films["FilmID"][idx : idx + batch_size].tolist(),
-                                uniq_films["Year"][idx : idx + batch_size].tolist(),
-                                uniq_films["Votes"][idx : idx + batch_size].tolist(),
-                                uniq_films["Rating"][idx : idx + batch_size].tolist(),
+                                uniq_films["Film"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_films["FilmID"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_films["Year"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_films["Votes"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_films["Rating"][idx : idx + BATCH_SIZE].tolist(),
                             )
                         )
                     ]
@@ -118,13 +118,20 @@ class AgeFreighterUtils:
                         films=films,
                     )
                 # create edges
-                for idx in range(0, len(df), batch_size):
+                for idx in range(0, len(df), BATCH_SIZE):
                     acted_ins = [
-                        {"from": actorid, "to": filmid}
-                        for i, (actorid, filmid) in enumerate(
+                        {
+                            "from": actorid,
+                            "to": filmid,
+                            "Genre": genre,
+                            "Director": director,
+                        }
+                        for i, (actorid, filmid, genre, director) in enumerate(
                             zip(
-                                df["ActorID"][idx : idx + batch_size].tolist(),
-                                df["FilmID"][idx : idx + batch_size].tolist(),
+                                df["ActorID"][idx : idx + BATCH_SIZE].tolist(),
+                                df["FilmID"][idx : idx + BATCH_SIZE].tolist(),
+                                df["Genre"][idx : idx + BATCH_SIZE].tolist(),
+                                df["Director"][idx : idx + BATCH_SIZE].tolist(),
                             )
                         )
                     ]
@@ -132,7 +139,7 @@ class AgeFreighterUtils:
                         """UNWIND $acted_ins AS row
                         MATCH (from:Actor {ActorID: row.from})
                         MATCH (to:Film {FilmID: row.to})
-                        CREATE (from)-[r:ACTED_IN]->(to)
+                        CREATE (from)-[r:ACTED_IN {Genre:row.genre, Director:row.director}]->(to)
                         SET r += row""",
                         acted_ins=acted_ins,
                     )
@@ -169,11 +176,11 @@ class AgeFreighterUtils:
         datum[1].insert(0, "FilmSerial", range(1, len(datum[1]) + 1))
         types[1] = ["SERIAL", "TEXT", "TEXT", "INT", "INT", "REAL"]
 
-        datum[2] = df[["ActorID", "FilmID"]].rename(
+        datum[2] = df[["ActorID", "FilmID", "Genre", "Director"]].rename(
             columns={"ActorID": "start_id", "FilmID": "end_id"}
         )
         datum[2].insert(0, "ActedSerial", range(1, len(datum[2]) + 1))
-        types[2] = ["SERIAL", "TEXT", "TEXT"]
+        types[2] = ["SERIAL", "TEXT", "TEXT", "TEXT", "TEXT"]
 
         with pg.connect(con_string) as conn:
             with conn.cursor() as cur:
@@ -262,7 +269,7 @@ class AgeFreighterUtils:
             query (str): Gremlin query
         """
         retries = 0
-        initial_wait_time = 1
+        INITIAL_WAIT_TIME = 1
         while retries < 5:
             try:
                 future = g_client.submitAsync(query)
@@ -270,7 +277,7 @@ class AgeFreighterUtils:
                 log.debug(f"results: {results.all().result()}")
                 return
             except Exception as e:
-                wait_time = initial_wait_time * (2**retries)
+                wait_time = INITIAL_WAIT_TIME * (2**retries)
                 log.warning(
                     f"Request rate too large. Retrying in {wait_time} seconds..."
                 )
@@ -303,8 +310,8 @@ class AgeFreighterUtils:
             raise KeyError
 
         start_time = time.time()
-        cosmos_username = "/dbs/db1/colls/actorfilms"
-        cosmos_pkey = "pk"
+        COSMOS_USERNAME = "/dbs/db1/colls/actorfilms2"
+        COSMOS_PKEY = "pk"
 
         LOGICAL_PARTITION_SIZE = 20 * 1024 * 1024 * 1024  # 20GB
         AVERAGE_SIZE_OF_DOCUMENT = 512  # 512bytes
@@ -318,7 +325,7 @@ class AgeFreighterUtils:
             g_client = client.Client(
                 url=cosmos_gremlin_endpoint,
                 traversal_source="g",
-                username=cosmos_username,
+                username=COSMOS_USERNAME,
                 password=cosmos_gremlin_key,
                 message_serializer=serializer.GraphSONSerializersV2d0(),
                 timeout=600,
@@ -371,7 +378,7 @@ class AgeFreighterUtils:
                                 tmp_query.format(
                                     actorid=actorid,
                                     actor=actor,
-                                    pk=cosmos_pkey,
+                                    pk=COSMOS_PKEY,
                                     num_of_pk=num_of_pk,
                                 )
                                 for idx, (actor, actorid) in chunk.iterrows()
@@ -386,7 +393,7 @@ class AgeFreighterUtils:
                                     year=year,
                                     votes=votes,
                                     rating=rating,
-                                    pk=cosmos_pkey,
+                                    pk=COSMOS_PKEY,
                                     num_of_pk=num_of_pk,
                                 )
                                 for idx, (
@@ -416,7 +423,7 @@ class AgeFreighterUtils:
             futures = []
             for i, row in enumerate(df.itertuples(index=False), start=1):
                 log.info(f"Creating 'ACTED_IN' edges: {i}")
-                query = f"g.V().has('ActorID', '{row.ActorID}').addE('ACTED_IN').to(g.V().has('FilmID', '{row.FilmID}'))"
+                query = f"g.V().has('ActorID', '{row.ActorID}').addE('ACTED_IN').property('Genre', '{row.Genre}').property('Director', '{row.Director}').to(g.V().has('FilmID', '{row.FilmID}'))"
                 futures.append(
                     executor.submit(self.executeGremlinQuery, g_client, query, i)
                 )
@@ -436,7 +443,7 @@ class AgeFreighterUtils:
         records = pd.read_csv(self.csv_file).to_dict(orient="records")
         schema = {
             "type": "record",
-            "name": "actorfilms",
+            "name": "actorfilms2",
             "fields": [
                 {"name": "ActorID", "type": "string"},
                 {"name": "Actor", "type": "string"},
@@ -445,6 +452,8 @@ class AgeFreighterUtils:
                 {"name": "Year", "type": "int"},
                 {"name": "Votes", "type": "int"},
                 {"name": "Rating", "type": "float"},
+                {"name": "Genre", "type": "string"},
+                {"name": "Director", "type": "string"},
             ],
         }
         parsed_schema = fa.parse_schema(schema)
@@ -485,7 +494,13 @@ class AgeFreighterUtils:
                     votes=row["Votes"],
                     rating=row["Rating"],
                 )
-                G.add_edge(row["ActorID"], row["FilmID"], label="ACTED_IN")
+                G.add_edge(
+                    row["ActorID"],
+                    row["FilmID"],
+                    label="ACTED_IN",
+                    genre=row["Genre"],
+                    director=row["Director"],
+                )
         with open(self.pickle_file, "wb") as f:
             pickle.dump(G, f)
 
