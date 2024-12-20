@@ -3,7 +3,7 @@ name = "agefreighter"
 authors = [
     {name = "Rio Fujita", email = "rifujita@microsoft.com"},
 ]
-version = "0.5.3"
+version = "0.6.0"
 license = {file = "LICENSE"}
 description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = "README.md"
@@ -43,6 +43,7 @@ build-backend = "hatchling.build"
 include = [
   "src/agefreighter/*.py",
   "/tests",
+  "/docs",
 ]
 exclude = [
   "uv.lock",

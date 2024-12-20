@@ -34,6 +34,13 @@ Please note how to use the new version of the package is tottally different from
   * UDF to load the data to graph is no longer used.
 * However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
 
+### 0.6.0 Release
+* Added edge properties support.
+  * 'edge_props' argument (list) is added to the 'load()' method.
+* 'drop_graph' argument is obsoleted. 'create_graph' argument is added.
+  * 'create_graph' is set to True by default. CAUTION: If the graph already exists, the graph is dropped before loading the data.
+  * If 'create_graph' is False, the data is loaded into the existing graph.
+
 ### Features
 * Asynchronous connection pool support for psycopg PostgreSQL driver
 * 'direct_loading' option for loading data directly into the graph. If 'direct_loading' is True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries.
@@ -53,85 +60,67 @@ Please note how to use the new version of the package is tottally different from
 ### Method
 All the classes have the same load() method. The method loads data into the graph database.
 
-### Arguments for each class
-* common arguments
+### Arguments
+* Common arguments
   * graph_name (str) : the name of the graph
   * chunk_size (int) : the number of rows to be loaded at once
   * direct_loading (bool) : if True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries
   * use_copy (bool) : if True, the data is loaded into the graph using the 'COPY' protocol
-  * drop_graph (bool) : if True, the graph is dropped before loading the data
+  * create_graph (bool) : if True, the graph will be created after the existing graph is dropped
 
-* AzureStorageFreighter
-  * csv (str): CSV file path
-  * start_v_label (str): Start Vertex Label
-  * start_id (str): Start Vertex ID
-  * start_props (list): Start Vertex Properties
-  * edge_type (str): Edge Type
-  * end_v_label (str): End Vertex Label
-  * end_id (str): End Vertex ID
-  * end_props (list): End Vertex Properties
-  * graph_name (str): Graph Name
-  * chunk_size (int): Chunk Size
-  * drop_graph (bool): Drop Graph
+* Common arguments for 'Single Source' classes
+  * AvroFreighter
+  * AzureStorageFreighter
+  * CosmosGremlinFreighter
+  * Neo4jFreighter
+  * NetworkXFreighter
+  * ParquetFreighter
+  * PGFreighter
+    * start_v_label (str): Start Vertex Label
+    * start_id (str): Start Vertex ID
+    * start_props (list): Start Vertex Properties
+    * edge_type (str): Edge Type
+    * edge_props (list): Edge Properties
+    * end_v_label (str): End Vertex Label
+    * end_id (str): End Vertex ID
+    * end_props (list): End Vertex Properties
 
-* AvroFreighter
-  * source_avro (str): The path to the Avro file.
-  * start_v_label (str): The label of the start vertex.
-  * start_id (str): The ID of the start vertex.
-  * start_props (list): The properties of the start vertex.
-  * edge_type (str): The type of the edge.
-  * end_v_label (str): The label of the end vertex.
-  * end_id (str): The ID of the end vertex.
-  * end_props (list): The properties of the end vertex.
+* Class specific arguments
+  * AvroFreighter
+    * source_avro (str): The path to the Avro file.
 
-* CosmosGremlinFreighter
-  * cosmos_gremlin_endpoint (str): The Cosmos Gremlin endpoint.
-  * cosmos_gremlin_key (str): The Cosmos Gremlin key.
-  * cosmos_username (str): The Cosmos username.
-  * id_map (dict): The ID map.
+  * CosmosGremlinFreighter
+    * cosmos_gremlin_endpoint (str): The Cosmos Gremlin endpoint.
+    * cosmos_gremlin_key (str): The Cosmos Gremlin key.
+    * cosmos_username (str): The Cosmos username.
+    * id_map (dict): ID Mapping
 
-* CSVFreighter
-  * csv (str): The path to the CSV file.
-  * start_v_label (str): The label of the start vertex.
-  * start_id (str): The ID of the start vertex.
-  * start_props (list): The properties of the start vertex.
-  * edge_type (str): The type of the edge.
-  * end_v_label (str): The label of the end vertex.
-  * end_id (str): The ID of the end vertex.
-  * end_props (list): The properties of the end vertex.
+  * MultiCSVFreighter
+    * vertex_csvs (list): The paths to the vertex CSV files.
+    * vertex_labels (list): The labels of the vertices.
+    * edge_csvs (list): The paths to the edge CSV files.
+    * edge_types (list): The types of the edges.
 
-* MultiCSVFreighter
-  * vertex_csvs (list): The paths to the vertex CSV files.
-  * vertex_labels (list): The labels of the vertices.
-  * edge_csvs (list): The paths to the edge CSV files.
-  * edge_types (list): The types of the edges.
+  * Neo4jFreighter
+    * neo4j_uri (str): The URI of the Neo4j database.
+    * neo4j_user (str): The username of the Neo4j database.
+    * neo4j_password (str): The password of the Neo4j database.
+    * neo4j_database (str): The database of the Neo4j database.
+    * id_map (dict): ID Mapping
 
-* Neo4jFreighter
-  * neo4j_uri (str): The URI of the Neo4j database.
-  * neo4j_user (str): The username of the Neo4j database.
-  * neo4j_password (str): The password of the Neo4j database.
-  * neo4j_database (str): The database of the Neo4j database.
-  * id_map (dict): The ID map.
+  * NetworkXFreighter
+    * networkx_graph (nx.Graph): The NetworkX graph.
+    * id_map (dict): ID Mapping
 
-* NetworkXFreighter
-  * networkx_graph (nx.Graph): The NetworkX graph.
-  * id_map (dict): The ID map.
+  * ParquetFreighter
+    * source_parquet (str): The path to the Parquet file.
 
-* ParquetFreighter
-  * source_parquet (str): The path to the Parquet file.
-  * start_v_label (str): The label of the start vertex.
-  * start_id (str): The ID of the start vertex.
-  * start_props (list): The properties of the start vertex.
-  * edge_type (str): The type of the edge.
-  * end_v_label (str): The label of the end vertex.
-  * end_id (str): The ID of the end vertex.
-  * end_props (list): The properties of the end vertex.
+  * PGFreighter
+    * source_pg_con_string (str): The connection string of the source PostgreSQL database.
+    * source_schema (str): The source schema.
+    * source_tables (list): The source tables.
+    * id_map (dict): ID Mapping
 
-* PGFreighter
-  * source_pg_con_string (str): The connection string of the source PostgreSQL database.
-  * source_schema (str): The source schema.
-  * source_tables (list): The source tables.
-  * id_map (dict): The ID map.
 
 ### Release Notes
 * 0.4.0 : Added 'loadFromCosmosGremlin()' function.
@@ -145,6 +134,7 @@ All the classes have the same load() method. The method loads data into the grap
 * 0.5.1 : Improved the usage
 * 0.5.2 : Added AzureStorageFreighter class, fixed a bug in ParquetFreighter class (THX! Reported from my co-worker, Srikanth-san)
 * 0.5.3 : Refactored AzureStorageFreighter class for better performance and scalability.
+* 0.6.0 : Added edge properties support. 'drop_graph' argument is obsoleted. 'create_graph' argument is added.
 
 ### Install
 
@@ -190,6 +180,7 @@ async def main():
         start_id="ActorID",
         start_props=["Actor"],
         edge_type="ACTED_IN",
+        edge_props=["Role", "Director"],
         end_v_label="Film",
         end_id="FilmID",
         end_props=["Film", "Year", "Votes", "Rating"],
