@@ -1,4 +1,5 @@
 from agefreighter import AgeFreighter
+from neo4j import GraphDatabase
 
 import logging
 
@@ -28,7 +29,7 @@ class Neo4jFreighter(AgeFreighter):
         graph_name: str = "",
         chunk_size: int = 128,
         direct_loading: bool = False,
-        drop_graph: bool = False,
+        create_graph: bool = True,
         use_copy: bool = True,
         **kwargs,
     ) -> None:
@@ -41,40 +42,49 @@ class Neo4jFreighter(AgeFreighter):
             neo4j_password (str): The password of the Neo4j database.
             neo4j_database (str): The database of the Neo4j database.
             id_map (dict): The ID map.
-
-        Common Args:
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
             direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
+            create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
 
         Returns:
             None
         """
         log.debug("Loading data from a Neo4j graph")
-        from neo4j import GraphDatabase
         import pandas as pd
         import nest_asyncio
 
         nest_asyncio.apply()
 
-        chunk_multiplier = 10000
+        CHUNK_MULTIPLIER = 1000
+        CHUNK_SIZE = chunk_size * CHUNK_MULTIPLIER
 
         existing_node_ids = []
         first_chunk = True
         driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
-        for chunk in self.fetch_edges_in_chunks(
-            driver=driver, chunk_size=chunk_size * chunk_multiplier
+        async for chunk in self.fetch_edges_in_chunks(
+            driver=driver, chunk_size=CHUNK_SIZE
         ):
-            start_v_label = list(chunk[0]["m"].labels)[0]
+            first_record = chunk[0]
+            start_v_label = list(first_record["m"].labels)[0]
             start_id = id_map[start_v_label]
-            start_props = [prop for prop in chunk[0]["m"].keys() if prop != start_id]
-            end_v_label = list(chunk[0]["n"].labels)[0]
+            start_props = [
+                prop for prop in first_record["m"].keys() if prop != start_id
+            ]
+            end_v_label = list(first_record["n"].labels)[0]
             end_id = id_map[end_v_label]
-            end_props = [prop for prop in chunk[0]["n"].keys() if prop != end_id]
-            edge_type = chunk[0]["r"].type
-            df = pd.DataFrame([{**record["m"], **record["n"]} for record in chunk])
+            end_props = [prop for prop in first_record["n"].keys() if prop != end_id]
+            edge_type = first_record["r"].type
+            edge_props = [
+                prop
+                for prop in first_record["r"].keys()
+                if prop != "from" and prop != "to"
+            ]
+
+            df = pd.DataFrame(
+                [{**record["m"], **record["n"], **record["r"]} for record in chunk]
+            )
             await self.createGraphFromDataFrame(
                 graph_name=graph_name,
                 src=df,
@@ -84,20 +94,22 @@ class Neo4jFreighter(AgeFreighter):
                 start_id=start_id,
                 start_props=start_props,
                 edge_type=edge_type,
+                edge_props=edge_props,
                 end_v_label=end_v_label,
                 end_id=end_id,
                 end_props=end_props,
                 chunk_size=chunk_size,
                 direct_loading=direct_loading,
-                drop_graph=drop_graph,
+                create_graph=create_graph,
                 use_copy=use_copy,
             )
             first_chunk = False
 
         await self.close()
 
-    @staticmethod
-    def fetch_edges_in_chunks(driver, chunk_size) -> list:
+    async def fetch_edges_in_chunks(
+        self, driver: GraphDatabase.driver = None, chunk_size: int = 0
+    ) -> list:
         """
         Fetch edges in chunks.
 

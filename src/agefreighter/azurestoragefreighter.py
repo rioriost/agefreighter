@@ -33,12 +33,13 @@ class AzureStorageFreighter(AgeFreighter):
         start_id: str = "",
         start_props: list = [],
         edge_type: str = "",
+        edge_props: list = [],
         end_v_label: str = "",
         end_id: str = "",
         end_props: list = [],
         graph_name: str = "",
         chunk_size: int = 128,
-        drop_graph: bool = False,
+        create_graph: bool = True,
         **kwargs,
     ):
         """
@@ -50,12 +51,15 @@ class AzureStorageFreighter(AgeFreighter):
             start_id (str): Start Vertex ID
             start_props (list): Start Vertex Properties
             edge_type (str): Edge Type
+            edge_props (list): Edge Properties
             end_v_label (str): End Vertex Label
             end_id (str): End Vertex ID
             end_props (list): End Vertex Properties
-            graph_name (str): Graph Name
-            chunk_size (int): Chunk Size
-            drop_graph (bool): Drop Graph
+            graph_name (str): The name of the graph to load the data into.
+            chunk_size (int): The size of the chunks to create.
+            direct_loading (bool): Whether to load the data directly.
+            create_graph (bool): Whether to create the graph.
+            use_copy (bool): Whether to use the COPY protocol to load the data.
 
         Keyword Args:
             subscription_id (str): Azure Subscription ID
@@ -122,6 +126,18 @@ class AzureStorageFreighter(AgeFreighter):
         )
         await bl.upload()
 
+        # Check if the columns contain arguments
+        self.checkKeys(
+            columns_in_csv=bl.columns_in_csv,
+            columns_in_args=[
+                start_id,
+                *start_props,
+                *edge_props,
+                end_id,
+                *end_props,
+            ],
+        )
+
         # Create temporary tables
         # They're named 'temp', but not the persistent tables.
         print("Creating temporary tables...")
@@ -150,7 +166,7 @@ class AzureStorageFreighter(AgeFreighter):
 
         # start to create a graph
         print("Creating a graph...")
-        await self.setUpGraph(graph_name=graph_name, drop_graph=drop_graph)
+        await self.setUpGraph(graph_name=graph_name, create_graph=create_graph)
         await self.createLabelType(label_type="vertex", value=start_v_label)
         await self.createLabelType(label_type="vertex", value=end_v_label)
         await self.createLabelType(label_type="edge", value=edge_type)
@@ -164,6 +180,7 @@ class AzureStorageFreighter(AgeFreighter):
             start_id=start_id,
             start_props=start_props,
             edge_type=edge_type,
+            edge_props=edge_props,
             end_v_label=end_v_label,
             end_id=end_id,
             end_props=end_props,
@@ -256,6 +273,26 @@ class AzureStorageFreighter(AgeFreighter):
                     self.location = server.location
                     return True
         return False
+
+    def checkKeys(self, columns_in_csv: list = [], columns_in_args: list = []) -> None:
+        """
+        Check if the columns contain arguments.
+
+        Args:
+            columns_in_csv (list): Columns in the CSV file
+            columns_in_args (list): Columns in the arguments
+
+        Raises:
+            ValueError: If the column is not in the CSV
+
+        Returns:
+            None
+        """
+        log.debug("Checking keys")
+        for column in columns_in_args:
+            if column not in columns_in_csv:
+                log.error(f"Column '{column}' is not in the CSV.")
+                raise ValueError
 
 
 class AzureExtensions:
@@ -712,6 +749,7 @@ class GraphLoader:
         start_id: str = "",
         start_props: list = [],
         edge_type: str = "",
+        edge_props: list = [],
         end_v_label: str = "",
         end_id: str = "",
         end_props: list = [],
@@ -727,6 +765,7 @@ class GraphLoader:
         self.start_id = start_id
         self.start_props = start_props
         self.edge_type = edge_type
+        self.edge_props = edge_props
         self.end_v_label = end_v_label
         self.end_id = end_id
         self.end_props = end_props
@@ -758,16 +797,16 @@ class GraphLoader:
                 self.pool,
                 f"""
                 INSERT INTO "{self.graph_name}"."{self.start_v_label}" (properties)
-                    SELECT format('{{"id":"%s", {start_props_formatted}}}', {self.start_id}, {','.join([f'"{start_prop}"' for start_prop in self.start_props])})::agtype
+                    SELECT format('{{"id":"%s", {start_props_formatted}}}', "{self.start_id}", {','.join([f'"{start_prop}"' for start_prop in self.start_props])})::agtype
                     FROM (
                         SELECT DISTINCT {','.join([f'"{item}"' for item in [self.start_id] + self.start_props])}
                         FROM {self.tbl_from_storage}
                         OFFSET {offset} LIMIT {self.records_per_thread}
                     ) AS distinct_s;
                 INSERT INTO {self.tbl_id_map_s} (entryID, id)
-                    SELECT distinct_s.{self.start_id}, {first_id_s} + {offset} + ROW_NUMBER() OVER () - 1
+                    SELECT distinct_s."{self.start_id}", {first_id_s} + {offset} + ROW_NUMBER() OVER () - 1
                     FROM (
-                        SELECT DISTINCT {self.start_id}
+                        SELECT DISTINCT "{self.start_id}"
                         FROM {self.tbl_from_storage}
                         OFFSET {offset} LIMIT {self.records_per_thread}
                     ) AS distinct_s;""",
@@ -782,16 +821,16 @@ class GraphLoader:
                 self.pool,
                 f"""
                 INSERT INTO "{self.graph_name}"."{self.end_v_label}" (properties)
-                    SELECT format('{{"id":"%s", {end_props_formatted}}}', {self.end_id}, {','.join([f'"{end_prop}"' for end_prop in self.end_props])})::agtype
+                    SELECT format('{{"id":"%s", {end_props_formatted}}}', "{self.end_id}", {','.join([f'"{end_prop}"' for end_prop in self.end_props])})::agtype
                     FROM (
                         SELECT DISTINCT {','.join([f'"{item}"' for item in [self.end_id] + self.end_props])}
                         FROM {self.tbl_from_storage}
                         OFFSET {offset} LIMIT {self.records_per_thread}
                     ) AS distinct_e;
                 INSERT INTO {self.tbl_id_map_e} (entryID, id)
-                    SELECT distinct_e.{self.end_id}, {first_id_e} + {offset} + ROW_NUMBER() OVER () - 1
+                    SELECT distinct_e."{self.end_id}", {first_id_e} + {offset} + ROW_NUMBER() OVER () - 1
                     FROM (
-                        SELECT DISTINCT {self.end_id}
+                        SELECT DISTINCT "{self.end_id}"
                         FROM {self.tbl_from_storage}
                         OFFSET {offset} LIMIT {self.records_per_thread}
                     ) AS distinct_e;""",
@@ -801,25 +840,38 @@ class GraphLoader:
         await asyncio.gather(*tasks)
 
         log.info(f"Creating indexes on {self.tbl_id_map_s} / {self.tbl_id_map_e}...")
-        query = f"CREATE INDEX ON {self.tbl_id_map_s} USING BTREE (entryID);"
-        await self.executeQuery(self.pool, query)
-        query = f"CREATE INDEX ON {self.tbl_id_map_e} USING BTREE (entryID);"
-        await self.executeQuery(self.pool, query)
+        tasks = [
+            self.executeQuery(self.pool, query)
+            for query in [
+                f"CREATE INDEX ON {self.tbl_id_map_s} USING BTREE (entryID);",
+                f"CREATE INDEX ON {self.tbl_id_map_e} USING BTREE (entryID);",
+            ]
+        ]
+        await asyncio.gather(*tasks)
 
         log.info("Creating edges...")
+        if self.edge_props:
+            prop_cols = "," + ",".join([f'"{prop}"' for prop in self.edge_props])
+            prop_vals = (
+                ", format('{"
+                + ",".join([f'"{prop}":"%s"' for prop in self.edge_props])
+                + "}', "
+                + ",".join([f'af."{prop}"' for prop in self.edge_props])
+                + ")::agtype"
+            )
         tasks = [
             self.executeQuery(
                 self.pool,
                 f"""
-                INSERT INTO "{self.graph_name}"."{self.edge_type}" (start_id, end_id)
-                SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid
+                INSERT INTO "{self.graph_name}"."{self.edge_type}" (start_id, end_id{', properties' if self.edge_props else ''})
+                SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid {prop_vals if self.edge_props else ''}
                 FROM (
-                    SELECT {self.start_id}, {self.end_id}
+                    SELECT "{self.start_id}", "{self.end_id}" {prop_cols if self.edge_props else ''}
                     FROM {self.tbl_from_storage}
                     OFFSET {offset} LIMIT {self.records_per_thread}
                 ) AS af
-                JOIN {self.tbl_id_map_s} AS s_map ON af.{self.start_id} = s_map.entryID
-                JOIN {self.tbl_id_map_e} AS e_map ON af.{self.end_id} = e_map.entryID;""",
+                JOIN {self.tbl_id_map_s} AS s_map ON af."{self.start_id}" = s_map.entryID
+                JOIN {self.tbl_id_map_e} AS e_map ON af."{self.end_id}" = e_map.entryID;""",
             )
             for offset in range(0, self.total_lines, self.records_per_thread)
         ]
@@ -839,8 +891,6 @@ class GraphLoader:
         ]
         await asyncio.gather(*tasks)
 
-        await self.executeQuery(self.pool, query)
-
     async def executeQuery(
         self, pool: AsyncConnectionPool = None, query: str = ""
     ) -> None:
@@ -849,6 +899,7 @@ class GraphLoader:
                 await conn.set_autocommit(True)
                 await conn.execute("SET statement_timeout = '3600s';")
                 await conn.execute(query)
+
         except Exception as e:
             log.debug(f"Error: {e}, in {sys._getframe().f_code.co_name}.")
 

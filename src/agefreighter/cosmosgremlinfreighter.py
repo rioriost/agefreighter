@@ -1,4 +1,6 @@
 from agefreighter import AgeFreighter
+from gremlin_python.driver import client, serializer
+import pandas as pd
 
 import logging
 
@@ -27,7 +29,7 @@ class CosmosGremlinFreighter(AgeFreighter):
         graph_name: str = "",
         chunk_size: int = 128,
         direct_loading: bool = False,
-        drop_graph: bool = False,
+        create_graph: bool = False,
         use_copy: bool = True,
         **kwargs,
     ) -> None:
@@ -39,27 +41,23 @@ class CosmosGremlinFreighter(AgeFreighter):
             cosmos_gremlin_key (str): The Cosmos Gremlin key.
             cosmos_username (str): The Cosmos username.
             id_map (dict): The ID map.
-
-        Common Args:
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
             direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
+            create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
 
         Returns:
             None
         """
         log.debug("Loading data from a Gremlin graph")
-        from gremlin_python.driver import client, serializer
-        import pandas as pd
         import concurrent.futures
         import asyncio
         import nest_asyncio
 
         nest_asyncio.apply()
 
-        chunk_multiplier = 1000
+        CHUNK_MULTIPLIER = 1000
 
         try:
             g = client.Client(
@@ -73,16 +71,16 @@ class CosmosGremlinFreighter(AgeFreighter):
             print(f"Failed to connect to Gremlin server: {e}")
             return
 
-        await self.setUpGraph(graph_name, drop_graph)
+        await self.setUpGraph(graph_name=graph_name, create_graph=create_graph)
         for vertex_label in id_map.keys():
             query = f"g.V().hasLabel('{vertex_label}').count()"
             cnt = g.submit_async(query).result().all().result()[0]
             first_chunk = True
-            for i in range(0, cnt, chunk_size * chunk_multiplier):
+            for i in range(0, cnt, chunk_size * CHUNK_MULTIPLIER):
                 if first_chunk:
                     await self.createLabelType(label_type="vertex", value=vertex_label)
                     first_chunk = False
-                query = f"g.V().hasLabel('{vertex_label}').range({i}, {i + chunk_size * chunk_multiplier})"
+                query = f"g.V().hasLabel('{vertex_label}').range({i}, {i + chunk_size * CHUNK_MULTIPLIER})"
                 records = g.submit_async(query).result().all().result()
                 dicts = [
                     {
@@ -99,11 +97,10 @@ class CosmosGremlinFreighter(AgeFreighter):
                     vertex_label=vertex_label,
                     chunk_size=chunk_size,
                     direct_loading=direct_loading,
-                    drop_graph=drop_graph,
                     use_copy=use_copy,
                 )
 
-        chunk_multiplier = 10
+        CHUNK_MULTIPLIER = 10
 
         start_v_label, end_v_label = list(id_map.keys())
         query_cnt = f"g.V().hasLabel('{start_v_label}').count()"
@@ -118,11 +115,20 @@ class CosmosGremlinFreighter(AgeFreighter):
             for edge_type in edge_types:
                 first_chunk = True
                 futures = []
-                for i in range(0, cnt, chunk_size * chunk_multiplier):
+                for i in range(0, cnt, chunk_size * CHUNK_MULTIPLIER):
                     if first_chunk:
                         await self.createLabelType(label_type="edge", value=edge_type)
                         first_chunk = False
-                    query = f"g.V().hasLabel('{start_v_label}').as('start').range({i}, {i + chunk_size * chunk_multiplier}).outE().hasLabel('{edge_type}').inV().as('end').select('start','end')"
+                    query = f"""g.V()
+                        .hasLabel('{start_v_label}')
+                        .as('start')
+                        .range({i}, {i + chunk_size * CHUNK_MULTIPLIER})
+                        .outE()
+                        .hasLabel('{edge_type}')
+                        .as('edge')
+                        .inV()
+                        .as('end')
+                        .select('start','edge','end')"""
                     futures.append(
                         loop.run_in_executor(
                             executor,
@@ -137,19 +143,47 @@ class CosmosGremlinFreighter(AgeFreighter):
                 results = await asyncio.gather(*futures)
                 for edges in results:
                     await self.createEdges(
-                        edges,
-                        edge_type,
-                        chunk_size,
-                        direct_loading,
-                        drop_graph,
-                        use_copy,
+                        edges=edges,
+                        edge_type=edge_type,
+                        edge_props=[
+                            e
+                            for e in edges.columns
+                            if e
+                            not in [
+                                "start_id",
+                                "end_id",
+                                "start_v_label",
+                                "end_v_label",
+                            ]
+                        ],
+                        chunk_size=chunk_size,
+                        direct_loading=direct_loading,
+                        use_copy=use_copy,
                     )
 
         await self.close()
 
     @staticmethod
-    def processRecords(query, start_v_label, end_v_label, id_map, g):
-        import pandas as pd
+    def processRecords(
+        query: str = "",
+        start_v_label: str = "",
+        end_v_label: str = "",
+        id_map: list = [],
+        g: client.Client = None,
+    ) -> pd.DataFrame:
+        """
+        Process records.
+
+        Args:
+            query (str): The query to process.
+            start_v_label (str): The start vertex label.
+            end_v_label (str): The end vertex label.
+            id_map (list): The ID map.
+            g (client.Client): The Gremlin client.
+
+        Returns:
+            pd.DataFrame: The edges.
+        """
 
         records = g.submit_async(query).result().all().result()
         edges = pd.DataFrame(
@@ -161,6 +195,7 @@ class CosmosGremlinFreighter(AgeFreighter):
                     "end_id": record["end"]["properties"][id_map[end_v_label]][0][
                         "value"
                     ],
+                    **record["edge"]["properties"],
                 }
                 for record in records
             ]

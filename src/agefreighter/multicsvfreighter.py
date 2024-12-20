@@ -27,7 +27,7 @@ class MultiCSVFreighter(AgeFreighter):
         graph_name: str = "",
         chunk_size: int = 128,
         direct_loading: bool = False,
-        drop_graph: bool = False,
+        create_graph: bool = True,
         use_copy: bool = True,
         **kwargs,
     ) -> None:
@@ -39,12 +39,10 @@ class MultiCSVFreighter(AgeFreighter):
             vertex_labels (list): The labels of the vertices.
             edge_csvs (list): The paths to the edge CSV files.
             edge_types (list): The types of the edges.
-
-        Common Args:
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
             direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
+            create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
 
         Returns:
@@ -53,12 +51,12 @@ class MultiCSVFreighter(AgeFreighter):
         log.debug("Loading data from multiple CSV files")
         import pandas as pd
 
-        chunk_multiplier = 10000
+        CHUNK_MULTIPLIER = 10000
 
-        await self.setUpGraph(graph_name, drop_graph)
+        await self.setUpGraph(graph_name=graph_name, create_graph=create_graph)
         for vertex_csv, vertex_label in zip(vertex_csvs, vertex_labels):
             first_chunk = True
-            reader = pd.read_csv(vertex_csv, chunksize=chunk_size * chunk_multiplier)
+            reader = pd.read_csv(vertex_csv, chunksize=chunk_size * CHUNK_MULTIPLIER)
             for vertices in reader:
                 if first_chunk:
                     self.checkKeys(
@@ -71,17 +69,16 @@ class MultiCSVFreighter(AgeFreighter):
                     first_chunk = False
 
                 await self.createVertices(
-                    vertices,
-                    vertex_label,
-                    chunk_size,
-                    direct_loading,
-                    drop_graph,
-                    use_copy,
+                    vertices=vertices,
+                    vertex_label=vertex_label,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
                 )
 
         for edge_csv, edge_type in zip(edge_csvs, edge_types):
             first_chunk = True
-            reader = pd.read_csv(edge_csv, chunksize=chunk_size * chunk_multiplier)
+            reader = pd.read_csv(edge_csv, chunksize=chunk_size * CHUNK_MULTIPLIER)
             for edges in reader:
                 if first_chunk:
                     self.checkKeys(
@@ -96,6 +93,17 @@ class MultiCSVFreighter(AgeFreighter):
                     )
 
                     await self.createLabelType(label_type="edge", value=edge_type)
+                    edge_props = [
+                        col
+                        for col in edges.columns
+                        if col
+                        not in [
+                            "start_id",
+                            "end_id",
+                            "start_vertex_type",
+                            "end_vertex_type",
+                        ]
+                    ]
                     first_chunk = False
                 edges.rename(
                     columns={
@@ -105,11 +113,11 @@ class MultiCSVFreighter(AgeFreighter):
                     inplace=True,
                 )
                 await self.createEdges(
-                    edges,
-                    edge_type,
-                    chunk_size,
-                    direct_loading,
-                    drop_graph,
-                    use_copy,
+                    edges=edges,
+                    edge_type=edge_type,
+                    edge_props=edge_props,
+                    chunk_size=chunk_size,
+                    direct_loading=direct_loading,
+                    use_copy=use_copy,
                 )
         await self.close()

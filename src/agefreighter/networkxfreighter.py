@@ -27,7 +27,7 @@ class NetworkXFreighter(AgeFreighter):
         graph_name: str = "",
         chunk_size: int = 128,
         direct_loading: bool = False,
-        drop_graph: bool = False,
+        create_graph: bool = True,
         use_copy: bool = True,
         **kwargs,
     ) -> None:
@@ -37,12 +37,10 @@ class NetworkXFreighter(AgeFreighter):
         Args:
             networkx_graph (nx.Graph): The NetworkX graph.
             id_map (dict): The ID map.
-
-        Common Args:
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
             direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
+            create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
 
         Returns:
@@ -50,11 +48,14 @@ class NetworkXFreighter(AgeFreighter):
         """
         log.debug("Loading data from a NetworkX graph")
 
-        chunk_multiplier = 10000
+        CHUNK_MULTIPLIER = 10000
         first_chunk = True
         existing_node_ids = []
 
         edges = nx.to_pandas_edgelist(networkx_graph)
+        edge_props = [
+            prop for prop in edges.columns if prop not in ["source", "target", "label"]
+        ]
 
         start_v_label = networkx_graph.nodes[edges.iloc[0]["source"]]["label"]
         start_id = id_map[start_v_label]
@@ -73,7 +74,7 @@ class NetworkXFreighter(AgeFreighter):
             if prop not in ["label", "name"]
         ]
 
-        for chunk in self.getChunks(edges, chunk_size * chunk_multiplier):
+        for chunk in self.getChunks(edges, chunk_size * CHUNK_MULTIPLIER):
             source_ids = chunk["source"].tolist()
             target_ids = chunk["target"].tolist()
 
@@ -103,12 +104,13 @@ class NetworkXFreighter(AgeFreighter):
                 start_id=start_id,
                 start_props=start_props,
                 edge_type=edge_type,
+                edge_props=edge_props,
                 end_v_label=end_v_label,
                 end_id=end_id,
                 end_props=end_props,
                 chunk_size=chunk_size,
                 direct_loading=direct_loading,
-                drop_graph=drop_graph,
+                create_graph=create_graph,
                 use_copy=use_copy,
             )
             first_chunk = False

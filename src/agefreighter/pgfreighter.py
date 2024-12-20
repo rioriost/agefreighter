@@ -27,7 +27,7 @@ class PGFreighter(AgeFreighter):
         graph_name: str = "",
         chunk_size: int = 128,
         direct_loading: bool = False,
-        drop_graph: bool = False,
+        create_graph: bool = False,
         use_copy: bool = True,
         **kwargs,
     ) -> None:
@@ -39,12 +39,10 @@ class PGFreighter(AgeFreighter):
             source_schema (str): The source schema.
             source_tables (list): The source tables.
             id_map (dict): The ID map.
-
-        Common Args:
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
             direct_loading (bool): Whether to load the data directly.
-            drop_graph (bool): Whether to drop the existing graph if it exists.
+            create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
 
         Returns:
@@ -55,12 +53,14 @@ class PGFreighter(AgeFreighter):
         import psycopg as pg
         from psycopg.rows import namedtuple_row
 
-        chunk_multiplier = 10000
+        CHUNK_MULTIPLIER = 10000
 
         try:
             with pg.connect(source_pg_con_string) as conn:
                 with conn.cursor(row_factory=namedtuple_row) as cur:
-                    await self.setUpGraph(graph_name, drop_graph)
+                    await self.setUpGraph(
+                        graph_name=graph_name, create_graph=create_graph
+                    )
                     for src_table in source_tables.values():
                         if id_map.get(src_table) is not None:  # nodes
                             id_col_name = id_map[src_table]
@@ -71,9 +71,9 @@ class PGFreighter(AgeFreighter):
                                 f'SELECT COUNT(*) FROM {source_schema}."{src_table}"'
                             )
                             cnt = cur.fetchone()[0]
-                            for i in range(0, cnt, chunk_size * chunk_multiplier):
+                            for i in range(0, cnt, chunk_size * CHUNK_MULTIPLIER):
                                 cur.execute(
-                                    f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * chunk_multiplier} OFFSET {i}'
+                                    f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'
                                 )
                                 rows = cur.fetchall()
                                 vertices = pd.DataFrame(rows)
@@ -81,12 +81,11 @@ class PGFreighter(AgeFreighter):
                                     columns={id_col_name: "id"}, inplace=True
                                 )
                                 await self.createVertices(
-                                    vertices,
-                                    src_table,
-                                    chunk_size,
-                                    direct_loading,
-                                    drop_graph,
-                                    use_copy,
+                                    vertices=vertices,
+                                    vertex_label=src_table,
+                                    chunk_size=chunk_size,
+                                    direct_loading=direct_loading,
+                                    use_copy=use_copy,
                                 )
                         else:  # edges
                             await self.createLabelType(
@@ -96,21 +95,26 @@ class PGFreighter(AgeFreighter):
                                 f'SELECT COUNT(*) FROM {source_schema}."{src_table}"'
                             )
                             cnt = cur.fetchone()[0]
-                            for i in range(0, cnt, chunk_size * chunk_multiplier):
+                            for i in range(0, cnt, chunk_size * CHUNK_MULTIPLIER):
                                 cur.execute(
-                                    f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * chunk_multiplier} OFFSET {i}'
+                                    f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'
                                 )
                                 rows = cur.fetchall()
                                 edges = pd.DataFrame(rows)
+                                edge_props = [
+                                    e
+                                    for e in edges.columns
+                                    if e not in ["start_id", "end_id"]
+                                ]
                                 edges.insert(0, "start_v_label", list(id_map.keys())[0])
                                 edges.insert(0, "end_v_label", list(id_map.keys())[1])
                                 await self.createEdges(
-                                    edges,
-                                    src_table,
-                                    chunk_size,
-                                    direct_loading,
-                                    drop_graph,
-                                    use_copy,
+                                    edges=edges,
+                                    edge_type=src_table,
+                                    edge_props=edge_props,
+                                    chunk_size=chunk_size,
+                                    direct_loading=direct_loading,
+                                    use_copy=use_copy,
                                 )
         except Exception as e:
             raise e
