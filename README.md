@@ -79,13 +79,16 @@ All the classes have the same load() method. The method loads data into the grap
     * start_v_label (str): Start Vertex Label
     * start_id (str): Start Vertex ID
     * start_props (list): Start Vertex Properties
-    * edge_type (str): Edge Type
-    * edge_props (list): Edge Properties
     * end_v_label (str): End Vertex Label
     * end_id (str): End Vertex ID
     * end_props (list): End Vertex Properties
+    * edge_type (str): Edge Type
+    * edge_props (list): Edge Properties
 
 * Class specific arguments
+  * AzureStorageFreighter
+    * csv (str): The path to the CSV file.
+
   * AvroFreighter
     * source_avro (str): The path to the Avro file.
 
@@ -135,6 +138,7 @@ All the classes have the same load() method. The method loads data into the grap
 * 0.5.2 : Added AzureStorageFreighter class, fixed a bug in ParquetFreighter class (THX! Reported from my co-worker, Srikanth-san)
 * 0.5.3 : Refactored AzureStorageFreighter class for better performance and scalability.
 * 0.6.0 : Added edge properties support. 'drop_graph' argument is obsoleted. 'create_graph' argument is added.
+* 0.6.1 : Added 'load_multi()' method to AzureStorageFreighter class.
 
 ### Install
 
@@ -152,7 +156,16 @@ pip install agefreighter
 CREATE EXTENSION IF NOT EXISTS age CASCADE;
 ```
 
-### Usage
+### File Format for CSVFreighter
+CSVFreighter class loads data from a CSV file. The CSV file should have the following format.
+
+```csv
+Actor,ActorID,Film,Year,Votes,Rating,FilmID,Role,Time_in_sec
+Fred Astaire,nm0000001,Ghost Story,1981,7731,6.3,tt0082449,Hero,3643
+Fred Astaire,nm0000001,The Purple Taxi,1977,533,6.6,tt0076851,Hero,270
+```
+
+### Usage of CSVFreighter
 ```python
 import asyncio
 import os
@@ -180,7 +193,7 @@ async def main():
         start_id="ActorID",
         start_props=["Actor"],
         edge_type="ACTED_IN",
-        edge_props=["Role", "Director"],
+        edge_props=["Role", "Time_in_sec"],
         end_v_label="Film",
         end_id="FilmID",
         end_props=["Film", "Year", "Votes", "Rating"],
@@ -195,7 +208,73 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-See, [tests/agefreightertester.py](https://github.com/rioriost/agefreighter/blob/main/tests/agefreightertester.py) for more details.
+### File Format for MultiCSVFreighter
+MultiCSVFreighter class loads data from multiple CSV files. The CSV files should have the following format.
+MultiCSVFreighter class handles all the columns in CSV except 'id' column as properties and all the columns in CSV except 'start_id' / 'start_vertex_type' / 'end_id' / 'end_vertex_type' columns as properties for the edges.
+
+countries.csv
+```csv
+id,name,iso3,iso2,numeric_code,phone_code,capital,currency,currency_symbol,tld,native,region,subregion,latitude,longitude,emoji,emojiU
+2,Aland Islands,ALA,AX,248,+358-18,Mariehamn,EUR,€,.ax,Åland,Europe,Northern Europe,60.116667,19.9,🇦🇽,U+1F1E6 U+1F1FD
+3,Albania,ALB,AL,8,355,Tirana,ALL,Lek,.al,Shqipëria,Europe,Southern Europe,41.0,20.0,🇦🇱,U+1F1E6 U+1F1F1
+```
+
+cities.csv
+```csv
+id,name,state_id,state_code,country_id,country_code,latitude,longitude
+153,Banaj,629,BR,3,AL,40.82492,19.84074
+154,Bashkia Berat,629,BR,3,AL,40.69997,19.94983
+```
+
+edges.csv
+```csv
+start_id,start_vertex_type,end_id,end_vertex_type,Year,Population
+153,City,3,Country,1973,12000
+154,City,3,Country,1960,35000
+```
+
+### Usage of MultiCSVFreighter
+```python
+import asyncio
+import os
+from agefreighter import Factory
+import logging
+
+log = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+
+async def main():
+    class_name = "MultiCSVFreighter"
+    instance = Factory.create_instance(class_name)
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+    await instance.load(
+        graph_name="AgeTester",
+        vertex_csvs=["countries.csv", "cities.csv"],
+        edge_csvs=["edges.csv"],
+        edge_types=["has_city"],
+        drop_graph=True,
+    )
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+### File Format for AzureStorageFreighter
+AzureStorageFreighter class loads data from Azure Storage. It has two methods to load data from Azure Storage, 'load' and 'load_multi'. The 'load' method loads data from a single CSV file, and the 'load_multi' method loads data from multiple CSV files.
+  * 'load' expects the exactly same format as CSVFreighter.
+  * 'load_multi' expects the exactly same format as MultiCSVFreighter.
+
+See, [tests/agefreightertester.py](https://github.com/rioriost/agefreighter/blob/main/tests/agefreightertester.py) and [docs](https://github.com/rioriost/agefreighter/blob/main/docs/) for more details.
 
 ### Test & Samples
 ```sql
