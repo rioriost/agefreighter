@@ -61,8 +61,8 @@ class PGFreighter(AgeFreighter):
                     await self.setUpGraph(
                         graph_name=graph_name, create_graph=create_graph
                     )
-                    for src_table in source_tables.values():
-                        if id_map.get(src_table) is not None:  # nodes
+                    for key, src_table in source_tables.items():
+                        if key == "start" or key == "end":  # nodes
                             id_col_name = id_map[src_table]
                             await self.createLabelType(
                                 label_type="vertex", value=src_table
@@ -87,7 +87,7 @@ class PGFreighter(AgeFreighter):
                                     direct_loading=direct_loading,
                                     use_copy=use_copy,
                                 )
-                        else:  # edges
+                        elif key == "edges":  # edges
                             await self.createLabelType(
                                 label_type="edge", value=src_table
                             )
@@ -102,12 +102,19 @@ class PGFreighter(AgeFreighter):
                                 rows = cur.fetchall()
                                 edges = pd.DataFrame(rows)
                                 edge_props = [
-                                    e
-                                    for e in edges.columns
-                                    if e not in ["start_id", "end_id"]
+                                    e for e in edges.columns if e not in id_map.values()
                                 ]
-                                edges.insert(0, "start_v_label", list(id_map.keys())[0])
-                                edges.insert(0, "end_v_label", list(id_map.keys())[1])
+                                start_v_label = list(id_map.keys())[0]
+                                end_v_label = list(id_map.keys())[1]
+                                edges.insert(0, "start_v_label", start_v_label)
+                                edges.insert(0, "end_v_label", end_v_label)
+                                edges.rename(
+                                    columns={
+                                        id_map[start_v_label]: "start_id",
+                                        id_map[end_v_label]: "end_id",
+                                    },
+                                    inplace=True,
+                                )
                                 await self.createEdges(
                                     edges=edges,
                                     edge_type=src_table,

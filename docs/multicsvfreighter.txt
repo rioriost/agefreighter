@@ -22,13 +22,13 @@ CLASSES
      |  __init__(self)
      |      Initialize the AgeFreighter object.
      |  
-     |  async load(self, vertex_csvs: list = [], vertex_labels: list = [], edge_csvs: list = [], edge_types: list = [], graph_name: str = '', chunk_size: int = 128, direct_loading: bool = False, create_graph: bool = True, use_copy: bool = True, **kwargs) -> None
+     |  async load(self, vertex_csv_paths: list = [], vertex_labels: list = [], edge_csv_paths: list = [], edge_types: list = [], graph_name: str = '', chunk_size: int = 128, direct_loading: bool = False, create_graph: bool = True, use_copy: bool = True, **kwargs) -> None
      |      Load data from multiple CSV files.
      |      
      |      Args:
-     |          vertex_csvs (list): The paths to the vertex CSV files.
+     |          vertex_csv_paths (list): The paths to the vertex CSV files.
      |          vertex_labels (list): The labels of the vertices.
-     |          edge_csvs (list): The paths to the edge CSV files.
+     |          edge_csv_paths (list): The paths to the edge CSV files.
      |          edge_types (list): The types of the edges.
      |          graph_name (str): The name of the graph to load the data into.
      |          chunk_size (int): The size of the chunks to create.
@@ -254,6 +254,9 @@ CLASSES
      |      Returns:
      |          dict: The ID maps.
      |  
+     |  async load_multi(self) -> None
+     |      Dummy method for loading data.
+     |  
      |  processChunkDirectly(self, chunk: pandas.core.frame.DataFrame, query: str = '', edge_props: list = [], id_maps: list = []) -> list
      |      Process a chunk of data directly.
      |      
@@ -317,7 +320,7 @@ CLASSES
      |  
      |  name = 'AgeFreighter'
      |  
-     |  version = '0.6.0'
+     |  version = '0.6.1'
 
 DATA
     log = <Logger multicsvfreighter (WARNING)>

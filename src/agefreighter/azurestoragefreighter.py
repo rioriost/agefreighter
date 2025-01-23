@@ -1,6 +1,7 @@
 from agefreighter import AgeFreighter
 from psycopg_pool import AsyncConnectionPool
 import sys
+import warnings
 import logging
 
 log = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ class AzureStorageFreighter(AgeFreighter):
 
     async def load(
         self,
-        csv: str = "",
+        csv_path: str = "",
         start_v_label: str = "",
         start_id: str = "",
         start_props: list = [],
@@ -46,7 +47,7 @@ class AzureStorageFreighter(AgeFreighter):
         Load a graph data to the PostgreSQL Flex with Azure Storage.
 
         Args:
-            csv (str): CSV file path
+            csv_path (str): CSV file path
             start_v_label (str): Start Vertex Label
             start_id (str): Start Vertex ID
             start_props (list): Start Vertex Properties
@@ -55,6 +56,168 @@ class AzureStorageFreighter(AgeFreighter):
             end_v_label (str): End Vertex Label
             end_id (str): End Vertex ID
             end_props (list): End Vertex Properties
+            graph_name (str): The name of the graph to load the data into.
+            chunk_size (int): The size of the chunks to create.
+            direct_loading (bool): Whether to load the data directly.
+            create_graph (bool): Whether to create the graph.
+            use_copy (bool): Whether to use the COPY protocol to load the data.
+
+        Keyword Args:
+            subscription_id (str): Azure Subscription ID
+        """
+        log.debug("Loading data from Azure Storage")
+
+        if "csv" in kwargs.keys():
+            warnings.warn(
+                "The 'csv' parameter is deprecated. Please use 'csv_path' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            csv_path = kwargs["csv"]
+
+        CHUNK_MULTIPLIER = 10000
+        TBL_FROM_STORAGE = "table_from_azure_storage"
+        TBL_ID_MAP_S = "table_id_map_s"
+        TBL_ID_MAP_E = "table_id_map_e"
+
+        # optional
+        if "subscription_id" in kwargs.keys():
+            if self.isValidAzureSubscriptionID(kwargs["subscription_id"]):
+                self.subscription_id = kwargs["subscription_id"]
+            else:
+                log.error("Invalid Azure Subscription ID.")
+                return
+
+        if self.subscription_id == "":
+            print("Finding Subscription ID...")
+            if not self.findAzureSubscriptionID():
+                log.error("Azure Subscription ID is not set.")
+                return
+
+        if not await self.setParameters():
+            log.error("Parameters are not set.")
+            return
+
+        # Enable Azure Storage extension
+        print("Enabling extension...")
+        ae = AzureExtensions(
+            subscription_id=self.subscription_id,
+            resource_group_name=self.resource_group_name,
+            pg_server_name=self.pg_server_name,
+            extensions=["azure_storage"],
+            pool=self.pool,
+        )
+        ae.enable()
+        await ae.create()
+
+        # Create a Storage Account and a Blob Container, and attach it to the PostgreSQL Flex
+        print("Creating storage account...")
+        sa = StorageAccount(
+            subscription_id=self.subscription_id,
+            resource_group_name=self.resource_group_name,
+            location=self.location,
+            pool=self.pool,
+        )
+        sa.create()
+        self.storage_account_name = sa.storage_account_name
+        self.blob_container_name = sa.blob_container_name
+        self.access_key = sa.access_key
+        await sa.attach()
+
+        # Upload a CSV file to the blob container
+        print("Uploading file...")
+        bl = BlobUploader(
+            storage_account_name=self.storage_account_name,
+            blob_container_name=self.blob_container_name,
+            access_key=self.access_key,
+            file_path=csv_path,
+            lines_per_chunk=chunk_size * CHUNK_MULTIPLIER,
+        )
+        await bl.upload()
+
+        # Check if the columns contain arguments
+        self.checkKeys(
+            columns_in_csv=bl.columns_in_csv,
+            columns_in_args=[
+                start_id,
+                *start_props,
+                *edge_props,
+                end_id,
+                *end_props,
+            ],
+        )
+
+        # Create temporary tables
+        # They're named 'temp', but not the persistent tables.
+        print("Creating temporary tables...")
+        tt = TempTables(
+            tbl_from_storage=TBL_FROM_STORAGE,
+            columns_in_csv=bl.columns_in_csv,
+            tbl_id_map_s=TBL_ID_MAP_S,
+            tbl_id_map_e=TBL_ID_MAP_E,
+            pool=self.pool,
+        )
+        await tt.create()
+
+        # Load the data from the Azure Storage to the temporary table
+        print("Loading files to temporary table...")
+        sl = StorageLoader(
+            file_list=bl.file_list,
+            total_lines=bl.total_lines,
+            storage_account_name=self.storage_account_name,
+            blob_container_name=self.blob_container_name,
+            table_name=TBL_FROM_STORAGE,
+            columns_in_csv=bl.columns_in_csv,
+            columns_in_tbl_from_storage=tt.columns_in_tbl_from_storage,
+            pool=self.pool,
+        )
+        await sl.load()
+
+        # start to create a graph
+        print("Creating a graph...")
+        await self.setUpGraph(graph_name=graph_name, create_graph=create_graph)
+        await self.createLabelType(label_type="vertex", value=start_v_label)
+        await self.createLabelType(label_type="vertex", value=end_v_label)
+        await self.createLabelType(label_type="edge", value=edge_type)
+
+        gl = GraphLoader(
+            tbl_from_storage=TBL_FROM_STORAGE,
+            total_lines=bl.total_lines,
+            tbl_id_map_s=TBL_ID_MAP_S,
+            tbl_id_map_e=TBL_ID_MAP_E,
+            start_v_label=start_v_label,
+            start_id=start_id,
+            start_props=start_props,
+            edge_type=edge_type,
+            edge_props=edge_props,
+            end_v_label=end_v_label,
+            end_id=end_id,
+            end_props=end_props,
+            graph_name=graph_name,
+            records_per_thread=chunk_size * CHUNK_MULTIPLIER,
+            pool=self.pool,
+        )
+        await gl.load()
+
+        await tt.delete()  # it should be implemented in __del__
+        await self.close()
+        print("Creating a graph: Done!")
+
+    async def load_multi(
+        self,
+        vertex_args: list = [],
+        edge_args: list = [],
+        graph_name: str = "",
+        chunk_size: int = 128,
+        create_graph: bool = True,
+        **kwargs,
+    ):
+        """
+        Load a graph data to the PostgreSQL Flex with Azure Storage.
+
+        Args:
+            vertex_args (list): List of dictionary for vertex definitions
+            edge_args (list): List of dictionary for edge definitions
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
             direct_loading (bool): Whether to load the data directly.
@@ -797,9 +960,9 @@ class GraphLoader:
                 self.pool,
                 f"""
                 INSERT INTO "{self.graph_name}"."{self.start_v_label}" (properties)
-                    SELECT format('{{"id":"%s", {start_props_formatted}}}', "{self.start_id}", {','.join([f'"{start_prop}"' for start_prop in self.start_props])})::agtype
+                    SELECT format('{{"id":"%s", {start_props_formatted}}}', "{self.start_id}", {",".join([f'"{start_prop}"' for start_prop in self.start_props])})::agtype
                     FROM (
-                        SELECT DISTINCT {','.join([f'"{item}"' for item in [self.start_id] + self.start_props])}
+                        SELECT DISTINCT {",".join([f'"{item}"' for item in [self.start_id] + self.start_props])}
                         FROM {self.tbl_from_storage}
                         OFFSET {offset} LIMIT {self.records_per_thread}
                     ) AS distinct_s;
@@ -821,9 +984,9 @@ class GraphLoader:
                 self.pool,
                 f"""
                 INSERT INTO "{self.graph_name}"."{self.end_v_label}" (properties)
-                    SELECT format('{{"id":"%s", {end_props_formatted}}}', "{self.end_id}", {','.join([f'"{end_prop}"' for end_prop in self.end_props])})::agtype
+                    SELECT format('{{"id":"%s", {end_props_formatted}}}', "{self.end_id}", {",".join([f'"{end_prop}"' for end_prop in self.end_props])})::agtype
                     FROM (
-                        SELECT DISTINCT {','.join([f'"{item}"' for item in [self.end_id] + self.end_props])}
+                        SELECT DISTINCT {",".join([f'"{item}"' for item in [self.end_id] + self.end_props])}
                         FROM {self.tbl_from_storage}
                         OFFSET {offset} LIMIT {self.records_per_thread}
                     ) AS distinct_e;
@@ -863,10 +1026,10 @@ class GraphLoader:
             self.executeQuery(
                 self.pool,
                 f"""
-                INSERT INTO "{self.graph_name}"."{self.edge_type}" (start_id, end_id{', properties' if self.edge_props else ''})
-                SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid {prop_vals if self.edge_props else ''}
+                INSERT INTO "{self.graph_name}"."{self.edge_type}" (start_id, end_id{", properties" if self.edge_props else ""})
+                SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid {prop_vals if self.edge_props else ""}
                 FROM (
-                    SELECT "{self.start_id}", "{self.end_id}" {prop_cols if self.edge_props else ''}
+                    SELECT "{self.start_id}", "{self.end_id}" {prop_cols if self.edge_props else ""}
                     FROM {self.tbl_from_storage}
                     OFFSET {offset} LIMIT {self.records_per_thread}
                 ) AS af
@@ -887,6 +1050,104 @@ class GraphLoader:
                 f'CREATE INDEX ON "{self.graph_name}"."{self.end_v_label}" USING BTREE (id);',
                 f'CREATE INDEX ON "{self.graph_name}"."{self.edge_type}" USING BTREE (start_id);',
                 f'CREATE INDEX ON "{self.graph_name}"."{self.edge_type}" USING BTREE (end_id);',
+            ]
+        ]
+        await asyncio.gather(*tasks)
+
+    async def loadVertices(
+        self,
+        vertex_label: str = "",
+        vertex_id: str = "",
+        vertex_props: list = [],
+        tbl_id_map: str = "",
+    ) -> None:
+        """
+        Load a graph data from the Temporary Table
+        """
+        log.info(f"Creating graph from table, '{self.tbl_from_storage}'...")
+        import asyncio
+
+        first_id_s = await self.getFirstId(
+            graph_name=self.graph_name, label_type=vertex_label
+        )
+        props_formatted = ",".join([f'"{prop}":"%s"' for prop in vertex_props])
+
+        log.info("Creating start vertices...")
+        tasks = [
+            self.executeQuery(
+                self.pool,
+                f"""
+                INSERT INTO "{self.graph_name}"."{vertex_label}" (properties)
+                    SELECT format('{{"id":"%s", {props_formatted}}}', "{vertex_id}", {",".join([f'"{prop}"' for prop in vertex_props])})::agtype
+                    FROM (
+                        SELECT DISTINCT {",".join([f'"{item}"' for item in [vertex_id] + vertex_props])}
+                        FROM {self.tbl_from_storage}
+                        OFFSET {offset} LIMIT {self.records_per_thread}
+                    ) AS distinct_s;
+                INSERT INTO {self.tbl_id_map} (entryID, id)
+                    SELECT distinct_s."{vertex_id}", {first_id_s} + {offset} + ROW_NUMBER() OVER () - 1
+                    FROM (
+                        SELECT DISTINCT "{vertex_id}"
+                        FROM {self.tbl_from_storage}
+                        OFFSET {offset} LIMIT {self.records_per_thread}
+                    ) AS distinct_s;""",
+            )
+            for offset in range(0, self.total_lines, self.records_per_thread)
+        ]
+        await asyncio.gather(*tasks)
+
+        log.info("Creating indexes for graph...")
+        tasks = [
+            self.executeQuery(self.pool, query)
+            for query in [
+                f"CREATE INDEX ON {self.tbl_id_map} USING BTREE (entryID);",
+                f'CREATE INDEX ON "{self.graph_name}"."{vertex_label}" USING GIN (properties);',
+                f'CREATE INDEX ON "{self.graph_name}"."{vertex_label}" USING BTREE (id);',
+            ]
+        ]
+        await asyncio.gather(*tasks)
+
+    async def loadEdges(self, type: str = "", props: list = []) -> None:
+        """
+        Load a graph data from the Temporary Table
+        """
+        log.info(f"Creating graph from table, '{self.tbl_from_storage}'...")
+        import asyncio
+
+        log.info("Creating edges...")
+        if props:
+            prop_cols = "," + ",".join([f'"{prop}"' for prop in props])
+            prop_vals = (
+                ", format('{"
+                + ",".join([f'"{prop}":"%s"' for prop in props])
+                + "}', "
+                + ",".join([f'af."{prop}"' for prop in props])
+                + ")::agtype"
+            )
+        tasks = [
+            self.executeQuery(
+                self.pool,
+                f"""
+                INSERT INTO "{self.graph_name}"."{type}" (start_id, end_id{", properties" if props else ""})
+                SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid {prop_vals if props else ""}
+                FROM (
+                    SELECT "{self.start_id}", "{self.end_id}" {prop_cols if props else ""}
+                    FROM {self.tbl_from_storage}
+                    OFFSET {offset} LIMIT {self.records_per_thread}
+                ) AS af
+                JOIN {self.tbl_id_map_s} AS s_map ON af."{self.start_id}" = s_map.entryID
+                JOIN {self.tbl_id_map_e} AS e_map ON af."{self.end_id}" = e_map.entryID;""",
+            )
+            for offset in range(0, self.total_lines, self.records_per_thread)
+        ]
+        await asyncio.gather(*tasks)
+
+        log.info("Creating indexes for graph...")
+        tasks = [
+            self.executeQuery(self.pool, query)
+            for query in [
+                f'CREATE INDEX ON "{self.graph_name}"."{type}" USING BTREE (start_id);',
+                f'CREATE INDEX ON "{self.graph_name}"."{type}" USING BTREE (end_id);',
             ]
         ]
         await asyncio.gather(*tasks)

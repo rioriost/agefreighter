@@ -1,5 +1,6 @@
 from agefreighter import AgeFreighter
 
+import warnings
 import logging
 
 log = logging.getLogger(__name__)
@@ -20,9 +21,9 @@ class MultiCSVFreighter(AgeFreighter):
 
     async def load(
         self,
-        vertex_csvs: list = [],
+        vertex_csv_paths: list = [],
         vertex_labels: list = [],
-        edge_csvs: list = [],
+        edge_csv_paths: list = [],
         edge_types: list = [],
         graph_name: str = "",
         chunk_size: int = 128,
@@ -35,9 +36,9 @@ class MultiCSVFreighter(AgeFreighter):
         Load data from multiple CSV files.
 
         Args:
-            vertex_csvs (list): The paths to the vertex CSV files.
+            vertex_csv_paths (list): The paths to the vertex CSV files.
             vertex_labels (list): The labels of the vertices.
-            edge_csvs (list): The paths to the edge CSV files.
+            edge_csv_paths (list): The paths to the edge CSV files.
             edge_types (list): The types of the edges.
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
@@ -51,10 +52,26 @@ class MultiCSVFreighter(AgeFreighter):
         log.debug("Loading data from multiple CSV files")
         import pandas as pd
 
+        if "vertex_csvs" in kwargs.keys():
+            warnings.warn(
+                "The 'vertex_csvs' parameter is deprecated. Please use 'vertex_csv_paths' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            vertex_csv_paths = kwargs["vertex_csvs"]
+
+        if "edge_csvs" in kwargs.keys():
+            warnings.warn(
+                "The 'edge_csvs' parameter is deprecated. Please use 'edge_csv_paths' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            edge_csv_paths = kwargs["edge_csvs"]
+
         CHUNK_MULTIPLIER = 10000
 
         await self.setUpGraph(graph_name=graph_name, create_graph=create_graph)
-        for vertex_csv, vertex_label in zip(vertex_csvs, vertex_labels):
+        for vertex_csv, vertex_label in zip(vertex_csv_paths, vertex_labels):
             first_chunk = True
             reader = pd.read_csv(vertex_csv, chunksize=chunk_size * CHUNK_MULTIPLIER)
             for vertices in reader:
@@ -76,7 +93,7 @@ class MultiCSVFreighter(AgeFreighter):
                     use_copy=use_copy,
                 )
 
-        for edge_csv, edge_type in zip(edge_csvs, edge_types):
+        for edge_csv, edge_type in zip(edge_csv_paths, edge_types):
             first_chunk = True
             reader = pd.read_csv(edge_csv, chunksize=chunk_size * CHUNK_MULTIPLIER)
             for edges in reader:

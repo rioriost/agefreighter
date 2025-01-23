@@ -22,11 +22,11 @@ CLASSES
      |  __init__(self)
      |      Initialize the AgeFreighter object.
      |  
-     |  async load(self, source_avro: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', chunk_size: int = 128, direct_loading: bool = False, create_graph: bool = False, use_copy: bool = True, **kwargs) -> None
+     |  async load(self, avro_path: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', chunk_size: int = 128, direct_loading: bool = False, create_graph: bool = False, use_copy: bool = True, **kwargs) -> None
      |      Load data from an Avro file.
      |      
      |      Args:
-     |          source_avro (str): The path to the Avro file.
+     |          avro_path (str): The path to the Avro file.
      |          start_v_label (str): The label of the start vertex.
      |          start_id (str): The ID of the start vertex.
      |          start_props (list): The properties of the start vertex.
@@ -272,6 +272,9 @@ CLASSES
      |      Returns:
      |          dict: The ID maps.
      |  
+     |  async load_multi(self) -> None
+     |      Dummy method for loading data.
+     |  
      |  processChunkDirectly(self, chunk: pandas.core.frame.DataFrame, query: str = '', edge_props: list = [], id_maps: list = []) -> list
      |      Process a chunk of data directly.
      |      
@@ -335,7 +338,7 @@ CLASSES
      |  
      |  name = 'AgeFreighter'
      |  
-     |  version = '0.6.0'
+     |  version = '0.6.1'
 
 DATA
     log = <Logger avrofreighter (WARNING)>

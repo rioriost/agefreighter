@@ -1,5 +1,6 @@
 from .agefreighter import AgeFreighter, Factory
 
+from .azurestoragefreighter import AzureStorageFreighter
 from .avrofreighter import AvroFreighter
 from .cosmosgremlinfreighter import CosmosGremlinFreighter
 from .csvfreighter import CSVFreighter

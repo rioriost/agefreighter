@@ -195,7 +195,11 @@ class CosmosGremlinFreighter(AgeFreighter):
                     "end_id": record["end"]["properties"][id_map[end_v_label]][0][
                         "value"
                     ],
-                    **record["edge"]["properties"],
+                    **(
+                        record["edge"].get("properties", {})
+                        if "properties" in record["edge"]
+                        else {}
+                    ),
                 }
                 for record in records
             ]

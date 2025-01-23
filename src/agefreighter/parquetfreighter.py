@@ -1,5 +1,6 @@
 from agefreighter import AgeFreighter
 
+import warnings
 import logging
 
 log = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class ParquetFreighter(AgeFreighter):
 
     async def load(
         self,
-        source_parquet: str = "",
+        parquet_path: str = "",
         start_v_label: str = "",
         start_id: str = "",
         start_props: list = [],
@@ -40,7 +41,7 @@ class ParquetFreighter(AgeFreighter):
         Load data from a Parquet file.
 
         Args:
-            source_parquet (str): The path to the Parquet file.
+            parquet_path (str): The path to the Parquet file.
             start_v_label (str): The label of the start vertex.
             start_id (str): The ID of the start vertex.
             start_props (list): The properties of the start vertex.
@@ -61,9 +62,17 @@ class ParquetFreighter(AgeFreighter):
         log.debug("Loading data from a Parquet file")
         from pyarrow.parquet import ParquetFile
 
+        if "source_parquet" in kwargs.keys():
+            warnings.warn(
+                "The 'source_parquet' parameter is deprecated. Please use 'parquet_path' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            parquet_path = kwargs["source_parquet"]
+
         CHUNK_MULTIPLIER = 10000
 
-        pf = ParquetFile(source_parquet)
+        pf = ParquetFile(parquet_path)
         first_chunk = True
         existing_node_ids = []
 

@@ -61,7 +61,7 @@ class AgeFreighter:
     """
 
     name = "AgeFreighter"
-    version = "0.6.0"
+    version = "0.6.1"
     author = "Rio Fujita"
 
     def __init__(self):
@@ -144,6 +144,12 @@ class AgeFreighter:
             log.error(f"Error: {e}, in {sys._getframe().f_code.co_name}.")
 
     async def load(self) -> None:
+        """
+        Dummy method for loading data.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    async def load_multi(self) -> None:
         """
         Dummy method for loading data.
         """
@@ -569,7 +575,7 @@ class AgeFreighter:
                 axis=1,
             ).tolist()
             args.append(
-                f"INSERT INTO {graph_name}.\"{label}\" (properties) VALUES {','.join(values)};"
+                f'INSERT INTO {graph_name}."{label}" (properties) VALUES {",".join(values)};'
             )
         await self.executeWithTasks(self.executeQuery, args)
 

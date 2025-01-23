@@ -1,5 +1,6 @@
 from agefreighter import AgeFreighter
 
+import warnings
 import logging
 
 log = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class CSVFreighter(AgeFreighter):
 
     async def load(
         self,
-        csv: str = "",
+        csv_path: str = "",
         start_v_label: str = "",
         start_id: str = "",
         start_props: list = [],
@@ -40,7 +41,7 @@ class CSVFreighter(AgeFreighter):
         Load data from a single CSV file.
 
         Args:
-            csv (str): The path to the CSV file.
+            csv_path (str): The path to the CSV file.
             start_v_label (str): The label of the start vertex.
             start_id (str): The ID of the start vertex.
             start_props (list): The properties of the start vertex.
@@ -61,11 +62,19 @@ class CSVFreighter(AgeFreighter):
         log.debug("Loading data from a single CSV file")
         import pandas as pd
 
+        if "csv" in kwargs.keys():
+            warnings.warn(
+                "The 'csv' parameter is deprecated. Please use 'csv_path' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            csv_path = kwargs["csv"]
+
         CHUNK_MULTIPLIER = 10000
 
         existing_node_ids = []
         first_chunk = True
-        reader = pd.read_csv(csv, chunksize=chunk_size * CHUNK_MULTIPLIER)
+        reader = pd.read_csv(csv_path, chunksize=chunk_size * CHUNK_MULTIPLIER)
         for df in reader:
             await self.createGraphFromDataFrame(
                 graph_name=graph_name,

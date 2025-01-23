@@ -22,11 +22,11 @@ CLASSES
      |  __init__(self)
      |      Initialize the AgeFreighter object.
      |  
-     |  async load(self, csv: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', chunk_size: int = 128, direct_loading: bool = False, create_graph: bool = False, use_copy: bool = True, **kwargs) -> None
+     |  async load(self, csv_path: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', chunk_size: int = 128, direct_loading: bool = False, create_graph: bool = False, use_copy: bool = True, **kwargs) -> None
      |      Load data from a single CSV file.
      |      
      |      Args:
-     |          csv (str): The path to the CSV file.
+     |          csv_path (str): The path to the CSV file.
      |          start_v_label (str): The label of the start vertex.
      |          start_id (str): The ID of the start vertex.
      |          start_props (list): The properties of the start vertex.
@@ -259,6 +259,9 @@ CLASSES
      |      Returns:
      |          dict: The ID maps.
      |  
+     |  async load_multi(self) -> None
+     |      Dummy method for loading data.
+     |  
      |  processChunkDirectly(self, chunk: pandas.core.frame.DataFrame, query: str = '', edge_props: list = [], id_maps: list = []) -> list
      |      Process a chunk of data directly.
      |      
@@ -322,7 +325,7 @@ CLASSES
      |  
      |  name = 'AgeFreighter'
      |  
-     |  version = '0.6.0'
+     |  version = '0.6.1'
 
 DATA
     log = <Logger csvfreighter (WARNING)>

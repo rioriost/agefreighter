@@ -13,7 +13,7 @@ logging.basicConfig(
 
 class AgeFreighterTester:
     name = "AgeFreighterTester"
-    version = "0.6.0"
+    version = "0.6.1"
     author = "Rio Fujita"
 
     @classmethod
@@ -66,79 +66,98 @@ class AgeFreighterTester:
         self.direct_loading = direct_loading
         self.use_copy = use_copy
 
-        if cls["type"] == "actorfilms":
+        # single source / differenct types of nodes
+        if cls["type"] == "transaction":
             self.params = {
-                "graph_name": "AgeTester",
-                "start_v_label": "Actor",
-                "start_id": "ActorID",
-                "start_props": ["Actor"],
-                "edge_type": "ACTED_IN",
-                "edge_props": ["Genre", "Director"],
-                "end_v_label": "Film",
-                "end_id": "FilmID",
-                "end_props": ["Film", "Year", "Votes", "Rating"],
-                "csv": f"{self.data_dir}actorfilms2.csv",
-                "id_map": {
-                    "Actor": "ActorID",
-                    "Film": "FilmID",
-                },
-            }
-            self.expected_results = {
-                "vertices": {"Actor": 9623, "Film": 44456},
-                "edges": {"ACTED_IN": 191873},
-            }
-        elif cls["type"] == "citiescountries":
-            self.params = {
-                "vertex_csvs": [
-                    f"{self.data_dir}countries.csv",
-                    f"{self.data_dir}cities.csv",
-                ],
-                "vertex_labels": ["Country", "City"],
-                "edge_csvs": [f"{self.data_dir}edges2.csv"],
-                "edge_types": ["has_city"],
-                "graph_name": "AgeTester",
-            }
-            self.expected_results = {
-                "vertices": {"Country": 53, "City": 72485},
-                "edges": {"has_city": 72485},
-            }
-        elif cls["type"] == "large_transactions":
-            self.params = {
-                "graph_name": "AgeTester",
+                "graph_name": "Transaction",
                 "start_v_label": "Customer",
-                "start_id": "start_id",
-                "start_props": ["name", "address", "email", "phone"],
-                "edge_type": "TRANSACTION",
+                "start_id": "CustomerID",
+                "start_props": [
+                    "Name",
+                    "Address",
+                    "Email",
+                    "Phone",
+                ],
+                "edge_type": "BOUGHT",
                 "edge_props": [],
                 "end_v_label": "Product",
-                "end_id": "end_id",
-                "end_props": ["description", "SKU", "price", "Color", "Size", "Weight"],
-                "csv": f"{self.data_dir}transactions.csv",
+                "end_id": "ProductID",
+                "end_props": ["Phrase", "SKU", "Price", "Color", "Size", "Weight"],
+                "csv_path": f"{self.data_dir}transaction/customer_product_bought.csv",
                 "id_map": {
-                    "Customer": "start_id",
-                    "Product": "end_id",
+                    "Customer": "CustomerID",
+                    "Product": "ProductID",
                 },
             }
             self.expected_results = {
-                "vertices": {"Customer": 10000000, "Product": 9999},
-                "edges": {"TRANSACTION": 25000604},
+                "vertices": {"Customer": 8679, "Product": 1000},
+                "edges": {"BOUGHT": 20000},
             }
-        elif cls["type"] == "small_transactions":
+        # multiple sources / different types of nodes
+        elif cls["type"] == "countries":
+            self.params = {
+                "vertex_csv_paths": [
+                    f"{self.data_dir}countries/country.csv",
+                    f"{self.data_dir}countries/city.csv",
+                ],
+                "vertex_labels": ["Country", "City"],
+                "edge_csv_paths": [f"{self.data_dir}countries/has_country_city.csv"],
+                "edge_types": ["has"],
+                "graph_name": "Countries",
+            }
+            self.expected_results = {
+                "vertices": {"Country": 200, "City": 10000},
+                "edges": {"has": 10000},
+            }
+        # multiple sources / single type of nodes
+        elif cls["type"] == "airroute":
+            self.params = {
+                "vertex_csv_paths": [
+                    f"{self.data_dir}airroute/airport.csv",
+                ],
+                "vertex_labels": ["AirPort"],
+                "edge_csv_paths": [
+                    f"{self.data_dir}airroute/airroute_airport_airport.csv"
+                ],
+                "edge_types": ["ROUTE"],
+                "edge_props": ["distance"],
+                "graph_name": "AirRoute",
+            }
+            self.expected_results = {
+                "vertices": {"AirPort": 3500},
+                "edges": {"ROUTE": 20000},
+            }
+        elif cls["type"] == "payment_small":
             self.params = {
                 "graph_name": "AgeTester",
-                "start_v_label": "Customer",
-                "start_id": "start_id",
-                "start_props": ["name", "address", "email", "phone"],
-                "edge_type": "TRANSACTION",
-                "edge_props": ["Prop1", "Prop2"],
-                "end_v_label": "Product",
-                "end_id": "end_id",
-                "end_props": ["desc", "SKU", "price", "Color", "Size", "Weight"],
-                "csv": f"{self.data_dir}transactions_small.csv",
-                "id_map": {
-                    "Customer": "start_id",
-                    "Product": "end_id",
-                },
+                "vertex_args": [
+                    {
+                        "csv_path": f"{self.data_dir}",
+                        "label": "Phone",
+                        "id": "phone_id",
+                        "props": ["name", "address", "email", "phone"],
+                    },
+                    {
+                        "csv_path": f"{self.data_dir}",
+                        "label": "Email",
+                        "id": "email_id",
+                        "props": ["name", "address", "email", "phone"],
+                    },
+                ],
+                "edge_args": [
+                    {
+                        "csv_path": f"{self.data_dir}",
+                        "type": "UsedIn",
+                        "id": "phone_id",
+                        "props": ["name", "address", "email", "phone"],
+                    },
+                    {
+                        "csv_path": f"{self.data_dir}",
+                        "label": "UsedBy",
+                        "id": "email_id",
+                        "props": ["name", "address", "email", "phone"],
+                    },
+                ],
             }
             self.expected_results = {
                 "vertices": {"Customer": 10000, "Product": 9119},
@@ -154,7 +173,9 @@ class AgeFreighterTester:
         # Additional parameters for each freighter class
         # for Python 3.9
         if cls["name"] == "AvroFreighter":
-            self.params["source_avro"] = f"{self.data_dir}actorfilms2.avro"
+            self.params["avro_path"] = (
+                f"{self.data_dir}transaction/customer_product_bought.avro"
+            )
         if cls["name"] == "CosmosGremlinFreighter":
             try:
                 self.params["cosmos_gremlin_endpoint"] = os.environ[
@@ -166,7 +187,7 @@ class AgeFreighterTester:
                     "Please set the environment variables COSMOS_GREMLIN_ENDPOINT / COSMOS_GREMLIN_KEY"
                 )
                 raise KeyError
-            self.params["cosmos_username"] = "/dbs/db1/colls/actorfilms2"
+            self.params["cosmos_username"] = "/dbs/db1/colls/transaction"
             self.params["cosmos_pkey"] = "pk"
         if cls["name"] == "Neo4jFreighter":
             try:
@@ -181,10 +202,12 @@ class AgeFreighterTester:
                 raise KeyError
         if cls["name"] == "NetworkXFreighter":
             self.params["networkx_graph"] = pickle.load(
-                open(f"{self.data_dir}actorfilms2.pickle", "rb")
+                open(f"{self.data_dir}transaction/customer_product_bought.pickle", "rb")
             )
         if cls["name"] == "ParquetFreighter":
-            self.params["source_parquet"] = f"{self.data_dir}actorfilms2.parquet"
+            self.params["parquet_path"] = (
+                f"{self.data_dir}transaction/customer_product_bought.parquet"
+            )
         if cls["name"] == "PGFreighter":
             try:
                 self.params["source_pg_con_string"] = os.environ[
@@ -194,9 +217,9 @@ class AgeFreighterTester:
                 print("Please set the environment variable SRC_PG_CONNECTION_STRING")
                 raise KeyError
             self.params["source_tables"] = {
-                "start": "Actor",
-                "end": "Film",
-                "edges": "ACTED_IN",
+                "start": "Customer",
+                "end": "Product",
+                "edges": "BOUGHT",
             }
 
     async def do_test(self) -> dict:
@@ -338,22 +361,27 @@ async def main():
     log.info(f"AgeFreighter version: {AgeFreighter.get_version()}")
 
     target_classes = [
-        {"name": "AzureStorageFreighter", "type": "small_transactions", "do": True},
-        {"name": "AvroFreighter", "type": "actorfilms", "do": True},
-        {"name": "CosmosGremlinFreighter", "type": "actorfilms", "do": True},
-        {"name": "CSVFreighter", "type": "actorfilms", "do": True},
-        {"name": "MultiCSVFreighter", "type": "citiescountries", "do": True},
-        {"name": "Neo4jFreighter", "type": "actorfilms", "do": True},
-        {"name": "NetworkXFreighter", "type": "actorfilms", "do": True},
-        {"name": "ParquetFreighter", "type": "actorfilms", "do": True},
-        {"name": "PGFreighter", "type": "actorfilms", "do": True},
+        {"name": "AzureStorageFreighter", "type": "transaction", "do": True},
+        {"name": "MultiAzureStorageFreighter", "type": "payment_large", "do": False},
+        {"name": "AvroFreighter", "type": "transaction", "do": False},
+        {"name": "CosmosGremlinFreighter", "type": "transaction", "do": False},
+        {"name": "CSVFreighter", "type": "transaction", "do": False},
+        {"name": "MultiCSVFreighter", "type": "countries", "do": False},
+        {"name": "MultiCSVFreighter", "type": "airroute", "do": False},
+        {"name": "Neo4jFreighter", "type": "transaction", "do": False},
+        {"name": "NetworkXFreighter", "type": "transaction", "do": False},
+        {"name": "ParquetFreighter", "type": "transaction", "do": False},
+        {"name": "PGFreighter", "type": "transaction", "do": False},
     ]
     chunk_size = 96
     all_results = []
     for cls in target_classes:
         if cls["do"]:
             # AzureStorageFreighter ignores direct_loading and use_copy
-            if cls["name"] == "AzureStorageFreighter":
+            if (
+                cls["name"] == "AzureStorageFreighter"
+                or cls["name"] == "MultiAzureStorageFreighter"
+            ):
                 test_flags = [[chunk_size, False, False]]
             else:
                 test_flags = [

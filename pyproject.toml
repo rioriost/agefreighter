@@ -3,29 +3,26 @@ name = "agefreighter"
 authors = [
     {name = "Rio Fujita", email = "rifujita@microsoft.com"},
 ]
-version = "0.6.0"
+version = "0.6.1"
 license = {file = "LICENSE"}
 description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.9.21"
 dependencies = [
     "asyncio>=3.4.3",
-    "fastavro>=1.9.7",
-    "gremlinpython>=3.7.3",
-    "neo4j>=5.27.0",
-    "networkx>=3.2.1",
-    "numpy>=2.0.2",
-    "pandas>=2.2.3",
-    "psycopg>=3.2.3",
-    "psycopg-pool>=3.2.4",
-    "pyarrow>=18.1.0",
-    "resource>=0.2.1",
-    "typing-extensions>=4.12.2",
-    "nest-asyncio>=1.6.0",
     "azure-identity>=1.19.0",
     "azure-mgmt-postgresqlflexibleservers>=1.0.0",
-    "azure-mgmt-storage>=21.2.1",
+    "azure-mgmt-storage>=22.0.0",
     "azure-storage-blob>=12.24.0",
+    "fastavro>=1.10.0",
+    "gremlinpython>=3.7.3",
+    "neo4j>=5.27.0",
+    "nest-asyncio>=1.6.0",
+    "networkx>=3.2.1",
+    "pandas>=2.2.3",
+    "psycopg>=3.2.4",
+    "psycopg-pool>=3.2.4",
+    "pyarrow>=19.0.0",
 ]
 
 [tool.uv.workspace]
@@ -44,10 +41,11 @@ include = [
   "src/agefreighter/*.py",
   "/tests",
   "/docs",
+  "/data",
 ]
 exclude = [
+  "/data/payment_*",
   "uv.lock",
-  "/data/*",
   "dist/.DS_Store",
 ]
 

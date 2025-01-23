@@ -1,5 +1,6 @@
 from agefreighter import AgeFreighter
 
+import warnings
 import logging
 
 log = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class AvroFreighter(AgeFreighter):
 
     async def load(
         self,
-        source_avro: str = "",
+        avro_path: str = "",
         start_v_label: str = "",
         start_id: str = "",
         start_props: list = [],
@@ -40,7 +41,7 @@ class AvroFreighter(AgeFreighter):
         Load data from an Avro file.
 
         Args:
-            source_avro (str): The path to the Avro file.
+            avro_path (str): The path to the Avro file.
             start_v_label (str): The label of the start vertex.
             start_id (str): The ID of the start vertex.
             start_props (list): The properties of the start vertex.
@@ -61,13 +62,19 @@ class AvroFreighter(AgeFreighter):
         log.debug("Loading data from an Avro file")
         import pandas as pd
 
+        if "source_avro" in kwargs.keys():
+            warnings.warn(
+                "The 'source_avro' parameter is deprecated. Please use 'avro_path' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            avro_path = kwargs["source_avro"]
+
         CHUNK_MULTIPLIER = 10000
 
         first_chunk = True
         existing_node_ids = []
-        for chunk in self.read_avro_in_chunks(
-            source_avro, chunk_size * CHUNK_MULTIPLIER
-        ):
+        for chunk in self.read_avro_in_chunks(avro_path, chunk_size * CHUNK_MULTIPLIER):
             df = pd.DataFrame.from_records(chunk)
             await self.createGraphFromDataFrame(
                 graph_name=graph_name,

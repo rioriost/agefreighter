@@ -8,59 +8,1029 @@ a Python package that helps you to create a graph database using Azure Database 
 
 [Introducing support for Graph data in Azure Database for PostgreSQL (Preview)](https://techcommunity.microsoft.com/blog/adforpostgresql/introducing-support-for-graph-data-in-azure-database-for-postgresql-preview/4275628).
 
-## 0.5.0 Release
-Refactored the code to make it more readable and maintainable with the separated classes for factory model.
-Please note how to use the new version of the package is tottally different from the previous versions.
-
-### 0.5.2 Release -AzureStorageFreighter-
-* AzureStorageFreighter class is used to load data from Azure Storage into the graph database. It's totally different from other classes. The class works as follows:
-  * If the argument, 'subscription_id' is not set, the class tries to find the Azure Subscription ID from your local environment using the 'az' command.
-  * Creates an Azure Storage account and a blob container under the resource group where the PostgreSQL server runs in.
-  * Enables the 'azure_storage' extension in the PostgreSQL server, if it's not enabled.
-  * Uploads the CSV file to the blob container.
-  * Creates a UDF (User Defined Function) named 'load_from_azure_storage' in the PostgreSQL server. The UDF loads data from the Azure Storage into the graph database.
-  * Executes the UDF.
-* The above process takes time to prepare for loading data, making it unsuitable for loading small files, but effective for loading large files. For instance, it takes under 3 seconds to load 'actorfilms.csv' after uploading.
-* However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
-
-### 0.5.3 Release -AzureStorageFreighter-
-* AzureStorageFreighter class is totally refactored for better performance and scalability.
-  * 0.5.2 didn't work well for large files.
-  * Now, it works well for large files.
-    Checked with a 5.4GB CSV file consisting of 10M of start vertices, 10K of end vertices, and 25M edges,
-    it took 512 seconds to load the data into the graph database with PostgreSQL Flex,
-    Standard_D32ds_v4 (32 vcpus, 128 GiB memory) and 512TB / 7500 iops of storage.
-  * Tested data was generated with tests/generate_dummy_data.py.
-  * UDF to load the data to graph is no longer used.
-* However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
-
-### 0.6.0 Release
-* Added edge properties support.
-  * 'edge_props' argument (list) is added to the 'load()' method.
-* 'drop_graph' argument is obsoleted. 'create_graph' argument is added.
-  * 'create_graph' is set to True by default. CAUTION: If the graph already exists, the graph is dropped before loading the data.
-  * If 'create_graph' is False, the data is loaded into the existing graph.
-
-### Features
+## Features
 * Asynchronous connection pool support for psycopg PostgreSQL driver
 * 'direct_loading' option for loading data directly into the graph. If 'direct_loading' is True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries.
 * 'COPY' protocol support for loading data into the graph. If 'use_copy' is True, the data is loaded into the graph using the 'COPY' protocol.
 
-### Classes
-* AzureStorageFreighter
-* AvroFreighter
-* CosmosGremlinFreighter
-* CSVFreighter
-* MultiCSVFreighter
-* Neo4jFreighter
-* NetworkXFreighter
-* ParquetFreighter
-* PGFreighter
+## Prerequisites
+* over Python 3.9
+* This module runs on [psycopg](https://www.psycopg.org/) and [psycopg_pool](https://www.psycopg.org/)
+* Enable the Apache AGE extension in your Azure Database for PostgreSQL instance. Login Azure Portal, go to 'server parameters' blade, and check 'AGE" on within 'azure.extensions' and 'shared_preload_libraries' parameters. See, above blog post for more information.
+* Load the AGE extension in your PostgreSQL database.
 
-### Method
-All the classes have the same load() method. The method loads data into the graph database.
+```sql
+CREATE EXTENSION IF NOT EXISTS age CASCADE;
+```
 
-### Arguments
+## Install
+
+* with python venv
+```bash
+mkdir your_project
+cd your_project
+python3 -m venv .venv
+source .venv/bin/activate
+pip install agefreighter
+```
+
+* with uv
+```bash
+uv init your_project
+cd your_project
+uv venv
+source .venv/bin/activate
+uv add agefreighter
+```
+
+## Usage of CSVFreighter
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("CSVFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+
+    await instance.load(
+        graph_name="Transaction",
+        start_v_label="Customer",
+        start_id="CustomerID",
+        start_props=["Name", "Address", "Email", "Phone"],
+        edge_type="BOUGHT",
+        edge_props=[],
+        end_v_label="Product",
+        end_id="ProductID",
+        end_props=["Phrase", "SKU", "Price", "Color", "Size", "Weight"],
+        csv_path="data/transaction/customer_product_bought.csv",
+        use_copy=True,
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+### File Format for CSVFreighter
+CSVFreighter class loads data from single CSV file. The CSV file should have the following format.
+
+customer_product_bought.csv: The CSV file should have 'id', 'start_vertex_type', 'end_vertex_type', two id columns, 'CustomerID' and 'ProductID' in the following sample, to be used as start and end vertex IDs, and other columns as properties.
+
+```csv
+"id","CustomerID","start_vertex_type","Name","Address","Email","Phone","ProductID","end_vertex_type","Phrase","SKU","Price","Color","Size","Weight"
+"1","1967","Customer","Jeffrey Joyce","26888 Brett Streets Apt. 325 South Meganberg, CA 80228","madison05@example.com","881-538-6881x35597","120","Product","Networked 3rdgeneration data-warehouse","7246676575258","834.33","DarkKhaki","S","586"
+"2","8674","Customer","Craig Burton","280 Sellers Lock North Scott, AR 15307","andersonalexander@example.com","+1-677-235-8289","557","Product","Profit-focused attitude-oriented emulation","6102707440852","953.89","MediumSeaGreen","L","665"
+```
+
+See, [data/transaction/customer_product_bought.csv](https://github.com/rioriost/agefreighter/blob/main/data/transaction/customer_product_bought.csv).
+
+## Usage of MultiCSVFreighter (1)
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("MultiCSVFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+
+    await instance.load(
+        graph_name="Countries",
+        vertex_csv_paths=[
+            "data/countries/country.csv",
+            "data/countries/city.csv",
+        ],
+        vertex_labels=["Country", "City"],
+        edge_csv_paths=["data/countries/has_country_city.csv"],
+        edge_types=["has"],
+        use_copy=True,
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+### File Format for MultiCSVFreighter (1)
+MultiCSVFreighter class loads data from multiple CSV files. The CSV files should have the following format.
+MultiCSVFreighter class handles all the columns in CSV except 'id' column as properties and all the columns in CSV except 'start_id' / 'start_vertex_type' / 'end_id' / 'end_vertex_type' columns as properties for the edges.
+
+country.csv: The node CSV file should have 'id' column and other columns as properties.
+```csv
+"id","Name","Capital","Population","ISO","TLD","FlagURL"
+"1","El Salvador","Kristybury","355169921","TN","wxu","https://dummyimage.com/777x133"
+"2","Lebanon","New William","413929227","UK","akj","https://picsum.photos/772/459"
+```
+
+city.csv: The node CSV file should have 'id' column and other columns as properties.
+```csv
+"id","Name","Latitude","Longitude"
+"1","Michaelmouth","-56.4217435","-44.924586"
+"2","Bryantton","-62.714695","-162.083092"
+```
+
+has_country_city.csv: The edge CSV file should have 'id', 'start_id', 'start_vertex_type', 'end_id', 'end_vertex_type', and other columns as properties.
+```csv
+"id","start_id","start_vertex_type","end_id","end_vertex_type","since"
+"1","86","Country","3633","City","1975-12-07 04:45:00.790431"
+"2","22","Country","6194","City","1984-06-05 13:23:51.858147"
+```
+
+See, [data/countries/](https://github.com/rioriost/agefreighter/blob/main/data/countries/).
+
+## Usage of MultiCSVFreighter (2)
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("MultiCSVFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+    await instance.load(
+        graph_name="AirRoute",
+        vertex_csv_paths=[
+            "data/airroute/airport.csv",
+        ],
+        vertex_labels=["AirPort"],
+        edge_csv_paths=["data/airroute/airroute_airport_airport.csv"],
+        edge_types=["ROUTE"],
+        edge_props = ["distance"],
+        use_copy=True,
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+### File Format for MultiCSVFreighter (2)
+If the edge connects the same type of vertices, the CSV files should have the following format.
+
+airport.csv: The node CSV file should have 'id' column and other columns as properties.
+```csv
+"id","Name","City","Country","IATA","ICAO","Latitude","Longitude","Altitude","Timezone","DST","Tz"
+"1","East Annatown Airport","East Annatown","Eritrea","SHZ","XTIK","-2.783983","-100.199060","823","Africa/Luanda","E","Europe/Skopje"
+"2","Port Laura Airport","Port Laura","Montenegro","TQY","WDLC","4.331082","-72.411319","121","Asia/Dhaka","Z","Africa/Kigali"
+```
+
+airroute_airport_airport.csv: The edge CSV file should have 'id', 'start_id', 'start_vertex_type', 'end_id', 'end_vertex_type', and other columns as properties.
+```csv
+"id","start_id","start_vertex_type","end_id","end_vertex_type","distance"
+"1","1388","AirPort","794","AirPort","1373"
+"2","2998","AirPort","823","AirPort","11833"
+```
+
+See, [data/airroute/](https://github.com/rioriost/agefreighter/blob/main/data/airroute/).
+
+## Usage of AvroFreighter
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("AvroFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+
+    await instance.load(
+        graph_name="Transaction",
+        start_v_label="Customer",
+        start_id="CustomerID",
+        start_props=["Name", "Address", "Email", "Phone"],
+        edge_type="BOUGHT",
+        edge_props=[],
+        end_v_label="Product",
+        end_id="ProductID",
+        end_props=["Phrase", "SKU", "Price", "Color", "Size", "Weight"],
+        avro_path="data/transaction/customer_product_bought.avro",
+        use_copy=True,
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+### File Format for AvroFreighter
+AvroFreighter class loads data from Avro file. The Avro file should have the following format.
+
+```json
+{
+    "type": "record",
+    "name": "customer_product_bought",
+    "fields": [
+        {
+            "name": "id",
+            "type": "int"
+        },
+        {
+            "name": "CustomerID",
+            "type": "int"
+        },
+        {
+            "name": "start_vertex_type",
+            "type": "string"
+        },
+        {
+            "name": "Name",
+            "type": "string"
+        },
+        {
+            "name": "Address",
+            "type": "string"
+        },
+        {
+            "name": "Email",
+            "type": "string"
+        },
+        {
+            "name": "Phone",
+            "type": "string"
+        },
+        {
+            "name": "ProductID",
+            "type": "int"
+        },
+        {
+            "name": "end_vertex_type",
+            "type": "string"
+        },
+        {
+            "name": "Phrase",
+            "type": "string"
+        },
+        {
+            "name": "SKU",
+            "type": "string"
+        },
+        {
+            "name": "Price",
+            "type": "float"
+        },
+        {
+            "name": "Color",
+            "type": "string"
+        },
+        {
+            "name": "Size",
+            "type": "string"
+        },
+        {
+            "name": "Weight",
+            "type": "int"
+        }
+    ]
+}
+{
+    "id": 1,
+    "CustomerID": 1967,
+    "start_vertex_type": "Customer",
+    "Name": "Jeffrey Joyce",
+    "Address": "26888 Brett Streets Apt. 325 South Meganberg, CA 80228",
+    "Email": "madison05@example.com",
+    "Phone": "881-538-6881x35597",
+    "ProductID": 120,
+    "end_vertex_type": "Product",
+    "Phrase": "Networked 3rdgeneration data-warehouse",
+    "SKU": "7246676575258",
+    "Price": 834.3300170898438,
+    "Color": "DarkKhaki",
+    "Size": "S",
+    "Weight": 586
+}
+{
+    "id": 2,
+    "CustomerID": 8674,
+    "start_vertex_type": "Customer",
+    "Name": "Craig Burton",
+    "Address": "280 Sellers Lock North Scott, AR 15307",
+    "Email": "andersonalexander@example.com",
+    "Phone": "+1-677-235-8289",
+    "ProductID": 557,
+    "end_vertex_type": "Product",
+    "Phrase": "Profit-focused attitude-oriented emulation",
+    "SKU": "6102707440852",
+    "Price": 953.8900146484375,
+    "Color": "MediumSeaGreen",
+    "Size": "L",
+    "Weight": 665
+}
+```
+
+See, [data/transaction/customer_product_bought.avro](https://github.com/rioriost/agefreighter/blob/main/data/transaction/customer_product_bought.avro).
+
+## Usage of ParquetFreighter
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("ParquetFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+
+    await instance.load(
+        graph_name="Transaction",
+        start_v_label="Customer",
+        start_id="CustomerID",
+        start_props=["Name", "Address", "Email", "Phone"],
+        edge_type="BOUGHT",
+        edge_props=[],
+        end_v_label="Product",
+        end_id="ProductID",
+        end_props=["Phrase", "SKU", "Price", "Color", "Size", "Weight"],
+        parquet_path="data/transaction/customer_product_bought.parquet",
+        use_copy=True,
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+### File Format for ParquetFreighter
+ParquetFreighter class loads data from Parquet file. The Parquet file should have the following format.
+
+```
+required group field_id=-1 schema {
+  optional int64 field_id=-1 id;
+  optional int64 field_id=-1 CustomerID;
+  optional binary field_id=-1 start_vertex_type (String);
+  optional binary field_id=-1 Name (String);
+  optional binary field_id=-1 Address (String);
+  optional binary field_id=-1 Email (String);
+  optional binary field_id=-1 Phone (String);
+  optional int64 field_id=-1 ProductID;
+  optional binary field_id=-1 end_vertex_type (String);
+  optional binary field_id=-1 Phrase (String);
+  optional int64 field_id=-1 SKU;
+  optional double field_id=-1 Price;
+  optional binary field_id=-1 Color (String);
+  optional binary field_id=-1 Size (String);
+  optional int64 field_id=-1 Weight;
+}
+
+   id  CustomerID start_vertex_type           Name                                            Address  ...            SKU   Price           Color Size Weight
+0   1        1967          Customer  Jeffrey Joyce  26888 Brett Streets Apt. 325 South Meganberg, ...  ...  7246676575258  834.33       DarkKhaki    S    586
+1   2        8674          Customer   Craig Burton             280 Sellers Lock North Scott, AR 15307  ...  6102707440852  953.89  MediumSeaGreen    L    665
+```
+
+See, [data/transaction/customer_product_bought.parquet](https://github.com/rioriost/agefreighter/blob/main/data/transaction/customer_product_bought.parquet).
+
+## Usage of AzureStorageFreighter
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("AzureStorageFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+
+    await instance.load(
+        graph_name="Transaction",
+        start_v_label="Customer",
+        start_id="CustomerID",
+        start_props=["Name", "Address", "Email", "Phone"],
+        edge_type="BOUGHT",
+        edge_props=[],
+        end_v_label="Product",
+        end_id="ProductID",
+        end_props=["Phrase", "SKU", "Price", "Color", "Size", "Weight"],
+        csv_path="data/transaction/customer_product_bought.csv",
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+### File Format for AzureStorageFreighter
+AzureStorageFreighter class loads data from Azure Storage and expects the exactly same format as CSVFreighter.
+
+## Usage of NetworkxFreighter
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+import networkx as nx
+
+
+async def main():
+    instance = Factory.create_instance("NetworkXFreighter")
+
+    networkx_graph = nx.DiGraph()
+    networkx_graph.add_node(
+        1,
+        name="Jeffrey Joyce",
+        address="26888 Brett Streets Apt. 325 South Meganberg, CA 80228",
+        email="madison05@example.com",
+        phone="881-538-6881x35597",
+        customerid=1967,
+        label="Customer",
+    )
+    networkx_graph.add_node(
+        2,
+        name="Craig Burton",
+        address="280 Sellers Lock North Scott, AR 15307",
+        email="andersonalexander@example.com",
+        phone="+1-677-235-8289",
+        customerid=8674,
+        label="Customer",
+    )
+    networkx_graph.add_node(
+        3,
+        phrase="Networked 3rdgeneration data-warehouse",
+        sku="7246676575258",
+        price=834.33,
+        color="DarkKhaki",
+        size="S",
+        weight=586,
+        productid=120,
+        label="Product",
+    )
+    networkx_graph.add_node(
+        4,
+        phrase="Profit-focused attitude-oriented emulation",
+        sku="6102707440852",
+        price=953.89,
+        color="MediumSeaGreen",
+        size="L",
+        weight=665,
+        productid=557,
+        label="Product",
+    )
+
+    networkx_graph.add_edge(1, 3, since="1975-12-07 04:45:00.790431", label="BOUGHT")
+    networkx_graph.add_edge(2, 4, since="1984-06-05 13:23:51.858147", label="BOUGHT")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+    await instance.load(
+        graph_name="Transaction",
+        networkx_graph=networkx_graph,
+        id_map={
+            "Customer": "CustomerID",
+            "Product": "ProductID",
+        },
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+You can also load a networkx graph from a pickle file.
+
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+import pickle
+
+
+async def main():
+    instance = Factory.create_instance("NetworkXFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+    await instance.load(
+        graph_name="Transaction",
+        networkx_graph=pickle.load(
+            open("data/transaction/customer_product_bought.pickle", "rb")
+        ),
+        id_map={
+            "Customer": "CustomerID",
+            "Product": "ProductID",
+        },
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+See, [data/transaction/customer_product_bought.pickle](https://github.com/rioriost/agefreighter/blob/main/data/transaction/customer_product_bought.pickle).
+
+## Usage of CosmosGremlinFreighter
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("CosmosGremlinFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+
+    await instance.load(
+        graph_name="Transaction",
+        cosmos_gremlin_endpoint=os.environ["COSMOS_GREMLIN_ENDPOINT"],
+        cosmos_gremlin_key=os.environ["COSMOS_GREMLIN_KEY"],
+        cosmos_username="/dbs/db1/colls/transaction",
+        id_map={
+            "Customer": "CustomerID",
+            "Product": "ProductID",
+        },
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+The above code suppose that you have a Cosmos DB account with a Gremlin API database named 'db1' with a container named 'transaction' in the Azure Portal.
+You can find the 'GREMLIN URI' for 'COSMOS_GREMLIN_ENDPOINT' env variable and 'PRIMARY KEY' / 'SECONDARY KEY' for 'COSMOS_GREMLIN_KEY' env variable in the 'Keys' blade of the Cosmos DB account.
+
+### Document Format for CosmosGremlinFreighter
+CosmosGremlinFreighter class loads data from Cosmos DB. The Cosmos DB should have the following format.
+
+node: g.V().limit(1)
+
+```json
+[
+  {
+    "id": "272e8291-d1a4-4238-ad27-92ec2101425d",
+    "label": "Customer",
+    "type": "vertex",
+    "properties": {
+      "Name": [
+        {
+          "id": "ee24bc0d-1821-4854-bd00-aafba2419a1f",
+          "value": "Alicia Herrera"
+        }
+      ],
+      "CustomerID": [
+        {
+          "id": "f1aafc14-1ecd-4437-b0b4-ce9926ec0924",
+          "value": "1828"
+        }
+      ],
+      "Address": [
+        {
+          "id": "c611e8b5-a33a-4669-8fbb-36c0737d7ab8",
+          "value": "906 Shannon Views Apt. 370 Ryanbury, CA 73165"
+        }
+      ],
+      "Email": [
+        {
+          "id": "1f951bf3-47bf-4af8-951c-7915ba810500",
+          "value": "jillian49@example.com"
+        }
+      ],
+      "Phone": [
+        {
+          "id": "75ca0b65-b5a5-4fdd-8fa5-35db476fede6",
+          "value": "+1-351-871-4405x226"
+        }
+      ],
+      "pk": [
+        {
+          "id": "272e8291-d1a4-4238-ad27-92ec2101425d|pk",
+          "value": "1"
+        }
+      ]
+    }
+  }
+]
+```
+
+edge: g.E().limit(1)
+
+```json
+[
+  {
+    "id": "efc34e39-d674-40df-9c6a-f8a24c8b8d77",
+    "label": "BOUGHT",
+    "type": "edge",
+    "inVLabel": "Product",
+    "outVLabel": "Customer",
+    "inV": "1430cbf2-7d25-4c38-8ff7-f2b215bfdcad",
+    "outV": "390565dc-67d7-4179-a241-8cd2f8df82b2"
+  }
+]
+```
+
+## Usage of Neo4jFreighter
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("Neo4jFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+
+    await instance.load(
+        graph_name="Transaction",
+        neo4j_uri=os.environ["NEO4J_URI"],
+        neo4j_user=os.environ["NEO4J_USER"],
+        neo4j_password=os.environ["NEO4J_PASSWORD"],
+        id_map={
+            "Customer": "CustomerID",
+            "Product": "ProductID",
+        },
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+The above code suppose that you have a Neo4j or compatible graph DB.
+
+### Data Format for Neo4jFreighter
+node: MATCH (n) RETURN n LIMIT 1
+
+```json
+{
+  "identity": 0,
+  "labels": [
+    "Customer"
+  ],
+  "properties": {
+    "Email": "madison05@example.com",
+    "Address": "26888 Brett Streets Apt. 325 South Meganberg, CA 80228",
+    "Customer": "Customer",
+    "Phone": "881-538-6881x35597",
+    "CustomerID": 1967,
+    "Name": "Jeffrey Joyce"
+  },
+  "elementId": "4:148f2025-c6d2-4e47-8661-b2f1a28f24aa:0"
+}
+```
+
+edge: MATCH ()-[r]->() RETURN r LIMIT 1
+
+```json
+{
+  "identity": 20000,
+  "start": 0,
+  "end": 17272,
+  "type": "BOUGHT",
+  "properties": {
+    "from": 1967,
+    "to": 120
+  },
+  "elementId": "5:148f2025-c6d2-4e47-8661-b2f1a28f24aa:20000",
+  "startNodeElementId": "4:148f2025-c6d2-4e47-8661-b2f1a28f24aa:0",
+  "endNodeElementId": "4:148f2025-c6d2-4e47-8661-b2f1a28f24aa:17272"
+}
+```
+
+## Usage of PGFreighter
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("PGFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+
+    await instance.load(
+        graph_name="Transaction",
+        source_pg_con_string=os.environ["SRC_PG_CONNECTION_STRING"],
+        source_tables={
+            "start": "Customer",
+            "end": "Product",
+            "edges": "BOUGHT",
+        },
+        id_map={
+            "Customer": "CustomerID",
+            "Product": "ProductID",
+        },
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+### Table schemas for PGFreighter
+
+Customer table schema
+```sql
+postgres=# \d+ "Customer"
+                                                                  Table "public.Customer"
+     Column     |  Type   | Collation | Nullable |                      Default                       | Storage  | Compression | Stats target | Description
+----------------+---------+-----------+----------+----------------------------------------------------+----------+-------------+--------------+-------------
+ CustomerSerial | integer |           | not null | nextval('"Customer_CustomerSerial_seq"'::regclass) | plain    |             |              |
+ CustomerID     | text    |           |          |                                                    | extended |             |              |
+ Name           | text    |           |          |                                                    | extended |             |              |
+ Address        | text    |           |          |                                                    | extended |             |              |
+ Email          | text    |           |          |                                                    | extended |             |              |
+ Phone          | text    |           |          |                                                    | extended |             |              |
+Indexes:
+    "Customer_CustomerID_idx" btree ("CustomerID")
+Access method: heap
+```
+
+Product table schema
+```sql
+postgres=# \d+ "Product"
+                                                                 Table "public.Product"
+    Column     |  Type   | Collation | Nullable |                     Default                      | Storage  | Compression | Stats target | Description
+---------------+---------+-----------+----------+--------------------------------------------------+----------+-------------+--------------+-------------
+ ProductSerial | integer |           | not null | nextval('"Product_ProductSerial_seq"'::regclass) | plain    |             |              |
+ ProductID     | text    |           |          |                                                  | extended |             |              |
+ Phrase        | text    |           |          |                                                  | extended |             |              |
+ SKU           | text    |           |          |                                                  | extended |             |              |
+ Price         | real    |           |          |                                                  | plain    |             |              |
+ Color         | text    |           |          |                                                  | extended |             |              |
+ Size          | text    |           |          |                                                  | extended |             |              |
+ Weight        | integer |           |          |                                                  | plain    |             |              |
+Indexes:
+    "Product_ProductID_idx" btree ("ProductID")
+Access method: heap
+```
+
+BOUGHT table schema
+```sql
+postgres=# \d+ "BOUGHT"
+                                                                Table "public.BOUGHT"
+    Column    |  Type   | Collation | Nullable |                    Default                     | Storage  | Compression | Stats target | Description
+--------------+---------+-----------+----------+------------------------------------------------+----------+-------------+--------------+-------------
+ BoughtSerial | integer |           | not null | nextval('"BOUGHT_BoughtSerial_seq"'::regclass) | plain    |             |              |
+ CustomerID   | text    |           |          |                                                | extended |             |              |
+ ProductID    | text    |           |          |                                                | extended |             |              |
+Indexes:
+    "BOUGHT_CustomerID_idx" btree ("CustomerID")
+    "BOUGHT_ProductID_idx" btree ("ProductID")
+Access method: heap
+```
+
+## How to edit the CSV files to load them to the graph database with PGFreighter
+Example: [krlawrence graph](https://github.com/krlawrence/graph/tree/master/sample-data)
+
+1. Download air-routes-latest-edges.csv and air-routes-latest-nodes.csv
+
+2. Edit air-routes-latest-nodes.csv
+
+* original
+```csv
+~id,~label,type:string,code:string,icao:string,desc:string,region:string,runways:int,longest:int,elev:int,country:string,city:string,lat:double,lon:double,author:string,date:string
+0,version,version,0.89,,Air Routes Data - Version: 0.89 Generated: 2022-08-29 14:10:18 UTC; Graph created by Kelvin R. Lawrence; Please let me know of any errors you find in the graph or routes that should be added.,,,,,,,,,Kelvin R. Lawrence,2022-08-29 14:10:18 UTC
+```
+
+* edited
+```csv
+id,label,type,code,icao,desc,region,runways,longest,elev,country,city,lat,lon,author,date
+1,airport,airport,ATL,KATL,Hartsfield - Jackson Atlanta International Airport,US-GA,5,12390,1026,US,Atlanta,33.6366996765137,-84.4281005859375,,
+```
+
+* remove the second line
+* edit the first line (CSV Header)
+
+3. Edit air-routes-latest-edges.csv
+
+* original
+```csv
+~id,~from,~to,~label,dist:int
+3749,1,3,route,809
+```
+
+* edited
+```csv
+id,start_id,end_id,label,dist,start_vertex_type,end_vertex_type
+3749,1,3,route,809,airport,airport
+```
+
+* edit the first line (CSV Header)
+* add start_vertex_type and end_vertex_type columns to each lines
+
+4. Install agefreighter
+
+* with python venv
+```bash
+mkdir your_project
+cd your_project
+python3 -m venv .venv
+source .venv/bin/activate
+pip install agefreighter
+```
+
+* with uv
+```bash
+uv init your_project
+cd your_project
+uv venv
+source .venv/bin/activate
+uv add agefreighter
+```
+
+5. Make a Python script as below and locate the script in the same directory with the CSV files
+
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import os
+from agefreighter import Factory
+
+
+async def main():
+    loader = Factory.create_instance("MultiCSVFreighter")
+    await loader.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+    await loader.load(
+        vertex_csv_paths=["air-routes-latest-nodes.csv"],
+        vertex_labels=["airport"],
+        edge_csv_paths=["air-routes-latest-edges.csv"],
+        edge_types=["route"],
+        graph_name="air_route",
+        use_copy=True,
+        drop_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+6. Deploy Azure Database for PostgreSQL and enable Apache AGE extension on Azure Portal
+[Introducing support for Graph data in Azure Database for PostgreSQL (Preview)](https://techcommunity.microsoft.com/blog/adforpostgresql/introducing-support-for-graph-data-in-azure-database-for-postgresql-preview/4275628).
+
+7. Set the PostgreSQL connection string as an environment variable
+```shell
+export PG_CONNECTION_STRING="host=xxxxxx.postgres.database.azure.com port=5432 dbname=postgres user=......"
+```
+
+8. Run the script
+```shell
+python3 <script_name>.py
+```
+
+9. Check the graph created in the PostgreSQL database
+```sql
+% psql $PG_CONNECTION_STRING
+psql (16.6 (Homebrew), server 16.4)
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, compression: off)
+Type "help" for help.
+
+postgres=> SET search_path = ag_catalog, "$user", public;
+SET
+postgres=> select * from air_route.airport limit 1;
+       id        |                                                                                                                                                                       properties
+-----------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 844424930131969 | {"id": "1", "lat": "33.6366996765137", "lon": "-84.4281005859375", "city": "Atlanta", "code": "ATL", "date": "nan", "desc": "Hartsfield - Jackson Atlanta International Airport", "elev": "1026.0", "icao": "KATL", "type": "airport", "label": "airport", "author": "nan", "region": "US-GA", "country": "US", "longest": "12390.0", "runways": "5.0"}
+(1 row)
+
+postgres=> select * from air_route.route limit 1;
+        id        |    start_id     |     end_id      |                    properties
+------------------+-----------------+-----------------+---------------------------------------------------
+ 1125899906842625 | 844424930131969 | 844424930131971 | {"id": "3749", "dist": "809.0", "label": "route"}
+(1 row)
+```
+
+## Classes
+* [AGEFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/agefreighter.txt)
+* [AzureStorageFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/azurestoragefreighter.txt)
+* [AvroFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/avrofreighter.txt)
+* [CosmosGremlinFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/cosmosgremlinfreighter.txt)
+* [CSVFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/csvfreighter.txt)
+* [MultiCSVFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/multicsvfreighter.txt)
+* [Neo4jFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/neo4jfreighter.txt)
+* [NetworkXFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/networkxfreighter.txt)
+* [ParquetFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/parguetfreighter.txt)
+* [PGFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/pgfreighter.txt)
+
+## Method
+All the classes have the same load() method. The method loads data into a graph database.
+
+## Arguments
 * Common arguments
   * graph_name (str) : the name of the graph
   * chunk_size (int) : the number of rows to be loaded at once
@@ -87,10 +1057,10 @@ All the classes have the same load() method. The method loads data into the grap
 
 * Class specific arguments
   * AzureStorageFreighter
-    * csv (str): The path to the CSV file.
+    * csv_path (str): The path to the CSV file.
 
   * AvroFreighter
-    * source_avro (str): The path to the Avro file.
+    * avro_path (str): The path to the Avro file.
 
   * CosmosGremlinFreighter
     * cosmos_gremlin_endpoint (str): The Cosmos Gremlin endpoint.
@@ -98,10 +1068,13 @@ All the classes have the same load() method. The method loads data into the grap
     * cosmos_username (str): The Cosmos username.
     * id_map (dict): ID Mapping
 
+  * CSVFreighter
+    * csv_path (str): The path to the CSV file.
+
   * MultiCSVFreighter
-    * vertex_csvs (list): The paths to the vertex CSV files.
+    * vertex_csv_paths (list): The paths to the vertex CSV files.
     * vertex_labels (list): The labels of the vertices.
-    * edge_csvs (list): The paths to the edge CSV files.
+    * edge_csv_paths (list): The paths to the edge CSV files.
     * edge_types (list): The types of the edges.
 
   * Neo4jFreighter
@@ -116,7 +1089,7 @@ All the classes have the same load() method. The method loads data into the grap
     * id_map (dict): ID Mapping
 
   * ParquetFreighter
-    * source_parquet (str): The path to the Parquet file.
+    * parquet_path (str): The path to the Parquet file.
 
   * PGFreighter
     * source_pg_con_string (str): The connection string of the source PostgreSQL database.
@@ -124,169 +1097,48 @@ All the classes have the same load() method. The method loads data into the grap
     * source_tables (list): The source tables.
     * id_map (dict): ID Mapping
 
+## Release Notes
 
-### Release Notes
-* 0.4.0 : Added 'loadFromCosmosGremlin()' function.
-* 0.4.1 : Changed base Python version to 3.9 to run on Azure Cloud Shell and Databricks 15.4ML.
-* 0.4.2 : Tuning for 'loadFromCosmosGremlin()' function.
-* 0.4.3 : Standardized the argument names. Enhanced the tests for each functions.
-* 0.4.4 : Performance tuning.
-* 0.4.5 : Simplified 'loadFromNeo4j'.
-* 0.4.6 : Added 'loadFromAvro()' function.
-* 0.5.0 : Refactored the code to make it more readable and maintainable with the separated classes for factory model. Introduced concurrent.futures for better performance.
-* 0.5.1 : Improved the usage
-* 0.5.2 : Added AzureStorageFreighter class, fixed a bug in ParquetFreighter class (THX! Reported from my co-worker, Srikanth-san)
-* 0.5.3 : Refactored AzureStorageFreighter class for better performance and scalability.
-* 0.6.0 : Added edge properties support. 'drop_graph' argument is obsoleted. 'create_graph' argument is added.
-* 0.6.1 : Added 'load_multi()' method to AzureStorageFreighter class.
+### 0.6.1 Release
+* Refactored the documents. Added sample data. Fixed some bugs.
 
-### Install
+### 0.6.0 Release
+* Added edge properties support.
+  * 'edge_props' argument (list) is added to the 'load()' method.
+* 'drop_graph' argument is obsoleted. 'create_graph' argument is added.
+  * 'create_graph' is set to True by default. CAUTION: If the graph already exists, the graph is dropped before loading the data.
+  * If 'create_graph' is False, the data is loaded into the existing graph.
 
-```bash
-pip install agefreighter
-```
+### 0.5.3 Release -AzureStorageFreighter-
+* AzureStorageFreighter class is totally refactored for better performance and scalability.
+  * 0.5.2 didn't work well for large files.
+  * Now, it works well for large files.
+    Checked with a 5.4GB CSV file consisting of 10M of start vertices, 10K of end vertices, and 25M edges,
+    it took 512 seconds to load the data into the graph database with PostgreSQL Flex,
+    Standard_D32ds_v4 (32 vcpus, 128 GiB memory) and 512TB / 7500 iops of storage.
+  * Tested data was generated with tests/generate_dummy_data.py.
+  * UDF to load the data to graph is no longer used.
+* However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
 
-### Prerequisites
-* over Python 3.9
-* This module runs on [psycopg](https://www.psycopg.org/) and [psycopg_pool](https://www.psycopg.org/)
-* Enable the Apache AGE extension in your Azure Database for PostgreSQL instance. Login Azure Portal, go to 'server parameters' blade, and check 'AGE" on within 'azure.extensions' and 'shared_preload_libraries' parameters. See, above blog post for more information.
-* Load the AGE extension in your PostgreSQL database.
+### 0.5.2 Release -AzureStorageFreighter-
+* AzureStorageFreighter class is used to load data from Azure Storage into the graph database. It's totally different from other classes. The class works as follows:
+  * If the argument, 'subscription_id' is not set, the class tries to find the Azure Subscription ID from your local environment using the 'az' command.
+  * Creates an Azure Storage account and a blob container under the resource group where the PostgreSQL server runs in.
+  * Enables the 'azure_storage' extension in the PostgreSQL server, if it's not enabled.
+  * Uploads the CSV file to the blob container.
+  * Creates a UDF (User Defined Function) named 'load_from_azure_storage' in the PostgreSQL server. The UDF loads data from the Azure Storage into the graph database.
+  * Executes the UDF.
+* The above process takes time to prepare for loading data, making it unsuitable for loading small files, but effective for loading large files. For instance, it takes under 3 seconds to load 'actorfilms.csv' after uploading.
+* However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
 
-```sql
-CREATE EXTENSION IF NOT EXISTS age CASCADE;
-```
+### 0.5.0 Release
+Refactored the code to make it more readable and maintainable with the separated classes for factory model.
+Please note how to use the new version of the package is tottally different from the previous versions.
 
-### File Format for CSVFreighter
-CSVFreighter class loads data from a CSV file. The CSV file should have the following format.
-
-```csv
-Actor,ActorID,Film,Year,Votes,Rating,FilmID,Role,Time_in_sec
-Fred Astaire,nm0000001,Ghost Story,1981,7731,6.3,tt0082449,Hero,3643
-Fred Astaire,nm0000001,The Purple Taxi,1977,533,6.6,tt0076851,Hero,270
-```
-
-### Usage of CSVFreighter
-```python
-import asyncio
-import os
-from agefreighter import Factory
-import logging
-
-log = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-
-
-async def main():
-    class_name = "CSVFreighter"
-    instance = Factory.create_instance(class_name)
-
-    await instance.connect(
-        dsn=os.environ["PG_CONNECTION_STRING"],
-        max_connections=64,
-    )
-    await instance.load(
-        graph_name="AgeTester",
-        start_v_label="Actor",
-        start_id="ActorID",
-        start_props=["Actor"],
-        edge_type="ACTED_IN",
-        edge_props=["Role", "Time_in_sec"],
-        end_v_label="Film",
-        end_id="FilmID",
-        end_props=["Film", "Year", "Votes", "Rating"],
-        csv="./actorfilms.csv",
-        drop_graph=True,
-    )
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
-```
-
-### File Format for MultiCSVFreighter
-MultiCSVFreighter class loads data from multiple CSV files. The CSV files should have the following format.
-MultiCSVFreighter class handles all the columns in CSV except 'id' column as properties and all the columns in CSV except 'start_id' / 'start_vertex_type' / 'end_id' / 'end_vertex_type' columns as properties for the edges.
-
-countries.csv
-```csv
-id,name,iso3,iso2,numeric_code,phone_code,capital,currency,currency_symbol,tld,native,region,subregion,latitude,longitude,emoji,emojiU
-2,Aland Islands,ALA,AX,248,+358-18,Mariehamn,EUR,€,.ax,Åland,Europe,Northern Europe,60.116667,19.9,🇦🇽,U+1F1E6 U+1F1FD
-3,Albania,ALB,AL,8,355,Tirana,ALL,Lek,.al,Shqipëria,Europe,Southern Europe,41.0,20.0,🇦🇱,U+1F1E6 U+1F1F1
-```
-
-cities.csv
-```csv
-id,name,state_id,state_code,country_id,country_code,latitude,longitude
-153,Banaj,629,BR,3,AL,40.82492,19.84074
-154,Bashkia Berat,629,BR,3,AL,40.69997,19.94983
-```
-
-edges.csv
-```csv
-start_id,start_vertex_type,end_id,end_vertex_type,Year,Population
-153,City,3,Country,1973,12000
-154,City,3,Country,1960,35000
-```
-
-### Usage of MultiCSVFreighter
-```python
-import asyncio
-import os
-from agefreighter import Factory
-import logging
-
-log = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-
-
-async def main():
-    class_name = "MultiCSVFreighter"
-    instance = Factory.create_instance(class_name)
-
-    await instance.connect(
-        dsn=os.environ["PG_CONNECTION_STRING"],
-        max_connections=64,
-    )
-    await instance.load(
-        graph_name="AgeTester",
-        vertex_csvs=["countries.csv", "cities.csv"],
-        edge_csvs=["edges.csv"],
-        edge_types=["has_city"],
-        drop_graph=True,
-    )
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
-```
-
-### File Format for AzureStorageFreighter
-AzureStorageFreighter class loads data from Azure Storage. It has two methods to load data from Azure Storage, 'load' and 'load_multi'. The 'load' method loads data from a single CSV file, and the 'load_multi' method loads data from multiple CSV files.
-  * 'load' expects the exactly same format as CSVFreighter.
-  * 'load_multi' expects the exactly same format as MultiCSVFreighter.
-
-See, [tests/agefreightertester.py](https://github.com/rioriost/agefreighter/blob/main/tests/agefreightertester.py) and [docs](https://github.com/rioriost/agefreighter/blob/main/docs/) for more details.
-
-### Test & Samples
-```sql
-export PG_CONNECTION_STRING="host=your_host.postgres.database.azure.com port=5432 dbname=postgres user=account password=your_password"
-cd tests/
-python3.9 agefreightertester.py
-```
-
-### For more information about [Apache AGE](https://age.apache.org/)
+## For more information about [Apache AGE](https://age.apache.org/)
 * Apache AGE : https://age.apache.org/
 * GitHub : https://github.com/apache/age
 * Document : https://age.apache.org/age-manual/master/index.html
 
-### License
+## License
 MIT License

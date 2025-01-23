@@ -77,11 +77,11 @@ CLASSES
      |      Returns:
      |          bool: True if the Azure Subscription ID is set, False otherwise
      |  
-     |  async load(self, csv: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', chunk_size: int = 128, create_graph: bool = True, **kwargs)
+     |  async load(self, csv_path: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', chunk_size: int = 128, create_graph: bool = True, **kwargs)
      |      Load a graph data to the PostgreSQL Flex with Azure Storage.
      |      
      |      Args:
-     |          csv (str): CSV file path
+     |          csv_path (str): CSV file path
      |          start_v_label (str): Start Vertex Label
      |          start_id (str): Start Vertex ID
      |          start_props (list): Start Vertex Properties
@@ -90,6 +90,21 @@ CLASSES
      |          end_v_label (str): End Vertex Label
      |          end_id (str): End Vertex ID
      |          end_props (list): End Vertex Properties
+     |          graph_name (str): The name of the graph to load the data into.
+     |          chunk_size (int): The size of the chunks to create.
+     |          direct_loading (bool): Whether to load the data directly.
+     |          create_graph (bool): Whether to create the graph.
+     |          use_copy (bool): Whether to use the COPY protocol to load the data.
+     |      
+     |      Keyword Args:
+     |          subscription_id (str): Azure Subscription ID
+     |  
+     |  async load_multi(self, vertex_args: list = [], edge_args: list = [], graph_name: str = '', chunk_size: int = 128, create_graph: bool = True, **kwargs)
+     |      Load a graph data to the PostgreSQL Flex with Azure Storage.
+     |      
+     |      Args:
+     |          vertex_args (list): List of dictionary for vertex definitions
+     |          edge_args (list): List of dictionary for edge definitions
      |          graph_name (str): The name of the graph to load the data into.
      |          chunk_size (int): The size of the chunks to create.
      |          direct_loading (bool): Whether to load the data directly.
@@ -388,7 +403,7 @@ CLASSES
      |  
      |  name = 'AgeFreighter'
      |  
-     |  version = '0.6.0'
+     |  version = '0.6.1'
     
     class BlobUploader(builtins.object)
      |  BlobUploader(storage_account_name: str = '', access_key: str = '', blob_container_name: str = '', file_path: str = '', lines_per_chunk: int = 10000)
@@ -448,6 +463,12 @@ CLASSES
      |          int: The first id.
      |  
      |  async load(self) -> None
+     |      Load a graph data from the Temporary Table
+     |  
+     |  async loadEdges(self, type: str = '', props: list = []) -> None
+     |      Load a graph data from the Temporary Table
+     |  
+     |  async loadVertices(self, vertex_label: str = '', vertex_id: str = '', vertex_props: list = [], tbl_id_map: str = '') -> None
      |      Load a graph data from the Temporary Table
      |  
      |  ----------------------------------------------------------------------

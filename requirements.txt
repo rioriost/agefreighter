@@ -1,0 +1,15 @@
+asyncio>=3.4.3
+azure-identity>=1.19.0
+azure-mgmt-postgresqlflexibleservers>=1.0.0
+azure-mgmt-storage>=22.0.0
+azure-storage-blob>=12.24.0
+fastavro>=1.10.0
+gremlinpython>=3.7.3
+neo4j>=5.27.0
+nest-asyncio>=1.6.0
+networkx>=3.2.1
+pandas>=2.2.3
+psycopg>=3.2.4
+psycopg-pool>=3.2.4
+pyarrow>=19.0.0
+toml>=0.10.2

@@ -268,6 +268,9 @@ CLASSES
      |      Returns:
      |          dict: The ID maps.
      |  
+     |  async load_multi(self) -> None
+     |      Dummy method for loading data.
+     |  
      |  processChunkDirectly(self, chunk: pandas.core.frame.DataFrame, query: str = '', edge_props: list = [], id_maps: list = []) -> list
      |      Process a chunk of data directly.
      |      
@@ -331,7 +334,7 @@ CLASSES
      |  
      |  name = 'AgeFreighter'
      |  
-     |  version = '0.6.0'
+     |  version = '0.6.1'
 
 DATA
     log = <Logger neo4jfreighter (WARNING)>

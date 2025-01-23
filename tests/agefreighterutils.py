@@ -3,6 +3,8 @@
 import sys
 import time
 import logging
+import os
+
 import pandas as pd
 
 log = logging.getLogger(__name__)
@@ -13,14 +15,17 @@ logging.basicConfig(
 
 
 class AgeFreighterUtils:
+    name = "AgeFreighterUtils"
+    version = "0.6.1"
+    author = "Rio Fujita"
+
     def __init__(self):
-        self.name = "AgeUtils"
-        self.author = "Rio Fujita"
-        self.data_dir = "../data/"
-        self.csv_file = f"{self.data_dir}actorfilms2.csv"
-        self.avro_file = f"{self.data_dir}actorfilms2.avro"
-        self.parquet_file = f"{self.data_dir}actorfilms2.parquet"
-        self.pickle_file = f"{self.data_dir}actorfilms2.pickle"
+        self.data_dir = "../data/transaction/"
+        self.base_file = "customer_product_bought"
+        self.csv_file = f"{self.data_dir}{self.base_file}.csv"
+        self.avro_file = f"{self.data_dir}{self.base_file}.avro"
+        self.parquet_file = f"{self.data_dir}{self.base_file}.parquet"
+        self.pickle_file = f"{self.data_dir}{self.base_file}.pickle"
 
     def __del__(self):
         log.info("Deleting AgeUtils")
@@ -40,7 +45,6 @@ class AgeFreighterUtils:
         Load CSV to Neo4j
         """
         log.info("Loading CSV to Neo4j")
-        import os
         from neo4j import AsyncGraphDatabase
 
         try:
@@ -56,8 +60,15 @@ class AgeFreighterUtils:
         start_time = time.time()
         BATCH_SIZE = 1000
         df = pd.read_csv(self.csv_file)
-        uniq_actors = df[["ActorID", "Actor"]].drop_duplicates()
-        uniq_films = df[["FilmID", "Film", "Year", "Votes", "Rating"]].drop_duplicates()
+        uniq_starts = df[
+            ["CustomerID", "start_vertex_type", "Name", "Address", "Email", "Phone"]
+        ].drop_duplicates()
+        uniq_ends = df[
+            ["ProductID", "end_vertex_type", "SKU", "Price", "Color", "Size", "Weight"]
+        ].drop_duplicates()
+
+        start_name = uniq_starts.iloc[0].start_vertex_type
+        end_name = uniq_ends.iloc[0].end_vertex_type
 
         async with AsyncGraphDatabase.driver(
             n4j_uri, auth=(n4j_user, n4j_password)
@@ -66,82 +77,114 @@ class AgeFreighterUtils:
                 # clear the database
                 await session.run("MATCH (a)-[r]->() DELETE a, r")
                 await session.run("MATCH (a) DELETE a")
-                await session.run("DROP INDEX actor_index_id IF EXISTS")
-                await session.run("DROP INDEX film_index_id IF EXISTS")
+                await session.run(f"DROP INDEX {start_name}_index_id IF EXISTS")
+                await session.run(f"DROP INDEX {end_name}_index_id IF EXISTS")
                 await session.run(
-                    "CREATE INDEX actor_index_id FOR (n:Actor) ON (n.ActorID)"
+                    f"CREATE INDEX {start_name}_index_id FOR (n:{start_name}) ON (n.CustomerID)"
                 )
                 await session.run(
-                    "CREATE INDEX film_index_id FOR (n:Film) ON (n.FilmID)"
+                    f"CREATE INDEX {end_name}_index_id FOR (n:{end_name}) ON (n.ProductID)"
                 )
-                # create actor nodes
-                for idx in range(0, len(uniq_actors), BATCH_SIZE):
-                    actors = [
-                        {"Actor": actor, "ActorID": actorid}
-                        for i, (actor, actorid) in enumerate(
-                            zip(
-                                uniq_actors["Actor"][idx : idx + BATCH_SIZE].tolist(),
-                                uniq_actors["ActorID"][idx : idx + BATCH_SIZE].tolist(),
-                            )
-                        )
-                    ]
-                    await session.run(
-                        """UNWIND $actors AS row
-                        CREATE (a:Actor)
-                        SET a += row""",
-                        actors=actors,
-                    )
-                # create film nodes
-                for idx in range(0, len(uniq_films), BATCH_SIZE):
-                    films = [
+                # create start nodes
+                for idx in range(0, len(uniq_starts), BATCH_SIZE):
+                    starts = [
                         {
-                            "Film": film,
-                            "FilmID": filmid,
-                            "Year": year,
-                            "Votes": votes,
-                            "Rating": rating,
+                            start_name: start_vertex_type,
+                            "CustomerID": customerid,
+                            "Name": name,
+                            "Address": address,
+                            "Email": email,
+                            "Phone": phone,
                         }
-                        for i, (film, filmid, year, votes, rating) in enumerate(
+                        for i, (
+                            start_vertex_type,
+                            customerid,
+                            name,
+                            address,
+                            email,
+                            phone,
+                        ) in enumerate(
                             zip(
-                                uniq_films["Film"][idx : idx + BATCH_SIZE].tolist(),
-                                uniq_films["FilmID"][idx : idx + BATCH_SIZE].tolist(),
-                                uniq_films["Year"][idx : idx + BATCH_SIZE].tolist(),
-                                uniq_films["Votes"][idx : idx + BATCH_SIZE].tolist(),
-                                uniq_films["Rating"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_starts["start_vertex_type"][
+                                    idx : idx + BATCH_SIZE
+                                ].tolist(),
+                                uniq_starts["CustomerID"][
+                                    idx : idx + BATCH_SIZE
+                                ].tolist(),
+                                uniq_starts["Name"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_starts["Address"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_starts["Email"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_starts["Phone"][idx : idx + BATCH_SIZE].tolist(),
                             )
                         )
                     ]
                     await session.run(
-                        """UNWIND $films AS row
-                        CREATE (f:Film)
+                        f"""UNWIND $starts AS row
+                        CREATE (a:{start_name} {{CustomerID: row.CustomerID, Name: row.name, Address: row.address, Email: row.email, Phone: row.phone}})
+                        SET a += row""",
+                        starts=starts,
+                    )
+                # create end nodes
+                for idx in range(0, len(uniq_ends), BATCH_SIZE):
+                    ends = [
+                        {
+                            end_name: end_vertex_type,
+                            "ProductID": productid,
+                            "SKU": sku,
+                            "Price": price,
+                            "Color": color,
+                            "Size": size,
+                            "Weight": weight,
+                        }
+                        for i, (
+                            end_vertex_type,
+                            productid,
+                            sku,
+                            price,
+                            color,
+                            size,
+                            weight,
+                        ) in enumerate(
+                            zip(
+                                uniq_ends["end_vertex_type"][
+                                    idx : idx + BATCH_SIZE
+                                ].tolist(),
+                                uniq_ends["ProductID"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_ends["SKU"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_ends["Price"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_ends["Color"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_ends["Size"][idx : idx + BATCH_SIZE].tolist(),
+                                uniq_ends["Weight"][idx : idx + BATCH_SIZE].tolist(),
+                            )
+                        )
+                    ]
+                    await session.run(
+                        f"""UNWIND $ends AS row
+                        CREATE (f:{end_name} {{ProductID: row.ProductID, SKU: row.SKU, Price: row.Price, Color: row.Color, Size: row.Size, Weight: row.Weight}})
                         SET f += row""",
-                        films=films,
+                        ends=ends,
                     )
                 # create edges
                 for idx in range(0, len(df), BATCH_SIZE):
-                    acted_ins = [
+                    edges = [
                         {
-                            "from": actorid,
-                            "to": filmid,
-                            "Genre": genre,
-                            "Director": director,
+                            "from": start_id,
+                            "to": end_id,
                         }
-                        for i, (actorid, filmid, genre, director) in enumerate(
+                        for i, (start_id, end_id) in enumerate(
                             zip(
-                                df["ActorID"][idx : idx + BATCH_SIZE].tolist(),
-                                df["FilmID"][idx : idx + BATCH_SIZE].tolist(),
-                                df["Genre"][idx : idx + BATCH_SIZE].tolist(),
-                                df["Director"][idx : idx + BATCH_SIZE].tolist(),
+                                df["CustomerID"][idx : idx + BATCH_SIZE].tolist(),
+                                df["ProductID"][idx : idx + BATCH_SIZE].tolist(),
                             )
                         )
                     ]
                     await session.run(
-                        """UNWIND $acted_ins AS row
-                        MATCH (from:Actor {ActorID: row.from})
-                        MATCH (to:Film {FilmID: row.to})
-                        CREATE (from)-[r:ACTED_IN {Genre:row.genre, Director:row.director}]->(to)
+                        f"""UNWIND $edges AS row
+                        MATCH (from:{start_name} {{CustomerID: row.from}})
+                        MATCH (to:{end_name} {{ProductID: row.to}})
+                        CREATE (from)-[r:BOUGHT]->(to)
                         SET r += row""",
-                        acted_ins=acted_ins,
+                        edges=edges,
                     )
         self.showTime(start_time, sys._getframe().f_code.co_name)
 
@@ -150,7 +193,6 @@ class AgeFreighterUtils:
         Load CSV to PGSQL
         """
         log.info("Loading CSV to PGSQL")
-        import os
         import psycopg as pg
 
         try:
@@ -161,26 +203,28 @@ class AgeFreighterUtils:
 
         start_time = time.time()
         schema = "public"
-        src_tables = {"start": "Actor", "end": "Film", "edges": "ACTED_IN"}
+        src_tables = {"start": "Customer", "end": "Product", "edges": "BOUGHT"}
 
         df = pd.read_csv(self.csv_file)
 
         datum = [None, None, None]
         types = [None, None, None]
 
-        datum[0] = df[["ActorID", "Actor"]].drop_duplicates()
-        datum[0].insert(0, "ActorSerial", range(1, len(datum[0]) + 1))
-        types[0] = ["SERIAL", "TEXT", "TEXT"]
+        datum[0] = df[
+            ["CustomerID", "Name", "Address", "Email", "Phone"]
+        ].drop_duplicates()
+        datum[0].insert(0, "CustomerSerial", range(1, len(datum[0]) + 1))
+        types[0] = ["SERIAL", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
 
-        datum[1] = df[["FilmID", "Film", "Year", "Votes", "Rating"]].drop_duplicates()
-        datum[1].insert(0, "FilmSerial", range(1, len(datum[1]) + 1))
-        types[1] = ["SERIAL", "TEXT", "TEXT", "INT", "INT", "REAL"]
+        datum[1] = df[
+            ["ProductID", "Phrase", "SKU", "Price", "Color", "Size", "Weight"]
+        ].drop_duplicates()
+        datum[1].insert(0, "ProductSerial", range(1, len(datum[1]) + 1))
+        types[1] = ["SERIAL", "TEXT", "TEXT", "TEXT", "REAL", "TEXT", "TEXT", "INT"]
 
-        datum[2] = df[["ActorID", "FilmID", "Genre", "Director"]].rename(
-            columns={"ActorID": "start_id", "FilmID": "end_id"}
-        )
-        datum[2].insert(0, "ActedSerial", range(1, len(datum[2]) + 1))
-        types[2] = ["SERIAL", "TEXT", "TEXT", "TEXT", "TEXT"]
+        datum[2] = df[["CustomerID", "ProductID"]]
+        datum[2].insert(0, "BoughtSerial", range(1, len(datum[2]) + 1))
+        types[2] = ["SERIAL", "TEXT", "TEXT"]
 
         with pg.connect(con_string) as conn:
             with conn.cursor() as cur:
@@ -208,12 +252,20 @@ class AgeFreighterUtils:
                             )
                         )
                     if table_k == "edges":
-                        cur.execute(f'CREATE INDEX ON {schema}."{table_v}"(start_id)')
-                        cur.execute(f'CREATE INDEX ON {schema}."{table_v}"(end_id)')
+                        cur.execute(
+                            f'CREATE INDEX ON {schema}."{table_v}"("CustomerID")'
+                        )
+                        cur.execute(
+                            f'CREATE INDEX ON {schema}."{table_v}"("ProductID")'
+                        )
                     elif table_k == "start":
-                        cur.execute(f'CREATE INDEX ON {schema}."{table_v}"("ActorID")')
+                        cur.execute(
+                            f'CREATE INDEX ON {schema}."{table_v}"("CustomerID")'
+                        )
                     elif table_k == "end":
-                        cur.execute(f'CREATE INDEX ON {schema}."{table_v}"("FilmID")')
+                        cur.execute(
+                            f'CREATE INDEX ON {schema}."{table_v}"("ProductID")'
+                        )
                 cur.execute("COMMIT")
         self.showTime(start_time, sys._getframe().f_code.co_name)
 
@@ -293,7 +345,7 @@ class AgeFreighterUtils:
         # edge are automaticaly located in the same partirion as the 'from' node
         # AVERAGE_SIZE_OF_DOCUMENT includes the estimated size of the edge document
         log.info("Loading CSV to Cosmos DB via Gremlin API")
-        import os
+
         from gremlin_python.driver import client, serializer
         import concurrent.futures
         import nest_asyncio
@@ -310,7 +362,7 @@ class AgeFreighterUtils:
             raise KeyError
 
         start_time = time.time()
-        COSMOS_USERNAME = "/dbs/db1/colls/actorfilms2"
+        COSMOS_USERNAME = "/dbs/db1/colls/transaction"
         COSMOS_PKEY = "pk"
 
         LOGICAL_PARTITION_SIZE = 20 * 1024 * 1024 * 1024  # 20GB
@@ -342,10 +394,19 @@ class AgeFreighterUtils:
         max_workers = 4
 
         df = pd.read_csv(self.csv_file)
+        df.drop_duplicates(inplace=True)
 
         columns = {
-            "Actor": ["Actor", "ActorID"],
-            "Film": ["Film", "FilmID", "Year", "Votes", "Rating"],
+            "Customer": ["CustomerID", "Name", "Address", "Email", "Phone"],
+            "Product": [
+                "ProductID",
+                "Phrase",
+                "SKU",
+                "Price",
+                "Color",
+                "Size",
+                "Weight",
+            ],
         }
 
         total_num_of_documents = 0
@@ -356,52 +417,70 @@ class AgeFreighterUtils:
                 vertices = vertices.map(
                     lambda x: x.replace("'", r"\'") if isinstance(x, str) else x
                 )
-                if key == "Actor":
-                    tmp_query = """.addV('Actor')
-                    .property('Actor', '{actor}')
-                    .property('ActorID', '{actorid}')
+                if key == "Customer":
+                    tmp_query = """.addV('Customer')
+                    .property('Name', '{Name}')
+                    .property('CustomerID', '{CustomerID}')
+                    .property('Address', '{Address}')
+                    .property('Email', '{Email}')
+                    .property('Phone', '{Phone}')
                     .property('{pk}', '{num_of_pk}')"""
-                elif key == "Film":
-                    tmp_query = """.addV('Film')
-                    .property('Film', '{film}')
-                    .property('FilmID', '{filmid}')
-                    .property('Year', {year})
-                    .property('Votes', {votes})
-                    .property('Rating', {rating})
+                elif key == "Product":
+                    tmp_query = """.addV('Product')
+                    .property('Phrase', '{Phrase}')
+                    .property('ProductID', '{ProductID}')
+                    .property('SKU', '{SKU}')
+                    .property('Price', '{Price}')
+                    .property('Color', '{Color}')
+                    .property('Size', '{Size}')
+                    .property('Weight', '{Weight}')
                     .property('{pk}', '{num_of_pk}')"""
                 chunk_size = int(MAXIMUM_OPERATOR_DEPTH / (len(cols) + 2))
                 for i, chunk in enumerate(self.getChunks(vertices, chunk_size)):
                     log.info(f"Creating '{key}' {len(chunk)} vertices.")
-                    if len(chunk.columns) == 2:
+                    if len(chunk.columns) == 5:
                         query = "g" + "".join(
                             [
                                 tmp_query.format(
-                                    actorid=actorid,
-                                    actor=actor,
-                                    pk=COSMOS_PKEY,
-                                    num_of_pk=num_of_pk,
-                                )
-                                for idx, (actor, actorid) in chunk.iterrows()
-                            ]
-                        )
-                    elif len(chunk.columns) == 5:
-                        query = "g" + "".join(
-                            [
-                                tmp_query.format(
-                                    filmid=filmid,
-                                    film=film,
-                                    year=year,
-                                    votes=votes,
-                                    rating=rating,
+                                    Name=name,
+                                    CustomerID=customerid,
+                                    Address=address,
+                                    Email=email,
+                                    Phone=phone,
                                     pk=COSMOS_PKEY,
                                     num_of_pk=num_of_pk,
                                 )
                                 for idx, (
-                                    film,
-                                    filmid,
-                                    year,
-                                    votes,
-                                    rating,
+                                    customerid,
+                                    name,
+                                    address,
+                                    email,
+                                    phone,
+                                ) in chunk.iterrows()
+                            ]
+                        )
+                    elif len(chunk.columns) == 7:
+                        query = "g" + "".join(
+                            [
+                                tmp_query.format(
+                                    Phrase=phrase,
+                                    ProductID=productid,
+                                    SKU=sku,
+                                    Price=price,
+                                    Color=color,
+                                    Size=size,
+                                    Weight=weight,
+                                    pk=COSMOS_PKEY,
+                                    num_of_pk=num_of_pk,
+                                )
+                                for idx, (
+                                    productid,
+                                    phrase,
+                                    sku,
+                                    price,
+                                    color,
+                                    size,
+                                    weight,
                                 ) in chunk.iterrows()
                             ]
                         )
@@ -422,8 +501,8 @@ class AgeFreighterUtils:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = []
             for i, row in enumerate(df.itertuples(index=False), start=1):
-                log.info(f"Creating 'ACTED_IN' edges: {i}")
-                query = f"g.V().has('ActorID', '{row.ActorID}').addE('ACTED_IN').property('Genre', '{row.Genre}').property('Director', '{row.Director}').to(g.V().has('FilmID', '{row.FilmID}'))"
+                log.info(f"Creating 'BOUGHT' edges: {i}")
+                query = f"g.V().has('CustomerID', '{row.CustomerID}').addE('BOUGHT').to(g.V().has('ProductID', '{row.ProductID}'))"
                 futures.append(
                     executor.submit(self.executeGremlinQuery, g_client, query, i)
                 )
@@ -437,23 +516,66 @@ class AgeFreighterUtils:
         Convert CSV to Avro
         """
         log.info("Converting CSV to Avro")
+
         import fastavro as fa
 
         start_time = time.time()
-        records = pd.read_csv(self.csv_file).to_dict(orient="records")
+        columns = [
+            "id",
+            "CustomerID",
+            "start_vertex_type",
+            "Name",
+            "Address",
+            "Email",
+            "Phone",
+            "ProductID",
+            "end_vertex_type",
+            "Phrase",
+            "SKU",
+            "Price",
+            "Color",
+            "Size",
+            "Weight",
+        ]
+        dtype_dict = {
+            "id": "int64",
+            "CustomerID": "int64",
+            "start_vertex_type": "object",
+            "Name": "object",
+            "Address": "object",
+            "Email": "object",
+            "Phone": "object",
+            "ProductID": "int64",
+            "end_vertex_type": "object",
+            "Phrase": "object",
+            "SKU": "object",
+            "Price": "float64",
+            "Color": "object",
+            "Size": "object",
+            "Weight": "int64",
+        }
+        records = pd.read_csv(self.csv_file, usecols=columns, dtype=dtype_dict).to_dict(
+            orient="records"
+        )
         schema = {
             "type": "record",
-            "name": "actorfilms2",
+            "name": self.base_file,
             "fields": [
-                {"name": "ActorID", "type": "string"},
-                {"name": "Actor", "type": "string"},
-                {"name": "FilmID", "type": "string"},
-                {"name": "Film", "type": "string"},
-                {"name": "Year", "type": "int"},
-                {"name": "Votes", "type": "int"},
-                {"name": "Rating", "type": "float"},
-                {"name": "Genre", "type": "string"},
-                {"name": "Director", "type": "string"},
+                {"name": "id", "type": "int"},
+                {"name": "CustomerID", "type": "int"},
+                {"name": "start_vertex_type", "type": "string"},
+                {"name": "Name", "type": "string"},
+                {"name": "Address", "type": "string"},
+                {"name": "Email", "type": "string"},
+                {"name": "Phone", "type": "string"},
+                {"name": "ProductID", "type": "int"},
+                {"name": "end_vertex_type", "type": "string"},
+                {"name": "Phrase", "type": "string"},
+                {"name": "SKU", "type": "string"},
+                {"name": "Price", "type": "float"},
+                {"name": "Color", "type": "string"},
+                {"name": "Size", "type": "string"},
+                {"name": "Weight", "type": "int"},
             ],
         }
         parsed_schema = fa.parse_schema(schema)
@@ -466,41 +588,72 @@ class AgeFreighterUtils:
         Convert CSV to Parquet
         """
         log.info("Converting CSV to Parquet")
+        os.system("uv add fastparquet")
 
         start_time = time.time()
         pd.read_csv(self.csv_file).to_parquet(self.parquet_file)
         self.showTime(start_time, sys._getframe().f_code.co_name)
+        os.system("uv remove fastparquet")
 
     async def convertCSVtoNetworkXPickle(self) -> None:
         """
         Convert CSV to NetworkX and save as pickle
         """
         log.info("Converting CSV to NetworkX and to save as pickle")
+
         import networkx as nx
         import pickle
 
         start_time = time.time()
         df = pd.read_csv(self.csv_file)
+        starts = df[
+            ["CustomerID", "Name", "Address", "Email", "Phone"]
+        ].drop_duplicates()
+        starts = starts.reset_index(drop=True)
+        starts.index += 1
+        ends = df[
+            ["ProductID", "Phrase", "SKU", "Price", "Color", "Size", "Weight"]
+        ].drop_duplicates()
+        ends = ends.reset_index(drop=True)
+        ends.index += len(starts) + 1
+
         G = nx.DiGraph()
 
-        for name, group in df.groupby("ActorID"):
-            for idx, row in group.iterrows():
-                G.add_node(row["ActorID"], label="Actor", name=row["Actor"])
-                G.add_node(
-                    row["FilmID"],
-                    label="Film",
-                    name=row["Film"],
-                    year=row["Year"],
-                    votes=row["Votes"],
-                    rating=row["Rating"],
-                )
-                G.add_edge(
-                    row["ActorID"],
-                    row["FilmID"],
-                    label="ACTED_IN",
-                    genre=row["Genre"],
-                    director=row["Director"],
-                )
+        [
+            G.add_node(
+                idx,
+                customerid=row["CustomerID"],
+                label="Customer",
+                name=row["Name"],
+                address=row["Address"],
+                email=row["Email"],
+                phone=row["Phone"],
+            )
+            for idx, row in starts.iterrows()
+        ]
+        [
+            G.add_node(
+                idx,
+                productid=row["ProductID"],
+                label="Product",
+                phrase=row["Phrase"],
+                sku=row["SKU"],
+                price=row["Price"],
+                color=row["Color"],
+                size=row["Size"],
+                weight=row["Weight"],
+            )
+            for idx, row in ends.iterrows()
+        ]
+        [
+            G.add_edge(
+                starts[starts["CustomerID"] == row["CustomerID"]].index.tolist()[0],
+                ends[ends["ProductID"] == row["ProductID"]].index.tolist()[0],
+                label="BOUGHT",
+            )
+            for idx, row in df.iterrows()
+        ]
+
         with open(self.pickle_file, "wb") as f:
             pickle.dump(G, f)
 
