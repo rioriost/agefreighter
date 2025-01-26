@@ -1,13 +1,12 @@
 from agefreighter import AgeFreighter
 from psycopg_pool import AsyncConnectionPool
 import sys
-import warnings
 import logging
 
 log = logging.getLogger(__name__)
 
 
-class AzureStorageFreighter(AgeFreighter):
+class MultiAzureStorageFreighter(AgeFreighter):
     def __init__(self):
         super().__init__()
         self.subscription_id: str = ""
@@ -29,15 +28,8 @@ class AzureStorageFreighter(AgeFreighter):
 
     async def load(
         self,
-        csv_path: str = "",
-        start_v_label: str = "",
-        start_id: str = "",
-        start_props: list = [],
-        edge_type: str = "",
-        edge_props: list = [],
-        end_v_label: str = "",
-        end_id: str = "",
-        end_props: list = [],
+        vertex_args: list = [],
+        edge_args: list = [],
         graph_name: str = "",
         chunk_size: int = 128,
         create_graph: bool = True,
@@ -47,15 +39,8 @@ class AzureStorageFreighter(AgeFreighter):
         Load a graph data to the PostgreSQL Flex with Azure Storage.
 
         Args:
-            csv_path (str): CSV file path
-            start_v_label (str): Start Vertex Label
-            start_id (str): Start Vertex ID
-            start_props (list): Start Vertex Properties
-            edge_type (str): Edge Type
-            edge_props (list): Edge Properties
-            end_v_label (str): End Vertex Label
-            end_id (str): End Vertex ID
-            end_props (list): End Vertex Properties
+            vertex_args (list): Vertex Arguments
+            edge_args (list): Edge Arguments
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
             create_graph (bool): Whether to create the graph.
@@ -65,18 +50,7 @@ class AzureStorageFreighter(AgeFreighter):
         """
         log.debug("Loading data from Azure Storage")
 
-        if "csv" in kwargs.keys():
-            warnings.warn(
-                "The 'csv' parameter is deprecated. Please use 'csv_path' instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            csv_path = kwargs["csv"]
-
         CHUNK_MULTIPLIER = 10000
-        TBL_FROM_STORAGE = "table_from_azure_storage"
-        TBL_ID_MAP_S = "table_id_map_s"
-        TBL_ID_MAP_E = "table_id_map_e"
 
         # optional
         if "subscription_id" in kwargs.keys():
@@ -122,50 +96,60 @@ class AzureStorageFreighter(AgeFreighter):
         self.access_key = sa.access_key
         await sa.attach()
 
+        file_paths_dict = {
+            "nodes": [
+                path
+                for vertex_arg in vertex_args
+                for k, path in vertex_arg.items()
+                if k == "csv_path"
+            ],
+            "edges": [
+                path
+                for edge_arg in edge_args
+                for k, v in edge_arg.items()
+                if k == "csv_paths"
+                for path in v
+            ],
+        }
+
         # Upload a CSV file to the blob container
-        print("Uploading file...")
+        print("Uploading files...")
         bl = BlobUploader(
             storage_account_name=self.storage_account_name,
             blob_container_name=self.blob_container_name,
             access_key=self.access_key,
-            file_path=csv_path,
+            file_paths_dict=file_paths_dict,
             lines_per_chunk=chunk_size * CHUNK_MULTIPLIER,
         )
         await bl.upload()
 
         # Check if the columns contain arguments
         self.checkKeys(
-            columns_in_csv=bl.columns_in_csv,
-            columns_in_args=[
-                start_id,
-                *start_props,
-                *edge_props,
-                end_id,
-                *end_props,
-            ],
+            columns_in_csvs=bl.columns_in_csvs,
+            vertex_args=vertex_args,
+            edge_args=edge_args,
         )
 
         # Create temporary tables
         # They're named 'temp', but not the persistent tables.
         print("Creating temporary tables...")
         tt = TempTables(
-            tbl_from_storage=TBL_FROM_STORAGE,
-            columns_in_csv=bl.columns_in_csv,
-            tbl_id_map_s=TBL_ID_MAP_S,
-            tbl_id_map_e=TBL_ID_MAP_E,
+            columns_in_csvs=bl.columns_in_csvs,
+            file_paths_dict=file_paths_dict,
             pool=self.pool,
         )
         await tt.create()
 
         # Load the data from the Azure Storage to the temporary table
-        print("Loading files to temporary table...")
+        print("Loading files to temporary tables...")
         sl = StorageLoader(
-            file_list=bl.file_list,
+            tmp_file_lists=bl.tmp_file_lists,
             total_lines=bl.total_lines,
             storage_account_name=self.storage_account_name,
             blob_container_name=self.blob_container_name,
-            table_name=TBL_FROM_STORAGE,
-            columns_in_tbl_from_storage=tt.columns_in_tbl_from_storage,
+            tbls_from_storage=tt.tbls_from_storage,
+            columns_in_tbls_from_storage=tt.columns_in_tbls_from_storage,
+            columns_in_csvs=bl.columns_in_csvs,
             pool=self.pool,
         )
         await sl.load()
@@ -173,23 +157,22 @@ class AzureStorageFreighter(AgeFreighter):
         # start to create a graph
         print("Creating a graph...")
         await self.setUpGraph(graph_name=graph_name, create_graph=create_graph)
-        await self.createLabelType(label_type="vertex", value=start_v_label)
-        await self.createLabelType(label_type="vertex", value=end_v_label)
-        await self.createLabelType(label_type="edge", value=edge_type)
+        for vertex_arg in vertex_args:
+            for k, label in vertex_arg.items():
+                if k == "label":
+                    await self.createLabelType(label_type="vertex", value=label)
+        for edge_arg in edge_args:
+            for k, type in edge_arg.items():
+                if k == "type":
+                    await self.createLabelType(label_type="edge", value=type)
 
         gl = GraphLoader(
-            tbl_from_storage=TBL_FROM_STORAGE,
+            tbls_from_storage=tt.tbls_from_storage,
             total_lines=bl.total_lines,
-            tbl_id_map_s=TBL_ID_MAP_S,
-            tbl_id_map_e=TBL_ID_MAP_E,
-            start_v_label=start_v_label,
-            start_id=start_id,
-            start_props=start_props,
-            edge_type=edge_type,
-            edge_props=edge_props,
-            end_v_label=end_v_label,
-            end_id=end_id,
-            end_props=end_props,
+            vertex_args=vertex_args,
+            edge_args=edge_args,
+            columns_in_csvs=bl.columns_in_csvs,
+            id_map_tbls=tt.id_map_tbls,
             graph_name=graph_name,
             records_per_thread=chunk_size * CHUNK_MULTIPLIER,
             pool=self.pool,
@@ -280,13 +263,16 @@ class AzureStorageFreighter(AgeFreighter):
                     return True
         return False
 
-    def checkKeys(self, columns_in_csv: list = [], columns_in_args: list = []) -> None:
+    def checkKeys(
+        self, columns_in_csvs: list = [], vertex_args: list = [], edge_args: list = []
+    ) -> None:
         """
         Check if the columns contain arguments.
 
         Args:
             columns_in_csv (list): Columns in the CSV file
-            columns_in_args (list): Columns in the arguments
+            vertex_args (list): Vertex Arguments
+            edge_args (list): Edge Arguments
 
         Raises:
             ValueError: If the column is not in the CSV
@@ -295,10 +281,30 @@ class AzureStorageFreighter(AgeFreighter):
             None
         """
         log.debug("Checking keys")
-        for column in columns_in_args:
-            if column not in columns_in_csv:
-                log.error(f"Column '{column}' is not in the CSV.")
+        for vertex_arg in vertex_args:
+            file_path = vertex_arg["csv_path"]
+            if set(columns_in_csvs[file_path]) != set(
+                [vertex_arg["id"]] + vertex_arg["props"]
+            ):
+                log.error(
+                    f"Columns in CSV file '{file_path}' didn't match to vertex_args."
+                )
                 raise ValueError
+        for edge_arg in edge_args:
+            for file_path in edge_arg["csv_paths"]:
+                if not set(
+                    [
+                        "id",
+                        "start_id",
+                        "start_vertex_type",
+                        "end_id",
+                        "end_vertex_type",
+                    ]
+                ).issubset(set(columns_in_csvs[file_path])):
+                    log.error(
+                        f"Columns in CSV file '{file_path}' didn't match to edge_args."
+                    )
+                    raise ValueError
 
 
 class AzureExtensions:
@@ -460,13 +466,13 @@ class BlobUploader:
         storage_account_name: str = "",
         access_key: str = "",
         blob_container_name: str = "",
-        file_path: str = "",
+        file_paths_dict: dict = {},
         lines_per_chunk: int = 10000,
     ):
         self.storage_account_name = storage_account_name
         self.access_key = access_key
         self.blob_container_name = blob_container_name
-        self.file_path = file_path
+        self.file_paths_dict = file_paths_dict
         self.lines_per_chunk = lines_per_chunk
 
     async def upload(self) -> None:
@@ -489,10 +495,13 @@ class BlobUploader:
                 container_client = blob_service_client.get_container_client(
                     self.blob_container_name
                 )
-                tasks = [
-                    self.uploadBlob(file_path, container_client)
-                    for file_path in self.file_list
-                ]
+                tasks = []
+                for type, file_paths in self.file_paths_dict.items():
+                    for file_path, tmp_file_list in self.tmp_file_lists.items():
+                        for tmp_file_path in tmp_file_list:
+                            tasks.append(
+                                self.uploadBlob(tmp_file_path, container_client)
+                            )
                 await asyncio.gather(*tasks)
                 log.info("Successfully uploaded all files to blob.")
 
@@ -513,51 +522,62 @@ class BlobUploader:
         import os
         import mmap
 
-        # column names header
-        columns_in_csv, newline_char = self.getColumnsInCSV(csv_path=self.file_path)
-        self.columns_in_csv = columns_in_csv
-        header_line = ",".join([f'"{col}"' for col in columns_in_csv]) + newline_char
+        self.columns_in_csvs = {}
+        self.total_lines = {}
+        self.tmp_file_lists = {}
+        for type, file_paths in self.file_paths_dict.items():
+            for file_path in file_paths:
+                # column names header
+                columns_in_csv, newline_char = self.getColumnsInCSV(csv_path=file_path)
+                self.columns_in_csvs[file_path] = columns_in_csv
+                header_line = (
+                    ",".join([f'"{col}"' for col in columns_in_csv]) + newline_char
+                )
 
-        original_file_name = os.path.basename(self.file_path)
-        original_file_name_without_ext, ext = os.path.splitext(original_file_name)
-        temp_file_name = f"{original_file_name_without_ext}_part_{{count:05d}}{ext}"
+                original_file_name = os.path.basename(file_path)
+                original_file_name_without_ext, ext = os.path.splitext(
+                    original_file_name
+                )
+                temp_file_name = (
+                    f"{original_file_name_without_ext}_part_{{count:05d}}{ext}"
+                )
 
-        total_lines = 0
-        with open(self.file_path, "r+") as f:
-            mmapped_file = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
-            line_iterator = iter(mmapped_file.readline, b"")
-            temp_files = []
-            line_count = 0
-            file_count = 0
-
-            temp_file = self.createTempFile(
-                temp_file_name=temp_file_name,
-                count=file_count,
-                header_line=header_line,
-                add_header=False,
-            )
-            temp_files.append(temp_file.name)
-
-            for line in line_iterator:
-                temp_file.write(line)
-                line_count += 1
-                total_lines += 1
-                if line_count >= self.lines_per_chunk:
-                    temp_file.close()
-                    file_count += 1
+                total_lines = 0
+                with open(file_path, "r+") as f:
+                    mmapped_file = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+                    line_iterator = iter(mmapped_file.readline, b"")
+                    temp_files = []
                     line_count = 0
+                    file_count = 0
+
                     temp_file = self.createTempFile(
                         temp_file_name=temp_file_name,
                         count=file_count,
                         header_line=header_line,
-                        add_header=True,
+                        add_header=False,
                     )
                     temp_files.append(temp_file.name)
-            temp_file.close()
-            mmapped_file.close()
 
-            self.total_lines = total_lines - 1
-            self.file_list = temp_files
+                    for line in line_iterator:
+                        temp_file.write(line)
+                        line_count += 1
+                        total_lines += 1
+                        if line_count >= self.lines_per_chunk:
+                            temp_file.close()
+                            file_count += 1
+                            line_count = 0
+                            temp_file = self.createTempFile(
+                                temp_file_name=temp_file_name,
+                                count=file_count,
+                                header_line=header_line,
+                                add_header=True,
+                            )
+                            temp_files.append(temp_file.name)
+                    temp_file.close()
+                    mmapped_file.close()
+
+                    self.total_lines[file_path] = total_lines - 1
+                    self.tmp_file_lists[file_path] = temp_files
 
     def createTempFile(
         self,
@@ -614,121 +634,142 @@ class BlobUploader:
 class TempTables:
     def __init__(
         self,
-        tbl_from_storage: str = "",
-        columns_in_csv: list = [],
-        tbl_id_map_s: str = "",
-        tbl_id_map_e: str = "",
+        columns_in_csvs: list = [],
+        file_paths_dict: dict = {},
         pool: AsyncConnectionPool = None,
     ):
-        self.tbl_from_storage = tbl_from_storage
-        self.columns_in_csv = columns_in_csv
-        self.columns_in_tbl_from_storage = ",".join(
-            [f'"{column}" TEXT' for column in columns_in_csv]
-        )
-        self.tbl_id_map_s = tbl_id_map_s
-        self.tbl_id_map_e = tbl_id_map_e
+        import os
+
+        self.file_paths_dict = file_paths_dict
+        self.tbls_from_storage = {}
+        self.columns_in_tbls_from_storage = {}
+        self.id_map_tbls = {}
+        for type, file_paths in self.file_paths_dict.items():
+            for file_path in file_paths:
+                columns_in_csv = columns_in_csvs[file_path]
+                base_name_wo_ext, ext = os.path.splitext(os.path.basename(file_path))
+                self.tbls_from_storage[file_path] = f"{base_name_wo_ext.lower()}_temp"
+                self.columns_in_tbls_from_storage[file_path] = ",".join(
+                    [f'"{column}" TEXT' for column in columns_in_csvs[file_path]]
+                )
+                if type == "nodes":
+                    self.id_map_tbls[file_path] = f"{base_name_wo_ext.lower()}_id_map"
         self.pool = pool
 
     async def create(self) -> None:
         log.info("Creating temporary tables...")
         async with self.pool.connection() as conn:
-            # create a temporary table to store the data from the Azure Storage
-            query = f"DROP TABLE IF EXISTS public.{self.tbl_from_storage};"
-            await conn.execute(query)
-            query = f"CREATE TABLE public.{self.tbl_from_storage} ({self.columns_in_tbl_from_storage});"
-            await conn.execute(query)
+            for type, file_paths in self.file_paths_dict.items():
+                for file_path in file_paths:
+                    tbl_from_storage = self.tbls_from_storage[file_path]
+                    columns_in_tbl_from_storage = self.columns_in_tbls_from_storage[
+                        file_path
+                    ]
+                    query = f"DROP TABLE IF EXISTS public.{tbl_from_storage};"
+                    await conn.execute(query)
+                    query = f"CREATE TABLE public.{tbl_from_storage} ({columns_in_tbl_from_storage});"
+                    await conn.execute(query)
 
-            # create a temporary table to store the mapping between the entryID and the id
-            query = f"DROP TABLE IF EXISTS public.{self.tbl_id_map_s};"
-            await conn.execute(query)
-            query = (
-                f"CREATE TABLE public.{self.tbl_id_map_s} (entryID TEXT, id BIGINT);"
-            )
-            await conn.execute(query)
-            query = f"DROP TABLE IF EXISTS public.{self.tbl_id_map_e};"
-            await conn.execute(query)
-            query = (
-                f"CREATE TABLE public.{self.tbl_id_map_e} (entryID TEXT, id BIGINT);"
-            )
-            await conn.execute(query)
+                    if type == "nodes":
+                        id_map_tbl = self.id_map_tbls[file_path]
+                        query = f"DROP TABLE IF EXISTS public.{id_map_tbl};"
+                        await conn.execute(query)
+                        query = f"CREATE TABLE public.{id_map_tbl} (entryID TEXT, id BIGINT);"
+                        await conn.execute(query)
 
     async def delete(self) -> None:
         async with self.pool.connection() as conn:
-            query = f"DROP TABLE public.{self.tbl_from_storage};"
-            await conn.execute(query)
-            query = f"DROP TABLE public.{self.tbl_id_map_s};"
-            await conn.execute(query)
-            query = f"DROP TABLE public.{self.tbl_id_map_e};"
-            await conn.execute(query)
+            for type, file_paths in self.file_paths_dict.items():
+                for file_path in file_paths:
+                    tbl_from_storage = self.tbls_from_storage[file_path]
+                    query = f"DROP TABLE public.{tbl_from_storage};"
+                    await conn.execute(query)
+                    if type == "nodes":
+                        id_map_tbl = self.id_map_tbls[file_path]
+                        query = f"DROP TABLE public.{id_map_tbl};"
+                        await conn.execute(query)
 
 
 class StorageLoader:
     def __init__(
         self,
-        file_list: list = [],
-        total_lines: int = 0,
+        tmp_file_lists: dict = {},
+        total_lines: dict = {},
         storage_account_name: str = "",
         blob_container_name: str = "",
-        table_name: str = "",
-        columns_in_tbl_from_storage: list = [],
+        tbls_from_storage: dict = {},
+        columns_in_tbls_from_storage: dict = {},
+        columns_in_csvs: list = [],
         pool: AsyncConnectionPool = None,
     ):
         import os
 
-        self.file_list = list(
-            map(lambda file_path: os.path.basename(file_path), file_list)
-        )
+        self.tmp_file_lists = {}
+        for file_path, tmp_file_list in tmp_file_lists.items():
+            self.tmp_file_lists[file_path] = list(
+                map(lambda file_path: os.path.basename(file_path), tmp_file_list)
+            )
         self.total_lines = total_lines
         self.storage_account_name = storage_account_name
         self.blob_container_name = blob_container_name
-        self.table_name = table_name
-        self.columns_in_tbl_from_storage = columns_in_tbl_from_storage
+        self.tbls_from_storage = tbls_from_storage
+        self.columns_in_tbls_from_storage = columns_in_tbls_from_storage
+        self.columns_in_csvs = columns_in_csvs
         self.pool = pool
 
     async def load(self):
         import asyncio
         from psycopg.rows import namedtuple_row
 
-        log.info("Loading files into temporary table...")
+        log.info("Loading files into temporary tables...")
 
-        tasks = [
-            self.executeQuery(
-                self.pool,
-                f"""INSERT INTO public.{self.table_name}
-                    SELECT *
-                    FROM azure_storage.blob_get(
-                        '{self.storage_account_name}',
-                        '{self.blob_container_name}',
-                        '{file}',
-                        options := azure_storage.options_csv_get(header := 'true'))
-                    AS res ({self.columns_in_tbl_from_storage});
-                """,
-            )
-            for file in self.file_list
-        ]
+        tasks = []
+        for file_path, tmp_file_list in self.tmp_file_lists.items():
+            tbl_from_storage = self.tbls_from_storage[file_path]
+            columns_in_tbl_from_storage = self.columns_in_tbls_from_storage[file_path]
+            for tmp_file in tmp_file_list:
+                tasks.append(
+                    self.executeQuery(
+                        self.pool,
+                        f"""INSERT INTO public.{tbl_from_storage}
+                            SELECT *
+                            FROM azure_storage.blob_get(
+                                '{self.storage_account_name}',
+                                '{self.blob_container_name}',
+                                '{tmp_file}',
+                                options := azure_storage.options_csv_get(header := 'true'))
+                            AS res ({columns_in_tbl_from_storage});
+                        """,
+                    )
+                )
+
         await asyncio.gather(*tasks)
 
         async with self.pool.connection() as conn:
             async with conn.cursor(row_factory=namedtuple_row) as cur:
-                await cur.execute(f"SELECT COUNT(*) FROM {self.table_name}")
-                result = await cur.fetchone()
-                total_rows_in_tbl = result.count
-                if total_rows_in_tbl == self.total_lines:
-                    log.info("Successfully loaded all files to temporary table.")
-                else:
-                    log.error(
-                        f"Total rows in the table '{self.table_name}' is not equal to the total lines in the file."
-                    )
-                    raise ValueError
+                for file_path, tbl_from_storage in self.tbls_from_storage.items():
+                    await cur.execute(f"SELECT COUNT(*) FROM {tbl_from_storage}")
+                    result = await cur.fetchone()
+                    total_rows_in_tbl = result.count
+                    if total_rows_in_tbl == self.total_lines[file_path]:
+                        log.info("Successfully loaded all files to temporary table.")
+                    else:
+                        log.error(
+                            f"Total rows in the table '{tbl_from_storage}' is not equal to the total lines in the file."
+                        )
+                        raise ValueError
 
         log.info("Creating indexes...")
-        tasks = [
-            self.executeQuery(
-                self.pool,
-                f"CREATE INDEX ON public.{self.table_name} USING BTREE ({col});",
-            )
-            for col in self.columns_in_tbl_from_storage
-        ]
+        tasks = []
+        for file_path, tmp_file_list in self.tmp_file_lists.items():
+            tbl_from_storage = self.tbls_from_storage[file_path]
+            for col in self.columns_in_csvs[file_path]:
+                tasks.append(
+                    self.executeQuery(
+                        self.pool,
+                        f"CREATE INDEX ON public.{tbl_from_storage} USING BTREE ({col});",
+                    )
+                )
         await asyncio.gather(*tasks)
 
     async def executeQuery(
@@ -745,34 +786,22 @@ class StorageLoader:
 class GraphLoader:
     def __init__(
         self,
-        tbl_from_storage: str = "",
+        tbls_from_storage: str = "",
         total_lines: int = 0,
-        tbl_id_map_s: str = "",
-        tbl_id_map_e: str = "",
-        start_v_label: str = "",
-        start_id: str = "",
-        start_props: list = [],
-        edge_type: str = "",
-        edge_props: list = [],
-        end_v_label: str = "",
-        end_id: str = "",
-        end_props: list = [],
+        vertex_args: list = [],
+        edge_args: list = [],
+        columns_in_csvs: list = [],
+        id_map_tbls: dict = {},
         graph_name: str = "",
         records_per_thread: int = 0,
         pool: AsyncConnectionPool = None,
     ):
-        self.tbl_from_storage = tbl_from_storage
+        self.tbls_from_storage = tbls_from_storage
         self.total_lines = total_lines
-        self.tbl_id_map_s = tbl_id_map_s
-        self.tbl_id_map_e = tbl_id_map_e
-        self.start_v_label = start_v_label
-        self.start_id = start_id
-        self.start_props = start_props
-        self.edge_type = edge_type
-        self.edge_props = edge_props
-        self.end_v_label = end_v_label
-        self.end_id = end_id
-        self.end_props = end_props
+        self.vertex_args = vertex_args
+        self.edge_args = edge_args
+        self.columns_in_csvs = columns_in_csvs
+        self.id_map_tbls = id_map_tbls
         self.graph_name = graph_name
         self.records_per_thread = records_per_thread
         self.pool = pool
@@ -781,217 +810,132 @@ class GraphLoader:
         """
         Load a graph data from the Temporary Table
         """
-        log.info(f"Creating graph from table, '{self.tbl_from_storage}'...")
+        log.info(f"Creating graph from table, '{self.tbls_from_storage}'...")
         import asyncio
+        from psycopg.rows import namedtuple_row
 
-        first_id_s = await self.getFirstId(
-            graph_name=self.graph_name, label_type=self.start_v_label
-        )
-        first_id_e = await self.getFirstId(
-            graph_name=self.graph_name, label_type=self.end_v_label
-        )
-        start_props_formatted = ",".join(
-            [f'"{prop}":"%s"' for prop in self.start_props]
-        )
-        end_props_formatted = ",".join([f'"{prop}":"%s"' for prop in self.end_props])
-
-        log.info("Creating start vertices...")
-        tasks = [
-            self.executeQuery(
-                self.pool,
-                f"""
-                INSERT INTO "{self.graph_name}"."{self.start_v_label}" (properties)
-                    SELECT format('{{"id":"%s", {start_props_formatted}}}', "{self.start_id}", {",".join([f'"{start_prop}"' for start_prop in self.start_props])})::agtype
-                    FROM (
-                        SELECT DISTINCT {",".join([f'"{item}"' for item in [self.start_id] + self.start_props])}
-                        FROM {self.tbl_from_storage}
-                        OFFSET {offset} LIMIT {self.records_per_thread}
-                    ) AS distinct_s;
-                INSERT INTO {self.tbl_id_map_s} (entryID, id)
-                    SELECT distinct_s."{self.start_id}", {first_id_s} + {offset} + ROW_NUMBER() OVER () - 1
-                    FROM (
-                        SELECT DISTINCT "{self.start_id}"
-                        FROM {self.tbl_from_storage}
-                        OFFSET {offset} LIMIT {self.records_per_thread}
-                    ) AS distinct_s;""",
+        for vertex_arg in self.vertex_args:
+            first_id = await self.getFirstId(
+                graph_name=self.graph_name, label_type=vertex_arg["label"]
             )
-            for offset in range(0, self.total_lines, self.records_per_thread)
-        ]
-        await asyncio.gather(*tasks)
-
-        log.info("Creating end vertices...")
-        tasks = [
-            self.executeQuery(
-                self.pool,
-                f"""
-                INSERT INTO "{self.graph_name}"."{self.end_v_label}" (properties)
-                    SELECT format('{{"id":"%s", {end_props_formatted}}}', "{self.end_id}", {",".join([f'"{end_prop}"' for end_prop in self.end_props])})::agtype
-                    FROM (
-                        SELECT DISTINCT {",".join([f'"{item}"' for item in [self.end_id] + self.end_props])}
-                        FROM {self.tbl_from_storage}
-                        OFFSET {offset} LIMIT {self.records_per_thread}
-                    ) AS distinct_e;
-                INSERT INTO {self.tbl_id_map_e} (entryID, id)
-                    SELECT distinct_e."{self.end_id}", {first_id_e} + {offset} + ROW_NUMBER() OVER () - 1
-                    FROM (
-                        SELECT DISTINCT "{self.end_id}"
-                        FROM {self.tbl_from_storage}
-                        OFFSET {offset} LIMIT {self.records_per_thread}
-                    ) AS distinct_e;""",
+            props_formatted = ",".join(
+                [f'"{prop}":"%s"' for prop in vertex_arg["props"]]
             )
-            for offset in range(0, self.total_lines, self.records_per_thread)
-        ]
-        await asyncio.gather(*tasks)
 
-        log.info(f"Creating indexes on {self.tbl_id_map_s} / {self.tbl_id_map_e}...")
-        tasks = [
-            self.executeQuery(self.pool, query)
-            for query in [
-                f"CREATE INDEX ON {self.tbl_id_map_s} USING BTREE (entryID);",
-                f"CREATE INDEX ON {self.tbl_id_map_e} USING BTREE (entryID);",
+            log.info("Creating vertices...")
+            tasks = [
+                self.executeQuery(
+                    self.pool,
+                    f"""
+                    INSERT INTO "{self.graph_name}"."{vertex_arg["label"]}" (properties)
+                        SELECT format('{{"id":"%s", {props_formatted}}}', "{vertex_arg["id"]}", {",".join([f'"{prop}"' for prop in vertex_arg["props"]])})::agtype
+                        FROM (
+                            SELECT DISTINCT {",".join([f'"{item}"' for item in [vertex_arg["id"]] + vertex_arg["props"]])}
+                            FROM {self.tbls_from_storage[vertex_arg["csv_path"]]}
+                            OFFSET {offset} LIMIT {self.records_per_thread}
+                        ) AS distinct_s;
+                    INSERT INTO {self.id_map_tbls[vertex_arg["csv_path"]]} (entryID, id)
+                        SELECT distinct_v."{vertex_arg["id"]}", {first_id} + {offset} + ROW_NUMBER() OVER () - 1
+                        FROM (
+                            SELECT DISTINCT "{vertex_arg["id"]}"
+                            FROM {self.tbls_from_storage[vertex_arg["csv_path"]]}
+                            OFFSET {offset} LIMIT {self.records_per_thread}
+                        ) AS distinct_v;""",
+                )
+                for offset in range(
+                    0, self.total_lines[vertex_arg["csv_path"]], self.records_per_thread
+                )
             ]
-        ]
-        await asyncio.gather(*tasks)
+            await asyncio.gather(*tasks)
+
+            log.info(
+                f"Creating indexes on {self.id_map_tbls[vertex_arg['csv_path']]}..."
+            )
+            tasks = [
+                self.executeQuery(self.pool, query)
+                for query in [
+                    f"CREATE INDEX ON {self.id_map_tbls[vertex_arg['csv_path']]} USING BTREE (entryID);",
+                ]
+            ]
+            await asyncio.gather(*tasks)
+
+            log.info("Creating indexes for node...")
+            tasks = [
+                self.executeQuery(self.pool, query)
+                for query in [
+                    f'CREATE INDEX ON "{self.graph_name}"."{vertex_arg["label"]}" USING GIN (properties);',
+                    f'CREATE INDEX ON "{self.graph_name}"."{vertex_arg["label"]}" USING BTREE (id);',
+                ]
+            ]
+            await asyncio.gather(*tasks)
 
         log.info("Creating edges...")
-        if self.edge_props:
-            prop_cols = "," + ",".join([f'"{prop}"' for prop in self.edge_props])
-            prop_vals = (
-                ", format('{"
-                + ",".join([f'"{prop}":"%s"' for prop in self.edge_props])
-                + "}', "
-                + ",".join([f'af."{prop}"' for prop in self.edge_props])
-                + ")::agtype"
-            )
-        tasks = [
-            self.executeQuery(
-                self.pool,
-                f"""
-                INSERT INTO "{self.graph_name}"."{self.edge_type}" (start_id, end_id{", properties" if self.edge_props else ""})
-                SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid {prop_vals if self.edge_props else ""}
-                FROM (
-                    SELECT "{self.start_id}", "{self.end_id}" {prop_cols if self.edge_props else ""}
-                    FROM {self.tbl_from_storage}
-                    OFFSET {offset} LIMIT {self.records_per_thread}
-                ) AS af
-                JOIN {self.tbl_id_map_s} AS s_map ON af."{self.start_id}" = s_map.entryID
-                JOIN {self.tbl_id_map_e} AS e_map ON af."{self.end_id}" = e_map.entryID;""",
-            )
-            for offset in range(0, self.total_lines, self.records_per_thread)
-        ]
-        await asyncio.gather(*tasks)
+        for edge_arg in self.edge_args:
+            edge_type = edge_arg["type"]
+            for csv_path in edge_arg["csv_paths"]:
+                tbl_from_storage = self.tbls_from_storage[csv_path]
+                async with self.pool.connection() as conn:
+                    async with conn.cursor(row_factory=namedtuple_row) as cur:
+                        await cur.execute(
+                            f"SELECT start_vertex_type, end_vertex_type FROM {tbl_from_storage} LIMIT 1;"
+                        )
+                        row = await cur.fetchone()
+                        start_vertex_type = row.start_vertex_type.lower()
+                        end_vertex_type = row.end_vertex_type.lower()
 
-        log.info("Creating indexes for graph...")
-        tasks = [
-            self.executeQuery(self.pool, query)
-            for query in [
-                f'CREATE INDEX ON "{self.graph_name}"."{self.start_v_label}" USING GIN (properties);',
-                f'CREATE INDEX ON "{self.graph_name}"."{self.start_v_label}" USING BTREE (id);',
-                f'CREATE INDEX ON "{self.graph_name}"."{self.end_v_label}" USING GIN (properties);',
-                f'CREATE INDEX ON "{self.graph_name}"."{self.end_v_label}" USING BTREE (id);',
-                f'CREATE INDEX ON "{self.graph_name}"."{self.edge_type}" USING BTREE (start_id);',
-                f'CREATE INDEX ON "{self.graph_name}"."{self.edge_type}" USING BTREE (end_id);',
+                prop_cols = [
+                    col
+                    for col in self.columns_in_csvs[csv_path]
+                    if col
+                    not in [
+                        "id",
+                        "start_id",
+                        "start_vertex_type",
+                        "end_id",
+                        "end_vertex_type",
+                    ]
+                ]
+                prop_cols_joined = ""
+                if prop_cols:
+                    prop_cols_joined = "," + ",".join(
+                        [f'"{prop}"' for prop in prop_cols]
+                    )
+                    prop_vals = (
+                        ", format('{"
+                        + ",".join([f'"{prop}":"%s"' for prop in prop_cols])
+                        + "}', "
+                        + ",".join([f'af."{prop}"' for prop in prop_cols])
+                        + ")::agtype"
+                    )
+                tasks = [
+                    self.executeQuery(
+                        self.pool,
+                        f"""
+                        INSERT INTO "{self.graph_name}"."{edge_type}" (start_id, end_id{", properties" if prop_cols_joined else ""})
+                        SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid {prop_vals if prop_cols_joined else ""}
+                        FROM (
+                            SELECT start_id, start_vertex_type, end_id, end_vertex_type {prop_cols_joined if prop_cols_joined else ""}
+                            FROM {tbl_from_storage}
+                            OFFSET {offset} LIMIT {self.records_per_thread}
+                        ) AS af
+                        JOIN {start_vertex_type}_id_map AS s_map ON af.start_id = s_map.entryID
+                        JOIN {end_vertex_type}_id_map AS e_map ON af.end_id = e_map.entryID;""",
+                    )
+                    for offset in range(
+                        0, self.total_lines[csv_path], self.records_per_thread
+                    )
+                ]
+                await asyncio.gather(*tasks)
+
+            log.info("Creating indexes for edge...")
+            tasks = [
+                self.executeQuery(self.pool, query)
+                for query in [
+                    f'CREATE INDEX ON "{self.graph_name}"."{edge_type}" USING BTREE (start_id);',
+                    f'CREATE INDEX ON "{self.graph_name}"."{edge_type}" USING BTREE (end_id);',
+                ]
             ]
-        ]
-        await asyncio.gather(*tasks)
-
-    async def loadVertices(
-        self,
-        vertex_label: str = "",
-        vertex_id: str = "",
-        vertex_props: list = [],
-        tbl_id_map: str = "",
-    ) -> None:
-        """
-        Load a graph data from the Temporary Table
-        """
-        log.info(f"Creating graph from table, '{self.tbl_from_storage}'...")
-        import asyncio
-
-        first_id_s = await self.getFirstId(
-            graph_name=self.graph_name, label_type=vertex_label
-        )
-        props_formatted = ",".join([f'"{prop}":"%s"' for prop in vertex_props])
-
-        log.info("Creating start vertices...")
-        tasks = [
-            self.executeQuery(
-                self.pool,
-                f"""
-                INSERT INTO "{self.graph_name}"."{vertex_label}" (properties)
-                    SELECT format('{{"id":"%s", {props_formatted}}}', "{vertex_id}", {",".join([f'"{prop}"' for prop in vertex_props])})::agtype
-                    FROM (
-                        SELECT DISTINCT {",".join([f'"{item}"' for item in [vertex_id] + vertex_props])}
-                        FROM {self.tbl_from_storage}
-                        OFFSET {offset} LIMIT {self.records_per_thread}
-                    ) AS distinct_s;
-                INSERT INTO {self.tbl_id_map} (entryID, id)
-                    SELECT distinct_s."{vertex_id}", {first_id_s} + {offset} + ROW_NUMBER() OVER () - 1
-                    FROM (
-                        SELECT DISTINCT "{vertex_id}"
-                        FROM {self.tbl_from_storage}
-                        OFFSET {offset} LIMIT {self.records_per_thread}
-                    ) AS distinct_s;""",
-            )
-            for offset in range(0, self.total_lines, self.records_per_thread)
-        ]
-        await asyncio.gather(*tasks)
-
-        log.info("Creating indexes for graph...")
-        tasks = [
-            self.executeQuery(self.pool, query)
-            for query in [
-                f"CREATE INDEX ON {self.tbl_id_map} USING BTREE (entryID);",
-                f'CREATE INDEX ON "{self.graph_name}"."{vertex_label}" USING GIN (properties);',
-                f'CREATE INDEX ON "{self.graph_name}"."{vertex_label}" USING BTREE (id);',
-            ]
-        ]
-        await asyncio.gather(*tasks)
-
-    async def loadEdges(self, type: str = "", props: list = []) -> None:
-        """
-        Load a graph data from the Temporary Table
-        """
-        log.info(f"Creating graph from table, '{self.tbl_from_storage}'...")
-        import asyncio
-
-        log.info("Creating edges...")
-        if props:
-            prop_cols = "," + ",".join([f'"{prop}"' for prop in props])
-            prop_vals = (
-                ", format('{"
-                + ",".join([f'"{prop}":"%s"' for prop in props])
-                + "}', "
-                + ",".join([f'af."{prop}"' for prop in props])
-                + ")::agtype"
-            )
-        tasks = [
-            self.executeQuery(
-                self.pool,
-                f"""
-                INSERT INTO "{self.graph_name}"."{type}" (start_id, end_id{", properties" if props else ""})
-                SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid {prop_vals if props else ""}
-                FROM (
-                    SELECT "{self.start_id}", "{self.end_id}" {prop_cols if props else ""}
-                    FROM {self.tbl_from_storage}
-                    OFFSET {offset} LIMIT {self.records_per_thread}
-                ) AS af
-                JOIN {self.tbl_id_map_s} AS s_map ON af."{self.start_id}" = s_map.entryID
-                JOIN {self.tbl_id_map_e} AS e_map ON af."{self.end_id}" = e_map.entryID;""",
-            )
-            for offset in range(0, self.total_lines, self.records_per_thread)
-        ]
-        await asyncio.gather(*tasks)
-
-        log.info("Creating indexes for graph...")
-        tasks = [
-            self.executeQuery(self.pool, query)
-            for query in [
-                f'CREATE INDEX ON "{self.graph_name}"."{type}" USING BTREE (start_id);',
-                f'CREATE INDEX ON "{self.graph_name}"."{type}" USING BTREE (end_id);',
-            ]
-        ]
-        await asyncio.gather(*tasks)
+            await asyncio.gather(*tasks)
 
     async def executeQuery(
         self, pool: AsyncConnectionPool = None, query: str = ""

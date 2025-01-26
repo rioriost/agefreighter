@@ -19,6 +19,10 @@ class Factory:
             import agefreighter.azurestoragefreighter as azurestoragefreighter
 
             return azurestoragefreighter.AzureStorageFreighter()
+        elif type == "MultiAzureStorageFreighter":
+            import agefreighter.multiazurestoragefreighter as multiazurestoragefreighter
+
+            return multiazurestoragefreighter.MultiAzureStorageFreighter()
         elif type == "AvroFreighter":
             import agefreighter.avrofreighter as avrofreighter
 
@@ -61,7 +65,7 @@ class AgeFreighter:
     """
 
     name = "AgeFreighter"
-    version = "0.6.1"
+    version = "0.7.0"
     author = "Rio Fujita"
 
     def __init__(self):
