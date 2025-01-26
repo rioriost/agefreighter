@@ -115,7 +115,7 @@ class BitcoinAddress(Node):
                 "inserted_at": dt,
                 "address": random.choice(["cryptoaddress:", "bitcoinaddress:"])
                 + generate_base58_dummy_data(16),
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -129,7 +129,7 @@ class Cookie(Node):
                 "available_since": dt,
                 "inserted_at": dt,
                 "uaid": fake.uuid4(),
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -143,7 +143,7 @@ class IP(Node):
                 "available_since": dt,
                 "inserted_at": dt,
                 "address": fake.ipv4(),
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -157,7 +157,7 @@ class Phone(Node):
                 "available_since": dt,
                 "inserted_at": dt,
                 "address": fake.ipv4(),
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -175,7 +175,7 @@ class Email(Node):
                 "email": email,
                 "domain": domain,
                 "handle": handle,
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -189,7 +189,7 @@ class Payment(Node):
                 "available_since": dt,
                 "inserted_at": dt,
                 "payment_id": fake.uuid4(),
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -203,7 +203,7 @@ class PartnerEndUser(Node):
                 "available_since": dt,
                 "inserted_at": dt,
                 "partner_end_user_id": fake.uuid4(),
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -220,7 +220,7 @@ class CreditCard(Node):
                 "expiry_year": fake.year(),
                 "masked_number": fake.credit_card_number(card_type=None),
                 "creditcard_identifier": fake.uuid4(),
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -236,7 +236,7 @@ class CryptoAddress(Node):
                 "address": generate_base58_dummy_data(16),
                 "currency": random.choice(["BTC", "ETH", "LTC", "XRP"]),
                 "full_address": generate_base58_dummy_data(32),
-                "schema_version:": "1",
+                "schema_version": "1",
                 "tag": generate_base58_dummy_data(4),
             },
         )
@@ -359,7 +359,7 @@ class UsedBy(Edge):
                 "end_vertex_type": end_vertex_type,
                 "available_since": dt,
                 "inserted_at": dt,
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -383,7 +383,7 @@ class UsedIn(Edge):
                 "end_vertex_type": end_vertex_type,
                 "available_since": dt,
                 "inserted_at": dt,
-                "schema_version:": "1",
+                "schema_version": "1",
             },
         )
 
@@ -546,7 +546,7 @@ async def main() -> None:
     SINGLE_SOURCE = 1
     MULTI_SOURCE = 2
 
-    TEST_PATTERN = 5
+    TEST_PATTERN = 4
 
     # transaction, large data for AzureStorageFreighter, multiple types of nodes and edges
     if TEST_PATTERN == 1:

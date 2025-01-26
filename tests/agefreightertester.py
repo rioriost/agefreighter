@@ -6,14 +6,14 @@ import sys
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.CRITICAL,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
 
 class AgeFreighterTester:
     name = "AgeFreighterTester"
-    version = "0.6.1"
+    version = "0.7.0"
     author = "Rio Fujita"
 
     @classmethod
@@ -127,42 +127,186 @@ class AgeFreighterTester:
                 "vertices": {"AirPort": 3500},
                 "edges": {"ROUTE": 20000},
             }
-        elif cls["type"] == "payment_small":
+        elif cls["type"] == "payment_small" or cls["type"] == "payment_large":
+            sub_dir = f"{cls['type']}/"
             self.params = {
                 "graph_name": "AgeTester",
                 "vertex_args": [
                     {
-                        "csv_path": f"{self.data_dir}",
-                        "label": "Phone",
-                        "id": "phone_id",
-                        "props": ["name", "address", "email", "phone"],
+                        "csv_path": f"{self.data_dir}{sub_dir}bitcoinaddress.csv",
+                        "label": "BitcoinAddress",
+                        "id": "id",
+                        "props": [
+                            "available_since",
+                            "inserted_at",
+                            "address",
+                            "schema_version",
+                        ],
                     },
                     {
-                        "csv_path": f"{self.data_dir}",
+                        "csv_path": f"{self.data_dir}{sub_dir}cookie.csv",
+                        "label": "Cookie",
+                        "id": "id",
+                        "props": [
+                            "available_since",
+                            "inserted_at",
+                            "uaid",
+                            "schema_version",
+                        ],
+                    },
+                    {
+                        "csv_path": f"{self.data_dir}{sub_dir}ip.csv",
+                        "label": "IP",
+                        "id": "id",
+                        "props": [
+                            "available_since",
+                            "inserted_at",
+                            "address",
+                            "schema_version",
+                        ],
+                    },
+                    {
+                        "csv_path": f"{self.data_dir}{sub_dir}phone.csv",
+                        "label": "Phone",
+                        "id": "id",
+                        "props": [
+                            "available_since",
+                            "inserted_at",
+                            "address",
+                            "schema_version",
+                        ],
+                    },
+                    {
+                        "csv_path": f"{self.data_dir}{sub_dir}email.csv",
                         "label": "Email",
-                        "id": "email_id",
-                        "props": ["name", "address", "email", "phone"],
+                        "id": "id",
+                        "props": [
+                            "available_since",
+                            "inserted_at",
+                            "email",
+                            "domain",
+                            "handle",
+                            "schema_version",
+                        ],
+                    },
+                    {
+                        "csv_path": f"{self.data_dir}{sub_dir}payment.csv",
+                        "label": "Payment",
+                        "id": "id",
+                        "props": [
+                            "available_since",
+                            "inserted_at",
+                            "payment_id",
+                            "schema_version",
+                        ],
+                    },
+                    {
+                        "csv_path": f"{self.data_dir}{sub_dir}creditcard.csv",
+                        "label": "CreditCard",
+                        "id": "id",
+                        "props": [
+                            "available_since",
+                            "inserted_at",
+                            "expiry_month",
+                            "expiry_year",
+                            "masked_number",
+                            "creditcard_identifier",
+                            "schema_version",
+                        ],
+                    },
+                    {
+                        "csv_path": f"{self.data_dir}{sub_dir}partnerenduser.csv",
+                        "label": "PartnerEndUser",
+                        "id": "id",
+                        "props": [
+                            "available_since",
+                            "inserted_at",
+                            "partner_end_user_id",
+                            "schema_version",
+                        ],
+                    },
+                    {
+                        "csv_path": f"{self.data_dir}{sub_dir}cryptoaddress.csv",
+                        "label": "CryptoAddress",
+                        "id": "id",
+                        "props": [
+                            "available_since",
+                            "inserted_at",
+                            "address",
+                            "currency",
+                            "full_address",
+                            "schema_version",
+                            "tag",
+                        ],
                     },
                 ],
                 "edge_args": [
                     {
-                        "csv_path": f"{self.data_dir}",
+                        "csv_paths": [
+                            f"{self.data_dir}{sub_dir}usedin_cookie_payment.csv",
+                            f"{self.data_dir}{sub_dir}usedin_creditcard_payment.csv",
+                            f"{self.data_dir}{sub_dir}usedin_cryptoaddress_payment.csv",
+                            f"{self.data_dir}{sub_dir}usedin_email_payment.csv",
+                            f"{self.data_dir}{sub_dir}usedin_phone_payment.csv",
+                        ],
                         "type": "UsedIn",
-                        "id": "phone_id",
-                        "props": ["name", "address", "email", "phone"],
                     },
                     {
-                        "csv_path": f"{self.data_dir}",
-                        "label": "UsedBy",
-                        "id": "email_id",
-                        "props": ["name", "address", "email", "phone"],
+                        "csv_paths": [
+                            f"{self.data_dir}{sub_dir}usedby_cookie_payment.csv",
+                            f"{self.data_dir}{sub_dir}usedby_creditcard_payment.csv",
+                            f"{self.data_dir}{sub_dir}usedby_cryptoaddress_payment.csv",
+                            f"{self.data_dir}{sub_dir}usedby_email_payment.csv",
+                            f"{self.data_dir}{sub_dir}usedby_phone_payment.csv",
+                        ],
+                        "type": "UsedBy",
+                    },
+                    {
+                        "csv_paths": [
+                            f"{self.data_dir}{sub_dir}performedby_cookie_payment.csv",
+                            f"{self.data_dir}{sub_dir}performedby_creditcard_payment.csv",
+                            f"{self.data_dir}{sub_dir}performedby_cryptoaddress_payment.csv",
+                            f"{self.data_dir}{sub_dir}performedby_email_payment.csv",
+                            f"{self.data_dir}{sub_dir}performedby_phone_payment.csv",
+                        ],
+                        "type": "PerformedBy",
                     },
                 ],
             }
-            self.expected_results = {
-                "vertices": {"Customer": 10000, "Product": 9119},
-                "edges": {"TRANSACTION": 25166},
-            }
+            if cls["type"] == "payment_small":
+                self.expected_results = {
+                    "vertices": {
+                        "BitcoinAddress": 900,
+                        "Cookie": 2700,
+                        "IP": 2200,
+                        "Phone": 960,
+                        "Email": 960,
+                        "Payment": 7000,
+                        "CreditCard": 1200,
+                        "PartnerEndUser": 4000,
+                        "CryptoAddress": 1600,
+                    },
+                    "edges": {"UsedIn": 30000, "UsedBy": 40000, "PerformedBy": 5000},
+                }
+            elif cls["type"] == "payment_large":
+                self.expected_results = {
+                    "vertices": {
+                        "BitcoinAddress": 9000000,
+                        "Cookie": 27000000,
+                        "IP": 22000000,
+                        "Phone": 9600000,
+                        "Email": 9600000,
+                        "Payment": 70000000,
+                        "CreditCard": 12000000,
+                        "PartnerEndUser": 40000000,
+                        "CryptoAddress": 16000000,
+                    },
+                    "edges": {
+                        "UsedIn": 300000000,
+                        "UsedBy": 400000000,
+                        "PerformedBy": 50000000,
+                    },
+                }
         else:
             raise ValueError("Invalid freighter class")
 
@@ -361,7 +505,8 @@ async def main():
     log.info(f"AgeFreighter version: {AgeFreighter.get_version()}")
 
     target_classes = [
-        {"name": "AzureStorageFreighter", "type": "transaction", "do": True},
+        {"name": "AzureStorageFreighter", "type": "transaction", "do": False},
+        {"name": "MultiAzureStorageFreighter", "type": "payment_small", "do": True},
         {"name": "MultiAzureStorageFreighter", "type": "payment_large", "do": False},
         {"name": "AvroFreighter", "type": "transaction", "do": False},
         {"name": "CosmosGremlinFreighter", "type": "transaction", "do": False},
@@ -377,7 +522,7 @@ async def main():
     all_results = []
     for cls in target_classes:
         if cls["do"]:
-            # AzureStorageFreighter ignores direct_loading and use_copy
+            # AzureStorageFreighter and MultiAzureStorageFreighter ignore direct_loading and use_copy
             if (
                 cls["name"] == "AzureStorageFreighter"
                 or cls["name"] == "MultiAzureStorageFreighter"
