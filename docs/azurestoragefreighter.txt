@@ -92,24 +92,7 @@ CLASSES
      |          end_props (list): End Vertex Properties
      |          graph_name (str): The name of the graph to load the data into.
      |          chunk_size (int): The size of the chunks to create.
-     |          direct_loading (bool): Whether to load the data directly.
      |          create_graph (bool): Whether to create the graph.
-     |          use_copy (bool): Whether to use the COPY protocol to load the data.
-     |      
-     |      Keyword Args:
-     |          subscription_id (str): Azure Subscription ID
-     |  
-     |  async load_multi(self, vertex_args: list = [], edge_args: list = [], graph_name: str = '', chunk_size: int = 128, create_graph: bool = True, **kwargs)
-     |      Load a graph data to the PostgreSQL Flex with Azure Storage.
-     |      
-     |      Args:
-     |          vertex_args (list): List of dictionary for vertex definitions
-     |          edge_args (list): List of dictionary for edge definitions
-     |          graph_name (str): The name of the graph to load the data into.
-     |          chunk_size (int): The size of the chunks to create.
-     |          direct_loading (bool): Whether to load the data directly.
-     |          create_graph (bool): Whether to create the graph.
-     |          use_copy (bool): Whether to use the COPY protocol to load the data.
      |      
      |      Keyword Args:
      |          subscription_id (str): Azure Subscription ID
@@ -347,6 +330,9 @@ CLASSES
      |      Returns:
      |          dict: The ID maps.
      |  
+     |  async load_multi(self) -> None
+     |      Dummy method for loading data.
+     |  
      |  processChunkDirectly(self, chunk: pandas.core.frame.DataFrame, query: str = '', edge_props: list = [], id_maps: list = []) -> list
      |      Process a chunk of data directly.
      |      
@@ -403,7 +389,7 @@ CLASSES
      |  
      |  name = 'AgeFreighter'
      |  
-     |  version = '0.6.1'
+     |  version = '0.7.0'
     
     class BlobUploader(builtins.object)
      |  BlobUploader(storage_account_name: str = '', access_key: str = '', blob_container_name: str = '', file_path: str = '', lines_per_chunk: int = 10000)
@@ -430,7 +416,7 @@ CLASSES
      |      Upload a CSV file to the Blob Container.
      |      
      |      Args:
-     |          file_list (list): List of file paths to upload
+     |          None
      |  
      |  async uploadBlob(self, file_path, container_client)
      |  
@@ -514,11 +500,11 @@ CLASSES
      |      list of weak references to the object (if defined)
     
     class StorageLoader(builtins.object)
-     |  StorageLoader(file_list: list = [], total_lines: int = 0, storage_account_name: str = '', blob_container_name: str = '', table_name: str = '', columns_in_csv: list = [], columns_in_tbl_from_storage: list = [], pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  StorageLoader(file_list: list = [], total_lines: int = 0, storage_account_name: str = '', blob_container_name: str = '', table_name: str = '', columns_in_tbl_from_storage: list = [], pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
      |  
      |  Methods defined here:
      |  
-     |  __init__(self, file_list: list = [], total_lines: int = 0, storage_account_name: str = '', blob_container_name: str = '', table_name: str = '', columns_in_csv: list = [], columns_in_tbl_from_storage: list = [], pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  __init__(self, file_list: list = [], total_lines: int = 0, storage_account_name: str = '', blob_container_name: str = '', table_name: str = '', columns_in_tbl_from_storage: list = [], pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
      |      Initialize self.  See help(type(self)) for accurate signature.
      |  
      |  async executeQuery(self, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, query: str = '') -> None

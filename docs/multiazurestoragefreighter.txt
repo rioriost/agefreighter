@@ -1,15 +1,129 @@
-Python Library Documentation: module multicsvfreighter
+Python Library Documentation: module multiazurestoragefreighter
 
 NAME
-    multicsvfreighter
+    multiazurestoragefreighter
 
 CLASSES
     AgeFreighter(builtins.object)
-        MultiCSVFreighter
+        MultiAzureStorageFreighter
+    builtins.object
+        AzureExtensions
+        BlobUploader
+        GraphLoader
+        StorageAccount
+        StorageLoader
+        TempTables
     
-    class MultiCSVFreighter(AgeFreighter)
+    class AzureExtensions(builtins.object)
+     |  AzureExtensions(subscription_id: str = '', resource_group_name: str = '', pg_server_name: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None, extensions: list = [])
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self, subscription_id: str = '', resource_group_name: str = '', pg_server_name: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None, extensions: list = [])
+     |      Initialize self.  See help(type(self)) for accurate signature.
+     |  
+     |  async create(self) -> None
+     |      Create the Azure Extensions for PostgreSQL Flex Server.
+     |      
+     |      Args:
+     |          extension_names (list): Extension Names
+     |  
+     |  enable(self) -> None
+     |      Enable the Azure Storage Extension for PostgreSQL Flex Server.
+     |      
+     |      Args:
+     |          extension_names (list): Extension Names
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors defined here:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
+    
+    class BlobUploader(builtins.object)
+     |  BlobUploader(storage_account_name: str = '', access_key: str = '', blob_container_name: str = '', file_paths_dict: dict = {}, lines_per_chunk: int = 10000)
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self, storage_account_name: str = '', access_key: str = '', blob_container_name: str = '', file_paths_dict: dict = {}, lines_per_chunk: int = 10000)
+     |      Initialize self.  See help(type(self)) for accurate signature.
+     |  
+     |  createTempFile(self, temp_file_name: str = '', count: int = 0, header_line: str = '', add_header: bool = True)
+     |  
+     |  getColumnsInCSV(self, csv_path: str = '') -> list
+     |      Get the columns in a CSV file.
+     |      
+     |      Args:
+     |          csv (str): CSV file path
+     |      
+     |      Returns:
+     |          list: Columns in the CSV file
+     |  
+     |  splitFile(self) -> None
+     |  
+     |  async upload(self) -> None
+     |      Upload a CSV file to the Blob Container.
+     |      
+     |      Args:
+     |          None
+     |  
+     |  async uploadBlob(self, file_path, container_client)
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors defined here:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
+    
+    class GraphLoader(builtins.object)
+     |  GraphLoader(tbls_from_storage: str = '', total_lines: int = 0, vertex_args: list = [], edge_args: list = [], columns_in_csvs: list = [], id_map_tbls: dict = {}, graph_name: str = '', records_per_thread: int = 0, pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self, tbls_from_storage: str = '', total_lines: int = 0, vertex_args: list = [], edge_args: list = [], columns_in_csvs: list = [], id_map_tbls: dict = {}, graph_name: str = '', records_per_thread: int = 0, pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |      Initialize self.  See help(type(self)) for accurate signature.
+     |  
+     |  async executeQuery(self, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, query: str = '') -> None
+     |  
+     |  async getFirstId(self, graph_name: str = '', label_type: str = '') -> int
+     |      Get the first id for a vertex or edge.
+     |      
+     |      Args:
+     |          label_type (str): The type of the label to get the first id for.
+     |      
+     |      Returns:
+     |          int: The first id.
+     |  
+     |  async load(self) -> None
+     |      Load a graph data from the Temporary Table
+     |  
+     |  ----------------------------------------------------------------------
+     |  Static methods defined here:
+     |  
+     |  quotedGraphName(graph_name: str = '') -> str
+     |      Quote the graph name.
+     |      
+     |      Args:
+     |          graph_name (str): The name of the graph.
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors defined here:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
+    
+    class MultiAzureStorageFreighter(AgeFreighter)
      |  Method resolution order:
-     |      MultiCSVFreighter
+     |      MultiAzureStorageFreighter
      |      AgeFreighter
      |      builtins.object
      |  
@@ -22,22 +136,56 @@ CLASSES
      |  __init__(self)
      |      Initialize the AgeFreighter object.
      |  
-     |  async load(self, vertex_csv_paths: list = [], vertex_labels: list = [], edge_csv_paths: list = [], edge_types: list = [], graph_name: str = '', chunk_size: int = 128, direct_loading: bool = False, create_graph: bool = True, use_copy: bool = True, **kwargs) -> None
-     |      Load data from multiple CSV files.
+     |  checkKeys(self, columns_in_csvs: list = [], vertex_args: list = [], edge_args: list = []) -> None
+     |      Check if the columns contain arguments.
      |      
      |      Args:
-     |          vertex_csv_paths (list): The paths to the vertex CSV files.
-     |          vertex_labels (list): The labels of the vertices.
-     |          edge_csv_paths (list): The paths to the edge CSV files.
-     |          edge_types (list): The types of the edges.
-     |          graph_name (str): The name of the graph to load the data into.
-     |          chunk_size (int): The size of the chunks to create.
-     |          direct_loading (bool): Whether to load the data directly.
-     |          create_graph (bool): Whether to create the graph.
-     |          use_copy (bool): Whether to use the COPY protocol to load the data.
+     |          columns_in_csv (list): Columns in the CSV file
+     |          vertex_args (list): Vertex Arguments
+     |          edge_args (list): Edge Arguments
+     |      
+     |      Raises:
+     |          ValueError: If the column is not in the CSV
      |      
      |      Returns:
      |          None
+     |  
+     |  findAzureSubscriptionID(self) -> bool
+     |      Get the Azure Subscription ID from the Azure CLI.
+     |      
+     |      Returns:
+     |          bool: True if the Azure Subscription ID is set, False otherwise
+     |  
+     |  async load(self, vertex_args: list = [], edge_args: list = [], graph_name: str = '', chunk_size: int = 128, create_graph: bool = True, **kwargs)
+     |      Load a graph data to the PostgreSQL Flex with Azure Storage.
+     |      
+     |      Args:
+     |          vertex_args (list): Vertex Arguments
+     |          edge_args (list): Edge Arguments
+     |          graph_name (str): The name of the graph to load the data into.
+     |          chunk_size (int): The size of the chunks to create.
+     |          create_graph (bool): Whether to create the graph.
+     |      
+     |      Keyword Args:
+     |          subscription_id (str): Azure Subscription ID
+     |  
+     |  async setParameters(self) -> bool
+     |      Set the parameters for the Azure Storage Freighter.
+     |      
+     |      Returns:
+     |          bool: True if the parameters are set, False otherwise
+     |  
+     |  ----------------------------------------------------------------------
+     |  Static methods defined here:
+     |  
+     |  isValidAzureSubscriptionID(subscriptionID: str = '') -> bool
+     |      Check if the Azure Subscription ID is valid.
+     |      
+     |      Args:
+     |          subscriptionID (str): Azure Subscription ID
+     |      
+     |      Returns:
+     |          bool: True if the Azure Subscription ID is valid, False otherwise
      |  
      |  ----------------------------------------------------------------------
      |  Methods inherited from AgeFreighter:
@@ -291,13 +439,6 @@ CLASSES
      |  ----------------------------------------------------------------------
      |  Static methods inherited from AgeFreighter:
      |  
-     |  checkKeys(keys: list = [], elements: list = [], error_msg: str = '') -> None
-     |      Check if the keys of the CSV file match the elements.
-     |      
-     |      Args:
-     |          keys (list): The keys of the CSV file.
-     |          elements (list): The elements to check.
-     |  
      |  quotedGraphName(graph_name: str = '') -> str
      |      Quote the graph name.
      |      
@@ -321,10 +462,76 @@ CLASSES
      |  name = 'AgeFreighter'
      |  
      |  version = '0.7.0'
+    
+    class StorageAccount(builtins.object)
+     |  StorageAccount(subscription_id: str = '', resource_group_name: str = '', location: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  
+     |  Methods defined here:
+     |  
+     |  __del__(self)
+     |  
+     |  __init__(self, subscription_id: str = '', resource_group_name: str = '', location: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |      Initialize self.  See help(type(self)) for accurate signature.
+     |  
+     |  async attach(self) -> None
+     |  
+     |  create(self) -> None
+     |      Create a Storage Account and a Blob Container.
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors defined here:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
+    
+    class StorageLoader(builtins.object)
+     |  StorageLoader(tmp_file_lists: dict = {}, total_lines: dict = {}, storage_account_name: str = '', blob_container_name: str = '', tbls_from_storage: dict = {}, columns_in_tbls_from_storage: dict = {}, columns_in_csvs: list = [], pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self, tmp_file_lists: dict = {}, total_lines: dict = {}, storage_account_name: str = '', blob_container_name: str = '', tbls_from_storage: dict = {}, columns_in_tbls_from_storage: dict = {}, columns_in_csvs: list = [], pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |      Initialize self.  See help(type(self)) for accurate signature.
+     |  
+     |  async executeQuery(self, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, query: str = '') -> None
+     |  
+     |  async load(self)
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors defined here:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
+    
+    class TempTables(builtins.object)
+     |  TempTables(columns_in_csvs: list = [], file_paths_dict: dict = {}, pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self, columns_in_csvs: list = [], file_paths_dict: dict = {}, pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |      Initialize self.  See help(type(self)) for accurate signature.
+     |  
+     |  async create(self) -> None
+     |  
+     |  async delete(self) -> None
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors defined here:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
 
 DATA
-    log = <Logger multicsvfreighter (WARNING)>
+    log = <Logger multiazurestoragefreighter (WARNING)>
 
 FILE
-    multicsvfreighter.py
+    multiazurestoragefreighter.py
 
