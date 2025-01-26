@@ -482,6 +482,194 @@ if __name__ == "__main__":
 ### File Format for AzureStorageFreighter
 AzureStorageFreighter class loads data from Azure Storage and expects the exactly same format as CSVFreighter.
 
+## Usage of MultiAzureStorageFreighter
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("MultiAzureStorageFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+    )
+
+    data_dir = "data/payment_small/"
+
+    await instance.load(
+        graph_name="AgeTester",
+        vertex_args=[
+            {
+                "csv_path": f"{data_dir}bitcoinaddress.csv",
+                "label": "BitcoinAddress",
+                "id": "id",
+                "props": [
+                    "available_since",
+                    "inserted_at",
+                    "address",
+                    "schema_version",
+                ],
+            },
+            {
+                "csv_path": f"{data_dir}cookie.csv",
+                "label": "Cookie",
+                "id": "id",
+                "props": [
+                    "available_since",
+                    "inserted_at",
+                    "uaid",
+                    "schema_version",
+                ],
+            },
+            {
+                "csv_path": f"{data_dir}ip.csv",
+                "label": "IP",
+                "id": "id",
+                "props": [
+                    "available_since",
+                    "inserted_at",
+                    "address",
+                    "schema_version",
+                ],
+            },
+            {
+                "csv_path": f"{data_dir}phone.csv",
+                "label": "Phone",
+                "id": "id",
+                "props": [
+                    "available_since",
+                    "inserted_at",
+                    "address",
+                    "schema_version",
+                ],
+            },
+            {
+                "csv_path": f"{data_dir}email.csv",
+                "label": "Email",
+                "id": "id",
+                "props": [
+                    "available_since",
+                    "inserted_at",
+                    "email",
+                    "domain",
+                    "handle",
+                    "schema_version",
+                ],
+            },
+            {
+                "csv_path": f"{data_dir}payment.csv",
+                "label": "Payment",
+                "id": "id",
+                "props": [
+                    "available_since",
+                    "inserted_at",
+                    "payment_id",
+                    "schema_version",
+                ],
+            },
+            {
+                "csv_path": f"{data_dir}creditcard.csv",
+                "label": "CreditCard",
+                "id": "id",
+                "props": [
+                    "available_since",
+                    "inserted_at",
+                    "expiry_month",
+                    "expiry_year",
+                    "masked_number",
+                    "creditcard_identifier",
+                    "schema_version",
+                ],
+            },
+            {
+                "csv_path": f"{data_dir}partnerenduser.csv",
+                "label": "PartnerEndUser",
+                "id": "id",
+                "props": [
+                    "available_since",
+                    "inserted_at",
+                    "partner_end_user_id",
+                    "schema_version",
+                ],
+            },
+            {
+                "csv_path": f"{data_dir}cryptoaddress.csv",
+                "label": "CryptoAddress",
+                "id": "id",
+                "props": [
+                    "available_since",
+                    "inserted_at",
+                    "address",
+                    "currency",
+                    "full_address",
+                    "schema_version",
+                    "tag",
+                ],
+            },
+        ],
+        edge_args=[
+            {
+                "csv_paths": [
+                    f"{data_dir}usedin_cookie_payment.csv",
+                    f"{data_dir}usedin_creditcard_payment.csv",
+                    f"{data_dir}usedin_cryptoaddress_payment.csv",
+                    f"{data_dir}usedin_email_payment.csv",
+                    f"{data_dir}usedin_phone_payment.csv",
+                ],
+                "type": "UsedIn",
+            },
+            {
+                "csv_paths": [
+                    f"{data_dir}usedby_cookie_payment.csv",
+                    f"{data_dir}usedby_creditcard_payment.csv",
+                    f"{data_dir}usedby_cryptoaddress_payment.csv",
+                    f"{data_dir}usedby_email_payment.csv",
+                    f"{data_dir}usedby_phone_payment.csv",
+                ],
+                "type": "UsedBy",
+            },
+            {
+                "csv_paths": [
+                    f"{data_dir}performedby_cookie_payment.csv",
+                    f"{data_dir}performedby_creditcard_payment.csv",
+                    f"{data_dir}performedby_cryptoaddress_payment.csv",
+                    f"{data_dir}performedby_email_payment.csv",
+                    f"{data_dir}performedby_phone_payment.csv",
+                ],
+                "type": "PerformedBy",
+            },
+        ],
+        drop_graph=True,
+        create_graph=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+```
+
+### File Format for MultiAzureStorageFreighter
+MultiAzureStorageFreighter class loads data from Azure Storage and expects the exactly same format as MultiCSVFreighter.
+
+See, [data/payment_small/](https://github.com/rioriost/agefreighter/blob/main/data/payment_small/).
+
+### What AzureStorageFreighter / MultiAzureStorageFreighter do
+1. Find the Subscription ID of your Azure account.
+2. Enable Azure Storage Extension in your Azure Database for PostgreSQL instance.
+3. Create a Storage Account in the resource group where your Azure Database for PostgreSQL instance is located.
+4. Create a container in the Storage Account.
+5. Upload CSV files to the container.
+6. Create temporary tables where the CSV files are loaded into.
+7. Load the data from the temporary tables to the graph.
+
 ## Usage of NetworkxFreighter
 ```python
 #!/usr/bin/env python3
@@ -1021,6 +1209,7 @@ postgres=> select * from air_route.route limit 1;
 * [AvroFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/avrofreighter.txt)
 * [CosmosGremlinFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/cosmosgremlinfreighter.txt)
 * [CSVFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/csvfreighter.txt)
+* [MultiAzureStorageFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/multiazurestoragefreighter.txt)
 * [MultiCSVFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/multicsvfreighter.txt)
 * [Neo4jFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/neo4jfreighter.txt)
 * [NetworkXFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/networkxfreighter.txt)
@@ -1071,6 +1260,10 @@ All the classes have the same load() method. The method loads data into a graph 
   * CSVFreighter
     * csv_path (str): The path to the CSV file.
 
+  * MultiAzureStorageFreighter
+    * vertex_args (list): Vertex Arguments.
+    * dge_args (list): Edge Arguments.
+
   * MultiCSVFreighter
     * vertex_csv_paths (list): The paths to the vertex CSV files.
     * vertex_labels (list): The labels of the vertices.
@@ -1098,6 +1291,9 @@ All the classes have the same load() method. The method loads data into a graph 
     * id_map (dict): ID Mapping
 
 ## Release Notes
+
+### 0.7.0 Release
+* Added MultiAzureStorageFreighter.
 
 ### 0.6.1 Release
 * Refactored the documents. Added sample data. Fixed some bugs.

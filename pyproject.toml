@@ -3,7 +3,7 @@ name = "agefreighter"
 authors = [
     {name = "Rio Fujita", email = "rifujita@microsoft.com"},
 ]
-version = "0.6.1"
+version = "0.7.0"
 license = {file = "LICENSE"}
 description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = "README.md"
@@ -44,7 +44,7 @@ include = [
   "/data",
 ]
 exclude = [
-  "/data/payment_*",
+  "/data/payment_large",
   "uv.lock",
   "dist/.DS_Store",
 ]
