@@ -44,7 +44,7 @@ uv add agefreighter
 ```
 
 ## Which class to use
-![Decision Tree](https://github.com/rioriost/agefreighter/blob/main/images/transaction/Decision_tree.png)
+![Decision Tree](https://github.com/rioriost/agefreighter/blob/main/images/Decision_tree.png)
 
 ## Usage of CSVFreighter
 ```python
