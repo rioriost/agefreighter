@@ -1,0 +1,21 @@
+---
+config:
+  layout: fixed
+---
+flowchart TD
+    A["Start"] --> B{"types of source"}
+    B -- File --> C{"formats"}
+    B -- Server --> D{"types"}
+    B -- NetworkX --> M["NetworkXFreighter"]
+    C -- CSV --> E{"counts"}
+    C -- Avro --> F["AvroFreighter"]
+    C -- Parquet --> G["ParquetFreighter"]
+    E -- Single --> H{"CSV size"}
+    E -- Multiple --> I{"CSV size"}
+    H -- Small --> N["CSVFreighter"]
+    H -- Large --> O["AzureStorageFreighter"]
+    I -- Small --> P["MultiCSVFreighter"]
+    I -- Large --> Q["MultiAzureStorageFreighter"]
+    D -- Neo4j --> J["Neo4jFreighter"]
+    D -- Cosmos Gremlin --> K["CosmosGremlinFreighter"]
+    D -- PGSQL --> L["PGFreighter"]
