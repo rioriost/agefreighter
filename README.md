@@ -43,6 +43,9 @@ source .venv/bin/activate
 uv add agefreighter
 ```
 
+## Which class to use
+![Decision Tree](https://github.com/rioriost/agefreighter/blob/main/images/transaction/Decision_tree.png)
+
 ## Usage of CSVFreighter
 ```python
 #!/usr/bin/env python3
@@ -1262,7 +1265,7 @@ All the classes have the same load() method. The method loads data into a graph 
 
   * MultiAzureStorageFreighter
     * vertex_args (list): Vertex Arguments.
-    * dge_args (list): Edge Arguments.
+    * edge_args (list): Edge Arguments.
 
   * MultiCSVFreighter
     * vertex_csv_paths (list): The paths to the vertex CSV files.
