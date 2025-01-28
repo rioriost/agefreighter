@@ -65,7 +65,7 @@ class AgeFreighter:
     """
 
     name = "AgeFreighter"
-    version = "0.7.0"
+    version = "0.7.1"
     author = "Rio Fujita"
 
     def __init__(self):
@@ -365,22 +365,32 @@ class AgeFreighter:
             f"Creating vertices {len(vertices)}, in {sys._getframe().f_code.co_name}."
         )
         if direct_loading:
-            vertices = vertices.map(
-                lambda x: x.replace("'", "''") if isinstance(x, str) else x
-            )
-            await self.createVerticesDirectly(vertices, vertex_label, chunk_size)
-        else:
-            vertices = vertices.map(
-                lambda x: x.replace("'", r"\'") if isinstance(x, str) else x
-            )
-            if use_copy:
-                await self.copyVertices(
-                    vertices=vertices,
-                    vertex_label=vertex_label,
-                    chunk_size=chunk_size,
+            try:
+                vertices = vertices.map(
+                    lambda x: x.replace("'", "''") if isinstance(x, str) else x
                 )
-            else:
-                await self.createVerticesCypher(vertices, vertex_label, chunk_size)
+                await self.createVerticesDirectly(vertices, vertex_label, chunk_size)
+            except AttributeError:
+                print(
+                    "You maybe specify a column twice in the arguements. e.g. 'v_label' and 'props'"
+                )
+        else:
+            try:
+                vertices = vertices.map(
+                    lambda x: x.replace("'", r"\'") if isinstance(x, str) else x
+                )
+                if use_copy:
+                    await self.copyVertices(
+                        vertices=vertices,
+                        vertex_label=vertex_label,
+                        chunk_size=chunk_size,
+                    )
+                else:
+                    await self.createVerticesCypher(vertices, vertex_label, chunk_size)
+            except AttributeError:
+                print(
+                    "You maybe specify a column twice in the arguements. e.g. 'v_label' and 'props'"
+                )
 
     async def createEdges(
         self,
