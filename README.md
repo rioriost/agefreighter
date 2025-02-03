@@ -44,29 +44,7 @@ uv add agefreighter
 ```
 
 ## Which class to use
-```mermaid
----
-config:
-  layout: fixed
----
-flowchart TD
-    A["Start"] --> B{"types of source"}
-    B -- File --> C{"formats"}
-    B -- Server --> D{"types"}
-    B -- NetworkX --> M["NetworkXFreighter"]
-    C -- CSV --> E{"counts"}
-    C -- Avro --> F["AvroFreighter"]
-    C -- Parquet --> G["ParquetFreighter"]
-    E -- Single --> H{"CSV size"}
-    E -- Multiple --> I{"CSV size"}
-    H -- Small --> N["CSVFreighter"]
-    H -- Large --> O["AzureStorageFreighter"]
-    I -- Small --> P["MultiCSVFreighter"]
-    I -- Large --> Q["MultiAzureStorageFreighter"]
-    D -- Neo4j --> J["Neo4jFreighter"]
-    D -- Cosmos Gremlin --> K["CosmosGremlinFreighter"]
-    D -- PGSQL --> L["PGFreighter"]
-```
+![Decision Tree](https://github.com/rioriost/agefreighter/raw/main/images/Decision_tree.png)
 
 ## Usage of CSVFreighter
 ```python
@@ -84,6 +62,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
 
     await instance.load(
@@ -138,6 +117,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
 
     await instance.load(
@@ -204,6 +184,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
     await instance.load(
         graph_name="AirRoute",
@@ -261,6 +242,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
 
     await instance.load(
@@ -410,6 +392,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
 
     await instance.load(
@@ -480,6 +463,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
 
     await instance.load(
@@ -523,6 +507,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
 
     data_dir = "data/payment_small/"
@@ -758,6 +743,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
     await instance.load(
         graph_name="Transaction",
@@ -796,6 +782,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
     await instance.load(
         graph_name="Transaction",
@@ -835,6 +822,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
 
     await instance.load(
@@ -945,6 +933,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
 
     await instance.load(
@@ -1024,6 +1013,7 @@ async def main():
     await instance.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
 
     await instance.load(
@@ -1175,6 +1165,7 @@ async def main():
     await loader.connect(
         dsn=os.environ["PG_CONNECTION_STRING"],
         max_connections=64,
+        min_connections=4,
     )
     await loader.load(
         vertex_csv_paths=["air-routes-latest-nodes.csv"],
@@ -1316,6 +1307,12 @@ All the classes have the same load() method. The method loads data into a graph 
     * id_map (dict): ID Mapping
 
 ## Release Notes
+
+### 0.7.3 Release
+* Added min_connections argument to the connect() method. Added the limitation of UNIX environment to import 'resource' module.
+
+### 0.7.2 Release
+* Added Mermaid diagram for the document.
 
 ### 0.7.1 Release
 * Tuned MultiAzureStorageFreighter.
