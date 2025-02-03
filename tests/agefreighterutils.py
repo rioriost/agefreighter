@@ -16,7 +16,7 @@ logging.basicConfig(
 
 class AgeFreighterUtils:
     name = "AgeFreighterUtils"
-    version = "0.7.0"
+    version = "0.7.3"
     author = "Rio Fujita"
 
     def __init__(self):
