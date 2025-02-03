@@ -65,7 +65,7 @@ class AgeFreighter:
     """
 
     name = "AgeFreighter"
-    version = "0.7.1"
+    version = "0.7.3"
     author = "Rio Fujita"
 
     def __init__(self):
@@ -97,7 +97,12 @@ class AgeFreighter:
         return cls.version
 
     async def connect(
-        self, dsn: str = "", max_connections: int = 64, log_level=None, **kwargs
+        self,
+        dsn: str = "",
+        max_connections: int = 64,
+        min_connections: int = 4,
+        log_level=None,
+        **kwargs,
     ) -> "AgeFreighter":
         """
         Open a connection pool.
@@ -105,6 +110,7 @@ class AgeFreighter:
         Args:
             dsn (str): The data source name.
             max_connections (int): The maximum number of connections.
+            min_connections (int): The minimum number of connections.
             log_level: The log level.
             **kwargs: Additional keyword arguments.
 
@@ -112,20 +118,23 @@ class AgeFreighter:
             AgeFreighter: The AgeFreighter object.
         """
         log.debug("Opening connection pool.")
-        import resource
-
         log.debug(f"Opening connection pool, in {sys._getframe().f_code.co_name}.")
-        # to make large number of connections
 
-        current_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-        resource.setrlimit(resource.RLIMIT_NOFILE, (8192, current_limit[1]))
+        import platform
+
+        # to make large number of connections
+        if platform.system() in ["Darwin", "Linux"]:
+            import resource
+
+            current_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+            resource.setrlimit(resource.RLIMIT_NOFILE, (8192, current_limit[1]))
 
         self.dsn_wo_options = dsn
         self.dsn = dsn + " options='-c search_path=ag_catalog,\"$user\",public'"
         self.pool = AsyncConnectionPool(
             self.dsn,
             max_size=max_connections,
-            min_size=64,
+            min_size=min_connections,
             open=False,
             timeout=600,
             **kwargs,
