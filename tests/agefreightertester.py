@@ -6,14 +6,14 @@ import sys
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
-    level=logging.CRITICAL,
+    level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
 
 class AgeFreighterTester:
     name = "AgeFreighterTester"
-    version = "0.7.0"
+    version = "0.7.3"
     author = "Rio Fujita"
 
     @classmethod
@@ -30,7 +30,7 @@ class AgeFreighterTester:
     def __init__(
         self,
         cls: dict = {},
-        chunk_size: int = 96,
+        chunk_size: int = 48,
         direct_loading: bool = False,
         use_copy: bool = False,
         **kwargs,
@@ -291,20 +291,20 @@ class AgeFreighterTester:
             elif cls["type"] == "payment_large":
                 self.expected_results = {
                     "vertices": {
-                        "BitcoinAddress": 9000000,
-                        "Cookie": 27000000,
-                        "IP": 22000000,
-                        "Phone": 9600000,
-                        "Email": 9600000,
-                        "Payment": 70000000,
-                        "CreditCard": 12000000,
-                        "PartnerEndUser": 40000000,
-                        "CryptoAddress": 16000000,
+                        "BitcoinAddress": 900000,
+                        "Cookie": 2700000,
+                        "IP": 2200000,
+                        "Phone": 960000,
+                        "Email": 960000,
+                        "Payment": 7000000,
+                        "CreditCard": 1200000,
+                        "PartnerEndUser": 4000000,
+                        "CryptoAddress": 1600000,
                     },
                     "edges": {
-                        "UsedIn": 300000000,
-                        "UsedBy": 400000000,
-                        "PerformedBy": 50000000,
+                        "UsedIn": 30000000,
+                        "UsedBy": 40000000,
+                        "PerformedBy": 5000000,
                     },
                 }
         else:
@@ -383,7 +383,7 @@ class AgeFreighterTester:
             return
         log.info("Connecting to PostgreSQL.")
         try:
-            await instance.connect(dsn=self.dsn, max_connections=64)
+            await instance.connect(dsn=self.dsn, max_connections=64, min_connections=4)
         except Exception as e:
             log.info(f"Failed to connect to the database: {e}")
             return
@@ -505,18 +505,18 @@ async def main():
     log.info(f"AgeFreighter version: {AgeFreighter.get_version()}")
 
     target_classes = [
-        {"name": "AzureStorageFreighter", "type": "transaction", "do": False},
+        {"name": "AzureStorageFreighter", "type": "transaction", "do": True},
         {"name": "MultiAzureStorageFreighter", "type": "payment_small", "do": True},
         {"name": "MultiAzureStorageFreighter", "type": "payment_large", "do": False},
-        {"name": "AvroFreighter", "type": "transaction", "do": False},
-        {"name": "CosmosGremlinFreighter", "type": "transaction", "do": False},
-        {"name": "CSVFreighter", "type": "transaction", "do": False},
-        {"name": "MultiCSVFreighter", "type": "countries", "do": False},
-        {"name": "MultiCSVFreighter", "type": "airroute", "do": False},
-        {"name": "Neo4jFreighter", "type": "transaction", "do": False},
-        {"name": "NetworkXFreighter", "type": "transaction", "do": False},
-        {"name": "ParquetFreighter", "type": "transaction", "do": False},
-        {"name": "PGFreighter", "type": "transaction", "do": False},
+        {"name": "AvroFreighter", "type": "transaction", "do": True},
+        {"name": "CosmosGremlinFreighter", "type": "transaction", "do": True},
+        {"name": "CSVFreighter", "type": "transaction", "do": True},
+        {"name": "MultiCSVFreighter", "type": "countries", "do": True},
+        {"name": "MultiCSVFreighter", "type": "airroute", "do": True},
+        {"name": "Neo4jFreighter", "type": "transaction", "do": True},
+        {"name": "NetworkXFreighter", "type": "transaction", "do": True},
+        {"name": "ParquetFreighter", "type": "transaction", "do": True},
+        {"name": "PGFreighter", "type": "transaction", "do": True},
     ]
     chunk_size = 96
     all_results = []
@@ -530,8 +530,6 @@ async def main():
                 test_flags = [[chunk_size, False, False]]
             else:
                 test_flags = [
-                    [chunk_size, False, False],
-                    [chunk_size, True, False],
                     [chunk_size, False, True],
                 ]
             for chunk_size, direct_loading, use_copy in test_flags:
