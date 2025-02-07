@@ -67,12 +67,13 @@ CLASSES
      |  async close(self) -> None
      |      Close the connection pool.
      |  
-     |  async connect(self, dsn: str = '', max_connections: int = 64, log_level=None, **kwargs) -> 'AgeFreighter'
+     |  async connect(self, dsn: str = '', max_connections: int = 64, min_connections: int = 4, log_level=None, **kwargs) -> 'AgeFreighter'
      |      Open a connection pool.
      |      
      |      Args:
      |          dsn (str): The data source name.
      |          max_connections (int): The maximum number of connections.
+     |          min_connections (int): The minimum number of connections.
      |          log_level: The log level.
      |          **kwargs: Additional keyword arguments.
      |      
@@ -301,6 +302,13 @@ CLASSES
      |      Returns:
      |          None
      |  
+     |  showProgress(self, type: str = '', i: int = 0, total: int = 0) -> None
+     |      Show the progress of the loading.
+     |      
+     |      Args:
+     |          i (int): The current index.
+     |          total (int): The total number of items.
+     |  
      |  ----------------------------------------------------------------------
      |  Class methods inherited from AgeFreighter:
      |  
@@ -342,7 +350,7 @@ CLASSES
      |  
      |  name = 'AgeFreighter'
      |  
-     |  version = '0.7.0'
+     |  version = '0.7.5'
 
 DATA
     log = <Logger networkxfreighter (WARNING)>

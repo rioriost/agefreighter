@@ -121,12 +121,13 @@ CLASSES
      |  async close(self) -> None
      |      Close the connection pool.
      |  
-     |  async connect(self, dsn: str = '', max_connections: int = 64, log_level=None, **kwargs) -> 'AgeFreighter'
+     |  async connect(self, dsn: str = '', max_connections: int = 64, min_connections: int = 4, log_level=None, **kwargs) -> 'AgeFreighter'
      |      Open a connection pool.
      |      
      |      Args:
      |          dsn (str): The data source name.
      |          max_connections (int): The maximum number of connections.
+     |          min_connections (int): The minimum number of connections.
      |          log_level: The log level.
      |          **kwargs: Additional keyword arguments.
      |      
@@ -355,6 +356,13 @@ CLASSES
      |      Returns:
      |          None
      |  
+     |  showProgress(self, type: str = '', i: int = 0, total: int = 0) -> None
+     |      Show the progress of the loading.
+     |      
+     |      Args:
+     |          i (int): The current index.
+     |          total (int): The total number of items.
+     |  
      |  ----------------------------------------------------------------------
      |  Class methods inherited from AgeFreighter:
      |  
@@ -389,7 +397,7 @@ CLASSES
      |  
      |  name = 'AgeFreighter'
      |  
-     |  version = '0.7.0'
+     |  version = '0.7.5'
     
     class BlobUploader(builtins.object)
      |  BlobUploader(storage_account_name: str = '', access_key: str = '', blob_container_name: str = '', file_path: str = '', lines_per_chunk: int = 10000)
@@ -430,11 +438,11 @@ CLASSES
      |      list of weak references to the object (if defined)
     
     class GraphLoader(builtins.object)
-     |  GraphLoader(tbl_from_storage: str = '', total_lines: int = 0, tbl_id_map_s: str = '', tbl_id_map_e: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', records_per_thread: int = 0, pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  GraphLoader(tbl_from_storage: str = '', total_lines: int = 0, tbl_id_map_s: str = '', tbl_id_map_e: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', records_per_thread: int = 0, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, progress: bool = False)
      |  
      |  Methods defined here:
      |  
-     |  __init__(self, tbl_from_storage: str = '', total_lines: int = 0, tbl_id_map_s: str = '', tbl_id_map_e: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', records_per_thread: int = 0, pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  __init__(self, tbl_from_storage: str = '', total_lines: int = 0, tbl_id_map_s: str = '', tbl_id_map_e: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', records_per_thread: int = 0, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, progress: bool = False)
      |      Initialize self.  See help(type(self)) for accurate signature.
      |  
      |  async executeQuery(self, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, query: str = '') -> None
