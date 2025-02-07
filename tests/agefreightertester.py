@@ -6,14 +6,14 @@ import sys
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.CRITICAL,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
 
 class AgeFreighterTester:
     name = "AgeFreighterTester"
-    version = "0.7.3"
+    version = "0.7.5"
     author = "Rio Fujita"
 
     @classmethod
@@ -313,6 +313,7 @@ class AgeFreighterTester:
         # common parameters for all freighter classes
         self.params["graph_name"] = "AgeTester"
         self.params["create_graph"] = True
+        self.params["progress"] = True
 
         # Additional parameters for each freighter class
         # for Python 3.9
