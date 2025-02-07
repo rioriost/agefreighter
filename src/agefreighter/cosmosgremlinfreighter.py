@@ -57,6 +57,9 @@ class CosmosGremlinFreighter(AgeFreighter):
 
         nest_asyncio.apply()
 
+        if "progress" in kwargs.keys():
+            self.progress = kwargs["progress"]
+
         CHUNK_MULTIPLIER = 1000
 
         try:

@@ -16,6 +16,7 @@ class MultiAzureStorageFreighter(AgeFreighter):
         self.access_key: str = ""
         self.pg_fqdn: str = ""
         self.pg_server_name: str = ""
+        self.progress: bool = False
 
     async def __aenter__(self):
         await super().__aenter__()
@@ -59,6 +60,9 @@ class MultiAzureStorageFreighter(AgeFreighter):
             else:
                 log.error("Invalid Azure Subscription ID.")
                 return
+
+        if "progress" in kwargs.keys():
+            self.progress = kwargs["progress"]
 
         if self.subscription_id == "":
             print("Finding Subscription ID...")

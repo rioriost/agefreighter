@@ -70,6 +70,9 @@ class ParquetFreighter(AgeFreighter):
             )
             parquet_path = kwargs["source_parquet"]
 
+        if "progress" in kwargs.keys():
+            self.progress = kwargs["progress"]
+
         CHUNK_MULTIPLIER = 10000
 
         pf = ParquetFile(parquet_path)

@@ -70,6 +70,9 @@ class CSVFreighter(AgeFreighter):
             )
             csv_path = kwargs["csv"]
 
+        if "progress" in kwargs.keys():
+            self.progress = kwargs["progress"]
+
         CHUNK_MULTIPLIER = 10000
 
         existing_node_ids = []

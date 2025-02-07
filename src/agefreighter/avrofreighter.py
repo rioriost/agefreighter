@@ -70,6 +70,9 @@ class AvroFreighter(AgeFreighter):
             )
             avro_path = kwargs["source_avro"]
 
+        if "progress" in kwargs.keys():
+            self.progress = kwargs["progress"]
+
         CHUNK_MULTIPLIER = 10000
 
         first_chunk = True

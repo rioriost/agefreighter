@@ -53,6 +53,9 @@ class PGFreighter(AgeFreighter):
         import psycopg as pg
         from psycopg.rows import namedtuple_row
 
+        if "progress" in kwargs.keys():
+            self.progress = kwargs["progress"]
+
         CHUNK_MULTIPLIER = 10000
 
         try:

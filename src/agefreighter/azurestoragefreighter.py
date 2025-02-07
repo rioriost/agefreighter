@@ -17,6 +17,7 @@ class AzureStorageFreighter(AgeFreighter):
         self.access_key: str = ""
         self.pg_fqdn: str = ""
         self.pg_server_name: str = ""
+        self.progress: bool = False
 
     async def __aenter__(self):
         await super().__aenter__()
@@ -72,6 +73,9 @@ class AzureStorageFreighter(AgeFreighter):
                 stacklevel=2,
             )
             csv_path = kwargs["csv"]
+
+        if "progress" in kwargs.keys():
+            self.progress = kwargs["progress"]
 
         CHUNK_MULTIPLIER = 10000
         TBL_FROM_STORAGE = "table_from_azure_storage"
@@ -760,6 +764,7 @@ class GraphLoader:
         graph_name: str = "",
         records_per_thread: int = 0,
         pool: AsyncConnectionPool = None,
+        progress: bool = False,
     ):
         self.tbl_from_storage = tbl_from_storage
         self.total_lines = total_lines
@@ -776,6 +781,7 @@ class GraphLoader:
         self.graph_name = graph_name
         self.records_per_thread = records_per_thread
         self.pool = pool
+        self.progress = progress
 
     async def load(self) -> None:
         """

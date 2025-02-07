@@ -65,7 +65,7 @@ class AgeFreighter:
     """
 
     name = "AgeFreighter"
-    version = "0.7.3"
+    version = "0.7.5"
     author = "Rio Fujita"
 
     def __init__(self):
@@ -76,6 +76,7 @@ class AgeFreighter:
         self.pool: AsyncConnectionPool = None
         self.dsn: str = ""
         self.graph_name: str = ""
+        self.progress: bool = False
 
     async def __aenter__(self):
         return self
@@ -472,8 +473,11 @@ class AgeFreighter:
         )
         CHUNK_MULTIPLIER = 2
         args = []
-        for i in range(0, len(vertices), chunk_size * CHUNK_MULTIPLIER):
+        vertex_len = len(vertices)
+        for i in range(0, vertex_len, chunk_size * CHUNK_MULTIPLIER):
             chunk = vertices.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
+            if self.progress:
+                self.showProgress("vertices", i + chunk_size * CHUNK_MULTIPLIER, vertex_len)
             parts = chunk.apply(
                 lambda row: "(v{0}:{1} {{{2}}})".format(
                     row.name,
@@ -512,8 +516,11 @@ class AgeFreighter:
 
         CHUNK_MULTIPLIER = 2
         args = []
-        for i in range(0, len(edges), chunk_size * CHUNK_MULTIPLIER):
+        edge_len = len(edges)
+        for i in range(0, edge_len, chunk_size * CHUNK_MULTIPLIER):
             chunk = edges.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
+            if self.progress:
+                showProgress("edges", i + chunk_size * CHUNK_MULTIPLIER, edge_len)
             parts = chunk.apply(
                 lambda row: self.createEdgeCypher(
                     row=row, edge_type=edge_type, edge_props=edge_props
@@ -589,8 +596,11 @@ class AgeFreighter:
         CHUNK_MULTIPLIER = 2
         args = []
         graph_name = self.quotedGraphName(self.graph_name)
-        for i in range(0, len(vertices), chunk_size * CHUNK_MULTIPLIER):
+        vertex_len = len(vertices)
+        for i in range(0, vertex_len, chunk_size * CHUNK_MULTIPLIER):
             chunk = vertices.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
+            if self.progress:
+                showProgress("vertices", i + chunk_size * CHUNK_MULTIPLIER, vertex_len)
             values = chunk.apply(
                 lambda row: "('{"
                 + ",".join([f'"{k}":"{v}"' for k, v in row.items()])
@@ -636,8 +646,11 @@ class AgeFreighter:
         else:
             query = f'INSERT INTO {graph_name}."{edge_type}" (start_id, end_id) VALUES {{values}};'
 
-        for i in range(0, len(edges), chunk_size * CHUNK_MULTIPLIER):
+        edge_len = len(edges)
+        for i in range(0, edge_len, chunk_size * CHUNK_MULTIPLIER):
             chunk = edges.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
+            if self.progress:
+                self.showProgress("edges", i + chunk_size * CHUNK_MULTIPLIER, edge_len)
             parts = self.processChunkDirectly(chunk, query, edge_props, id_maps)
             args.append("".join(parts))
         await self.executeWithTasks(self.executeQuery, args)
@@ -827,7 +840,10 @@ class AgeFreighter:
             async with conn.cursor() as cur:
                 query = f'COPY {graph_name}."{vertex_label}" FROM STDIN (FORMAT TEXT)'
                 async with cur.copy(query) as copy:
-                    for i in range(0, len(vertices), chunk_size * CHUNK_MULTIPLIER):
+                    vertex_len = len(vertices)
+                    for i in range(0, vertex_len, chunk_size * CHUNK_MULTIPLIER):
+                        if self.progress:
+                            self.showProgress("vertices", i + chunk_size * CHUNK_MULTIPLIER, vertex_len)
                         args_list = []
                         chunk = vertices.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
                         chunk_args = chunk.apply(
@@ -879,8 +895,11 @@ class AgeFreighter:
                 else:
                     query = f'COPY {graph_name}."{edge_type}" (id,start_id,end_id) FROM STDIN (FORMAT TEXT)'
                 async with cur.copy(query) as copy:
-                    for i in range(0, len(edges), chunk_size * CHUNK_MULTIPLIER):
+                    edge_len = len(edges)
+                    for i in range(0, edge_len, chunk_size * CHUNK_MULTIPLIER):
                         chunk = edges.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
+                        if self.progress:
+                            self.showProgress("edges", i + chunk_size * CHUNK_MULTIPLIER, edge_len)
                         if edge_props:
                             chunk_args = chunk.apply(
                                 lambda row: "{0}\t{1}\t{2}\t{{{3}}}\n".format(
@@ -979,6 +998,16 @@ class AgeFreighter:
                 )
 
                 return first_id
+
+    def showProgress(self, type:str='', i: int = 0, total: int = 0) -> None:
+        """
+        Show the progress of the loading.
+
+        Args:
+            i (int): The current index.
+            total (int): The total number of items.
+        """
+        print(f"Loading {type}: {min(i, total)}/{total}...")
 
     async def createGraphFromDataFrame(
         self,

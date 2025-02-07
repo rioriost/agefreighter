@@ -48,6 +48,9 @@ class NetworkXFreighter(AgeFreighter):
         """
         log.debug("Loading data from a NetworkX graph")
 
+        if "progress" in kwargs.keys():
+            self.progress = kwargs["progress"]
+
         CHUNK_MULTIPLIER = 10000
         first_chunk = True
         existing_node_ids = []
