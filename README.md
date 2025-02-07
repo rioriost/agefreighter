@@ -79,6 +79,7 @@ async def main():
         use_copy=True,
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -132,6 +133,7 @@ async def main():
         use_copy=True,
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -198,6 +200,7 @@ async def main():
         use_copy=True,
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -259,6 +262,7 @@ async def main():
         use_copy=True,
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -409,6 +413,7 @@ async def main():
         use_copy=True,
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -754,6 +759,7 @@ async def main():
         },
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -795,6 +801,7 @@ async def main():
         },
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -836,6 +843,7 @@ async def main():
         },
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -947,6 +955,7 @@ async def main():
         },
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -1030,6 +1039,7 @@ async def main():
         },
         drop_graph=True,
         create_graph=True,
+        progress=True,
     )
 
 
@@ -1175,6 +1185,7 @@ async def main():
         graph_name="air_route",
         use_copy=True,
         drop_graph=True,
+        progress=True,
     )
 
 
@@ -1242,6 +1253,7 @@ All the classes have the same load() method. The method loads data into a graph 
   * direct_loading (bool) : if True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries
   * use_copy (bool) : if True, the data is loaded into the graph using the 'COPY' protocol
   * create_graph (bool) : if True, the graph will be created after the existing graph is dropped
+  * progress (bool) : if True, the progress of the loading is shown
 
 * Common arguments for 'Single Source' classes
   * AvroFreighter
@@ -1307,6 +1319,12 @@ All the classes have the same load() method. The method loads data into a graph 
     * id_map (dict): ID Mapping
 
 ## Release Notes
+
+### 0.7.5 Release
+* Added 'progress' argument to the load() method. It's implemented as an optional argument for all the classes. Thanks to @cjoakim for the suggestion.
+
+### 0.7.4 Release
+* Changed the required module from psycopg / psycopg_pool to psycopg[binary,pool]
 
 ### 0.7.3 Release
 * Added min_connections argument to the connect() method. Added the limitation of UNIX environment to import 'resource' module.
