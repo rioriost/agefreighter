@@ -3,6 +3,8 @@ from psycopg_pool import AsyncConnectionPool
 import sys
 import warnings
 import logging
+import io
+from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -10,6 +12,7 @@ log = logging.getLogger(__name__)
 class AzureStorageFreighter(AgeFreighter):
     def __init__(self):
         super().__init__()
+        # Make sure to declare attributes with non‐optional types (or check before use)
         self.subscription_id: str = ""
         self.location: str = ""
         self.storage_account_name: str = ""
@@ -17,7 +20,15 @@ class AzureStorageFreighter(AgeFreighter):
         self.access_key: str = ""
         self.pg_fqdn: str = ""
         self.pg_server_name: str = ""
+        self.resource_group_name: str = ""
         self.progress: bool = False
+        self.pool: AsyncConnectionPool
+
+        # Ensure that the DSN is a string (if defined in the parent) so that re.match has a string argument.
+        # For example, if AgeFreighter defines self.dsn as Optional[str], you might want:
+        if self.dsn is None:
+            raise ValueError("dsn must be defined as a non-None string")
+        # Also, ensure that self.pool is assigned (or later assert it’s non-None)
 
     async def __aenter__(self):
         await super().__aenter__()
@@ -43,7 +54,7 @@ class AzureStorageFreighter(AgeFreighter):
         chunk_size: int = 128,
         create_graph: bool = True,
         **kwargs,
-    ):
+    ) -> None:
         """
         Load a graph data to the PostgreSQL Flex with Azure Storage.
 
@@ -60,9 +71,13 @@ class AzureStorageFreighter(AgeFreighter):
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
             create_graph (bool): Whether to create the graph.
+            **kwargs: Additional keyword arguments
 
         Keyword Args:
             subscription_id (str): Azure Subscription ID
+
+        Returns:
+            None
         """
         log.debug("Loading data from Azure Storage")
 
@@ -138,7 +153,7 @@ class AzureStorageFreighter(AgeFreighter):
         await bl.upload()
 
         # Check if the columns contain arguments
-        self.checkKeys(
+        self.checkColumns(
             columns_in_csv=bl.columns_in_csv,
             columns_in_args=[
                 start_id,
@@ -268,7 +283,12 @@ class AzureStorageFreighter(AgeFreighter):
             credential=DefaultAzureCredential(), subscription_id=self.subscription_id
         )
         pattern = re.compile(r"host=(?P<host>[^ ]+)")
-        self.pg_fqdn = pattern.match(self.dsn).group("host")
+        match = pattern.match(self.dsn)
+        if match:
+            self.pg_fqdn = match.group("host")
+        else:
+            log.error("Failed to get the PostgreSQL FQDN.")
+            raise ValueError
         self.pg_server_name = self.pg_fqdn.split(".")[0]
         servers = client.servers.list()
         pattern = re.compile(
@@ -276,15 +296,18 @@ class AzureStorageFreighter(AgeFreighter):
         )
         for server in servers:
             if server.fully_qualified_domain_name == self.pg_fqdn:
-                if resource_group_name := pattern.match(server.id).group(
-                    "resourceGroup"
-                ):
-                    self.resource_group_name = resource_group_name
+                if not server.id:
+                    log.error("Failed to get the server ID.")
+                    raise ValueError
+                match = pattern.match(server.id)
+                if match:
+                    self.resource_group_name = match.group("resourceGroup")
                     self.location = server.location
                     return True
         return False
 
-    def checkKeys(self, columns_in_csv: list = [], columns_in_args: list = []) -> None:
+    @staticmethod
+    def checkColumns(columns_in_csv: list = [], columns_in_args: list = []) -> None:
         """
         Check if the columns contain arguments.
 
@@ -311,12 +334,14 @@ class AzureExtensions:
         subscription_id: str = "",
         resource_group_name: str = "",
         pg_server_name: str = "",
-        pool: AsyncConnectionPool = None,
+        pool: Optional[AsyncConnectionPool] = None,
         extensions: list = [],
     ):
         self.subscription_id = subscription_id
         self.resource_group_name = resource_group_name
         self.pg_server_name = pg_server_name
+        if pool is None:
+            raise ValueError("pool must be provided for StorageAccount")
         self.pool = pool
         self.extensions = extensions
 
@@ -324,12 +349,13 @@ class AzureExtensions:
         """
         Enable the Azure Storage Extension for PostgreSQL Flex Server.
 
-        Args:
-            extension_names (list): Extension Names
+        Returns:
+            None
         """
         log.debug("Enabling Extensions")
         from azure.identity import DefaultAzureCredential
         from azure.mgmt.postgresqlflexibleservers import PostgreSQLManagementClient
+        from azure.mgmt.postgresqlflexibleservers.models import ConfigurationForUpdate
 
         client = PostgreSQLManagementClient(
             credential=DefaultAzureCredential(),
@@ -345,18 +371,24 @@ class AzureExtensions:
                         server_name=self.pg_server_name,
                         configuration_name=configuration_name,
                     )
-                    if extension_name not in configuration.value:
+                    if (
+                        configuration.value
+                        and extension_name not in configuration.value
+                    ):
                         enabled = False
                         log.info(f"Updating configuration '{configuration.value}'...")
                         new_value = f"{configuration.value},{extension_name}"
+
+                        # Use the model class instead of a dict:
+                        parameters = ConfigurationForUpdate(
+                            value=new_value, source="user-override"
+                        )
+
                         client.configurations.begin_update(
                             resource_group_name=self.resource_group_name,
                             server_name=self.pg_server_name,
                             configuration_name=configuration_name,
-                            parameters={
-                                "value": new_value,
-                                "source": "user-override",
-                            },
+                            parameters=parameters,
                         ).result()
 
                 except Exception as e:
@@ -373,8 +405,8 @@ class AzureExtensions:
         """
         Create the Azure Extensions for PostgreSQL Flex Server.
 
-        Args:
-            extension_names (list): Extension Names
+        Returns:
+            None
         """
         async with self.pool.connection() as conn:
             for extension_name in self.extensions:
@@ -387,7 +419,7 @@ class StorageAccount:
         subscription_id: str = "",
         resource_group_name: str = "",
         location: str = "",
-        pool: AsyncConnectionPool = None,
+        pool: Optional[AsyncConnectionPool] = None,
     ):
         self.subscription_id = subscription_id
         self.resource_group_name = resource_group_name
@@ -395,6 +427,8 @@ class StorageAccount:
         self.storage_account_name = ""
         self.blob_container_name = ""
         self.access_key = ""
+        if pool is None:
+            raise ValueError("pool must be provided for StorageAccount")
         self.pool = pool
 
     def __del__(self):
@@ -414,6 +448,9 @@ class StorageAccount:
     def create(self) -> None:
         """
         Create a Storage Account and a Blob Container.
+
+        Returns:
+            None
         """
         from azure.identity import DefaultAzureCredential
         from azure.mgmt.storage import StorageManagementClient
@@ -477,7 +514,7 @@ class BlobUploader:
         """
         Upload a CSV file to the Blob Container.
 
-        Args:
+        Returns:
             None
         """
         self.splitFile()
@@ -503,7 +540,17 @@ class BlobUploader:
         except Exception as e:
             log.error(f"An error occurred while uploading files to blob: {e}")
 
-    async def uploadBlob(self, file_path, container_client):
+    async def uploadBlob(self, file_path, container_client) -> None:
+        """
+        Upload a blob to the container.
+
+        Args:
+            file_path (str): File path
+            container_client (ContainerClient): Container client
+
+        Returns:
+            None
+        """
         import os
 
         blob_name = os.path.basename(file_path)
@@ -513,6 +560,12 @@ class BlobUploader:
                 await blob_client.upload_blob(data, overwrite=True)
 
     def splitFile(self) -> None:
+        """
+        Split a file into chunks.
+
+        Returns:
+            None
+        """
         log.info("Splitting file into chunks...")
         import os
         import mmap
@@ -569,7 +622,19 @@ class BlobUploader:
         count: int = 0,
         header_line: str = "",
         add_header: bool = True,
-    ):
+    ) -> io.BufferedRandom:
+        """
+        Create a temporary file.
+
+        Args:
+            temp_file_name (str): Temporary file name
+            count (int): Count
+            header_line (str): Header line
+            add_header (bool): Add header
+
+        Returns:
+            Temporary file
+        """
         import tempfile
         import os
 
@@ -581,7 +646,7 @@ class BlobUploader:
             temp_file.write(header_line.encode("utf-8"))
         return temp_file
 
-    def getColumnsInCSV(self, csv_path: str = "") -> list:
+    def getColumnsInCSV(self, csv_path: str = "") -> tuple:
         """
         Get the columns in a CSV file.
 
@@ -589,7 +654,7 @@ class BlobUploader:
             csv (str): CSV file path
 
         Returns:
-            list: Columns in the CSV file
+            tuple: Columns in the CSV file
         """
         import csv
 
@@ -622,7 +687,7 @@ class TempTables:
         columns_in_csv: list = [],
         tbl_id_map_s: str = "",
         tbl_id_map_e: str = "",
-        pool: AsyncConnectionPool = None,
+        pool: Optional[AsyncConnectionPool] = None,
     ):
         self.tbl_from_storage = tbl_from_storage
         self.columns_in_csv = columns_in_csv
@@ -631,9 +696,17 @@ class TempTables:
         )
         self.tbl_id_map_s = tbl_id_map_s
         self.tbl_id_map_e = tbl_id_map_e
+        if pool is None:
+            raise ValueError("pool must be provided for StorageAccount")
         self.pool = pool
 
     async def create(self) -> None:
+        """
+        Create temporary tables.
+
+        Returns
+            None
+        """
         log.info("Creating temporary tables...")
         async with self.pool.connection() as conn:
             # create a temporary table to store the data from the Azure Storage
@@ -657,6 +730,14 @@ class TempTables:
             await conn.execute(query)
 
     async def delete(self) -> None:
+        """
+        Delete temporary tables.
+
+        Returns:
+            None
+        """
+        if self.pool is None:
+            raise ValueError("pool must be provided for TempTables")
         async with self.pool.connection() as conn:
             query = f"DROP TABLE public.{self.tbl_from_storage};"
             await conn.execute(query)
@@ -674,8 +755,8 @@ class StorageLoader:
         storage_account_name: str = "",
         blob_container_name: str = "",
         table_name: str = "",
-        columns_in_tbl_from_storage: list = [],
-        pool: AsyncConnectionPool = None,
+        columns_in_tbl_from_storage: str = "",
+        pool: Optional[AsyncConnectionPool] = None,
     ):
         import os
 
@@ -689,9 +770,17 @@ class StorageLoader:
         self.columns_in_tbl_from_storage = columns_in_tbl_from_storage
         self.pool = pool
 
-    async def load(self):
+    async def load(self) -> None:
+        """
+        Load files into the temporary table.
+
+        Returns:
+            None
+        """
         import asyncio
-        from psycopg.rows import namedtuple_row
+
+        if self.pool is None:
+            raise ValueError("pool must be provided for StorageLoader")
 
         log.info("Loading files into temporary table...")
 
@@ -713,10 +802,13 @@ class StorageLoader:
         await asyncio.gather(*tasks)
 
         async with self.pool.connection() as conn:
-            async with conn.cursor(row_factory=namedtuple_row) as cur:
+            async with conn.cursor() as cur:
                 await cur.execute(f"SELECT COUNT(*) FROM {self.table_name}")
                 result = await cur.fetchone()
-                total_rows_in_tbl = result.count
+                if result is None:
+                    log.error("Failed to load files to temporary table.")
+                    raise ValueError
+                total_rows_in_tbl = result[0]
                 if total_rows_in_tbl == self.total_lines:
                     log.info("Successfully loaded all files to temporary table.")
                 else:
@@ -736,8 +828,20 @@ class StorageLoader:
         await asyncio.gather(*tasks)
 
     async def executeQuery(
-        self, pool: AsyncConnectionPool = None, query: str = ""
+        self, pool: Optional[AsyncConnectionPool] = None, query: str = ""
     ) -> None:
+        """
+        Execute a query.
+
+        Args:
+            pool (AsyncConnectionPool): Connection pool
+            query (str): Query
+
+        Returns:
+            None
+        """
+        if pool is None:
+            raise ValueError("pool must be provided for StorageLoader")
         try:
             async with pool.connection() as conn:
                 await conn.set_autocommit(True)
@@ -763,7 +867,7 @@ class GraphLoader:
         end_props: list = [],
         graph_name: str = "",
         records_per_thread: int = 0,
-        pool: AsyncConnectionPool = None,
+        pool: Optional[AsyncConnectionPool] = None,
         progress: bool = False,
     ):
         self.tbl_from_storage = tbl_from_storage
@@ -786,6 +890,9 @@ class GraphLoader:
     async def load(self) -> None:
         """
         Load a graph data from the Temporary Table
+
+        Returns:
+            None
         """
         log.info(f"Creating graph from table, '{self.tbl_from_storage}'...")
         import asyncio
@@ -901,107 +1008,21 @@ class GraphLoader:
         ]
         await asyncio.gather(*tasks)
 
-    async def loadVertices(
-        self,
-        vertex_label: str = "",
-        vertex_id: str = "",
-        vertex_props: list = [],
-        tbl_id_map: str = "",
-    ) -> None:
-        """
-        Load a graph data from the Temporary Table
-        """
-        log.info(f"Creating graph from table, '{self.tbl_from_storage}'...")
-        import asyncio
-
-        first_id_s = await self.getFirstId(
-            graph_name=self.graph_name, label_type=vertex_label
-        )
-        props_formatted = ",".join([f'"{prop}":"%s"' for prop in vertex_props])
-
-        log.info("Creating start vertices...")
-        tasks = [
-            self.executeQuery(
-                self.pool,
-                f"""
-                INSERT INTO "{self.graph_name}"."{vertex_label}" (properties)
-                    SELECT format('{{"id":"%s", {props_formatted}}}', "{vertex_id}", {",".join([f'"{prop}"' for prop in vertex_props])})::agtype
-                    FROM (
-                        SELECT DISTINCT {",".join([f'"{item}"' for item in [vertex_id] + vertex_props])}
-                        FROM {self.tbl_from_storage}
-                        OFFSET {offset} LIMIT {self.records_per_thread}
-                    ) AS distinct_s;
-                INSERT INTO {self.tbl_id_map} (entryID, id)
-                    SELECT distinct_s."{vertex_id}", {first_id_s} + {offset} + ROW_NUMBER() OVER () - 1
-                    FROM (
-                        SELECT DISTINCT "{vertex_id}"
-                        FROM {self.tbl_from_storage}
-                        OFFSET {offset} LIMIT {self.records_per_thread}
-                    ) AS distinct_s;""",
-            )
-            for offset in range(0, self.total_lines, self.records_per_thread)
-        ]
-        await asyncio.gather(*tasks)
-
-        log.info("Creating indexes for graph...")
-        tasks = [
-            self.executeQuery(self.pool, query)
-            for query in [
-                f"CREATE INDEX ON {self.tbl_id_map} USING BTREE (entryID);",
-                f'CREATE INDEX ON "{self.graph_name}"."{vertex_label}" USING GIN (properties);',
-                f'CREATE INDEX ON "{self.graph_name}"."{vertex_label}" USING BTREE (id);',
-            ]
-        ]
-        await asyncio.gather(*tasks)
-
-    async def loadEdges(self, type: str = "", props: list = []) -> None:
-        """
-        Load a graph data from the Temporary Table
-        """
-        log.info(f"Creating graph from table, '{self.tbl_from_storage}'...")
-        import asyncio
-
-        log.info("Creating edges...")
-        if props:
-            prop_cols = "," + ",".join([f'"{prop}"' for prop in props])
-            prop_vals = (
-                ", format('{"
-                + ",".join([f'"{prop}":"%s"' for prop in props])
-                + "}', "
-                + ",".join([f'af."{prop}"' for prop in props])
-                + ")::agtype"
-            )
-        tasks = [
-            self.executeQuery(
-                self.pool,
-                f"""
-                INSERT INTO "{self.graph_name}"."{type}" (start_id, end_id{", properties" if props else ""})
-                SELECT s_map.id::agtype::graphid, e_map.id::agtype::graphid {prop_vals if props else ""}
-                FROM (
-                    SELECT "{self.start_id}", "{self.end_id}" {prop_cols if props else ""}
-                    FROM {self.tbl_from_storage}
-                    OFFSET {offset} LIMIT {self.records_per_thread}
-                ) AS af
-                JOIN {self.tbl_id_map_s} AS s_map ON af."{self.start_id}" = s_map.entryID
-                JOIN {self.tbl_id_map_e} AS e_map ON af."{self.end_id}" = e_map.entryID;""",
-            )
-            for offset in range(0, self.total_lines, self.records_per_thread)
-        ]
-        await asyncio.gather(*tasks)
-
-        log.info("Creating indexes for graph...")
-        tasks = [
-            self.executeQuery(self.pool, query)
-            for query in [
-                f'CREATE INDEX ON "{self.graph_name}"."{type}" USING BTREE (start_id);',
-                f'CREATE INDEX ON "{self.graph_name}"."{type}" USING BTREE (end_id);',
-            ]
-        ]
-        await asyncio.gather(*tasks)
-
     async def executeQuery(
-        self, pool: AsyncConnectionPool = None, query: str = ""
+        self, pool: Optional[AsyncConnectionPool] = None, query: str = ""
     ) -> None:
+        """
+        Execute a query.
+
+        Args:
+            pool (AsyncConnectionPool): Connection pool
+            query (str): Query
+
+        Returns:
+            None
+        """
+        if pool is None:
+            raise ValueError("pool must be provided for GraphLoader")
         try:
             async with pool.connection() as conn:
                 await conn.set_autocommit(True)
@@ -1017,30 +1038,35 @@ class GraphLoader:
         Get the first id for a vertex or edge.
 
         Args:
-            label_type (str): The type of the label to get the first id for.
+            graph_name (str): The name of the graph.
+            label_type (str): The label type.
 
         Returns:
             int: The first id.
         """
         import numpy as np
-        from psycopg.rows import namedtuple_row
+
+        if self.pool is None:
+            raise ValueError("pool must be provided for GraphLoader")
 
         graph_name = self.quotedGraphName(graph_name)
         async with self.pool.connection() as conn:
-            async with conn.cursor(row_factory=namedtuple_row) as cur:
+            async with conn.cursor() as cur:
                 relation = f'{graph_name}."{label_type}"'
                 await cur.execute(
                     f"SELECT id FROM ag_label WHERE relation='{relation}'::regclass;"
                 )
                 row = await cur.fetchone()
+                if row is None:
+                    raise ValueError("No row returned from query.")
 
                 ENTRY_ID_BITS = 32 + 16
                 ENTRY_ID_MASK = np.uint64(0x0000FFFFFFFFFFFF)
-                first_id = ((np.uint64(row.id)) << ENTRY_ID_BITS) | (
+                first_id = ((np.uint64(row[0])) << ENTRY_ID_BITS) | (
                     (np.uint64(1)) & ENTRY_ID_MASK
                 )
 
-                return first_id
+                return int(first_id)
 
     # avoid to affect agefreighter class
     @staticmethod
@@ -1050,6 +1076,9 @@ class GraphLoader:
 
         Args:
             graph_name (str): The name of the graph.
+
+        Returns:
+            str: The quoted graph name
         """
         log.debug(
             f"Quoting graph name {graph_name}, in {sys._getframe().f_code.co_name}."

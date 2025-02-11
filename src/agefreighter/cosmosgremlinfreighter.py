@@ -1,6 +1,7 @@
 from agefreighter import AgeFreighter
-from gremlin_python.driver import client, serializer
+from gremlin_python.driver import client, serializer  # type: ignore
 import pandas as pd
+from typing import Dict
 
 import logging
 
@@ -46,6 +47,7 @@ class CosmosGremlinFreighter(AgeFreighter):
             direct_loading (bool): Whether to load the data directly.
             create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
+            **kwargs: Additional keyword arguments.
 
         Returns:
             None
@@ -53,7 +55,7 @@ class CosmosGremlinFreighter(AgeFreighter):
         log.debug("Loading data from a Gremlin graph")
         import concurrent.futures
         import asyncio
-        import nest_asyncio
+        import nest_asyncio  # type: ignore
 
         nest_asyncio.apply()
 
@@ -93,7 +95,7 @@ class CosmosGremlinFreighter(AgeFreighter):
                     }
                     for record in records
                 ]
-                vertices = pd.DataFrame.from_dict(dicts)
+                vertices = pd.DataFrame(dicts)
                 vertices.rename(columns={id_map[vertex_label]: "id"}, inplace=True)
                 await self.createVertices(
                     vertices=vertices,
@@ -171,7 +173,7 @@ class CosmosGremlinFreighter(AgeFreighter):
         query: str = "",
         start_v_label: str = "",
         end_v_label: str = "",
-        id_map: list = [],
+        id_map: Dict[str, str] = {},
         g: client.Client = None,
     ) -> pd.DataFrame:
         """
@@ -181,7 +183,7 @@ class CosmosGremlinFreighter(AgeFreighter):
             query (str): The query to process.
             start_v_label (str): The start vertex label.
             end_v_label (str): The end vertex label.
-            id_map (list): The ID map.
+            id_map (Dict[str, str]): The ID map.
             g (client.Client): The Gremlin client.
 
         Returns:

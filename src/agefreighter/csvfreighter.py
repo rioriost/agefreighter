@@ -55,6 +55,7 @@ class CSVFreighter(AgeFreighter):
             direct_loading (bool): Whether to load the data directly.
             create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
+            **kwargs: Additional keyword arguments.
 
         Returns:
             None
@@ -75,7 +76,7 @@ class CSVFreighter(AgeFreighter):
 
         CHUNK_MULTIPLIER = 10000
 
-        existing_node_ids = []
+        existing_node_ids: list = []
         first_chunk = True
         reader = pd.read_csv(csv_path, chunksize=chunk_size * CHUNK_MULTIPLIER)
         for df in reader:

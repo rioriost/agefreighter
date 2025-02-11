@@ -10,3 +10,18 @@ from .neo4jfreighter import Neo4jFreighter
 from .networkxfreighter import NetworkXFreighter
 from .parquetfreighter import ParquetFreighter
 from .pgfreighter import PGFreighter
+
+__all__ = [
+    "AgeFreighter",
+    "Factory",
+    "AzureStorageFreighter",
+    "AvroFreighter",
+    "CosmosGremlinFreighter",
+    "CSVFreighter",
+    "MultiAzureStorageFreighter",
+    "MultiCSVFreighter",
+    "Neo4jFreighter",
+    "NetworkXFreighter",
+    "ParquetFreighter",
+    "PGFreighter",
+]

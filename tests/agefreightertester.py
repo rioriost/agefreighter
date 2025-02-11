@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import logging
-from agefreighter import AgeFreighter, Factory
-import sys
+from agefreighter import Factory
+from importlib.metadata import version
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -12,21 +12,6 @@ logging.basicConfig(
 
 
 class AgeFreighterTester:
-    name = "AgeFreighterTester"
-    version = "0.7.5"
-    author = "Rio Fujita"
-
-    @classmethod
-    def get_version(cls) -> str:
-        """
-        Get the version of the AgeFreighterTester package.
-
-        Returns:
-            str: The version of the AgeFreighterTester package.
-        """
-        log.debug(f"Getting version, in {sys._getframe().f_code.co_name}.")
-        return cls.version
-
     def __init__(
         self,
         cls: dict = {},
@@ -493,7 +478,7 @@ def show_summary(all_results: list = []) -> None:
         None
 
     """
-    summary = [f"AgeFreighter version: {AgeFreighter.get_version()}"]
+    summary = [f"AgeFreighter version: {version('agefreighter')}"]
     summary.append("Summary of all tests are as followings:")
     for results in all_results:
         summary.append(
@@ -503,7 +488,7 @@ def show_summary(all_results: list = []) -> None:
 
 
 async def main():
-    log.info(f"AgeFreighter version: {AgeFreighter.get_version()}")
+    log.info(f"AgeFreighter version: {version('agefreighter')}")
 
     target_classes = [
         {"name": "AzureStorageFreighter", "type": "transaction", "do": True},

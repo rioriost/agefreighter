@@ -22,7 +22,7 @@ class PGFreighter(AgeFreighter):
         self,
         source_pg_con_string: str = "",
         source_schema: str = "public",
-        source_tables: list = [],
+        source_tables: dict = {},
         id_map: dict = {},
         graph_name: str = "",
         chunk_size: int = 128,
@@ -37,13 +37,14 @@ class PGFreighter(AgeFreighter):
         Args:
             source_pg_con_string (str): The connection string of the source PostgreSQL database.
             source_schema (str): The source schema.
-            source_tables (list): The source tables.
+            source_tables (dict): The source tables.
             id_map (dict): The ID map.
             graph_name (str): The name of the graph to load the data into.
             chunk_size (int): The size of the chunks to create.
             direct_loading (bool): Whether to load the data directly.
             create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
+            **kwargs: Additional keyword arguments.
 
         Returns:
             None
@@ -73,7 +74,12 @@ class PGFreighter(AgeFreighter):
                             cur.execute(
                                 f'SELECT COUNT(*) FROM {source_schema}."{src_table}"'
                             )
-                            cnt = cur.fetchone()[0]
+                            row = cur.fetchone()
+                            if row is None:
+                                raise RuntimeError(
+                                    "No row was returned from the COUNT query"
+                                )
+                            cnt = row[0]
                             for i in range(0, cnt, chunk_size * CHUNK_MULTIPLIER):
                                 cur.execute(
                                     f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'
@@ -97,7 +103,12 @@ class PGFreighter(AgeFreighter):
                             cur.execute(
                                 f'SELECT COUNT(*) FROM {source_schema}."{src_table}"'
                             )
-                            cnt = cur.fetchone()[0]
+                            row = cur.fetchone()
+                            if row is None:
+                                raise RuntimeError(
+                                    "No row was returned from the COUNT query"
+                                )
+                            cnt = row[0]
                             for i in range(0, cnt, chunk_size * CHUNK_MULTIPLIER):
                                 cur.execute(
                                     f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'

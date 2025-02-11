@@ -2,6 +2,7 @@ from agefreighter import AgeFreighter
 
 import warnings
 import logging
+from typing import Generator
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ class AvroFreighter(AgeFreighter):
             direct_loading (bool): Whether to load the data directly.
             create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
+            **kwargs: Additional keyword arguments.
 
         Returns:
             None
@@ -76,7 +78,7 @@ class AvroFreighter(AgeFreighter):
         CHUNK_MULTIPLIER = 10000
 
         first_chunk = True
-        existing_node_ids = []
+        existing_node_ids: list = []
         for chunk in self.read_avro_in_chunks(avro_path, chunk_size * CHUNK_MULTIPLIER):
             df = pd.DataFrame.from_records(chunk)
             await self.createGraphFromDataFrame(
@@ -101,7 +103,7 @@ class AvroFreighter(AgeFreighter):
         await self.close()
 
     @staticmethod
-    def read_avro_in_chunks(file_path: str = "", chunk_size: int = 128):
+    def read_avro_in_chunks(file_path: str = "", chunk_size: int = 128) -> Generator:
         """
         Read Avro file in chunks.
 

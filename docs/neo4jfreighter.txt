@@ -16,13 +16,15 @@ CLASSES
      |  Methods defined here:
      |  
      |  async __aenter__(self)
+     |      Enter the context manager.
      |  
      |  async __aexit__(self, exc_type, exc, tb)
+     |      Exit the context manager.
      |  
      |  __init__(self)
      |      Initialize the AgeFreighter object.
      |  
-     |  async fetch_edges_in_chunks(self, driver: <bound method GraphDatabase.driver of <class 'neo4j._sync.driver.GraphDatabase'>> = None, chunk_size: int = 0) -> list
+     |  async fetch_edges_in_chunks(self, driver: neo4j._sync.driver.Driver, chunk_size: int = 0) -> AsyncGenerator
      |      Fetch edges in chunks.
      |      
      |      Args:
@@ -30,7 +32,7 @@ CLASSES
      |          chunk_size: The size of the chunks to fetch the edges in.
      |      
      |      Returns:
-     |          None
+     |          AsyncGenerator
      |      
      |      Notes:
      |          context manager closes after with block.
@@ -49,6 +51,7 @@ CLASSES
      |          direct_loading (bool): Whether to load the data directly.
      |          create_graph (bool): Whether to create the graph.
      |          use_copy (bool): Whether to use the COPY protocol to load the data.
+     |          **kwargs: Additional keyword arguments.
      |      
      |      Returns:
      |          None
@@ -58,8 +61,11 @@ CLASSES
      |  
      |  async close(self) -> None
      |      Close the connection pool.
+     |      
+     |      Returns:
+     |          None
      |  
-     |  async connect(self, dsn: str = '', max_connections: int = 64, min_connections: int = 4, log_level=None, **kwargs) -> 'AgeFreighter'
+     |  async connect(self, dsn: str = '', max_connections: int = 64, min_connections: int = 4, log_level=None, **kwargs) -> None
      |      Open a connection pool.
      |      
      |      Args:
@@ -70,9 +76,9 @@ CLASSES
      |          **kwargs: Additional keyword arguments.
      |      
      |      Returns:
-     |          AgeFreighter: The AgeFreighter object.
+     |          None
      |  
-     |  async copyChunk(self, chunk: pandas.core.frame.DataFrame, first_id: int = 0, graph_name: str = '', label: str = '', id_maps: dict = [], is_edge: bool = False)
+     |  async copyChunk(self, chunk: pandas.core.frame.DataFrame, first_id: int = 0, graph_name: str = '', label: str = '', id_maps: dict = {}, is_edge: bool = False) -> None
      |      Copy a chunk of data to the PostgreSQL database.
      |      
      |      Args:
@@ -82,8 +88,11 @@ CLASSES
      |          label (str): The label of the data.
      |          id_maps (dict): The ID maps.
      |          is_edge (bool): Whether the data is an edge.
+     |      
+     |      Returns:
+     |          None
      |  
-     |  async copyEdges(self, edges: pandas.core.frame.DataFrame = None, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
+     |  async copyEdges(self, edges: pandas.core.frame.DataFrame, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
      |      Create edges in the PostgreSQL database via the COPY protocol.
      |      
      |      Args:
@@ -95,7 +104,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async copyVertices(self, vertices: pandas.core.frame.DataFrame = None, vertex_label: str = '', chunk_size: int = 0) -> None
+     |  async copyVertices(self, vertices: pandas.core.frame.DataFrame, vertex_label: str = '', chunk_size: int = 0) -> None
      |      Create vertices in the PostgreSQL database via the COPY protocol.
      |      
      |      Args:
@@ -106,7 +115,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  createEdgeCypher(self, row: pandas.core.series.Series = None, edge_type: str = '', edge_props: list = []) -> str
+     |  createEdgeCypher(self, row: pandas.core.series.Series, edge_type: str = '', edge_props: list = []) -> str
      |      Create a Cypher query to create an edge.
      |      
      |      Args:
@@ -117,7 +126,7 @@ CLASSES
      |      Returns:
      |          str: The Cypher query to create the edge.
      |  
-     |  async createEdges(self, edges: pandas.core.frame.DataFrame = None, edge_type: str = '', edge_props: list = [], chunk_size: int = 3, direct_loading: bool = False, use_copy: bool = False) -> None
+     |  async createEdges(self, edges: pandas.core.frame.DataFrame, edge_type: str = '', edge_props: list = [], chunk_size: int = 3, direct_loading: bool = False, use_copy: bool = False) -> None
      |      Create edges in the PostgreSQL database.
      |      
      |      Args:
@@ -131,7 +140,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async createEdgesCypher(self, edges: pandas.core.frame.DataFrame = None, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
+     |  async createEdgesCypher(self, edges: pandas.core.frame.DataFrame, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
      |      Create edges in the PostgreSQL database via Cypher.
      |      
      |      Args:
@@ -143,7 +152,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async createEdgesDirectly(self, edges: pandas.core.frame.DataFrame = None, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
+     |  async createEdgesDirectly(self, edges: pandas.core.frame.DataFrame, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
      |      Create edges in the PostgreSQL database directly.
      |      
      |      Args:
@@ -155,7 +164,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async createGraphFromDataFrame(self, graph_name: str = '', src: pandas.core.frame.DataFrame = None, existing_node_ids: list = [], first_chunk: bool = True, start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], chunk_size: int = 3, direct_loading: bool = False, create_graph: bool = False, use_copy: bool = False) -> None
+     |  async createGraphFromDataFrame(self, graph_name: str, src: pandas.core.frame.DataFrame, existing_node_ids: list = [], first_chunk: bool = True, start_v_label: str = '', start_id: str = '', start_props: list[str] = [], edge_type: str = '', edge_props: list[str] = [], end_v_label: str = '', end_id: str = '', end_props: list[str] = [], chunk_size: int = 3, direct_loading: bool = False, create_graph: bool = False, use_copy: bool = False) -> None
      |      Create a graph from DataFrame
      |      
      |      Args:
@@ -171,6 +180,10 @@ CLASSES
      |          end_v_label (str): The label of the end vertex.
      |          end_id (str): The ID of the end vertex.
      |          end_props (list): The properties of the end vertex.
+     |          chunk_size (int): The size of the chunks to create.
+     |          direct_loading (bool): Whether to load the data directly.
+     |          create_graph (bool): Whether to create the graph.
+     |          use_copy (bool): Whether to use the COPY protocol to load the data.
      |      
      |      Returns:
      |          None
@@ -185,18 +198,18 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  createValuesDirectly(self, row: pandas.core.series.Series = None, edge_props: list = [], id_maps: list = []) -> str
+     |  createValuesDirectly(self, row: pandas.core.series.Series, edge_props: list = [], id_maps: dict = {}) -> str
      |      Create values directly.
      |      
      |      Args:
      |          row (pd.core.series.Series): The row to create the values from.
      |          edge_props (list): The properties of the edges.
-     |          id_maps (list): The ID maps.
+     |          id_maps (dict): The ID maps.
      |      
      |      Returns:
      |          str: The values.
      |  
-     |  async createVertices(self, vertices: pandas.core.frame.DataFrame = None, vertex_label: str = '', chunk_size: int = 3, direct_loading: bool = False, use_copy: bool = False) -> None
+     |  async createVertices(self, vertices: pandas.core.frame.DataFrame, vertex_label: str = '', chunk_size: int = 3, direct_loading: bool = False, use_copy: bool = False) -> None
      |      Create vertices in the PostgreSQL database.
      |      
      |      Args:
@@ -209,7 +222,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async createVerticesCypher(self, vertices: pandas.core.frame.DataFrame = None, label: str = '', chunk_size: int = 0) -> None
+     |  async createVerticesCypher(self, vertices: pandas.core.frame.DataFrame, label: str = '', chunk_size: int = 0) -> None
      |      Create vertices in the PostgreSQL database via Cypher.
      |      
      |      Args:
@@ -223,7 +236,7 @@ CLASSES
      |      Note:
      |          psycopg can not handle Cypher's UNWIND as of 9th Dec 2024.
      |  
-     |  async createVerticesDirectly(self, vertices: pandas.core.frame.DataFrame = None, label: str = '', chunk_size: int = 0) -> None
+     |  async createVerticesDirectly(self, vertices: pandas.core.frame.DataFrame, label: str = '', chunk_size: int = 0) -> None
      |      Create vertices in the PostgreSQL database directly.
      |      
      |      Args:
@@ -238,29 +251,32 @@ CLASSES
      |      Execute a query with an async connection pool.
      |      
      |      Args:
-     |          pool (AsyncConnectionPool): The async connection pool to use.
      |          query (str): The query to execute.
      |      
      |      Returns:
      |          None
      |  
-     |  async executeWithTasks(self, target: Callable = None, args: list = []) -> None
+     |  async executeWithTasks(self, target: Callable, args: list = []) -> None
      |      Execute queries with tasks.
      |      
      |      Args:
      |          target (Callable): The target function to execute.
      |          args (list): The arguments to pass to the target function.
+     |      
+     |      Returns:
+     |          None
      |  
      |  async getFirstId(self, graph_name: str = '', label_type: str = '') -> int
      |      Get the first id for a vertex or edge.
      |      
      |      Args:
-     |          label_type (str): The type of the label to get the first id for.
+     |          graph_name (str): The name of the graph to get the first id for.
+     |          label_type (str): The type or the label to get the first id for.
      |      
      |      Returns:
      |          int: The first id.
      |  
-     |  async getIdMaps(self, edges: pandas.core.frame.DataFrame = None) -> dict
+     |  async getIdMaps(self, edges: pandas.core.frame.DataFrame) -> dict
      |      Get the idmaps between entry_id and id(graphid).
      |      
      |      Args:
@@ -269,17 +285,14 @@ CLASSES
      |      Returns:
      |          dict: The ID maps.
      |  
-     |  async load_multi(self) -> None
-     |      Dummy method for loading data.
-     |  
-     |  processChunkDirectly(self, chunk: pandas.core.frame.DataFrame, query: str = '', edge_props: list = [], id_maps: list = []) -> list
+     |  processChunkDirectly(self, chunk: pandas.core.frame.DataFrame, query: str = '', edge_props: list = [], id_maps: dict = {}) -> list
      |      Process a chunk of data directly.
      |      
      |      Args:
      |          chunk (pd.DataFrame): The chunk of data to process.
      |          query (str): The query to execute.
      |          edge_props (list): The properties of the edges.
-     |          id_maps (list): The ID maps.
+     |          id_maps (dict): The ID maps.
      |      
      |      Returns:
      |          list: The processed chunk of data.
@@ -298,17 +311,12 @@ CLASSES
      |      Show the progress of the loading.
      |      
      |      Args:
+     |          type (str): The type of the loading.
      |          i (int): The current index.
      |          total (int): The total number of items.
-     |  
-     |  ----------------------------------------------------------------------
-     |  Class methods inherited from AgeFreighter:
-     |  
-     |  get_version() -> str from builtins.type
-     |      Get the version of the AgeFreighter package.
      |      
      |      Returns:
-     |          str: The version of the AgeFreighter package.
+     |          None
      |  
      |  ----------------------------------------------------------------------
      |  Static methods inherited from AgeFreighter:
@@ -319,12 +327,19 @@ CLASSES
      |      Args:
      |          keys (list): The keys of the CSV file.
      |          elements (list): The elements to check.
+     |          error_msg (str): The error message to display.
+     |      
+     |      Returns:
+     |          None
      |  
      |  quotedGraphName(graph_name: str = '') -> str
      |      Quote the graph name.
      |      
      |      Args:
      |          graph_name (str): The name of the graph.
+     |      
+     |      Returns:
+     |          str: The quoted graph name
      |  
      |  ----------------------------------------------------------------------
      |  Data descriptors inherited from AgeFreighter:
@@ -334,17 +349,11 @@ CLASSES
      |  
      |  __weakref__
      |      list of weak references to the object (if defined)
-     |  
-     |  ----------------------------------------------------------------------
-     |  Data and other attributes inherited from AgeFreighter:
-     |  
-     |  author = 'Rio Fujita'
-     |  
-     |  name = 'AgeFreighter'
-     |  
-     |  version = '0.7.5'
 
 DATA
+    AsyncGenerator = typing.AsyncGenerator
+        A generic version of collections.abc.AsyncGenerator.
+    
     log = <Logger neo4jfreighter (WARNING)>
 
 FILE

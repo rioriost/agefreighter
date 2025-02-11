@@ -5,7 +5,6 @@ import os
 import random
 import asyncio
 
-os.system("uv add aiofiles faker")
 import aiofiles
 from faker import Faker
 
@@ -648,4 +647,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-    os.system("uv remove aiofiles faker")

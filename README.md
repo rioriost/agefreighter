@@ -453,6 +453,42 @@ required group field_id=-1 schema {
 See, [data/transaction/customer_product_bought.parquet](https://github.com/rioriost/agefreighter/blob/main/data/transaction/customer_product_bought.parquet).
 
 ## Usage of AzureStorageFreighter
+
+### Prerequisites
+Install the Azure CLI and login with your Azure account.
+
+macOS
+```bash
+brew update && brew install azure-cli
+```
+
+Windows
+```shell
+winget install -e --id Microsoft.AzureCLI
+```
+
+Linux (RHEL)
+```bash
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+
+# for RHEL 9
+sudo dnf install -y https://packages.microsoft.com/config/rhel/9.0/packages-microsoft-prod.rpm
+# for RHEL 8
+sudo dnf install -y https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
+
+sudo dnf install azure-cli
+```
+
+Linux (Ubuntu)
+```bash
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+```
+
+Afrer installing the Azure CLI, login with your Azure account.
+```bash
+az login
+```
+
 ```python
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -497,6 +533,42 @@ if __name__ == "__main__":
 AzureStorageFreighter class loads data from Azure Storage and expects the exactly same format as CSVFreighter.
 
 ## Usage of MultiAzureStorageFreighter
+
+### Prerequisites
+Install the Azure CLI and login with your Azure account.
+
+macOS
+```bash
+brew update && brew install azure-cli
+```
+
+Windows
+```shell
+winget install -e --id Microsoft.AzureCLI
+```
+
+Linux (RHEL)
+```bash
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+
+# for RHEL 9
+sudo dnf install -y https://packages.microsoft.com/config/rhel/9.0/packages-microsoft-prod.rpm
+# for RHEL 8
+sudo dnf install -y https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
+
+sudo dnf install azure-cli
+```
+
+Linux (Ubuntu)
+```bash
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+```
+
+Afrer installing the Azure CLI, login with your Azure account.
+```bash
+az login
+```
+
 ```python
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -1319,6 +1391,10 @@ All the classes have the same load() method. The method loads data into a graph 
     * id_map (dict): ID Mapping
 
 ## Release Notes
+
+### 0.8.0 Release
+* Introduced unit tests for the classes to improve the quality of the package. Currently, the tests are only for a few classes.
+* Fixed code to improve the robustness of the package.
 
 ### 0.7.5 Release
 * Added 'progress' argument to the load() method. It's implemented as an optional argument for all the classes. Thanks to @cjoakim for the suggestion.

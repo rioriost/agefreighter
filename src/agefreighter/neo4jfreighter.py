@@ -1,5 +1,6 @@
 from agefreighter import AgeFreighter
-from neo4j import GraphDatabase
+from neo4j import GraphDatabase, Driver
+from typing import AsyncGenerator
 
 import logging
 
@@ -47,13 +48,14 @@ class Neo4jFreighter(AgeFreighter):
             direct_loading (bool): Whether to load the data directly.
             create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
+            **kwargs: Additional keyword arguments.
 
         Returns:
             None
         """
         log.debug("Loading data from a Neo4j graph")
         import pandas as pd
-        import nest_asyncio
+        import nest_asyncio  # type: ignore
 
         nest_asyncio.apply()
 
@@ -63,7 +65,7 @@ class Neo4jFreighter(AgeFreighter):
         CHUNK_MULTIPLIER = 1000
         CHUNK_SIZE = chunk_size * CHUNK_MULTIPLIER
 
-        existing_node_ids = []
+        existing_node_ids: list = []
         first_chunk = True
         driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
         async for chunk in self.fetch_edges_in_chunks(
@@ -111,8 +113,8 @@ class Neo4jFreighter(AgeFreighter):
         await self.close()
 
     async def fetch_edges_in_chunks(
-        self, driver: GraphDatabase.driver = None, chunk_size: int = 0
-    ) -> list:
+        self, driver: Driver, chunk_size: int = 0
+    ) -> AsyncGenerator:
         """
         Fetch edges in chunks.
 
@@ -121,7 +123,7 @@ class Neo4jFreighter(AgeFreighter):
             chunk_size: The size of the chunks to fetch the edges in.
 
         Returns:
-            None
+            AsyncGenerator
 
         Notes:
             context manager closes after with block.

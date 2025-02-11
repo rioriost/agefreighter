@@ -15,24 +15,24 @@ CLASSES
         TempTables
     
     class AzureExtensions(builtins.object)
-     |  AzureExtensions(subscription_id: str = '', resource_group_name: str = '', pg_server_name: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None, extensions: list = [])
+     |  AzureExtensions(subscription_id: str = '', resource_group_name: str = '', pg_server_name: str = '', pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None, extensions: list = [])
      |  
      |  Methods defined here:
      |  
-     |  __init__(self, subscription_id: str = '', resource_group_name: str = '', pg_server_name: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None, extensions: list = [])
+     |  __init__(self, subscription_id: str = '', resource_group_name: str = '', pg_server_name: str = '', pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None, extensions: list = [])
      |      Initialize self.  See help(type(self)) for accurate signature.
      |  
      |  async create(self) -> None
      |      Create the Azure Extensions for PostgreSQL Flex Server.
      |      
-     |      Args:
-     |          extension_names (list): Extension Names
+     |      Returns:
+     |          None
      |  
      |  enable(self) -> None
      |      Enable the Azure Storage Extension for PostgreSQL Flex Server.
      |      
-     |      Args:
-     |          extension_names (list): Extension Names
+     |      Returns:
+     |          None
      |  
      |  ----------------------------------------------------------------------
      |  Data descriptors defined here:
@@ -52,24 +52,13 @@ CLASSES
      |  Methods defined here:
      |  
      |  async __aenter__(self)
+     |      Enter the context manager.
      |  
      |  async __aexit__(self, exc_type, exc, tb)
+     |      Exit the context manager.
      |  
      |  __init__(self)
      |      Initialize the AgeFreighter object.
-     |  
-     |  checkKeys(self, columns_in_csv: list = [], columns_in_args: list = []) -> None
-     |      Check if the columns contain arguments.
-     |      
-     |      Args:
-     |          columns_in_csv (list): Columns in the CSV file
-     |          columns_in_args (list): Columns in the arguments
-     |      
-     |      Raises:
-     |          ValueError: If the column is not in the CSV
-     |      
-     |      Returns:
-     |          None
      |  
      |  findAzureSubscriptionID(self) -> bool
      |      Get the Azure Subscription ID from the Azure CLI.
@@ -77,7 +66,7 @@ CLASSES
      |      Returns:
      |          bool: True if the Azure Subscription ID is set, False otherwise
      |  
-     |  async load(self, csv_path: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', chunk_size: int = 128, create_graph: bool = True, **kwargs)
+     |  async load(self, csv_path: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', chunk_size: int = 128, create_graph: bool = True, **kwargs) -> None
      |      Load a graph data to the PostgreSQL Flex with Azure Storage.
      |      
      |      Args:
@@ -93,9 +82,13 @@ CLASSES
      |          graph_name (str): The name of the graph to load the data into.
      |          chunk_size (int): The size of the chunks to create.
      |          create_graph (bool): Whether to create the graph.
+     |          **kwargs: Additional keyword arguments
      |      
      |      Keyword Args:
      |          subscription_id (str): Azure Subscription ID
+     |      
+     |      Returns:
+     |          None
      |  
      |  async setParameters(self) -> bool
      |      Set the parameters for the Azure Storage Freighter.
@@ -105,6 +98,19 @@ CLASSES
      |  
      |  ----------------------------------------------------------------------
      |  Static methods defined here:
+     |  
+     |  checkColumns(columns_in_csv: list = [], columns_in_args: list = []) -> None
+     |      Check if the columns contain arguments.
+     |      
+     |      Args:
+     |          columns_in_csv (list): Columns in the CSV file
+     |          columns_in_args (list): Columns in the arguments
+     |      
+     |      Raises:
+     |          ValueError: If the column is not in the CSV
+     |      
+     |      Returns:
+     |          None
      |  
      |  isValidAzureSubscriptionID(subscriptionID: str = '') -> bool
      |      Check if the Azure Subscription ID is valid.
@@ -120,8 +126,11 @@ CLASSES
      |  
      |  async close(self) -> None
      |      Close the connection pool.
+     |      
+     |      Returns:
+     |          None
      |  
-     |  async connect(self, dsn: str = '', max_connections: int = 64, min_connections: int = 4, log_level=None, **kwargs) -> 'AgeFreighter'
+     |  async connect(self, dsn: str = '', max_connections: int = 64, min_connections: int = 4, log_level=None, **kwargs) -> None
      |      Open a connection pool.
      |      
      |      Args:
@@ -132,9 +141,9 @@ CLASSES
      |          **kwargs: Additional keyword arguments.
      |      
      |      Returns:
-     |          AgeFreighter: The AgeFreighter object.
+     |          None
      |  
-     |  async copyChunk(self, chunk: pandas.core.frame.DataFrame, first_id: int = 0, graph_name: str = '', label: str = '', id_maps: dict = [], is_edge: bool = False)
+     |  async copyChunk(self, chunk: pandas.core.frame.DataFrame, first_id: int = 0, graph_name: str = '', label: str = '', id_maps: dict = {}, is_edge: bool = False) -> None
      |      Copy a chunk of data to the PostgreSQL database.
      |      
      |      Args:
@@ -144,8 +153,11 @@ CLASSES
      |          label (str): The label of the data.
      |          id_maps (dict): The ID maps.
      |          is_edge (bool): Whether the data is an edge.
+     |      
+     |      Returns:
+     |          None
      |  
-     |  async copyEdges(self, edges: pandas.core.frame.DataFrame = None, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
+     |  async copyEdges(self, edges: pandas.core.frame.DataFrame, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
      |      Create edges in the PostgreSQL database via the COPY protocol.
      |      
      |      Args:
@@ -157,7 +169,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async copyVertices(self, vertices: pandas.core.frame.DataFrame = None, vertex_label: str = '', chunk_size: int = 0) -> None
+     |  async copyVertices(self, vertices: pandas.core.frame.DataFrame, vertex_label: str = '', chunk_size: int = 0) -> None
      |      Create vertices in the PostgreSQL database via the COPY protocol.
      |      
      |      Args:
@@ -168,7 +180,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  createEdgeCypher(self, row: pandas.core.series.Series = None, edge_type: str = '', edge_props: list = []) -> str
+     |  createEdgeCypher(self, row: pandas.core.series.Series, edge_type: str = '', edge_props: list = []) -> str
      |      Create a Cypher query to create an edge.
      |      
      |      Args:
@@ -179,7 +191,7 @@ CLASSES
      |      Returns:
      |          str: The Cypher query to create the edge.
      |  
-     |  async createEdges(self, edges: pandas.core.frame.DataFrame = None, edge_type: str = '', edge_props: list = [], chunk_size: int = 3, direct_loading: bool = False, use_copy: bool = False) -> None
+     |  async createEdges(self, edges: pandas.core.frame.DataFrame, edge_type: str = '', edge_props: list = [], chunk_size: int = 3, direct_loading: bool = False, use_copy: bool = False) -> None
      |      Create edges in the PostgreSQL database.
      |      
      |      Args:
@@ -193,7 +205,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async createEdgesCypher(self, edges: pandas.core.frame.DataFrame = None, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
+     |  async createEdgesCypher(self, edges: pandas.core.frame.DataFrame, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
      |      Create edges in the PostgreSQL database via Cypher.
      |      
      |      Args:
@@ -205,7 +217,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async createEdgesDirectly(self, edges: pandas.core.frame.DataFrame = None, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
+     |  async createEdgesDirectly(self, edges: pandas.core.frame.DataFrame, edge_type: str = '', edge_props: list = [], chunk_size: int = 0) -> None
      |      Create edges in the PostgreSQL database directly.
      |      
      |      Args:
@@ -217,7 +229,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async createGraphFromDataFrame(self, graph_name: str = '', src: pandas.core.frame.DataFrame = None, existing_node_ids: list = [], first_chunk: bool = True, start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], chunk_size: int = 3, direct_loading: bool = False, create_graph: bool = False, use_copy: bool = False) -> None
+     |  async createGraphFromDataFrame(self, graph_name: str, src: pandas.core.frame.DataFrame, existing_node_ids: list = [], first_chunk: bool = True, start_v_label: str = '', start_id: str = '', start_props: list[str] = [], edge_type: str = '', edge_props: list[str] = [], end_v_label: str = '', end_id: str = '', end_props: list[str] = [], chunk_size: int = 3, direct_loading: bool = False, create_graph: bool = False, use_copy: bool = False) -> None
      |      Create a graph from DataFrame
      |      
      |      Args:
@@ -233,6 +245,10 @@ CLASSES
      |          end_v_label (str): The label of the end vertex.
      |          end_id (str): The ID of the end vertex.
      |          end_props (list): The properties of the end vertex.
+     |          chunk_size (int): The size of the chunks to create.
+     |          direct_loading (bool): Whether to load the data directly.
+     |          create_graph (bool): Whether to create the graph.
+     |          use_copy (bool): Whether to use the COPY protocol to load the data.
      |      
      |      Returns:
      |          None
@@ -247,18 +263,18 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  createValuesDirectly(self, row: pandas.core.series.Series = None, edge_props: list = [], id_maps: list = []) -> str
+     |  createValuesDirectly(self, row: pandas.core.series.Series, edge_props: list = [], id_maps: dict = {}) -> str
      |      Create values directly.
      |      
      |      Args:
      |          row (pd.core.series.Series): The row to create the values from.
      |          edge_props (list): The properties of the edges.
-     |          id_maps (list): The ID maps.
+     |          id_maps (dict): The ID maps.
      |      
      |      Returns:
      |          str: The values.
      |  
-     |  async createVertices(self, vertices: pandas.core.frame.DataFrame = None, vertex_label: str = '', chunk_size: int = 3, direct_loading: bool = False, use_copy: bool = False) -> None
+     |  async createVertices(self, vertices: pandas.core.frame.DataFrame, vertex_label: str = '', chunk_size: int = 3, direct_loading: bool = False, use_copy: bool = False) -> None
      |      Create vertices in the PostgreSQL database.
      |      
      |      Args:
@@ -271,7 +287,7 @@ CLASSES
      |      Returns:
      |          None
      |  
-     |  async createVerticesCypher(self, vertices: pandas.core.frame.DataFrame = None, label: str = '', chunk_size: int = 0) -> None
+     |  async createVerticesCypher(self, vertices: pandas.core.frame.DataFrame, label: str = '', chunk_size: int = 0) -> None
      |      Create vertices in the PostgreSQL database via Cypher.
      |      
      |      Args:
@@ -285,7 +301,7 @@ CLASSES
      |      Note:
      |          psycopg can not handle Cypher's UNWIND as of 9th Dec 2024.
      |  
-     |  async createVerticesDirectly(self, vertices: pandas.core.frame.DataFrame = None, label: str = '', chunk_size: int = 0) -> None
+     |  async createVerticesDirectly(self, vertices: pandas.core.frame.DataFrame, label: str = '', chunk_size: int = 0) -> None
      |      Create vertices in the PostgreSQL database directly.
      |      
      |      Args:
@@ -300,29 +316,32 @@ CLASSES
      |      Execute a query with an async connection pool.
      |      
      |      Args:
-     |          pool (AsyncConnectionPool): The async connection pool to use.
      |          query (str): The query to execute.
      |      
      |      Returns:
      |          None
      |  
-     |  async executeWithTasks(self, target: Callable = None, args: list = []) -> None
+     |  async executeWithTasks(self, target: Callable, args: list = []) -> None
      |      Execute queries with tasks.
      |      
      |      Args:
      |          target (Callable): The target function to execute.
      |          args (list): The arguments to pass to the target function.
+     |      
+     |      Returns:
+     |          None
      |  
      |  async getFirstId(self, graph_name: str = '', label_type: str = '') -> int
      |      Get the first id for a vertex or edge.
      |      
      |      Args:
-     |          label_type (str): The type of the label to get the first id for.
+     |          graph_name (str): The name of the graph to get the first id for.
+     |          label_type (str): The type or the label to get the first id for.
      |      
      |      Returns:
      |          int: The first id.
      |  
-     |  async getIdMaps(self, edges: pandas.core.frame.DataFrame = None) -> dict
+     |  async getIdMaps(self, edges: pandas.core.frame.DataFrame) -> dict
      |      Get the idmaps between entry_id and id(graphid).
      |      
      |      Args:
@@ -331,17 +350,14 @@ CLASSES
      |      Returns:
      |          dict: The ID maps.
      |  
-     |  async load_multi(self) -> None
-     |      Dummy method for loading data.
-     |  
-     |  processChunkDirectly(self, chunk: pandas.core.frame.DataFrame, query: str = '', edge_props: list = [], id_maps: list = []) -> list
+     |  processChunkDirectly(self, chunk: pandas.core.frame.DataFrame, query: str = '', edge_props: list = [], id_maps: dict = {}) -> list
      |      Process a chunk of data directly.
      |      
      |      Args:
      |          chunk (pd.DataFrame): The chunk of data to process.
      |          query (str): The query to execute.
      |          edge_props (list): The properties of the edges.
-     |          id_maps (list): The ID maps.
+     |          id_maps (dict): The ID maps.
      |      
      |      Returns:
      |          list: The processed chunk of data.
@@ -360,26 +376,35 @@ CLASSES
      |      Show the progress of the loading.
      |      
      |      Args:
+     |          type (str): The type of the loading.
      |          i (int): The current index.
      |          total (int): The total number of items.
-     |  
-     |  ----------------------------------------------------------------------
-     |  Class methods inherited from AgeFreighter:
-     |  
-     |  get_version() -> str from builtins.type
-     |      Get the version of the AgeFreighter package.
      |      
      |      Returns:
-     |          str: The version of the AgeFreighter package.
+     |          None
      |  
      |  ----------------------------------------------------------------------
      |  Static methods inherited from AgeFreighter:
+     |  
+     |  checkKeys(keys: list = [], elements: list = [], error_msg: str = '') -> None
+     |      Check if the keys of the CSV file match the elements.
+     |      
+     |      Args:
+     |          keys (list): The keys of the CSV file.
+     |          elements (list): The elements to check.
+     |          error_msg (str): The error message to display.
+     |      
+     |      Returns:
+     |          None
      |  
      |  quotedGraphName(graph_name: str = '') -> str
      |      Quote the graph name.
      |      
      |      Args:
      |          graph_name (str): The name of the graph.
+     |      
+     |      Returns:
+     |          str: The quoted graph name
      |  
      |  ----------------------------------------------------------------------
      |  Data descriptors inherited from AgeFreighter:
@@ -389,15 +414,6 @@ CLASSES
      |  
      |  __weakref__
      |      list of weak references to the object (if defined)
-     |  
-     |  ----------------------------------------------------------------------
-     |  Data and other attributes inherited from AgeFreighter:
-     |  
-     |  author = 'Rio Fujita'
-     |  
-     |  name = 'AgeFreighter'
-     |  
-     |  version = '0.7.5'
     
     class BlobUploader(builtins.object)
      |  BlobUploader(storage_account_name: str = '', access_key: str = '', blob_container_name: str = '', file_path: str = '', lines_per_chunk: int = 10000)
@@ -407,26 +423,48 @@ CLASSES
      |  __init__(self, storage_account_name: str = '', access_key: str = '', blob_container_name: str = '', file_path: str = '', lines_per_chunk: int = 10000)
      |      Initialize self.  See help(type(self)) for accurate signature.
      |  
-     |  createTempFile(self, temp_file_name: str = '', count: int = 0, header_line: str = '', add_header: bool = True)
+     |  createTempFile(self, temp_file_name: str = '', count: int = 0, header_line: str = '', add_header: bool = True) -> _io.BufferedRandom
+     |      Create a temporary file.
+     |      
+     |      Args:
+     |          temp_file_name (str): Temporary file name
+     |          count (int): Count
+     |          header_line (str): Header line
+     |          add_header (bool): Add header
+     |      
+     |      Returns:
+     |          Temporary file
      |  
-     |  getColumnsInCSV(self, csv_path: str = '') -> list
+     |  getColumnsInCSV(self, csv_path: str = '') -> tuple
      |      Get the columns in a CSV file.
      |      
      |      Args:
      |          csv (str): CSV file path
      |      
      |      Returns:
-     |          list: Columns in the CSV file
+     |          tuple: Columns in the CSV file
      |  
      |  splitFile(self) -> None
+     |      Split a file into chunks.
+     |      
+     |      Returns:
+     |          None
      |  
      |  async upload(self) -> None
      |      Upload a CSV file to the Blob Container.
      |      
-     |      Args:
+     |      Returns:
      |          None
      |  
-     |  async uploadBlob(self, file_path, container_client)
+     |  async uploadBlob(self, file_path, container_client) -> None
+     |      Upload a blob to the container.
+     |      
+     |      Args:
+     |          file_path (str): File path
+     |          container_client (ContainerClient): Container client
+     |      
+     |      Returns:
+     |          None
      |  
      |  ----------------------------------------------------------------------
      |  Data descriptors defined here:
@@ -438,32 +476,38 @@ CLASSES
      |      list of weak references to the object (if defined)
     
     class GraphLoader(builtins.object)
-     |  GraphLoader(tbl_from_storage: str = '', total_lines: int = 0, tbl_id_map_s: str = '', tbl_id_map_e: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', records_per_thread: int = 0, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, progress: bool = False)
+     |  GraphLoader(tbl_from_storage: str = '', total_lines: int = 0, tbl_id_map_s: str = '', tbl_id_map_e: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', records_per_thread: int = 0, pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None, progress: bool = False)
      |  
      |  Methods defined here:
      |  
-     |  __init__(self, tbl_from_storage: str = '', total_lines: int = 0, tbl_id_map_s: str = '', tbl_id_map_e: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', records_per_thread: int = 0, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, progress: bool = False)
+     |  __init__(self, tbl_from_storage: str = '', total_lines: int = 0, tbl_id_map_s: str = '', tbl_id_map_e: str = '', start_v_label: str = '', start_id: str = '', start_props: list = [], edge_type: str = '', edge_props: list = [], end_v_label: str = '', end_id: str = '', end_props: list = [], graph_name: str = '', records_per_thread: int = 0, pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None, progress: bool = False)
      |      Initialize self.  See help(type(self)) for accurate signature.
      |  
-     |  async executeQuery(self, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, query: str = '') -> None
+     |  async executeQuery(self, pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None, query: str = '') -> None
+     |      Execute a query.
+     |      
+     |      Args:
+     |          pool (AsyncConnectionPool): Connection pool
+     |          query (str): Query
+     |      
+     |      Returns:
+     |          None
      |  
      |  async getFirstId(self, graph_name: str = '', label_type: str = '') -> int
      |      Get the first id for a vertex or edge.
      |      
      |      Args:
-     |          label_type (str): The type of the label to get the first id for.
+     |          graph_name (str): The name of the graph.
+     |          label_type (str): The label type.
      |      
      |      Returns:
      |          int: The first id.
      |  
      |  async load(self) -> None
      |      Load a graph data from the Temporary Table
-     |  
-     |  async loadEdges(self, type: str = '', props: list = []) -> None
-     |      Load a graph data from the Temporary Table
-     |  
-     |  async loadVertices(self, vertex_label: str = '', vertex_id: str = '', vertex_props: list = [], tbl_id_map: str = '') -> None
-     |      Load a graph data from the Temporary Table
+     |      
+     |      Returns:
+     |          None
      |  
      |  ----------------------------------------------------------------------
      |  Static methods defined here:
@@ -473,6 +517,9 @@ CLASSES
      |      
      |      Args:
      |          graph_name (str): The name of the graph.
+     |      
+     |      Returns:
+     |          str: The quoted graph name
      |  
      |  ----------------------------------------------------------------------
      |  Data descriptors defined here:
@@ -484,19 +531,22 @@ CLASSES
      |      list of weak references to the object (if defined)
     
     class StorageAccount(builtins.object)
-     |  StorageAccount(subscription_id: str = '', resource_group_name: str = '', location: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  StorageAccount(subscription_id: str = '', resource_group_name: str = '', location: str = '', pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None)
      |  
      |  Methods defined here:
      |  
      |  __del__(self)
      |  
-     |  __init__(self, subscription_id: str = '', resource_group_name: str = '', location: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  __init__(self, subscription_id: str = '', resource_group_name: str = '', location: str = '', pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None)
      |      Initialize self.  See help(type(self)) for accurate signature.
      |  
      |  async attach(self) -> None
      |  
      |  create(self) -> None
      |      Create a Storage Account and a Blob Container.
+     |      
+     |      Returns:
+     |          None
      |  
      |  ----------------------------------------------------------------------
      |  Data descriptors defined here:
@@ -508,16 +558,28 @@ CLASSES
      |      list of weak references to the object (if defined)
     
     class StorageLoader(builtins.object)
-     |  StorageLoader(file_list: list = [], total_lines: int = 0, storage_account_name: str = '', blob_container_name: str = '', table_name: str = '', columns_in_tbl_from_storage: list = [], pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  StorageLoader(file_list: list = [], total_lines: int = 0, storage_account_name: str = '', blob_container_name: str = '', table_name: str = '', columns_in_tbl_from_storage: str = '', pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None)
      |  
      |  Methods defined here:
      |  
-     |  __init__(self, file_list: list = [], total_lines: int = 0, storage_account_name: str = '', blob_container_name: str = '', table_name: str = '', columns_in_tbl_from_storage: list = [], pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  __init__(self, file_list: list = [], total_lines: int = 0, storage_account_name: str = '', blob_container_name: str = '', table_name: str = '', columns_in_tbl_from_storage: str = '', pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None)
      |      Initialize self.  See help(type(self)) for accurate signature.
      |  
-     |  async executeQuery(self, pool: psycopg_pool.pool_async.AsyncConnectionPool = None, query: str = '') -> None
+     |  async executeQuery(self, pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None, query: str = '') -> None
+     |      Execute a query.
+     |      
+     |      Args:
+     |          pool (AsyncConnectionPool): Connection pool
+     |          query (str): Query
+     |      
+     |      Returns:
+     |          None
      |  
-     |  async load(self)
+     |  async load(self) -> None
+     |      Load files into the temporary table.
+     |      
+     |      Returns:
+     |          None
      |  
      |  ----------------------------------------------------------------------
      |  Data descriptors defined here:
@@ -529,16 +591,24 @@ CLASSES
      |      list of weak references to the object (if defined)
     
     class TempTables(builtins.object)
-     |  TempTables(tbl_from_storage: str = '', columns_in_csv: list = [], tbl_id_map_s: str = '', tbl_id_map_e: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  TempTables(tbl_from_storage: str = '', columns_in_csv: list = [], tbl_id_map_s: str = '', tbl_id_map_e: str = '', pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None)
      |  
      |  Methods defined here:
      |  
-     |  __init__(self, tbl_from_storage: str = '', columns_in_csv: list = [], tbl_id_map_s: str = '', tbl_id_map_e: str = '', pool: psycopg_pool.pool_async.AsyncConnectionPool = None)
+     |  __init__(self, tbl_from_storage: str = '', columns_in_csv: list = [], tbl_id_map_s: str = '', tbl_id_map_e: str = '', pool: Optional[psycopg_pool.pool_async.AsyncConnectionPool] = None)
      |      Initialize self.  See help(type(self)) for accurate signature.
      |  
      |  async create(self) -> None
+     |      Create temporary tables.
+     |      
+     |      Returns
+     |          None
      |  
      |  async delete(self) -> None
+     |      Delete temporary tables.
+     |      
+     |      Returns:
+     |          None
      |  
      |  ----------------------------------------------------------------------
      |  Data descriptors defined here:
@@ -550,6 +620,11 @@ CLASSES
      |      list of weak references to the object (if defined)
 
 DATA
+    Optional = typing.Optional
+        Optional type.
+        
+        Optional[X] is equivalent to Union[X, None].
+    
     log = <Logger azurestoragefreighter (WARNING)>
 
 FILE

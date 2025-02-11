@@ -3,6 +3,7 @@ from agefreighter import AgeFreighter
 import logging
 import pandas as pd
 import networkx as nx
+from typing import Generator
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class NetworkXFreighter(AgeFreighter):
 
     async def load(
         self,
-        networkx_graph: nx.Graph = None,
+        networkx_graph: nx.Graph,
         id_map: dict = {},
         graph_name: str = "",
         chunk_size: int = 128,
@@ -42,6 +43,7 @@ class NetworkXFreighter(AgeFreighter):
             direct_loading (bool): Whether to load the data directly.
             create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
+            **kwargs: Additional keyword arguments.
 
         Returns:
             None
@@ -53,7 +55,7 @@ class NetworkXFreighter(AgeFreighter):
 
         CHUNK_MULTIPLIER = 10000
         first_chunk = True
-        existing_node_ids = []
+        existing_node_ids: list = []
 
         edges = nx.to_pandas_edgelist(networkx_graph)
         edge_props = [
@@ -121,7 +123,7 @@ class NetworkXFreighter(AgeFreighter):
         await self.close()
 
     @staticmethod
-    def getChunks(df: pd.DataFrame = None, chunk_size: int = 0) -> pd.DataFrame:
+    def getChunks(df: pd.DataFrame, chunk_size: int = 0) -> Generator:
         """
         Get the DataFrame in chunks.
 
@@ -130,13 +132,13 @@ class NetworkXFreighter(AgeFreighter):
             chunk_size (int): The size of the chunks to get the edges in.
 
         Returns:
-            DataFrame: chunk of the DataFrame
+            Generator: The DataFrame in chunks.
         """
         for i in range(0, len(df), chunk_size):
             yield df.iloc[i : i + chunk_size].copy()
 
     @staticmethod
-    def get_node_attributes(graph, node_ids, attributes):
+    def get_node_attributes(graph, node_ids, attributes) -> dict:
         """
         Get node attributes.
 

@@ -6,8 +6,6 @@ import os
 import sys
 import pydoc
 
-os.system("uv add toml")
-
 import toml
 
 SRC_DIR = "../src/agefreighter/"
@@ -56,7 +54,6 @@ def extract_requirements():
 def main():
     create_pydoc()
     extract_requirements()
-    os.system("uv remove toml")
 
 
 if __name__ == "__main__":

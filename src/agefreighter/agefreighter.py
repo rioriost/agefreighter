@@ -2,8 +2,8 @@ import asyncio
 import sys
 import logging
 import pandas as pd
-from psycopg_pool import AsyncConnectionPool
-from typing_extensions import Callable
+from psycopg_pool import AsyncConnectionPool, PoolTimeout
+from typing import Callable, Any, cast
 
 log = logging.getLogger(__name__)
 
@@ -64,10 +64,6 @@ class AgeFreighter:
     AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL.
     """
 
-    name = "AgeFreighter"
-    version = "0.7.5"
-    author = "Rio Fujita"
-
     def __init__(self):
         """
         Initialize the AgeFreighter object.
@@ -79,23 +75,23 @@ class AgeFreighter:
         self.progress: bool = False
 
     async def __aenter__(self):
-        return self
+        """
+        Enter the context manager.
+        """
+        log.debug(f"Creating AsyncAgeFreighter, in {sys._getframe().f_code.co_name}.")
+        self.pool: AsyncConnectionPool = None
+        self.dsn: str = ""
+        self.graph_name: str = ""
+        self.progress: bool = False
 
     async def __aexit__(self, exc_type, exc, tb):
+        """
+        Exit the context manager.
+        """
         if exc_type:
             print(f"Exception: {exc_type}, {exc}")
-        await self.pool.close()
-
-    @classmethod
-    def get_version(cls) -> str:
-        """
-        Get the version of the AgeFreighter package.
-
-        Returns:
-            str: The version of the AgeFreighter package.
-        """
-        log.debug(f"Getting version, in {sys._getframe().f_code.co_name}.")
-        return cls.version
+        if self.pool:
+            await self.pool.close()
 
     async def connect(
         self,
@@ -104,7 +100,7 @@ class AgeFreighter:
         min_connections: int = 4,
         log_level=None,
         **kwargs,
-    ) -> "AgeFreighter":
+    ) -> None:
         """
         Open a connection pool.
 
@@ -116,10 +112,13 @@ class AgeFreighter:
             **kwargs: Additional keyword arguments.
 
         Returns:
-            AgeFreighter: The AgeFreighter object.
+            None
         """
         log.debug("Opening connection pool.")
         log.debug(f"Opening connection pool, in {sys._getframe().f_code.co_name}.")
+
+        MAX_RETRIES = 3
+        DELAY_SEC = 5
 
         import platform
 
@@ -140,34 +139,32 @@ class AgeFreighter:
             timeout=600,
             **kwargs,
         )
-        try:
-            await self.pool.open()
-            await self.pool.wait()
-        except Exception as e:
-            log.error(f"Error: {e}, in {sys._getframe().f_code.co_name}.")
-            raise e
+        for attempt in range(MAX_RETRIES):
+            try:
+                await self.pool.open()
+                await self.pool.wait()
+                break
+            except PoolTimeout as e:
+                log.error(f"Faled to connect (attempt {attempt + 1}): {e}")
+                if attempt == MAX_RETRIES - 1:
+                    raise
+                await asyncio.sleep(DELAY_SEC)
+            except Exception as e:
+                log.error(f"Error: {e}, in {sys._getframe().f_code.co_name}.")
+                raise e
 
     async def close(self) -> None:
         """
         Close the connection pool.
+
+        Returns:
+            None
         """
         log.debug("Closing connection pool.")
         try:
             await self.pool.close()
         except Exception as e:
             log.error(f"Error: {e}, in {sys._getframe().f_code.co_name}.")
-
-    async def load(self) -> None:
-        """
-        Dummy method for loading data.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
-
-    async def load_multi(self) -> None:
-        """
-        Dummy method for loading data.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
 
     @staticmethod
     def checkKeys(keys: list = [], elements: list = [], error_msg: str = "") -> None:
@@ -177,6 +174,10 @@ class AgeFreighter:
         Args:
             keys (list): The keys of the CSV file.
             elements (list): The elements to check.
+            error_msg (str): The error message to display.
+
+        Returns:
+            None
         """
         log.debug(
             f"Checking keys {keys} against elements {elements}, in {sys._getframe().f_code.co_name}."
@@ -193,6 +194,9 @@ class AgeFreighter:
 
         Args:
             graph_name (str): The name of the graph.
+
+        Returns:
+            str: The quoted graph name
         """
         log.debug(
             f"Quoting graph name {graph_name}, in {sys._getframe().f_code.co_name}."
@@ -233,7 +237,7 @@ class AgeFreighter:
                     SQL(f"SELECT count(*) FROM ag_graph WHERE name='{self.graph_name}'")
                 )
                 row = await cur.fetchone()
-                exists = row.count == 1
+                exists = row is not None and row.count == 1
                 if exists:
                     log.debug(
                         f"Graph '{self.graph_name}' already exists, in {sys._getframe().f_code.co_name}."
@@ -319,7 +323,7 @@ class AgeFreighter:
                                 label=Identifier(value),
                             )
                         )
-                    except Exception as e:
+                    except Exception:
                         pass
                 elif label_type == "edge":
                     try:
@@ -347,12 +351,12 @@ class AgeFreighter:
                                 label=Identifier(value),
                             )
                         )
-                    except Exception as e:
+                    except Exception:
                         pass
 
     async def createVertices(
         self,
-        vertices: pd.DataFrame = None,
+        vertices: pd.DataFrame,
         vertex_label: str = "",
         chunk_size: int = 3,
         direct_loading: bool = False,
@@ -404,7 +408,7 @@ class AgeFreighter:
 
     async def createEdges(
         self,
-        edges: pd.DataFrame = None,
+        edges: pd.DataFrame,
         edge_type: str = "",
         edge_props: list = [],
         chunk_size: int = 3,
@@ -452,7 +456,7 @@ class AgeFreighter:
                 )
 
     async def createVerticesCypher(
-        self, vertices: pd.DataFrame = None, label: str = "", chunk_size: int = 0
+        self, vertices: pd.DataFrame, label: str = "", chunk_size: int = 0
     ) -> None:
         """
         Create vertices in the PostgreSQL database via Cypher.
@@ -477,7 +481,9 @@ class AgeFreighter:
         for i in range(0, vertex_len, chunk_size * CHUNK_MULTIPLIER):
             chunk = vertices.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
             if self.progress:
-                self.showProgress("vertices", i + chunk_size * CHUNK_MULTIPLIER, vertex_len)
+                self.showProgress(
+                    "vertices", i + chunk_size * CHUNK_MULTIPLIER, vertex_len
+                )
             parts = chunk.apply(
                 lambda row: "(v{0}:{1} {{{2}}})".format(
                     row.name,
@@ -493,7 +499,7 @@ class AgeFreighter:
 
     async def createEdgesCypher(
         self,
-        edges: pd.DataFrame = None,
+        edges: pd.DataFrame,
         edge_type: str = "",
         edge_props: list = [],
         chunk_size: int = 0,
@@ -520,7 +526,7 @@ class AgeFreighter:
         for i in range(0, edge_len, chunk_size * CHUNK_MULTIPLIER):
             chunk = edges.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
             if self.progress:
-                showProgress("edges", i + chunk_size * CHUNK_MULTIPLIER, edge_len)
+                self.showProgress("edges", i + chunk_size * CHUNK_MULTIPLIER, edge_len)
             parts = chunk.apply(
                 lambda row: self.createEdgeCypher(
                     row=row, edge_type=edge_type, edge_props=edge_props
@@ -538,7 +544,7 @@ class AgeFreighter:
 
     def createEdgeCypher(
         self,
-        row: pd.core.series.Series = None,
+        row: pd.core.series.Series,
         edge_type: str = "",
         edge_props: list = [],
     ) -> str:
@@ -577,7 +583,7 @@ class AgeFreighter:
             )
 
     async def createVerticesDirectly(
-        self, vertices: pd.DataFrame = None, label: str = "", chunk_size: int = 0
+        self, vertices: pd.DataFrame, label: str = "", chunk_size: int = 0
     ) -> None:
         """
         Create vertices in the PostgreSQL database directly.
@@ -600,7 +606,9 @@ class AgeFreighter:
         for i in range(0, vertex_len, chunk_size * CHUNK_MULTIPLIER):
             chunk = vertices.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
             if self.progress:
-                showProgress("vertices", i + chunk_size * CHUNK_MULTIPLIER, vertex_len)
+                self.showProgress(
+                    "vertices", i + chunk_size * CHUNK_MULTIPLIER, vertex_len
+                )
             values = chunk.apply(
                 lambda row: "('{"
                 + ",".join([f'"{k}":"{v}"' for k, v in row.items()])
@@ -614,7 +622,7 @@ class AgeFreighter:
 
     async def createEdgesDirectly(
         self,
-        edges: pd.DataFrame = None,
+        edges: pd.DataFrame,
         edge_type: str = "",
         edge_props: list = [],
         chunk_size: int = 0,
@@ -660,7 +668,7 @@ class AgeFreighter:
         chunk: pd.DataFrame,
         query: str = "",
         edge_props: list = [],
-        id_maps: list = [],
+        id_maps: dict = {},
     ) -> list:
         """
         Process a chunk of data directly.
@@ -669,7 +677,7 @@ class AgeFreighter:
             chunk (pd.DataFrame): The chunk of data to process.
             query (str): The query to execute.
             edge_props (list): The properties of the edges.
-            id_maps (list): The ID maps.
+            id_maps (dict): The ID maps.
 
         Returns:
             list: The processed chunk of data.
@@ -683,9 +691,9 @@ class AgeFreighter:
 
     def createValuesDirectly(
         self,
-        row: pd.core.series.Series = None,
+        row: pd.core.series.Series,
         edge_props: list = [],
-        id_maps: list = [],
+        id_maps: dict = {},
     ) -> str:
         """
         Create values directly.
@@ -693,13 +701,13 @@ class AgeFreighter:
         Args:
             row (pd.core.series.Series): The row to create the values from.
             edge_props (list): The properties of the edges.
-            id_maps (list): The ID maps.
+            id_maps (dict): The ID maps.
 
         Returns:
             str: The values.
         """
-        start_id = id_maps[str(row["start_v_label"])][str(row["start_id"])]
-        end_id = id_maps[str(row["end_v_label"])][str(row["end_id"])]
+        start_id = id_maps[row["start_v_label"]][str(row["start_id"])]
+        end_id = id_maps[row["end_v_label"]][str(row["end_id"])]
         if edge_props:
             props = ",".join(
                 [f'"{edge_prop}":"{row[edge_prop]}"' for edge_prop in edge_props]
@@ -710,13 +718,16 @@ class AgeFreighter:
         else:
             return f"('{start_id}'::graphid, '{end_id}'::graphid)"
 
-    async def executeWithTasks(self, target: Callable = None, args: list = []) -> None:
+    async def executeWithTasks(self, target: Callable, args: list = []) -> None:
         """
         Execute queries with tasks.
 
         Args:
             target (Callable): The target function to execute.
             args (list): The arguments to pass to the target function.
+
+        Returns:
+            None
         """
         import concurrent.futures
 
@@ -725,7 +736,10 @@ class AgeFreighter:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 tasks = [
                     loop.run_in_executor(
-                        executor, lambda arg=arg: asyncio.run(target(arg))
+                        executor,
+                        cast(
+                            Callable[[], Any], lambda arg=arg: asyncio.run(target(arg))
+                        ),
                     )
                     for arg in args
                 ]
@@ -738,7 +752,6 @@ class AgeFreighter:
         Execute a query with an async connection pool.
 
         Args:
-            pool (AsyncConnectionPool): The async connection pool to use.
             query (str): The query to execute.
 
         Returns:
@@ -758,9 +771,9 @@ class AgeFreighter:
         first_id: int = 0,
         graph_name: str = "",
         label: str = "",
-        id_maps: dict = [],
+        id_maps: dict = {},
         is_edge: bool = False,
-    ):
+    ) -> None:
         """
         Copy a chunk of data to the PostgreSQL database.
 
@@ -771,6 +784,9 @@ class AgeFreighter:
             label (str): The label of the data.
             id_maps (dict): The ID maps.
             is_edge (bool): Whether the data is an edge.
+
+        Returns:
+            None
         """
         from psycopg.sql import SQL
 
@@ -810,7 +826,7 @@ class AgeFreighter:
 
     async def copyVertices(
         self,
-        vertices: pd.DataFrame = None,
+        vertices: pd.DataFrame,
         vertex_label: str = "",
         chunk_size: int = 0,
     ) -> None:
@@ -843,7 +859,11 @@ class AgeFreighter:
                     vertex_len = len(vertices)
                     for i in range(0, vertex_len, chunk_size * CHUNK_MULTIPLIER):
                         if self.progress:
-                            self.showProgress("vertices", i + chunk_size * CHUNK_MULTIPLIER, vertex_len)
+                            self.showProgress(
+                                "vertices",
+                                i + chunk_size * CHUNK_MULTIPLIER,
+                                vertex_len,
+                            )
                         args_list = []
                         chunk = vertices.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
                         chunk_args = chunk.apply(
@@ -860,7 +880,7 @@ class AgeFreighter:
 
     async def copyEdges(
         self,
-        edges: pd.DataFrame = None,
+        edges: pd.DataFrame,
         edge_type: str = "",
         edge_props: list = [],
         chunk_size: int = 0,
@@ -899,7 +919,9 @@ class AgeFreighter:
                     for i in range(0, edge_len, chunk_size * CHUNK_MULTIPLIER):
                         chunk = edges.iloc[i : i + chunk_size * CHUNK_MULTIPLIER]
                         if self.progress:
-                            self.showProgress("edges", i + chunk_size * CHUNK_MULTIPLIER, edge_len)
+                            self.showProgress(
+                                "edges", i + chunk_size * CHUNK_MULTIPLIER, edge_len
+                            )
                         if edge_props:
                             chunk_args = chunk.apply(
                                 lambda row: "{0}\t{1}\t{2}\t{{{3}}}\n".format(
@@ -935,7 +957,7 @@ class AgeFreighter:
                         args = "".join(chunk_args)
                         await copy.write(args)
 
-    async def getIdMaps(self, edges: pd.DataFrame = None) -> dict:
+    async def getIdMaps(self, edges: pd.DataFrame) -> dict:
         """
         Get the idmaps between entry_id and id(graphid).
 
@@ -945,14 +967,13 @@ class AgeFreighter:
         Returns:
             dict: The ID maps.
         """
-        from psycopg.rows import namedtuple_row
         from psycopg.sql import SQL
 
         # create id_maps to convert entry_id to id(graphid)
         id_maps = {}
         graph_name = self.quotedGraphName(self.graph_name)
         async with self.pool.connection() as conn:
-            async with conn.cursor(row_factory=namedtuple_row) as cur:
+            async with conn.cursor() as cur:
                 for e_label in [
                     edges.iloc[0]["start_v_label"],
                     edges.iloc[0]["end_v_label"],
@@ -963,9 +984,7 @@ class AgeFreighter:
                         )
                     )
                     rows = await cur.fetchall()
-                    id_maps[e_label] = {
-                        row.entry_id.replace('"', ""): row.id for row in rows
-                    }
+                    id_maps[e_label] = {row[1].replace('"', ""): row[0] for row in rows}
 
         return id_maps
 
@@ -974,55 +993,63 @@ class AgeFreighter:
         Get the first id for a vertex or edge.
 
         Args:
-            label_type (str): The type of the label to get the first id for.
+            graph_name (str): The name of the graph to get the first id for.
+            label_type (str): The type or the label to get the first id for.
 
         Returns:
             int: The first id.
         """
         import numpy as np
-        from psycopg.rows import namedtuple_row
 
         graph_name = self.quotedGraphName(graph_name)
         async with self.pool.connection() as conn:
-            async with conn.cursor(row_factory=namedtuple_row) as cur:
+            async with conn.cursor() as cur:
                 relation = f'{graph_name}."{label_type}"'
                 await cur.execute(
                     f"SELECT id FROM ag_label WHERE relation='{relation}'::regclass;"
                 )
                 row = await cur.fetchone()
+                if row is None:
+                    raise ValueError(
+                        "No row returned from query; please check your query or data."
+                    )
 
                 ENTRY_ID_BITS = 32 + 16
                 ENTRY_ID_MASK = np.uint64(0x0000FFFFFFFFFFFF)
-                first_id = ((np.uint64(row.id)) << ENTRY_ID_BITS) | (
+                first_id = ((np.uint64(row[0])) << ENTRY_ID_BITS) | (
                     (np.uint64(1)) & ENTRY_ID_MASK
                 )
 
-                return first_id
+                return int(first_id)
 
-    def showProgress(self, type:str='', i: int = 0, total: int = 0) -> None:
+    def showProgress(self, type: str = "", i: int = 0, total: int = 0) -> None:
         """
         Show the progress of the loading.
 
         Args:
+            type (str): The type of the loading.
             i (int): The current index.
             total (int): The total number of items.
+
+        Returns:
+            None
         """
         print(f"Loading {type}: {min(i, total)}/{total}...")
 
     async def createGraphFromDataFrame(
         self,
-        graph_name: str = "",
-        src: pd.DataFrame = None,
+        graph_name: str,
+        src: pd.DataFrame,
         existing_node_ids: list = [],
         first_chunk: bool = True,
         start_v_label: str = "",
         start_id: str = "",
-        start_props: list = [],
+        start_props: list[str] = [],
         edge_type: str = "",
-        edge_props: list = [],
+        edge_props: list[str] = [],
         end_v_label: str = "",
         end_id: str = "",
-        end_props: list = [],
+        end_props: list[str] = [],
         chunk_size: int = 3,
         direct_loading: bool = False,
         create_graph: bool = False,
@@ -1044,6 +1071,10 @@ class AgeFreighter:
             end_v_label (str): The label of the end vertex.
             end_id (str): The ID of the end vertex.
             end_props (list): The properties of the end vertex.
+            chunk_size (int): The size of the chunks to create.
+            direct_loading (bool): Whether to load the data directly.
+            create_graph (bool): Whether to create the graph.
+            use_copy (bool): Whether to use the COPY protocol to load the data.
 
         Returns:
             None
@@ -1053,7 +1084,7 @@ class AgeFreighter:
         )
         if first_chunk:
             self.checkKeys(
-                src.keys(),
+                list(src.keys()),
                 [start_id] + start_props + [end_id] + end_props,
                 "CSV file must have {elements} columns, but {keys} columns were found.",
             )

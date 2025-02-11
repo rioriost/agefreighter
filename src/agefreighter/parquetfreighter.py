@@ -55,6 +55,7 @@ class ParquetFreighter(AgeFreighter):
             direct_loading (bool): Whether to load the data directly.
             create_graph (bool): Whether to create the graph.
             use_copy (bool): Whether to use the COPY protocol to load the data.
+            **kwargs: Additional keyword arguments.
 
         Returns:
             None
@@ -77,7 +78,7 @@ class ParquetFreighter(AgeFreighter):
 
         pf = ParquetFile(parquet_path)
         first_chunk = True
-        existing_node_ids = []
+        existing_node_ids: list = []
 
         for batch in pf.iter_batches(chunk_size * CHUNK_MULTIPLIER):
             df = batch.to_pandas()

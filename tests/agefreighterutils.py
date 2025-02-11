@@ -4,7 +4,6 @@ import sys
 import time
 import logging
 import os
-
 import pandas as pd
 
 log = logging.getLogger(__name__)
@@ -15,10 +14,6 @@ logging.basicConfig(
 
 
 class AgeFreighterUtils:
-    name = "AgeFreighterUtils"
-    version = "0.7.3"
-    author = "Rio Fujita"
-
     def __init__(self):
         self.data_dir = "../data/transaction/"
         self.base_file = "customer_product_bought"
@@ -328,7 +323,7 @@ class AgeFreighterUtils:
                 results = future.result()
                 log.debug(f"results: {results.all().result()}")
                 return
-            except Exception as e:
+            except Exception:
                 wait_time = INITIAL_WAIT_TIME * (2**retries)
                 log.warning(
                     f"Request rate too large. Retrying in {wait_time} seconds..."
