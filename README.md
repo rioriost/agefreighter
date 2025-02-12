@@ -8,10 +8,70 @@ a Python package that helps you to create a graph database using Azure Database 
 
 [Introducing support for Graph data in Azure Database for PostgreSQL (Preview)](https://techcommunity.microsoft.com/blog/adforpostgresql/introducing-support-for-graph-data-in-azure-database-for-postgresql-preview/4275628).
 
+## Table of Contents
+
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Install](#install)
+- [Which class to use](#which-class-to-use)
+- [Usage of CSVFreighter](#usage-of-csvfreighter)
+- [Usage of MultiCSVFreighter (1)](#usage-of-multicsvfreighter-1)
+- [Usage of MultiCSVFreighter (2)](#usage-of-multicsvfreighter-2)
+- [Usage of AvroFreighter](#usage-of-avrofreighter)
+- [Usage of ParquetFreighter](#usage-of-parquetfreighter)
+- [Usage of AzureStorageFreighter](#usage-of-azurestoragefreighter)
+- [Usage of MultiAzureStorageFreighter](#usage-of-multiazurestoragefreighter)
+- [Usage of NetworkxFreighter](#usage-of-networkxfreighter)
+- [Usage of CosmosGremlinFreighter](#usage-of-cosmosgremlinfreighter)
+- [Usage of Neo4jFreighter](#usage-of-neo4jfreighter)
+- [Usage of PGFreighter](#usage-of-pgfreighter)
+- [How to edit the CSV files to load them to the graph database with PGFreighter](#how-to-edit-the-csv-files-to-load-them-to-the-graph-database-with-pgfreighter)
+- [Classes](#classes)
+- [Method](#method)
+- [Arguments](#arguments)
+- [Release Notes](#release-notes)
+- [License](#license)
+
 ## Features
 * Asynchronous connection pool support for psycopg PostgreSQL driver
 * 'direct_loading' option for loading data directly into the graph. If 'direct_loading' is True, the data is loaded into the graph using the 'INSERT' statement, not Cypher queries.
 * 'COPY' protocol support for loading data into the graph. If 'use_copy' is True, the data is loaded into the graph using the 'COPY' protocol.
+* AzureStorageFreighter and MultiAzureStorageFreighter classes to load vast amounts of graph data from Azure Storage. Typically, the number of rows in the CSV files exceeds from a million to a billion.
+
+## Benchmark
+
+The result with Azure Database for PostgreSQL, General Purpose, D16ds_v4, 16 vCores, 64 GiB RAM, 512 GiB storage (7,500 IOPS)
+See, [tests/agefreightertester.py](https://github.com/rioriost/agefreighter/blob/main/tests/agefreightertester.py)
+
+```bash
+for d in `ls data`; do echo $d; wc -l data/$d/* | grep total; done
+airroute
+   23500 total
+countries
+   20200 total
+payment_large
+ 96520015 total
+payment_small
+   96520 total
+transaction
+   43003 total
+```
+
+```bash
+AgeFreighter version: 0.8.0
+Summary of all tests are as followings:
+Test for AzureStorageFreighter, chunk_size(96), direct_loading(False), use_copy(False): SUCCEEDED,  42.95 seconds
+Test for MultiAzureStorageFreighter, chunk_size(96), direct_loading(False), use_copy(False): SUCCEEDED,  72.49 seconds
+Test for AvroFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.94 seconds
+Test for CosmosGremlinFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  5.11 seconds
+Test for CSVFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.84 seconds
+Test for MultiCSVFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.66 seconds
+Test for MultiCSVFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.64 seconds
+Test for Neo4jFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  3.45 seconds
+Test for NetworkXFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.88 seconds
+Test for ParquetFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.91 seconds
+Test for PGFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  1.07 seconds
+```
 
 ## Prerequisites
 * over Python 3.9
@@ -533,6 +593,53 @@ if __name__ == "__main__":
 AzureStorageFreighter class loads data from Azure Storage and expects the exactly same format as CSVFreighter.
 
 ## Usage of MultiAzureStorageFreighter
+
+Banchmark: loading 965 million rows of data from Azure Storage to Azure Database for PostgreSQL with MultiAzureStorageFreighter class.
+
+```bash
+% wc -l data/payment_large/*
+  900001 data/payment_large/bitcoinaddress.csv
+ 2700001 data/payment_large/cookie.csv
+ 1200001 data/payment_large/creditcard.csv
+ 1600001 data/payment_large/cryptoaddress.csv
+  960001 data/payment_large/email.csv
+ 2200001 data/payment_large/ip.csv
+ 4000001 data/payment_large/partnerenduser.csv
+ 7000001 data/payment_large/payment.csv
+ 1000000 data/payment_large/performedby_cookie_payment.csv
+ 1000000 data/payment_large/performedby_creditcard_payment.csv
+ 1000000 data/payment_large/performedby_cryptoaddress_payment.csv
+ 1000000 data/payment_large/performedby_email_payment.csv
+ 1000000 data/payment_large/performedby_phone_payment.csv
+  960001 data/payment_large/phone.csv
+ 8000001 data/payment_large/usedby_cookie_payment.csv
+ 8000001 data/payment_large/usedby_creditcard_payment.csv
+ 8000001 data/payment_large/usedby_cryptoaddress_payment.csv
+ 8000001 data/payment_large/usedby_email_payment.csv
+ 8000001 data/payment_large/usedby_phone_payment.csv
+ 6000000 data/payment_large/usedin_cookie_payment.csv
+ 6000001 data/payment_large/usedin_creditcard_payment.csv
+ 6000000 data/payment_large/usedin_cryptoaddress_payment.csv
+ 6000000 data/payment_large/usedin_email_payment.csv
+ 6000000 data/payment_large/usedin_phone_payment.csv
+ 96520015 total
+```
+
+The result with Azure Database for PostgreSQL, General Purpose, D16ds_v4, 16 vCores, 64 GiB RAM, 512 GiB storage (7,500 IOPS)
+
+```bash
+Finding Subscription ID...
+Enabling extension...
+Creating storage account...
+Uploading files...
+Creating temporary tables...
+Loading files to temporary tables...
+Creating a graph...
+Creating a graph: Done!
+AgeFreighter version: 0.8.0
+Summary of all tests are as followings:
+Test for MultiAzureStorageFreighter, chunk_size(96), direct_loading(False), use_copy(False): SUCCEEDED,  2179.69 seconds
+```
 
 ### Prerequisites
 Install the Azure CLI and login with your Azure account.
