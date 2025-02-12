@@ -11,6 +11,7 @@ a Python package that helps you to create a graph database using Azure Database 
 ## Table of Contents
 
 - [Features](#features)
+- [Benchmark](#benchmark)
 - [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Which class to use](#which-class-to-use)
