@@ -61,19 +61,20 @@ transaction
 ```
 
 ```bash
-AgeFreighter version: 0.8.0
+AgeFreighter version: 0.8.1
 Summary of all tests are as followings:
-Test for AzureStorageFreighter, chunk_size(96), direct_loading(False), use_copy(False): SUCCEEDED,  42.95 seconds
-Test for MultiAzureStorageFreighter, chunk_size(96), direct_loading(False), use_copy(False): SUCCEEDED,  72.49 seconds
-Test for AvroFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.94 seconds
-Test for CosmosGremlinFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  5.11 seconds
-Test for CSVFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.84 seconds
-Test for MultiCSVFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.66 seconds
-Test for MultiCSVFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.64 seconds
-Test for Neo4jFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  3.45 seconds
-Test for NetworkXFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.88 seconds
-Test for ParquetFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.91 seconds
-Test for PGFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  1.07 seconds
+Test for AzureStorageFreighter, chunk_size(96), direct_loading(False), use_copy(False): SUCCEEDED,  50.80 seconds
+Test for MultiAzureStorageFreighter, chunk_size(96), direct_loading(False), use_copy(False): SUCCEEDED,  46.34 seconds
+Test for AvroFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  1.08 seconds
+Test for CosmosGremlinFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  6.86 seconds
+Test for CosmosNoSQLFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  2.74 seconds
+Test for CSVFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.82 seconds
+Test for MultiCSVFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.67 seconds
+Test for MultiCSVFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.74 seconds
+Test for Neo4jFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  3.48 seconds
+Test for NetworkXFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.87 seconds
+Test for ParquetFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  0.95 seconds
+Test for PGFreighter, chunk_size(96), direct_loading(False), use_copy(True): SUCCEEDED,  1.03 seconds
 ```
 
 ## Prerequisites
