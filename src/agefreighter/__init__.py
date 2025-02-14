@@ -3,6 +3,7 @@ from .agefreighter import AgeFreighter, Factory
 from .azurestoragefreighter import AzureStorageFreighter
 from .avrofreighter import AvroFreighter
 from .cosmosgremlinfreighter import CosmosGremlinFreighter
+from .cosmosnosqlfreighter import CosmosNoSQLFreighter
 from .csvfreighter import CSVFreighter
 from .multiazurestoragefreighter import MultiAzureStorageFreighter
 from .multicsvfreighter import MultiCSVFreighter
@@ -17,6 +18,7 @@ __all__ = [
     "AzureStorageFreighter",
     "AvroFreighter",
     "CosmosGremlinFreighter",
+    "CosmosNoSQLFreighter",
     "CSVFreighter",
     "MultiAzureStorageFreighter",
     "MultiCSVFreighter",

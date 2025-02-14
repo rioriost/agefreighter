@@ -2,6 +2,7 @@ from agefreighter import AgeFreighter
 from gremlin_python.driver import client, serializer  # type: ignore
 import pandas as pd
 from typing import Dict
+import warnings
 
 import logging
 
@@ -61,6 +62,12 @@ class CosmosGremlinFreighter(AgeFreighter):
 
         if "progress" in kwargs.keys():
             self.progress = kwargs["progress"]
+
+        warnings.warn(
+            "The 'CosmosGremlinFreighter' class will be obsoleted. Please use 'CosmosNoSQLFreighter' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         CHUNK_MULTIPLIER = 1000
 

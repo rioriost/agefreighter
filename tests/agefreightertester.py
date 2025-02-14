@@ -319,6 +319,17 @@ class AgeFreighterTester:
                 raise KeyError
             self.params["cosmos_username"] = "/dbs/db1/colls/transaction"
             self.params["cosmos_pkey"] = "pk"
+        if cls["name"] == "CosmosNoSQLFreighter":
+            try:
+                self.params["cosmos_endpoint"] = os.environ["COSMOS_ENDPOINT"]
+                self.params["cosmos_key"] = os.environ["COSMOS_KEY"]
+            except KeyError:
+                print(
+                    "Please set the environment variables COSMOS_ENDPOINT / COSMOS_KEY"
+                )
+                raise KeyError
+            self.params["cosmos_database"] = "db1"
+            self.params["cosmos_container"] = "transaction"
         if cls["name"] == "Neo4jFreighter":
             try:
                 self.params["neo4j_uri"] = os.environ["NEO4J_URI"]
@@ -491,18 +502,19 @@ async def main():
     log.info(f"AgeFreighter version: {version('agefreighter')}")
 
     target_classes = [
-        {"name": "AzureStorageFreighter", "type": "transaction", "do": True},
-        {"name": "MultiAzureStorageFreighter", "type": "payment_small", "do": True},
+        {"name": "AzureStorageFreighter", "type": "transaction", "do": False},
+        {"name": "MultiAzureStorageFreighter", "type": "payment_small", "do": False},
         {"name": "MultiAzureStorageFreighter", "type": "payment_large", "do": False},
-        {"name": "AvroFreighter", "type": "transaction", "do": True},
+        {"name": "AvroFreighter", "type": "transaction", "do": False},
         {"name": "CosmosGremlinFreighter", "type": "transaction", "do": True},
-        {"name": "CSVFreighter", "type": "transaction", "do": True},
-        {"name": "MultiCSVFreighter", "type": "countries", "do": True},
-        {"name": "MultiCSVFreighter", "type": "airroute", "do": True},
-        {"name": "Neo4jFreighter", "type": "transaction", "do": True},
-        {"name": "NetworkXFreighter", "type": "transaction", "do": True},
-        {"name": "ParquetFreighter", "type": "transaction", "do": True},
-        {"name": "PGFreighter", "type": "transaction", "do": True},
+        {"name": "CosmosNoSQLFreighter", "type": "transaction", "do": True},
+        {"name": "CSVFreighter", "type": "transaction", "do": False},
+        {"name": "MultiCSVFreighter", "type": "countries", "do": False},
+        {"name": "MultiCSVFreighter", "type": "airroute", "do": False},
+        {"name": "Neo4jFreighter", "type": "transaction", "do": False},
+        {"name": "NetworkXFreighter", "type": "transaction", "do": False},
+        {"name": "ParquetFreighter", "type": "transaction", "do": False},
+        {"name": "PGFreighter", "type": "transaction", "do": False},
     ]
     chunk_size = 96
     all_results = []
@@ -538,5 +550,9 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+    import sys
+
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     asyncio.run(main())

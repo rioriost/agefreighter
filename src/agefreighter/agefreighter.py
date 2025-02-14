@@ -31,6 +31,10 @@ class Factory:
             import agefreighter.cosmosgremlinfreighter as cosmosgremlinfreighter
 
             return cosmosgremlinfreighter.CosmosGremlinFreighter()
+        elif type == "CosmosNoSQLFreighter":
+            import agefreighter.cosmosnosqlfreighter as cosmosnosqlfreighter
+
+            return cosmosnosqlfreighter.CosmosNoSQLFreighter()
         elif type == "CSVFreighter":
             import agefreighter.csvfreighter as csvfreighter
 
