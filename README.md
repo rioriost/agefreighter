@@ -28,6 +28,7 @@ a Python package that helps you to create a graph database using Azure Database 
 - [Usage of Neo4jFreighter](#usage-of-neo4jfreighter)
 - [Usage of PGFreighter](#usage-of-pgfreighter)
 - [How to edit the CSV files to load them to the graph database with PGFreighter](#how-to-edit-the-csv-files-to-load-them-to-the-graph-database-with-pgfreighter)
+- [How to export the graph data from Neo4j as CSV files available for MultiCSVFreighter](#how-to-export-the-graph-data-from-neo4j-as-csv-files-available-for-multicsvfreighter)
 - [Classes](#classes)
 - [Method](#method)
 - [Arguments](#arguments)
@@ -1362,6 +1363,9 @@ edge: g.E().limit(1)
 
 ## Usage of Neo4jFreighter
 
+Before starting using Neo4jFreighter, please consider to use [neo2mcsv.py](#how-to-export-the-graph-data-from-neo4j-as-csv-files-available-for-multicsvfreighter) and MultiCSVFreighter.
+Because Neo4jFreighter needs to talk with Neo4j and PostgreSQL, it is sometimes too slow to load the graph data, especially when the graph is large.
+
 ```python
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -1691,6 +1695,131 @@ postgres=> select * from air_route.route limit 1;
 (1 row)
 ```
 
+## How to export the graph data from Neo4j as CSV files available for MultiCSVFreighter
+
+'neo2mcsv.py' under 'tests' directroy is a script that exports the graph data from neo4j as CSV files available for MultiCSVFreighter.
+
+### Usage of neo2mcsv.py
+
+```bash
+cd tests
+chmod 755 neo2mcsv.py
+
+./neo2mcsv.py --help
+usage: neo2mcsv.py [-h] [--uri URI] [--user USER] [--password PASSWORD] [--database DATABASE] [--trial] [--chunk-size CHUNK_SIZE] [--progress] [--graphname GRAPHNAME] output_dir
+
+Export data from Neo4j to CSV
+
+positional arguments:
+  output_dir            Output directory
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --uri URI             The URI of the Neo4j database
+  --user USER           The username of the Neo4j database
+  --password PASSWORD   The password of the Neo4j database
+  --database DATABASE   The database of the Neo4j database
+  --trial               Extract only 100 edges per relationship type
+  --chunk-size CHUNK_SIZE
+                        Chunk size
+  --progress            Show progress
+  --graphname GRAPHNAME
+                        Name of the graph to be embedded in 'importer.py'
+```
+
+If you have a running neo4j instance in your local machine, you can use the following command to export the graph data.
+
+```bash
+./neo2mcsv.py exported
+INFO:root:Exporting 8679 nodes for label 'Customer'
+INFO:root:Exporting 20000 edges for relationship type 'BOUGHT'
+INFO:root:Exported 8679 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv
+INFO:root:Exporting 1000 nodes for label 'Product'
+INFO:root:Exported 1000 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv
+INFO:root:Exporting 2 nodes for label 'Person'
+INFO:root:Exported 2 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/person.csv
+INFO:root:Exported 20000 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv
+INFO:root:Exporting 1 edges for relationship type 'KNOWS'
+INFO:root:Exported 1 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/knows.csv
+importer.py file under /Users/rifujita/ownCloud/bin/agefreighter/tests/exported created successfully
+```
+
+Or, you can specify '--trial' argument to check the functionality of 'neo2mcsv.py', exported 'importer.py', and Apache AGE.
+
+```bash
+./neo2mcsv.py --trial exported
+INFO:root:Exporting 8679 nodes for label 'Customer'
+INFO:root:Trial mode enabled. Limiting export to 100 edges per relationship type.
+INFO:root:Exporting 100 edges for relationship type 'BOUGHT'
+INFO:root:Exported 1000 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv
+INFO:root:Trial mode enabled. Limiting export to 100 edges per relationship type.
+INFO:root:Exporting 1 edges for relationship type 'KNOWS'
+INFO:root:Exported 1 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/knows.csv
+INFO:root:Exported 8679 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv
+INFO:root:Exporting 1000 nodes for label 'Product'
+INFO:root:Exported 1000 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv
+INFO:root:Exporting 2 nodes for label 'Person'
+INFO:root:Exported 2 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/person.csv
+importer.py file under /Users/rifujita/ownCloud/bin/agefreighter/tests/exported created successfully
+```
+
+The exported 'importer.py' can be found in the 'exported' directory you specified.
+
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("MultiCSVFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+        min_connections=4,
+    )
+
+    await instance.load(
+        graph_name="FROM_NEO4J",
+        vertex_csv_paths=[
+            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv",
+            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv",
+            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/person.csv"
+        ],
+        vertex_labels=["Customer", "Product", "Person"],
+        edge_csv_paths=[
+            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv",
+            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/knows.csv"
+        ],
+        edge_types=["BOUGHT", "KNOWS"],
+        use_copy=True,
+        drop_graph=True,
+        create_graph=True,
+        progress=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+    import sys
+
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    asyncio.run(main())
+```
+
+To execute 'importer.py':
+
+```bash
+chmod 755 exported/importer.py
+./exported/importer.py
+```
+
 ## Classes
 
 - [AGEFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/agefreighter.txt)
@@ -1805,46 +1934,42 @@ All the classes have the same load() method. The method loads data into a graph 
 
 ## Release Notes
 
-### 0.8.1 Release
+### 0.8.3 Release
+- Added 'neo2mcsv.py' to export a graph from Neo4j for MultiCSVFreighter.
 
+### 0.8.2 Release
+- Updated for the dependencies
+
+### 0.8.1 Release
 - Added CosmosNoSQLFreighter class.
 - CosmosGremlinFreighter class will be obsoleted in the future.
 
 ### 0.8.0 Release
-
 - Introduced unit tests for the classes to improve the quality of the package. Currently, the tests are only for a few classes.
 - Fixed code to improve the robustness of the package.
 
 ### 0.7.5 Release
-
 - Added 'progress' argument to the load() method. It's implemented as an optional argument for all the classes. Thanks to @cjoakim for the suggestion.
 
 ### 0.7.4 Release
-
 - Changed the required module from psycopg / psycopg_pool to psycopg[binary,pool]
 
 ### 0.7.3 Release
-
 - Added min_connections argument to the connect() method. Added the limitation of UNIX environment to import 'resource' module.
 
 ### 0.7.2 Release
-
 - Added Mermaid diagram for the document.
 
 ### 0.7.1 Release
-
 - Tuned MultiAzureStorageFreighter.
 
 ### 0.7.0 Release
-
 - Added MultiAzureStorageFreighter.
 
 ### 0.6.1 Release
-
 - Refactored the documents. Added sample data. Fixed some bugs.
 
 ### 0.6.0 Release
-
 - Added edge properties support.
   - 'edge_props' argument (list) is added to the 'load()' method.
 - 'drop_graph' argument is obsoleted. 'create_graph' argument is added.
@@ -1852,7 +1977,6 @@ All the classes have the same load() method. The method loads data into a graph 
   - If 'create_graph' is False, the data is loaded into the existing graph.
 
 ### 0.5.3 Release -AzureStorageFreighter-
-
 - AzureStorageFreighter class is totally refactored for better performance and scalability.
   - 0.5.2 didn't work well for large files.
   - Now, it works well for large files.
@@ -1864,7 +1988,6 @@ All the classes have the same load() method. The method loads data into a graph 
 - However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
 
 ### 0.5.2 Release -AzureStorageFreighter-
-
 - AzureStorageFreighter class is used to load data from Azure Storage into the graph database. It's totally different from other classes. The class works as follows:
   - If the argument, 'subscription_id' is not set, the class tries to find the Azure Subscription ID from your local environment using the 'az' command.
   - Creates an Azure Storage account and a blob container under the resource group where the PostgreSQL server runs in.
@@ -1876,7 +1999,6 @@ All the classes have the same load() method. The method loads data into a graph 
 - However, please note that it is still in the early stages of implementation, so there is room for optimization and potential issues due to insufficient testing.
 
 ### 0.5.0 Release
-
 Refactored the code to make it more readable and maintainable with the separated classes for factory model.
 Please note how to use the new version of the package is tottally different from the previous versions.
 

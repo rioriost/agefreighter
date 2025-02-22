@@ -502,19 +502,19 @@ async def main():
     log.info(f"AgeFreighter version: {version('agefreighter')}")
 
     target_classes = [
-        {"name": "AzureStorageFreighter", "type": "transaction", "do": False},
-        {"name": "MultiAzureStorageFreighter", "type": "payment_small", "do": False},
+        {"name": "AzureStorageFreighter", "type": "transaction", "do": True},
+        {"name": "MultiAzureStorageFreighter", "type": "payment_small", "do": True},
         {"name": "MultiAzureStorageFreighter", "type": "payment_large", "do": False},
-        {"name": "AvroFreighter", "type": "transaction", "do": False},
+        {"name": "AvroFreighter", "type": "transaction", "do": True},
         {"name": "CosmosGremlinFreighter", "type": "transaction", "do": True},
         {"name": "CosmosNoSQLFreighter", "type": "transaction", "do": True},
-        {"name": "CSVFreighter", "type": "transaction", "do": False},
-        {"name": "MultiCSVFreighter", "type": "countries", "do": False},
-        {"name": "MultiCSVFreighter", "type": "airroute", "do": False},
-        {"name": "Neo4jFreighter", "type": "transaction", "do": False},
-        {"name": "NetworkXFreighter", "type": "transaction", "do": False},
-        {"name": "ParquetFreighter", "type": "transaction", "do": False},
-        {"name": "PGFreighter", "type": "transaction", "do": False},
+        {"name": "CSVFreighter", "type": "transaction", "do": True},
+        {"name": "MultiCSVFreighter", "type": "countries", "do": True},
+        {"name": "MultiCSVFreighter", "type": "airroute", "do": True},
+        {"name": "Neo4jFreighter", "type": "transaction", "do": True},
+        {"name": "NetworkXFreighter", "type": "transaction", "do": True},
+        {"name": "ParquetFreighter", "type": "transaction", "do": True},
+        {"name": "PGFreighter", "type": "transaction", "do": True},
     ]
     chunk_size = 96
     all_results = []

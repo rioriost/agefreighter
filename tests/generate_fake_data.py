@@ -77,6 +77,20 @@ class Product(Node):
         )
 
 
+class Manufacturer(Node):
+    def __init__(self, id: str = ""):
+        super().__init__(
+            id=id,
+            properties={
+                "Name": fake.company(),
+                "Address": fake.address(),
+                "Phone": fake.phone_number(),
+                "Email": fake.email(),
+                "Website": fake.url(),
+            },
+        )
+
+
 class Country(Node):
     def __init__(self, id: str = ""):
         super().__init__(
@@ -383,6 +397,30 @@ class UsedIn(Edge):
                 "available_since": dt,
                 "inserted_at": dt,
                 "schema_version": "1",
+            },
+        )
+
+
+class Produce(Edge):
+    def __init__(
+        self,
+        id: str = "",
+        start_id: str = "",
+        start_vertex_type: str = "",
+        start_props: dict = {},
+        end_id: str = "",
+        end_vertex_type: str = "",
+        end_props: dict = {},
+    ):
+        super().__init__(
+            id=id,
+            properties={
+                "start_id": start_id,
+                "start_vertex_type": start_vertex_type,
+                **{f"{k}": v for k, v in start_props.items()},
+                "end_id": end_id,
+                "end_vertex_type": end_vertex_type,
+                **{f"{k}": v for k, v in end_props.items()},
             },
         )
 
