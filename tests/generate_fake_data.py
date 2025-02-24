@@ -459,7 +459,7 @@ async def put_csv(
     os.makedirs(fpath, exist_ok=True)
     fname = f"{fpath}/{file_name.lower()}.csv"
     headers = ['"id"'] + [f'"{k}"' for k in data[0].properties]
-    async with aiofiles.open(fname, "w") as f:
+    async with aiofiles.open(fname, "w", encoding="utf-8") as f:
         await f.write(",".join(headers) + "\n")
         await f.write(
             "\n".join(
