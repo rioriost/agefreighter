@@ -1937,6 +1937,9 @@ All the classes have the same load() method. The method loads data into a graph 
 
 ## Release Notes
 
+### 0.8.4 Release
+- Fixed unicode encoding issue in 'neo2mcsv.py'.
+
 ### 0.8.3 Release
 - Added 'neo2mcsv.py' to export a graph from Neo4j for MultiCSVFreighter.
 
