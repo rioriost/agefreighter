@@ -1,5 +1,8 @@
 # AGEFreighter
 
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
+
 a Python package that helps you to create a graph database using Azure Database for PostgreSQL.
 
 [Apache AGE™](https://age.apache.org/) is a PostgreSQL Graph database compatible with PostgreSQL's distributed assets and leverages graph data structures to analyze and use relationships and patterns in data.
