@@ -107,6 +107,31 @@ class Neo4jExporter:
                 pass
 
     @staticmethod
+    def _fetch_nodes_by_ids_chunk(
+        label: str, node_ids: List[str], uri: str, user: str, password: str
+    ) -> List[Dict[str, Any]]:
+        """Fetch nodes for a given label whose element IDs are in node_ids.
+        Uses Neo4j's elementId() function to filter."""
+        try:
+            driver = GraphDatabase.driver(uri, auth=(user, password))
+            with driver.session() as session:
+                query = f"MATCH (n:{label}) WHERE elementId(n) IN $node_ids RETURN n"
+                result = session.run(query, node_ids=node_ids)
+                data = [
+                    {"id": record["n"].element_id, **record["n"]._properties}
+                    for record in result
+                ]
+            return data
+        except Exception as e:
+            logging.error(f"Error fetching nodes for label '{label}' by ids: {e}")
+            return []
+        finally:
+            try:
+                driver.close()
+            except Exception:
+                pass
+
+    @staticmethod
     def _fetch_edge_chunk(
         rel_type: str, skip: int, limit: int, uri: str, user: str, password: str
     ) -> List[Dict[str, Any]]:
@@ -156,6 +181,56 @@ class Neo4jExporter:
                 await f.write(line + "\n")
         logging.info(f"Exported {len(data)} records to {file_path}")
 
+    async def export_edges(
+        self, pool: concurrent.futures.ProcessPoolExecutor
+    ) -> Dict[str, List[str]]:
+        loop = asyncio.get_running_loop()
+        edge_args: Dict[str, List[str]] = {"edge_types": [], "edge_csv_paths": []}
+        types = self.get_relationship_types()
+        if self.trial:
+            # initialize container for node IDs collected from edges
+            self.trial_nodes_by_label = {}
+        for rel_type in types:
+            count = self._count_edges(rel_type)
+            if self.trial:
+                logging.info(
+                    "Trial mode enabled. Limiting export to 100 edges per relationship type."
+                )
+                count = min(count, 100)
+            else:
+                logging.info(
+                    f"Exporting {count} edges for relationship type '{rel_type}'"
+                )
+            tasks = [
+                loop.run_in_executor(
+                    pool,
+                    self._fetch_edge_chunk,
+                    rel_type,
+                    skip,
+                    min(self.chunk_size, count),
+                    self.uri,
+                    self.user,
+                    self.password,
+                )
+                for skip in range(0, count, self.chunk_size)
+            ]
+            chunks = await asyncio.gather(*tasks)
+            all_data = [item for sublist in chunks for item in sublist]
+            # If trial, record the node IDs that appear in the exported edges
+            if self.trial:
+                for record in all_data:
+                    self.trial_nodes_by_label.setdefault(
+                        record["start_vertex_type"], set()
+                    ).add(record["start_id"])
+                    self.trial_nodes_by_label.setdefault(
+                        record["end_vertex_type"], set()
+                    ).add(record["end_id"])
+            await self.write_csv(rel_type, all_data)
+            file_path = os.path.join(self.output_dir, f"{rel_type.lower()}.csv")
+            edge_args["edge_types"].append(rel_type)
+            edge_args["edge_csv_paths"].append(file_path)
+        return edge_args
+
     async def export_nodes(
         self, pool: concurrent.futures.ProcessPoolExecutor
     ) -> Dict[str, List[str]]:
@@ -164,72 +239,72 @@ class Neo4jExporter:
             "vertex_labels": [],
             "vertex_csv_paths": [],
         }
-        labels = self.get_labels()
-        for label in labels:
-            count = self._count_nodes(label)
-            logging.info(f"Exporting {count} nodes for label '{label}'")
-            tasks = [
-                loop.run_in_executor(
-                    pool,
-                    self._fetch_nodes_chunk,
-                    label,
-                    skip,
-                    self.chunk_size,
-                    self.uri,
-                    self.user,
-                    self.password,
+        if self.trial:
+            # In trial mode, only export nodes that appear in the trial edges.
+            if not hasattr(self, "trial_nodes_by_label"):
+                logging.error(
+                    "Trial mode enabled but no trial node IDs were collected."
                 )
-                for skip in range(0, count, self.chunk_size)
-            ]
-            chunks = await asyncio.gather(*tasks)
-            all_data = [item for sublist in chunks for item in sublist]
-            await self.write_csv(label, all_data)
-            file_path = os.path.join(self.output_dir, f"{label.lower()}.csv")
-            vertex_args["vertex_labels"].append(label)
-            vertex_args["vertex_csv_paths"].append(file_path)
+                return vertex_args
+            for label, node_ids in self.trial_nodes_by_label.items():
+                node_ids_list = list(node_ids)
+                count = len(node_ids_list)
+                logging.info(f"Exporting {count} trial nodes for label '{label}'")
+                tasks = [
+                    loop.run_in_executor(
+                        pool,
+                        self._fetch_nodes_by_ids_chunk,
+                        label,
+                        node_ids_list[i : i + self.chunk_size],
+                        self.uri,
+                        self.user,
+                        self.password,
+                    )
+                    for i in range(0, count, self.chunk_size)
+                ]
+                chunks = await asyncio.gather(*tasks)
+                all_data = [item for sublist in chunks for item in sublist]
+                await self.write_csv(label, all_data)
+                file_path = os.path.join(self.output_dir, f"{label.lower()}.csv")
+                vertex_args["vertex_labels"].append(label)
+                vertex_args["vertex_csv_paths"].append(file_path)
+        else:
+            labels = self.get_labels()
+            for label in labels:
+                count = self._count_nodes(label)
+                logging.info(f"Exporting {count} nodes for label '{label}'")
+                tasks = [
+                    loop.run_in_executor(
+                        pool,
+                        self._fetch_nodes_chunk,
+                        label,
+                        skip,
+                        self.chunk_size,
+                        self.uri,
+                        self.user,
+                        self.password,
+                    )
+                    for skip in range(0, count, self.chunk_size)
+                ]
+                chunks = await asyncio.gather(*tasks)
+                all_data = [item for sublist in chunks for item in sublist]
+                await self.write_csv(label, all_data)
+                file_path = os.path.join(self.output_dir, f"{label.lower()}.csv")
+                vertex_args["vertex_labels"].append(label)
+                vertex_args["vertex_csv_paths"].append(file_path)
         return vertex_args
-
-    async def export_edges(
-        self, pool: concurrent.futures.ProcessPoolExecutor
-    ) -> Dict[str, List[str]]:
-        loop = asyncio.get_running_loop()
-        edge_args: Dict[str, List[str]] = {"edge_types": [], "edge_csv_paths": []}
-        types = self.get_relationship_types()
-        for rel_type in types:
-            count = self._count_edges(rel_type)
-            if self.trial:
-                logging.info(
-                    "Trial mode enabled. Limiting export to 100 edges per relationship type."
-                )
-                count = min(count, 100)
-            logging.info(f"Exporting {count} edges for relationship type '{rel_type}'")
-            tasks = [
-                loop.run_in_executor(
-                    pool,
-                    self._fetch_edge_chunk,
-                    rel_type,
-                    skip,
-                    self.chunk_size,
-                    self.uri,
-                    self.user,
-                    self.password,
-                )
-                for skip in range(0, count, self.chunk_size)
-            ]
-            chunks = await asyncio.gather(*tasks)
-            all_data = [item for sublist in chunks for item in sublist]
-            await self.write_csv(rel_type, all_data)
-            file_path = os.path.join(self.output_dir, f"{rel_type.lower()}.csv")
-            edge_args["edge_types"].append(rel_type)
-            edge_args["edge_csv_paths"].append(file_path)
-        return edge_args
 
     async def export(self) -> Dict[str, Dict[str, List[str]]]:
         pool = concurrent.futures.ProcessPoolExecutor()
         try:
-            nodes_files, edges_files = await asyncio.gather(
-                self.export_nodes(pool), self.export_edges(pool)
-            )
+            if self.trial:
+                # Run edges export first to collect node IDs, then export nodes using those IDs.
+                edges_files = await self.export_edges(pool)
+                nodes_files = await self.export_nodes(pool)
+            else:
+                nodes_files, edges_files = await asyncio.gather(
+                    self.export_nodes(pool), self.export_edges(pool)
+                )
         finally:
             pool.shutdown()
         self.driver.close()
