@@ -149,7 +149,7 @@ class Neo4jExporter:
 
         file_path = os.path.join(self.output_dir, f"{file_name.lower()}.csv")
         headers = list(data[0].keys())
-        async with aiofiles.open(file_path, "w") as f:
+        async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
             await f.write(",".join(f'"{h}"' for h in headers) + "\n")
             for row in data:
                 line = ",".join(f'"{row.get(h, "")}"' for h in headers)
