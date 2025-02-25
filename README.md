@@ -1937,6 +1937,9 @@ All the classes have the same load() method. The method loads data into a graph 
 
 ## Release Notes
 
+### 0.8.7 Release
+- Fixed minor issue in 'neo2mcsv.py' on Windows.
+
 ### 0.8.6 Release
 - Fixed minor issue in 'neo2mcsv.py' on Windows.
 

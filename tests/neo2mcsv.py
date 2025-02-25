@@ -293,7 +293,9 @@ class Neo4jExporter:
                 chunks = await asyncio.gather(*tasks)
                 all_data = [item for sublist in chunks for item in sublist]
                 await self.write_csv(label, all_data)
-                file_path = os.path.join(self.output_dir, f"{label.lower()}.csv")
+                file_path = os.path.join(
+                    self.output_dir, f"{label.lower()}.csv"
+                ).replace("\\", "\\\\")
                 vertex_args["vertex_labels"].append(label)
                 vertex_args["vertex_csv_paths"].append(file_path)
         return vertex_args
