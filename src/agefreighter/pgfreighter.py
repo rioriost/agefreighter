@@ -57,6 +57,7 @@ class PGFreighter(AgeFreighter):
         if "progress" in kwargs.keys():
             self.progress = kwargs["progress"]
 
+        source_columns = None
         if "source_columns" in kwargs.keys():
             source_columns = kwargs["source_columns"]
 
