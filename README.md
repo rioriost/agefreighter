@@ -1734,6 +1734,7 @@ If you have a running neo4j instance in your local machine, you can use the foll
 
 ```bash
 ./neo2mcsv.py exported
+INFO:root:Output directory '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported' does not exist. Creating it.
 INFO:root:Exporting 8679 nodes for label 'Customer'
 INFO:root:Exporting 20000 edges for relationship type 'BOUGHT'
 INFO:root:Exported 8679 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv
@@ -1751,17 +1752,16 @@ Or, you can specify '--trial' argument to check the functionality of 'neo2mcsv.p
 
 ```bash
 ./neo2mcsv.py --trial exported
-INFO:root:Exporting 8679 nodes for label 'Customer'
+INFO:root:Output directory '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported' does not exist. Creating it.
 INFO:root:Trial mode enabled. Limiting export to 100 edges per relationship type.
-INFO:root:Exporting 100 edges for relationship type 'BOUGHT'
-INFO:root:Exported 1000 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv
+INFO:root:Exported 100 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv
 INFO:root:Trial mode enabled. Limiting export to 100 edges per relationship type.
-INFO:root:Exporting 1 edges for relationship type 'KNOWS'
 INFO:root:Exported 1 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/knows.csv
-INFO:root:Exported 8679 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv
-INFO:root:Exporting 1000 nodes for label 'Product'
-INFO:root:Exported 1000 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv
-INFO:root:Exporting 2 nodes for label 'Person'
+INFO:root:Exporting 100 trial nodes for label 'Customer'
+INFO:root:Exported 100 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv
+INFO:root:Exporting 91 trial nodes for label 'Product'
+INFO:root:Exported 91 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv
+INFO:root:Exporting 2 trial nodes for label 'Person'
 INFO:root:Exported 2 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/person.csv
 importer.py file under /Users/rifujita/ownCloud/bin/agefreighter/tests/exported created successfully
 ```
@@ -1797,6 +1797,56 @@ async def main():
         edge_csv_paths=[
             "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv",
             "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/knows.csv"
+        ],
+        edge_types=["BOUGHT", "KNOWS"],
+        use_copy=True,
+        drop_graph=True,
+        create_graph=True,
+        progress=True,
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+    import sys
+
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    asyncio.run(main())
+```
+
+On Windows
+
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("MultiCSVFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+        min_connections=4,
+    )
+
+    await instance.load(
+        graph_name="FROM_NEO4J",
+        vertex_csv_paths=[
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\customer.csv",
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\product.csv",
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\person.csv"
+        ],
+        vertex_labels=["Customer", "Product", "Person"],
+        edge_csv_paths=[
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\bought.csv",
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\knows.csv"
         ],
         edge_types=["BOUGHT", "KNOWS"],
         use_copy=True,
