@@ -2079,6 +2079,9 @@ All the classes have the same load() method. The method loads data into a graph 
 
 ## Release Notes
 
+### 0.8.9 Release
+- Fixed minor issue in 'neo2mcsv.py' on Windows.
+
 ### 0.8.8 Release
 - Added `source_columns` parameter to PGFreighter class.
 
