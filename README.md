@@ -1500,6 +1500,59 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+You can specify the columns in source tables to be loaded with the `source_columns` parameter.
+
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import asyncio
+import os
+from agefreighter import Factory
+
+
+async def main():
+    instance = Factory.create_instance("PGFreighter")
+
+    await instance.connect(
+        dsn=os.environ["PG_CONNECTION_STRING"],
+        max_connections=64,
+        min_connections=4,
+    )
+
+    await instance.load(
+        graph_name="Transaction",
+        source_pg_con_string=os.environ["SRC_PG_CONNECTION_STRING"],
+        source_tables={
+            "start": "Customer",
+            "end": "Product",
+            "edges": "BOUGHT",
+        },
+        id_map={
+            "Customer": "CustomerID",
+            "Product": "ProductID",
+        },
+        drop_graph=True,
+        create_graph=True,
+        progress=True,
+        source_columns={
+            "Customer": ["CustomerID", "Name", "Email"],
+            "Product": ["ProductID", "Phrase", "Price"],
+            "BOUGHT": ["CustomerID", "ProductID"],
+        },
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+    import sys
+
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    asyncio.run(main())
+```
+
 ### Table schemas for PGFreighter
 
 Customer table schema
@@ -2022,8 +2075,12 @@ All the classes have the same load() method. The method loads data into a graph 
     - source_schema (str): The source schema.
     - source_tables (list): The source tables.
     - id_map (dict): ID Mapping
+    - source_columns (dict): The source columns.
 
 ## Release Notes
+
+### 0.8.8 Release
+- Added `source_columns` parameter to PGFreighter class.
 
 ### 0.8.7 Release
 - Fixed minor issue in 'neo2mcsv.py' on Windows.

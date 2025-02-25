@@ -57,6 +57,9 @@ class PGFreighter(AgeFreighter):
         if "progress" in kwargs.keys():
             self.progress = kwargs["progress"]
 
+        if "source_columns" in kwargs.keys():
+            source_columns = kwargs["source_columns"]
+
         CHUNK_MULTIPLIER = 10000
 
         try:
@@ -81,9 +84,20 @@ class PGFreighter(AgeFreighter):
                                 )
                             cnt = row[0]
                             for i in range(0, cnt, chunk_size * CHUNK_MULTIPLIER):
-                                cur.execute(
-                                    f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'
-                                )
+                                if source_columns is None:
+                                    cur.execute(
+                                        f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'
+                                    )
+                                else:
+                                    cols = ",".join(
+                                        [
+                                            f'"{col}"'
+                                            for col in source_columns[src_table]
+                                        ]
+                                    )
+                                    cur.execute(
+                                        f'SELECT {cols} FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'
+                                    )
                                 rows = cur.fetchall()
                                 vertices = pd.DataFrame(rows)
                                 vertices.rename(
@@ -110,9 +124,21 @@ class PGFreighter(AgeFreighter):
                                 )
                             cnt = row[0]
                             for i in range(0, cnt, chunk_size * CHUNK_MULTIPLIER):
-                                cur.execute(
-                                    f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'
-                                )
+                                if source_columns is None:
+                                    cur.execute(
+                                        f'SELECT * FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'
+                                    )
+                                else:
+                                    cols = ", ".join(
+                                        [
+                                            f'"{col}"'
+                                            for col in source_columns[src_table]
+                                        ]
+                                    )
+                                    cur.execute(
+                                        f'SELECT {cols} FROM {source_schema}."{src_table}" LIMIT {chunk_size * CHUNK_MULTIPLIER} OFFSET {i}'
+                                    )
+
                                 rows = cur.fetchall()
                                 edges = pd.DataFrame(rows)
                                 edge_props = [
