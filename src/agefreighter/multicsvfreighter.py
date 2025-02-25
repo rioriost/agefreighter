@@ -73,6 +73,7 @@ class MultiCSVFreighter(AgeFreighter):
 
         await self.setUpGraph(graph_name=graph_name, create_graph=create_graph)
         for vertex_csv, vertex_label in zip(vertex_csv_paths, vertex_labels):
+            log.debug(f"Processing vertex CSV: {vertex_csv}")
             first_chunk = True
             reader = pd.read_csv(vertex_csv, chunksize=chunk_size * CHUNK_MULTIPLIER)
             for vertices in reader:
@@ -95,6 +96,7 @@ class MultiCSVFreighter(AgeFreighter):
                 )
 
         for edge_csv, edge_type in zip(edge_csv_paths, edge_types):
+            log.debug(f"Processing edge CSV: {edge_csv}")
             first_chunk = True
             reader = pd.read_csv(edge_csv, chunksize=chunk_size * CHUNK_MULTIPLIER)
             for edges in reader:
