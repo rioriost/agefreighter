@@ -226,7 +226,9 @@ class Neo4jExporter:
                         record["end_vertex_type"], set()
                     ).add(record["end_id"])
             await self.write_csv(rel_type, all_data)
-            file_path = os.path.join(self.output_dir, f"{rel_type.lower()}.csv")
+            file_path = os.path.join(
+                self.output_dir, f"{rel_type.lower()}.csv"
+            ).replace("\\", "\\\\")
             edge_args["edge_types"].append(rel_type)
             edge_args["edge_csv_paths"].append(file_path)
         return edge_args
@@ -265,7 +267,9 @@ class Neo4jExporter:
                 chunks = await asyncio.gather(*tasks)
                 all_data = [item for sublist in chunks for item in sublist]
                 await self.write_csv(label, all_data)
-                file_path = os.path.join(self.output_dir, f"{label.lower()}.csv")
+                file_path = os.path.join(
+                    self.output_dir, f"{label.lower()}.csv"
+                ).replace("\\", "\\\\")
                 vertex_args["vertex_labels"].append(label)
                 vertex_args["vertex_csv_paths"].append(file_path)
         else:
