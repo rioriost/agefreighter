@@ -172,12 +172,16 @@ class Neo4jExporter:
             logging.info(f"No data to write for '{file_name}'.")
             return
 
+        def escape_field(value: Any) -> str:
+            wk = str(value).replace('"', '""').replace(",", "\,")
+            return f'"{wk}"'
+
         file_path = os.path.join(self.output_dir, f"{file_name.lower()}.csv")
         headers = list(data[0].keys())
-        async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
-            await f.write(",".join(f'"{h}"' for h in headers) + "\n")
+        async with aiofiles.open(file_path, "w", encoding="utf-8", newline="") as f:
+            await f.write(",".join(escape_field(h) for h in headers) + "\n")
             for row in data:
-                line = ",".join(f'"{row.get(h, "")}"' for h in headers)
+                line = ",".join(escape_field(row.get(h, "")) for h in headers)
                 await f.write(line + "\n")
         logging.info(f"Exported {len(data)} records to {file_path}")
 
