@@ -1705,10 +1705,48 @@ postgres=> select * from air_route.route limit 1;
 ### Usage of neo2mcsv.py
 
 ```bash
+git clone https://github.com/rifujita/agefreighter
+cd agefreighter
+
+# macOS, Linux
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install agefreighter aiofiles
+
+# Windows
+python -m venv venv
+.\venv\Scripts\activate
+python -m pip install agefreighter aiofiles
+```
+
+```bash
 cd tests
+# macOS, Linux
 chmod 755 neo2mcsv.py
 
 ./neo2mcsv.py --help
+usage: neo2mcsv.py [-h] [--uri URI] [--user USER] [--password PASSWORD] [--database DATABASE] [--trial] [--chunk-size CHUNK_SIZE] [--progress] [--graphname GRAPHNAME] output_dir
+
+Export data from Neo4j to CSV
+
+positional arguments:
+  output_dir            Output directory
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --uri URI             The URI of the Neo4j database
+  --user USER           The username of the Neo4j database
+  --password PASSWORD   The password of the Neo4j database
+  --database DATABASE   The database of the Neo4j database
+  --trial               Extract only 100 edges per relationship type
+  --chunk-size CHUNK_SIZE
+                        Chunk size
+  --progress            Show progress
+  --graphname GRAPHNAME
+                        Name of the graph to be embedded in 'importer.py'
+
+# Windows
+python neo2mcsv.py --help
 usage: neo2mcsv.py [-h] [--uri URI] [--user USER] [--password PASSWORD] [--database DATABASE] [--trial] [--chunk-size CHUNK_SIZE] [--progress] [--graphname GRAPHNAME] output_dir
 
 Export data from Neo4j to CSV
