@@ -1877,14 +1877,14 @@ async def main():
     await instance.load(
         graph_name="FROM_NEO4J",
         vertex_csv_paths=[
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\customer.csv",
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\product.csv",
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\person.csv"
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\customer.csv",
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\product.csv",
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\person.csv"
         ],
         vertex_labels=["Customer", "Product", "Person"],
         edge_csv_paths=[
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\bought.csv",
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\exported\\knows.csv"
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\bought.csv",
+            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\knows.csv"
         ],
         edge_types=["BOUGHT", "KNOWS"],
         use_copy=True,
