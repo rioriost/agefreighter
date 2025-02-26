@@ -2079,6 +2079,9 @@ All the classes have the same load() method. The method loads data into a graph 
 
 ## Release Notes
 
+### 0.8.11 Release
+- Fixed a bug confusing elementId and id if the graph is exported from Neo4j with 'neo2mcsv.py'.
+
 ### 0.8.10 Release
 - Added a handling of 'labelless' nodes in 'neo2mcsv.py'.
 
