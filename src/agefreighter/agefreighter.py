@@ -189,7 +189,8 @@ class AgeFreighter:
         import numpy as np
 
         if not np.all(np.isin(elements, keys)):
-            raise ValueError(error_msg.format(elements=elements, keys=keys))
+            if "_elementid" not in keys:  # for neo2mcsv.py
+                raise ValueError(error_msg.format(elements=elements, keys=keys))
 
     @staticmethod
     def quotedGraphName(graph_name: str = "") -> str:
@@ -984,7 +985,7 @@ class AgeFreighter:
                 ]:
                     await cur.execute(
                         SQL(
-                            f'SELECT id, properties->\'"id"\' AS entry_id FROM {graph_name}."{e_label}"'
+                            f'SELECT id, COALESCE(properties->\'"id"\', properties->\'"_elementid"\') AS entry_id FROM {graph_name}."{e_label}"'  # "_elementid" is from Neo4j, neo2mcsv.py
                         )
                     )
                     rows = await cur.fetchall()
