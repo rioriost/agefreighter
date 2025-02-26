@@ -2079,6 +2079,9 @@ All the classes have the same load() method. The method loads data into a graph 
 
 ## Release Notes
 
+### 0.8.10 Release
+- Added a handling of 'labelless' nodes in 'neo2mcsv.py'.
+
 ### 0.8.9 Release
 - Fixed minor issue in 'neo2mcsv.py' on Windows.
 

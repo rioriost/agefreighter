@@ -659,15 +659,15 @@ async def main():
     utils = AgeFreighterUtils()
     await utils.loadCSVtoNeo4j()
 
-    await utils.loadCSVtoPGSQL()
+    # await utils.loadCSVtoPGSQL()
 
-    await utils.loadCSVtoCosmosGremlin()
+    # await utils.loadCSVtoCosmosGremlin()
 
-    await utils.convertCSVtoAvro()
+    # await utils.convertCSVtoAvro()
 
-    await utils.convertCSVtoParquet()
+    # await utils.convertCSVtoParquet()
 
-    await utils.convertCSVtoNetworkXPickle()
+    # await utils.convertCSVtoNetworkXPickle()
 
 
 if __name__ == "__main__":

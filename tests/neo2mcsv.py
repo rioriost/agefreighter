@@ -111,11 +111,17 @@ class Neo4jExporter:
         label: str, node_ids: List[str], uri: str, user: str, password: str
     ) -> List[Dict[str, Any]]:
         """Fetch nodes for a given label whose element IDs are in node_ids.
-        Uses Neo4j's elementId() function to filter."""
+        Uses Neo4j's elementId() function to filter.
+        If label is "NO_LABEL", fetch nodes that do not have any labels."""
         try:
             driver = GraphDatabase.driver(uri, auth=(user, password))
             with driver.session() as session:
-                query = f"MATCH (n:{label}) WHERE elementId(n) IN $node_ids RETURN n"
+                if label == "NO_LABEL":
+                    query = "MATCH (n) WHERE size(labels(n)) = 0 AND elementId(n) IN $node_ids RETURN n"
+                else:
+                    query = (
+                        f"MATCH (n:{label}) WHERE elementId(n) IN $node_ids RETURN n"
+                    )
                 result = session.run(query, node_ids=node_ids)
                 data = [
                     {"id": record["n"].element_id, **record["n"]._properties}
@@ -142,8 +148,13 @@ class Neo4jExporter:
                 result = session.run(query)
                 data: List[Dict[str, Any]] = []
                 for record in result:
-                    m_labels = list(record["m"].labels) if record["m"].labels else []
-                    n_labels = list(record["n"].labels) if record["n"].labels else []
+                    # ノードにラベルがない場合は "NO_LABEL" を使用する
+                    m_labels = (
+                        list(record["m"].labels) if record["m"].labels else ["NO_LABEL"]
+                    )
+                    n_labels = (
+                        list(record["n"].labels) if record["n"].labels else ["NO_LABEL"]
+                    )
                     for m_label in m_labels:
                         for n_label in n_labels:
                             entry = {
