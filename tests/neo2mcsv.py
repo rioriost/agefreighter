@@ -124,7 +124,7 @@ class Neo4jExporter:
                     )
                 result = session.run(query, node_ids=node_ids)
                 data = [
-                    {"id": record["n"].element_id, **record["n"]._properties}
+                    {"_elementid": record["n"].element_id, **record["n"]._properties}
                     for record in result
                 ]
             return data
@@ -158,7 +158,7 @@ class Neo4jExporter:
                     for m_label in m_labels:
                         for n_label in n_labels:
                             entry = {
-                                "id": record["r"].element_id,
+                                "_elementid": record["r"].element_id,
                                 "start_id": record["m"].element_id,
                                 "start_vertex_type": m_label,
                                 "end_id": record["n"].element_id,
