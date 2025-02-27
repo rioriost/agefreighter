@@ -2079,6 +2079,9 @@ All the classes have the same load() method. The method loads data into a graph 
 
 ## Release Notes
 
+### 0.8.13 Release
+- Added handling of special characters in 'neo2mcsv.py'.
+
 ### 0.8.12 Release
 - Added handling of 'labelless' nodes in 'neo2mcsv.py' and others.
 

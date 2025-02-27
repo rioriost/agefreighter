@@ -195,7 +195,7 @@ class Neo4jExporter:
             return
 
         def escape_field(value: Any) -> str:
-            wk = str(value).replace('"', '""').replace(",", "\,")
+            wk = str(value).replace('"', '""').replace(",", "\,").replace("\t", "\\\\t")
             return f'"{wk}"'
 
         file_path = os.path.join(self.output_dir, f"{file_name.lower()}.csv")
@@ -401,6 +401,7 @@ async def main():
 {edge_csv_paths}
         ],
         edge_types=[{edge_types}],
+        direct_loading=False,
         use_copy=True,
         drop_graph=True,
         create_graph=True,
