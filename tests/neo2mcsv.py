@@ -61,9 +61,13 @@ class Neo4jExporter:
             types = [record["relationshipType"] for record in result]
         return types
 
-    def _count_nodes(self, label: str) -> int:
+    def _count_nodes(self, label: str or List[str]) -> int:
         with self.driver.session() as session:
-            query = f"MATCH (n:{label}) RETURN COUNT(n) AS cnt"
+            if isinstance(label, str):
+                query = f"MATCH (n:{label}) RETURN COUNT(n) AS cnt"
+            elif isinstance(label, list):
+                labels = ", ".join(f'"{label}"' for label in label)
+                query = f"MATCH (n) WHERE NONE(label IN labels(n) WHERE label IN [{labels}]) RETURN COUNT(n) AS cnt"
             result: Result = session.run(query)
             record = result.single()
             if record is None:
@@ -83,22 +87,22 @@ class Neo4jExporter:
 
     @staticmethod
     def _fetch_nodes_chunk(
-        label: str, skip: int, limit: int, uri: str, user: str, password: str
+        uri: str,
+        user: str,
+        password: str,
+        query: str,
     ) -> List[Dict[str, Any]]:
         try:
             driver = GraphDatabase.driver(uri, auth=(user, password))
             with driver.session() as session:
-                query = f"MATCH (n:{label}) SKIP {skip} LIMIT {limit} RETURN n"
                 result = session.run(query)
                 data = [
-                    {"id": record["n"].element_id, **record["n"]._properties}
+                    {"_elementid": record["n"].element_id, **record["n"]._properties}
                     for record in result
                 ]
             return data
         except Exception as e:
-            logging.error(
-                f"Error fetching nodes for label '{label}' (skip {skip}): {e}"
-            )
+            logging.error(f"Error fetching nodes for label {e}")
             return []
         finally:
             try:
@@ -178,6 +182,13 @@ class Neo4jExporter:
             except Exception:
                 pass
 
+    @staticmethod
+    def extract_unique_keys(data: List[Dict[str, Any]]) -> set:
+        unique_keys = set()
+        for dictionary in data:
+            unique_keys.update(dictionary.keys())
+        return unique_keys
+
     async def write_csv(self, file_name: str, data: List[Dict[str, Any]]) -> None:
         if not data:
             logging.info(f"No data to write for '{file_name}'.")
@@ -188,7 +199,7 @@ class Neo4jExporter:
             return f'"{wk}"'
 
         file_path = os.path.join(self.output_dir, f"{file_name.lower()}.csv")
-        headers = list(data[0].keys())
+        headers = self.extract_unique_keys(data)
         async with aiofiles.open(file_path, "w", encoding="utf-8", newline="") as f:
             await f.write(",".join(escape_field(h) for h in headers) + "\n")
             for row in data:
@@ -292,19 +303,20 @@ class Neo4jExporter:
             for label in labels:
                 count = self._count_nodes(label)
                 logging.info(f"Exporting {count} nodes for label '{label}'")
-                tasks = [
-                    loop.run_in_executor(
-                        pool,
-                        self._fetch_nodes_chunk,
-                        label,
-                        skip,
-                        self.chunk_size,
-                        self.uri,
-                        self.user,
-                        self.password,
+                tasks = []
+                for skip in range(0, count, self.chunk_size):
+                    query = f"MATCH (n:{label}) SKIP {skip} LIMIT {self.chunk_size} RETURN n"
+                    tasks.append(
+                        loop.run_in_executor(
+                            pool,
+                            self._fetch_nodes_chunk,
+                            self.uri,
+                            self.user,
+                            self.password,
+                            query,
+                        )
                     )
-                    for skip in range(0, count, self.chunk_size)
-                ]
+
                 chunks = await asyncio.gather(*tasks)
                 all_data = [item for sublist in chunks for item in sublist]
                 await self.write_csv(label, all_data)
@@ -313,6 +325,33 @@ class Neo4jExporter:
                 ).replace("\\", "\\\\")
                 vertex_args["vertex_labels"].append(label)
                 vertex_args["vertex_csv_paths"].append(file_path)
+
+            # nodes without labels
+            count = self._count_nodes(labels)
+            logging.info(f"Exporting {count} nodes without label")
+            labels_formatted = ", ".join(f'"{label}"' for label in labels)
+            tasks = []
+            for skip in range(0, count, self.chunk_size):
+                query = f"MATCH (n) WHERE NONE(label IN labels(n) WHERE label IN [{labels_formatted}]) SKIP {skip} LIMIT {self.chunk_size} RETURN n"
+                tasks.append(
+                    loop.run_in_executor(
+                        pool,
+                        self._fetch_nodes_chunk,
+                        self.uri,
+                        self.user,
+                        self.password,
+                        query,
+                    )
+                )
+            chunks = await asyncio.gather(*tasks)
+            all_data = [item for sublist in chunks for item in sublist]
+            await self.write_csv("NO_LABEL", all_data)
+            file_path = os.path.join(self.output_dir, "no_label.csv").replace(
+                "\\", "\\\\"
+            )
+            vertex_args["vertex_labels"].append("NO_LABEL")
+            vertex_args["vertex_csv_paths"].append(file_path)
+
         return vertex_args
 
     async def export(self) -> Dict[str, Dict[str, List[str]]]:
@@ -333,6 +372,8 @@ class Neo4jExporter:
 
 
 class CodeGenerator:
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
     TEMPLATE = """#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -414,7 +455,9 @@ if __name__ == "__main__":
         )
         with open(os.path.join(self.output_dir, "importer.py"), "w") as f:
             f.write(code)
-            print(f"importer.py file under {self.output_dir} created successfully")
+            print(
+                f"\n{self.BOLD}Created {self.output_dir}/importer.py successfully.\nExecute the importer.py file to import the data into the database.{self.RESET}"
+            )
 
 
 def parse_arguments() -> argparse.Namespace:

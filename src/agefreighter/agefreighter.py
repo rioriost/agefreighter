@@ -985,7 +985,7 @@ class AgeFreighter:
                 ]:
                     await cur.execute(
                         SQL(
-                            f'SELECT id, COALESCE(properties->\'"id"\', properties->\'"_elementid"\') AS entry_id FROM {graph_name}."{e_label}"'  # "_elementid" is from Neo4j, neo2mcsv.py
+                            f'SELECT id, COALESCE(properties->\'"_elementid"\', properties->\'"id"\') AS entry_id FROM {graph_name}."{e_label}"'  # "_elementid" is from Neo4j, neo2mcsv.py
                         )
                     )
                     rows = await cur.fetchall()
