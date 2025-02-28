@@ -72,8 +72,8 @@ class Neo4jExporter:
         except KeyError:
             raise ValueError("""PG_CONNECTION_STRING environment variable not set.
             macOS/Linux: export PG_CONNECTION_STRING='host=**..postgres.database.azure.com port=5432 dbname=...'
-            Windows:     set PG_CONNECTION_STRING='host=**..postgres.database.azure.com port=5432 dbname=...'
-            PowerShell:  $env:PG_CONNECTION_STRING='host=**..postgres.database.azure.com port=5432 dbname=...'
+            Windows:     set PG_CONNECTION_STRING=host=**..postgres.database.azure.com port=5432 dbname=...
+            PowerShell:  $env:PG_CONNECTION_STRING="host=**..postgres.database.azure.com port=5432 dbname=..."
             """)
         # Connect to the AgeFreighter instance using the PG_CONNECTION_STRING environment variable.
         await self.instance.connect(

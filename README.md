@@ -1366,7 +1366,7 @@ edge: g.E().limit(1)
 
 ## Usage of Neo4jFreighter
 
-Before starting using Neo4jFreighter, please consider to use [neo2mcsv.py](#how-to-export-the-graph-data-from-neo4j-as-csv-files-available-for-multicsvfreighter) and MultiCSVFreighter.
+Before starting using Neo4jFreighter, please consider to use [neo2age.py](#how-to-export-the-graph-data-from-neo4j-as-csv-files-and-load-them-to-apache-age).
 Because Neo4jFreighter needs to talk with Neo4j and PostgreSQL, it is sometimes too slow to load the graph data, especially when the graph is large.
 
 ```python
@@ -1821,6 +1821,20 @@ optional arguments:
                         Name of the graph to be embedded in 'importer.py'
 ```
 
+Before running the script, make sure you set an environment variable for the PostgreSQL.
+
+
+```bash
+#macOS/Linux
+export PG_CONNECTION_STRING='host=**..postgres.database.azure.com port=5432 dbname=...'
+
+# Windows
+set PG_CONNECTION_STRING=host=**..postgres.database.azure.com port=5432 dbname=...
+
+# PowerShell
+$env:PG_CONNECTION_STRING="host=**..postgres.database.azure.com port=5432 dbname=..."
+```
+
 If you have a running neo4j instance in your local machine, you can use the following command to export the graph data.
 
 ```bash
@@ -1981,6 +1995,9 @@ All the classes have the same load() method. The method loads data into a graph 
     - source_columns (dict): The source columns.
 
 ## Release Notes
+
+### 0.9.2 Release
+- Fixed an error message from 'neo2age.py'.
 
 ### 0.9.1 Release
 - Fixed asyncio on Windows.
