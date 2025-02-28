@@ -73,6 +73,7 @@ class Neo4jExporter:
             raise ValueError("""PG_CONNECTION_STRING environment variable not set.
             macOS/Linux: export PG_CONNECTION_STRING='host=**..postgres.database.azure.com port=5432 dbname=...'
             Windows:     set PG_CONNECTION_STRING='host=**..postgres.database.azure.com port=5432 dbname=...'
+            PowerShell:  $env:PG_CONNECTION_STRING='host=**..postgres.database.azure.com port=5432 dbname=...'
             """)
         # Connect to the AgeFreighter instance using the PG_CONNECTION_STRING environment variable.
         await self.instance.connect(
@@ -539,8 +540,6 @@ class AgeLoader:
         """
         Initiate the data loading process.
         """
-        if sys.platform == "win32":
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         await self._load()
 
     async def _load(self) -> None:
@@ -652,6 +651,8 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     try:
         asyncio.run(main())
     except Exception as e:
