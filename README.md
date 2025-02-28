@@ -1755,7 +1755,7 @@ postgres=> select * from air_route.route limit 1;
 
 'neo2age.py' under 'tests' directroy is a script that exports the graph data from neo4j as CSV files and load then to Apache AGE.
 
-### Usage of neo2age.py
+### Usage of neo2mcsv.py
 
 ```bash
 git clone https://github.com/rifujita/agefreighter
@@ -1981,6 +1981,9 @@ All the classes have the same load() method. The method loads data into a graph 
     - source_columns (dict): The source columns.
 
 ## Release Notes
+
+### 0.9.1 Release
+- Fixed asyncio on Windows.
 
 ### 0.9.0 Release
 - Added 'neo2age.py' based on 'neo2mcsv.py'.
