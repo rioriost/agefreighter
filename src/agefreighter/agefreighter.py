@@ -59,6 +59,10 @@ class Factory:
             import agefreighter.pgfreighter as pgfreighter
 
             return pgfreighter.PGFreighter()
+        elif type == "AgeFreighter":  # direct use
+            import agefreighter.agefreighter as agefreighter
+
+            return agefreighter.AgeFreighter()
         else:
             raise ValueError(f"Unknown type: {type}")
 
@@ -1134,3 +1138,105 @@ class AgeFreighter:
             direct_loading=direct_loading,
             use_copy=use_copy,
         )
+
+    async def copy(
+        self,
+        graph_name: str = "",
+        vertices: dict = {},
+        edges: dict = {},
+        chunk_size: int = 10000,
+        create_graph: bool = True,
+        progress: bool = True,
+    ):
+        """
+        Copy vertices and edges from CSV files to the PostgreSQL database.
+
+        Args:
+            graph_name (str): The name of the graph to copy to.
+            vertices (dict): A dictionary of vertex labels and their corresponding CSV specifications.
+            edges (dict): A dictionary of edge types and their corresponding CSV specifications.
+            chunk_size (int): The size of each chunk to copy.
+            create_graph (bool): Whether to create the graph if it does not exist.
+            progress (bool): Whether to show progress.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: If graph_name, vertices, or edges are not specified.
+
+        """
+
+        if graph_name == "":
+            raise ValueError("graph_name must be specified")
+
+        if vertices == {}:
+            raise ValueError("vertices must be specified")
+
+        if edges == {}:
+            raise ValueError("edges must be specified")
+
+        for vertex_label, csv_spec in vertices.items():
+            print(f"Copying vertex {vertex_label}{csv_spec}...")
+            await self._copy(
+                graph_name,
+                csv_spec["csv_path"],
+                csv_spec["original_id"],
+                vertex_label,
+                "v",
+                chunk_size,
+            )
+
+        for edge_type, csv_spec in edges.items():
+            print(f"Copying edge {edge_type}{csv_spec}...")
+            await self._copy(
+                graph_name,
+                csv_spec["csv_path"],
+                csv_spec["original_id"],
+                edge_type,
+                "e",
+                chunk_size,
+            )
+
+    async def _copy(
+        self,
+        graph_name: str = "",
+        csv_path: str = "",
+        id: str = "",
+        label_name: str = "",
+        kind: str = "v" or "e",
+        chunk_size: int = 10000,
+    ) -> None:
+        """
+        Execute COPY
+
+        Args:
+            graph_name (str): The name of the graph.
+            csv_path (str): The path to the CSV file.
+            id (str): The ID column name.
+            label_name (str): The label of the vertices.
+            kind (str): The type of the vertices.
+            chunk_size (int): The size of the chunks to create.
+
+        Returns:
+            None
+        """
+        log.debug(
+            f"Copying {csv_path} via COPY protocol in {sys._getframe().f_code.co_name}."
+        )
+        if kind not in ["v", "e"]:
+            raise ValueError(f"Invalid type: {kind}")
+
+        graph_name = self.quotedGraphName(graph_name)
+        if kind == "v":
+            query = f'COPY {graph_name}."{label_name}" FROM STDIN (FORMAT CSV)'
+        elif kind == "e":
+            query = f'COPY {graph_name}."{label_name}" (id,start_id,end_id, properties) FROM STDIN (FORMAT CSV)'
+
+        async with self.pool.connection() as conn:
+            async with conn.cursor() as cur:
+                async with cur.copy(query) as copy:
+                    with open(csv_path, "r") as file:
+                        while data := file.read():
+                            await copy.write(data)
+                await cur.execute("COMMIT")

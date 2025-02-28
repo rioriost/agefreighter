@@ -31,7 +31,7 @@ a Python package that helps you to create a graph database using Azure Database 
 - [Usage of Neo4jFreighter](#usage-of-neo4jfreighter)
 - [Usage of PGFreighter](#usage-of-pgfreighter)
 - [How to edit the CSV files to load them to the graph database with PGFreighter](#how-to-edit-the-csv-files-to-load-them-to-the-graph-database-with-pgfreighter)
-- [How to export the graph data from Neo4j as CSV files available for MultiCSVFreighter](#how-to-export-the-graph-data-from-neo4j-as-csv-files-available-for-multicsvfreighter)
+- [How to export the graph data from Neo4j as CSV files and load them to Apache AGE](#how-to-export-the-graph-data-from-neo4j-as-csv-files-and-load-them-to-apache-age)
 - [Classes](#classes)
 - [Method](#method)
 - [Arguments](#arguments)
@@ -1751,9 +1751,9 @@ postgres=> select * from air_route.route limit 1;
 (1 row)
 ```
 
-## How to export the graph data from Neo4j as CSV files available for MultiCSVFreighter
+## How to export the graph data from Neo4j as CSV files and load them to Apache AGE
 
-'neo2mcsv.py' under 'tests' directroy is a script that exports the graph data from neo4j as CSV files available for MultiCSVFreighter.
+'neo2age.py' under 'tests' directroy is a script that exports the graph data from neo4j as CSV files and load then to Apache AGE.
 
 ### Usage of neo2mcsv.py
 
@@ -1775,12 +1775,12 @@ python -m pip install agefreighter aiofiles
 ```bash
 cd tests
 # macOS, Linux
-chmod 755 neo2mcsv.py
+chmod 755 neo2age.py
 
-./neo2mcsv.py --help
-usage: neo2mcsv.py [-h] [--uri URI] [--user USER] [--password PASSWORD] [--database DATABASE] [--trial] [--chunk-size CHUNK_SIZE] [--progress] [--graphname GRAPHNAME] output_dir
+./neo2age.py --help
+usage: neo2age.py [-h] [--uri URI] [--user USER] [--password PASSWORD] [--database DATABASE] [--trial] [--chunk-size CHUNK_SIZE] [--progress] [--graphname GRAPHNAME] output_dir
 
-Export data from Neo4j to CSV
+Export data from Neo4j to CSV and load into Apache AGE.
 
 positional arguments:
   output_dir            Output directory
@@ -1799,10 +1799,10 @@ optional arguments:
                         Name of the graph to be embedded in 'importer.py'
 
 # Windows
-python neo2mcsv.py --help
-usage: neo2mcsv.py [-h] [--uri URI] [--user USER] [--password PASSWORD] [--database DATABASE] [--trial] [--chunk-size CHUNK_SIZE] [--progress] [--graphname GRAPHNAME] output_dir
+python neo2age.py --help
+usage: neo2age.py [-h] [--uri URI] [--user USER] [--password PASSWORD] [--database DATABASE] [--trial] [--chunk-size CHUNK_SIZE] [--progress] [--graphname GRAPHNAME] output_dir
 
-Export data from Neo4j to CSV
+Export data from Neo4j to CSV and load into Apache AGE.
 
 positional arguments:
   output_dir            Output directory
@@ -1824,144 +1824,47 @@ optional arguments:
 If you have a running neo4j instance in your local machine, you can use the following command to export the graph data.
 
 ```bash
-./neo2mcsv.py exported
+./neo2age.py exported
 INFO:root:Output directory '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported' does not exist. Creating it.
 INFO:root:Exporting 8679 nodes for label 'Customer'
-INFO:root:Exporting 20000 edges for relationship type 'BOUGHT'
 INFO:root:Exported 8679 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv
 INFO:root:Exporting 1000 nodes for label 'Product'
 INFO:root:Exported 1000 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv
-INFO:root:Exporting 2 nodes for label 'Person'
-INFO:root:Exported 2 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/person.csv
+INFO:root:Exporting 2 nodes for label 'NO_LABEL'
+INFO:root:Exported 2 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/no_label.csv
+INFO:root:Exporting 20000 edges for relationship type 'BOUGHT'
 INFO:root:Exported 20000 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv
-INFO:root:Exporting 1 edges for relationship type 'KNOWS'
-INFO:root:Exported 1 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/knows.csv
-importer.py file under /Users/rifujita/ownCloud/bin/agefreighter/tests/exported created successfully
+INFO:root:Exporting 1 edges for relationship type 'RELATES'
+INFO:root:Exported 1 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/relates.csv
+Copying vertex Customer{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv', 'original_id': '_elementid'}...
+Copying vertex Product{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv', 'original_id': '_elementid'}...
+Copying vertex NO_LABEL{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/no_label.csv', 'original_id': '_elementid'}...
+Copying edge BOUGHT{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv', 'original_id': '_elementid'}...
+Copying edge RELATES{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/relates.csv', 'original_id': '_elementid'}...
 ```
 
-Or, you can specify '--trial' argument to check the functionality of 'neo2mcsv.py', exported 'importer.py', and Apache AGE.
+Or, you can specify '--trial' argument to check the functionality of 'neo2age.py'
 
 ```bash
-./neo2mcsv.py --trial exported
+./neo2age.py --trial exported
 INFO:root:Output directory '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported' does not exist. Creating it.
-INFO:root:Trial mode enabled. Limiting export to 100 edges per relationship type.
-INFO:root:Exported 100 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv
-INFO:root:Trial mode enabled. Limiting export to 100 edges per relationship type.
-INFO:root:Exported 1 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/knows.csv
-INFO:root:Exporting 100 trial nodes for label 'Customer'
+INFO:root:Listing nodes for relationship type 'BOUGHT'
+INFO:root:Listing nodes for relationship type 'RELATES'
+INFO:root:Exporting 100 nodes for label 'Customer'
 INFO:root:Exported 100 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv
-INFO:root:Exporting 91 trial nodes for label 'Product'
-INFO:root:Exported 91 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv
-INFO:root:Exporting 2 trial nodes for label 'Person'
-INFO:root:Exported 2 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/person.csv
-importer.py file under /Users/rifujita/ownCloud/bin/agefreighter/tests/exported created successfully
-```
-
-The exported 'importer.py' can be found in the 'exported' directory you specified.
-
-```python
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-import asyncio
-import os
-from agefreighter import Factory
-
-
-async def main():
-    instance = Factory.create_instance("MultiCSVFreighter")
-
-    await instance.connect(
-        dsn=os.environ["PG_CONNECTION_STRING"],
-        max_connections=64,
-        min_connections=4,
-    )
-
-    await instance.load(
-        graph_name="FROM_NEO4J",
-        vertex_csv_paths=[
-            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv",
-            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv",
-            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/person.csv"
-        ],
-        vertex_labels=["Customer", "Product", "Person"],
-        edge_csv_paths=[
-            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv",
-            "/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/knows.csv"
-        ],
-        edge_types=["BOUGHT", "KNOWS"],
-        use_copy=True,
-        drop_graph=True,
-        create_graph=True,
-        progress=True,
-    )
-
-
-if __name__ == "__main__":
-    import asyncio
-    import sys
-
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    asyncio.run(main())
-```
-
-On Windows
-
-```python
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-import asyncio
-import os
-from agefreighter import Factory
-
-
-async def main():
-    instance = Factory.create_instance("MultiCSVFreighter")
-
-    await instance.connect(
-        dsn=os.environ["PG_CONNECTION_STRING"],
-        max_connections=64,
-        min_connections=4,
-    )
-
-    await instance.load(
-        graph_name="FROM_NEO4J",
-        vertex_csv_paths=[
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\customer.csv",
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\product.csv",
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\person.csv"
-        ],
-        vertex_labels=["Customer", "Product", "Person"],
-        edge_csv_paths=[
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\bought.csv",
-            "C:\\Users\\rio_a\\agefreighter\\tests\\exported\\knows.csv"
-        ],
-        edge_types=["BOUGHT", "KNOWS"],
-        use_copy=True,
-        drop_graph=True,
-        create_graph=True,
-        progress=True,
-    )
-
-
-if __name__ == "__main__":
-    import asyncio
-    import sys
-
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    asyncio.run(main())
-```
-
-To execute 'importer.py':
-
-```bash
-chmod 755 exported/importer.py
-./exported/importer.py
+INFO:root:Exporting 100 nodes for label 'Product'
+INFO:root:Exported 100 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv
+INFO:root:Exporting 2 nodes for label 'NO_LABEL'
+INFO:root:Exported 2 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/no_label.csv
+INFO:root:Exporting 100 edges for relationship type 'BOUGHT'
+INFO:root:Exported 100 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv
+INFO:root:Exporting 1 edges for relationship type 'RELATES'
+INFO:root:Exported 1 records to /Users/rifujita/ownCloud/bin/agefreighter/tests/exported/relates.csv
+Copying vertex Customer{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/customer.csv', 'original_id': '_elementid'}...
+Copying vertex Product{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/product.csv', 'original_id': '_elementid'}...
+Copying vertex NO_LABEL{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/no_label.csv', 'original_id': '_elementid'}...
+Copying edge BOUGHT{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/bought.csv', 'original_id': '_elementid'}...
+Copying edge RELATES{'csv_path': '/Users/rifujita/ownCloud/bin/agefreighter/tests/exported/relates.csv', 'original_id': '_elementid'}...
 ```
 
 ## Classes
@@ -2078,6 +1981,10 @@ All the classes have the same load() method. The method loads data into a graph 
     - source_columns (dict): The source columns.
 
 ## Release Notes
+
+### 0.9.0 Release
+- Added 'neo2age.py' based on 'neo2mcsv.py'.
+- Added 'copy()' method to AgeFreighter class.
 
 ### 0.8.13 Release
 - Added handling of special characters in 'neo2mcsv.py'.

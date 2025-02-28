@@ -78,6 +78,23 @@ CLASSES
      |      Returns:
      |          None
      |  
+     |  async copy(self, graph_name: str = '', vertices: dict = {}, edges: dict = {}, chunk_size: int = 10000, create_graph: bool = True, progress: bool = True)
+     |      Copy vertices and edges from CSV files to the PostgreSQL database.
+     |      
+     |      Args:
+     |          graph_name (str): The name of the graph to copy to.
+     |          vertices (dict): A dictionary of vertex labels and their corresponding CSV specifications.
+     |          edges (dict): A dictionary of edge types and their corresponding CSV specifications.
+     |          chunk_size (int): The size of each chunk to copy.
+     |          create_graph (bool): Whether to create the graph if it does not exist.
+     |          progress (bool): Whether to show progress.
+     |      
+     |      Returns:
+     |          None
+     |      
+     |      Raises:
+     |          ValueError: If graph_name, vertices, or edges are not specified.
+     |  
      |  async copyChunk(self, chunk: pandas.core.frame.DataFrame, first_id: int = 0, graph_name: str = '', label: str = '', id_maps: dict = {}, is_edge: bool = False) -> None
      |      Copy a chunk of data to the PostgreSQL database.
      |      

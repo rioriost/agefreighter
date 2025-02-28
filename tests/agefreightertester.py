@@ -503,7 +503,7 @@ async def main():
 
     target_classes = [
         {"name": "AzureStorageFreighter", "type": "transaction", "do": False},
-        {"name": "MultiAzureStorageFreighter", "type": "payment_small", "do": True},
+        {"name": "MultiAzureStorageFreighter", "type": "payment_small", "do": False},
         {"name": "MultiAzureStorageFreighter", "type": "payment_large", "do": False},
         {"name": "AvroFreighter", "type": "transaction", "do": False},
         {"name": "CosmosGremlinFreighter", "type": "transaction", "do": False},

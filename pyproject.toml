@@ -3,7 +3,7 @@ name = "agefreighter"
 authors = [
     {name = "Rio Fujita", email = "rifujita@microsoft.com"},
 ]
-version = "0.8.13"
+version = "0.9.0"
 license = {file = "LICENSE"}
 description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = {file = "README.md", content-type = "text/markdown"}
@@ -42,7 +42,10 @@ dev = [
     "coverage>=7.6.11",
     "faker>=35.2.0",
     "mypy>=1.15.0",
+    "pandas-stubs>=2.2.2.240807",
+    "pyarrow-stubs>=17.17",
     "toml>=0.10.2",
+    "types-networkx>=3.4.2.20250227",
 ]
 
 [tool.hatch.build.targets.sdist]
