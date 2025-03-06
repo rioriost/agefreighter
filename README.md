@@ -18,7 +18,7 @@ a Python package that helps you to create a graph database using Azure Database 
 - [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Usage](#usage)
-- [How to edit the CSV files to load them to the graph database with PGFreighter](#how-to-edit-the-csv-files-to-load-them-to-the-graph-database-with-pgfreighter)
+- [How to edit the CSV files to load them to the graph database with AGEFreighter](#how-to-edit-the-csv-files-to-load-them-to-the-graph-database-with-agefreighter)
 - [Release Notes](#release-notes)
 - [Known Issues](#known-issues)
 - [For More Information](#for-more-information)
@@ -78,7 +78,7 @@ uv init your_project
 cd your_project
 uv venv
 source .venv/bin/activate
-uv add agefreighter
+uv add agefreighter==1.0.0a3
 ```
 
 - with python venv on macOS / Linux
@@ -88,7 +88,7 @@ mkdir your_project
 cd your_project
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install agefreighter
+python3 -m pip install agefreighter==1.0.0a3
 ```
 
 - with python venv on Windows
@@ -98,7 +98,7 @@ mkdir your_project
 cd your_project
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install agefreighter
+python -m pip install agefreighter==1.0.0a3
 ```
 
 ## Usage
@@ -624,7 +624,7 @@ If all the required environment variables are set, you can just run:
 agefreighter load --source-type cosmos
 ```
 
-## How to edit the CSV files to load them to the graph database with PGFreighter
+## How to edit the CSV files to load them to the graph database with AGEFreighter
 
 Example: [krlawrence graph](https://github.com/krlawrence/graph/tree/master/sample-data)
 
@@ -747,6 +747,10 @@ postgres=> select * from air_route.route limit 1;
 ```
 
 ## Release Notes
+
+### 1.0.0a4 Release
+- Fixed documents.
+- Changed from argcomplete to click.
 
 ### 1.0.0a3 Release
 - Fixed documents.
