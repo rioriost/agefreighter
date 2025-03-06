@@ -3,65 +3,43 @@ name = "agefreighter"
 authors = [
     {name = "Rio Fujita", email = "rifujita@microsoft.com"},
 ]
-version = "0.9.2"
+version = "1.0.0a2"
 license = {file = "LICENSE"}
-description = "AgeFreighter is a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
+description = "a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.9.21"
+requires-python = ">=3.13"
 dependencies = [
-    "asyncio>=3.4.3",
-    "azure-cosmos>=4.9.0",
-    "azure-identity>=1.20.0",
-    "azure-mgmt-postgresqlflexibleservers>=1.0.0",
-    "azure-mgmt-storage>=22.1.0",
-    "azure-storage-blob>=12.24.1",
-    "fastavro>=1.10.0",
-    "gremlinpython>=3.7.3",
-    "neo4j>=5.28.1",
-    "nest-asyncio>=1.6.0",
-    "networkx>=3.2.1",
-    "pandas>=2.2.3",
+    "aiofiles>=24.1.0",
+    "argcomplete>=3.6.0",
+    "numpy>=2.2.3",
     "psycopg[binary,pool]>=3.2.5",
-    "pyarrow>=19.0.1",
 ]
-
-[tool.uv.workspace]
-members = ["agefreighter"]
 
 [project.urls]
 Homepage = "https://github.com/rioriost/agefreighter"
 Issues = "https://github.com/rioriost/agefreighter/issues"
 
+[project.scripts]
+agefreighter = "agefreighter.main:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[dependency-groups]
-dev = [
-    "aiofiles>=24.1.0",
-    "coverage>=7.6.11",
-    "faker>=35.2.0",
-    "mypy>=1.15.0",
-    "pandas-stubs>=2.2.2.240807",
-    "pyarrow-stubs>=17.17",
-    "toml>=0.10.2",
-    "types-networkx>=3.4.2.20250227",
-]
+[tool.hatch.build.targets.wheel]
+packages = ["src/agefreighter/", "docs/"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "src/agefreighter/*.py",
-  "/tests",
-  "/docs",
-  "/data",
-  "/images",
+  "src/agefreighter/",
+  "docs/",
 ]
 exclude = [
-  "/data/payment_large",
+  "__pycache__",
+  "*.rb",
   "uv.lock",
   "dist/.DS_Store",
-  "tests/exported/"
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/agefreighter"]
+[dependency-groups]
+dev = []
