@@ -19,7 +19,6 @@ a Python package that helps you to create a graph database using Azure Database 
 - [Install](#install)
 - [Usage](#usage)
 - [How to edit the CSV files to load them to the graph database with PGFreighter](#how-to-edit-the-csv-files-to-load-them-to-the-graph-database-with-pgfreighter)
-- [Classes](#classes)
 - [Release Notes](#release-notes)
 - [Known Issues](#known-issues)
 - [For More Information](#for-more-information)
@@ -68,7 +67,7 @@ CREATE EXTENSION IF NOT EXISTS age CASCADE;
 - with brew
 
 ```bash
-brew tap rioriost/agefreighter
+brew tap rioriost/agefreighter https://github.com/rioriost/agefreighter.git
 brew install agefreighter
 ```
 
@@ -747,14 +746,10 @@ postgres=> select * from air_route.route limit 1;
 (1 row)
 ```
 
-## Classes
-
-- [AGEFreighter](https://github.com/rioriost/agefreighter/blob/main/docs/agefreighter.txt)
-- [CosmosNoSQLExporter](https://github.com/rioriost/agefreighter/blob/main/docs/cosmosnosqlexporter.txt)
-- [CSVExporter](https://github.com/rioriost/agefreighter/blob/main/docs/csvexporter.txt)
-- [Neo4jExporter](https://github.com/rioriost/agefreighter/blob/main/docs/neo4jexporter.txt)
-
 ## Release Notes
+
+### 1.0.0a3 Release
+- Fixed documents.
 
 ### 1.0.0a2 Release
 - Various bug fixes, improve the robustness of the application.
