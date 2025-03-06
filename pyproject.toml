@@ -3,7 +3,7 @@ name = "agefreighter"
 authors = [
     {name = "Rio Fujita", email = "rifujita@microsoft.com"},
 ]
-version = "1.0.0a2"
+version = "1.0.0a3"
 license = {file = "LICENSE"}
 description = "a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = {file = "README.md", content-type = "text/markdown"}
