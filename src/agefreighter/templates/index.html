@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>WatchAGE</title>
+        <!-- Google Fonts -->
+        <link
+            href="https://fonts.googleapis.com/css?family=Roboto:300,400,500&display=swap"
+            rel="stylesheet"
+        />
+        <!-- Cytoscape.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.21.1/cytoscape.min.js"></script>
+        <style>
+            /* 全体のボックスサイズ設定 */
+            * {
+                box-sizing: border-box;
+            }
+            /* Global Styles */
+            body {
+                background-color: #1f1f1f;
+                color: #d1d1d1;
+                font-family: "Roboto", sans-serif;
+                margin: 0;
+                padding: 20px;
+            }
+            h1,
+            h2 {
+                font-size: 1.2em;
+            }
+            h3 {
+                color: #f0f0f0;
+            }
+            /* 接続状態ヘッダー */
+            #connection-header {
+                padding: 10px 20px;
+                background-color: #2c2c2c;
+                border-radius: 4px;
+                margin-bottom: 20px;
+                font-size: 14px;
+            }
+            .status-circle {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                margin-right: 5px;
+            }
+            .status-connected {
+                background-color: #80ff80;
+            }
+            .status-disconnected {
+                background-color: #ff8080;
+            }
+            /* Modal Styles */
+            .modal {
+                display: block; /* 初回表示 */
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgba(0, 0, 0, 0.4);
+            }
+            .modal-content {
+                background-color: #2c2c2c;
+                margin: 15% auto;
+                padding: 20px;
+                border: 1px solid #444;
+                border-radius: 4px;
+                width: 300px;
+            }
+            /* Container */
+            .container {
+                max-width: 1920px;
+                margin: 0 auto;
+            }
+            /* 2カラムレイアウト */
+            .columns {
+                display: flex;
+                gap: 20px;
+                width: 100%;
+            }
+            .left-column {
+                display: flex;
+                flex-direction: column;
+                /* 必要に応じて高さを指定。例：ビューポート全体から上下の余白を引いた値 */
+                height: calc(100vh - 100px);
+            }
+
+            .right-column {
+                width: 70%;
+                flex-shrink: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+            /* Card Panels */
+            .card {
+                background-color: #2c2c2c;
+                border-radius: 4px;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+                padding: 20px;
+            }
+            /* Form Styles */
+            form {
+                margin-bottom: 20px;
+            }
+            fieldset {
+                border: none;
+                margin: 0 0 15px 0;
+                padding: 0;
+            }
+            label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: 500;
+            }
+            input,
+            textarea,
+            select {
+                width: 100%;
+                padding: 8px;
+                margin-bottom: 10px;
+                border: 1px solid #444;
+                border-radius: 4px;
+                background-color: #3a3a3a;
+                color: #d1d1d1;
+            }
+            button {
+                background-color: #007acc;
+                color: #fff;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+            button:hover {
+                background-color: #005f99;
+            }
+            /* Status Messages */
+            #connect-status,
+            #execute-status {
+                font-weight: bold;
+                margin-left: 10px;
+            }
+            #graph-info {
+                flex: 1;
+            }
+            /* Graph Info Table */
+            #graph-info-table {
+                border-collapse: collapse;
+                width: 100%;
+                font-size: 12px;
+            }
+            #graph-info-table th,
+            #graph-info-table td {
+                border: 1px solid #444;
+                padding: 8px;
+                text-align: left;
+                white-space: nowrap;
+            }
+            #graph-info-table th {
+                background-color: #3a3a3a;
+            }
+            #graph-name {
+                font-weight: bold;
+                margin-left: 10px;
+                width: 20em;
+            }
+            .query-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            /* 必要に応じて、textareaの幅を調整 */
+            #cypher-query {
+                flex: 1;
+                width: 100%;
+                resize: none;
+                font-size: 1em;
+            }
+            /* Cytoscapeエリア */
+            #cy {
+                width: 100%;
+                height: 600px;
+                border: 1px solid #444;
+                border-radius: 4px;
+            }
+            /* 右カラム下部の左右並びコンテナ */
+            .lower-right-container {
+                display: flex;
+                gap: 20px;
+            }
+
+            .cytoscape-card {
+                flex: 2;
+            }
+            .details-card {
+                flex: 1;
+            }
+            /* Responsive adjustments */
+            @media (max-width: 768px) {
+                .columns {
+                    flex-direction: column;
+                }
+                .left-column,
+                .right-column {
+                    width: 100%;
+                }
+                .lower-right-container {
+                    flex-direction: column;
+                }
+            }
+            /* タブコンテナ */
+            .tab-container {
+                width: 100%;
+            }
+
+            /* タブヘッダー */
+            .tab-header {
+                display: flex;
+                border-bottom: 1px solid #444;
+                margin-bottom: 10px;
+            }
+
+            /* タブボタン */
+            .tab-button {
+                background: none;
+                border: none;
+                color: #d1d1d1;
+                padding: 10px 20px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+
+            /* アクティブなタブ */
+            .tab-button.active {
+                border-bottom: 2px solid #007acc;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- 接続状態を表示するヘッダー -->
+        <div
+            id="connection-header"
+            style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            "
+        >
+            <div>
+                <span id="connection-info">Not Connected</span>
+                &nbsp;&nbsp;
+                <span id="header-status">
+                    <span class="status-circle status-disconnected"></span>
+                    <span class="status-text">disconnected</span>
+                </span>
+            </div>
+            <button
+                id="switch-connect-button"
+                title="Switch"
+                style="
+                    background-color: #007acc;
+                    color: #fff;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                "
+            >
+                Switch
+            </button>
+        </div>
+
+        <!-- 接続設定モーダル -->
+        <div id="connection-modal" class="modal">
+            <div class="modal-content">
+                <h2>Database Connection Settings</h2>
+                <form id="connect-form">
+                    <fieldset>
+                        <div>
+                            <label for="pg-host">Host:</label>
+                            <input
+                                type="text"
+                                id="pg-host"
+                                name="host"
+                                value="{{ default_conn.get('host', 'localhost') }}"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label for="pg-port">Port:</label>
+                            <input
+                                type="number"
+                                id="pg-port"
+                                name="port"
+                                value="{{ default_conn.get('port', '5432') }}"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label for="pg-dbname">Database:</label>
+                            <input
+                                type="text"
+                                id="pg-dbname"
+                                name="dbname"
+                                value="{{ default_conn.get('dbname', '') }}"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label for="pg-user">Username:</label>
+                            <input
+                                type="text"
+                                id="pg-user"
+                                name="user"
+                                value="{{ default_conn.get('user', '') }}"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label for="pg-password">Password:</label>
+                            <input
+                                type="password"
+                                id="pg-password"
+                                name="password"
+                                value="{{ default_conn.get('password', '') }}"
+                                required
+                            />
+                        </div>
+                    </fieldset>
+                    <button id="connect-button" type="button">Connect</button>
+                    <span id="connect-status"></span>
+                </form>
+            </div>
+        </div>
+
+        <!-- メインコンテナ（接続成功後に表示） -->
+        <div class="container" id="main-container" style="display: none">
+            <div class="columns">
+                <!-- 左カラム：Graph Information -->
+                <div class="left-column">
+                    <div class="card" id="graph-info">
+                        <div
+                            class="header-row"
+                            style="
+                                display: flex;
+                                align-items: center;
+                                justify-content: space-between;
+                            "
+                        >
+                            <h2 style="margin: 0">Graph Information</h2>
+                            <button
+                                id="refresh-graph-info"
+                                title="Refresh Graph Information"
+                                style="
+                                    background: none;
+                                    border: none;
+                                    color: #007acc;
+                                    font-size: 1.5em;
+                                    cursor: pointer;
+                                "
+                            >
+                                &#x21bb;
+                            </button>
+                        </div>
+                        <table id="graph-info-table">
+                            <thead>
+                                <tr>
+                                    <th>Graph</th>
+                                    <th>Nodes</th>
+                                    <th>Edges</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be dynamically added via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- 右カラム：上部にCypher Query、下部にcytoscapeエリアとDetailsを左右並び -->
+                <div class="right-column">
+                    <div class="card" id="query-form-container">
+                        <h2>Cypher Query</h2>
+                        <form id="query-form">
+                            <fieldset>
+                                <div class="query-row">
+                                    <label for="graph-name">Graph:</label>
+                                    <select id="graph-name"></select>
+                                    <input
+                                        type="text"
+                                        id="cypher-query"
+                                        name="cypher"
+                                        placeholder="Enter Cypher query here"
+                                        value="MATCH (n)-[r]->(m) RETURN n,r,m LIMIT 10"
+                                    />
+                                    <button id="execute-button" type="button">
+                                        Execute
+                                    </button>
+                                </div>
+                            </fieldset>
+                            <span id="execute-status"></span>
+                        </form>
+                    </div>
+                    <!-- 下部：cytoscapeエリアとDetailsパネルを左右に並べる -->
+                    <div class="lower-right-container">
+                        <div class="card cytoscape-card">
+                            <div class="tab-container">
+                                <div class="tab-header">
+                                    <button
+                                        class="tab-button active"
+                                        data-tab="graph"
+                                    >
+                                        Graph
+                                    </button>
+                                    <button class="tab-button" data-tab="table">
+                                        Table
+                                    </button>
+                                    <button class="tab-button" data-tab="json">
+                                        JSON
+                                    </button>
+                                </div>
+                                <!-- Graphタブ：Cytoscapeの表示領域 -->
+                                <div class="tab-content" id="tab-graph">
+                                    <div id="cy"></div>
+                                </div>
+                                <!-- Tableタブ：ノード・エッジ情報の表 -->
+                                <div
+                                    class="tab-content"
+                                    id="tab-table"
+                                    style="display: none"
+                                >
+                                    <!-- renderGraph内で生成されるテーブル内容がここに表示されます -->
+                                </div>
+                                <!-- JSONタブ：生のJSONデータ表示 -->
+                                <div
+                                    class="tab-content"
+                                    id="tab-json"
+                                    style="display: none"
+                                >
+                                    <!-- renderGraph内で生成されるJSON内容がここに表示されます -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card details-card">
+                            <h2>Details</h2>
+                            <div id="details-content">
+                                <!-- Clicked node/edge details will be shown in table format -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // グローバル変数（初期状態）
+            var currentConnectionSettings = null;
+
+            // Generate a color from a string (simple hash)
+            function stringToColor(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                let color = "#";
+                for (let i = 0; i < 3; i++) {
+                    let value = (hash >> (i * 8)) & 0xff;
+                    color += ("00" + value.toString(16)).substr(-2);
+                }
+                return color;
+            }
+
+            // 更新：接続状態ヘッダーの表示
+            function updateConnectionHeader(connection, status) {
+                const infoElem = document.getElementById("connection-info");
+                infoElem.textContent = `Host: ${connection.host || "N/A"}, Port: ${connection.port || "N/A"}, DB: ${connection.dbname || "N/A"}, User: ${connection.user || "N/A"}`;
+
+                const statusElem = document.getElementById("header-status");
+                const circle = statusElem.querySelector(".status-circle");
+                const text = statusElem.querySelector(".status-text");
+
+                if (status === "connected") {
+                    circle.classList.remove("status-disconnected");
+                    circle.classList.add("status-connected");
+                    text.textContent = "connected";
+                } else {
+                    circle.classList.remove("status-connected");
+                    circle.classList.add("status-disconnected");
+                    text.textContent = "disconnected";
+                }
+            }
+
+            // Connection process (モーダル内のフォーム)
+            document
+                .getElementById("connect-button")
+                .addEventListener("click", function () {
+                    const connection = {
+                        host: document.getElementById("pg-host").value,
+                        port: document.getElementById("pg-port").value,
+                        dbname: document.getElementById("pg-dbname").value,
+                        user: document.getElementById("pg-user").value,
+                        password: document.getElementById("pg-password").value,
+                    };
+
+                    const payload = { connection: connection };
+
+                    fetch("/api/connect", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            const statusElem =
+                                document.getElementById("connect-status");
+                            if (data.error) {
+                                statusElem.textContent =
+                                    "Connection failed: " + data.error;
+                                statusElem.style.color = "#ff8080";
+                            } else {
+                                statusElem.textContent = "Connected!";
+                                statusElem.style.color = "#80ff80";
+                                // 接続情報を更新
+                                updateConnectionHeader(connection, "connected");
+                                // 接続設定をグローバル変数に保持
+                                currentConnectionSettings = connection;
+                                document.getElementById(
+                                    "connection-modal",
+                                ).style.display = "none";
+                                document.getElementById(
+                                    "main-container",
+                                ).style.display = "block";
+                                loadGraphInfo();
+                            }
+                        })
+                        .catch((error) => {
+                            const statusElem =
+                                document.getElementById("connect-status");
+                            statusElem.textContent =
+                                "Connection error: " + error;
+                            statusElem.style.color = "#ff8080";
+                            console.error("Connection error:", error);
+                        });
+                });
+
+            document
+                .getElementById("switch-connect-button")
+                .addEventListener("click", function () {
+                    // 接続ダイアログ（モーダル）を表示する
+                    document.getElementById("connection-modal").style.display =
+                        "block";
+                });
+
+            // Query execution process
+            document
+                .getElementById("execute-button")
+                .addEventListener("click", function () {
+                    // Detailsパネルの内容をリセットする
+                    document.getElementById("details-content").innerHTML = "";
+
+                    const graphName =
+                        document.getElementById("graph-name").value;
+                    const cypherQuery =
+                        document.getElementById("cypher-query").value;
+                    const payload = {
+                        graph_name: graphName,
+                        cypher_query: cypherQuery,
+                    };
+
+                    fetch("/api/execute_query", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            const executeStatusElem =
+                                document.getElementById("execute-status");
+                            if (data.error) {
+                                executeStatusElem.textContent =
+                                    "Error: " + data.error;
+                                executeStatusElem.style.color = "#ff8080";
+                                return;
+                            }
+                            executeStatusElem.textContent = "";
+                            renderGraph(data);
+                        })
+                        .catch((error) => {
+                            const executeStatusElem =
+                                document.getElementById("execute-status");
+                            executeStatusElem.textContent =
+                                "Query execution error: " + error;
+                            executeStatusElem.style.color = "#ff8080";
+                            console.error("Query execution error:", error);
+                        });
+                });
+            // Graph Informationの更新ボタンにイベントリスナーを追加
+            document
+                .getElementById("refresh-graph-info")
+                .addEventListener("click", function () {
+                    loadGraphInfo();
+                });
+
+            // Render node/edge details in a table
+            function renderDetails(data) {
+                let detailsDiv = document.getElementById("details-content");
+                let html = "<table>";
+                for (let key in data) {
+                    let value = data[key];
+                    if (typeof value === "object") {
+                        value =
+                            "<pre>" + JSON.stringify(value, null, 2) + "</pre>";
+                    }
+                    html += `<tr><td>${key}</td><td>${value}</td></tr>`;
+                }
+                html += "</table>";
+                detailsDiv.innerHTML = html;
+            }
+
+            // Render the graph with Cytoscape and update Table/JSON tabs
+            function renderGraph(data) {
+                let elements = [];
+
+                if (data.nodes && Array.isArray(data.nodes)) {
+                    data.nodes.forEach((node) => {
+                        let color = stringToColor(node.label || "default");
+                        elements.push({
+                            data: {
+                                id:
+                                    node.id ||
+                                    node.label ||
+                                    JSON.stringify(node),
+                                label: node.label || JSON.stringify(node),
+                                color: color,
+                                properties: node.properties,
+                            },
+                        });
+                    });
+                }
+
+                if (data.edges && Array.isArray(data.edges)) {
+                    data.edges.forEach((edge, index) => {
+                        let edgeId = edge.id ? edge.id : "e" + index;
+                        elements.push({
+                            data: {
+                                id: edgeId,
+                                source: edge.source,
+                                target: edge.target,
+                                label: edge.label || "",
+                                properties: edge.properties,
+                            },
+                        });
+                    });
+                }
+
+                // Cytoscapeグラフの描画（Graphタブ）
+                var cy = cytoscape({
+                    container: document.getElementById("cy"),
+                    elements: elements,
+                    style: [
+                        {
+                            selector: "node",
+                            style: {
+                                "background-color": "data(color)",
+                                label: "data(label)",
+                                color: "#fff",
+                                "font-size": "10px",
+                                "text-valign": "center",
+                                "text-halign": "center",
+                            },
+                        },
+                        {
+                            selector: "edge",
+                            style: {
+                                width: 2,
+                                "line-color": "#aaa",
+                                "target-arrow-color": "#aaa",
+                                "target-arrow-shape": "triangle",
+                                "curve-style": "bezier",
+                                label: "data(label)",
+                                color: "#fff",
+                                "font-size": "10px",
+                                "text-rotation": "autorotate",
+                            },
+                        },
+                    ],
+                    layout: { name: "cose", animate: true },
+                });
+
+                cy.on("tap", "node", function (evt) {
+                    renderDetails(evt.target.data());
+                });
+                cy.on("tap", "edge", function (evt) {
+                    renderDetails(evt.target.data());
+                });
+
+                // Tableタブの内容更新：ノードとエッジをそれぞれ表で表示
+                let tableHtml =
+                    "<h4>Nodes</h4><table style='width:100%; border-collapse: collapse; color:#d1d1d1;'><thead><tr><th style='border:1px solid #444; padding:8px;'>ID</th><th style='border:1px solid #444; padding:8px;'>Label</th></tr></thead><tbody>";
+                if (data.nodes && Array.isArray(data.nodes)) {
+                    data.nodes.forEach((node) => {
+                        tableHtml += `<tr><td style='border:1px solid #444; padding:8px;'>${node.id || ""}</td><td style='border:1px solid #444; padding:8px;'>${node.label || ""}</td></tr>`;
+                    });
+                }
+                tableHtml += "</tbody></table>";
+
+                tableHtml +=
+                    "<h4>Edges</h4><table style='width:100%; border-collapse: collapse; color:#d1d1d1;'><thead><tr><th style='border:1px solid #444; padding:8px;'>ID</th><th style='border:1px solid #444; padding:8px;'>Source</th><th style='border:1px solid #444; padding:8px;'>Target</th><th style='border:1px solid #444; padding:8px;'>Label</th></tr></thead><tbody>";
+                if (data.edges && Array.isArray(data.edges)) {
+                    data.edges.forEach((edge, index) => {
+                        let edgeId = edge.id ? edge.id : "e" + index;
+                        tableHtml += `<tr><td style='border:1px solid #444; padding:8px;'>${edgeId}</td><td style='border:1px solid #444; padding:8px;'>${edge.source}</td><td style='border:1px solid #444; padding:8px;'>${edge.target}</td><td style='border:1px solid #444; padding:8px;'>${edge.label || ""}</td></tr>`;
+                    });
+                }
+                tableHtml += "</tbody></table>";
+                document.getElementById("tab-table").innerHTML = tableHtml;
+
+                // JSONタブの内容更新：受信したデータを整形して表示
+                document.getElementById("tab-json").innerHTML =
+                    "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            }
+
+            // タブ切り替え処理
+            document.querySelectorAll(".tab-button").forEach((button) => {
+                button.addEventListener("click", () => {
+                    // 全てのタブボタンからactiveクラスを削除し、全てのタブコンテンツを非表示にする
+                    document
+                        .querySelectorAll(".tab-button")
+                        .forEach((btn) => btn.classList.remove("active"));
+                    document
+                        .querySelectorAll(".tab-content")
+                        .forEach((tab) => (tab.style.display = "none"));
+
+                    // クリックされたボタンにactiveクラスを追加し、対応するタブを表示
+                    button.classList.add("active");
+                    const tabId = button.getAttribute("data-tab");
+                    document.getElementById("tab-" + tabId).style.display =
+                        "block";
+                });
+            });
+
+            // Load graph information for dropdown and table
+            function loadGraphInfo() {
+                fetch("/api/graph_info")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const selectElem =
+                            document.getElementById("graph-name");
+                        selectElem.innerHTML = "";
+                        data.forEach((graph) => {
+                            const option = document.createElement("option");
+                            option.value = graph.graph_name;
+                            option.textContent = graph.graph_name;
+                            selectElem.appendChild(option);
+                        });
+                        const tbody = document.querySelector(
+                            "#graph-info-table tbody",
+                        );
+                        tbody.innerHTML = "";
+                        data.forEach((graph) => {
+                            let nodeInfo = "";
+                            graph.nodes.forEach((node) => {
+                                nodeInfo += `${node.name} (${node.count !== null ? node.count : "N/A"})<br/>`;
+                            });
+                            let edgeInfo = "";
+                            graph.edges.forEach((edge) => {
+                                edgeInfo += `${edge.name} (${edge.count !== null ? edge.count : "N/A"})<br/>`;
+                            });
+                            const row = document.createElement("tr");
+                            row.innerHTML = `<td>${graph.graph_name}</td><td>${nodeInfo}</td><td>${edgeInfo}</td>`;
+                            tbody.appendChild(row);
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Graph info fetch error:", error);
+                    });
+            }
+
+            // ページ読み込み時に接続状態を確認（未接続の場合はモーダル表示）
+            window.addEventListener("load", function () {
+                fetch("/api/connection_status")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.status === "connected") {
+                            updateConnectionHeader(
+                                data.connection_info,
+                                data.status,
+                            );
+                            document.getElementById(
+                                "connection-modal",
+                            ).style.display = "none";
+                            document.getElementById(
+                                "main-container",
+                            ).style.display = "block";
+                            loadGraphInfo();
+                        }
+                    })
+                    .catch((error) =>
+                        console.error("Connection status error:", error),
+                    );
+            });
+        </script>
+    </body>
+</html>
