@@ -78,7 +78,7 @@ uv init your_project
 cd your_project
 uv venv
 source .venv/bin/activate
-uv add agefreighter==1.0.0a4
+uv add agefreighter==1.0.0a5
 ```
 
 - with python venv on macOS / Linux
@@ -88,7 +88,7 @@ mkdir your_project
 cd your_project
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install agefreighter==1.0.0a4
+python3 -m pip install agefreighter==1.0.0a5
 ```
 
 - with python venv on Windows
@@ -98,7 +98,7 @@ mkdir your_project
 cd your_project
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install agefreighter==1.0.0a4
+python -m pip install agefreighter==1.0.0a5
 ```
 
 ## Usage
