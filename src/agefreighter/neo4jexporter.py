@@ -252,37 +252,18 @@ class Neo4jExporter(AgeFreighter):
             labels = self.get_labels()
 
         for label in labels:
-            attempts = 0
-            while True:
-                attempts += 1
-                try:
-                    # Create the vertex label in AGE
-                    await self.create_label_type(label_type="vertex", value=label)
-                    break
-                except Exception as e:
-                    if attempts >= self.max_attempts:
-                        log.error(
-                            "Max attempts reached for creating node label '%s'", label
-                        )
-                        sys.exit(1)
-                    log.error("Error creating label '%s': %s", label, e)
-                    await asyncio.sleep(self.retry_delay)
+            try:
+                # Create the vertex label in AGE
+                await self.create_label_type(label_type="vertex", value=label)
+            except Exception as e:
+                log.error("Error creating label '%s': %s", label, e)
+                sys.exit(1)
 
-            attempts = 0
-            while True:
-                attempts += 1
-                try:
-                    first_id = await self.get_first_id(self.graph_name, label)
-                    break
-                except Exception as e:
-                    if attempts >= self.max_attempts:
-                        log.error(
-                            "Max attempts reached for getting first ID for label '%s'",
-                            label,
-                        )
-                        sys.exit(1)
-                    log.error("Error getting first ID for label '%s': %s", label, e)
-                    await asyncio.sleep(self.retry_delay)
+            try:
+                first_id = await self.get_first_id(self.graph_name, label)
+            except Exception as e:
+                log.error("Error getting first ID for label '%s': %s", label, e)
+                sys.exit(1)
 
             count = (
                 len(combined_nodes.get(label, []))
@@ -369,37 +350,20 @@ class Neo4jExporter(AgeFreighter):
         edge_args: Dict[str, Dict[str, Any]] = {}
         types = self.get_relationship_types()
         for rel_type in types:
-            attempts = 0
-            while True:
-                attempts += 1
-                try:
-                    # Create the edge label in AGE
-                    await self.create_label_type(label_type="edge", value=rel_type)
-                    break
-                except Exception as e:
-                    if attempts >= self.max_attempts:
-                        log.error(
-                            "Max attempts reached for creating edge type '%s'", rel_type
-                        )
-                        sys.exit(1)
-                    log.exception("Error creating edge type '%s': %s", rel_type, e)
-                    await asyncio.sleep(self.retry_delay)
-            while True:
-                attempts += 1
-                try:
-                    first_id = await self.get_first_id(self.graph_name, rel_type)
-                    break
-                except Exception as e:
-                    if attempts >= self.max_attempts:
-                        log.error(
-                            "Max attempts reached for getting first ID for edge type '%s'",
-                            rel_type,
-                        )
-                        sys.exit(1)
-                    log.exception(
-                        "Error getting first ID for edge type '%s': %s", rel_type, e
-                    )
-                    await asyncio.sleep(self.retry_delay)
+            try:
+                # Create the edge label in AGE
+                await self.create_label_type(label_type="edge", value=rel_type)
+            except Exception as e:
+                log.exception("Error creating edge type '%s': %s", rel_type, e)
+                sys.exit(1)
+
+            try:
+                first_id = await self.get_first_id(self.graph_name, rel_type)
+            except Exception as e:
+                log.exception(
+                    "Error getting first ID for edge type '%s': %s", rel_type, e
+                )
+                sys.exit(1)
             count = self._count_edges(rel_type)
             if self.trial:
                 count = min(count, self.no_of_edges_trial)
@@ -447,6 +411,8 @@ class Neo4jExporter(AgeFreighter):
                     "csv_path": file_path,
                     "next_val": str(len(all_data)),
                 }
+            except KeyError:
+                log.error("Edge '%s' must include incomplete data.", rel_type)
             except Exception as e:
                 log.exception("Error exporting edges for '%s': %s", rel_type, e)
         return edge_args

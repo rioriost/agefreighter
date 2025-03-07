@@ -519,9 +519,6 @@ async def async_main() -> None:
                         log.error("An error occurred during export: %s", e)
                         sys.exit(1)
                 case "pgsql":
-                    raise NotImplementedError(
-                        "PostgreSQL export is not yet implemented"
-                    )
                     if not (args.src_pg_con_str):
                         log.error(
                             "SRC_PG_CON_STR not set. Set via environment variable or argument."

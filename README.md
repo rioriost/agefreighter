@@ -749,8 +749,8 @@ postgres=> select * from air_route.route limit 1;
 ## Release Notes
 
 ### 1.0.0a4 Release
+- Fixed potential issues with data integrity.
 - Fixed documents.
-- Changed from argcomplete to click.
 
 ### 1.0.0a3 Release
 - Fixed documents.

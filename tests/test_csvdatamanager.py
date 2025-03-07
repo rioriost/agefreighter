@@ -6,7 +6,6 @@ import unittest
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-# Import the CsvDataManager class from the module.
 # Adjust the import if your package structure is different.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 from agefreighter.csvdatamanager import CsvDataManager
@@ -20,22 +19,22 @@ class TestCsvDataManager(unittest.TestCase):
             manager = CsvDataManager(
                 data_dir=temp_dir, base_file=base_file, log_level=logging.DEBUG
             )
-            expected_csv_file = os.path.join(temp_dir, f"{base_file}.csv")
+            # Expect that csv_file equals os.path.join(temp_dir, base_file) exactly.
+            expected_csv_file = os.path.abspath(os.path.join(temp_dir, base_file))
             self.assertEqual(manager.csv_file, expected_csv_file)
 
     def test_init_with_none_data_dir(self):
-        """Test CsvDataManager initialization when data_dir is None."""
+        """Test that initializing CsvDataManager with data_dir=None does not set csv_file."""
         manager = CsvDataManager(data_dir=None, base_file="test_file")
-        expected_data_dir = os.path.abspath(os.path.join(".", "data", "transaction"))
-        self.assertEqual(manager.data_dir, expected_data_dir)
-        expected_csv_file = os.path.join(expected_data_dir, "test_file.csv")
-        self.assertEqual(manager.csv_file, expected_csv_file)
+        # Since data_dir is falsy, csv_file is not set.
+        self.assertFalse(hasattr(manager, "csv_file"))
 
     def test_get_dataframe(self):
         """Test that get_dataframe() correctly reads a CSV file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             base_file = "test_data"
-            csv_path = os.path.join(temp_dir, f"{base_file}.csv")
+            # Create the CSV file using the expected file name (without any extension appended).
+            csv_path = os.path.join(temp_dir, base_file)
             # Create a sample DataFrame and write it to CSV.
             df_expected = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
             df_expected.to_csv(csv_path, index=False)

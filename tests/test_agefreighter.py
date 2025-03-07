@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import shutil
+import sys
 import tempfile
 import unittest
 import logging
-import sys
+from io import StringIO
 
 import numpy as np
 import aiofiles
@@ -16,7 +18,7 @@ from unittest.mock import AsyncMock, patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 # Import the class and constants to be tested
-from agefreighter.agefreighter import AgeFreighter
+from agefreighter.agefreighter import AgeFreighter, RED, BOLD, RESET
 
 
 # --- Dummy Classes for Async Simulation ---
@@ -243,7 +245,7 @@ class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
         dummy_pool = DummyPool()
         dummy_pool.cursor_obj = dummy_cursor
         instance.con_pool = dummy_pool
-        with self.assertRaises(ValueError):
+        with self.assertRaises(SystemExit):
             await instance.get_first_id("testgraph", "label")
 
     # Test write_csv
@@ -284,6 +286,46 @@ class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await instance.write_csv("TestLabel", "invalid", data)
 
+    async def test_write_csv_with_tab_replacement(self):
+        """
+        Test that when a property value contains a tab character, an extra CSV file
+        is created in a "tab_replaced_YYYYMMDD_HHMMSS" directory and a message is printed.
+        """
+        old_cwd = os.getcwd()
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                os.chdir(tmpdir)
+                instance = AgeFreighter(output_dir=tmpdir)
+                # Create a record with a tab in its property value.
+                data = [{"id": 1, "properties": {"a": "value\twith_tab"}}]
+                # Capture stdout to check the printed message.
+                captured_output = StringIO()
+                sys_stdout = sys.stdout
+                sys.stdout = captured_output
+                file_path = await instance.write_csv("TestTab", "v", data)
+                sys.stdout = sys_stdout
+
+                # Ensure the main CSV file exists.
+                self.assertTrue(os.path.exists(file_path))
+
+                # Check that the printed output contains the expected message.
+                output = captured_output.getvalue()
+                self.assertIn(
+                    "Tab replacement occurred. Additional rows have been output to:",
+                    output,
+                )
+
+                # Extract the tab file path from the printed message.
+                match = re.search(r"output to: (.*)" + re.escape(RESET), output)
+                self.assertIsNotNone(
+                    match, "Tab replacement file path not found in output."
+                )
+                tab_file_path = match.group(1).strip()
+                # Verify that the tab-replaced file exists.
+                self.assertTrue(os.path.exists(tab_file_path))
+        finally:
+            os.chdir(old_cwd)
+
     # Test copy() and _copy()
     async def test_copy_missing_parameters(self):
         instance = AgeFreighter()
@@ -292,7 +334,7 @@ class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
         instance.graph_name = "graph"
         with self.assertRaises(ValueError):
             await instance.copy()
-        # Now supply vertices with the updated key "next_val" instead of "original_id"
+        # Now supply vertices (with "next_val") but leave edges missing.
         instance.vertices = {"v": {"csv_path": "dummy", "next_val": 1}}
         with self.assertRaises(ValueError):
             await instance.copy()
@@ -304,7 +346,7 @@ class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
             tmp_name = tmp.name
         try:
             instance = AgeFreighter(dsn="dummy", graph_name="graph")
-            # Use the new key "next_val" in both vertices and edges
+            # Use the new key "next_val" in both vertices and edges.
             instance.vertices = {"v": {"csv_path": tmp_name, "next_val": 1}}
             instance.edges = {"e": {"csv_path": tmp_name, "next_val": 1}}
             # Use our updated DummyPool.
@@ -319,7 +361,7 @@ class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
         instance = AgeFreighter(dsn="dummy", graph_name="graph")
         dummy_pool = DummyPool()
         instance.con_pool = dummy_pool
-        # Pass a valid numeric next_val instead of a string
+        # Pass an invalid kind to trigger ValueError.
         with self.assertRaises(ValueError):
             await instance._copy("graph", "dummy.csv", "id", 1, kind="invalid")
 
@@ -327,7 +369,7 @@ class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
         instance = AgeFreighter(dsn="dummy", graph_name="graph")
         dummy_pool = DummyPool()
         instance.con_pool = dummy_pool
-        # Use a valid numeric next_val and non-existent file to trigger an exception.
+        # Using a non-existent file should trigger an exception due to file read failure.
         with self.assertRaises(Exception):
             await instance._copy("graph", "non_existent_file.csv", "id", 1, kind="v")
 
@@ -338,7 +380,7 @@ class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
         with patch(
             "agefreighter.agefreighter.AsyncConnectionPool",
             return_value=DummyPoolForConnect(fail_attempts=2),
-        ) as mock_pool:
+        ):
             await instance.connect(max_connections=10, min_connections=2)
             self.assertIsNotNone(instance.con_pool)
 
@@ -348,7 +390,7 @@ class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
         with patch(
             "agefreighter.agefreighter.AsyncConnectionPool",
             return_value=DummyPoolForConnect(always_fail=True),
-        ) as mock_pool:
+        ):
             with self.assertRaises(PoolTimeout):
                 await instance.connect(max_connections=10, min_connections=2)
 
@@ -364,7 +406,7 @@ class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
     async def test_async_context_manager(self):
         instance = AgeFreighter(dsn="dummy")
         instance.connect = AsyncMock()
-        # Patch the connection pool's close method instead of instance.close
+        # Patch the connection pool's close method instead of instance.close.
         instance.con_pool = AsyncMock()
         async with instance as af:
             instance.connect.assert_called_once()

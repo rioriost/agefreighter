@@ -282,10 +282,19 @@ class AgeFreighter:
                     log.info("Finished COPY for '%s'.", csv_path)
                 except Exception as e:
                     log.error("Error during COPY from file '%s': %s", csv_path, e)
-                    raise
+                    await self._put_errored_records(label_name, data)
                 query = f'SELECT setval(\'"{self.graph_name}"."{label_name}_id_seq"\', {next_val}, true)'
                 await cur.execute(query)
                 await cur.execute("COMMIT")
+
+    async def _put_errored_records(self, label_name: str, data: str) -> None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        error_dir = os.path.join(os.getcwd(), "errored")
+        if not os.path.exists(error_dir):
+            os.makedirs(error_dir)
+        error_file = os.path.join(error_dir, f"{label_name}_{timestamp}.txt")
+        with open(error_file, "a") as file:
+            file.write(data)
 
     @staticmethod
     def extract_unique_keys(data: List[Dict[str, Any]]) -> Set[str]:
@@ -472,26 +481,37 @@ class AgeFreighter:
         assert self.con_pool is not None, "Connection pool is not initialized."
         async with self.con_pool.connection() as conn:
             async with conn.cursor() as cur:
-                try:
-                    relation = f'{quoted_graph}."{label_type}"'
-                    query = SQL(
-                        "SELECT id FROM ag_label WHERE relation = {}::regclass;"
-                    ).format(Literal(relation))
-                    await cur.execute(query)
-                    row = await cur.fetchone()
-                    if row is None:
-                        raise ValueError("No row returned; check your query or data.")
-                    ENTRY_ID_BITS = 32 + 16
-                    ENTRY_ID_MASK = np.uint64(0x0000FFFFFFFFFFFF)
-                    first_id = ((np.uint64(row[0])) << ENTRY_ID_BITS) | (
-                        np.uint64(1) & ENTRY_ID_MASK
-                    )
-                    return int(first_id)
-                except Exception as e:
-                    log.error(
-                        "Error getting first ID for label '%s': %s", label_type, e
-                    )
-                    raise
+                attempts = 0
+                while True:
+                    attempts += 1
+                    try:
+                        relation = f'{quoted_graph}."{label_type}"'
+                        query = SQL(
+                            "SELECT id FROM ag_label WHERE relation = {}::regclass;"
+                        ).format(Literal(relation))
+                        await cur.execute(query)
+                        row = await cur.fetchone()
+                        if row is None:
+                            raise ValueError(
+                                "No row returned; check your query or data."
+                            )
+                        ENTRY_ID_BITS = 32 + 16
+                        ENTRY_ID_MASK = np.uint64(0x0000FFFFFFFFFFFF)
+                        first_id = ((np.uint64(row[0])) << ENTRY_ID_BITS) | (
+                            np.uint64(1) & ENTRY_ID_MASK
+                        )
+                        return int(first_id)
+                    except Exception as e:
+                        if attempts >= self.max_attempts:
+                            log.error(
+                                "Max attempts reached for getting first ID for label '%s'",
+                                label_type,
+                            )
+                            sys.exit(1)
+                        log.error(
+                            "Error getting first ID for label '%s': %s", label_type, e
+                        )
+                        await asyncio.sleep(self.retry_delay)
 
     async def write_csv(self, label: str, kind: str, data: List[Dict[str, Any]]) -> str:
         """

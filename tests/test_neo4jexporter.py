@@ -187,7 +187,7 @@ class TestNeo4jExporter(unittest.IsolatedAsyncioTestCase):
 
     def test_count_nodes_no_label(self):
         def query_handler(query: str, **kwargs):
-            self.assertTrue("size(labels(n)) = 0" in query)
+            self.assertIn("size(labels(n)) = 0", query)
             return DummyResult([{"cnt": 5}])
 
         self.exporter.driver = DummyDriver(lambda: DummySession(query_handler))
@@ -196,7 +196,7 @@ class TestNeo4jExporter(unittest.IsolatedAsyncioTestCase):
 
     def test_count_nodes_list(self):
         def query_handler(query: str, **kwargs):
-            self.assertTrue("ANY(lbl IN labels(n)" in query)
+            self.assertIn("ANY(lbl IN labels(n)", query)
             return DummyResult([{"cnt": 7}])
 
         self.exporter.driver = DummyDriver(lambda: DummySession(query_handler))
