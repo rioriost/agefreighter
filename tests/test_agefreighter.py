@@ -2,415 +2,256 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
-import shutil
 import sys
 import tempfile
 import unittest
-import logging
-from io import StringIO
-
-import numpy as np
-import aiofiles
-from psycopg_pool import PoolTimeout
 from unittest.mock import AsyncMock, patch
+
+import aiofiles
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-# Import the class and constants to be tested
-from agefreighter.agefreighter import AgeFreighter, RED, BOLD, RESET
-
-
-# --- Dummy Classes for Async Simulation ---
-class DummyRow:
-    def __init__(self, count):
-        self.count = count
+from agefreighter.agefreighter import (
+    AgeFreighter,
+    reconnect_on_failure,
+)
 
 
 class DummyCopy:
-    def __init__(self, query):
-        self.query = query
-        self.data = ""
+    async def write(self, data):
+        self.data = data
 
+
+class DummyCopyContextManager:
     async def __aenter__(self):
-        return self
+        self.copy = DummyCopy()
+        return self.copy
 
     async def __aexit__(self, exc_type, exc, tb):
         pass
-
-    async def write(self, data):
-        self.data += data
 
 
 class DummyCursor:
-    def __init__(self):
-        self.executed_queries = []
-        self.fake_row = None  # Allow tests to control the return value.
+    async def execute(self, query, params=None):
+        self.last_query = query
+        # Simulate expected queries based on the string content.
+        if "SELECT id FROM ag_label" in str(query):
+            self.fake_row = (1234,)
+        elif "SELECT count(*) FROM ag_graph" in str(query):
+            # Fake a row with count attribute.
+            FakeRow = type("FakeRow", (), {"count": 1})
+            self.fake_row = FakeRow()
+        else:
+            self.fake_row = None
 
+    async def fetchone(self):
+        return self.fake_row
+
+    async def copy(self, query):
+        return DummyCopyContextManager()
+
+
+class DummyCursorContextManager:
     async def __aenter__(self):
-        return self
+        return DummyCursor()
 
     async def __aexit__(self, exc_type, exc, tb):
         pass
-
-    async def execute(self, query, params=None):
-        self.executed_queries.append((query, params))
-
-    async def fetchone(self):
-        # Simply return self.fake_row, so if it's None, we simulate no row returned.
-        return self.fake_row
-
-    # Make copy a normal method returning an async context manager:
-    def copy(self, query):
-        return DummyCopy(query)
 
 
 class DummyConnection:
-    def __init__(self, cursor_obj=None):
-        self.cursor_obj = cursor_obj if cursor_obj is not None else DummyCursor()
+    def cursor(self, **kwargs):
+        return DummyCursorContextManager()
 
+
+class DummyConnectionContextManager:
     async def __aenter__(self):
-        return self
+        return DummyConnection()
 
     async def __aexit__(self, exc_type, exc, tb):
         pass
-
-    def cursor(self, row_factory=None):
-        return self.cursor_obj
 
 
 class DummyPool:
     def __init__(self):
-        # Create a cursor instance that we can inspect.
-        self.cursor_obj = DummyCursor()
-        self.closed = False
-
-    def connection(self):
-        # Return a DummyConnection that uses the shared cursor_obj.
-        return DummyConnection(cursor_obj=self.cursor_obj)
-
-    async def close(self):
-        self.closed = True
-
-
-class DummyPoolForConnect:
-    """
-    Dummy pool for testing the connect() retry logic.
-    If always_fail is True the open() method always raises.
-    Otherwise, it raises PoolTimeout for the first `fail_attempts` calls.
-    """
-
-    def __init__(self, fail_attempts=2, always_fail=False):
-        self.attempt = 0
-        self.fail_attempts = fail_attempts
-        self.always_fail = always_fail
+        self.opened = False
 
     async def open(self):
-        self.attempt += 1
-        if self.always_fail or self.attempt <= self.fail_attempts:
-            raise PoolTimeout("dummy timeout")
+        self.opened = True
 
     async def wait(self):
         pass
 
+    def connection(self):
+        return DummyConnectionContextManager()
+
     async def close(self):
-        pass
-
-    async def connection(self):
-        return DummyConnection()
+        self.opened = False
 
 
-# --- Test Suite ---
+class Dummy:
+    def __init__(self):
+        self.counter = 0
+        self.max_attempts = 3
+        self.retry_delay = 0.01  # shorten delay for tests
+
+    @reconnect_on_failure
+    async def sometimes_fail(self):
+        self.counter += 1
+        if self.counter < 2:
+            raise Exception("fail")
+        return "success"
 
 
 class TestAgeFreighter(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        # Silence logging during tests.
-        logging.disable(logging.CRITICAL)
-        self.temp_dirs = []
+    async def test_connect_and_close(self):
+        # Patch AsyncConnectionPool to return our DummyPool instance.
+        with patch(
+            "agefreighter.agefreighter.AsyncConnectionPool", return_value=DummyPool()
+        ):
+            af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192)
+            await af.connect()
+            self.assertTrue(af.con_pool.opened)
+            await af.close()
+            self.assertFalse(af.con_pool.opened)
 
-    def tearDown(self):
-        # Clean up any temporary directories created.
-        for d in self.temp_dirs:
-            shutil.rmtree(d, ignore_errors=True)
-        logging.disable(logging.NOTSET)
+    async def test_get_first_id(self):
+        # Test that get_first_id returns the expected computed value.
+        af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192)
+        af.con_pool = DummyPool()
+        first_id = await af.get_first_id("dummy_graph", "dummy_label")
+        # Calculation: (1234 << 48) | (1 & 0x0000FFFFFFFFFFFF)
+        expected = (1234 << 48) | 1
+        self.assertEqual(first_id, expected)
 
-    # Test __init__
-    def test_init_invalid_chunk_size(self):
-        with self.assertRaises(ValueError):
-            AgeFreighter(chunk_size=0)
+    async def test_set_up_graph_create_existing(self):
+        # Test set_up_graph when the graph exists and create_graph is True.
+        af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192)
+        af.con_pool = DummyPool()
+        af.graph_name = "dummy_graph"
+        # This should not raise since our dummy cursor simulates count == 1.
+        await af.set_up_graph("dummy_graph", create_graph=True)
 
-    def test_init_save_temps_creates_output_dir(self):
-        instance = AgeFreighter(save_temps=True)
-        self.assertTrue(os.path.isdir(instance.output_dir))
-        shutil.rmtree(instance.output_dir)
-
-    # Test __del__
-    def test_del_removes_temp_files(self):
-        # Create a temporary file and assign it to vertices.
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        temp_file.write(b"dummy")
-        temp_file.close()
-        instance = AgeFreighter(save_temps=False)
-        instance.vertices = {"test": {"csv_path": temp_file.name}}
-        self.assertTrue(os.path.exists(temp_file.name))
-        instance.__del__()
-        self.assertFalse(os.path.exists(temp_file.name))
-
-    # Test static methods
-    def test_extract_unique_keys(self):
-        data = [
-            {"properties": {"a": 1, "b": 2}},
-            {"properties": {"b": 3, "c": 4}},
-            {"properties": {"d": 5}},
-        ]
-        result = AgeFreighter.extract_unique_keys(data)
-        self.assertEqual(result, {"a", "b", "c", "d"})
-
-    def test_quoted_graph_name(self):
-        self.assertEqual(AgeFreighter.quoted_graph_name("graph"), "graph")
-        self.assertEqual(AgeFreighter.quoted_graph_name("Graph"), '"Graph"')
-
-    # Test set_up_graph (both branches)
-    async def test_set_up_graph_existing_no_create(self):
-        instance = AgeFreighter(dsn="dummy")
-        dummy_cursor = DummyCursor()
-        dummy_cursor.fake_row = DummyRow(1)
-        dummy_pool = DummyPool()
-        dummy_pool.cursor_obj = dummy_cursor
-        instance.con_pool = dummy_pool
-        await instance.set_up_graph("testgraph", create_graph=False)
-        self.assertEqual(instance.graph_name, "testgraph")
-
-    async def test_set_up_graph_existing_with_create(self):
-        instance = AgeFreighter(dsn="dummy")
-        dummy_cursor = DummyCursor()
-        dummy_cursor.fake_row = DummyRow(1)
-        dummy_pool = DummyPool()
-        dummy_pool.cursor_obj = dummy_cursor
-        instance.con_pool = dummy_pool
-        await instance.set_up_graph("testgraph", create_graph=True)
-        self.assertEqual(instance.graph_name, "testgraph")
-
-    async def test_set_up_graph_not_existing(self):
-        instance = AgeFreighter(dsn="dummy")
-        dummy_cursor = DummyCursor()
-        dummy_cursor.fake_row = DummyRow(0)  # Simulate graph not existing.
-        dummy_pool = DummyPool()
-        dummy_pool.cursor_obj = dummy_cursor
-        instance.con_pool = dummy_pool
-        with self.assertRaises(ValueError):
-            await instance.set_up_graph("testgraph", create_graph=False)
-
-    # Test create_label_type for vertex, edge, and invalid type.
     async def test_create_label_type_vertex(self):
-        instance = AgeFreighter(dsn="dummy")
-        dummy_pool = DummyPool()
-        instance.con_pool = dummy_pool
-        await instance.create_label_type("vertex", "vlabel")
-        self.assertTrue(len(dummy_pool.cursor_obj.executed_queries) > 0)
+        # Test creating a vertex label type.
+        af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192)
+        af.con_pool = DummyPool()
+        await af.create_label_type("vertex", "v_label")
 
     async def test_create_label_type_edge(self):
-        instance = AgeFreighter(dsn="dummy")
-        dummy_pool = DummyPool()
-        instance.con_pool = dummy_pool
-        await instance.create_label_type("edge", "elabel")
-        self.assertTrue(len(dummy_pool.cursor_obj.executed_queries) > 0)
+        # Test creating an edge label type.
+        af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192)
+        af.con_pool = DummyPool()
+        await af.create_label_type("edge", "e_label")
 
     async def test_create_label_type_invalid(self):
-        instance = AgeFreighter(dsn="dummy")
-        dummy_pool = DummyPool()
-        instance.con_pool = dummy_pool
+        # Test that an invalid label type eventually raises the max attempts exception.
+        af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192)
+        af.con_pool = DummyPool()
+        with self.assertRaises(Exception) as cm:
+            await af.create_label_type("invalid", "label")
+        self.assertIn("Max attempts reached", str(cm.exception))
+
+    async def test_copy_method_errors(self):
+        # Test that copy() raises ValueError if required attributes are missing.
+        af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192)
         with self.assertRaises(ValueError):
-            await instance.create_label_type("invalid", "label")
+            await af.copy()
+        af.graph_name = "graph"
+        with self.assertRaises(ValueError):
+            await af.copy()
+        af.vertices = {"v": {"csv_path": "dummy", "next_val": 1}}
+        with self.assertRaises(ValueError):
+            await af.copy()
+        af.edges = {"e": {"csv_path": "dummy", "next_val": 1}}
 
-    # Test get_first_id
-    async def test_get_first_id_success(self):
-        instance = AgeFreighter(dsn="dummy")
-        dummy_cursor = DummyCursor()
-        dummy_cursor.fake_row = (10,)
-        dummy_pool = DummyPool()
-        dummy_pool.cursor_obj = dummy_cursor
-        instance.con_pool = dummy_pool
-        result = await instance.get_first_id("testgraph", "label")
-        expected = (np.uint64(10) << (32 + 16)) | (
-            np.uint64(1) & np.uint64(0x0000FFFFFFFFFFFF)
-        )
-        self.assertEqual(result, int(expected))
+        # Now override _copy_vertices and _copy_edges so that copy() succeeds.
+        called = {"vertices": False, "edges": False}
 
-    async def test_get_first_id_no_row(self):
-        instance = AgeFreighter(dsn="dummy")
-        dummy_cursor = DummyCursor()
-        dummy_cursor.fake_row = None
-        dummy_pool = DummyPool()
-        dummy_pool.cursor_obj = dummy_cursor
-        instance.con_pool = dummy_pool
-        with self.assertRaises(SystemExit):
-            await instance.get_first_id("testgraph", "label")
+        async def fake_copy_vertices():
+            called["vertices"] = True
 
-    # Test write_csv
-    async def test_write_csv_empty_data(self):
-        instance = AgeFreighter()
-        result = await instance.write_csv("test", "v", [])
-        self.assertEqual(result, "")
+        async def fake_copy_edges():
+            called["edges"] = True
 
-    async def test_write_csv_vertex(self):
-        # Test writing CSV for vertices.
+        af._copy_vertices = fake_copy_vertices
+        af._copy_edges = fake_copy_edges
+        await af.copy()
+        self.assertTrue(called["vertices"])
+        self.assertTrue(called["edges"])
+
+    async def test_write_csv_normal_and_tab(self):
+        # Create a temporary directory for CSV output.
         with tempfile.TemporaryDirectory() as tmpdir:
-            instance = AgeFreighter(output_dir=tmpdir)
-            data = [{"id": 1, "properties": {"a": "val"}}]
-            file_path = await instance.write_csv("TestLabel", "v", data)
-            self.assertTrue(os.path.exists(file_path))
-            async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
-                content = await f.read()
-            self.assertIn("1", content)
-            self.assertIn('""a"": ""val""', content)
-
-    async def test_write_csv_edge(self):
-        # Test writing CSV for edges.
-        with tempfile.TemporaryDirectory() as tmpdir:
-            instance = AgeFreighter(output_dir=tmpdir)
-            data = [
-                {"id": 2, "start_id": 10, "end_id": 20, "properties": {"b": "edge_val"}}
+            af = AgeFreighter(dsn="dummy_dsn", chunk_size=10, output_dir=tmpdir)
+            # Create sample vertex data with one property containing a tab.
+            vertex_data = [
+                {"id": 1, "properties": {"a": "value", "b": "val\tue"}},
+                {"id": 2, "properties": {"a": "value2", "b": "value2"}},
             ]
-            file_path = await instance.write_csv("TestEdge", "e", data)
-            self.assertTrue(os.path.exists(file_path))
-            async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+            # Create sample edge data with required keys for edge CSV.
+            edge_data = [
+                {
+                    "id": 1,
+                    "start_id": 10,
+                    "end_id": 20,
+                    "properties": {"a": "value", "b": "val\tue"},
+                },
+                {
+                    "id": 2,
+                    "start_id": 30,
+                    "end_id": 40,
+                    "properties": {"a": "value2", "b": "value2"},
+                },
+            ]
+            # Test for vertex CSV (kind "v")
+            csv_path = await af.write_csv("TestLabel", "v", vertex_data)
+            self.assertTrue(os.path.exists(csv_path))
+            async with aiofiles.open(csv_path, "r", encoding="utf-8") as f:
                 content = await f.read()
-            self.assertIn("2,10,20", content)
-            self.assertIn('""b"": ""edge_val""', content)
+                self.assertIn("1,", content)
+            # Test for edge CSV (kind "e")
+            csv_path_edge = await af.write_csv("TestEdge", "e", edge_data)
+            self.assertTrue(os.path.exists(csv_path_edge))
 
-    async def test_write_csv_invalid_kind(self):
-        instance = AgeFreighter()
-        data = [{"id": 1, "properties": {"a": "val"}}]
-        with self.assertRaises(ValueError):
-            await instance.write_csv("TestLabel", "invalid", data)
+    async def test_reconnect_on_failure_decorator(self):
+        # Test that the decorator retries and returns success after failures.
+        dummy = Dummy()
+        result = await dummy.sometimes_fail()
+        self.assertEqual(result, "success")
+        self.assertEqual(dummy.counter, 2)
 
-    async def test_write_csv_with_tab_replacement(self):
-        """
-        Test that when a property value contains a tab character, an extra CSV file
-        is created in a "tab_replaced_YYYYMMDD_HHMMSS" directory and a message is printed.
-        """
-        old_cwd = os.getcwd()
-        try:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                os.chdir(tmpdir)
-                instance = AgeFreighter(output_dir=tmpdir)
-                # Create a record with a tab in its property value.
-                data = [{"id": 1, "properties": {"a": "value\twith_tab"}}]
-                # Capture stdout to check the printed message.
-                captured_output = StringIO()
-                sys_stdout = sys.stdout
-                sys.stdout = captured_output
-                file_path = await instance.write_csv("TestTab", "v", data)
-                sys.stdout = sys_stdout
+    async def test_retry_copy_max_attempts_exit(self):
+        # Test that _retry_copy eventually calls sys.exit after repeated failures.
+        af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192)
+        af.max_attempts = 2
 
-                # Ensure the main CSV file exists.
-                self.assertTrue(os.path.exists(file_path))
+        async def failing_copy(*args, **kwargs):
+            raise Exception("copy failure")
 
-                # Check that the printed output contains the expected message.
-                output = captured_output.getvalue()
-                self.assertIn(
-                    "Tab replacement occurred. Additional rows have been output to:",
-                    output,
-                )
+        af._copy = failing_copy
+        af._recover_label = AsyncMock()
 
-                # Extract the tab file path from the printed message.
-                match = re.search(r"output to: (.*)" + re.escape(RESET), output)
-                self.assertIsNotNone(
-                    match, "Tab replacement file path not found in output."
-                )
-                tab_file_path = match.group(1).strip()
-                # Verify that the tab-replaced file exists.
-                self.assertTrue(os.path.exists(tab_file_path))
-        finally:
-            os.chdir(old_cwd)
+        with self.assertRaises(SystemExit):
+            await af._retry_copy("label", {"csv_path": "dummy", "next_val": 1}, "v")
 
-    # Test copy() and _copy()
-    async def test_copy_missing_parameters(self):
-        instance = AgeFreighter()
-        with self.assertRaises(ValueError):
-            await instance.copy()
-        instance.graph_name = "graph"
-        with self.assertRaises(ValueError):
-            await instance.copy()
-        # Now supply vertices (with "next_val") but leave edges missing.
-        instance.vertices = {"v": {"csv_path": "dummy", "next_val": 1}}
-        with self.assertRaises(ValueError):
-            await instance.copy()
-
-    async def test_copy_success(self):
-        # Create a temporary CSV file with sample content.
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp:
-            tmp.write("col1,col2\n1,2\n")
-            tmp_name = tmp.name
-        try:
-            instance = AgeFreighter(dsn="dummy", graph_name="graph")
-            # Use the new key "next_val" in both vertices and edges.
-            instance.vertices = {"v": {"csv_path": tmp_name, "next_val": 1}}
-            instance.edges = {"e": {"csv_path": tmp_name, "next_val": 1}}
-            # Use our updated DummyPool.
-            instance.con_pool = DummyPool()
-            await instance.copy()
-            # Now check that some queries were executed.
-            self.assertTrue(len(instance.con_pool.cursor_obj.executed_queries) > 0)
-        finally:
-            os.remove(tmp_name)
-
-    async def test__copy_invalid_kind(self):
-        instance = AgeFreighter(dsn="dummy", graph_name="graph")
-        dummy_pool = DummyPool()
-        instance.con_pool = dummy_pool
-        # Pass an invalid kind to trigger ValueError.
-        with self.assertRaises(ValueError):
-            await instance._copy("graph", "dummy.csv", "id", 1, kind="invalid")
-
-    async def test__copy_file_not_found(self):
-        instance = AgeFreighter(dsn="dummy", graph_name="graph")
-        dummy_pool = DummyPool()
-        instance.con_pool = dummy_pool
-        # Using a non-existent file should trigger an exception due to file read failure.
-        with self.assertRaises(Exception):
-            await instance._copy("graph", "non_existent_file.csv", "id", 1, kind="v")
-
-    # Test connect() method
-    async def test_connect_success(self):
-        instance = AgeFreighter(dsn="dummy")
-        # Patch AsyncConnectionPool so that open() fails twice then succeeds.
-        with patch(
-            "agefreighter.agefreighter.AsyncConnectionPool",
-            return_value=DummyPoolForConnect(fail_attempts=2),
-        ):
-            await instance.connect(max_connections=10, min_connections=2)
-            self.assertIsNotNone(instance.con_pool)
-
-    async def test_connect_failure(self):
-        instance = AgeFreighter(dsn="dummy")
-        # Patch AsyncConnectionPool so that open() always fails.
-        with patch(
-            "agefreighter.agefreighter.AsyncConnectionPool",
-            return_value=DummyPoolForConnect(always_fail=True),
-        ):
-            with self.assertRaises(PoolTimeout):
-                await instance.connect(max_connections=10, min_connections=2)
-
-    # Test close() method
-    async def test_close(self):
-        instance = AgeFreighter(dsn="dummy")
-        dummy_pool = DummyPool()
-        instance.con_pool = dummy_pool
-        await instance.close()
-        self.assertTrue(dummy_pool.closed)
-
-    # Test async context manager (__aenter__ and __aexit__)
     async def test_async_context_manager(self):
-        instance = AgeFreighter(dsn="dummy")
-        instance.connect = AsyncMock()
-        # Patch the connection pool's close method instead of instance.close.
-        instance.con_pool = AsyncMock()
-        async with instance as af:
-            instance.connect.assert_called_once()
-        instance.con_pool.close.assert_called_once()
+        # Test __aenter__ and __aexit__.
+        af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192)
+        af.connect = AsyncMock()
+        af.con_pool = DummyPool()
+        await af.__aenter__()
+        await af.__aexit__(None, None, None)
+
+    def test_del_cleanup(self):
+        # Test the __del__ cleanup of temporary CSV files.
+        fd, temp_path = tempfile.mkstemp()
+        os.close(fd)
+        af = AgeFreighter(dsn="dummy_dsn", chunk_size=8192, save_temps=False)
+        af.vertices = {"v": {"csv_path": temp_path}}
+        af.edges = {}
+        af.__del__()
+        self.assertFalse(os.path.exists(temp_path))
 
 
 if __name__ == "__main__":

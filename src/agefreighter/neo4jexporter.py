@@ -132,7 +132,6 @@ class Neo4jExporter(AgeFreighter):
                     else:
                         query = f"MATCH (n:{label}) RETURN COUNT(n) AS cnt"
                 else:
-                    # For a list of labels, count nodes that have any of the provided labels.
                     labels_str = ", ".join(f'"{lbl}"' for lbl in label)
                     query = f"MATCH (n) WHERE ANY(lbl IN labels(n) WHERE lbl IN [{labels_str}]) RETURN COUNT(n) AS cnt"
                 result: Result = session.run(query)
@@ -267,7 +266,7 @@ class Neo4jExporter(AgeFreighter):
 
             count = (
                 len(combined_nodes.get(label, []))
-                if self.trial_nodes_by_label
+                if self.trial
                 else self._count_nodes(label)
             )
             log.info("Exporting %d nodes for label '%s'.", count, label)
@@ -278,9 +277,9 @@ class Neo4jExporter(AgeFreighter):
                             thread_pool,
                             self._fetch_nodes_by_ids_chunk,
                             label,
-                            combined_nodes[label][skip : skip + self.chunk_size],
+                            combined_nodes[label][skip : skip + int(self.chunk_size)],
                         )
-                        for skip in range(0, count, self.chunk_size)
+                        for skip in range(0, count, int(self.chunk_size))
                     ]
                 else:
                     query_template = (
@@ -292,9 +291,11 @@ class Neo4jExporter(AgeFreighter):
                         loop.run_in_executor(
                             thread_pool,
                             self._fetch_nodes_chunk,
-                            query_template.format(skip=skip, limit=self.chunk_size),
+                            query_template.format(
+                                skip=skip, limit=int(self.chunk_size)
+                            ),
                         )
-                        for skip in range(0, count, self.chunk_size)
+                        for skip in range(0, count, int(self.chunk_size))
                     ]
                 chunks = await asyncio.gather(*tasks)
             except Exception as e:
@@ -367,9 +368,9 @@ class Neo4jExporter(AgeFreighter):
             count = self._count_edges(rel_type)
             if self.trial:
                 count = min(count, self.no_of_edges_trial)
-                limit = min(self.chunk_size, count)
+                limit = min(int(self.chunk_size), count)
             else:
-                limit = self.chunk_size
+                limit = int(self.chunk_size)
             log.info("Exporting %d edges for relationship type '%s'.", count, rel_type)
             try:
                 tasks = [
@@ -380,7 +381,7 @@ class Neo4jExporter(AgeFreighter):
                         skip,
                         limit,
                     )
-                    for skip in range(0, count, self.chunk_size)
+                    for skip in range(0, count, int(self.chunk_size))
                 ]
                 chunks = await asyncio.gather(*tasks)
                 all_data = [
@@ -431,16 +432,14 @@ class Neo4jExporter(AgeFreighter):
                     break
                 except Exception as e:
                     if attempts >= self.max_attempts:
-                        log.error(
-                            "Max attempts reached for getting relationship types",
-                        )
+                        log.error("Max attempts reached for getting relationship types")
                         sys.exit(1)
                     log.exception("Error getting relationship types: %s", e)
                     await asyncio.sleep(self.retry_delay)
             for rel_type in types:
                 try:
                     count = min(self._count_edges(rel_type), self.no_of_edges_trial)
-                    limit = min(self.chunk_size, count)
+                    limit = min(int(self.chunk_size), count)
                     log.info("Listing nodes for relationship type '%s'.", rel_type)
                     tasks = [
                         loop.run_in_executor(
@@ -479,9 +478,7 @@ class Neo4jExporter(AgeFreighter):
                 break
             except Exception as e:
                 if attempts >= self.max_attempts:
-                    log.error(
-                        "Max attempts reached for creating graph",
-                    )
+                    log.error("Max attempts reached for creating graph")
                     sys.exit(1)
                 log.exception("Error creating graph: %s", e)
                 await asyncio.sleep(self.retry_delay)

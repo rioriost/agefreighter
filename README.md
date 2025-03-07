@@ -748,6 +748,9 @@ postgres=> select * from air_route.route limit 1;
 
 ## Release Notes
 
+### 1.0.0a5 Release
+- Fixed character escaping.
+
 ### 1.0.0a4 Release
 - Fixed potential issues with data integrity.
 - Fixed documents.

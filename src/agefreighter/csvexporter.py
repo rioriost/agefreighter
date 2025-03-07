@@ -223,7 +223,6 @@ class CSVExporter(AgeFreighter):
                 edge_type = ec.get("type")
                 if isinstance(edge_type, str):
                     types.append(edge_type)
-
         # Deduplicate while preserving order
         return list(dict.fromkeys(types))
 
@@ -388,10 +387,10 @@ class CSVExporter(AgeFreighter):
                                 self._fetch_nodes_chunk_csv,
                                 csv_path,
                                 skip,
-                                self.chunk_size,
+                                int(self.chunk_size),
                                 vc,
                             )
-                            for skip in range(0, count, self.chunk_size)
+                            for skip in range(0, count, int(self.chunk_size))
                         ]
                         chunks = await asyncio.gather(*tasks)
                         for chunk in chunks:
@@ -442,9 +441,9 @@ class CSVExporter(AgeFreighter):
                 count = self._count_edges(rel_type)
                 if self.trial:
                     count = min(count, 100)
-                    limit = min(count, self.chunk_size)
+                    limit = min(count, int(self.chunk_size))
                 else:
-                    limit = self.chunk_size
+                    limit = int(self.chunk_size)
                 log.info(
                     "Exporting %d edges for relationship type '%s'.", count, rel_type
                 )
@@ -511,7 +510,7 @@ class CSVExporter(AgeFreighter):
             for rel_type in self.get_relationship_types():
                 try:
                     count = min(self._count_edges(rel_type), self.no_of_edges_trial)
-                    limit = min(self.chunk_size, count)
+                    limit = min(int(self.chunk_size), count)
                     log.info("Listing nodes for relationship type '%s'.", rel_type)
                     tasks = [
                         loop.run_in_executor(
