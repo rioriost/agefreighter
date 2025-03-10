@@ -42,10 +42,10 @@ class Neo4jLoader:
 
         # Get unique start and end node information
         unique_starts = df[
-            ["CustomerID", "start_vertex_type", "Name", "Address", "Email", "Phone"]
+            ["start_id", "start_vertex_type", "Name", "Address", "Email", "Phone"]
         ].drop_duplicates()
         unique_ends = df[
-            ["ProductID", "end_vertex_type", "SKU", "Price", "Color", "Size", "Weight"]
+            ["end_id", "end_vertex_type", "SKU", "Price", "Color", "Size", "Weight"]
         ].drop_duplicates()
 
         start_label = unique_starts.iloc[0]["start_vertex_type"]
@@ -74,7 +74,7 @@ class Neo4jLoader:
                     starts = [
                         {
                             start_label: row["start_vertex_type"],
-                            "CustomerID": row["CustomerID"],
+                            "CustomerID": row["start_id"],
                             "Name": row["Name"],
                             "Address": row["Address"],
                             "Email": row["Email"],
@@ -96,7 +96,7 @@ class Neo4jLoader:
                     ends = [
                         {
                             end_label: row["end_vertex_type"],
-                            "ProductID": row["ProductID"],
+                            "ProductID": row["end_id"],
                             "SKU": row["SKU"],
                             "Price": row["Price"],
                             "Color": row["Color"],
@@ -117,7 +117,7 @@ class Neo4jLoader:
                 for idx in range(0, len(df), BATCH_SIZE):
                     batch = df.iloc[idx : idx + BATCH_SIZE]
                     edges = [
-                        {"from": row["CustomerID"], "to": row["ProductID"]}
+                        {"from": row["start_id"], "to": row["end_id"]}
                         for _, row in batch.iterrows()
                     ]
                     query = (

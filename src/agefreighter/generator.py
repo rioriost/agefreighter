@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 import logging
 import os
@@ -438,6 +439,7 @@ class KNOWS(Edge):
             "end_id": end_id,
             "end_vertex_type": end_vertex_type,
             **(end_props or {}),
+            "since": datetime.now().isoformat(),
         }
         super().__init__(id=id, properties=properties)
 
@@ -460,6 +462,7 @@ class LIKES(Edge):
             "end_id": end_id,
             "end_vertex_type": end_vertex_type,
             **(end_props or {}),
+            "since": datetime.now().isoformat(),
         }
         super().__init__(id=id, properties=properties)
 
@@ -544,6 +547,32 @@ CLASSES: Dict[str, Type[Any]] = {
 }
 
 
+# Worker function to generate a chunk of edges.
+def generate_edge_chunk(
+    start_idx: int,
+    end_idx: int,
+    edge_cls_name: str,
+    edge_props: Dict[str, Any],
+    start_node_data: List[Any],
+    end_node_data: List[Any],
+) -> List[Any]:
+    chunk = []
+    for i in range(start_idx, end_idx):
+        start = random.choice(start_node_data)
+        end = random.choice(end_node_data)
+        edge_instance = CLASSES[edge_cls_name](
+            id=str(i + 1),
+            start_id=start.id,
+            start_vertex_type=edge_props["start"],
+            start_props=start.properties,
+            end_id=end.id,
+            end_vertex_type=edge_props["end"],
+            end_props=end.properties,
+        )
+        chunk.append(edge_instance)
+    return chunk
+
+
 async def generate_complete_data(
     edge_cls_name: str,
     edge_props: Dict[str, Any],
@@ -551,16 +580,7 @@ async def generate_complete_data(
     data_dir: str,
 ) -> None:
     """
-    Generate a set of edge objects (single source) and write them to CSV.
-
-    Args:
-        edge_cls_name (str): Name of the edge class.
-        edge_props (Dict[str, Any]): Dictionary containing count, start, and end node type.
-        nodes (Dict[str, int]): Dictionary with node types and their counts.
-        data_dir (str): Directory to save CSV.
-
-    Returns:
-        None
+    Generate a set of edge objects and write them to CSV using parallel processing.
     """
     print(f"Generating {edge_cls_name}: {edge_props['count']}...")
 
@@ -573,20 +593,35 @@ async def generate_complete_data(
         end_node_cls(id=str(i + 1)) for i in range(nodes[edge_props["end"]])
     ]
 
-    data = []
-    for i in range(edge_props["count"]):
-        start = random.choice(start_node_data)
-        end = random.choice(end_node_data)
-        edge_instance = CLASSES[edge_cls_name](
-            id=str(i + 1),
-            start_id=start.id,
-            start_vertex_type=edge_props["start"],
-            start_props=start.properties,
-            end_id=end.id,
-            end_vertex_type=edge_props["end"],
-            end_props=end.properties,
-        )
-        data.append(edge_instance)
+    total_edges = edge_props["count"]
+    chunk_size = 100000  # Adjust this value based on your workload.
+    tasks = []
+    loop = asyncio.get_running_loop()
+
+    # Use a ProcessPoolExecutor for CPU-bound tasks.
+    with ProcessPoolExecutor() as executor:
+        for start_idx in range(0, total_edges, chunk_size):
+            end_idx = min(start_idx + chunk_size, total_edges)
+            # Schedule the worker function to generate a chunk of edges.
+            tasks.append(
+                loop.run_in_executor(
+                    executor,
+                    generate_edge_chunk,
+                    start_idx,
+                    end_idx,
+                    edge_cls_name,
+                    edge_props,
+                    start_node_data,
+                    end_node_data,
+                )
+            )
+        # Wait for all chunks to be generated.
+        results = await asyncio.gather(*tasks)
+
+    # Flatten the list of edge chunks.
+    data = [edge for sublist in results for edge in sublist]
+
+    log.info(f"Writing {len(data)} edges.")
     await put_csv(
         data_dir=data_dir,
         file_name=f"{edge_props['start']}_{edge_props['end']}_{edge_cls_name}",
@@ -658,7 +693,9 @@ async def generate_edges(
         )
 
 
-async def main(pattern_no: int = 1, log_level: int = logging.INFO) -> None:
+async def main(
+    pattern_no: int = 1, multiplier: int = 1, log_level: int = logging.INFO
+) -> None:
     """
     Main function to generate dummy data for a given pattern number.
 
@@ -667,6 +704,8 @@ async def main(pattern_no: int = 1, log_level: int = logging.INFO) -> None:
         log_level (int): The logging level to use.
     """
     log.setLevel(log_level)
+    if multiplier >= 100:
+        log.warning("Multiplier is too large. It will generate a lot of data.")
 
     # Configuration constants
     SINGLE_SOURCE = 1
@@ -684,96 +723,103 @@ async def main(pattern_no: int = 1, log_level: int = logging.INFO) -> None:
             # Transaction, small data, multiple type of nodes and single type of edges
             source_type = SINGLE_SOURCE
             sub_dir = "/transaction"
-            nodes = {"Customer": 10000, "Product": 1000}
+            nodes = {"Customer": 10000 * multiplier, "Product": 1000 * multiplier}
             edges = {
-                "Bought": [{"count": 20050, "start": "Customer", "end": "Product"}]
+                "Bought": [
+                    {"count": 20050 * multiplier, "start": "Customer", "end": "Product"}
+                ]
             }
         case 2:
             # Persons, small data, single type of nodes and multiple types of edges
             source_type = MULTI_SOURCE
             sub_dir = "/persons"
-            nodes = {"Person": 1000}
+            nodes = {"Person": 1000 * multiplier}
             edges = {
-                "KNOWS": [{"count": 1000, "start": "Person", "end": "Person"}],
-                "LIKES": [{"count": 1000, "start": "Person", "end": "Person"}],
+                "KNOWS": [
+                    {"count": 1000 * multiplier, "start": "Person", "end": "Person"}
+                ],
+                "LIKES": [
+                    {"count": 1000 * multiplier, "start": "Person", "end": "Person"}
+                ],
             }
         case 3:
             # Airroute, small data, single type of nodes and edges
             source_type = MULTI_SOURCE
             sub_dir = "/airroute"
-            nodes = {"AirPort": 3500}
+            nodes = {"AirPort": 3500 * multiplier}
             edges = {
-                "AirRoute": [{"count": 20000, "start": "AirPort", "end": "AirPort"}]
+                "AirRoute": [
+                    {"count": 20000 * multiplier, "start": "AirPort", "end": "AirPort"}
+                ]
             }
         case 4:
             # Countries, small data, multiple types of nodes and single type of edges
             source_type = MULTI_SOURCE
             sub_dir = "/countries"
-            nodes = {"Country": 200, "City": 10000}
-            edges = {"Has": [{"count": 10000, "start": "Country", "end": "City"}]}
-        case 5 | 6:
+            nodes = {"Country": 200 * multiplier, "City": 10000 * multiplier}
+            edges = {
+                "Has": [
+                    {"count": 10000 * multiplier, "start": "Country", "end": "City"}
+                ]
+            }
+        case 5:
             # Payment, large data, multiple types of nodes and edges
             source_type = MULTI_SOURCE
-            if pattern_no == 5:
-                DIVIDER = 10000
-                sub_dir = "/payment_small"
-            else:
-                DIVIDER = 10
-                sub_dir = f"{data_dir}/payment_large"
+            sub_dir = "/payment"
 
             nodes = {
-                "BitcoinAddress": 9000000 // DIVIDER,
-                "Cookie": 27000000 // DIVIDER,
-                "IP": 22000000 // DIVIDER,
-                "Phone": 9600000 // DIVIDER,
-                "Email": 9600000 // DIVIDER,
-                "Payment": 70000000 // DIVIDER,
-                "CreditCard": 12000000 // DIVIDER,
-                "PartnerEndUser": 40000000 // DIVIDER,
-                "CryptoAddress": 16000000 // DIVIDER,
+                "BitcoinAddress": 900 * multiplier,
+                "Cookie": 2700 * multiplier,
+                "IP": 2200 * multiplier,
+                "Phone": 960 * multiplier,
+                "Email": 960 * multiplier,
+                "Payment": 7000 * multiplier,
+                "CreditCard": 1200 * multiplier,
+                "PartnerEndUser": 400 * multiplier,
+                "CryptoAddress": 160 * multiplier,
             }
             edges = {
                 "UsedIn": [
-                    {"count": 60000000 // DIVIDER, "start": "Cookie", "end": "Payment"},
-                    {"count": 60000000 // DIVIDER, "start": "Email", "end": "Payment"},
+                    {"count": 6000 * multiplier, "start": "Cookie", "end": "Payment"},
+                    {"count": 6000 * multiplier, "start": "Email", "end": "Payment"},
                     {
-                        "count": 60000000 // DIVIDER,
+                        "count": 6000 * multiplier,
                         "start": "CryptoAddress",
                         "end": "Payment",
                     },
-                    {"count": 60000000 // DIVIDER, "start": "Phone", "end": "Payment"},
+                    {"count": 6000 * multiplier, "start": "Phone", "end": "Payment"},
                     {
-                        "count": 60000000 // DIVIDER,
+                        "count": 6000 * multiplier,
                         "start": "CreditCard",
                         "end": "Payment",
                     },
                 ],
                 "PerformedBy": [
-                    {"count": 10000000 // DIVIDER, "start": "Cookie", "end": "Payment"},
-                    {"count": 10000000 // DIVIDER, "start": "Email", "end": "Payment"},
+                    {"count": 1000 * multiplier, "start": "Cookie", "end": "Payment"},
+                    {"count": 1000 * multiplier, "start": "Email", "end": "Payment"},
                     {
-                        "count": 10000000 // DIVIDER,
+                        "count": 1000 * multiplier,
                         "start": "CryptoAddress",
                         "end": "Payment",
                     },
-                    {"count": 10000000 // DIVIDER, "start": "Phone", "end": "Payment"},
+                    {"count": 1000 * multiplier, "start": "Phone", "end": "Payment"},
                     {
-                        "count": 10000000 // DIVIDER,
+                        "count": 1000 * multiplier,
                         "start": "CreditCard",
                         "end": "Payment",
                     },
                 ],
                 "UsedBy": [
-                    {"count": 80000000 // DIVIDER, "start": "Cookie", "end": "Payment"},
-                    {"count": 80000000 // DIVIDER, "start": "Email", "end": "Payment"},
+                    {"count": 8000 * multiplier, "start": "Cookie", "end": "Payment"},
+                    {"count": 8000 * multiplier, "start": "Email", "end": "Payment"},
                     {
-                        "count": 80000000 // DIVIDER,
+                        "count": 8000 * multiplier,
                         "start": "CryptoAddress",
                         "end": "Payment",
                     },
-                    {"count": 80000000 // DIVIDER, "start": "Phone", "end": "Payment"},
+                    {"count": 8000 * multiplier, "start": "Phone", "end": "Payment"},
                     {
-                        "count": 80000000 // DIVIDER,
+                        "count": 8000 * multiplier,
                         "start": "CreditCard",
                         "end": "Payment",
                     },

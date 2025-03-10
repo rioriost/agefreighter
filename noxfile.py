@@ -4,6 +4,24 @@ nox.options.python = "3.13"
 nox.options.default_venv_backend = "uv"
 
 
+@nox.session(tags=["clean"])
+def clean(session):
+    session.run(
+        "uv",
+        "run",
+        "rm",
+        "-rf",
+        ".nox",
+        ".coverage",
+        ".pytest_cache",
+        ".mypy_cache",
+        "__pycache__",
+        "tests/__pycache__",
+        "src/agefreighter/__pycache__",
+        "src/agefreighter/parsetab.py",
+    )
+
+
 @nox.session(python=["3.13"], tags=["lint"])
 def lint(session):
     session.install("ruff")
@@ -51,6 +69,7 @@ def pytest(session):
         "tests/test_main.py",
         "tests/test_neo4jexporter.py",
         "tests/test_neo4jloader.py",
+        "tests/test_pgsqlexporter.py",
         "tests/test_view.py",
     ]
     session.run(

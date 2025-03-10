@@ -126,7 +126,6 @@ class ConfigManager:
                 raise ValueError(f"File {abs_path} does not exist")
 
         log.info(self.parse_result)
-        self.config_json = config_json
         log.info(self.config_json)
         return config_json
 

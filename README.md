@@ -18,6 +18,12 @@ a Python package that helps you to create a graph database using Azure Database 
 - [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Usage](#usage)
+- [load subcommand](#load-subcommand)
+- [view subcommand](#view-subcommand)
+- [convert subcommand](#convert-subcommand)
+- [parse subcommand](#parse-subcommand)
+- [generate subcommand](#generate-subcommand)
+- [prepare subcommand](#prepare-subcommand)
 - [How to edit the CSV files to load them to the graph database with AGEFreighter](#how-to-edit-the-csv-files-to-load-them-to-the-graph-database-with-agefreighter)
 - [Release Notes](#release-notes)
 - [Known Issues](#known-issues)
@@ -43,13 +49,13 @@ pip module is not available. Trying with uv...
 
 ### Subcommands
 
-- 'load' subcommand to load CSV files, graph data in Neo4j, Cosmos DB for NoSQL into Apache AGE.
-- 'view' subcommand to view graph data in Apache AGE.
-- 'parse' subcommand to parse a Cypher query.
-- 'generate' subcommand to generate dummy graph data.
-- 'convert' subcommand to convert Gremlin queries to Cypher queries.
-- 'prepare' subcommand to prepare environment for testing AGEFreighter.
-- 'completion' subcommand to show completion instructions.
+- `load` subcommand to load CSV files, graph data in Neo4j, Cosmos DB for NoSQL into Apache AGE.
+- `view` subcommand to view graph data in Apache AGE.
+- `convert` subcommand to convert Gremlin queries to Cypher queries.
+- `parse` subcommand to parse a Cypher query.
+- `generate` subcommand to generate dummy graph data.
+- `prepare` subcommand to prepare environment for testing AGEFreighter.
+- `completion` subcommand to show completion instructions.
 
 ## Prerequisites
 
@@ -78,7 +84,7 @@ uv init your_project
 cd your_project
 uv venv
 source .venv/bin/activate
-uv add agefreighter==1.0.0a5
+uv add agefreighter==1.0.0a7
 ```
 
 - with python venv on macOS / Linux
@@ -88,7 +94,7 @@ mkdir your_project
 cd your_project
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install agefreighter==1.0.0a5
+python3 -m pip install agefreighter==1.0.0a7
 ```
 
 - with python venv on Windows
@@ -98,7 +104,7 @@ mkdir your_project
 cd your_project
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install agefreighter==1.0.0a5
+python -m pip install agefreighter==1.0.0a7
 ```
 
 ## Usage
@@ -134,6 +140,9 @@ options:
 ```
 
 Each subcommand has its own set of options.
+For example, the [`load` subcommand](#load-subcommand) has options for specifying the source type of the graph data, addition to the above options.
+
+## load subcommand
 
 ```bash
 agefreighter load --help
@@ -218,7 +227,7 @@ agefreighter load
 
 To load data from CSV files, you need to prepare a configuration JSON file that specifies how to load the CSV files into your PostgreSQL.
 
-(supposed PG_CONNECTION_STRING is set)
+(supposed $PG_CONNECTION_STRING is set)
 ```bash
 agefreighter load --source-type csv --config config.json
 ```
@@ -230,7 +239,7 @@ We have 4 structure patterns of nodes and edges.
 (AirPort) - [AirRoute] -> (AirPort)
 ```
 
-This pattern is described in JSON as follows [docs/configs/single_edge_single_node.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/single_edge_single_node.json):
+This pattern is described in JSON as follows [docs/configs/csv/single_edge_single_node.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/csv/single_edge_single_node.json):
 ```json
 {
   "edge": {
@@ -268,7 +277,7 @@ And the contents of the CSV files [data/airroute/airroute_airport_airport.csv](h
 (Person) - [KNOWS | LIKES] -> (Person)
 ```
 
-This pattern is described in JSON as follows [docs/configs/multiple_edges_single_node.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/multiple_edges_single_node.json):
+This pattern is described in JSON as follows [docs/configs/csv/multiple_edges_single_node.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/csv/multiple_edges_single_node.json):
 ```json
 {
   "edge": [
@@ -335,7 +344,7 @@ And the contents of the CSV files:
 (Country) - [has] -> (City)
 ```
 
-This pattern is described in JSON as follows [docs/configs/single_edge_multiple_nodes.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/single_edge_multiple_nodes.json):
+This pattern is described in JSON as follows [docs/configs/csv/single_edge_multiple_nodes.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/csv/single_edge_multiple_nodes.json):
 ```json
 {
   "edge": {
@@ -395,7 +404,7 @@ And the contents of the CSV files:
 (Cookie | CreditCard) - [UsedIn | PerformedBy] -> (Payment)
 ```
 
-This pattern is a little complicatedlly described in JSON as follows [docs/configs/multiple_edges_multiple_nodes.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/multiple_edges_multiple_nodes.json):
+This pattern is a little complicatedlly described in JSON as follows [docs/configs/csv/multiple_edges_multiple_nodes.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/csv/multiple_edges_multiple_nodes.json):
 
 ```json
 {
@@ -582,9 +591,9 @@ And the contents of the CSV files:
 
 ### Load from Cosmos DB
 
-To load graph data from Cosmos DB, use the following command:
+To load graph data created with Cosmos DB for Apache Gremlin API via Cosmos DB for NoSQL API, use the following command:
 
-(supposed PG_CONNECTION_STRING is set)
+(supposed $PG_CONNECTION_STRING is set)
 ```bash
 agefreighter load --source-type cosmosdb --cosmos-endpoint https://YOUR_ACCOUNT.documents.azure.com:443/ --cosmos-key YOUR_KEY --cosmos-database YOUR_DB --cosmos-container YOUR_CONTAINER
 ```
@@ -623,6 +632,625 @@ If all the required environment variables are set, you can just run:
 ```bash
 agefreighter load --source-type cosmos
 ```
+
+### Load from PostgreSQL
+
+To load data from PostgreSQL, you need to prepare a configuration JSON file that specifies how to dump from your 'source' PostgreSQL and load the data into your 'target'PostgreSQL with Apache AGE.
+The configuration JSON files are very similar to ones for CSV.
+
+(supposed $PG_CONNECTION_STRING is set)
+```bash
+agefreighter load --source-type pgsql --src-pg-con-str "host=localhost port=5432 dbname=postgres user=YOUR_USERNAME password=YOUR_PASSWORD" --config config.json
+```
+
+Or, you can use the environment variables:
+
+- macOS / Linux
+
+```bash
+export SRC_PG_CONNECTION_STRING="host=localhost port=5432 dbname=postgres user=YOUR_USERNAME password=YOUR_PASSWORD"
+```
+
+- Windows (cmd.exe)
+
+```bash
+set SRC_PG_CONNECTION_STRING=host=localhost port=5432 dbname=postgres user=YOUR_USERNAME password=YOUR_PASSWORD
+```
+
+- PowerShell
+
+```bash
+$env:SRC_PG_CONNECTION_STRING="host=localhost port=5432 dbname=postgres user=YOUR_USERNAME password=YOUR_PASSWORD"
+```
+
+If all the required environment variables are set, you can just run:
+
+```bash
+agefreighter load --source-type pgsql --config config.json
+```
+
+We have 4 structure patterns of nodes and edges.
+
+1. Single kind of nodes and single kind of edges:
+```
+(AirPort) - [AirRoute] -> (AirPort)
+```
+
+This pattern is described in JSON as follows [docs/configs/pgsql/single_edge_single_node.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/pgsql/single_edge_single_node.json):
+```json
+{
+  "edge": {
+    "table": "airroute",
+    "type": "airroute",
+    "start_id": "start_id",
+    "end_id": "end_id",
+    "props": ["distance"],
+    "start_vertex": {
+      "table": "airroute",
+      "id": "start_id",
+      "label": "airport",
+      "props": []
+    },
+    "end_vertex": {
+      "table": "airroute",
+      "id": "end_id",
+      "label": "airport",
+      "props": []
+    }
+  }
+}
+```
+
+And the table, 'airroute':
+
+```sql
+CREATE TABLE airroute (
+    id SERIAL PRIMARY KEY,
+    start_id INTEGER NOT NULL,
+    end_id INTEGER NOT NULL,
+    distance INTEGER NOT NULL
+);
+```
+
+2. Single kind of nodes and multiple kinds of edges:
+```
+(Person) - [KNOWS | LIKES] -> (Person)
+```
+
+This pattern is described in JSON as follows [docs/configs/pgsql/multiple_edges_single_node.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/pgsql/multiple_edges_single_node.json):
+```json
+{
+  "edge": {
+    "table": "has",
+    "type": "has",
+    "start_id": "country_id",
+    "end_id": "city_id",
+    "props": ["since"],
+    "start_vertex": {
+      "table": "country",
+      "id": "id",
+      "label": "Country",
+      "props": ["Name", "Capital", "Population", "ISO", "TLD", "FlagURL"]
+    },
+    "end_vertex": {
+      "table": "city",
+      "id": "id",
+      "label": "City",
+      "props": ["Name", "Latitude", "Longitude"]
+    }
+  }
+}
+```
+
+And the tables:
+
+```sql
+CREATE TABLE country (
+    id SERIAL PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Capital VARCHAR(255) NOT NULL,
+    Population INTEGER NOT NULL,
+    ISO VARCHAR(2) NOT NULL,
+    TLD VARCHAR(5) NOT NULL,
+    FlagURL VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE city (
+    id SERIAL PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Latitude DECIMAL(9,6) NOT NULL,
+    Longitude DECIMAL(9,6) NOT NULL
+);
+
+CREATE TABLE has (
+    id SERIAL PRIMARY KEY,
+    country_id INTEGER NOT NULL REFERENCES country(id),
+    city_id INTEGER NOT NULL REFERENCES city(id),
+    since DATE NOT NULL
+);
+```
+
+3. Multiple kinds of nodes and single kind of edges:
+```
+(Country) - [has] -> (City)
+```
+
+This pattern is described in JSON as follows [docs/configs/pgsql/single_edge_multiple_nodes.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/pgsql/single_edge_multiple_nodes.json):
+```json
+{
+  "edge": [
+    {
+      "table": "knows",
+      "type": "KNOWS",
+      "start_id": "person1_id",
+      "end_id": "person2_id",
+      "props": ["since"],
+      "vertex": {
+        "table": "person",
+        "id": "id",
+        "label": "Person",
+        "props": ["Name"]
+      }
+    },
+    {
+      "table": "likes",
+      "type": "LIKES",
+      "start_id": "person1_id",
+      "end_id": "person2_id",
+      "props": ["since"],
+      "vertex": {
+        "table": "person",
+        "id": "id",
+        "label": "Person",
+        "props": ["Name"]
+      }
+    }
+  ]
+}
+```
+
+And the tables:
+
+```sql
+CREATE TABLE person (
+    id SERIAL PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE knows (
+    id SERIAL PRIMARY KEY,
+    person1_id INTEGER NOT NULL REFERENCES person(id),
+    person2_id INTEGER NOT NULL REFERENCES person(id),
+    since DATE NOT NULL
+);
+
+CREATE TABLE likes (
+    id SERIAL PRIMARY KEY,
+    person1_id INTEGER NOT NULL REFERENCES person(id),
+    person2_id INTEGER NOT NULL REFERENCES person(id),
+    since DATE NOT NULL
+);
+```
+
+4. Multiple kinds of nodes and multiple kinds of edges:
+```
+(Cookie | CreditCard) - [UsedIn | PerformedBy] -> (Payment)
+```
+
+This pattern is a little complicatedlly described in JSON as follows [docs/configs/pgsql/multiple_edges_multiple_nodes.json](https://github.com/rioriost/agefreighter/raw/main/docs/configs/pgsql/multiple_edges_multiple_nodes.json):
+
+```json
+{
+  "edge": [
+    {
+      "table": "usedin_cookie_payment",
+      "type": "UsedIn",
+      "start_id": "cookie_id",
+      "end_id": "payment_id",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "table": "cookie",
+        "id": "id",
+        "label": "Cookie",
+        "props": ["available_since", "inserted_at", "uaid", "schema_version"]
+      },
+      "end_vertex": {
+        "table": "payment",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "table": "usedin_creditcard_payment",
+      "type": "UsedIn",
+      "start_id": "creditcard_id",
+      "end_id": "payment_id",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "table": "creditcard",
+        "id": "id",
+        "label": "CreditCard",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "expiry_month",
+          "expiry_year",
+          "masked_number",
+          "creditcard_identifier",
+          "schema_version"
+        ]
+      },
+      "end_vertex": {
+        "table": "payment",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "table": "performedby_cookie_payment",
+      "type": "PerformedBy",
+      "start_id": "cookie_id",
+      "end_id": "payment_id",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "table": "cookie",
+        "id": "id",
+        "label": "Cookie",
+        "props": ["available_since", "inserted_at", "uaid", "schema_version"]
+      },
+      "end_vertex": {
+        "table": "payment",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "table": "performedby_creditcard_payment",
+      "type": "PerformedBy",
+      "start_id": "creditcard_id",
+      "end_id": "payment_id",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "table": "creditcard",
+        "id": "id",
+        "label": "CreditCard",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "expiry_month",
+          "expiry_year",
+          "masked_number",
+          "creditcard_identifier",
+          "schema_version"
+        ]
+      },
+      "end_vertex": {
+        "table": "payment",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    }
+  ]
+}
+```
+
+And the tables:
+
+```sql
+CREATE TABLE cookie (
+    id SERIAL PRIMARY KEY,
+    available_since TIMESTAMP NOT NULL,
+    inserted_at TIMESTAMP NOT NULL,
+    uaid VARCHAR(36) NOT NULL,
+    schema_version INTEGER NOT NULL
+);
+
+CREATE TABLE creditcard (
+    id SERIAL PRIMARY KEY,
+    available_since TIMESTAMP NOT NULL,
+    inserted_at TIMESTAMP NOT NULL,
+    expiry_month INTEGER NOT NULL,
+    expiry_year INTEGER NOT NULL,
+    masked_number VARCHAR(32) NOT NULL,
+    creditcard_identifier VARCHAR(36) NOT NULL,
+    schema_version INTEGER NOT NULL
+);
+
+CREATE TABLE payment (
+    id SERIAL PRIMARY KEY,
+    available_since TIMESTAMP NOT NULL,
+    inserted_at TIMESTAMP NOT NULL,
+    payment_id VARCHAR(36) NOT NULL,
+    schema_version INTEGER NOT NULL
+);
+
+CREATE TABLE usedin_cookie_payment (
+    id SERIAL PRIMARY KEY,
+    cookie_id INTEGER NOT NULL REFERENCES cookie(id),
+    payment_id INTEGER NOT NULL REFERENCES payment(id),
+    available_since TIMESTAMP NOT NULL,
+    inserted_at TIMESTAMP NOT NULL,
+    schema_version INTEGER NOT NULL
+);
+
+CREATE TABLE usedin_creditcard_payment (
+    id SERIAL PRIMARY KEY,
+    creditcard_id INTEGER NOT NULL REFERENCES creditcard(id),
+    payment_id INTEGER NOT NULL REFERENCES payment(id),
+    available_since TIMESTAMP NOT NULL,
+    inserted_at TIMESTAMP NOT NULL,
+    schema_version INTEGER NOT NULL
+);
+
+CREATE TABLE performedby_cookie_payment (
+    id SERIAL PRIMARY KEY,
+    cookie_id INTEGER NOT NULL REFERENCES cookie(id),
+    payment_id INTEGER NOT NULL REFERENCES payment(id),
+    available_since TIMESTAMP NOT NULL,
+    inserted_at TIMESTAMP NOT NULL,
+    schema_version INTEGER NOT NULL
+);
+
+CREATE TABLE performedby_creditcard_payment (
+    id SERIAL PRIMARY KEY,
+    creditcard_id INTEGER NOT NULL REFERENCES creditcard(id),
+    payment_id INTEGER NOT NULL REFERENCES payment(id),
+    available_since TIMESTAMP NOT NULL,
+    inserted_at TIMESTAMP NOT NULL,
+    schema_version INTEGER NOT NULL
+);
+```
+
+## view subcommand
+
+```bash
+agefreighter view --help
+usage: agefreighter view [-h] [--flask-port FLASK_PORT]
+
+options:
+  -h, --help            show this help message and exit
+  --flask-port FLASK_PORT
+                        Port to run the server on
+```
+
+You can watch the graph data on PostgreSQL by running the following command:
+
+(supposed $PG_CONNECTION_STRING is set)
+```bash
+agefreighter view
+
+INFO:werkzeug:WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+INFO:werkzeug:Press CTRL+C to quit
+```
+
+Click on the link above to open the graph data in your browser.
+
+![Connect](https://raw.githubusercontent.com/rioriost/agefreighter/main/images/01_connect.png)
+![Connected](https://raw.githubusercontent.com/rioriost/agefreighter/main/images/02_connected.png)
+![Query](https://raw.githubusercontent.com/rioriost/agefreighter/main/images/03_queried.png)
+![Select a node](https://raw.githubusercontent.com/rioriost/agefreighter/main/images/04_selected.png)
+![Table view](https://raw.githubusercontent.com/rioriost/agefreighter/main/images/05_table.png)
+![JSON view](https://raw.githubusercontent.com/rioriost/agefreighter/main/images/06_json.png)
+
+## convert subcommand
+
+```
+agefreighter convert --help
+usage: agefreighter convert [-h] [-k OPENAI_API_KEY] [-m MODEL] [-d] [--pg-con-str-for-dryrun PG_CON_STR_FOR_DRYRUN] [--graph-for-dryrun GRAPH_FOR_DRYRUN] (-g GREMLIN | -f FILEPATH | -u URL)
+
+options:
+  -h, --help            show this help message and exit
+  -k, --openai-api-key OPENAI_API_KEY
+                        OpenAI API key to use.
+  -m, --model MODEL     OpenAI model to use.
+  -d, --dryrun          Dry run with PostgreSQL.
+  --pg-con-str-for-dryrun PG_CON_STR_FOR_DRYRUN
+                        Connection string of the Azure Database for PostgreSQL
+  --graph-for-dryrun GRAPH_FOR_DRYRUN
+                        Graph name for dry run with PostgreSQL.
+  -g, --gremlin GREMLIN
+                        The Gremlin query to convert.
+  -f, --filepath FILEPATH
+                        Path to the source code file (.py, .java, .cs, .txt)
+  -u, --url URL         URL to the source code file (.py, .java, .cs, .txt)
+```
+
+The indentical usage is shown below.
+
+with -g(--gremlin)
+
+```bash
+agefreighter convert -g 'g.V().has(“name”, “Alice”).as(“a”).V().has(“name”, “Bob”).as(“b”).select(“a”, “b”).by(“name”)'
+Converted Cypher queries:
+
+line 1, g.V().has("name", "Alice").as("a").V().has("name", "Bob").as("b").select("a", "b").by("name") ->
+SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (a {name: "Alice"}), (b {name: "Bob"}) RETURN a.name AS a, b.name AS b $$) AS (a agtype, b agtype);
+```
+
+with -u(--url)
+
+```bash
+agefreighter convert -u https://raw.githubusercontent.com/nedlowe/gremlin-python-example/refs/heads/master/app.py
+Converted Cypher queries:
+
+line 42, g.V(person_id).toList() ->
+DEALLOCATE ALL; PREPARE cypher_stored_procedure(agtype) AS SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n) WHERE id(n) = $person_id RETURN n $$, $1) AS (n agtype);EXECUTE cypher_stored_procedure('{"person_id": 12345}');
+
+line 42, g.V(person_id) ->
+DEALLOCATE ALL; PREPARE cypher_stored_procedure(agtype) AS SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n) WHERE id(n) = $person_id RETURN n $$, $1) AS (n agtype);EXECUTE cypher_stored_procedure('{"person_id": 12345}');
+
+line 55, g.V(vertex).valueMap().toList() ->
+DEALLOCATE ALL; PREPARE cypher_stored_procedure(agtype) AS SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n) WHERE ID(n) = $vertex RETURN properties(n) $$, $1) AS (properties agtype);EXECUTE cypher_stored_procedure('{"vertex": 12345}');
+......
+```
+
+with -f(--filepath)
+
+```bash
+agefreighter convert -f docs/gremlin_samples.py
+Converted Cypher queries:
+
+line 1, g.V() ->
+SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n) RETURN n $$) AS (n agtype);
+
+line 2, g.E() ->
+SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH ()-[r]-() RETURN r $$) AS (r agtype);
+
+line 3, g.V().hasLabel('person') ->
+SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n:person) RETURN n $$) AS (n agtype);
+
+line 4, g.V().hasLabel('software') ->
+SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n:software) RETURN n $$) AS (n agtype);
+......
+```
+
+with -d(--dryrun)
+
+```bash
+agefreighter convert -d -g "g.V().hasLabel('person').aggregate('a')"
+Converted Cypher queries:
+
+line 1, g.V().hasLabel('person').aggregate('a') ->
+SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n:person) WITH collect(n) AS a RETURN a $$) AS (a agtype);
+[Query executed successfully]
+```
+
+```bash
+agefreighter convert -d -g "g.V(person).property(prop_name, prop_value)"
+Converted Cypher queries:
+
+line 1, g.V(person).property(prop_name, prop_value) ->
+DEALLOCATE ALL; PREPARE cypher_stored_procedure(agtype) AS SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n) WHERE ID(n) = $person SET n[$prop_name] = $prop_value RETURN n $$, $1) AS (n agtype);EXECUTE cypher_stored_procedure('{"person": 12345, "prop_name": 12345, "prop_value": 12345}');
+[Error executing query: SET clause expects a property name
+LINE 2: ...R_DRYRUN', $$ MATCH (n) WHERE ID(n) = $person SET n[$prop_na...
+                                                             ^]
+```
+
+## parse subcommand
+
+```bash
+agefreighter parse --help
+usage: agefreighter parse [-h] cypher_query
+
+positional arguments:
+  cypher_query  Cypher query to be parsed
+
+options:
+  -h, --help    show this help message and exit
+```
+
+```bash
+agefreighter parse "CREATE (adam:User {name: 'Adam'}), (pernilla:User {name: 'Pernilla'}), (david:User {name: 'David'}), (adam)-[:FRIEND]->(pernilla), (pernilla)-[:FRIEND]->(david)"
+[('CREATE', [('node', 'adam', ['User'], [('name', 'Adam')]), ('node', 'pernilla', ['User'], [('name', 'Pernilla')]), ('node', 'david', ['User'], [('name', 'David')]), ('chain', ('node', 'adam', [], None), [(('directed', ('relationship', [{'variable': None, 'type': 'FRIEND'}], None, None)), ('node', 'pernilla', [], None))]), ('chain', ('node', 'pernilla', [], None), [(('directed', ('relationship', [{'variable': None, 'type': 'FRIEND'}], None, None)), ('node', 'david', [], None))])])]
+```
+
+## generate subcommand
+
+```bash
+agefreighter generate --help
+usage: agefreighter generate [-h] [--pattern-no PATTERN_NO] [--multiplier MULTIPLIER]
+
+options:
+  -h, --help            show this help message and exit
+  --pattern-no PATTERN_NO
+                        Pattern number to generate
+  --multiplier MULTIPLIER
+                        Multiplier for the number of nodes and edges
+```
+
+```bash
+agefreighter generate --pattern-no 1
+
+Creating directory generated_dummy_20250308_132130
+Creating directory generated_dummy_20250308_132130/transaction
+Generating Bought: 20050...
+```
+
+```bash
+head generated_dummy_20250308_132130/transaction/customer_product_bought.csv
+"id","start_id","start_vertex_type","Name","Address","Email","Phone","end_id","end_vertex_type","Phrase","SKU","Price","Color","Size","Weight"
+"1","9233","Customer","Julie Williamson","168 Smith Walks Suite 295 Jacksonville, MA 08548","joshua82@example.com","503.987.6985x70933","205","Product","Networked reciprocal challenge","0102257078617","169.55","BlanchedAlmond","S","257"
+"2","2765","Customer","Laura Hall","5840 Schneider Row Apt. 902 Port Tinafurt, VI 31305","xhunt@example.com","(688)567-4883x722","399","Product","Streamlined background parallelism","6243358057911","761.59","LavenderBlush","L","994"
+"3","5682","Customer","Stefanie Dawson","622 Roy Prairie Lake Cheryl, DE 04519","jared70@example.com","772.783.0617x206","757","Product","Object-based demand-driven encryption","2539370263589","807.36","LightBlue","M","838"
+"4","1888","Customer","Amy Orr","32361 Green Ports Port Steven, VA 20010","joesampson@example.net","228.860.4374","121","Product","Optional cohesive success","3053544413475","400.16","Lavender","M","492"
+"5","525","Customer","Dana Cook","7517 Hannah Crest Port Sabrina, WY 86600","angelamoore@example.com","714-219-2207x67960","123","Product","Synergistic bifurcated contingency","8416136503223","390.23","PaleTurquoise","L","686"
+"6","3087","Customer","Phillip Booker","665 Hailey Ports North Ronaldmouth, ND 28714","david41@example.net","+1-955-721-5633x28944","224","Product","Realigned real-time encryption","1460321914797","901.44","SpringGreen","S","331"
+"7","3134","Customer","Miranda Wilson","82965 Dakota Squares Apt. 260 Meganville, OR 32907","david03@example.org","7676919040","150","Product","Balanced modular approach","3699817802098","629.91","ForestGreen","S","905"
+"8","7935","Customer","Victoria Lowe","00325 Tiffany Mount North Morgan, AS 36897","shawn47@example.com","5587080795","795","Product","Intuitive well-modulated superstructure","3671127475940","795.46","LimeGreen","M","856"
+"9","7597","Customer","Dr. Jessica Mcintosh MD","9870 William Trafficway Apt. 430 Robynport, AZ 81619","gonzalezjohn@example.org","(881)385-8102","882","Product","Inverse national contingency","7080557840833","532.9","Purple","XL","966"
+```
+
+## prepare subcommand
+
+```bash
+agefreighter prepare --help
+usage: agefreighter prepare [-h] [--target-type {neo4j,cosmosdb,pgsql}] [--data-dir DATA_DIR] [--base-file BASE_FILE] [--neo4j-uri NEO4J_URI] [--neo4j-user NEO4J_USER] [--neo4j-password NEO4J_PASSWORD]
+                            [--neo4j-database NEO4J_DATABASE] [--cosmos-gremlin-endpoint COSMOS_GREMLIN_ENDPOINT] [--cosmos-key COSMOS_KEY] [--cosmos-database COSMOS_DATABASE]
+                            [--cosmos-container COSMOS_CONTAINER] [--src-pg-con-str SRC_PG_CON_STR]
+
+options:
+  -h, --help            show this help message and exit
+  --target-type {neo4j,cosmosdb,pgsql}
+                        Targeted type of the source of graph data.
+  --data-dir DATA_DIR   Directory containing the data files
+  --base-file BASE_FILE
+                        Base file name for the data files
+  --neo4j-uri NEO4J_URI
+                        Neo4j URI
+  --neo4j-user NEO4J_USER
+                        Neo4j username
+  --neo4j-password NEO4J_PASSWORD
+                        Neo4j password
+  --neo4j-database NEO4J_DATABASE
+                        Neo4j database
+  --cosmos-gremlin-endpoint COSMOS_GREMLIN_ENDPOINT
+                        Cosmos Gremlinendpoint
+  --cosmos-key COSMOS_KEY
+                        Cosmos key
+  --cosmos-database COSMOS_DATABASE
+                        Cosmos database
+  --cosmos-container COSMOS_CONTAINER
+                        Cosmos container
+  --src-pg-con-str SRC_PG_CON_STR
+                        Source PostgreSQL connection string
+```
+
+### Windows Security Warning
+
+When trying to execute `load` on Windows, you might encounter a security warning that prevents it from starting. This is often due to Windows SmartScreen or your antivirus/firewall software blocking the app. Here are some steps you can take:
+	•	SmartScreen:
+When the security warning appears, click on “More info” and then select “Run anyway” to bypass the warning and launch the app.
+	•	Firewall/Antivirus Settings:
+Check your Windows Defender or any other security software settings to ensure that Python and Flask are not being blocked. You may need to add an exception or whitelist for the application.
+	•	Run as Administrator:
+Try running your command prompt or PowerShell as an administrator and then start the Flask application.
+
+If these steps do not resolve the issue, there might be a problem with your Flask application or the environment setup. In that case, review the error messages or logs for additional details.
 
 ## How to edit the CSV files to load them to the graph database with AGEFreighter
 
@@ -747,6 +1375,12 @@ postgres=> select * from air_route.route limit 1;
 ```
 
 ## Release Notes
+
+### 1.0.0a7 Release
+- Implemented `load --source-type pgsql`
+
+### 1.0.0a6 Release
+- Added explanations for the subcommands.
 
 ### 1.0.0a5 Release
 - Fixed character escaping.

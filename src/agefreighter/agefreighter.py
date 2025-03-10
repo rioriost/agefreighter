@@ -120,7 +120,14 @@ class AgeFreighter:
 
     async def __aenter__(self) -> "AgeFreighter":
         log.debug("Entering async context for AgeFreighter.")
-        await self.connect(**self.extra_kwargs)
+        self.con_pool = await self.connect(
+            dsn=self.dsn_w_option,
+            max_connections=self.max_connections,
+            min_connections=self.min_connections,
+            max_attempts=self.max_attempts,
+            retry_delay=self.retry_delay,
+            **self.extra_kwargs,
+        )
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
@@ -133,11 +140,20 @@ class AgeFreighter:
                 log.error("Error closing connection pool: %s", e)
         log.debug("Exiting AgeFreighter context.")
 
-    async def connect(self, **kwargs) -> None:
+    async def connect(
+        self,
+        dsn: str,
+        max_connections: int,
+        min_connections: int,
+        max_attempts: int,
+        retry_delay: int,
+        **kwargs,
+    ) -> AsyncConnectionPool:
         """
         Open a connection pool with retry logic.
         """
-        log.debug("Opening connection pool.")
+        parsed_dsn = self.parse_dsn(dsn)
+        log.debug("Opening connection pool for %s.", parsed_dsn["host"])
 
         # Increase file descriptor limits for Unix systems if needed
         if platform.system() in ["Darwin", "Linux"]:
@@ -149,29 +165,43 @@ class AgeFreighter:
             except Exception as e:
                 log.error("Error setting resource limits: %s", e)
 
-        self.con_pool = AsyncConnectionPool(
-            self.dsn_w_option,
-            max_size=self.max_connections,
-            min_size=self.min_connections,
+        con_pool = AsyncConnectionPool(
+            dsn,
+            max_size=max_connections,
+            min_size=min_connections,
             open=False,
             timeout=600,
             **kwargs,
         )
 
-        for attempt in range(1, self.max_attempts + 1):
+        for attempt in range(1, max_attempts + 1):
             try:
-                await self.con_pool.open()
-                await self.con_pool.wait()
-                log.info("Connection pool opened successfully.")
-                return
+                await con_pool.open()
+                await con_pool.wait()
+                log.info(
+                    "Connection pool for %s opened successfully.", parsed_dsn["host"]
+                )
+                break
             except PoolTimeout as e:
-                log.error("Pool timeout on attempt %d: %s", attempt, e)
-                if attempt == self.max_attempts:
+                log.error(
+                    "Connection pool for %s timeout on attempt %d: %s",
+                    parsed_dsn["host"],
+                    attempt,
+                    e,
+                )
+                if attempt == max_attempts:
                     raise
-                await asyncio.sleep(self.retry_delay)
+                await asyncio.sleep(retry_delay)
             except Exception as e:
-                log.error("Error opening connection pool on attempt %d: %s", attempt, e)
+                log.error(
+                    "Error opening connection pool for %s on attempt %d: %s",
+                    parsed_dsn["host"],
+                    attempt,
+                    e,
+                )
                 raise
+
+        return con_pool
 
     async def close(self) -> None:
         """
@@ -184,6 +214,16 @@ class AgeFreighter:
             except Exception as e:
                 log.error("Error closing connection pool: %s", e)
 
+    @staticmethod
+    def parse_dsn(dsn: str) -> dict:
+        """
+        Parse a DSN string into an AST.
+        """
+        try:
+            return dict(item.split("=", 1) for item in dsn.split())
+        except ValueError:
+            raise ValueError("Invalid DSN format")
+
     @reconnect_on_failure
     async def _recover_label(self, label: str) -> None:
         """
@@ -195,7 +235,12 @@ class AgeFreighter:
         async with pool.connection() as conn:
             async with conn.cursor() as cur:
                 log.info("Truncating label '%s'.", label)
-                await cur.execute(f'TRUNCATE "{self.graph_name}"."{label}";')
+                await cur.execute(
+                    SQL("TRUNCATE {graph_name}.{label};").format(
+                        graph_name=Identifier(self.graph_name),
+                        label=Identifier(label),
+                    )
+                )
                 log.info("Resetting sequence for label '%s'.", label)
                 await cur.execute(
                     f'SELECT setval(\'"{self.graph_name}"."{label}_id_seq"\', 1, false)'
@@ -258,11 +303,19 @@ class AgeFreighter:
         Execute the COPY command to load CSV data.
         """
         log.debug("Starting COPY for file '%s' into label '%s'.", csv_path, label_name)
-        graph_name_quoted = self.quoted_graph_name(graph_name)
+        # graph_name_quoted = self.quoted_graph_name(graph_name)
         if kind == "v":
-            query = f'COPY {graph_name_quoted}."{label_name}" FROM STDIN (FORMAT CSV)'
+            query = SQL(
+                "COPY {graph_name}.{label_name} FROM STDIN (FORMAT CSV)"
+            ).format(
+                graph_name=Identifier(graph_name), label_name=Identifier(label_name)
+            )
         else:
-            query = f'COPY {graph_name_quoted}."{label_name}" (id, start_id, end_id, properties) FROM STDIN (FORMAT CSV)'
+            query = SQL(
+                "COPY {graph_name}.{label_name} (id, start_id, end_id, properties) FROM STDIN (FORMAT CSV)"
+            ).format(
+                graph_name=Identifier(graph_name), label_name=Identifier(label_name)
+            )
 
         pool = self.con_pool
         assert pool is not None, "Connection pool is not initialized."
@@ -283,7 +336,8 @@ class AgeFreighter:
                 await cur.execute(
                     f'SELECT setval(\'"{self.graph_name}"."{label_name}_id_seq"\', {next_val}, true)'
                 )
-                await cur.execute("COMMIT")
+
+                await cur.execute(SQL("COMMIT"))
 
     @staticmethod
     def extract_unique_keys(data: List[Dict[str, Any]]) -> Set[str]:
@@ -328,10 +382,11 @@ class AgeFreighter:
         async with pool.connection() as conn:
             async with conn.cursor() as cur:
                 relation = f'{quoted_graph}."{label_type}"'
-                query = SQL(
-                    "SELECT id FROM ag_label WHERE relation = {}::regclass;"
-                ).format(Literal(relation))
-                await cur.execute(query)
+                await cur.execute(
+                    SQL(
+                        "SELECT id FROM ag_label WHERE relation = {}::regclass;"
+                    ).format(Literal(relation))
+                )
                 row = await cur.fetchone()
                 if row is None:
                     raise ValueError("No row returned; check your query or data.")

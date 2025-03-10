@@ -23,13 +23,13 @@ from agefreighter.neo4jloader import Neo4jLoader
 class DummyCsvManager:
     def get_dataframe(self):
         data = {
-            "CustomerID": ["C1"],
+            "start_id": ["C1"],
             "start_vertex_type": ["Customer"],
             "Name": ["Alice"],
             "Address": ["123 Main St"],
             "Email": ["alice@example.com"],
             "Phone": ["1234567890"],
-            "ProductID": ["P1"],
+            "end_id": ["P1"],
             "end_vertex_type": ["Product"],
             "SKU": ["SKU1"],
             "Price": [100],

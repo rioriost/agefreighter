@@ -103,7 +103,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--graphname",
         type=str,
-        default="FROM_NEO4J",
+        default="FROM_AGEFREIGHTER",
         help="Name of a new graph on Apache AGE",
     )
     parser.add_argument(
@@ -220,6 +220,7 @@ def parse_arguments() -> argparse.Namespace:
         default=os.environ.get("COSMOS_CONTAINER", ""),
         help="Cosmos container",
     )
+    # PGSQL-specific arguments
     parser_load.add_argument(
         "--src-pg-con-str",
         type=str,
@@ -252,6 +253,12 @@ def parse_arguments() -> argparse.Namespace:
         type=int,
         default=1,
         help="Pattern number to generate",
+    )
+    parser_generate.add_argument(
+        "--multiplier",
+        type=int,
+        default=1,
+        help="Multiplier for the number of nodes and edges",
     )
 
     # "convert" subcommand
@@ -525,7 +532,16 @@ async def async_main() -> None:
                         )
                         sys.exit(1)
 
-                    from agefreighter.pgsqlexporter import PGSQLExporter  # type: ignore
+                    if not args.config:
+                        log.error(
+                            "Config file is required for PostgreSQL export. See samples in configs directory."
+                        )
+                        sys.exit(1)
+                    if not os.path.exists(os.path.abspath(args.config)):
+                        log.error("Config file '%s' does not exist.", args.config)
+                        sys.exit(1)
+
+                    from agefreighter.pgsqlexporter import PGSQLExporter
 
                     try:
                         async with PGSQLExporter(
@@ -533,6 +549,7 @@ async def async_main() -> None:
                             min_connections=args.pg_min_connections,
                             max_connections=args.pg_max_connections,
                             src_dsn=args.src_pg_con_str,
+                            config=os.path.abspath(args.config),
                             trial=args.trial,
                             save_temps=args.save_temps,
                             progress=args.progress,
@@ -588,6 +605,7 @@ async def async_main() -> None:
 
             await generator.main(
                 pattern_no=args.pattern_no,
+                multiplier=args.multiplier,
                 log_level=logging.DEBUG if args.debug else logging.INFO,
             )
 
