@@ -1,0 +1,30 @@
+{
+  "edge": [
+    {
+      "table": "knows",
+      "type": "KNOWS",
+      "start_id": "person1_id",
+      "end_id": "person2_id",
+      "props": ["since"],
+      "vertex": {
+        "table": "person",
+        "id": "id",
+        "label": "Person",
+        "props": ["Name"]
+      }
+    },
+    {
+      "table": "likes",
+      "type": "LIKES",
+      "start_id": "person1_id",
+      "end_id": "person2_id",
+      "props": ["since"],
+      "vertex": {
+        "table": "person",
+        "id": "id",
+        "label": "Person",
+        "props": ["Name"]
+      }
+    }
+  ]
+}

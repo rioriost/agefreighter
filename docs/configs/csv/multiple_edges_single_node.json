@@ -1,0 +1,26 @@
+{
+  "edge": [
+    {
+      "csv_path": "data/persons/knows_person_person.csv",
+      "type": "KNOWS",
+      "props": ["since"],
+      "vertex": {
+        "csv_path": "data/persons/person.csv",
+        "id": "id",
+        "label": "Person",
+        "props": ["Name"]
+      }
+    },
+    {
+      "csv_path": "data/persons/likes_person_person.csv",
+      "type": "LIKES",
+      "props": ["since"],
+      "vertex": {
+        "csv_path": "data/persons/person.csv",
+        "id": "id",
+        "label": "Person",
+        "props": ["Name"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "edge": {
+    "csv_path": "data/countries/has_country_city.csv",
+    "type": "has",
+    "props": ["since"],
+    "start_vertex": {
+      "csv_path": "data/countries/country.csv",
+      "id": "id",
+      "label": "Country",
+      "props": ["Name", "Capital", "Population", "ISO", "TLD", "FlagURL"]
+    },
+    "end_vertex": {
+      "csv_path": "data/countries/city.csv",
+      "id": "id",
+      "label": "City",
+      "props": ["Name", "Latitude", "Longitude"]
+    }
+  }
+}

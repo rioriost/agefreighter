@@ -1,0 +1,21 @@
+{
+  "edge": {
+    "table": "airroute",
+    "type": "airroute",
+    "start_id": "start_id",
+    "end_id": "end_id",
+    "props": ["distance"],
+    "start_vertex": {
+      "table": "airroute",
+      "id": "start_id",
+      "label": "airport",
+      "props": []
+    },
+    "end_vertex": {
+      "table": "airroute",
+      "id": "end_id",
+      "label": "airport",
+      "props": []
+    }
+  }
+}

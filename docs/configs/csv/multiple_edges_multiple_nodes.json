@@ -1,0 +1,108 @@
+{
+  "edge": [
+    {
+      "csv_path": "data/payment/usedin_cookie_payment.csv",
+      "type": "UsedIn",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "csv_path": "data/payment/cookie.csv",
+        "id": "id",
+        "label": "Cookie",
+        "props": ["available_since", "inserted_at", "uaid", "schema_version"]
+      },
+      "end_vertex": {
+        "csv_path": "data/payment/payment.csv",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "csv_path": "data/payment/usedin_creditcard_payment.csv",
+      "type": "UsedIn",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "csv_path": "data/payment/creditcard.csv",
+        "id": "id",
+        "label": "CreditCard",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "expiry_month",
+          "expiry_year",
+          "masked_number",
+          "creditcard_identifier",
+          "schema_version"
+        ]
+      },
+      "end_vertex": {
+        "csv_path": "data/payment/payment.csv",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "csv_path": "data/payment/performedby_cookie_payment.csv",
+      "type": "PerformedBy",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "csv_path": "data/payment/cookie.csv",
+        "id": "id",
+        "label": "Cookie",
+        "props": ["available_since", "inserted_at", "uaid", "schema_version"]
+      },
+      "end_vertex": {
+        "csv_path": "data/payment/payment.csv",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "csv_path": "data/payment/performedby_creditcard_payment.csv",
+      "type": "PerformedBy",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "csv_path": "data/payment/creditcard.csv",
+        "id": "id",
+        "label": "CreditCard",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "expiry_month",
+          "expiry_year",
+          "masked_number",
+          "creditcard_identifier",
+          "schema_version"
+        ]
+      },
+      "end_vertex": {
+        "csv_path": "data/payment/payment.csv",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    }
+  ]
+}

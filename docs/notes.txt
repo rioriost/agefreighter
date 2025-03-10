@@ -1,0 +1,15 @@
+## Design Considerations
+    - Multi threading support
+        - All the classes support context manager
+    - Multi processing support
+    - Dynamic importing of dependencies for small distributions
+    - Common interface for different data sources
+    - Interfaces and common exporter and importer design
+        - Interface(Inheritance of AgeExporter, neo4j etc): convert data source to common data representation
+            - Exporter(AgeExporter): convert common data representation to CSV compatible with COPY command
+        - Importer(AgeFreighter): load CSV using COPY protocol
+    - Support for multiple platforms, macOS, Linux, Windows
+
+## Current restrictions with Apache AGE 1.5
+    - No support for multiple labels on a single node
+    - No support for tab characters in properties

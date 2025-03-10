@@ -1,0 +1,116 @@
+{
+  "edge": [
+    {
+      "table": "usedin_cookie_payment",
+      "type": "UsedIn",
+      "start_id": "cookie_id",
+      "end_id": "payment_id",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "table": "cookie",
+        "id": "id",
+        "label": "Cookie",
+        "props": ["available_since", "inserted_at", "uaid", "schema_version"]
+      },
+      "end_vertex": {
+        "table": "payment",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "table": "usedin_creditcard_payment",
+      "type": "UsedIn",
+      "start_id": "creditcard_id",
+      "end_id": "payment_id",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "table": "creditcard",
+        "id": "id",
+        "label": "CreditCard",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "expiry_month",
+          "expiry_year",
+          "masked_number",
+          "creditcard_identifier",
+          "schema_version"
+        ]
+      },
+      "end_vertex": {
+        "table": "payment",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "table": "performedby_cookie_payment",
+      "type": "PerformedBy",
+      "start_id": "cookie_id",
+      "end_id": "payment_id",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "table": "cookie",
+        "id": "id",
+        "label": "Cookie",
+        "props": ["available_since", "inserted_at", "uaid", "schema_version"]
+      },
+      "end_vertex": {
+        "table": "payment",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "table": "performedby_creditcard_payment",
+      "type": "PerformedBy",
+      "start_id": "creditcard_id",
+      "end_id": "payment_id",
+      "props": ["available_since", "inserted_at", "schema_version"],
+      "start_vertex": {
+        "table": "creditcard",
+        "id": "id",
+        "label": "CreditCard",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "expiry_month",
+          "expiry_year",
+          "masked_number",
+          "creditcard_identifier",
+          "schema_version"
+        ]
+      },
+      "end_vertex": {
+        "table": "payment",
+        "id": "id",
+        "label": "Payment",
+        "props": [
+          "available_since",
+          "inserted_at",
+          "payment_id",
+          "schema_version"
+        ]
+      }
+    }
+  ]
+}

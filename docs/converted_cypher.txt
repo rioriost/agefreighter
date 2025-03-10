@@ -1,0 +1,338 @@
+MATCH (n) RETURN n
+MATCH ()-[r]-() RETURN r
+MATCH (n:person) RETURN n
+MATCH (n:software) RETURN n
+MATCH (n:person {age:30}) RETURN n
+MATCH (n:software {lang:'java'}) RETURN n
+MATCH (n)-[:knows]->(m) RETURN m
+MATCH (n)<-[:created]-(m) RETURN m
+MATCH (n)-[:knows]-(m) RETURN m
+MATCH (n)-[*2]->(m) RETURN m
+MATCH (n)<-[*2]-(m) RETURN m
+MATCH (n) RETURN n {.*}
+MATCH (n) WHERE exists(n.name) RETURN n.name
+MATCH (n) RETURN n.name
+MATCH (n)-[]->(m) RETURN count(m)
+MATCH (n) WITH n.age AS key, collect(n) AS group RETURN collect({key:key, value:group})
+MATCH (n) WHERE exists(n.name) WITH n.name AS key, count(*) AS cnt RETURN collect({key:key, value:cnt})
+MATCH p=(n)-[*]->(m) WHERE all(x in nodes(p) WHERE single(y in nodes(p) WHERE y = x)) RETURN p
+MATCH (a:person)-[:knows]->(b) RETURN a,b
+MATCH (n) RETURN n ORDER BY n.name
+MATCH (n) RETURN n ORDER BY n.age DESC
+MATCH (n) RETURN n LIMIT 5
+MATCH (n) WHERE n.name IN ['Alice','Bob'] RETURN n
+MATCH ()-[r:created]-() RETURN r
+MATCH (n {name:'Marko'}) RETURN n
+MATCH (a {name:'Marko'})-[:knows]-(b) RETURN b
+MATCH (a {name:'Marko'})-[:created]-(b) RETURN b
+MATCH (n)-[r]-(m) RETURN r
+MATCH (n)-[r]-(m) WHERE r.weight > 0.5 RETURN r
+MATCH ()-[r]-() RETURN avg(r.weight)
+MATCH ()-[r]-() RETURN sum(r.weight)
+MATCH ()-[r]-() RETURN min(r.weight)
+MATCH ()-[r]-() RETURN max(r.weight)
+MATCH (n) WITH labels(n)[0] AS label, count(n) AS cnt RETURN collect({key:label, value:cnt})
+MATCH (n:person) RETURN n.name
+MATCH (n:person)-[:knows]->(m) RETURN m
+MATCH (a {name:'Alice'}), p=(a)-[*]->(m) RETURN distinct m
+MATCH (a {name:'Alice'}), p=(a)-[*]->(b {name:'Bob'}) RETURN b
+MATCH (n) WHERE n.age > 30 RETURN n
+MATCH (n) WHERE n.age <= 25 RETURN n
+MATCH (n) WHERE n.name STARTS WITH 'A' RETURN n
+MATCH (n {id:'1'})-[]->(m) RETURN m
+MATCH (n {id:'1'})<-[]-(m) RETURN m
+MATCH (n {id:'1'})-[*]-(m) RETURN m
+MATCH (n {id:'1'}), p=(n)-[*3]-(m) RETURN m
+MATCH (a {name:'Alice'})-[r]-(m) RETURN m
+MATCH (a {name:'Alice'})-[r]-(m) RETURN r LIMIT 3
+MATCH (n) WHERE n.age > 30 AND n.age < 30 RETURN n
+MATCH (n) WHERE n.age > 30 AND n.age < 30 RETURN n
+MATCH (n) WHERE n.age < 30 OR n.age > 30 RETURN n
+MATCH (n {name:'Alice'}) WITH collect(n) AS x RETURN n
+MATCH (n {name:'Bob'}) RETURN n
+MATCH (n:person) RETURN collect(n.name)
+MATCH (n:person) OPTIONAL MATCH (n)-[:knows]->(m) RETURN n, collect(m.name)
+MATCH (n {name:'Alice'}) WHERE EXISTS { MATCH (n)-[:]->(m:person) RETURN m } RETURN n
+MATCH (n {name:'Alice'}) WHERE EXISTS { MATCH ()-[r:knows]->(n) RETURN r } RETURN n
+MATCH (a {name:'Alice'}), p=(a)-[*]->(m) RETURN distinct m
+MATCH (a {name:'Alice'}), p=(a)-[*]->(b {name:'Bob'}) RETURN b
+MATCH (n {name:'Alice'}) WITH collect(n) AS aStore MATCH (n)-[]-(m) WITH aStore + collect(m) AS aStore RETURN aStore
+MATCH (n {name:'Alice'}) WITH labels(n)[0] AS label, n.name AS name RETURN collect({key:label, value:name})
+MATCH (n {name:'Alice'}) RETURN n.name
+MATCH p=(n {name:'Alice'})-[*]->(m) RETURN p
+MATCH (n:person) WITH distinct n RETURN n
+MATCH (n:person) WITH distinct n.name AS name, head(collect(n)) AS node RETURN node
+MATCH (n:person) WITH collect(n) AS a RETURN a
+MATCH (n:person) WITH n.age AS key, count(n) AS cnt RETURN collect({key:key, value:cnt})
+MATCH (n:software)-[:created]->(m) RETURN m
+MATCH (n {name:'Alice'}) OPTIONAL MATCH (n)-[:knows]->(m) WITH n, collect(m) AS knows OPTIONAL MATCH (n)-[:created]->(m2) WITH n, CASE WHEN size(knows) > 0 THEN knows ELSE collect(m2) END AS result RETURN result
+MATCH (n:person) WHERE rand() < 0.5 RETURN count(n)
+MATCH (n)-[r]-(m) WITH collect(n)+collect(m) AS nodes UNWIND nodes AS x RETURN distinct x
+MATCH p=(a {name:'Alice'})-[*]->(m) WHERE ANY(x IN nodes(p) WHERE x.name = 'Bob') RETURN p
+MATCH p=(a {name:'Alice'})-[*]->(b {name:'Bob'}) RETURN p
+MATCH (n:person {name:'Alice'}) OPTIONAL MATCH (n)-[:knows]->(m) RETURN collect(n) + collect(m)
+MATCH (n:person {name:'Alice'}) OPTIONAL MATCH (n)-[:knows]->(m) OPTIONAL MATCH (n)-[:created]->(m2) RETURN collect(m) + collect(m2)
+MATCH (n)-[]-(m) WHERE m.age > 30 RETURN m
+MATCH (n {name:'Alice'}) RETURN n
+MATCH (n) RETURN n
+MATCH (n) WITH n, CASE WHEN n.age > 30 THEN [(n)-[]->(m) | m] ELSE [(n)<-[]-(m) | m] END AS chosen RETURN chosen
+MATCH (n) OPTIONAL MATCH (n)-[]->(m) RETURN m
+MATCH (n {name:'Alice'}) RETURN n LIMIT 1
+MATCH (a)-[*3]->(m) RETURN m {.*}
+MATCH (a)<-[*3]-(m) RETURN m {.*}
+MATCH (n)-[:knows]-(m) RETURN count(distinct m)
+MATCH (n {name:'Bob'})-[r]-(m) WHERE r.weight > 0.4 RETURN r
+MATCH ()-[r]-() WHERE r.weight < 0.3 RETURN r
+MATCH (n {name:'Alice'})-[:created]->(m {lang:'java'}) RETURN m
+MATCH (n {name:'Bob'})<-[:likes]-(m) RETURN m
+MATCH (n)-[:collaborates]-(m) RETURN m
+MATCH (n)-[:knows]->(m) WHERE m.age > 25 RETURN m
+MATCH (n {city:'London'}) RETURN n
+MATCH (n {city:'New York'}) RETURN n
+MATCH (n) WHERE n.salary > 50000 RETURN n
+MATCH (n) WHERE n.salary > 80000 AND n.salary < 80000 RETURN n
+MATCH ()-[r]-() WHERE r.since >= 2010 RETURN r
+MATCH (n {department:'sales'}) RETURN n
+MATCH (n)-[:manages]->(m {role:'manager'}) RETURN m
+MATCH (n)<-[:reportsTo]-(m {role:'employee'}) RETURN m
+MATCH (n {name:'Charlie'})<-[:knows]-(m) RETURN m
+MATCH (n {status:'active'}) RETURN n
+MATCH (n {status:'inactive'}) RETURN n
+MATCH (n) WHERE n.type = 'premium' RETURN n
+MATCH (n) WHERE n.type = 'basic' RETURN n
+MATCH (n {name:'Dennis'})-[*4]-(m) RETURN m
+MATCH (n {name:'Emily'})-[:friend*2]->(m) RETURN m
+MATCH (n) WHERE n.price > 100 RETURN n.price
+MATCH (n) WHERE n.price <= 100 RETURN n.price
+MATCH (n) WHERE n.rating > 4.5 RETURN n
+MATCH (n) WHERE n.rating >= 3.5 AND n.rating <= 0 RETURN n
+MATCH ()-[r {transaction:'complete'}]-() RETURN r
+MATCH (n) WHERE n.category = 'books' RETURN n
+MATCH (n) WHERE n.category = 'electronics' RETURN n
+MATCH (n {name:'Fiona'})<-[:bought]-(m) RETURN m
+MATCH (n {name:'George'})-[:sold]->(m) RETURN m
+MATCH p=(n)-[:friend*5]->(m) RETURN p
+MATCH p=(n)<-[:friend*5]-(m) RETURN p
+MATCH (n) WHERE n.region = 'APAC' RETURN n
+MATCH (n) WHERE n.region = 'EMEA' RETURN n
+MATCH (n) WHERE n.region = 'NA' RETURN n
+MATCH (n) WHERE n.visited IN ['Paris','London'] RETURN n
+MATCH (n) WHERE NOT('Tokyo' IN n.visited) RETURN n
+MATCH (n)-[:follows]->(m {name:'Helen'}) RETURN m
+MATCH (n)<-[:follows]-(m {name:'Ian'}) RETURN m
+MATCH (n)-[:follows]-(m {name:'John'}) RETURN m
+MATCH (n)-[:likes]->(m) RETURN DISTINCT m
+MATCH (n)<-[:likes]-(m) RETURN DISTINCT m
+MATCH (n) WHERE n.dob <= '2000-01-01' RETURN n
+MATCH (n) WHERE n.dob > '1990-01-01' RETURN n
+MATCH (n) WHERE n.score < 50 RETURN n
+MATCH (n) WHERE n.score >= 90 RETURN n
+MATCH (n) WHERE n.language = 'English' RETURN n
+MATCH (n) WHERE n.language = 'Japanese' RETURN n
+MATCH (n)-[:recommend*3]->(m) RETURN m
+MATCH (n)<-[:recommend*3]-(m) RETURN m
+MATCH (n) WHERE n.name = 'Karen' RETURN n-[:worksWith]-(m) RETURN m
+MATCH (n {name:'Leo'})-[:collaborates]-(m) RETURN m
+MATCH (n {name:'Monica'})-[:reportsTo]-(m) RETURN m
+MATCH (n) WHERE n.status = 'pending' RETURN n
+MATCH (n) WHERE n.status = 'approved' RETURN n
+MATCH (n) WHERE n.status = 'rejected' RETURN n
+MATCH (n {name:'Nathan'})-[:subordinate]->(m) RETURN m
+MATCH (n {name:'Olivia'})<-[:subordinate]-(m) RETURN m
+MATCH (n) WHERE n.department = 'HR' WITH n.role AS key, collect(n) AS group RETURN {key:key, value:group}
+MATCH (n) WHERE n.department = 'Engineering' WITH n.skill AS key, collect(n) AS group RETURN {key:key, value:group}
+MATCH (n {name:'Paul'})-[:collaborates]->(m) RETURN DISTINCT m
+MATCH (n) WHERE n.experience > 5 RETURN n
+MATCH (n) WHERE n.experience < 2 RETURN n
+MATCH (n) WHERE n.level = 'senior' RETURN n
+MATCH (n) WHERE n.level = 'junior' RETURN n
+MATCH (n {name:'Quinn'})-[:mentor]->(m) RETURN m
+MATCH (n {name:'Rachel'})<-[:mentor]-(m) RETURN m
+MATCH (n) WHERE n.employeeId = 1001 RETURN n
+MATCH (n) WHERE n.employeeId = 1002 RETURN n
+MATCH (n) WHERE n.joinDate >= '2020-01-01' AND n.joinDate <= '2021-01-01' RETURN n
+MATCH (n) WHERE n.joinDate >= '2022-01-01' RETURN n
+MATCH (n) WHERE n.title = 'CEO' RETURN n
+MATCH (n) WHERE n.title = 'CTO' RETURN n
+MATCH (n) WHERE n.project = 'Apollo' RETURN n
+MATCH (n) WHERE n.project = 'Zeus' RETURN n
+MATCH (n {name:'Steve'})-[:colleague*3]->(m) RETURN m
+MATCH (n {name:'Tina'})<-[:colleague*3]-(m) RETURN m
+MATCH (n)-[:friend]->(m)-[:friend]->(o) RETURN o
+MATCH (n)-[:friend]->(m)-[:friend]->(o) RETURN o
+MATCH (n)-[:friend]-(m) RETURN DISTINCT m.name
+MATCH (n) WHERE n.group = 'admin' RETURN n
+MATCH (n) WHERE n.group = 'user' RETURN n
+MATCH (n) WHERE n.session = 'active' RETURN n
+MATCH (n) WHERE n.session = 'expired' RETURN n
+MATCH (n) WHERE n.key = 'value' RETURN n
+MATCH (n {label:'custom'}) RETURN n LIMIT 10
+MATCH (n)-[r:connects]-(m) RETURN DISTINCT m
+MATCH (n {name:'Uma'})-[:connects]-(m) RETURN m
+MATCH ()-[r]-() WHERE r.distance <= 100 RETURN r
+MATCH ()-[r]-() WHERE r.distance > 100 RETURN r
+MATCH (n {name:'Victor'})-[:friend*2]->(m) RETURN m
+MATCH (n {name:'Wendy'})<-[:friend*2]-(m) RETURN m
+MATCH (n {role:'admin'})-[:manages]->(m) RETURN m
+MATCH (n {role:'employee'})<-[:manages]-(m) RETURN m
+MATCH (n:order) RETURN n
+MATCH (n:order)-[:contains]->(m) RETURN m
+MATCH (n) WHERE n.product = 'Laptop' RETURN n
+MATCH (n) WHERE n.product = 'Smartphone' RETURN n
+MATCH (n) WHERE n.brand = 'Dell' RETURN n
+MATCH (n) WHERE n.brand = 'Apple' RETURN n
+MATCH (n) WHERE n.year >= 2020 RETURN n
+MATCH (n) WHERE n.year < 2020 RETURN n
+MATCH (n) RETURN n ORDER BY n.price ASC
+MATCH (n) RETURN n ORDER BY n.price DESC
+MATCH (n) WHERE n.name = 'Zack' RETURN n
+MATCH (n) WHERE n.status = 'ordered' RETURN n
+MATCH (n) WHERE n.status = 'shipped' RETURN n
+MATCH (n) WHERE n.status = 'delivered' RETURN n
+MATCH (n) WHERE n.priority = 'high' RETURN n
+MATCH (n) WHERE n.priority = 'low' RETURN n
+MATCH (n) WHERE n.destination = 'Paris' RETURN n
+MATCH (n) WHERE n.destination = 'Berlin' RETURN n
+MATCH (n)-[:purchased]->(m) WHERE m.category = 'clothing' RETURN m
+MATCH (n {name:'Alice'})-[:colleague*4]->(m) RETURN m
+MATCH (n {name:'Bob'})<-[:colleague*4]-(m) RETURN m
+MATCH (n:device) RETURN n.ip
+MATCH (n:device)-[:connectedTo]->(m) RETURN m
+MATCH ()-[r:transaction]-() RETURN count(r)
+MATCH (n:transaction)<-[:initiatedBy]-(m) RETURN m
+MATCH (n)-[]->(m) RETURN count(m)
+MATCH p=(a)<-[*]-(b) WHERE a.name = 'Circular' RETURN p
+MATCH (n) WHERE exists(n.country) WITH n.country AS key, count(n) AS cnt RETURN collect({key:key, value:cnt})
+MATCH (n) WHERE exists(n.email) RETURN DISTINCT n
+MATCH (n) WHERE n.username = 'john_doe' RETURN n
+MATCH (n) WHERE n.username = 'jane_doe' RETURN n
+MATCH (n)-[:follows]-(m) RETURN DISTINCT m
+MATCH (n {subject:'math'})-[:teaches]->(m) RETURN m
+MATCH (n {subject:'science'})<-[:learns]-(m) RETURN m
+MATCH (n) WHERE n.course = 'CS101' RETURN n
+MATCH (n) WHERE n.course = 'ENG202' RETURN n
+MATCH (n)<-[:enrolled]-(m:student) RETURN m
+MATCH (n)-[:enrolled]->(m:student) RETURN m
+MATCH (n {version:'1.0'})-[:updated]->(m) RETURN m
+MATCH (n {version:'2.0'})<-[:updated]-(m) RETURN m
+MATCH (n) WHERE n.file = 'document.txt' RETURN n
+MATCH (n) WHERE n.file = 'image.png' RETURN n
+MATCH (n)-[:linkedTo]->()-[:linkedTo]->(m) RETURN m
+MATCH (n)<-[:linkedTo]-()-<-[:linkedTo]-(m) RETURN m
+MATCH ()-[r {relationship:'parent'}]-() RETURN r
+MATCH (n) WHERE n.category = 'news' RETURN n
+MATCH (n) WHERE n.category = 'blog' RETURN n
+MATCH (n) WHERE n.active = true RETURN n
+MATCH (n) WHERE n.active = false RETURN n
+MATCH (n) WHERE n.updatedAt > '2022-01-01' RETURN n
+MATCH (n) WHERE n.visited = 10 RETURN n
+MATCH (n) WHERE n.visited < 5 RETURN n
+MATCH (n) WHERE n.count >= 100 RETURN n
+MATCH (n) WHERE n.count <= 50 RETURN n
+MATCH (n) WHERE n.reputation > 1000 RETURN n
+MATCH (n) WHERE n.reputation < 100 RETURN n
+MATCH (n)-[r:mentions]-(m) RETURN m, count(r) AS count
+MATCH (n)-[r:tags]-(m) RETURN DISTINCT m
+MATCH (n) WHERE n.role = 'moderator' RETURN n
+MATCH (n) WHERE n.role = 'contributor' RETURN n
+MATCH (n) WHERE n.license = 'MIT' RETURN n
+MATCH (n) WHERE n.license = 'GPL' RETURN n
+MATCH (n) WHERE n.score IN [80,90] RETURN n
+MATCH (n) WHERE NOT(n.score >= 40 AND n.score <= 60) RETURN n
+MATCH (n)-[:refersTo*3]->(m) RETURN DISTINCT m
+MATCH (n)<-[:refersTo*3]-(m) RETURN DISTINCT m
+MATCH (n {name:'Oscar'})-[:colleague]-(m) RETURN DISTINCT m
+MATCH (n {name:'Pam'})-[:colleague]-(m) RETURN DISTINCT m
+MATCH (n) WHERE n.tag = 'urgent' RETURN n
+MATCH (n) WHERE n.tag = 'routine' RETURN n
+MATCH ()-[r]-() WHERE r.action = 'login' RETURN r
+MATCH ()-[r]-() WHERE r.action = 'logout' RETURN r
+MATCH (n) WHERE n.device = 'mobile' RETURN n
+MATCH (n) WHERE n.device = 'desktop' RETURN n
+MATCH (n) WHERE n.os = 'Windows' RETURN n
+MATCH (n) WHERE n.os = 'Linux' RETURN n
+MATCH (n) WHERE n.os = 'macOS' RETURN n
+MATCH (a)-[:friend]->(b) WHERE b.age > 30 RETURN a, b
+MATCH (a)<-[:reportsTo]-(b) RETURN a, b
+MATCH (a)-[:risks]-(b) RETURN a, b
+MATCH (n {name:'Quincy'}) RETURN n.name AS name, n.city AS city
+MATCH (n {name:'Rita'}) RETURN n.name AS name, n.role AS role
+MATCH (n) WHERE n.interest = 'music' RETURN n
+MATCH (n) WHERE n.interest = 'sports' RETURN n
+MATCH (n) WHERE exists(n.fname) RETURN n
+MATCH (n) WHERE n.bio CONTAINS 'engineer' RETURN n
+MATCH (n) WHERE NOT(n.notes IN ['obsolete']) RETURN n
+MATCH (n) WHERE n.age = 18 RETURN n
+MATCH (n) WHERE n.age = 21 RETURN n
+MATCH (n) WHERE n.height > 170 RETURN n
+MATCH (n) WHERE n.height < 150 RETURN n
+MATCH (n)-[:affiliatedWith]-(m) WHERE m.institution = 'MIT' RETURN m
+MATCH (n)-[:affiliatedWith]-(m) WHERE m.institution = 'Stanford' RETURN m
+MATCH (n)-[:recommends*2]->(m) RETURN m
+MATCH (n)<-[:recommends*2]-(m) RETURN m
+MATCH (n {name:'Tom'}) WHERE (n)-[:follows]->() RETURN n
+MATCH (n {name:'Ursula'}) WHERE ()-[:follows]->(n) RETURN n
+MATCH (n) WHERE n.alias = 'Vicky' RETURN n
+MATCH (n) WHERE n.alias = 'Walter' RETURN n
+MATCH (n) WHERE n.username STARTS WITH 'admin' RETURN n
+MATCH (n) WHERE n.username STARTS WITH 'mod' RETURN n
+MATCH (n) WHERE exists(n.phone) RETURN DISTINCT n
+MATCH (n) RETURN DISTINCT n LIMIT 20
+MATCH (n) WHERE n.score >= 80 AND n.score <= 80 RETURN n
+MATCH (n) WHERE NOT(n.score >= 50 AND n.score <= 50) RETURN n
+MATCH (n:article)-[:similarTo]->(m) RETURN m
+MATCH (n:article)<-[:similarTo]-(m) RETURN m
+MATCH (n {name:'Xavier'})-[:related]-(m) RETURN m
+MATCH (n {name:'Yvonne'})-[:related]-(m) RETURN m
+MATCH ()-[r:supports]-() RETURN r ORDER BY r.weight DESC
+MATCH ()-[r:against]-() RETURN r ORDER BY r.weight ASC
+MATCH (n) WHERE n.key = 'value' RETURN n LIMIT 5
+MATCH (n) WHERE n.attribute = 'color' RETURN n.color
+MATCH (n)-[:linked]-(m) RETURN m.relationship AS relationship, collect(m) AS nodes
+MATCH (n) WHERE n.department = 'finance' RETURN n
+MATCH (n) WHERE n.department = 'marketing' RETURN n
+MATCH (n) WHERE n.income > 70000 RETURN n
+MATCH (n) WHERE n.income >= 50000 AND n.income <= 90000 RETURN n
+MATCH (n)-[:paidTo]->(m) WHERE m.role = 'vendor' RETURN m
+MATCH (n)<-[:paidTo]-(m) WHERE m.role = 'client' RETURN m
+MATCH (n)-[:endorses*2]->(m) RETURN count(m)
+MATCH (n)<-[:endorses*2]-(m) RETURN count(m)
+MATCH (n) WHERE n.rating = 5 MATCH (n)-[:reviews]->(m) RETURN m
+MATCH (n) WHERE id(n) = $person_id RETURN n
+MATCH (n) WHERE id(n) = $person_id RETURN n
+MATCH (n) WHERE id(n) = $vertex RETURN n {.*}
+MATCH (n) WHERE id(n) = $vertex RETURN n {.*}
+MATCH (n) WHERE id(n) = $vertex RETURN n
+CREATE (p:person {id: $person_id}) RETURN p
+CREATE (p:person {id: $person_id}) RETURN p
+CREATE (p:person) RETURN p
+MATCH (p) WHERE id(p) = $person SET p[$prop_name] = $prop_value RETURN p
+MATCH (p) WHERE id(p) = $person SET p[$prop_name] = $prop_value RETURN p
+MATCH (p) WHERE id(p) = $person RETURN p
+MATCH (n) WHERE id(n) = $node RETURN n {.*}
+MATCH (n) WHERE id(n) = $node RETURN n
+MATCH (p) WHERE id(p) = $person SET p = {}
+MATCH (p) WHERE id(p) = $person SET p = {}
+MATCH (p) WHERE id(p) = $person UNWIND keys(p) AS key RETURN key, p[key] AS value
+MATCH (a)-[r:knows]->(b) WHERE id(a) = $from_person AND id(b) = $to_person RETURN r
+MATCH (a)-[r:knows]->(b) WHERE id(a) = $from_person AND id(b) = $to_person RETURN r
+MATCH (a)-[r:knows]->() WHERE id(a) = $from_person RETURN r
+MATCH (a) WHERE id(a) = $from_person RETURN a
+MATCH (a)-[r:knows]->(b) WHERE id(a) = $from_person AND id(b) = $to_person SET r.weight = $weight RETURN r
+MATCH (a)-[r:knows]->(b) WHERE id(a) = $from_person AND id(b) = $to_person SET r.weight = $weight RETURN r
+MATCH (a), (b) WHERE id(a) = $from_person AND id(b) = $to_person CREATE (a)-[r:knows {weight: $weight}]->(b) RETURN r
+MATCH (a), (b) WHERE id(a) = $from_person AND id(b) = $to_person CREATE (a)-[r:knows {weight: $weight}]->(b) RETURN r
+MATCH (a), (b) WHERE id(a) = $from_person AND id(b) = $to_person CREATE (a)-[r:knows]->(b) RETURN r
+MATCH (a) WHERE id(a) = $from_person CREATE (a)-[r:knows]->(:Dummy) RETURN r
+MATCH path=(a:Person {id:$originating_person})-[:knows*1..]-(b) WITH b, reduce(s=1.0, r IN relationships(path) | s * r.weight) AS sack WHERE sack < $threshold RETURN sack AS a, b
+MATCH path=(a:Person {id:$originating_person})-[:knows*1..]-(b) WITH b, reduce(s=1.0, r IN relationships(path) | s * r.weight) AS sack WHERE sack < $threshold RETURN sack AS a, b
+MATCH path=(a:Person {id:$originating_person})-[:knows*1..]-(b) WITH b, reduce(s=1.0, r IN relationships(path) | s * r.weight) AS sack WHERE sack < $threshold RETURN sack AS a, b
+MATCH path=(a:Person {id:$originating_person})-[:knows*1..]-(b) WITH b, reduce(s=1.0, r IN relationships(path) | s * r.weight) AS sack WHERE sack < $threshold RETURN sack
+MATCH path=(a:Person {id:$originating_person})-[:knows*1..]-(b) WITH b, reduce(s=1.0, r IN relationships(path) | s * r.weight) AS sack WHERE sack < $threshold RETURN b
+MATCH path=(a:Person {id:$originating_person})-[:knows*1..]-(b) WITH b, reduce(s=1.0, r IN relationships(path) | s * r.weight) AS sack WHERE sack < $threshold RETURN b, sack
+MATCH path=(a:Person {id:$originating_person})-[:knows*1..]-(b) WITH b, reduce(s=1.0, r IN relationships(path) | s * r.weight) AS sack WHERE sack < $threshold RETURN b, sack
+MATCH path=(a:Person {id:$originating_person})-[:knows*1..]-(b) WITH b, reduce(s=1.0, r IN relationships(path) | s * r.weight) AS sack RETURN b, sack
+MATCH (a:Person {id:$originating_person}) RETURN a
+RETURN 1.0
+MATCH (n) DETACH DELETE n
+MATCH (n) DETACH DELETE n

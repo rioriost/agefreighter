@@ -1,0 +1,21 @@
+{
+  "edge": {
+    "table": "has",
+    "type": "has",
+    "start_id": "country_id",
+    "end_id": "city_id",
+    "props": ["since"],
+    "start_vertex": {
+      "table": "country",
+      "id": "id",
+      "label": "Country",
+      "props": ["Name", "Capital", "Population", "ISO", "TLD", "FlagURL"]
+    },
+    "end_vertex": {
+      "table": "city",
+      "id": "id",
+      "label": "City",
+      "props": ["Name", "Latitude", "Longitude"]
+    }
+  }
+}
