@@ -14,6 +14,8 @@ import logging
 from typing import List, Tuple
 from psycopg_pool import ConnectionPool
 
+from agefreighter.cypherparser import CypherParser
+
 # Import the OpenAI client library after installing openai.
 from openai import OpenAI  # type: ignore
 
@@ -450,7 +452,7 @@ class GremlinConverterController:
 
     def format_for_age(self, cypher_query: str) -> str:
         logging.debug(cypher_query)
-        returns = self.extract_return_values(cypher_query)
+        returns = self.get_return_values(cypher_query)
         matches = re.findall(r"\$(\w+)", cypher_query)
         stored_procedure = ""
         parameter = ""
@@ -525,3 +527,13 @@ class GremlinConverterController:
             if not re.search(r"[(){}]", return_value):
                 return_values.append(return_value)
         return return_values
+
+    @staticmethod
+    def get_return_values(cypher_query: str) -> list:
+        parser = CypherParser()
+        result = parser.parse(cypher_query)
+        for op, opr, *_ in result:
+            if op == "RETURN":
+                return opr
+
+        return []

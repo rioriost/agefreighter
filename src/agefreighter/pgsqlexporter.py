@@ -303,7 +303,7 @@ class PGSQLExporter(AgeFreighter):
                 rows = await cur.fetchall()
                 for idx, row in enumerate(rows):
                     cleaned = self._clean_row(row)
-                    cleaned["_elementid"] = idx  # temporary element id
+                    cleaned["_elementid"] = idx + 1  # temporary element id
                     results.append(cleaned)
         return results
 
@@ -455,15 +455,18 @@ class PGSQLExporter(AgeFreighter):
             try:
                 await self.create_label_type(label_type="vertex", value=label)
                 first_id = await self.get_first_id(self.graph_name, label)
+                print(self.vertex_configs[label])
                 if isinstance(self.vertex_configs[label], list):
                     vertex_config_list = cast(
                         List[Dict[str, Any]], self.vertex_configs[label]
                     )
                     tables = [vc["table"] for vc in vertex_config_list]
                     id_columns = [vc["id"] for vc in vertex_config_list]
+                    properties = [vc["props"] for vc in vertex_config_list]
                 else:
                     tables = [self.vertex_configs[label]["table"]]
                     id_columns = [self.vertex_configs[label]["id"]]
+                    properties = [self.vertex_configs[label]["props"]]
 
                 nodes: List[Dict[str, Any]] = []
                 if self.trial:
@@ -492,7 +495,14 @@ class PGSQLExporter(AgeFreighter):
                 nodes = list(unique_nodes.values())
 
                 all_data = [
-                    {"id": idx + first_id, "properties": node}
+                    {
+                        "id": idx + first_id,
+                        "properties": {
+                            k: v
+                            for k, v in node.items()
+                            if k in properties or k == "_elementid"
+                        },
+                    }
                     for idx, node in enumerate(nodes)
                 ]
 
