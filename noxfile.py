@@ -1,6 +1,6 @@
 import nox
 
-nox.options.python = "3.13"
+nox.options.pythons = ["3.13"]
 nox.options.default_venv_backend = "uv"
 
 
