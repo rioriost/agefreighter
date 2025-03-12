@@ -568,6 +568,7 @@ async def async_main() -> None:
 
         case "view":
             check_and_install("flask")
+            check_and_install("ply")
 
             flask_thread = threading.Thread(
                 target=run_flask,
@@ -616,6 +617,7 @@ async def async_main() -> None:
                 )
                 sys.exit(1)
             check_and_install("openai")
+            check_and_install("ply")
             from agefreighter.g2c import GremlinConverterController
 
             controller = GremlinConverterController(

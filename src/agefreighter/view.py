@@ -6,6 +6,8 @@ import os
 import re
 import logging
 
+from agefreighter.cypherparser import CypherParser
+
 from flask import Flask, jsonify, request, render_template  # type: ignore
 from psycopg_pool import ConnectionPool
 
@@ -49,7 +51,7 @@ class CypherQueryFormatter:
         if "limit" not in cypher_query.lower():
             cypher_query += " LIMIT 50"
 
-        returns = CypherQueryFormatter.extract_return_values(cypher_query)
+        returns = CypherQueryFormatter.get_return_values(cypher_query)
 
         # Check for parameterized query usage.
         if re.findall(r"\$(\w+)", cypher_query):
@@ -74,55 +76,14 @@ class CypherQueryFormatter:
         return all(token.lower() not in unsafe_keywords for token in tokens)
 
     @staticmethod
-    def extract_return_values(cypher_query: str) -> list:
-        """
-        Extract return values from the Cypher query.
+    def get_return_values(cypher_query: str) -> list:
+        parser = CypherParser()
+        result = parser.parse(cypher_query)
+        for op, opr, *_ in result:
+            if op == "RETURN":
+                return opr
 
-        Returns:
-            list: A list of strings representing identifiers.
-        """
-        match = re.search(r"(?i)(?<=\breturn\b)(.*)$", cypher_query)
-        return_parts = []
-        if match:
-            return_parts = [x.strip() for x in match.group(1).strip().split(",")]
-        return_values = []
-        pattern = re.compile(r"([A-Za-z0-9_]\w*)\s*(?=\()")
-        num_pattern = re.compile(r"^[0-9\.]+$")
-        for return_part in return_parts:
-            tokens = return_part.split()
-            next_is_alias = False
-            return_value = ""
-            for token in tokens:
-                token_lower = token.lower()
-                if token_lower in ["as", "distinct"]:
-                    next_is_alias = True
-                    continue
-                elif token_lower in [
-                    "order",
-                    "group",
-                    "by",
-                    "desc",
-                    "asc",
-                    "limit",
-                    "skip",
-                ]:
-                    break
-                elif token == "=":
-                    break
-                else:
-                    return_value = token
-                if next_is_alias:
-                    return_value = token
-                    break
-            match_obj = pattern.match(return_value)
-            if match_obj:
-                return_value = match_obj.group(1)
-            match_obj = num_pattern.match(return_value)
-            if not match_obj:
-                return_value = return_value.split(".")[0]
-            if not re.search(r"[(){}]", return_value):
-                return_values.append(return_value)
-        return return_values
+        return []
 
 
 class DatabaseManager:

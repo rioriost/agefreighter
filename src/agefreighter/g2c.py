@@ -474,61 +474,6 @@ class GremlinConverterController:
             return f"SELECT * FROM cypher('{self.graph_name}', $$ {cypher_query} $$);"
 
     @staticmethod
-    def extract_return_values(cypher_query: str) -> list:
-        match = (
-            re.search(r"(?i)(?<=\breturn\b)(.*)$", cypher_query)
-            or re.search(r"(?i)(?<=\bdelete\b)(.*)$", cypher_query)
-            or re.search(r"(?i)(?<=\bset\b)(.*)$", cypher_query)
-        )
-        return_parts: list = []
-        if match:
-            return_parts = [x.strip() for x in match.group(1).strip().split(",")]
-        return_values: list = []
-        pattern = re.compile(r"([A-Za-z0-9_]\w*)\s*(?=\()")  # extract function name
-        num_pattern = re.compile(r"^[0-9\.]+$")
-        for return_part in return_parts:
-            tokens = return_part.split()
-            next_is_alias = False
-            return_value = ""
-            for token in tokens:
-                if token.lower() == "as":
-                    next_is_alias = True
-                    continue
-                elif token.lower() == "distinct":
-                    next_is_alias = True
-                    continue
-                elif token.lower() == "order":
-                    break
-                elif token.lower() == "group":  # Cypher doesn't support GROUP BY
-                    break
-                elif token.lower() == "by":
-                    break
-                elif token.lower() == "desc":
-                    break
-                elif token.lower() == "asc":
-                    break
-                elif token.lower() == "limit":
-                    break
-                elif token.lower() == "skip":
-                    break
-                elif token == "=":
-                    break
-                else:
-                    return_value = token
-                if next_is_alias:
-                    return_value = token
-                    break
-            match = pattern.match(return_value)  # extract function name
-            if match:
-                return_value = match.group(1)
-            match = num_pattern.match(return_value)
-            if not match:
-                return_value = return_value.split(".")[0]
-            if not re.search(r"[(){}]", return_value):
-                return_values.append(return_value)
-        return return_values
-
-    @staticmethod
     def get_return_values(cypher_query: str) -> list:
         parser = CypherParser()
         result = parser.parse(cypher_query)
