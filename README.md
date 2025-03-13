@@ -39,6 +39,14 @@ AGEFreighter 1.0 is totally refactored as a CLI tool for loading data into Apach
 - Asynchronous connection pool support for psycopg PostgreSQL driver
 - COPY protocol support for loading data into the graph.
 - On macOS / Linux, 'tab' completion is available.
+
+```bash
+agefreighter --generate-completion
+Writing completion script to /Users/rifujita/.agefreighter/_agefreighter.completion
+Completion script generated successfully.
+Please execute `source /Users/rifujita/.zprofile` or restart your shell to enable completion.
+```
+
 - On demand Python package installation to reduce installation time.
 
 ```bash
@@ -55,7 +63,6 @@ pip module is not available. Trying with uv...
 - `parse` subcommand to parse a Cypher query.
 - `generate` subcommand to generate dummy graph data.
 - `prepare` subcommand to prepare environment for testing AGEFreighter.
-- `completion` subcommand to show completion instructions.
 
 ## Prerequisites
 
@@ -84,7 +91,7 @@ uv init your_project
 cd your_project
 uv venv
 source .venv/bin/activate
-uv add agefreighter==1.0.0a11
+uv add agefreighter==1.0.0a12
 ```
 
 - with python venv on macOS / Linux
@@ -94,7 +101,7 @@ mkdir your_project
 cd your_project
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install agefreighter==1.0.0a11
+python3 -m pip install agefreighter==1.0.0a12
 ```
 
 - with python venv on Windows
@@ -104,21 +111,20 @@ mkdir your_project
 cd your_project
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install agefreighter==1.0.0a11
+python -m pip install agefreighter==1.0.0a12
 ```
 
 ## Usage
 
 ```bash
 agefreighter --help
-usage: agefreighter [-h] [--graphname GRAPHNAME] [--pg-con-str PG_CON_STR] [--pg-min-connections PG_MIN_CONNECTIONS] [--pg-max-connections PG_MAX_CONNECTIONS] [--debug] [--version]
-                    {completion,load,view,parse,generate,convert,prepare} ...
+usage: agefreighter [-h] [--graphname GRAPHNAME] [--pg-con-str PG_CON_STR] [--pg-min-connections PG_MIN_CONNECTIONS] [--pg-max-connections PG_MAX_CONNECTIONS] [--debug] [--version] [--generate-completion]
+                    {load,view,parse,generate,convert,prepare} ...
 
 AGEFreighter, a tool to export data from various sources and load it into Apache AGE.
 
 positional arguments:
-  {completion,load,view,parse,generate,convert,prepare}
-    completion          Show Completion Instructions
+  {load,view,parse,generate,convert,prepare}
     load                Load data into Apache AGE
     view                View data in Apache AGE
     parse               Parse a cypher query
@@ -138,6 +144,8 @@ options:
                         Maximum number of connections to PostgreSQL
   --debug               Enable debug logging
   --version             Show version information
+  --generate-completion
+                        Generate the completion script and exit
 ```
 
 Each subcommand has its own set of options.
@@ -1060,7 +1068,7 @@ Click on the link above to open the graph data in your browser.
 
 ## convert subcommand
 
-```
+```bash
 agefreighter convert --help
 usage: agefreighter convert [-h] [-k OPENAI_API_KEY] [-m MODEL] [-d] [--pg-con-str-for-dryrun PG_CON_STR_FOR_DRYRUN] [--graph-for-dryrun GRAPH_FOR_DRYRUN] (-g GREMLIN | -f FILEPATH | -u URL)
 
@@ -1377,6 +1385,10 @@ postgres=> select * from air_route.route limit 1;
 
 ## Release Notes
 
+### 1.0.0a12 Release
+- Refactored g2c.py to converter.py
+- Added new feature: support Cypher to Apache AGE conversion
+
 ### 1.0.0a11 Release
 - Fixed lack of a resource definition of shtab in Formula.
 - Added some guards to make an error clearer.
@@ -1525,7 +1537,7 @@ Please note how to use the new version of the package is tottally different from
 
 ## Known Issues
 - Apache AGE 1.5 doesn't support:
-  - tab (chr(9)) in agtype. If AGEFreighter detects replacing tab with '\t', writes a log file.
+  - tab (chr(9)) in agtype. If AGEFreighter detects replacing tab with '\t', writes a log file in a directory named `tab_replaced_YYYYMMDD_HHiiSS` in the current directory.
   - multiple labels for nodes due to design limitations. (https://github.com/apache/age/discussions/109)
 
 ## For More Information

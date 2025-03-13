@@ -60,11 +60,11 @@ def pytest(session):
     )
     test_files = [
         "tests/test_agefreighter.py",
+        "tests/test_converter.py",
         "tests/test_cosmosgremlinloader.py",
         "tests/test_cosmosnosqlexporter.py",
         "tests/test_csvdatamanager.py",
         "tests/test_csvexporter.py",
-        "tests/test_g2c.py",
         "tests/test_generator.py",
         "tests/test_main.py",
         "tests/test_neo4jexporter.py",

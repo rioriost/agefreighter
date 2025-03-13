@@ -1,7 +1,7 @@
 [project]
 name = "agefreighter"
 authors = [{ name = "Rio Fujita", email = "rifujita@microsoft.com" }]
-version = "1.0.0a11"
+version = "1.0.0a12"
 license = { file = "LICENSE" }
 description = "a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -33,4 +33,8 @@ include = ["src/agefreighter/", "docs/"]
 exclude = ["__pycache__", "*.rb", "uv.lock", "dist/.DS_Store"]
 
 [dependency-groups]
-dev = []
+dev = [
+    "neo4j>=5.28.1",
+    "openai>=1.66.3",
+    "ply>=3.11",
+]
