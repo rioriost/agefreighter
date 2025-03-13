@@ -3,8 +3,8 @@ class Agefreighter < Formula
 
   desc "a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
   homepage "https://github.com/rioriost/agefreighter/"
-  url "https://files.pythonhosted.org/packages/bc/df/07ad4e339cc4c72e08dee048acdb0333a3ea9f026fe3aeb6b4e5e3e695c0/agefreighter-1.0.0a9.tar.gz"
-  sha256 "741f8272b5605f16124b7c5e551b95f8e26e016a696cc83ad8eb531265764e24"
+  url "https://files.pythonhosted.org/packages/37/77/ce90ca7a0ae77facc0af469b1a9521dce2e90d4f9e665005dd63226b895a/agefreighter-1.0.0a10.tar.gz"
+  sha256 "20d3445e3f17b135dd6fffcd242ff94aed68818ecafec30fc057d8c1f5330e5f"
   license "MIT"
 
   depends_on "python@3.13"
