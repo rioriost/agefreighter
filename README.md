@@ -84,7 +84,7 @@ uv init your_project
 cd your_project
 uv venv
 source .venv/bin/activate
-uv add agefreighter==1.0.0a10
+uv add agefreighter==1.0.0a11
 ```
 
 - with python venv on macOS / Linux
@@ -94,7 +94,7 @@ mkdir your_project
 cd your_project
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install agefreighter==1.0.0a10
+python3 -m pip install agefreighter==1.0.0a11
 ```
 
 - with python venv on Windows
@@ -104,7 +104,7 @@ mkdir your_project
 cd your_project
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install agefreighter==1.0.0a10
+python -m pip install agefreighter==1.0.0a11
 ```
 
 ## Usage
@@ -1376,6 +1376,10 @@ postgres=> select * from air_route.route limit 1;
 ```
 
 ## Release Notes
+
+### 1.0.0a11 Release
+- Fixed lack of a resource definition of shtab in Formula.
+- Added some guards to make an error clearer.
 
 ### 1.0.0a10 Release
 - Added --version argument.

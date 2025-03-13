@@ -1,18 +1,16 @@
 [project]
 name = "agefreighter"
-authors = [
-    {name = "Rio Fujita", email = "rifujita@microsoft.com"},
-]
-version = "1.0.0a10"
-license = {file = "LICENSE"}
+authors = [{ name = "Rio Fujita", email = "rifujita@microsoft.com" }]
+version = "1.0.0a11"
+license = { file = "LICENSE" }
 description = "a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
-readme = {file = "README.md", content-type = "text/markdown"}
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.13"
 dependencies = [
     "aiofiles>=24.1.0",
     "argcomplete>=3.6.0",
     "numpy>=2.2.3",
-    "psycopg[binary,pool]>=3.2.5",
+    "psycopg[binary,pool]>=3.2.6",
     "shtab>=1.7.1",
 ]
 
@@ -31,16 +29,8 @@ build-backend = "hatchling.build"
 packages = ["src/agefreighter/", "docs/"]
 
 [tool.hatch.build.targets.sdist]
-include = [
-  "src/agefreighter/",
-  "docs/",
-]
-exclude = [
-  "__pycache__",
-  "*.rb",
-  "uv.lock",
-  "dist/.DS_Store",
-]
+include = ["src/agefreighter/", "docs/"]
+exclude = ["__pycache__", "*.rb", "uv.lock", "dist/.DS_Store"]
 
 [dependency-groups]
 dev = []
