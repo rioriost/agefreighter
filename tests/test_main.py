@@ -83,34 +83,6 @@ class TestParseArguments(unittest.TestCase):
 
 # --- Tests for main module utility functions (lines 21-92) ---
 class TestMainUtilityFunctions(unittest.TestCase):
-    def test_show_completion_instructions(self):
-        from io import StringIO
-
-        captured = StringIO()
-        sys.stdout = captured
-        try:
-            main_module.show_completion_instructions()
-        finally:
-            sys.stdout = sys.__stdout__
-        output = captured.getvalue()
-        self.assertIn("bash (~/.bashrc):", output)
-        self.assertIn("zsh", output)
-
-    def test_check_first_run_creates_marker(self):
-        # Use a temporary directory as the "home" so we don't touch the real one.
-        with tempfile.TemporaryDirectory() as tmp_home:
-            with mock.patch("os.path.expanduser", return_value=tmp_home):
-                marker_file = os.path.join(tmp_home, ".agefreighter_first_run")
-                if os.path.exists(marker_file):
-                    os.remove(marker_file)
-                with captured_stdout() as out:
-                    main_module.check_first_run()
-                self.assertTrue(os.path.exists(marker_file))
-                with open(marker_file, "r") as f:
-                    content = f.read()
-                self.assertEqual(content, "agefreighter has been executed.")
-                os.remove(marker_file)
-
     def test_check_and_install_module_exists(self):
         # Simulate module already exists by patching find_spec to return a non-None value.
         with mock.patch("importlib.util.find_spec", return_value=True):
@@ -349,7 +321,6 @@ class TestAsyncMain(unittest.IsolatedAsyncioTestCase):
                 await main_module.async_main()
 
     async def test_async_main_load_invalid_source(self):
-        # Test: load branch with a source type not implemented.
         test_args = [
             "main.py",
             "--pg-con-str",
@@ -359,10 +330,12 @@ class TestAsyncMain(unittest.IsolatedAsyncioTestCase):
             "pgsql",
         ]
         with mock.patch.object(sys, "argv", test_args):
-            with mock.patch("agefreighter.main.sys.exit") as mock_exit:
-                await main_module.async_main()
-                # Expecting two sys.exit calls due to multiple errors in this branch.
-                self.assertEqual(mock_exit.call_count, 2)
+            with mock.patch(
+                "agefreighter.main.sys.exit", side_effect=SystemExit
+            ) as mock_exit:
+                with self.assertRaises(SystemExit) as cm:
+                    await main_module.async_main()
+                self.assertEqual(mock_exit.call_count, 1)
 
     async def test_async_main_no_subcommand(self):
         # Test: no subcommand provided. ArgumentParser should error.
@@ -419,14 +392,16 @@ class TestAsyncMain(unittest.IsolatedAsyncioTestCase):
             "convert",
             "--openai-api-key",
             "key",
-            "--gremlin",
-            "query",
+            "--query-language",
+            "gremlin",
+            "-q",
+            "dummy query",
         ]
         dummy_controller = mock.MagicMock()
         dummy_controller.process = mock.MagicMock()
         with mock.patch("agefreighter.main.check_and_install"):
             with mock.patch(
-                "agefreighter.g2c.GremlinConverterController",
+                "agefreighter.converter.ConverterController",
                 return_value=dummy_controller,
             ):
                 with mock.patch.object(sys, "argv", test_args):

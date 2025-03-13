@@ -83,9 +83,6 @@ class FakeCursor:
 class FakeConnection:
     """Fake connection that returns a fake cursor."""
 
-    def __init__(self, *args, **kwargs):
-        pass
-
     def cursor(self):
         return FakeCursor()
 
@@ -98,9 +95,6 @@ class FakeConnection:
 
 class FakePool:
     """Fake connection pool that returns a fake connection."""
-
-    def __init__(self, *args, **kwargs):
-        pass
 
     def connection(self):
         return FakeConnection()
@@ -133,7 +127,6 @@ class TestCypherQueryFormatter(unittest.TestCase):
         query = "MATCH (n) RETURN n"
         formatted = view.CypherQueryFormatter.format_query("graph1", query)
         self.assertIn("LIMIT", formatted)
-
         self.assertIn("graph1", formatted)
 
     def test_query_without_limit_appends_limit(self):
@@ -160,9 +153,10 @@ class TestCypherQueryFormatter(unittest.TestCase):
             view.CypherQueryFormatter.format_query("graph1", query)
         self.assertEqual(str(context.exception), "No return values specified")
 
-    def test_extract_return_values(self):
+    def test_get_return_values(self):
         query = "MATCH (n) RETURN n, n.name AS name"
-        returns = view.CypherQueryFormatter.extract_return_values(query)
+        # Use the correct static method name "get_return_values"
+        returns = view.CypherQueryFormatter.get_return_values(query)
         # Depending on implementation, at least 'n' should be extracted.
         self.assertTrue("n" in returns)
 

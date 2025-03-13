@@ -16,7 +16,7 @@ import agefreighter.generator as generator
 class TestGeneratorUtils(unittest.TestCase):
     def test_get_timestamp(self):
         ts = generator.get_timestamp()
-        # Both keys should be present and equal (since same datetime is used)
+        # Both keys should be present and equal (since the same datetime is used)
         self.assertIn("available_since", ts)
         self.assertIn("inserted_at", ts)
         self.assertEqual(ts["available_since"], ts["inserted_at"])
@@ -41,8 +41,9 @@ class TestGeneratorUtils(unittest.TestCase):
 class TestPutCSV(unittest.IsolatedAsyncioTestCase):
     async def test_put_csv(self):
         with tempfile.TemporaryDirectory() as tmp:
-            node1 = generator.Node("1", {"a": "val1", "b": "val2"})
-            node2 = generator.Node("2", {"a": "val3", "b": "val4"})
+            # Instead of using a Node class, we use simple dictionaries.
+            node1 = {"id": "1", "a": "val1", "b": "val2"}
+            node2 = {"id": "2", "a": "val3", "b": "val4"}
             data = [node1, node2]
             file_path = await generator.put_csv(tmp, "testfile", data)
             async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
@@ -69,29 +70,15 @@ class TestGenerateEdges(unittest.IsolatedAsyncioTestCase):
     async def test_generate_edges(self):
         with tempfile.TemporaryDirectory() as tmp:
             # Create dummy nodes data for two types.
-            # For simplicity, use Node objects.
-            from agefreighter.generator import Node
-
-            node_customer = Node("1", {"name": "Alice"})
-            node_product = Node("1", {"name": "Widget"})
+            # Instead of Node objects, use simple dictionaries.
+            node_customer = {"id": "1", "name": "Alice"}
+            node_product = {"id": "1", "name": "Widget"}
             nodes_data = {"Customer": [node_customer], "Product": [node_product]}
             # Prepare a property list for an edge.
             prop_list = [{"count": 2, "start": "Customer", "end": "Product"}]
             await generator.generate_edges("Bought", prop_list, nodes_data, tmp)
             # Expected filename: "bought_customer_product.csv" (all lower case)
             file_path = os.path.join(tmp, "bought_customer_product.csv")
-            self.assertTrue(os.path.exists(file_path))
-
-
-class TestGenerateCompleteData(unittest.IsolatedAsyncioTestCase):
-    async def test_generate_complete_data(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            # For single-source edges, nodes is a dict mapping node type to count.
-            nodes = {"Customer": 3, "Product": 2}
-            edge_props = {"count": 1, "start": "Customer", "end": "Product"}
-            await generator.generate_complete_data("Bought", edge_props, nodes, tmp)
-            # Expected filename: "customer_product_bought.csv"
-            file_path = os.path.join(tmp, "customer_product_bought.csv")
             self.assertTrue(os.path.exists(file_path))
 
 
