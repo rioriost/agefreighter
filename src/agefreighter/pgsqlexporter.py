@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import sys
 from typing import Any, Dict, List, Optional, cast, Tuple
 
 from psycopg_pool import AsyncConnectionPool
@@ -666,7 +667,17 @@ class PGSQLExporter(AgeFreighter):
             if self.trial:
                 await self.list_nodes()
             nodes_args = await self.export_nodes()
+            if not nodes_args:
+                log.error(
+                    "No nodes exported.\nDoes the PostgreSQL contain data for nodes?"
+                )
+                sys.exit(1)
             edges_args = await self.export_edges()
+            if not edges_args:
+                log.error(
+                    "No edges exported.\nDoes the PostgreSQL contain data for edges?"
+                )
+                sys.exit(1)
         except Exception as exc:
             log.exception("Error during export process: %s", exc)
             raise

@@ -10,6 +10,7 @@ import csv
 import json
 import logging
 import os
+import sys
 from typing import Any, Dict, List, Optional, cast
 
 from .agefreighter import AgeFreighter
@@ -545,7 +546,13 @@ class CSVExporter(AgeFreighter):
             if self.trial:
                 await self.list_nodes()
             nodes_args = await self.export_nodes(thread_pool)
+            if not nodes_args:
+                log.error("No nodes exported.\nDoes the CSV contain nodes?")
+                sys.exit(1)
             edges_args = await self.export_edges(thread_pool)
+            if not edges_args:
+                log.error("No edges exported.\nDoes the CSV contain edges?")
+                sys.exit(1)
         except Exception as exc:
             log.exception("Error during export process: %s", exc)
             raise

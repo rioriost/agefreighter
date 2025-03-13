@@ -486,12 +486,19 @@ class Neo4jExporter(AgeFreighter):
             if self.trial:
                 await self.list_nodes()
             nodes_args = await self.export_nodes(thread_pool)
+            if not nodes_args:
+                log.error("No nodes exported.\nDoes the graph contain nodes?")
+                sys.exit(1)
             edges_args = await self.export_edges(thread_pool)
+            if not edges_args:
+                log.error("No edges exported.\nDoes the graph contain edges?")
+                sys.exit(1)
         except Exception as e:
             log.exception("Error during export process: %s", e)
             raise
         finally:
             thread_pool.shutdown()
         self.driver.close()
+
         self.vertices = nodes_args
         self.edges = edges_args

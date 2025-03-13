@@ -457,7 +457,6 @@ def create_parser() -> argparse.ArgumentParser:
 def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments and trigger completion generation if needed."""
     parser = create_parser()
-    print(sys.argv)
     if "--generate-completion" in sys.argv:
         generate_completion(parser)
     return parser.parse_args()
