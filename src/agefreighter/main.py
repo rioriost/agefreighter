@@ -2,49 +2,128 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import argcomplete
 import asyncio
 import importlib.util
+import importlib.metadata
 import logging
 import os
+import shtab
 import subprocess
 import sys
 import threading
 import time
 from typing import Optional
 
-# Configure logging; default to INFO (overridable by the --debug flag)
+# Global Constants and Logging
+HOME_DIR = os.path.expanduser("~")
+CONFIG_DIR = ".agefreighter"
+COMPLETION_FILE = "_agefreighter.completion"
+
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-def show_completion_instructions():
+def ensure_dir(path: str) -> None:
+    """Ensure that a directory exists."""
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def get_current_shell():
+    ppid = os.getppid()  # Get parent process ID
+    try:
+        # Use ps to get the command name of the parent process.
+        proc = subprocess.run(
+            ["ps", "-p", str(ppid), "-o", "comm="],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        shell_path = proc.stdout.strip()
+        if "bash" in shell_path:
+            return "bash"
+        elif "zsh" in shell_path:
+            return "zsh"
+        elif "tcsh" in shell_path:
+            return "tcsh"
+        else:
+            return os.path.basename(shell_path)
+    except subprocess.CalledProcessError:
+        return None
+
+
+def generate_completion(parser: argparse.ArgumentParser) -> None:
+    """Generate the shell completion script and write it to a file."""
+    shell = get_current_shell()
+    if not shell:
+        log.error("Failed to detect shell. Please set the SHELL environment variable.")
+        sys.exit(1)
+    completion_script = shtab.complete(parser, shell=shell)
+
+    ensure_dir(os.path.join(HOME_DIR, CONFIG_DIR))
+    completion_path = os.path.join(HOME_DIR, CONFIG_DIR, COMPLETION_FILE)
+
+    print(f"Writing completion script to {completion_path}")
+    with open(completion_path, "w") as f:
+        f.write(completion_script)
+
+    if shell == "bash":
+        lines_to_add = f'source "$HOME/{CONFIG_DIR}/{COMPLETION_FILE}"'
+        rc_file = os.path.join(HOME_DIR, ".bashrc")
+    elif shell == "zsh":
+        lines_to_add = f"""if type agefreighter&>/dev/null; then
+    FPATH=~/{CONFIG_DIR}:$FPATH
+    autoload -Uz compinit
+    compinit
+fi"""
+        rc_file = os.path.join(HOME_DIR, ".zprofile")
+        if not os.path.exists(rc_file):
+            rc_file = os.path.join(HOME_DIR, ".zshrc")
+    else:
+        rc_file = None
+
+    if rc_file and os.path.exists(rc_file):
+        with open(rc_file, "a+") as f:
+            f.seek(0)
+            contents = f.read()
+            if lines_to_add not in contents:
+                f.write("\n" + lines_to_add + "\n")
+                print(f"Added line to {rc_file}")
     print(
-        "\nTo enable shell completion, add the following to your shell configuration:"
+        f"Completion script generated successfully.\nPlease execute `source {rc_file}` or restart your shell to enable completion."
     )
-    print("\n- bash (~/.bashrc):")
-    print('    eval "$(register-python-argcomplete agefreighter)"')
-    print("\n- zsh (~/.zshrc, ~/.zprofile):")
-    print("    autoload -U compinit && compinit")
-    print('    eval "$(register-python-argcomplete agefreighter)"\n')
+    sys.exit(0)
 
 
-def check_first_run():
-    home = os.path.expanduser("~")
-    marker_file = os.path.join(home, ".agefreighter_first_run")
+def check_first_run() -> None:
+    """Create a marker file on the first run and print a completion hint."""
+    clean_old_files()
+    ensure_dir(os.path.join(HOME_DIR, CONFIG_DIR))
+    marker_file = os.path.join(HOME_DIR, CONFIG_DIR, ".agefreighter_first_run")
     if not os.path.exists(marker_file):
-        show_completion_instructions()
         try:
             with open(marker_file, "w") as f:
                 f.write("agefreighter has been executed.")
         except Exception as e:
             log.error(f"Failed to create first run marker file: {e}")
+        print(
+            "If you'd like to enable completion for AGEFreighter, please execute `agefreighter --generate-completion`."
+        )
 
 
-def check_and_install(package_name: str, module_name: Optional[str] = None):
+# since 1.0.0a10
+def clean_old_files() -> None:
+    for file in [".g2c_cache", ".agefreighter_first_run"]:
+        if os.path.exists(os.path.join(HOME_DIR, file)):
+            os.remove(os.path.join(HOME_DIR, file))
+
+
+def check_and_install(package_name: str, module_name: Optional[str] = None) -> None:
     """
-    package_name: name to install via pip or uv
-    module_name: name to import (defaults to package_name)
+    Ensure a module is available. If not, prompt to install it via pip or uv.
+
+    :param package_name: The package name to install.
+    :param module_name: The module name to check (defaults to package_name).
     """
     module_name = module_name or package_name
     try:
@@ -57,7 +136,7 @@ def check_and_install(package_name: str, module_name: Optional[str] = None):
         return
 
     answer = (
-        input(f"required module '{module_name}' is not installed. Install it? [Y/n]: ")
+        input(f"Required module '{module_name}' is not installed. Install it? [Y/n]: ")
         .strip()
         .lower()
     )
@@ -65,14 +144,12 @@ def check_and_install(package_name: str, module_name: Optional[str] = None):
         print(f"'{package_name}' installation was denied. Exiting subcommand.")
         sys.exit(1)
 
-    # Try installing with pip first
     install_cmd = [sys.executable, "-m", "pip", "install", package_name]
     try:
         subprocess.run(install_cmd, capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as e:
         if "No module named pip" in (e.stderr or ""):
             print("pip module is not available. Trying with uv...")
-            # Fallback: try installing with uv
             alt_install_cmd = ["uv", "add", "--dev", package_name]
             try:
                 subprocess.run(alt_install_cmd, check=True)
@@ -84,22 +161,20 @@ def check_and_install(package_name: str, module_name: Optional[str] = None):
             sys.exit(1)
 
 
-def run_flask(flask_port: int, log_level: int = logging.INFO):
+def run_flask(flask_port: int, log_level: int = logging.INFO) -> None:
+    """Run the Flask app on the specified port."""
     from agefreighter.view import app
 
     app.logger.setLevel(log_level)
-    # Run the Flask app on the desired port
     app.run(port=flask_port)
 
 
-def parse_arguments() -> argparse.Namespace:
-    """
-    Parse command line arguments.
-    """
+def create_parser() -> argparse.ArgumentParser:
+    """Create and return the argument parser with all options and subcommands."""
     parser = argparse.ArgumentParser(
         description="AGEFreighter, a tool to export data from various sources and load it into Apache AGE."
     )
-    # PostgreSQL connection arguments
+    # Global arguments
     parser.add_argument(
         "--graphname",
         type=str,
@@ -127,13 +202,22 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--debug", action="store_true", default=False, help="Enable debug logging"
     )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"agefreighter {importlib.metadata.version('agefreighter')}",
+        help="Show version information",
+    )
+    parser.add_argument(
+        "--generate-completion",
+        action="store_true",
+        help="Generate the completion script and exit",
+    )
 
+    # Subparsers
     subparsers = parser.add_subparsers(dest="subparser", required=True)
 
-    # "completion" subcommand
-    subparsers.add_parser("completion", help="Show Completion Instructions")
-
-    # "load" subcommand
+    # load subcommand
     parser_load = subparsers.add_parser("load", help="Load data into Apache AGE")
     parser_load.add_argument(
         "--source-type",
@@ -155,22 +239,14 @@ def parse_arguments() -> argparse.Namespace:
         help="Save data from source as CSV files into a directory",
     )
     parser_load.add_argument(
-        "--chunk-size",
-        type=int,
-        default=10000,
-        help="Chunk size for exporting data",
+        "--chunk-size", type=int, default=10000, help="Chunk size for exporting data"
     )
     parser_load.add_argument(
         "--progress", action="store_true", default=True, help="Show progress"
     )
-    # CSV-specific arguments
     parser_load.add_argument(
-        "--config",
-        type=str,
-        default="",
-        help="Path to the configuration file",
+        "--config", type=str, default="", help="Path to the configuration file"
     )
-    # Neo4j-specific arguments
     parser_load.add_argument(
         "--neo4j-uri",
         type=str,
@@ -190,12 +266,8 @@ def parse_arguments() -> argparse.Namespace:
         help="Neo4j password",
     )
     parser_load.add_argument(
-        "--neo4j-database",
-        type=str,
-        default="",
-        help="Neo4j database",
+        "--neo4j-database", type=str, default="", help="Neo4j database"
     )
-    # Cosmos-specific arguments
     parser_load.add_argument(
         "--cosmos-endpoint",
         type=str,
@@ -220,7 +292,6 @@ def parse_arguments() -> argparse.Namespace:
         default=os.environ.get("COSMOS_CONTAINER", ""),
         help="Cosmos container",
     )
-    # PGSQL-specific arguments
     parser_load.add_argument(
         "--src-pg-con-str",
         type=str,
@@ -228,16 +299,13 @@ def parse_arguments() -> argparse.Namespace:
         help="Source PostgreSQL connection string",
     )
 
-    # "view" subcommand
+    # view subcommand
     parser_view = subparsers.add_parser("view", help="View data in Apache AGE")
     parser_view.add_argument(
-        "--flask-port",
-        type=int,
-        default="5000",
-        help="Port to run the server on",
+        "--flask-port", type=int, default=5000, help="Port to run the server on"
     )
 
-    # "parse" subcommand
+    # parse subcommand
     parser_parse = subparsers.add_parser("parse", help="Parse a cypher query")
     parser_parse.add_argument(
         "cypher_query",
@@ -246,13 +314,10 @@ def parse_arguments() -> argparse.Namespace:
         help="Cypher query to be parsed",
     )
 
-    # "generate" subcommand
+    # generate subcommand
     parser_generate = subparsers.add_parser("generate", help="Generate dummy data")
     parser_generate.add_argument(
-        "--pattern-no",
-        type=int,
-        default=1,
-        help="Pattern number to generate",
+        "--pattern-no", type=int, default=1, help="Pattern number to generate"
     )
     parser_generate.add_argument(
         "--multiplier",
@@ -261,7 +326,7 @@ def parse_arguments() -> argparse.Namespace:
         help="Multiplier for the number of nodes and edges",
     )
 
-    # "convert" subcommand
+    # convert subcommand
     parser_convert = subparsers.add_parser(
         "convert", help="Convert Gremlin queries to Cypher queries."
     )
@@ -273,11 +338,7 @@ def parse_arguments() -> argparse.Namespace:
         help="OpenAI API key to use.",
     )
     parser_convert.add_argument(
-        "-m",
-        "--model",
-        type=str,
-        default="gpt-4o-mini",
-        help="OpenAI model to use.",
+        "-m", "--model", type=str, default="gpt-4o-mini", help="OpenAI model to use."
     )
     parser_convert.add_argument(
         "-d",
@@ -315,7 +376,7 @@ def parse_arguments() -> argparse.Namespace:
         help="URL to the source code file (.py, .java, .cs, .txt)",
     )
 
-    # "prepare" subcommand
+    # prepare subcommand
     parser_prepare = subparsers.add_parser(
         "prepare", help="Prepare data for testing AGEFreighter."
     )
@@ -338,7 +399,6 @@ def parse_arguments() -> argparse.Namespace:
         default="customer_product_bought.csv",
         help="Base file name for the data files",
     )
-    # Neo4j-specific arguments
     parser_prepare.add_argument(
         "--neo4j-uri",
         type=str,
@@ -358,17 +418,13 @@ def parse_arguments() -> argparse.Namespace:
         help="Neo4j password",
     )
     parser_prepare.add_argument(
-        "--neo4j-database",
-        type=str,
-        default="",
-        help="Neo4j database",
+        "--neo4j-database", type=str, default="", help="Neo4j database"
     )
-    # Cosmos-specific arguments
     parser_prepare.add_argument(
         "--cosmos-gremlin-endpoint",
         type=str,
         default=os.environ.get("COSMOS_GREMLIN_ENDPOINT", ""),
-        help="Cosmos Gremlinendpoint",
+        help="Cosmos Gremlin endpoint",
     )
     parser_prepare.add_argument(
         "--cosmos-key",
@@ -394,17 +450,284 @@ def parse_arguments() -> argparse.Namespace:
         default=os.environ.get("SRC_PG_CONNECTION_STRING", ""),
         help="Source PostgreSQL connection string",
     )
-    argcomplete.autocomplete(parser)
+
+    return parser
+
+
+def parse_arguments() -> argparse.Namespace:
+    """Parse command line arguments and trigger completion generation if needed."""
+    parser = create_parser()
+    print(sys.argv)
+    if "--generate-completion" in sys.argv:
+        generate_completion(parser)
     return parser.parse_args()
 
 
+# Subcommand Handlers
+async def handle_load(args) -> None:
+    match args.source_type:
+        case "neo4j":
+            if not (args.neo4j_uri and args.neo4j_user and args.neo4j_password):
+                log.error(
+                    "NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD not set. Set via environment variable or argument."
+                )
+                sys.exit(1)
+            check_and_install("neo4j")
+            from agefreighter.neo4jexporter import Neo4jExporter
+
+            try:
+                async with Neo4jExporter(
+                    dsn=args.pg_con_str,
+                    min_connections=args.pg_min_connections,
+                    max_connections=args.pg_max_connections,
+                    uri=args.neo4j_uri,
+                    user=args.neo4j_user,
+                    password=args.neo4j_password,
+                    database=args.neo4j_database,
+                    trial=args.trial,
+                    save_temps=args.save_temps,
+                    progress=args.progress,
+                    graph_name=args.graphname,
+                    chunk_size=args.chunk_size,
+                    log_level=logging.DEBUG if args.debug else logging.INFO,
+                ) as exporter:
+                    await exporter.export()
+                    await exporter.copy()
+            except Exception as e:
+                log.error("An error occurred during export: %s", e)
+                sys.exit(1)
+        case "csv":
+            if not args.config:
+                log.error(
+                    "Config file is required for CSV export. See samples in configs directory."
+                )
+                sys.exit(1)
+            if not os.path.exists(os.path.abspath(args.config)):
+                log.error("Config file '%s' does not exist.", args.config)
+                sys.exit(1)
+            from agefreighter.csvexporter import CSVExporter
+
+            try:
+                async with CSVExporter(
+                    dsn=args.pg_con_str,
+                    min_connections=args.pg_min_connections,
+                    max_connections=args.pg_max_connections,
+                    config=os.path.abspath(args.config),
+                    trial=args.trial,
+                    save_temps=args.save_temps,
+                    progress=args.progress,
+                    graph_name=args.graphname,
+                    chunk_size=args.chunk_size,
+                    log_level=logging.DEBUG if args.debug else logging.INFO,
+                ) as exporter:
+                    await exporter.export()
+                    await exporter.copy()
+            except Exception as e:
+                log.error("An error occurred during export: %s", e)
+                sys.exit(1)
+        case "cosmosdb":
+            if not (
+                args.cosmos_endpoint
+                and args.cosmos_key
+                and args.cosmos_database
+                and args.cosmos_container
+            ):
+                log.error(
+                    "COSMOS_ENDPOINT, COSMOS_KEY, COSMOS_DATABASE, and COSMOS_CONTAINER not set. Set via environment variable or argument."
+                )
+                sys.exit(1)
+            check_and_install("azure-cosmos", "azure.cosmos")
+            from agefreighter.cosmosnosqlexporter import CosmosNoSQLExporter
+
+            try:
+                async with CosmosNoSQLExporter(
+                    dsn=args.pg_con_str,
+                    min_connections=args.pg_min_connections,
+                    max_connections=args.pg_max_connections,
+                    cosmos_endpoint=args.cosmos_endpoint,
+                    cosmos_key=args.cosmos_key,
+                    cosmos_database=args.cosmos_database,
+                    cosmos_container=args.cosmos_container,
+                    trial=args.trial,
+                    save_temps=args.save_temps,
+                    progress=args.progress,
+                    graph_name=args.graphname,
+                    chunk_size=args.chunk_size,
+                    log_level=logging.DEBUG if args.debug else logging.INFO,
+                ) as exporter:
+                    await exporter.export()
+                    await exporter.copy()
+            except Exception as e:
+                log.error("An error occurred during export: %s", e)
+                sys.exit(1)
+        case "pgsql":
+            if not args.src_pg_con_str:
+                log.error(
+                    "SRC_PG_CON_STR not set. Set via environment variable or argument."
+                )
+                sys.exit(1)
+            if not args.config:
+                log.error(
+                    "Config file is required for PostgreSQL export. See samples in configs directory."
+                )
+                sys.exit(1)
+            if not os.path.exists(os.path.abspath(args.config)):
+                log.error("Config file '%s' does not exist.", args.config)
+                sys.exit(1)
+            from agefreighter.pgsqlexporter import PGSQLExporter
+
+            try:
+                async with PGSQLExporter(
+                    dsn=args.pg_con_str,
+                    min_connections=args.pg_min_connections,
+                    max_connections=args.pg_max_connections,
+                    src_dsn=args.src_pg_con_str,
+                    config=os.path.abspath(args.config),
+                    trial=args.trial,
+                    save_temps=args.save_temps,
+                    progress=args.progress,
+                    graph_name=args.graphname,
+                    chunk_size=args.chunk_size,
+                    log_level=logging.DEBUG if args.debug else logging.INFO,
+                ) as exporter:
+                    await exporter.export()
+                    await exporter.copy()
+            except Exception as e:
+                log.error("An error occurred during export: %s", e)
+                sys.exit(1)
+        case _:
+            log.error("Source type '%s' is not implemented.", args.source_type)
+            sys.exit(1)
+
+
+def handle_view(args) -> None:
+    check_and_install("flask")
+    check_and_install("ply")
+    flask_thread = threading.Thread(
+        target=run_flask,
+        args=(args.flask_port, logging.DEBUG if args.debug else logging.INFO),
+    )
+    flask_thread.daemon = True
+    flask_thread.start()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Received interrupt. Exiting...")
+
+
+def handle_parse(args) -> None:
+    if not args.cypher_query:
+        log.error("Cypher query not provided.")
+        sys.exit(1)
+    check_and_install("ply")
+    from agefreighter.cypherparser import CypherParser
+
+    parser_obj = CypherParser(log_level=logging.DEBUG if args.debug else logging.INFO)
+    print(parser_obj.parse(args.cypher_query))
+
+
+async def handle_generate(args) -> None:
+    check_and_install("faker")
+    import agefreighter.generator as generator
+
+    await generator.main(
+        pattern_no=args.pattern_no,
+        multiplier=args.multiplier,
+        log_level=logging.DEBUG if args.debug else logging.INFO,
+    )
+
+
+def handle_convert(args) -> None:
+    if not args.openai_api_key:
+        log.error("OPENAI_API_KEY not set. Set via environment variable or argument.")
+        sys.exit(1)
+    check_and_install("openai")
+    check_and_install("ply")
+    from agefreighter.g2c import GremlinConverterController
+
+    controller = GremlinConverterController(
+        api_key=args.openai_api_key,
+        model=args.model,
+        dryrun=args.dryrun,
+        dsn=args.pg_con_str_for_dryrun,
+        graph_name=args.graph_for_dryrun,
+        gremlin_query=args.gremlin,
+        filepath=args.filepath,
+        url=args.url,
+        log_level=logging.DEBUG if args.debug else logging.INFO,
+    )
+    controller.process()
+
+
+async def handle_prepare(args) -> None:
+    check_and_install("pandas")
+    from agefreighter.csvdatamanager import CsvDataManager
+
+    csv_manager = CsvDataManager(
+        data_dir=args.data_dir,
+        base_file=args.base_file,
+        log_level=logging.DEBUG if args.debug else logging.INFO,
+    )
+    match args.target_type:
+        case "neo4j":
+            if not (args.neo4j_uri and args.neo4j_user and args.neo4j_password):
+                log.error(
+                    "NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD not set. Set via environment variable or argument."
+                )
+                sys.exit(1)
+            check_and_install("neo4j")
+            from agefreighter.neo4jloader import Neo4jLoader
+
+            neo4j_loader = Neo4jLoader(
+                csv_manager=csv_manager,
+                neo4j_uri=args.neo4j_uri,
+                neo4j_user=args.neo4j_user,
+                neo4j_password=args.neo4j_password,
+                log_level=logging.DEBUG if args.debug else logging.INFO,
+            )
+            await neo4j_loader.load_data()
+        case "pgsql":
+            from agefreighter.pgsqlloader import PgsqlLoader
+
+            pgsql_loader = PgsqlLoader(
+                csv_manager=csv_manager,
+                src_dsn=args.src_pg_con_str,
+                log_level=logging.DEBUG if args.debug else logging.INFO,
+            )
+            await pgsql_loader.load_data()
+        case "cosmosdb":
+            if not (
+                args.cosmos_gremlin_endpoint
+                and args.cosmos_key
+                and args.cosmos_database
+                and args.cosmos_container
+            ):
+                log.error(
+                    "COSMOS_GREMLIN_ENDPOINT, COSMOS_KEY, COSMOS_DATABASE, and COSMOS_CONTAINER not set. Set via environment variable or argument."
+                )
+                sys.exit(1)
+            check_and_install("gremlinpython")
+            from agefreighter.cosmosgremlinloader import CosmosGremlinLoader
+
+            cosmos_loader = CosmosGremlinLoader(
+                csv_manager=csv_manager,
+                cosmos_gremlin_endpoint=args.cosmos_gremlin_endpoint,
+                cosmos_key=args.cosmos_key,
+                cosmos_database=args.cosmos_database,
+                cosmos_container=args.cosmos_container,
+                log_level=logging.DEBUG if args.debug else logging.INFO,
+            )
+            await cosmos_loader.load_data()
+        case _:
+            log.error("No valid target type provided.")
+            sys.exit(1)
+
+
 async def async_main() -> None:
-    """
-    Main async function to export from Neo4j and load data into AGE.
-    """
     args = parse_arguments()
 
-    # Adjust logging level based on the debug flag
+    # Set logging level
     if args.debug:
         log.setLevel(logging.DEBUG)
         logging.getLogger().setLevel(logging.DEBUG)
@@ -422,296 +745,33 @@ async def async_main() -> None:
         )
         sys.exit(1)
 
+    # Dispatch subcommand
     match args.subparser:
-        case "completion":
-            show_completion_instructions()
-            sys.exit(0)
         case "load":
-            match args.source_type:
-                case "neo4j":
-                    if not (args.neo4j_uri and args.neo4j_user and args.neo4j_password):
-                        log.error(
-                            "NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD not set. Set via environment variable or argument."
-                        )
-                        sys.exit(1)
-
-                    check_and_install("neo4j")
-                    from agefreighter.neo4jexporter import Neo4jExporter
-
-                    try:
-                        async with Neo4jExporter(
-                            dsn=args.pg_con_str,
-                            min_connections=args.pg_min_connections,
-                            max_connections=args.pg_max_connections,
-                            uri=args.neo4j_uri,
-                            user=args.neo4j_user,
-                            password=args.neo4j_password,
-                            database=args.neo4j_database,
-                            trial=args.trial,
-                            save_temps=args.save_temps,
-                            progress=args.progress,
-                            graph_name=args.graphname,
-                            chunk_size=args.chunk_size,
-                            log_level=logging.DEBUG if args.debug else logging.INFO,
-                        ) as exporter:
-                            await exporter.export()
-                            await exporter.copy()
-                    except Exception as e:
-                        log.error("An error occurred during export: %s", e)
-                        sys.exit(1)
-                case "csv":
-                    if not args.config:
-                        log.error(
-                            "Config file is required for CSV export. See samples in configs directory."
-                        )
-                        sys.exit(1)
-                    if not os.path.exists(os.path.abspath(args.config)):
-                        log.error("Config file '%s' does not exist.", args.config)
-                        sys.exit(1)
-
-                    from agefreighter.csvexporter import CSVExporter
-
-                    try:
-                        async with CSVExporter(
-                            dsn=args.pg_con_str,
-                            min_connections=args.pg_min_connections,
-                            max_connections=args.pg_max_connections,
-                            config=os.path.abspath(args.config),
-                            trial=args.trial,
-                            save_temps=args.save_temps,
-                            progress=args.progress,
-                            graph_name=args.graphname,
-                            chunk_size=args.chunk_size,
-                            log_level=logging.DEBUG if args.debug else logging.INFO,
-                        ) as exporter:
-                            await exporter.export()
-                            await exporter.copy()
-                    except Exception as e:
-                        log.error("An error occurred during export: %s", e)
-                        sys.exit(1)
-                case "cosmosdb":
-                    if not (
-                        args.cosmos_endpoint
-                        and args.cosmos_key
-                        and args.cosmos_database
-                        and args.cosmos_container
-                    ):
-                        log.error(
-                            "COSMOS_ENDPOINT, COSMOS_KEY, COSMOS_DATABASE, and COSMOS_CONTAINER not set. Set via environment variable or argument."
-                        )
-                        sys.exit(1)
-
-                    check_and_install("azure-cosmos", "azure.cosmos")
-                    from agefreighter.cosmosnosqlexporter import CosmosNoSQLExporter
-
-                    try:
-                        async with CosmosNoSQLExporter(
-                            dsn=args.pg_con_str,
-                            min_connections=args.pg_min_connections,
-                            max_connections=args.pg_max_connections,
-                            cosmos_endpoint=args.cosmos_endpoint,
-                            cosmos_key=args.cosmos_key,
-                            cosmos_database=args.cosmos_database,
-                            cosmos_container=args.cosmos_container,
-                            trial=args.trial,
-                            save_temps=args.save_temps,
-                            progress=args.progress,
-                            graph_name=args.graphname,
-                            chunk_size=args.chunk_size,
-                            log_level=logging.DEBUG if args.debug else logging.INFO,
-                        ) as exporter:
-                            await exporter.export()
-                            await exporter.copy()
-                    except Exception as e:
-                        log.error("An error occurred during export: %s", e)
-                        sys.exit(1)
-                case "pgsql":
-                    if not (args.src_pg_con_str):
-                        log.error(
-                            "SRC_PG_CON_STR not set. Set via environment variable or argument."
-                        )
-                        sys.exit(1)
-
-                    if not args.config:
-                        log.error(
-                            "Config file is required for PostgreSQL export. See samples in configs directory."
-                        )
-                        sys.exit(1)
-                    if not os.path.exists(os.path.abspath(args.config)):
-                        log.error("Config file '%s' does not exist.", args.config)
-                        sys.exit(1)
-
-                    from agefreighter.pgsqlexporter import PGSQLExporter
-
-                    try:
-                        async with PGSQLExporter(
-                            dsn=args.pg_con_str,
-                            min_connections=args.pg_min_connections,
-                            max_connections=args.pg_max_connections,
-                            src_dsn=args.src_pg_con_str,
-                            config=os.path.abspath(args.config),
-                            trial=args.trial,
-                            save_temps=args.save_temps,
-                            progress=args.progress,
-                            graph_name=args.graphname,
-                            chunk_size=args.chunk_size,
-                            log_level=logging.DEBUG if args.debug else logging.INFO,
-                        ) as exporter:
-                            await exporter.export()
-                            await exporter.copy()
-                    except Exception as e:
-                        log.error("An error occurred during export: %s", e)
-                        sys.exit(1)
-                case _:
-                    log.error("Source type '%s' is not implemented.", args.source_type)
-                    sys.exit(1)
-
+            await handle_load(args)
         case "view":
-            check_and_install("flask")
-            check_and_install("ply")
-
-            flask_thread = threading.Thread(
-                target=run_flask,
-                args=(
-                    args.flask_port,
-                    logging.DEBUG if args.debug else logging.INFO,
-                ),
-            )
-            flask_thread.daemon = True  # Ensure thread exits when main program exits
-            flask_thread.start()
-
-            try:
-                # Keep the main thread alive so the Flask app keeps running
-                while True:
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                print("Received interrupt. Exiting...")
-
+            handle_view(args)
         case "parse":
-            if not args.cypher_query:
-                log.error("Cypher query not provided.")
-                sys.exit(1)
-
-            check_and_install("ply")
-            from agefreighter.cypherparser import CypherParser
-
-            parser = CypherParser(
-                log_level=logging.DEBUG if args.debug else logging.INFO,
-            )
-            print(parser.parse(args.cypher_query))
-
+            handle_parse(args)
         case "generate":
-            check_and_install("faker")
-            import agefreighter.generator as generator
-
-            await generator.main(
-                pattern_no=args.pattern_no,
-                multiplier=args.multiplier,
-                log_level=logging.DEBUG if args.debug else logging.INFO,
-            )
-
+            await handle_generate(args)
         case "convert":
-            if not args.openai_api_key:
-                log.error(
-                    "OPENAI_API_KEY not set. Set via environment variable or argument."
-                )
-                sys.exit(1)
-            check_and_install("openai")
-            check_and_install("ply")
-            from agefreighter.g2c import GremlinConverterController
-
-            controller = GremlinConverterController(
-                api_key=args.openai_api_key,
-                model=args.model,
-                dryrun=args.dryrun,
-                dsn=args.pg_con_str_for_dryrun,
-                graph_name=args.graph_for_dryrun,
-                gremlin_query=args.gremlin,
-                filepath=args.filepath,
-                url=args.url,
-                log_level=logging.DEBUG if args.debug else logging.INFO,
-            )
-            controller.process()
-
+            handle_convert(args)
         case "prepare":
-            check_and_install("pandas")
-            from agefreighter.csvdatamanager import CsvDataManager
-
-            csv_manager = CsvDataManager(
-                data_dir=args.data_dir,
-                base_file=args.base_file,
-                log_level=logging.DEBUG if args.debug else logging.INFO,
-            )  # Create a CSV data manager instance
-            match args.target_type:
-                case "neo4j":
-                    if not (args.neo4j_uri and args.neo4j_user and args.neo4j_password):
-                        log.error(
-                            "NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD not set. Set via environment variable or argument."
-                        )
-                        sys.exit(1)
-                    check_and_install("neo4j")
-                    from agefreighter.neo4jloader import Neo4jLoader  # type: ignore
-
-                    neo4j_loader = Neo4jLoader(
-                        csv_manager=csv_manager,
-                        neo4j_uri=args.neo4j_uri,
-                        neo4j_user=args.neo4j_user,
-                        neo4j_password=args.neo4j_password,
-                        log_level=logging.DEBUG if args.debug else logging.INFO,
-                    )
-                    await neo4j_loader.load_data()
-                case "pgsql":
-                    from agefreighter.pgsqlloader import PgsqlLoader  # type: ignore
-
-                    pgsql_loader = PgsqlLoader(
-                        csv_manager=csv_manager,
-                        src_dsn=args.src_pg_con_str,
-                        log_level=logging.DEBUG if args.debug else logging.INFO,
-                    )
-                    await pgsql_loader.load_data()
-                case "cosmosdb":
-                    if not (
-                        args.cosmos_gremlin_endpoint
-                        and args.cosmos_key
-                        and args.cosmos_database
-                        and args.cosmos_container
-                    ):
-                        log.error(
-                            "COSMOS_GREMLIN_ENDPOINT, COSMOS_KEY, COSMOS_DATABASE, and COSMOS_CONTAINER not set. Set via environment variable or argument."
-                        )
-                        sys.exit(1)
-
-                    check_and_install("gremlinpython")
-                    from agefreighter.cosmosgremlinloader import CosmosGremlinLoader  # type: ignore
-
-                    cosmos_loader = CosmosGremlinLoader(
-                        csv_manager=csv_manager,
-                        cosmos_gremlin_endpoint=args.cosmos_gremlin_endpoint,
-                        cosmos_key=args.cosmos_key,
-                        cosmos_database=args.cosmos_database,
-                        cosmos_container=args.cosmos_container,
-                        log_level=logging.DEBUG if args.debug else logging.INFO,
-                    )
-                    await cosmos_loader.load_data()
-                case _:
-                    log.error("No valid target type provided.")
-                    sys.exit(1)
+            await handle_prepare(args)
         case _:
             log.error("No valid subcommand provided.")
             sys.exit(1)
 
 
 def main() -> None:
-    """
-    Entry point: Set the appropriate event loop policy and run the async_main function.
-    """
+    """Entry point: Check first-run marker, set event loop policy, and run the async main."""
     check_first_run()
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     try:
         asyncio.run(async_main())
     except asyncio.CancelledError:
-        # Clean up if necessary
         pass
     except KeyboardInterrupt:
         log.error("KeyboardInterrupt received. Shutting down.")

@@ -15,6 +15,7 @@ from typing import List, Tuple
 from psycopg_pool import ConnectionPool
 
 from agefreighter.cypherparser import CypherParser
+from agefreighter.main import CONFIG_DIR
 
 # Import the OpenAI client library after installing openai.
 from openai import OpenAI  # type: ignore
@@ -160,7 +161,9 @@ class CacheManager:
 
     def __init__(self, log_level: int = logging.INFO):
         log.setLevel(log_level)
-        self.cache_file = os.path.join(os.path.expanduser("~"), ".g2c_cache")
+        self.cache_file = os.path.join(
+            os.path.expanduser("~"), CONFIG_DIR, ".g2c_cache"
+        )
         self.cache = self._load_cache()
 
     def _load_cache(self) -> dict:

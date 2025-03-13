@@ -21,6 +21,8 @@ fake = Faker()
 # Dedicated thread pool for CSV writing
 csv_executor = ThreadPoolExecutor(max_workers=4)
 
+BULK_SUPPORTED_NODE_TYPES = {"Product"}
+
 
 def get_timestamp() -> Dict[str, Any]:
     dt = fake.date_time_this_year(before_now=True, after_now=False, tzinfo=None)
@@ -77,19 +79,18 @@ def generate_product_bulk(ids: List[str]) -> List[dict]:
     sizes = np.random.choice(["S", "M", "L", "XL"], size=n)
     result = []
     for i, id in enumerate(ids):
-        result.append({
-            "id": id,
-            "Phrase": fake.catch_phrase(),
-            "SKU": fake.ean13(),
-            "Price": round(prices[i], 2),
-            "Color": fake.color_name(),
-            "Size": sizes[i],
-            "Weight": int(weights[i]),
-        })
+        result.append(
+            {
+                "id": id,
+                "Phrase": fake.catch_phrase(),
+                "SKU": fake.ean13(),
+                "Price": round(prices[i], 2),
+                "Color": fake.color_name(),
+                "Size": sizes[i],
+                "Weight": int(weights[i]),
+            }
+        )
     return result
-
-# Mark the bulk generator with an attribute so our chunk function knows to use it.
-generate_product_bulk.bulk = True
 
 
 def generate_person(id: str) -> dict:
@@ -131,7 +132,8 @@ def generate_city(id: str) -> dict:
 def generate_bitcoinaddress(id: str) -> dict:
     base_props = get_timestamp()
     extra = {
-        "address": random.choice(["cryptoaddress:", "bitcoinaddress:"]) + generate_base58_dummy_data(16),
+        "address": random.choice(["cryptoaddress:", "bitcoinaddress:"])
+        + generate_base58_dummy_data(16),
         "schema_version": "1",
     }
     base_props.update(extra)
@@ -141,30 +143,36 @@ def generate_bitcoinaddress(id: str) -> dict:
 
 def generate_cookie(id: str) -> dict:
     base_props = get_timestamp()
-    base_props.update({
-        "uaid": fake.uuid4(),
-        "schema_version": "1",
-    })
+    base_props.update(
+        {
+            "uaid": fake.uuid4(),
+            "schema_version": "1",
+        }
+    )
     base_props["id"] = id
     return base_props
 
 
 def generate_ip(id: str) -> dict:
     base_props = get_timestamp()
-    base_props.update({
-        "address": fake.ipv4(),
-        "schema_version": "1",
-    })
+    base_props.update(
+        {
+            "address": fake.ipv4(),
+            "schema_version": "1",
+        }
+    )
     base_props["id"] = id
     return base_props
 
 
 def generate_phone(id: str) -> dict:
     base_props = get_timestamp()
-    base_props.update({
-        "address": fake.ipv4(),
-        "schema_version": "1",
-    })
+    base_props.update(
+        {
+            "address": fake.ipv4(),
+            "schema_version": "1",
+        }
+    )
     base_props["id"] = id
     return base_props
 
@@ -173,58 +181,68 @@ def generate_email(id: str) -> dict:
     base_props = get_timestamp()
     email = fake.email()
     handle, domain = email.split("@")
-    base_props.update({
-        "email": email,
-        "domain": domain,
-        "handle": handle,
-        "schema_version": "1",
-    })
+    base_props.update(
+        {
+            "email": email,
+            "domain": domain,
+            "handle": handle,
+            "schema_version": "1",
+        }
+    )
     base_props["id"] = id
     return base_props
 
 
 def generate_payment(id: str) -> dict:
     base_props = get_timestamp()
-    base_props.update({
-        "payment_id": fake.uuid4(),
-        "schema_version": "1",
-    })
+    base_props.update(
+        {
+            "payment_id": fake.uuid4(),
+            "schema_version": "1",
+        }
+    )
     base_props["id"] = id
     return base_props
 
 
 def generate_partnerenduser(id: str) -> dict:
     base_props = get_timestamp()
-    base_props.update({
-        "partner_end_user_id": fake.uuid4(),
-        "schema_version": "1",
-    })
+    base_props.update(
+        {
+            "partner_end_user_id": fake.uuid4(),
+            "schema_version": "1",
+        }
+    )
     base_props["id"] = id
     return base_props
 
 
 def generate_creditcard(id: str) -> dict:
     base_props = get_timestamp()
-    base_props.update({
-        "expiry_month": fake.month(),
-        "expiry_year": fake.year(),
-        "masked_number": fake.credit_card_number(card_type=None),
-        "creditcard_identifier": fake.uuid4(),
-        "schema_version": "1",
-    })
+    base_props.update(
+        {
+            "expiry_month": fake.month(),
+            "expiry_year": fake.year(),
+            "masked_number": fake.credit_card_number(card_type=None),
+            "creditcard_identifier": fake.uuid4(),
+            "schema_version": "1",
+        }
+    )
     base_props["id"] = id
     return base_props
 
 
 def generate_cryptoaddress(id: str) -> dict:
     base_props = get_timestamp()
-    base_props.update({
-        "address": generate_base58_dummy_data(16),
-        "currency": random.choice(["BTC", "ETH", "LTC", "XRP"]),
-        "full_address": generate_base58_dummy_data(32),
-        "schema_version": "1",
-        "tag": generate_base58_dummy_data(4),
-    })
+    base_props.update(
+        {
+            "address": generate_base58_dummy_data(16),
+            "currency": random.choice(["BTC", "ETH", "LTC", "XRP"]),
+            "full_address": generate_base58_dummy_data(32),
+            "schema_version": "1",
+            "tag": generate_base58_dummy_data(4),
+        }
+    )
     base_props["id"] = id
     return base_props
 
@@ -251,8 +269,15 @@ NODE_GENERATORS: Dict[str, Any] = {
 
 
 # ------------------ Lightweight Edge Generators ------------------
-def generate_airroute(id: str, start_id: str, start_type: str, start_props: dict,
-                      end_id: str, end_type: str, end_props: dict) -> dict:
+def generate_airroute(
+    id: str,
+    start_id: str,
+    start_type: str,
+    start_props: dict,
+    end_id: str,
+    end_type: str,
+    end_props: dict,
+) -> dict:
     # This function is kept for single-edge generation.
     return {
         "id": id,
@@ -267,8 +292,13 @@ def generate_airroute(id: str, start_id: str, start_type: str, start_props: dict
 
 
 # Bulk generator for AirRoute edges using vectorized operations.
-def generate_airroute_bulk(start_idx: int, end_idx: int, edge_props: Dict[str, Any],
-                           start_node_data: List[Dict[str, Any]], end_node_data: List[Dict[str, Any]]) -> List[dict]:
+def generate_airroute_bulk(
+    start_idx: int,
+    end_idx: int,
+    edge_props: Dict[str, Any],
+    start_node_data: List[Dict[str, Any]],
+    end_node_data: List[Dict[str, Any]],
+) -> List[dict]:
     n = end_idx - start_idx
     # Precompute random indices for start and end nodes.
     start_indices = np.random.randint(0, len(start_node_data), size=n)
@@ -293,8 +323,15 @@ def generate_airroute_bulk(start_idx: int, end_idx: int, edge_props: Dict[str, A
     return edges
 
 
-def generate_bought(id: str, start_id: str, start_type: str, start_props: dict,
-                    end_id: str, end_type: str, end_props: dict) -> dict:
+def generate_bought(
+    id: str,
+    start_id: str,
+    start_type: str,
+    start_props: dict,
+    end_id: str,
+    end_type: str,
+    end_props: dict,
+) -> dict:
     return {
         "id": id,
         "start_id": start_id,
@@ -306,8 +343,15 @@ def generate_bought(id: str, start_id: str, start_type: str, start_props: dict,
     }
 
 
-def generate_has(id: str, start_id: str, start_type: str, start_props: dict,
-                 end_id: str, end_type: str, end_props: dict) -> dict:
+def generate_has(
+    id: str,
+    start_id: str,
+    start_type: str,
+    start_props: dict,
+    end_id: str,
+    end_type: str,
+    end_props: dict,
+) -> dict:
     return {
         "id": id,
         "start_id": start_id,
@@ -320,8 +364,15 @@ def generate_has(id: str, start_id: str, start_type: str, start_props: dict,
     }
 
 
-def generate_performedby(id: str, start_id: str, start_type: str, start_props: dict,
-                         end_id: str, end_type: str, end_props: dict) -> dict:
+def generate_performedby(
+    id: str,
+    start_id: str,
+    start_type: str,
+    start_props: dict,
+    end_id: str,
+    end_type: str,
+    end_props: dict,
+) -> dict:
     return {
         "id": id,
         "start_id": start_id,
@@ -332,8 +383,15 @@ def generate_performedby(id: str, start_id: str, start_type: str, start_props: d
     }
 
 
-def generate_usedby(id: str, start_id: str, start_type: str, start_props: dict,
-                    end_id: str, end_type: str, end_props: dict) -> dict:
+def generate_usedby(
+    id: str,
+    start_id: str,
+    start_type: str,
+    start_props: dict,
+    end_id: str,
+    end_type: str,
+    end_props: dict,
+) -> dict:
     return {
         "id": id,
         "start_id": start_id,
@@ -345,8 +403,15 @@ def generate_usedby(id: str, start_id: str, start_type: str, start_props: dict,
     }
 
 
-def generate_usedin(id: str, start_id: str, start_type: str, start_props: dict,
-                    end_id: str, end_type: str, end_props: dict) -> dict:
+def generate_usedin(
+    id: str,
+    start_id: str,
+    start_type: str,
+    start_props: dict,
+    end_id: str,
+    end_type: str,
+    end_props: dict,
+) -> dict:
     return {
         "id": id,
         "start_id": start_id,
@@ -358,8 +423,15 @@ def generate_usedin(id: str, start_id: str, start_type: str, start_props: dict,
     }
 
 
-def generate_produce(id: str, start_id: str, start_type: str, start_props: dict,
-                     end_id: str, end_type: str, end_props: dict) -> dict:
+def generate_produce(
+    id: str,
+    start_id: str,
+    start_type: str,
+    start_props: dict,
+    end_id: str,
+    end_type: str,
+    end_props: dict,
+) -> dict:
     return {
         "id": id,
         "start_id": start_id,
@@ -371,8 +443,15 @@ def generate_produce(id: str, start_id: str, start_type: str, start_props: dict,
     }
 
 
-def generate_knows(id: str, start_id: str, start_type: str, start_props: dict,
-                   end_id: str, end_type: str, end_props: dict) -> dict:
+def generate_knows(
+    id: str,
+    start_id: str,
+    start_type: str,
+    start_props: dict,
+    end_id: str,
+    end_type: str,
+    end_props: dict,
+) -> dict:
     return {
         "id": id,
         "start_id": start_id,
@@ -385,8 +464,15 @@ def generate_knows(id: str, start_id: str, start_type: str, start_props: dict,
     }
 
 
-def generate_likes(id: str, start_id: str, start_type: str, start_props: dict,
-                   end_id: str, end_type: str, end_props: dict) -> dict:
+def generate_likes(
+    id: str,
+    start_id: str,
+    start_type: str,
+    start_props: dict,
+    end_id: str,
+    end_type: str,
+    end_props: dict,
+) -> dict:
     return {
         "id": id,
         "start_id": start_id,
@@ -447,14 +533,17 @@ def sync_put_csv(data_dir: str, file_name: str, data: List[Dict[str, Any]]) -> s
 
 async def put_csv(data_dir: str, file_name: str, data: List[Dict[str, Any]]) -> str:
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(csv_executor, sync_put_csv, data_dir, file_name, data)
+    result = await loop.run_in_executor(
+        csv_executor, sync_put_csv, data_dir, file_name, data
+    )
     return result
 
 
 # ------------------ Multiprocessing Helpers ------------------
-def generate_node_chunk(node_gen, start_idx: int, end_idx: int) -> List[Dict[str, Any]]:
-    # If the generator supports bulk generation (has attribute bulk), call it once with all ids.
-    if hasattr(node_gen, "bulk") and node_gen.bulk:
+def generate_node_chunk(
+    node_type: str, node_gen: Any, start_idx: int, end_idx: int
+) -> List[Dict[str, Any]]:
+    if node_type in BULK_SUPPORTED_NODE_TYPES:
         ids = [str(i + 1) for i in range(start_idx, end_idx)]
         return node_gen(ids)
     else:
@@ -471,7 +560,9 @@ def generate_edge_chunk(
 ) -> List[Dict[str, Any]]:
     # For AirRoute edges, use the bulk vectorized generator.
     if edge_name == "AirRoute":
-        return generate_airroute_bulk(start_idx, end_idx, edge_props, start_node_data, end_node_data)
+        return generate_airroute_bulk(
+            start_idx, end_idx, edge_props, start_node_data, end_node_data
+        )
     else:
         gen = EDGE_GENERATORS[edge_name]
         chunk = []
@@ -501,8 +592,23 @@ async def generate_complete_data(
     print(f"Generating {edge_name}: {edge_props['count']}...")
     start_node_gen = NODE_GENERATORS[edge_props["start"]]
     end_node_gen = NODE_GENERATORS[edge_props["end"]]
-    start_node_data = [start_node_gen(str(i + 1)) for i in range(nodes[edge_props["start"]])]
-    end_node_data = [end_node_gen(str(i + 1)) for i in range(nodes[edge_props["end"]])]
+    if getattr(start_node_gen, "bulk", False):
+        start_node_data = start_node_gen(
+            [str(i + 1) for i in range(nodes[edge_props["start"]])]
+        )
+    else:
+        start_node_data = [
+            start_node_gen(str(i + 1)) for i in range(nodes[edge_props["start"]])
+        ]
+
+    if getattr(end_node_gen, "bulk", False):
+        end_node_data = end_node_gen(
+            [str(i + 1) for i in range(nodes[edge_props["end"]])]
+        )
+    else:
+        end_node_data = [
+            end_node_gen(str(i + 1)) for i in range(nodes[edge_props["end"]])
+        ]
     total_edges = edge_props["count"]
     chunk_size = 100000  # Adjust as needed.
     tasks = []
@@ -543,7 +649,16 @@ async def generate_nodes(
     with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
         for start_idx in range(0, count, chunk_size):
             end_idx = min(start_idx + chunk_size, count)
-            tasks.append(loop.run_in_executor(executor, generate_node_chunk, node_gen, start_idx, end_idx))
+            tasks.append(
+                loop.run_in_executor(
+                    executor,
+                    generate_node_chunk,
+                    cls_name,  # Pass the node type.
+                    node_gen,
+                    start_idx,
+                    end_idx,
+                )
+            )
         results = await asyncio.gather(*tasks)
     data = [node for sublist in results for node in sublist]
     await put_csv(data_dir=data_dir, file_name=cls_name, data=data)
@@ -558,7 +673,9 @@ async def generate_edges(
 ) -> None:
     loop = asyncio.get_running_loop()
     for props in prop_list:
-        print(f"Generating {edge_name} {props['start']} - {props['end']}: {props['count']}...")
+        print(
+            f"Generating {edge_name} {props['start']} - {props['end']}: {props['count']}..."
+        )
         total_edges = props["count"]
         chunk_size = 100000  # Adjust based on workload.
         tasks = []
@@ -589,7 +706,9 @@ async def generate_edges(
 
 
 # ------------------ Main Function ------------------
-async def main(pattern_no: int = 1, multiplier: int = 1, log_level: int = logging.INFO) -> None:
+async def main(
+    pattern_no: int = 1, multiplier: int = 1, log_level: int = logging.INFO
+) -> None:
     log.setLevel(log_level)
     if multiplier >= 100:
         log.warning("Multiplier is too large. It will generate a lot of data.")
@@ -612,7 +731,11 @@ async def main(pattern_no: int = 1, multiplier: int = 1, log_level: int = loggin
         source_type = SINGLE_SOURCE
         sub_dir = "/transaction"
         nodes = {"Customer": 10000 * multiplier, "Product": 1000 * multiplier}
-        edges = {"Bought": [{"count": 20050 * multiplier, "start": "Customer", "end": "Product"}]}
+        edges = {
+            "Bought": [
+                {"count": 20050 * multiplier, "start": "Customer", "end": "Product"}
+            ]
+        }
     elif pattern_no == 2:
         # Persons: single node type, multiple edge types.
         source_type = MULTI_SOURCE
@@ -627,13 +750,19 @@ async def main(pattern_no: int = 1, multiplier: int = 1, log_level: int = loggin
         source_type = MULTI_SOURCE
         sub_dir = "/airroute"
         nodes = {"AirPort": 3500 * multiplier}
-        edges = {"AirRoute": [{"count": 20000 * multiplier, "start": "AirPort", "end": "AirPort"}]}
+        edges = {
+            "AirRoute": [
+                {"count": 20000 * multiplier, "start": "AirPort", "end": "AirPort"}
+            ]
+        }
     elif pattern_no == 4:
         # Countries: multiple node types, single edge type.
         source_type = MULTI_SOURCE
         sub_dir = "/countries"
         nodes = {"Country": 200 * multiplier, "City": 10000 * multiplier}
-        edges = {"Has": [{"count": 10000 * multiplier, "start": "Country", "end": "City"}]}
+        edges = {
+            "Has": [{"count": 10000 * multiplier, "start": "Country", "end": "City"}]
+        }
     elif pattern_no == 5:
         # Payment: multiple node types, multiple edge types.
         source_type = MULTI_SOURCE
@@ -653,21 +782,33 @@ async def main(pattern_no: int = 1, multiplier: int = 1, log_level: int = loggin
             "UsedIn": [
                 {"count": 6000 * multiplier, "start": "Cookie", "end": "Payment"},
                 {"count": 6000 * multiplier, "start": "Email", "end": "Payment"},
-                {"count": 6000 * multiplier, "start": "CryptoAddress", "end": "Payment"},
+                {
+                    "count": 6000 * multiplier,
+                    "start": "CryptoAddress",
+                    "end": "Payment",
+                },
                 {"count": 6000 * multiplier, "start": "Phone", "end": "Payment"},
                 {"count": 6000 * multiplier, "start": "CreditCard", "end": "Payment"},
             ],
             "PerformedBy": [
                 {"count": 1000 * multiplier, "start": "Cookie", "end": "Payment"},
                 {"count": 1000 * multiplier, "start": "Email", "end": "Payment"},
-                {"count": 1000 * multiplier, "start": "CryptoAddress", "end": "Payment"},
+                {
+                    "count": 1000 * multiplier,
+                    "start": "CryptoAddress",
+                    "end": "Payment",
+                },
                 {"count": 1000 * multiplier, "start": "Phone", "end": "Payment"},
                 {"count": 1000 * multiplier, "start": "CreditCard", "end": "Payment"},
             ],
             "UsedBy": [
                 {"count": 8000 * multiplier, "start": "Cookie", "end": "Payment"},
                 {"count": 8000 * multiplier, "start": "Email", "end": "Payment"},
-                {"count": 8000 * multiplier, "start": "CryptoAddress", "end": "Payment"},
+                {
+                    "count": 8000 * multiplier,
+                    "start": "CryptoAddress",
+                    "end": "Payment",
+                },
                 {"count": 8000 * multiplier, "start": "Phone", "end": "Payment"},
                 {"count": 8000 * multiplier, "start": "CreditCard", "end": "Payment"},
             ],
@@ -689,10 +830,16 @@ async def main(pattern_no: int = 1, multiplier: int = 1, log_level: int = loggin
                 data_dir=full_dir,
             )
     elif source_type == MULTI_SOURCE:
-        node_tasks = [generate_nodes(cls_name, count, full_dir) for cls_name, count in nodes.items()]
+        node_tasks = [
+            generate_nodes(cls_name, count, full_dir)
+            for cls_name, count in nodes.items()
+        ]
         nodes_list = await asyncio.gather(*node_tasks)
         nodes_data = {cls_name: data for cls_name, data in nodes_list}
-        edge_tasks = [generate_edges(edge_name, prop_list, nodes_data, full_dir) for edge_name, prop_list in edges.items()]
+        edge_tasks = [
+            generate_edges(edge_name, prop_list, nodes_data, full_dir)
+            for edge_name, prop_list in edges.items()
+        ]
         await asyncio.gather(*edge_tasks)
 
 
