@@ -328,7 +328,15 @@ def create_parser() -> argparse.ArgumentParser:
 
     # convert subcommand
     parser_convert = subparsers.add_parser(
-        "convert", help="Convert Gremlin queries to Cypher queries."
+        "convert",
+        help="Convert Gremlin / Cypher queries to Cypher queries for Apache AGE.",
+    )
+    parser_convert.add_argument(
+        "-l",
+        "--query-language",
+        choices=["gremlin", "cypher"],
+        default="gremlin",
+        help="Source language of the query",
     )
     parser_convert.add_argument(
         "-k",
@@ -361,7 +369,11 @@ def create_parser() -> argparse.ArgumentParser:
     )
     group_convert = parser_convert.add_mutually_exclusive_group(required=True)
     group_convert.add_argument(
-        "-g", "--gremlin", type=str, help="The Gremlin query to convert."
+        "-q",
+        "--query",
+        type=str,
+        default="GRAPH_FOR_DRYRUN",
+        help="Graph name for dry run with PostgreSQL.",
     )
     group_convert.add_argument(
         "-f",
@@ -638,20 +650,25 @@ async def handle_generate(args) -> None:
 
 
 def handle_convert(args) -> None:
-    if not args.openai_api_key:
-        log.error("OPENAI_API_KEY not set. Set via environment variable or argument.")
-        sys.exit(1)
-    check_and_install("openai")
-    check_and_install("ply")
-    from agefreighter.g2c import GremlinConverterController
+    if args.query_language == "gremlin":
+        if not args.openai_api_key:
+            log.error(
+                "OPENAI_API_KEY not set. Set via environment variable or argument."
+            )
+            sys.exit(1)
+        check_and_install("openai")
 
-    controller = GremlinConverterController(
+    check_and_install("ply")
+    from agefreighter.converter import ConverterController
+
+    controller = ConverterController(
+        query_language=args.query_language,
         api_key=args.openai_api_key,
         model=args.model,
         dryrun=args.dryrun,
         dsn=args.pg_con_str_for_dryrun,
         graph_name=args.graph_for_dryrun,
-        gremlin_query=args.gremlin,
+        query=args.query,
         filepath=args.filepath,
         url=args.url,
         log_level=logging.DEBUG if args.debug else logging.INFO,

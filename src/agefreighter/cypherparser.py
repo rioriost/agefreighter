@@ -629,14 +629,14 @@ class CypherParser:
 
     def p_expression_error(self, p):
         "expression : error"
-        print("Syntax error in expression!")
+        raise ValueError("Syntax error in expression!")
         p[0] = None
 
     def p_error(self, p):
         if p:
-            print(f"Syntax error at '{p.value}'")
+            raise ValueError(f"Syntax error at '{p.value}'")
         else:
-            print("Syntax error at EOF")
+            raise ValueError("Syntax error at EOF")
 
     def p_with_clause(self, p):
         """with_clause : WITH with_items

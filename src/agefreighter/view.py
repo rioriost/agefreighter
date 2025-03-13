@@ -78,7 +78,12 @@ class CypherQueryFormatter:
     @staticmethod
     def get_return_values(cypher_query: str) -> list:
         parser = CypherParser()
-        result = parser.parse(cypher_query)
+        try:
+            result = parser.parse(cypher_query)
+        except Exception as e:
+            log.error(f"Failed to parse Cypher query: {e}")
+            return []
+
         for op, opr, *_ in result:
             if op == "RETURN":
                 return opr

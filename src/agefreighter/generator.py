@@ -592,7 +592,7 @@ async def generate_complete_data(
     print(f"Generating {edge_name}: {edge_props['count']}...")
     start_node_gen = NODE_GENERATORS[edge_props["start"]]
     end_node_gen = NODE_GENERATORS[edge_props["end"]]
-    if getattr(start_node_gen, "bulk", False):
+    if edge_props["start"] in BULK_SUPPORTED_NODE_TYPES:
         start_node_data = start_node_gen(
             [str(i + 1) for i in range(nodes[edge_props["start"]])]
         )
@@ -601,7 +601,7 @@ async def generate_complete_data(
             start_node_gen(str(i + 1)) for i in range(nodes[edge_props["start"]])
         ]
 
-    if getattr(end_node_gen, "bulk", False):
+    if edge_props["end"] in BULK_SUPPORTED_NODE_TYPES:
         end_node_data = end_node_gen(
             [str(i + 1) for i in range(nodes[edge_props["end"]])]
         )
