@@ -84,7 +84,7 @@ uv init your_project
 cd your_project
 uv venv
 source .venv/bin/activate
-uv add agefreighter==1.0.0a9
+uv add agefreighter==1.0.0a10
 ```
 
 - with python venv on macOS / Linux
@@ -94,7 +94,7 @@ mkdir your_project
 cd your_project
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install agefreighter==1.0.0a9
+python3 -m pip install agefreighter==1.0.0a10
 ```
 
 - with python venv on Windows
@@ -104,14 +104,14 @@ mkdir your_project
 cd your_project
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install agefreighter==1.0.0a9
+python -m pip install agefreighter==1.0.0a10
 ```
 
 ## Usage
 
 ```bash
 agefreighter --help
-usage: agefreighter [-h] [--graphname GRAPHNAME] [--pg-con-str PG_CON_STR] [--pg-min-connections PG_MIN_CONNECTIONS] [--pg-max-connections PG_MAX_CONNECTIONS] [--debug]
+usage: agefreighter [-h] [--graphname GRAPHNAME] [--pg-con-str PG_CON_STR] [--pg-min-connections PG_MIN_CONNECTIONS] [--pg-max-connections PG_MAX_CONNECTIONS] [--debug] [--version]
                     {completion,load,view,parse,generate,convert,prepare} ...
 
 AGEFreighter, a tool to export data from various sources and load it into Apache AGE.
@@ -137,6 +137,7 @@ options:
   --pg-max-connections PG_MAX_CONNECTIONS
                         Maximum number of connections to PostgreSQL
   --debug               Enable debug logging
+  --version             Show version information
 ```
 
 Each subcommand has its own set of options.
@@ -1375,6 +1376,10 @@ postgres=> select * from air_route.route limit 1;
 ```
 
 ## Release Notes
+
+### 1.0.0a10 Release
+- Added --version argument.
+- Reimplemented completion. Removed `completion` subcommand and added `--generate-completion` argument.
 
 ### 1.0.0a9 Release
 - Replaced regular expression parser with CypherParser in view.py
