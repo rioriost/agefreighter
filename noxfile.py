@@ -4,7 +4,7 @@ nox.options.pythons = ["3.13"]
 nox.options.default_venv_backend = "uv"
 
 
-@nox.session(tags=["clean"])
+@nox.session(python=["3.13"], tags=["clean"])
 def clean(session):
     session.run(
         "uv",
@@ -19,7 +19,13 @@ def clean(session):
         "tests/__pycache__",
         "src/agefreighter/__pycache__",
         "src/agefreighter/parsetab.py",
+        "dist",
     )
+
+
+@nox.session(python=["3.13"], tags=["dist"])
+def dist(session):
+    session.run("uv", "build")
 
 
 @nox.session(python=["3.13"], tags=["lint"])
@@ -33,12 +39,7 @@ def lint(session):
 def mypy(session):
     session.install(".")
     session.install(
-        "mypy",
-        "types-aiofiles",
-        "pandas-stubs",
-        "ply",
-        "faker",
-        "neo4j",
+        "mypy", "types-aiofiles", "pandas-stubs", "ply", "faker", "neo4j", "shtab"
     )
     session.run("uv", "run", "mypy", "src")
 
@@ -57,6 +58,7 @@ def pytest(session):
         "faker",
         "flask",
         "gremlinpython",
+        "shtab",
     )
     test_files = [
         "tests/test_agefreighter.py",

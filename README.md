@@ -91,7 +91,7 @@ uv init your_project
 cd your_project
 uv venv
 source .venv/bin/activate
-uv add agefreighter==1.0.0a12
+uv add agefreighter==1.0.0a13
 ```
 
 - with python venv on macOS / Linux
@@ -101,7 +101,7 @@ mkdir your_project
 cd your_project
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install agefreighter==1.0.0a12
+python3 -m pip install agefreighter==1.0.0a13
 ```
 
 - with python venv on Windows
@@ -111,7 +111,7 @@ mkdir your_project
 cd your_project
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install agefreighter==1.0.0a12
+python -m pip install agefreighter==1.0.0a13
 ```
 
 ## Usage
@@ -154,16 +154,19 @@ For example, the [`load` subcommand](#load-subcommand) has options for specifyin
 ## load subcommand
 
 ```bash
-agefreighter load --help
-usage: agefreighter load [-h] [--source-type {neo4j,cosmosdb,pgsql,csv}] [--trial] [--save-temps] [--chunk-size CHUNK_SIZE] [--progress] [--config CONFIG] [--neo4j-uri NEO4J_URI] [--neo4j-user NEO4J_USER]
-                         [--neo4j-password NEO4J_PASSWORD] [--neo4j-database NEO4J_DATABASE] [--cosmos-endpoint COSMOS_ENDPOINT] [--cosmos-key COSMOS_KEY] [--cosmos-database COSMOS_DATABASE]
-                         [--cosmos-container COSMOS_CONTAINER] [--src-pg-con-str SRC_PG_CON_STR]
+agefreighter % agefreighter load --help
+usage: agefreighter load [-h] [--source-type {neo4j,cosmosdb,pgsql,csv}] [--trial] [--no-of-edges-trial NO_OF_EDGES_TRIAL] [--save-temps] [--chunk-size CHUNK_SIZE] [--progress]
+                         [--config CONFIG] [--neo4j-uri NEO4J_URI] [--neo4j-user NEO4J_USER] [--neo4j-password NEO4J_PASSWORD] [--neo4j-database NEO4J_DATABASE]
+                         [--cosmos-endpoint COSMOS_ENDPOINT] [--cosmos-key COSMOS_KEY] [--cosmos-database COSMOS_DATABASE] [--cosmos-container COSMOS_CONTAINER]
+                         [--src-pg-con-str SRC_PG_CON_STR]
 
 options:
   -h, --help            show this help message and exit
   --source-type {neo4j,cosmosdb,pgsql,csv}
                         Source type of the graph data
   --trial               Extract only 100 edges per relationship type
+  --no-of-edges-trial NO_OF_EDGES_TRIAL
+                        The number of edges to extract per relationship type
   --save-temps          Save data from source as CSV files into a directory
   --chunk-size CHUNK_SIZE
                         Chunk size for exporting data
@@ -1070,10 +1073,12 @@ Click on the link above to open the graph data in your browser.
 
 ```bash
 agefreighter convert --help
-usage: agefreighter convert [-h] [-k OPENAI_API_KEY] [-m MODEL] [-d] [--pg-con-str-for-dryrun PG_CON_STR_FOR_DRYRUN] [--graph-for-dryrun GRAPH_FOR_DRYRUN] (-g GREMLIN | -f FILEPATH | -u URL)
+usage: agefreighter convert [-h] [-l {gremlin,cypher}] [-k OPENAI_API_KEY] [-m MODEL] [-d] [--pg-con-str-for-dryrun PG_CON_STR_FOR_DRYRUN] [--graph-for-dryrun GRAPH_FOR_DRYRUN] (-q QUERY | -f FILEPATH | -u URL)
 
 options:
   -h, --help            show this help message and exit
+  -l, --query-language {gremlin,cypher}
+                        Source language of the query
   -k, --openai-api-key OPENAI_API_KEY
                         OpenAI API key to use.
   -m, --model MODEL     OpenAI model to use.
@@ -1082,8 +1087,7 @@ options:
                         Connection string of the Azure Database for PostgreSQL
   --graph-for-dryrun GRAPH_FOR_DRYRUN
                         Graph name for dry run with PostgreSQL.
-  -g, --gremlin GREMLIN
-                        The Gremlin query to convert.
+  -q, --query QUERY     Graph name for dry run with PostgreSQL.
   -f, --filepath FILEPATH
                         Path to the source code file (.py, .java, .cs, .txt)
   -u, --url URL         URL to the source code file (.py, .java, .cs, .txt)
@@ -1091,20 +1095,20 @@ options:
 
 The indentical usage is shown below.
 
-with -g(--gremlin)
+with -l gremlin -q
 
 ```bash
-agefreighter convert -g 'g.V().has(“name”, “Alice”).as(“a”).V().has(“name”, “Bob”).as(“b”).select(“a”, “b”).by(“name”)'
+agefreighter convert -l gremlin -q 'g.V().has(“name”, “Alice”).as(“a”).V().has(“name”, “Bob”).as(“b”).select(“a”, “b”).by(“name”)'
 Converted Cypher queries:
 
 line 1, g.V().has("name", "Alice").as("a").V().has("name", "Bob").as("b").select("a", "b").by("name") ->
 SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (a {name: "Alice"}), (b {name: "Bob"}) RETURN a.name AS a, b.name AS b $$) AS (a agtype, b agtype);
 ```
 
-with -u(--url)
+with -l gremlin -u(--url)
 
 ```bash
-agefreighter convert -u https://raw.githubusercontent.com/nedlowe/gremlin-python-example/refs/heads/master/app.py
+agefreighter convert -l gremlin -u https://raw.githubusercontent.com/nedlowe/gremlin-python-example/refs/heads/master/app.py
 Converted Cypher queries:
 
 line 42, g.V(person_id).toList() ->
@@ -1118,10 +1122,10 @@ DEALLOCATE ALL; PREPARE cypher_stored_procedure(agtype) AS SELECT * FROM cypher(
 ......
 ```
 
-with -f(--filepath)
+with -l gremlin -f(--filepath)
 
 ```bash
-agefreighter convert -f docs/gremlin_samples.py
+agefreighter convert -l gremlin -f docs/gremlin_samples.py
 Converted Cypher queries:
 
 line 1, g.V() ->
@@ -1138,10 +1142,10 @@ SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n:software) RETURN n $$) AS (
 ......
 ```
 
-with -d(--dryrun)
+with -l gremlin -d(--dryrun) -q
 
 ```bash
-agefreighter convert -d -g "g.V().hasLabel('person').aggregate('a')"
+agefreighter convert -l gremlin -d -q "g.V().hasLabel('person').aggregate('a')"
 Converted Cypher queries:
 
 line 1, g.V().hasLabel('person').aggregate('a') ->
@@ -1150,7 +1154,7 @@ SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n:person) WITH collect(n) AS 
 ```
 
 ```bash
-agefreighter convert -d -g "g.V(person).property(prop_name, prop_value)"
+agefreighter convert -l gremlin -d -q "g.V(person).property(prop_name, prop_value)"
 Converted Cypher queries:
 
 line 1, g.V(person).property(prop_name, prop_value) ->
@@ -1158,6 +1162,16 @@ DEALLOCATE ALL; PREPARE cypher_stored_procedure(agtype) AS SELECT * FROM cypher(
 [Error executing query: SET clause expects a property name
 LINE 2: ...R_DRYRUN', $$ MATCH (n) WHERE ID(n) = $person SET n[$prop_na...
                                                              ^]
+```
+
+with -l cypher -q
+
+```bash
+agefreighter convert -l cypher -q 'MATCH (n) RETURN n'
+Converted Cypher queries for Apache AGE:
+
+line 1, MATCH (n) RETURN n ->
+SELECT * FROM cypher('GRAPH_FOR_DRYRUN', $$ MATCH (n) RETURN n $$) AS (n agtype);
 ```
 
 ## parse subcommand
@@ -1384,6 +1398,13 @@ postgres=> select * from air_route.route limit 1;
 ```
 
 ## Release Notes
+
+### 1.0.0a13 Release
+- Added `--no-of-edges-trial` argument to `load` subcommand.
+- Fixed some issues.
+
+### 1.0.0a12 Release
+- Updated README.md
 
 ### 1.0.0a12 Release
 - Refactored g2c.py to converter.py
