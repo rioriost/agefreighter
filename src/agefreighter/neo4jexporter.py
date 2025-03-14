@@ -33,11 +33,13 @@ class Neo4jExporter(AgeFreighter):
         password: str,
         database: str,
         trial: bool,
+        no_of_edges_trial: int,
         save_temps: bool,
         progress: bool,
         graph_name: str,
         chunk_size: int,
         log_level: int = logging.INFO,
+        **kwargs: Any,
     ) -> None:
         log.setLevel(log_level)
         super().__init__(
@@ -59,7 +61,7 @@ class Neo4jExporter(AgeFreighter):
         self.id_maps: Dict[str, Dict[str, int]] = {}
         self.max_attempts = 3
         self.retry_delay = 1
-        self.no_of_edges_trial = 100
+        self.no_of_edges_trial = no_of_edges_trial
 
         try:
             self.driver = GraphDatabase.driver(uri, auth=(user, password))

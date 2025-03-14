@@ -143,11 +143,13 @@ class CSVExporter(AgeFreighter):
         max_connections: int,
         config: str,
         trial: bool,
+        no_of_edges_trial: int,
         save_temps: bool,
         progress: bool,
         graph_name: str,
         chunk_size: int,
         log_level: int = logging.INFO,
+        **kwargs: Any,
     ) -> None:
         super().__init__(
             dsn=dsn,
@@ -165,7 +167,7 @@ class CSVExporter(AgeFreighter):
         self.trial: bool = trial
         self.trial_nodes_by_label: Dict[str, Dict[str, List[str]]] = {}
         self.id_maps: Dict[str, Dict[str, int]] = {}
-        self.no_of_edges_trial = 100
+        self.no_of_edges_trial = no_of_edges_trial
 
         config_manager = ConfigManager(self.config, log_level=log_level)
         self.config_json = config_manager.load_config()

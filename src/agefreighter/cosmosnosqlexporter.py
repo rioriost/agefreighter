@@ -35,6 +35,7 @@ class CosmosNoSQLExporter(AgeFreighter):
         cosmos_database: str,
         cosmos_container: str,
         trial: bool,
+        no_of_edges_trial: int,
         save_temps: bool,
         progress: bool,
         graph_name: str,
@@ -57,9 +58,9 @@ class CosmosNoSQLExporter(AgeFreighter):
         self.cosmos_container = cosmos_container
         self.batch_size = 100
         self.trial = trial
-        self.no_of_edges_trial = 100
         self.graph_name = graph_name
         self.id_maps: Dict[str, Dict[str, int]] = {}
+        self.no_of_edges_trial = no_of_edges_trial
 
         try:
             self.client = CosmosClient(self.cosmos_endpoint, credential=self.cosmos_key)

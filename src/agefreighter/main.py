@@ -233,6 +233,12 @@ def create_parser() -> argparse.ArgumentParser:
         help="Extract only 100 edges per relationship type",
     )
     parser_load.add_argument(
+        "--no-of-edges-trial",
+        type=int,
+        default=100,
+        help="The number of edges to extract per relationship type",
+    )
+    parser_load.add_argument(
         "--save-temps",
         action="store_true",
         default=False,
@@ -496,6 +502,7 @@ async def handle_load(args) -> None:
                     password=args.neo4j_password,
                     database=args.neo4j_database,
                     trial=args.trial,
+                    no_of_edges_trial=args.no_of_edges_trial,
                     save_temps=args.save_temps,
                     progress=args.progress,
                     graph_name=args.graphname,
@@ -525,6 +532,7 @@ async def handle_load(args) -> None:
                     max_connections=args.pg_max_connections,
                     config=os.path.abspath(args.config),
                     trial=args.trial,
+                    no_of_edges_trial=args.no_of_edges_trial,
                     save_temps=args.save_temps,
                     progress=args.progress,
                     graph_name=args.graphname,
@@ -560,6 +568,7 @@ async def handle_load(args) -> None:
                     cosmos_database=args.cosmos_database,
                     cosmos_container=args.cosmos_container,
                     trial=args.trial,
+                    no_of_edges_trial=args.no_of_edges_trial,
                     save_temps=args.save_temps,
                     progress=args.progress,
                     graph_name=args.graphname,
@@ -595,6 +604,7 @@ async def handle_load(args) -> None:
                     src_dsn=args.src_pg_con_str,
                     config=os.path.abspath(args.config),
                     trial=args.trial,
+                    no_of_edges_trial=args.no_of_edges_trial,
                     save_temps=args.save_temps,
                     progress=args.progress,
                     graph_name=args.graphname,

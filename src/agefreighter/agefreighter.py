@@ -170,7 +170,7 @@ class AgeFreighter:
             max_size=max_connections,
             min_size=min_connections,
             open=False,
-            timeout=600,
+            timeout=7200,
             **kwargs,
         )
 

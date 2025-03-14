@@ -138,11 +138,13 @@ class PGSQLExporter(AgeFreighter):
         src_dsn: str,
         config: str,
         trial: bool,
+        no_of_edges_trial: int,
         save_temps: bool,
         progress: bool,
         graph_name: str,
         chunk_size: int,
         log_level: int = logging.INFO,
+        **kwargs: Any,
     ) -> None:
         super().__init__(
             dsn=dsn,
@@ -161,9 +163,9 @@ class PGSQLExporter(AgeFreighter):
         self.trial: bool = trial
         self.trial_nodes_by_label: Dict[str, Dict[str, List[str]]] = {}
         self.id_maps: Dict[str, Dict[Any, int]] = {}
-        self.no_of_edges_trial = 100
         self.log_level = log_level
         self.vertex_configs: Dict[str, Dict[str, Any]] = {}
+        self.no_of_edges_trial = no_of_edges_trial
 
     async def __aenter__(self) -> "PGSQLExporter":
         await super().__aenter__()
