@@ -96,7 +96,7 @@ class DatabaseManager:
 
     def __init__(self, log_level: int = logging.INFO):
         log.setLevel(log_level)
-        self.pool: ConnectionPool
+        self.pool: ConnectionPool | None = None  # Initialize pool to None
         self.connection_info: dict = {}
 
     def connect(self, connection_info: dict) -> None:
