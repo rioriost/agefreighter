@@ -1,0 +1,4 @@
+Enhancements
+    - AvroExporter / ParquetExporter / NeworkXExporter / ExcelExporter
+    - Adding conversion from Cypher to AGE Cypher
+    - Adding features to edit AGE graph on view window
