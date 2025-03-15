@@ -1,0 +1,4 @@
+flask>=3.1.0
+psycopg[binary,pool]>=3.2.4
+agefreighter>=1.0.0a14
+ply>=3.11
