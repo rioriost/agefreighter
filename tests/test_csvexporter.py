@@ -222,6 +222,7 @@ class TestCSVExporter(unittest.IsolatedAsyncioTestCase):
             max_connections=1,
             config=self.config_path,
             trial=False,
+            no_of_edges_trial=100,
             save_temps=False,
             progress=False,
             graph_name="dummy_graph",

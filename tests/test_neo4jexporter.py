@@ -95,6 +95,7 @@ class TestNeo4jExporter(unittest.IsolatedAsyncioTestCase):
             password="dummy_pass",
             database="dummy_db",
             trial=False,
+            no_of_edges_trial=100,
             save_temps=False,
             progress=False,
             graph_name="dummy_graph",
