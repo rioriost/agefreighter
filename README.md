@@ -91,7 +91,7 @@ uv init your_project
 cd your_project
 uv venv
 source .venv/bin/activate
-uv add agefreighter==1.0.0a15
+uv add agefreighter==1.0.0a16
 ```
 
 - with python venv on macOS / Linux
@@ -101,7 +101,7 @@ mkdir your_project
 cd your_project
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install agefreighter==1.0.0a15
+python3 -m pip install agefreighter==1.0.0a16
 ```
 
 - with python venv on Windows
@@ -111,7 +111,7 @@ mkdir your_project
 cd your_project
 python -m venv venv
 .\venv\Scripts\activate
-python -m pip install agefreighter==1.0.0a15
+python -m pip install agefreighter==1.0.0a16
 ```
 
 ## Usage
@@ -1039,6 +1039,8 @@ CREATE TABLE performedby_creditcard_payment (
 
 ## view subcommand
 
+If you want just to view the graph data on PostgreSQL, I also provide a [Docker image](https://hub.docker.com/r/rioriost/agefreighter-viewer) on Docker Hub.
+
 ```bash
 agefreighter view --help
 usage: agefreighter view [-h] [--flask-port FLASK_PORT]
@@ -1398,6 +1400,9 @@ postgres=> select * from air_route.route limit 1;
 ```
 
 ## Release Notes
+
+### 1.0.0a16 Release
+- Dependency update
 
 ### 1.0.0a15 Release
 - Fixed tests for `--no-of-edges-trial`

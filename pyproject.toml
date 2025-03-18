@@ -1,7 +1,7 @@
 [project]
 name = "agefreighter"
 authors = [{ name = "Rio Fujita", email = "rifujita@microsoft.com" }]
-version = "1.0.0a15"
+version = "1.0.0a16"
 license = { file = "LICENSE" }
 description = "a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -9,7 +9,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiofiles>=24.1.0",
     "argcomplete>=3.6.0",
-    "numpy>=2.2.3",
+    "numpy>=2.2.4",
     "psycopg[binary,pool]>=3.2.6",
     "shtab>=1.7.1",
 ]
