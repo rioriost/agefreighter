@@ -583,7 +583,7 @@ class ConverterController:
 
         if result:
             for op, opr, *_ in result:
-                if op == "RETURN":
+                if op == "RETURN" or op == "RETURN_DISTINCT":
                     return opr
 
         return []

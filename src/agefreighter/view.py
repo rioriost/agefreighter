@@ -72,7 +72,7 @@ class CypherQueryFormatter:
             bool: True if safe, False otherwise.
         """
         tokens = cypher_query.split()
-        unsafe_keywords = ["create", "delete", "set", "remove", "merge"]
+        unsafe_keywords = ["add", "create", "delete", "merge", "remove", "set"]
         return all(token.lower() not in unsafe_keywords for token in tokens)
 
     @staticmethod
@@ -85,7 +85,7 @@ class CypherQueryFormatter:
             return []
 
         for op, opr, *_ in result:
-            if op == "RETURN":
+            if op == "RETURN" or op == "RETURN_DISTINCT":
                 return opr
 
         return []

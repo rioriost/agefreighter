@@ -1401,6 +1401,9 @@ postgres=> select * from air_route.route limit 1;
 
 ## Release Notes
 
+### 1.0.0 Release
+- Moved to the stable branch
+
 ### 1.0.0a16 Release
 - Dependency update
 
