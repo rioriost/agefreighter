@@ -577,13 +577,26 @@ class ConverterController:
         try:
             result = parser.parse(cypher_query)
         except Exception as e:
-            logging.error(f"Failed to parse Cypher query: {cypher_query}")
-            logging.error(f"Error: {e}")
+            log.error(f"Failed to parse Cypher query: {e}")
             return []
 
-        if result:
-            for op, opr, *_ in result:
-                if op == "RETURN" or op == "RETURN_DISTINCT":
-                    return opr
+        for op, opr, *_ in result:
+            if op == "RETURN" or op == "RETURN_DISTINCT":
+                log.debug(f"Returning values from query: {opr}")
+                results = []
+                for v in opr:
+                    if isinstance(v, str):
+                        results.append(v.split(".")[0])
+                    elif isinstance(v, tuple):
+                        match v[0]:
+                            case "alias":
+                                results.append(v[-1])
+                            case "property":
+                                results.append(v[-1])
+                            case "func_call":
+                                results.append(v[1])
+                            case "":
+                                pass
+                return list(set(results))
 
         return []

@@ -1401,6 +1401,9 @@ postgres=> select * from air_route.route limit 1;
 
 ## Release Notes
 
+### 1.0.1 Release
+- Fixed `converter.py` and `view.py` to parse `RETURN` values
+
 ### 1.0.0 Release
 - Moved to the stable branch
 
