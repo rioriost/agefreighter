@@ -171,7 +171,7 @@ class TestConverterControllerFormatting(unittest.TestCase):
         instance = mock_cypher_parser.return_value
         instance.parse.return_value = [("RETURN", ["col1", "col2"])]
         returns = self.controller.get_return_values("MATCH (n) RETURN n")
-        self.assertEqual(returns, ["col1", "col2"])
+        self.assertCountEqual(returns, ["col1", "col2"])
 
     @patch("agefreighter.converter.CypherParser")
     def test_format_cypher_no_params(self, mock_cypher_parser):

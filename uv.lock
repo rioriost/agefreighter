@@ -4,7 +4,7 @@ requires-python = ">=3.13"
 
 [[package]]
 name = "agefreighter"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -17,7 +17,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
-    { name = "argcomplete", specifier = ">=3.6.0" },
+    { name = "argcomplete", specifier = ">=3.6.1" },
     { name = "numpy", specifier = ">=2.2.4" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.6" },
     { name = "shtab", specifier = ">=1.7.1" },
@@ -37,11 +37,11 @@ wheels = [
 
 [[package]]
 name = "argcomplete"
-version = "3.6.0"
+version = "3.6.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ee/be/29abccb5d9f61a92886a2fba2ac22bf74326b5c4f55d36d0a56094630589/argcomplete-3.6.0.tar.gz", hash = "sha256:2e4e42ec0ba2fff54b0d244d0b1623e86057673e57bafe72dda59c64bd5dee8b", size = 73135 }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/35/aacd2207c79d95e4ace44292feedff8fccfd8b48135f42d84893c24cc39b/argcomplete-3.6.1.tar.gz", hash = "sha256:927531c2fbaa004979f18c2316f6ffadcfc5cc2de15ae2624dfe65deaf60e14f", size = 73474 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/94/e786d91ccc3a1fc664c20332825b73da20928eb067cdc984b821948a1acc/argcomplete-3.6.0-py3-none-any.whl", hash = "sha256:4e3e4e10beb20e06444dbac0ac8dda650cb6349caeefe980208d3c548708bedd", size = 43769 },
+    { url = "https://files.pythonhosted.org/packages/f5/c8/9fa0e6fa97c328d44e089278399b0a1a08268b06a4a71f7448c6b6effb9f/argcomplete-3.6.1-py3-none-any.whl", hash = "sha256:cef54d7f752560570291214f0f1c48c3b8ef09aca63d65de7747612666725dbc", size = 43984 },
 ]
 
 [[package]]
@@ -142,9 +142,9 @@ wheels = [
 
 [[package]]
 name = "tzdata"
-version = "2025.1"
+version = "2025.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/43/0f/fa4723f22942480be4ca9527bbde8d43f6c3f2fe8412f00e7f5f6746bc8b/tzdata-2025.1.tar.gz", hash = "sha256:24894909e88cdb28bd1636c6887801df64cb485bd593f2fd83ef29075a81d694", size = 194950 }
+sdist = { url = "https://files.pythonhosted.org/packages/95/32/1a225d6164441be760d75c2c42e2780dc0873fe382da3e98a2e1e48361e5/tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9", size = 196380 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/dd/84f10e23edd882c6f968c21c2434fe67bd4a528967067515feca9e611e5e/tzdata-2025.1-py2.py3-none-any.whl", hash = "sha256:7e127113816800496f027041c570f50bcd464a020098a3b6b199517772303639", size = 346762 },
+    { url = "https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8", size = 347839 },
 ]
