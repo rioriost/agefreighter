@@ -1401,6 +1401,9 @@ postgres=> select * from air_route.route limit 1;
 
 ## Release Notes
 
+### 1.0.3 Release
+- Added escaping of double quotes
+
 ### 1.0.2 Release
 - Dependency update
 
