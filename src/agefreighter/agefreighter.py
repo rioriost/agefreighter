@@ -536,7 +536,11 @@ class AgeFreighter:
 
         def format_kv(key: str, value: Any) -> str:
             safe_value = (
-                str(value).replace("\t", "\\t").replace('\\"', '"').replace('"', '\\""')
+                str(value)
+                .replace("\\", "\\\\")
+                .replace("\t", "\\t")
+                .replace('\\\\"', '"')
+                .replace('"', '\\""')
             )
             return f'""{key}"": ""{safe_value}""'
 
