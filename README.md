@@ -422,17 +422,17 @@ This pattern is a little complicatedlly described in JSON as follows [docs/confi
 {
   "edge": [
     {
-      "csv_path": "data/payment_small/usedin_cookie_payment.csv",
+      "csv_path": "data/paymemt/usedin_cookie_payment.csv",
       "type": "UsedIn",
       "props": ["available_since", "inserted_at", "schema_version"],
       "start_vertex": {
-        "csv_path": "data/payment_small/cookie.csv",
+        "csv_path": "data/paymemt/cookie.csv",
         "id": "id",
         "label": "Cookie",
         "props": ["available_since", "inserted_at", "uaid", "schema_version"]
       },
       "end_vertex": {
-        "csv_path": "data/payment_small/payment.csv",
+        "csv_path": "data/paymemt/payment.csv",
         "id": "id",
         "label": "Payment",
         "props": [
@@ -444,11 +444,11 @@ This pattern is a little complicatedlly described in JSON as follows [docs/confi
       }
     },
     {
-      "csv_path": "data/payment_small/usedin_creditcard_payment.csv",
+      "csv_path": "data/paymemt/usedin_creditcard_payment.csv",
       "type": "UsedIn",
       "props": ["available_since", "inserted_at", "schema_version"],
       "start_vertex": {
-        "csv_path": "data/payment_small/creditcard.csv",
+        "csv_path": "data/paymemt/creditcard.csv",
         "id": "id",
         "label": "CreditCard",
         "props": [
@@ -462,7 +462,7 @@ This pattern is a little complicatedlly described in JSON as follows [docs/confi
         ]
       },
       "end_vertex": {
-        "csv_path": "data/payment_small/payment.csv",
+        "csv_path": "data/paymemt/payment.csv",
         "id": "id",
         "label": "Payment",
         "props": [
@@ -474,17 +474,17 @@ This pattern is a little complicatedlly described in JSON as follows [docs/confi
       }
     },
     {
-      "csv_path": "data/payment_small/performedby_cookie_payment.csv",
+      "csv_path": "data/paymemt/performedby_cookie_payment.csv",
       "type": "PerformedBy",
       "props": ["available_since", "inserted_at", "schema_version"],
       "start_vertex": {
-        "csv_path": "data/payment_small/cookie.csv",
+        "csv_path": "data/paymemt/cookie.csv",
         "id": "id",
         "label": "Cookie",
         "props": ["available_since", "inserted_at", "uaid", "schema_version"]
       },
       "end_vertex": {
-        "csv_path": "data/payment_small/payment.csv",
+        "csv_path": "data/paymemt/payment.csv",
         "id": "id",
         "label": "Payment",
         "props": [
@@ -496,11 +496,11 @@ This pattern is a little complicatedlly described in JSON as follows [docs/confi
       }
     },
     {
-      "csv_path": "data/payment_small/performedby_creditcard_payment.csv",
+      "csv_path": "data/paymemt/performedby_creditcard_payment.csv",
       "type": "PerformedBy",
       "props": ["available_since", "inserted_at", "schema_version"],
       "start_vertex": {
-        "csv_path": "data/payment_small/creditcard.csv",
+        "csv_path": "data/paymemt/creditcard.csv",
         "id": "id",
         "label": "CreditCard",
         "props": [
@@ -514,7 +514,7 @@ This pattern is a little complicatedlly described in JSON as follows [docs/confi
         ]
       },
       "end_vertex": {
-        "csv_path": "data/payment_small/payment.csv",
+        "csv_path": "data/paymemt/payment.csv",
         "id": "id",
         "label": "Payment",
         "props": [
@@ -531,7 +531,7 @@ This pattern is a little complicatedlly described in JSON as follows [docs/confi
 
 And the contents of the CSV files:
 
-[data/payment_small/cookie.csv](https://github.com/rioriost/agefreighter/raw/main/data/payment_small/cookie.csv)
+[data/paymemt/cookie.csv](https://github.com/rioriost/agefreighter/raw/main/data/paymemt/cookie.csv)
 
 ```csv
 "id","available_since","inserted_at","uaid","schema_version"
@@ -541,7 +541,7 @@ And the contents of the CSV files:
 "4","2025-01-04 18:57:37.857941","2025-01-04 18:57:37.857941","2e8c8f67-b1cd-429d-b856-3599ee2cdd59","1"
 ```
 
-[data/payment_small/creditcard.csv](https://github.com/rioriost/agefreighter/raw/main/data/payment_small/creditcard.csv)
+[data/paymemt/creditcard.csv](https://github.com/rioriost/agefreighter/raw/main/data/paymemt/creditcard.csv)
 
 ```csv
 "id","available_since","inserted_at","expiry_month","expiry_year","masked_number","creditcard_identifier","schema_version"
@@ -551,7 +551,7 @@ And the contents of the CSV files:
 "4","2025-01-17 03:11:17.633718","2025-01-17 03:11:17.633718","12","1969","2706558801011685","7cde9b77-ba58-4779-b435-3a22733a363a","1"
 ```
 
-[data/payment_small/payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/payment_small/payment.csv)
+[data/paymemt/payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/paymemt/payment.csv)
 
 ```csv
 "id","available_since","inserted_at","payment_id","schema_version"
@@ -561,7 +561,7 @@ And the contents of the CSV files:
 "4","2025-01-10 00:33:53.890556","2025-01-10 00:33:53.890556","6a455a45-a156-44e4-8f01-0750a8f2a9ca","1"
 ```
 
-[data/payment_small/usedin_cookie_payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/payment_small/usedin_cookie_payment.csv)
+[data/paymemt/usedin_cookie_payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/paymemt/usedin_cookie_payment.csv)
 
 ```csv
 "id","start_id","start_vertex_type","end_id","end_vertex_type","available_since","inserted_at","schema_version"
@@ -571,7 +571,7 @@ And the contents of the CSV files:
 "4","714","Cookie","6532","Payment","2025-01-19 23:54:52.656538","2025-01-19 23:54:52.656538","1"
 ```
 
-[data/payment_small/usedin_creditcard_payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/payment_small/usedin_creditcard_payment.csv)
+[data/paymemt/usedin_creditcard_payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/paymemt/usedin_creditcard_payment.csv)
 
 ```csv
 "id","start_id","start_vertex_type","end_id","end_vertex_type","available_since","inserted_at","schema_version"
@@ -581,7 +581,7 @@ And the contents of the CSV files:
 "4","1187","CreditCard","5420","Payment","2025-01-12 12:09:19.853148","2025-01-12 12:09:19.853148","1"
 ```
 
-[data/payment_small/performedby_cookie_payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/payment_small/performedby_cookie_payment.csv)
+[data/paymemt/performedby_cookie_payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/paymemt/performedby_cookie_payment.csv)
 
 ```csv
 "id","start_id","start_vertex_type","end_id","end_vertex_type","available_since","inserted_at"
@@ -591,7 +591,7 @@ And the contents of the CSV files:
 "4","215","Cookie","2852","Payment","2025-01-05 15:35:52.251420","2025-01-05 15:35:52.251420"
 ```
 
-[data/payment_small/performedby_creditcard_payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/payment_small/performedby_creditcard_payment.csv)
+[data/paymemt/performedby_creditcard_payment.csv](https://github.com/rioriost/agefreighter/raw/main/data/paymemt/performedby_creditcard_payment.csv)
 
 ```csv
 "id","start_id","start_vertex_type","end_id","end_vertex_type","available_since","inserted_at"
