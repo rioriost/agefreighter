@@ -4,7 +4,7 @@ requires-python = ">=3.13"
 
 [[package]]
 name = "agefreighter"
-version = "1.0.12"
+version = "1.0.14"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -22,7 +22,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
-    { name = "argcomplete", specifier = ">=3.6.1" },
+    { name = "argcomplete", specifier = ">=3.6.2" },
     { name = "numpy", specifier = ">=2.3.2" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
     { name = "shtab", specifier = ">=1.7.2" },
