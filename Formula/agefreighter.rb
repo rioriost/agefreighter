@@ -3,15 +3,15 @@ class Agefreighter < Formula
 
   desc "a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
   homepage "https://github.com/rioriost/agefreighter/"
-  url "https://files.pythonhosted.org/packages/a5/03/40bf5659de4fbef8c7e4c9131c1999aede4b36a3f99819e8e8ccefb23bbb/agefreighter-1.0.16.tar.gz"
-  sha256 "4b5224b07bc8ff0a9a343ceccc9eb08c1c7926baea2a4a4e6fa4ef312da5ceee"
+  url "https://files.pythonhosted.org/packages/f4/1a/9703a6c6d5e915f2829ac1d75527654858ce3bbd35b3f1800333a0f3d1ca/agefreighter-1.0.17.tar.gz"
+  sha256 "8df2262cfc8cb1a1772b8204f5fcc9afe7fc02f1d7c1c71a604acd29d67014c0"
   license "MIT"
 
   depends_on "python@3.13"
 
   resource "aiofiles" do
-    url "https://files.pythonhosted.org/packages/0b/03/a88171e277e8caa88a4c77808c20ebb04ba74cc4681bf1e9416c862de237/aiofiles-24.1.0.tar.gz"
-    sha256 "22a075c9e5a3810f0c2e48f3008c94d68c65d763b9b03857924c99e57355166c"
+    url "https://files.pythonhosted.org/packages/41/c3/534eac40372d8ee36ef40df62ec129bee4fdb5ad9706e58a29be53b2c970/aiofiles-25.1.0.tar.gz"
+    sha256 "a8d728f0a29de45dc521f18f07297428d56992a742f0cd2701ba86e44d23d5b2"
   end
 
   resource "shtab" do

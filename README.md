@@ -1401,10 +1401,13 @@ postgres=> select * from air_route.route limit 1;
 
 ## Release Notes
 
-### 1.0.15 Release
+### 1.0.17 Release
 - Dependency update
 
 ### 1.0.16 Release
+- Dependency update
+
+### 1.0.15 Release
 - Dependency update
 
 ### 1.0.14 Release
