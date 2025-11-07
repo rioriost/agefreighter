@@ -1,7 +1,7 @@
 [project]
 name = "agefreighter"
 authors = [{ name = "Rio Fujita", email = "rifujita@microsoft.com" }]
-version = "1.0.19"
+version = "1.0.20"
 license = { file = "LICENSE" }
 description = "a Python package that helps you to create a graph database using Azure Database for PostgreSQL."
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -34,5 +34,5 @@ exclude = ["__pycache__", "*.rb", "uv.lock", "dist/.DS_Store"]
 
 [dependency-groups]
 dev = [
-    "neo4j>=6.0.2",
+    "neo4j>=6.0.3",
 ]
