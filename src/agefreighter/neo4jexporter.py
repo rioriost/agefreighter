@@ -308,11 +308,12 @@ class Neo4jExporter(AgeFreighter):
 
             try:
                 # Flatten chunks and assign new IDs starting from first_id
-                all_data = [
-                    {"id": idx + first_id, "properties": item}
-                    for sublist in chunks
-                    for idx, item in enumerate(sublist)
-                ]
+                node_id = first_id
+                all_data = []
+                for sublist in chunks:
+                    for item in sublist:
+                        all_data.append({"id": node_id, "properties": item})
+                        node_id += 1
                 # Build ID mapping for later edge export
                 self.id_maps[label] = {}
                 for item in all_data:
@@ -386,28 +387,32 @@ class Neo4jExporter(AgeFreighter):
                     for skip in range(0, count, int(self.chunk_size))
                 ]
                 chunks = await asyncio.gather(*tasks)
-                all_data = [
-                    {
-                        "id": idx + first_id,
-                        "start_id": self.id_maps[item["start_vertex_type"]][
-                            item["start_id"]
-                        ],
-                        "end_id": self.id_maps[item["end_vertex_type"]][item["end_id"]],
-                        "properties": {
-                            k: v
-                            for k, v in item.items()
-                            if k
-                            not in [
-                                "start_vertex_type",
-                                "start_id",
-                                "end_vertex_type",
-                                "end_id",
-                            ]
-                        },
-                    }
-                    for sublist in chunks
-                    for idx, item in enumerate(sublist)
-                ]
+                edge_id = first_id
+                all_data = []
+                for sublist in chunks:
+                    for item in sublist:
+                        try:
+                            all_data.append({
+                                "id": edge_id,
+                                "start_id": self.id_maps[item["start_vertex_type"]][
+                                    item["start_id"]
+                                ],
+                                "end_id": self.id_maps[item["end_vertex_type"]][item["end_id"]],
+                                "properties": {
+                                    k: v
+                                    for k, v in item.items()
+                                    if k
+                                    not in [
+                                        "start_vertex_type",
+                                        "start_id",
+                                        "end_vertex_type",
+                                        "end_id",
+                                    ]
+                                },
+                            })
+                            edge_id += 1
+                        except KeyError:
+                            continue
                 file_path = await self.write_csv(rel_type, "e", all_data)
                 file_path = file_path.replace("\\", "\\\\")
                 edge_args[rel_type] = {

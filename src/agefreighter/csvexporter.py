@@ -237,22 +237,19 @@ class CSVExporter(AgeFreighter):
             reader = csv.DictReader(f, skipinitialspace=True)
             return sum(1 for _ in reader)
 
-    def _fetch_nodes_chunk_csv(
-        self, csv_path: str, skip: int, chunk_size: int, vertex_config: Dict[str, Any]
+    def _read_all_nodes_csv(
+        self, csv_path: str, vertex_config: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """
-        Fetch a chunk of nodes from the CSV file, adding an '_elementid'
-        field based on vertex_config["id"].
+        Read all nodes from the CSV file once, adding an '_elementid'
+        field based on vertex_config["id"]. This avoids O(n²) behavior
+        from re-reading and skipping rows for each chunk.
         """
         results: List[Dict[str, Any]] = []
         abs_path = os.path.abspath(csv_path)
         with open(abs_path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f, skipinitialspace=True)
-            for i, row in enumerate(reader):
-                if i < skip:
-                    continue
-                if len(results) >= chunk_size:
-                    break
+            for row in reader:
                 cleaned = self._clean_row(row)
                 cleaned["_elementid"] = cleaned[vertex_config["id"]]
                 results.append(cleaned)
@@ -299,22 +296,19 @@ class CSVExporter(AgeFreighter):
             reader = csv.DictReader(f, skipinitialspace=True)
             return sum(1 for _ in reader)
 
-    def _fetch_edge_chunk_csv(
-        self, rel_type: str, skip: int, chunk_size: int
+    def _read_all_edges_csv(
+        self, rel_type: str
     ) -> List[Dict[str, Any]]:
         """
-        Fetch a chunk of edge rows for the given relationship type.
+        Read all edge rows for the given relationship type once.
+        This avoids O(n²) behavior from re-reading and skipping rows for each chunk.
         """
         results: List[Dict[str, Any]] = []
         csv_path = self.get_edge_csv_path(rel_type)
         abs_path = os.path.abspath(csv_path)
         with open(abs_path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f, skipinitialspace=True)
-            for i, row in enumerate(reader):
-                if i < skip:
-                    continue
-                if len(results) >= chunk_size:
-                    break
+            for row in reader:
                 results.append(self._clean_row(row))
         return results
 
@@ -382,21 +376,14 @@ class CSVExporter(AgeFreighter):
                 else:
                     for vc in vertex_configs[label]:
                         csv_path = vc["csv_path"]
-                        count = self._count_nodes_csv(csv_path)
-                        tasks = [
-                            loop.run_in_executor(
-                                thread_pool,
-                                self._fetch_nodes_chunk_csv,
-                                csv_path,
-                                skip,
-                                int(self.chunk_size),
-                                vc,
-                            )
-                            for skip in range(0, count, int(self.chunk_size))
-                        ]
-                        chunks = await asyncio.gather(*tasks)
-                        for chunk in chunks:
-                            nodes.extend(chunk)
+                        # Read all nodes at once - O(n) instead of O(n²)
+                        all_nodes = await loop.run_in_executor(
+                            thread_pool,
+                            self._read_all_nodes_csv,
+                            csv_path,
+                            vc,
+                        )
+                        nodes.extend(all_nodes)
 
                 # Deduplicate nodes by their original ID.
                 unique_nodes = {node["_elementid"]: node for node in nodes}
@@ -440,58 +427,54 @@ class CSVExporter(AgeFreighter):
             try:
                 await self.create_label_type(label_type="edge", value=rel_type)
                 first_id = await self.get_first_id(self.graph_name, rel_type)
-                count = self._count_edges(rel_type)
-                if self.trial:
-                    count = min(count, 100)
-                    limit = min(count, int(self.chunk_size))
-                else:
-                    limit = int(self.chunk_size)
-                log.info(
-                    "Exporting %d edges for relationship type '%s'.", count, rel_type
+
+                # Read all edges at once - O(n) instead of O(n²)
+                all_edges = await loop.run_in_executor(
+                    thread_pool,
+                    self._read_all_edges_csv,
+                    rel_type,
                 )
 
-                tasks = [
-                    loop.run_in_executor(
-                        thread_pool,
-                        self._fetch_edge_chunk_csv,
-                        rel_type,
-                        skip,
-                        limit,
-                    )
-                    for skip in range(0, count, limit)
-                ]
-                chunks = await asyncio.gather(*tasks)
+                # Apply trial limit if needed
+                if self.trial:
+                    all_edges = all_edges[:self.no_of_edges_trial]
+
+                log.info(
+                    "Exporting %d edges for relationship type '%s'.", len(all_edges), rel_type
+                )
+
                 all_data: List[Dict[str, Any]] = []
+                edge_id = first_id
 
-                for sublist in chunks:
-                    for idx, item in enumerate(sublist):
-                        try:
-                            new_start_id = self.id_maps[item["start_vertex_type"]][
-                                item["start_id"]
-                            ]
-                            new_end_id = self.id_maps[item["end_vertex_type"]][
-                                item["end_id"]
-                            ]
-                        except KeyError:
-                            continue
+                for item in all_edges:
+                    try:
+                        new_start_id = self.id_maps[item["start_vertex_type"]][
+                            item["start_id"]
+                        ]
+                        new_end_id = self.id_maps[item["end_vertex_type"]][
+                            item["end_id"]
+                        ]
+                    except KeyError:
+                        continue
 
-                        edge_data = {
-                            "id": idx + first_id,
-                            "start_id": new_start_id,
-                            "end_id": new_end_id,
-                            "properties": {
-                                k: v
-                                for k, v in item.items()
-                                if k
-                                not in [
-                                    "start_vertex_type",
-                                    "start_id",
-                                    "end_vertex_type",
-                                    "end_id",
-                                ]
-                            },
-                        }
-                        all_data.append(edge_data)
+                    edge_data = {
+                        "id": edge_id,
+                        "start_id": new_start_id,
+                        "end_id": new_end_id,
+                        "properties": {
+                            k: v
+                            for k, v in item.items()
+                            if k
+                            not in [
+                                "start_vertex_type",
+                                "start_id",
+                                "end_vertex_type",
+                                "end_id",
+                            ]
+                        },
+                    }
+                    all_data.append(edge_data)
+                    edge_id += 1
 
                 file_path = await self.write_csv(rel_type, "e", all_data)
                 edge_args[rel_type] = {
@@ -511,21 +494,15 @@ class CSVExporter(AgeFreighter):
         with concurrent.futures.ThreadPoolExecutor() as thread_pool:
             for rel_type in self.get_relationship_types():
                 try:
-                    count = min(self._count_edges(rel_type), self.no_of_edges_trial)
-                    limit = min(int(self.chunk_size), count)
                     log.info("Listing nodes for relationship type '%s'.", rel_type)
-                    tasks = [
-                        loop.run_in_executor(
-                            thread_pool,
-                            self._fetch_edge_chunk_csv,
-                            rel_type,
-                            skip,
-                            limit,
-                        )
-                        for skip in range(0, count, limit)
-                    ]
-                    chunks = await asyncio.gather(*tasks)
-                    all_data = [item for sublist in chunks for item in sublist]
+                    # Read all edges at once - O(n) instead of O(n²)
+                    all_edges = await loop.run_in_executor(
+                        thread_pool,
+                        self._read_all_edges_csv,
+                        rel_type,
+                    )
+                    # Apply trial limit
+                    all_data = all_edges[:self.no_of_edges_trial]
                     nodes_by_label: Dict[str, List[str]] = {}
                     for record in all_data:
                         nodes_by_label.setdefault(
