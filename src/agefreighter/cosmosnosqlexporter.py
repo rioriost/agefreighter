@@ -353,7 +353,7 @@ class CosmosNoSQLExporter(AgeFreighter):
             edge_args[edge_label] = {
                 "csv_path": csv_path.replace("\\", "\\\\"),
                 "original_id": "id",
-                "next_val": str(len(all_data)),
+                "next_val": str(len(edges_list)),
             }
 
         return vertex_args, edge_args

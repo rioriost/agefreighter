@@ -556,9 +556,10 @@ class PGSQLExporter(AgeFreighter):
                 all_data: List[Dict[str, Any]] = []
                 start_vertex_label, end_vertex_label = self.get_vertex_labels(rel_type)
                 ids = self.get_ids()
+                edge_id = first_id
 
                 for sublist in chunks:
-                    for idx, item in enumerate(sublist):
+                    for item in sublist:
                         # Resolve start_id using candidate keys
                         new_start_id = None
                         for candidate in ids["start_id"]:
@@ -600,7 +601,7 @@ class PGSQLExporter(AgeFreighter):
                             continue
 
                         edge_data = {
-                            "id": idx + first_id,
+                            "id": edge_id,
                             "start_id": new_start_id,
                             "end_id": new_end_id,
                             "properties": {
@@ -616,6 +617,7 @@ class PGSQLExporter(AgeFreighter):
                             },
                         }
                         all_data.append(edge_data)
+                        edge_id += 1
 
                 file_path = await self.write_csv(rel_type, "e", all_data)
                 edge_args[rel_type] = {
