@@ -1401,6 +1401,9 @@ postgres=> select * from air_route.route limit 1;
 
 ## Release Notes
 
+### 1.0.29 Release
+- Dependency update
+
 ### 1.0.28 Release
 - Fix ID collision bugs and O(n²) CSV reading performance issue
 
