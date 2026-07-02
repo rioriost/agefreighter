@@ -80,7 +80,7 @@ CREATE EXTENSION IF NOT EXISTS age CASCADE;
 - with brew
 
 ```bash
-brew tap rioriost/agefreighter https://github.com/rioriost/agefreighter.git
+brew tap rioriost/tap
 brew install agefreighter
 ```
 
@@ -1400,6 +1400,10 @@ postgres=> select * from air_route.route limit 1;
 ```
 
 ## Release Notes
+
+### 1.0.35 Release
+- Dependency update
+
 
 ### 1.0.33 Release
 - Dependency update
