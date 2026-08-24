@@ -4,6 +4,14 @@ type Label string
 type Namespace string
 type ExternalID string
 
+type RecordKind uint8
+
+const (
+	RecordInvalid RecordKind = iota
+	RecordVertex
+	RecordEdge
+)
+
 type ValueKind uint8
 
 const (
@@ -58,4 +66,39 @@ type Edge struct {
 	End        Endpoint
 	Properties Properties
 	Position   SourcePosition
+}
+
+type Record struct {
+	Vertex *Vertex
+	Edge   *Edge
+}
+
+func VertexRecord(vertex Vertex) Record {
+	return Record{Vertex: &vertex}
+}
+
+func EdgeRecord(edge Edge) Record {
+	return Record{Edge: &edge}
+}
+
+func (record Record) Kind() RecordKind {
+	switch {
+	case record.Vertex != nil && record.Edge == nil:
+		return RecordVertex
+	case record.Edge != nil && record.Vertex == nil:
+		return RecordEdge
+	default:
+		return RecordInvalid
+	}
+}
+
+func (record Record) SourcePosition() (SourcePosition, bool) {
+	switch record.Kind() {
+	case RecordVertex:
+		return record.Vertex.Position, true
+	case RecordEdge:
+		return record.Edge.Position, true
+	default:
+		return SourcePosition{}, false
+	}
 }
