@@ -1,4 +1,0 @@
-aiofiles>=24.1.0
-argcomplete>=3.6.0
-numpy>=2.2.3
-psycopg[binary,pool]>=3.2.5
