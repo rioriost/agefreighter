@@ -710,6 +710,7 @@ These decisions are intentionally deferred until the proof of concept:
 - whether the external identity is also copied into AGE properties
 - metadata retention defaults after `create` and `replace`
 - initial YAML library and CLI framework
+- re-evaluate `go.yaml.in/yaml/v4` only after a stable v4 release
 - serverless Cosmos regional availability and selected region
 - whether Parquet belongs in 2.1 or a later release
 - arm64 image availability for every supported local AGE matrix entry
