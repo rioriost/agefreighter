@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import argparse
 import asyncio
 import importlib.util
@@ -14,6 +11,8 @@ import threading
 import time
 from typing import Optional
 
+from agefreighter.csvutils import DEFAULT_CSV_DELIMITER, normalize_csv_delimiter
+
 # Global Constants and Logging
 HOME_DIR = os.path.expanduser("~")
 CONFIG_DIR = ".agefreighter"
@@ -21,6 +20,14 @@ COMPLETION_FILE = "_agefreighter.completion"
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
+
+
+def csv_delimiter(value: str) -> str:
+    """Validate a command-line CSV delimiter."""
+    try:
+        return normalize_csv_delimiter(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
 def ensure_dir(path: str) -> None:
@@ -251,7 +258,10 @@ def create_parser() -> argparse.ArgumentParser:
         "--progress", action="store_true", default=True, help="Show progress"
     )
     parser_load.add_argument(
-        "--config", type=str, default="", help="Path to the configuration file"
+        "--config",
+        type=str,
+        default="",
+        help="Path to the configuration file (supports per-file delimiters)",
     )
     parser_load.add_argument(
         "--neo4j-uri",
@@ -416,6 +426,12 @@ def create_parser() -> argparse.ArgumentParser:
         type=str,
         default="customer_product_bought.csv",
         help="Base file name for the data files",
+    )
+    parser_prepare.add_argument(
+        "--delimiter",
+        type=csv_delimiter,
+        default=DEFAULT_CSV_DELIMITER,
+        help=r"CSV delimiter (default: ','; use '\t' for tab)",
     )
     parser_prepare.add_argument(
         "--neo4j-uri",
@@ -693,6 +709,7 @@ async def handle_prepare(args) -> None:
     csv_manager = CsvDataManager(
         data_dir=args.data_dir,
         base_file=args.base_file,
+        delimiter=args.delimiter,
         log_level=logging.DEBUG if args.debug else logging.INFO,
     )
     match args.target_type:

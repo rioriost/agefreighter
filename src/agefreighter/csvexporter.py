@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module for exporting CSV data for AGE COPY import using AgeFreighter.
 """
@@ -14,6 +12,7 @@ import sys
 from typing import Any, Dict, List, Optional, cast
 
 from .agefreighter import AgeFreighter
+from .csvutils import get_csv_delimiter
 
 # Configure logging; default to INFO (overridable by the --debug flag)
 logging.basicConfig(level=logging.INFO)
@@ -51,6 +50,16 @@ class ConfigManager:
             )
         return config[key]
 
+    @staticmethod
+    def validate_delimiter(config: Dict[str, Any], context: str) -> None:
+        """Validate and normalize a CSV config object's optional delimiter."""
+        try:
+            delimiter = get_csv_delimiter(config)
+        except ValueError as exc:
+            raise ValueError(f"{exc} ({context})") from exc
+        if "delimiter" in config:
+            config["delimiter"] = delimiter
+
     def load_config(self) -> Dict[str, Any]:
         """
         Load the JSON configuration file, validate required keys,
@@ -72,6 +81,7 @@ class ConfigManager:
 
         if isinstance(edge_config, dict):
             self.parse_result = "Config has single edge and multiple nodes"
+            self.validate_delimiter(edge_config, "edge config")
             start_vertex = self.require_key(edge_config, "start_vertex", "edge config")
             end_vertex = self.require_key(edge_config, "end_vertex", "edge config")
             csv_paths.append(self.require_key(edge_config, "csv_path", "edge config"))
@@ -82,6 +92,7 @@ class ConfigManager:
                 self.require_key(end_vertex, "csv_path", "end_vertex config")
             )
             for vertex in (start_vertex, end_vertex):
+                self.validate_delimiter(vertex, "vertex config")
                 self.require_key(vertex, "id", "vertex config")
                 self.require_key(vertex, "label", "vertex config")
                 self.require_key(vertex, "props", "vertex config")
@@ -89,12 +100,14 @@ class ConfigManager:
             self.require_key(edge_config, "props", "edge config")
         elif isinstance(edge_config, list):
             for ec in edge_config:
+                self.validate_delimiter(ec, "edge config")
                 self.require_key(ec, "type", "edge config")
                 self.require_key(ec, "props", "edge config")
                 if "vertex" in ec:
                     self.parse_result = "Config has multiple edges and single node"
                     csv_paths.append(self.require_key(ec, "csv_path", "edge config"))
                     vertex = self.require_key(ec, "vertex", "edge config")
+                    self.validate_delimiter(vertex, "vertex config")
                     self.require_key(vertex, "id", "vertex config")
                     self.require_key(vertex, "label", "vertex config")
                     self.require_key(vertex, "props", "vertex config")
@@ -112,6 +125,7 @@ class ConfigManager:
                         self.require_key(end_vertex, "csv_path", "end_vertex config")
                     )
                     for vertex in (start_vertex, end_vertex):
+                        self.validate_delimiter(vertex, "vertex config")
                         self.require_key(vertex, "id", "vertex config")
                         self.require_key(vertex, "label", "vertex config")
                         self.require_key(vertex, "props", "vertex config")
@@ -126,6 +140,7 @@ class ConfigManager:
             if not os.path.exists(abs_path):
                 raise ValueError(f"File {abs_path} does not exist")
 
+        self.config_json = config_json
         log.info(self.parse_result)
         log.info(self.config_json)
         return config_json
@@ -228,13 +243,19 @@ class CSVExporter(AgeFreighter):
         # Deduplicate while preserving order
         return list(dict.fromkeys(types))
 
-    def _count_nodes_csv(self, csv_path: str) -> int:
+    def _count_nodes_csv(
+        self, csv_path: str, vertex_config: Optional[Dict[str, Any]] = None
+    ) -> int:
         """
         Count the number of rows in the CSV file.
         """
         abs_path = os.path.abspath(csv_path)
         with open(abs_path, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f, skipinitialspace=True)
+            reader = csv.DictReader(
+                f,
+                delimiter=get_csv_delimiter(vertex_config or {}),
+                skipinitialspace=True,
+            )
             return sum(1 for _ in reader)
 
     def _read_all_nodes_csv(
@@ -248,7 +269,11 @@ class CSVExporter(AgeFreighter):
         results: List[Dict[str, Any]] = []
         abs_path = os.path.abspath(csv_path)
         with open(abs_path, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f, skipinitialspace=True)
+            reader = csv.DictReader(
+                f,
+                delimiter=get_csv_delimiter(vertex_config),
+                skipinitialspace=True,
+            )
             for row in reader:
                 cleaned = self._clean_row(row)
                 cleaned["_elementid"] = cleaned[vertex_config["id"]]
@@ -264,7 +289,11 @@ class CSVExporter(AgeFreighter):
         results: List[Dict[str, Any]] = []
         abs_path = os.path.abspath(csv_path)
         with open(abs_path, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f, skipinitialspace=True)
+            reader = csv.DictReader(
+                f,
+                delimiter=get_csv_delimiter(vertex_config),
+                skipinitialspace=True,
+            )
             for row in reader:
                 cleaned = self._clean_row(row)
                 if cleaned[vertex_config["id"]] in node_ids:
@@ -272,28 +301,37 @@ class CSVExporter(AgeFreighter):
                     results.append(cleaned)
         return results
 
+    def get_edge_config(self, rel_type: str) -> Dict[str, Any]:
+        """Retrieve the configuration for an edge relationship type."""
+        edge_config = self.config_json["edge"]
+        if isinstance(edge_config, dict):
+            if edge_config.get("type") == rel_type:
+                return edge_config
+        elif isinstance(edge_config, list):
+            for ec in edge_config:
+                if ec.get("type") == rel_type:
+                    return ec
+        raise ValueError(f"No CSV configuration found for relationship type {rel_type}")
+
     def get_edge_csv_path(self, rel_type: str) -> str:
         """
         Retrieve the CSV file path for edges of the given relationship type.
         """
-        edge_config = self.config_json["edge"]
-        if isinstance(edge_config, dict):
-            if edge_config.get("type") == rel_type:
-                return edge_config["csv_path"]
-        elif isinstance(edge_config, list):
-            for ec in edge_config:
-                if ec.get("type") == rel_type:
-                    return ec["csv_path"]
-        raise ValueError(f"No CSV path found for relationship type {rel_type}")
+        return cast(str, self.get_edge_config(rel_type)["csv_path"])
 
     def _count_edges(self, rel_type: str) -> int:
         """
         Count the total number of edge rows in the CSV.
         """
+        edge_config = self.get_edge_config(rel_type)
         csv_path = self.get_edge_csv_path(rel_type)
         abs_path = os.path.abspath(csv_path)
         with open(abs_path, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f, skipinitialspace=True)
+            reader = csv.DictReader(
+                f,
+                delimiter=get_csv_delimiter(edge_config),
+                skipinitialspace=True,
+            )
             return sum(1 for _ in reader)
 
     def _read_all_edges_csv(
@@ -304,10 +342,15 @@ class CSVExporter(AgeFreighter):
         This avoids O(n²) behavior from re-reading and skipping rows for each chunk.
         """
         results: List[Dict[str, Any]] = []
+        edge_config = self.get_edge_config(rel_type)
         csv_path = self.get_edge_csv_path(rel_type)
         abs_path = os.path.abspath(csv_path)
         with open(abs_path, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f, skipinitialspace=True)
+            reader = csv.DictReader(
+                f,
+                delimiter=get_csv_delimiter(edge_config),
+                skipinitialspace=True,
+            )
             for row in reader:
                 results.append(self._clean_row(row))
         return results
@@ -323,6 +366,8 @@ class CSVExporter(AgeFreighter):
                 vc = edge_config[key]
                 if "csv_path" not in vc:
                     vc["csv_path"] = edge_config["csv_path"]
+                    if "delimiter" in edge_config and "delimiter" not in vc:
+                        vc["delimiter"] = edge_config["delimiter"]
                 vertex_configs.setdefault(vc["label"], []).append(vc)
         elif isinstance(edge_config, list):
             for ec in edge_config:
@@ -330,12 +375,16 @@ class CSVExporter(AgeFreighter):
                     vc = ec["vertex"]
                     if "csv_path" not in vc:
                         vc["csv_path"] = ec["csv_path"]
+                        if "delimiter" in ec and "delimiter" not in vc:
+                            vc["delimiter"] = ec["delimiter"]
                     vertex_configs.setdefault(vc["label"], []).append(vc)
                 else:
                     for key in ["start_vertex", "end_vertex"]:
                         vc = ec[key]
                         if "csv_path" not in vc:
                             vc["csv_path"] = ec["csv_path"]
+                            if "delimiter" in ec and "delimiter" not in vc:
+                                vc["delimiter"] = ec["delimiter"]
                         vertex_configs.setdefault(vc["label"], []).append(vc)
         return vertex_configs
 

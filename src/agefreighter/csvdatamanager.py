@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import logging
 import os
 from typing import Generator
 
 import pandas as pd
+
+from .csvutils import DEFAULT_CSV_DELIMITER, normalize_csv_delimiter
 
 # Configure logging; default to INFO (overridable by the --debug flag)
 logging.basicConfig(level=logging.INFO)
@@ -21,9 +20,11 @@ class CsvDataManager:
         self,
         data_dir: str,
         base_file: str,
+        delimiter: str = DEFAULT_CSV_DELIMITER,
         log_level: int = logging.INFO,
     ) -> None:
         log.setLevel(log_level)
+        self.delimiter = normalize_csv_delimiter(delimiter)
         if data_dir:
             self.csv_file = os.path.abspath(os.path.join(data_dir, base_file))
         log.info("CsvDataManager initialized")
@@ -32,7 +33,7 @@ class CsvDataManager:
         """
         Read the CSV file and return a DataFrame.
         """
-        return pd.read_csv(self.csv_file)
+        return pd.read_csv(self.csv_file, sep=self.delimiter)
 
     @staticmethod
     def get_chunks(

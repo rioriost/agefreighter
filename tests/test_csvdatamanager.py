@@ -42,6 +42,31 @@ class TestCsvDataManager(unittest.TestCase):
             df_result = manager.get_dataframe()
             assert_frame_equal(df_result, df_expected)
 
+    def test_get_dataframe_with_custom_delimiter(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base_file = "test_data.psv"
+            csv_path = os.path.join(temp_dir, base_file)
+            df_expected = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+            df_expected.to_csv(csv_path, index=False, sep="|")
+            manager = CsvDataManager(
+                data_dir=temp_dir, base_file=base_file, delimiter="|"
+            )
+
+            assert_frame_equal(manager.get_dataframe(), df_expected)
+
+    def test_invalid_delimiter(self):
+        with self.assertRaisesRegex(ValueError, "single character"):
+            CsvDataManager(data_dir=".", base_file="test.csv", delimiter="||")
+
+        for delimiter in ('"', "\r", "\n"):
+            with self.subTest(delimiter=repr(delimiter)):
+                with self.assertRaisesRegex(
+                    ValueError, "line break or double quote"
+                ):
+                    CsvDataManager(
+                        data_dir=".", base_file="test.csv", delimiter=delimiter
+                    )
+
     def test_get_chunks_regular(self):
         """Test that get_chunks() splits a DataFrame into expected chunks."""
         df = pd.DataFrame({"A": list(range(10))})

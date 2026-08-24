@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import logging
 import ply.lex as lex  # type: ignore
 import ply.yacc as yacc  # type: ignore

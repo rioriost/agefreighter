@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import asyncio
 import concurrent.futures
 import csv
@@ -168,6 +165,14 @@ class TestConfigManager(unittest.TestCase):
             cm.load_config()
         self.assertIn("does not exist", str(exc.exception))
 
+    def test_load_config_rejects_invalid_delimiter(self):
+        self.config_dict_dict["edge"]["delimiter"] = "||"
+        with open(self.config_path_dict, "w", encoding="utf-8") as f:
+            json.dump(self.config_dict_dict, f)
+
+        with self.assertRaisesRegex(ValueError, "single character"):
+            ConfigManager(self.config_path_dict).load_config()
+
 
 # ========= Tests for CSVExporter =========
 
@@ -261,15 +266,12 @@ class TestCSVExporter(unittest.IsolatedAsyncioTestCase):
         count = self.exporter._count_nodes_csv(self.start_csv)
         self.assertEqual(count, 2)
 
-    def test_fetch_nodes_chunk_csv(self):
-        # Test fetching nodes chunk from start_csv.
+    def test_read_all_nodes_csv(self):
         vertex_config = {"id": "id"}
-        # Skip 0 rows, chunk_size 1 should return one row.
-        chunk = self.exporter._fetch_nodes_chunk_csv(
-            self.start_csv, skip=0, chunk_size=1, vertex_config=vertex_config
-        )
-        self.assertEqual(len(chunk), 1)
-        self.assertEqual(chunk[0]["_elementid"], chunk[0]["id"])
+        rows = self.exporter._read_all_nodes_csv(self.start_csv, vertex_config)
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["_elementid"], rows[0]["id"])
 
     def test_fetch_nodes_by_ids_chunk_csv(self):
         # Test filtering nodes by IDs.
@@ -280,6 +282,19 @@ class TestCSVExporter(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["id"], "2")
         self.assertEqual(rows[0]["_elementid"], "2")
+
+    def test_read_tab_delimited_nodes(self):
+        with open(self.start_csv, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["id", "name"], delimiter="\t")
+            writer.writeheader()
+            writer.writerow({"id": "1", "name": "Alice"})
+
+        rows = self.exporter._read_all_nodes_csv(
+            self.start_csv, {"id": "id", "delimiter": "\t"}
+        )
+
+        self.assertEqual(rows[0]["_elementid"], "1")
+        self.assertEqual(rows[0]["name"], "Alice")
 
     def test_get_edge_csv_path_dict(self):
         # For dict config, if type matches, return edge csv path.
@@ -293,11 +308,22 @@ class TestCSVExporter(unittest.IsolatedAsyncioTestCase):
         count = self.exporter._count_edges("connects")
         self.assertEqual(count, 2)
 
-    def test_fetch_edge_chunk_csv(self):
-        # Test fetching edge chunk.
-        chunk = self.exporter._fetch_edge_chunk_csv("connects", skip=0, chunk_size=1)
-        self.assertEqual(len(chunk), 1)
-        self.assertNotIn('"Alice"', chunk[0].get("name", ""))
+    def test_read_pipe_delimited_edges(self):
+        with open(self.edge_csv, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["id", "name"], delimiter="|")
+            writer.writeheader()
+            writer.writerow({"id": "1", "name": "Alice"})
+        self.exporter.config_json["edge"]["delimiter"] = "|"
+
+        rows = self.exporter._read_all_edges_csv("connects")
+
+        self.assertEqual(rows, [{"id": "1", "name": "Alice"}])
+
+    def test_read_all_edges_csv(self):
+        rows = self.exporter._read_all_edges_csv("connects")
+
+        self.assertEqual(len(rows), 2)
+        self.assertNotIn('"Alice"', rows[0].get("name", ""))
 
     def test_build_vertex_configs(self):
         # Test _build_vertex_configs for dict config.

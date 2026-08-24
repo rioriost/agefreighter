@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import os
 import sys
 import asyncio
@@ -79,6 +76,20 @@ class TestParseArguments(unittest.TestCase):
             self.assertEqual(args.pg_max_connections, 64)
             self.assertFalse(args.debug)
             self.assertEqual(args.subparser, "load")
+
+    def test_parse_prepare_tab_delimiter(self):
+        test_args = [
+            "main.py",
+            "--pg-con-str",
+            "dummy_connection",
+            "prepare",
+            "--delimiter",
+            r"\t",
+        ]
+        with mock.patch.object(sys, "argv", test_args):
+            args = main_module.parse_arguments()
+
+        self.assertEqual(args.delimiter, "\t")
 
 
 # --- Tests for main module utility functions (lines 21-92) ---

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module for exporting data from a Cosmos NoSQL database to CSV files and
 loading them using AgeFreighter.

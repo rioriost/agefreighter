@@ -244,6 +244,21 @@ To load data from CSV files, you need to prepare a configuration JSON file that 
 agefreighter load --source-type csv --config config.json
 ```
 
+Each object containing a `csv_path` can also specify a single-character
+`delimiter`. The default is `","`; use `"\t"` for tab-separated files or `"|"`
+for pipe-separated files. This setting is per file, so one configuration can
+load files that use different delimiters.
+
+```json
+{
+  "csv_path": "data/person.tsv",
+  "delimiter": "\t",
+  "id": "id",
+  "label": "Person",
+  "props": ["Name"]
+}
+```
+
 We have 4 structure patterns of nodes and edges.
 
 1. Single kind of nodes and single kind of edges:
@@ -1234,7 +1249,7 @@ head generated_dummy_20250308_132130/transaction/customer_product_bought.csv
 
 ```bash
 agefreighter prepare --help
-usage: agefreighter prepare [-h] [--target-type {neo4j,cosmosdb,pgsql}] [--data-dir DATA_DIR] [--base-file BASE_FILE] [--neo4j-uri NEO4J_URI] [--neo4j-user NEO4J_USER] [--neo4j-password NEO4J_PASSWORD]
+usage: agefreighter prepare [-h] [--target-type {neo4j,cosmosdb,pgsql}] [--data-dir DATA_DIR] [--base-file BASE_FILE] [--delimiter DELIMITER] [--neo4j-uri NEO4J_URI] [--neo4j-user NEO4J_USER] [--neo4j-password NEO4J_PASSWORD]
                             [--neo4j-database NEO4J_DATABASE] [--cosmos-gremlin-endpoint COSMOS_GREMLIN_ENDPOINT] [--cosmos-key COSMOS_KEY] [--cosmos-database COSMOS_DATABASE]
                             [--cosmos-container COSMOS_CONTAINER] [--src-pg-con-str SRC_PG_CON_STR]
 
@@ -1245,6 +1260,8 @@ options:
   --data-dir DATA_DIR   Directory containing the data files
   --base-file BASE_FILE
                         Base file name for the data files
+  --delimiter DELIMITER
+                        CSV delimiter (default: ','; use '\t' for tab)
   --neo4j-uri NEO4J_URI
                         Neo4j URI
   --neo4j-user NEO4J_USER
@@ -1400,6 +1417,11 @@ postgres=> select * from air_route.route limit 1;
 ```
 
 ## Release Notes
+
+### 1.0.36 Release
+- Added configurable delimiters for CSV, TSV, and other delimiter-separated inputs
+- Removed redundant Python shebang and UTF-8 source encoding declarations
+
 
 ### 1.0.35 Release
 - Dependency update
