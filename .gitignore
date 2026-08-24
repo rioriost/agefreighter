@@ -1,0 +1,12 @@
+.DS_Store
+.coverage/
+.envrc
+.pytest_cache/
+.venv/
+bin/
+dist/
+tab_replaced_*
+
+*.coverprofile
+*.out
+*.test
