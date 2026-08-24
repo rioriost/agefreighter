@@ -57,6 +57,15 @@ Build both binaries:
 make build
 ```
 
+Start the pinned local AGE, PostgreSQL, and Neo4j fixtures:
+
+```sh
+make dev-up
+```
+
+See the [development database guide](scripts/dev/README.md) for the lifecycle,
+ports, image digests, and reset safety boundary.
+
 The merged statement coverage threshold is 90%. Coverage is a release gate,
 not a substitute for race, fuzz, contract, container integration, and recovery
 tests.

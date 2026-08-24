@@ -22,3 +22,36 @@ jobs:
         run: make install-tools
       - name: Run full quality gate
         run: make check-full
+
+  development-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start pinned development databases
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-up
+      - name: Verify idempotent startup
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-up
+      - name: Verify volume-preserving stop and restart
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: |
+          make dev-down
+          make dev-up
+      - name: Verify deterministic reset
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-reset
+      - name: Stop databases
+        if: always()
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-down

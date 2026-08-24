@@ -11,7 +11,8 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 	-X github.com/rioriost/agefreighter/internal/version.Commit=$(COMMIT) \
 	-X github.com/rioriost/agefreighter/internal/version.BuildDate=$(BUILD_DATE)
 
-.PHONY: build check check-full coverage fmt install-tools test test-race tidy vet vuln
+.PHONY: build check check-full coverage dev-down dev-pull dev-reset dev-smoke \
+	dev-status dev-up fmt install-tools test test-race tidy vet vuln
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter ./cmd/agefreighter
@@ -53,6 +54,24 @@ coverage:
 check: fmt vet vuln test test-race
 
 check-full: check coverage
+
+dev-pull:
+	./scripts/dev/dev.sh pull
+
+dev-up:
+	./scripts/dev/dev.sh up
+
+dev-status:
+	./scripts/dev/dev.sh status
+
+dev-smoke:
+	./scripts/dev/dev.sh smoke
+
+dev-down:
+	./scripts/dev/dev.sh down
+
+dev-reset:
+	./scripts/dev/dev.sh reset
 
 tidy:
 	$(GO) mod tidy
