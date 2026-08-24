@@ -1,0 +1,35 @@
+apiVersion: agefreighter.io/v2
+kind: LoadJob
+metadata:
+  name: postgres-people
+source:
+  type: postgresql
+  namespace: crm
+  postgresql:
+    connection:
+      file: /run/secrets/source-dsn
+    vertices:
+      - label: Person
+        query: SELECT person_id, full_name FROM person ORDER BY person_id
+        idField: person_id
+        properties:
+          name: full_name
+    edges:
+      - label: KNOWS
+        query: SELECT relationship_id, from_id, to_id FROM knows ORDER BY relationship_id
+        externalIdField: relationship_id
+        start:
+          label: Person
+          field: from_id
+        end:
+          label: Person
+          field: to_id
+target:
+  type: apache-age
+  graph: crm_graph
+  mode: append
+  connection:
+    env: AGEFREIGHTER_TARGET_DSN
+  propertyMode: merge
+runtime: {}
+errors: {}

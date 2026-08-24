@@ -41,6 +41,9 @@ func newRoot(name, summary string, stdout, stderr io.Writer) *cobra.Command {
 	command.SetOut(stdout)
 	command.SetErr(stderr)
 	command.AddCommand(newVersionCommand(name))
+	if name == "agefreighter" {
+		command.AddCommand(newValidateCommand(), newPlanCommand())
+	}
 	return command
 }
 

@@ -1,0 +1,29 @@
+apiVersion: agefreighter.io/v2
+kind: LoadJob
+metadata:
+  name: neo4j-people
+source:
+  type: neo4j
+  namespace: crm
+  neo4j:
+    uri: neo4j+s://example.databases.neo4j.io
+    database: neo4j
+    username: neo4j
+    password:
+      env: AGEFREIGHTER_NEO4J_PASSWORD
+    vertices:
+      - label: Person
+        query: MATCH (n:Person) RETURN n.id AS id, n.name AS name
+        idField: id
+        properties:
+          name: name
+target:
+  type: apache-age
+  graph: crm_graph
+  connection:
+    env: AGEFREIGHTER_TARGET_DSN
+runtime:
+  memoryLimit: 512MiB
+errors:
+  malformedRecord: fail
+  missingEndpoint: error

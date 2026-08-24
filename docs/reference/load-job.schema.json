@@ -1,0 +1,721 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agefreighter.io/schema/v2/load-job.schema.json",
+  "title": "agefreighter 2.x LoadJob",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "source",
+    "target"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "agefreighter.io/v2"
+    },
+    "kind": {
+      "const": "LoadJob"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "runtime": {
+      "$ref": "#/$defs/runtime"
+    },
+    "errors": {
+      "$ref": "#/$defs/errors"
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{2,62}$"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "namespace"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "csv",
+            "postgresql",
+            "neo4j",
+            "cosmos-nosql"
+          ]
+        },
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "csv": {
+          "$ref": "#/$defs/csvSource"
+        },
+        "postgresql": {
+          "$ref": "#/$defs/postgresqlSource"
+        },
+        "neo4j": {
+          "$ref": "#/$defs/neo4jSource"
+        },
+        "cosmos": {
+          "$ref": "#/$defs/cosmosSource"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "csv"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "postgresql"
+                ]
+              },
+              {
+                "required": [
+                  "neo4j"
+                ]
+              },
+              {
+                "required": [
+                  "cosmos"
+                ]
+              }
+            ]
+          },
+          "properties": {
+            "type": {
+              "const": "csv"
+            }
+          }
+        },
+        {
+          "required": [
+            "postgresql"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "csv"
+                ]
+              },
+              {
+                "required": [
+                  "neo4j"
+                ]
+              },
+              {
+                "required": [
+                  "cosmos"
+                ]
+              }
+            ]
+          },
+          "properties": {
+            "type": {
+              "const": "postgresql"
+            }
+          }
+        },
+        {
+          "required": [
+            "neo4j"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "csv"
+                ]
+              },
+              {
+                "required": [
+                  "postgresql"
+                ]
+              },
+              {
+                "required": [
+                  "cosmos"
+                ]
+              }
+            ]
+          },
+          "properties": {
+            "type": {
+              "const": "neo4j"
+            }
+          }
+        },
+        {
+          "required": [
+            "cosmos"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "csv"
+                ]
+              },
+              {
+                "required": [
+                  "postgresql"
+                ]
+              },
+              {
+                "required": [
+                  "neo4j"
+                ]
+              }
+            ]
+          },
+          "properties": {
+            "type": {
+              "const": "cosmos-nosql"
+            }
+          }
+        }
+      ]
+    },
+    "secretRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "env": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "env"
+          ]
+        },
+        {
+          "required": [
+            "file"
+          ]
+        }
+      ]
+    },
+    "propertyMap": {
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "field"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "delimitedOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "delimiter": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "quote": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "escape": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "header": {
+          "type": "boolean"
+        },
+        "encoding": {
+          "const": "utf-8"
+        },
+        "nullValue": {
+          "type": "string"
+        }
+      }
+    },
+    "csvVertex": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "path",
+        "idColumn"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idColumn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "$ref": "#/$defs/propertyMap"
+        },
+        "format": {
+          "$ref": "#/$defs/delimitedOptions"
+        }
+      }
+    },
+    "csvEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "path",
+        "start",
+        "end"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "externalIdColumn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "end": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "properties": {
+          "$ref": "#/$defs/propertyMap"
+        },
+        "format": {
+          "$ref": "#/$defs/delimitedOptions"
+        }
+      }
+    },
+    "csvSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vertices"
+      ],
+      "properties": {
+        "defaults": {
+          "$ref": "#/$defs/delimitedOptions"
+        },
+        "vertices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/csvVertex"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/csvEdge"
+          }
+        }
+      }
+    },
+    "vertexQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "query",
+        "idField"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idField": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "$ref": "#/$defs/propertyMap"
+        }
+      }
+    },
+    "edgeQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "query",
+        "start",
+        "end"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1
+        },
+        "externalIdField": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "end": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "properties": {
+          "$ref": "#/$defs/propertyMap"
+        }
+      }
+    },
+    "postgresqlSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "connection",
+        "vertices"
+      ],
+      "properties": {
+        "connection": {
+          "$ref": "#/$defs/secretRef"
+        },
+        "vertices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/vertexQuery"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edgeQuery"
+          }
+        }
+      }
+    },
+    "neo4jSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "database",
+        "vertices"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "pattern": "^(neo4j|neo4j\\+s|bolt|bolt\\+s)://"
+        },
+        "database": {
+          "type": "string",
+          "minLength": 1
+        },
+        "username": {
+          "type": "string",
+          "minLength": 1
+        },
+        "password": {
+          "$ref": "#/$defs/secretRef"
+        },
+        "vertices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/vertexQuery"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edgeQuery"
+          }
+        }
+      },
+      "dependentRequired": {
+        "username": [
+          "password"
+        ],
+        "password": [
+          "username"
+        ]
+      }
+    },
+    "cosmosVertexQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "container",
+        "label",
+        "query",
+        "idField"
+      ],
+      "properties": {
+        "container": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idField": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "$ref": "#/$defs/propertyMap"
+        }
+      }
+    },
+    "cosmosEdgeQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "container",
+        "label",
+        "query",
+        "start",
+        "end"
+      ],
+      "properties": {
+        "container": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1
+        },
+        "externalIdField": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "end": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "properties": {
+          "$ref": "#/$defs/propertyMap"
+        }
+      }
+    },
+    "cosmosSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "endpoint",
+        "database",
+        "vertices"
+      ],
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "credential": {
+          "const": "default-azure"
+        },
+        "database": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vertices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/cosmosVertexQuery"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cosmosEdgeQuery"
+          }
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "graph",
+        "connection"
+      ],
+      "properties": {
+        "type": {
+          "const": "apache-age"
+        },
+        "graph": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 63,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "mode": {
+          "enum": [
+            "create",
+            "replace",
+            "append",
+            "upsert"
+          ]
+        },
+        "connection": {
+          "$ref": "#/$defs/secretRef"
+        },
+        "propertyMode": {
+          "enum": [
+            "replace",
+            "merge",
+            "merge-delete-null"
+          ]
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "memoryLimit": {
+          "$ref": "#/$defs/byteSize"
+        },
+        "batchRows": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "batchBytes": {
+          "$ref": "#/$defs/byteSize"
+        },
+        "maxSourceConcurrency": {
+          "$ref": "#/$defs/concurrency"
+        },
+        "maxTransformConcurrency": {
+          "$ref": "#/$defs/concurrency"
+        },
+        "maxTargetConnections": {
+          "$ref": "#/$defs/concurrency"
+        },
+        "operationTimeout": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))*$"
+        }
+      }
+    },
+    "byteSize": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*(B|KB|MB|GB|TB|KiB|MiB|GiB|TiB)$"
+    },
+    "concurrency": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 256
+    },
+    "errors": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "malformedRecord": {
+          "enum": [
+            "fail",
+            "quarantine"
+          ]
+        },
+        "missingEndpoint": {
+          "enum": [
+            "error",
+            "quarantine",
+            "defer"
+          ]
+        },
+        "rejectLimit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quarantinePath": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

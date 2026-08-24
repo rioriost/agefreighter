@@ -11,7 +11,15 @@ from agefreighter 1.x. The 1.x implementation remains on the `main` branch.
 - `agefreighter`: production migration CLI
 - `agefreighter-tools`: fixtures, diagnostics, and benchmarks
 
-Only the common command foundation is implemented at this stage. See the
+The versioned load-job configuration, offline validation, and static planning
+commands are available:
+
+```sh
+go run ./cmd/agefreighter validate ./path/to/job.yaml
+go run ./cmd/agefreighter plan ./path/to/job.yaml
+```
+
+See the [configuration reference](docs/reference/configuration.md), the
 [architecture research](docs/design/agefreighter-2.0-research.md) and the
 [implementation plan](docs/design/agefreighter-2.0-implementation-plan.md) for
 the delivery sequence.

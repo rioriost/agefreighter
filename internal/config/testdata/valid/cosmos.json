@@ -1,0 +1,66 @@
+{
+  "apiVersion": "agefreighter.io/v2",
+  "kind": "LoadJob",
+  "metadata": {
+    "name": "cosmos-people"
+  },
+  "source": {
+    "type": "cosmos-nosql",
+    "namespace": "crm",
+    "cosmos": {
+      "endpoint": "https://example.documents.azure.com:443/",
+      "credential": "default-azure",
+      "database": "graph-source",
+      "vertices": [
+        {
+          "container": "vertices",
+          "label": "Person",
+          "query": "SELECT c.id, c.name FROM c WHERE c.kind = @kind",
+          "idField": "id",
+          "properties": {
+            "name": "name"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "container": "edges",
+          "label": "KNOWS",
+          "query": "SELECT c.id, c.fromId, c.toId FROM c WHERE c.kind = @kind",
+          "externalIdField": "id",
+          "start": {
+            "label": "Person",
+            "field": "fromId"
+          },
+          "end": {
+            "label": "Person",
+            "field": "toId"
+          }
+        }
+      ]
+    }
+  },
+  "target": {
+    "type": "apache-age",
+    "graph": "crm_graph",
+    "mode": "upsert",
+    "connection": {
+      "env": "AGEFREIGHTER_TARGET_DSN"
+    },
+    "propertyMode": "merge-delete-null"
+  },
+  "runtime": {
+    "memoryLimit": "1GiB",
+    "batchRows": 5000,
+    "batchBytes": "8MiB",
+    "maxSourceConcurrency": 4,
+    "maxTransformConcurrency": 4,
+    "maxTargetConnections": 2,
+    "operationTimeout": "1m"
+  },
+  "errors": {
+    "malformedRecord": "fail",
+    "missingEndpoint": "defer",
+    "rejectLimit": 0
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "apiVersion": "agefreighter.io/v2",
+  "job": "csv-people",
+  "source": {
+    "type": "csv",
+    "namespace": "crm"
+  },
+  "target": {
+    "type": "apache-age",
+    "graph": "crm_graph",
+    "mode": "create",
+    "propertyMode": "replace"
+  },
+  "limits": {
+    "memoryLimit": "1GiB",
+    "batchRows": 10000,
+    "batchBytes": "16MiB",
+    "maxSourceConcurrency": 2,
+    "maxTransformConcurrency": 4,
+    "maxTargetConnections": 2,
+    "operationTimeout": "30s"
+  },
+  "policies": {
+    "malformedRecord": "quarantine",
+    "missingEndpoint": "error",
+    "rejectLimit": 100
+  }
+}
