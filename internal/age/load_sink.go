@@ -14,6 +14,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/checkpoint"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
+	"github.com/rioriost/agefreighter/internal/reject"
 	sinkcontract "github.com/rioriost/agefreighter/internal/sink"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
@@ -28,6 +29,7 @@ type LoadSinkOptions struct {
 	Graph           meta.GraphGeneration
 	Labels          []LoadLabel
 	MissingEndpoint config.MissingEndpointPolicy
+	Quarantine      reject.Writer
 }
 
 type LoadSink struct {
@@ -754,6 +756,7 @@ func (transaction *loadTransaction) quarantineMissingEdges(
 		if err != nil {
 			return fmt.Errorf("encode missing endpoint quarantine record: %w", err)
 		}
+		message := missingEndpointMessage(edge)
 		_, err = transaction.sink.diagnostics.PutReject(
 			ctx,
 			meta.RejectRecord{
@@ -767,12 +770,29 @@ func (transaction *loadTransaction) quarantineMissingEdges(
 					Token:      edge.Position.Token,
 				},
 				ErrorClass:   "missing-endpoint",
-				ErrorMessage: missingEndpointMessage(edge),
+				ErrorMessage: message,
 				Record:       payload,
 			},
 		)
 		if err != nil {
 			return fmt.Errorf("quarantine missing endpoint: %w", err)
+		}
+		if transaction.sink.options.Quarantine != nil {
+			record := model.EdgeRecord(edge)
+			if err := transaction.sink.options.Quarantine.Write(
+				ctx,
+				reject.Rejection{
+					Record:   &record,
+					Position: edge.Position,
+					Code:     "missing-endpoint",
+					Message:  message,
+				},
+			); err != nil {
+				return fmt.Errorf(
+					"write missing endpoint quarantine record: %w",
+					err,
+				)
+			}
 		}
 	}
 	return nil

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/checkpoint"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
+	"github.com/rioriost/agefreighter/internal/reject"
 	"github.com/rioriost/agefreighter/internal/sink"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
@@ -248,6 +250,12 @@ func TestLoadSinkIntegration(t *testing.T) {
 	suppliedKnowsGeneration.ID += 100_000
 	suppliedGraphGeneration := graphGeneration
 	suppliedGraphGeneration.ID += 100_000
+	quarantinePath := filepath.Join(t.TempDir(), "rejects.jsonl")
+	quarantine, err := reject.NewJSONLWriter(quarantinePath)
+	if err != nil {
+		t.Fatalf("NewJSONLWriter() error = %v", err)
+	}
+	t.Cleanup(func() { _ = quarantine.Close() })
 	target, err := NewLoadSink(ctx, adapter, LoadSinkOptions{
 		JobID: jobID,
 		Graph: suppliedGraphGeneration,
@@ -256,6 +264,7 @@ func TestLoadSinkIntegration(t *testing.T) {
 			{Catalog: knows, Generation: suppliedKnowsGeneration},
 		},
 		MissingEndpoint: config.MissingEndpointQuarantine,
+		Quarantine:      quarantine,
 	})
 	if err != nil {
 		t.Fatalf("NewLoadSink() error = %v", err)
@@ -416,6 +425,13 @@ func TestLoadSinkIntegration(t *testing.T) {
 	runLoadBatchAttempt(t, ctx, target, 7, 2, []model.Record{
 		edgeLoadRecord("e6", "p2", "p3", 16, "e12"),
 	}, 100)
+	quarantineData, err := os.ReadFile(quarantinePath)
+	if err != nil {
+		t.Fatalf("read quarantine output: %v", err)
+	}
+	if lines := strings.Count(strings.TrimSpace(string(quarantineData)), "\n") + 1; lines != 2 {
+		t.Fatalf("quarantine output lines = %d, want 2", lines)
+	}
 
 	assertLoadSinkRows(t, ctx, adapter, graphName, jobID)
 	if err := store.SetGraphGenerationState(
