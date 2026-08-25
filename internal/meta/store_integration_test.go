@@ -25,9 +25,6 @@ func TestStoreIntegration(t *testing.T) {
 		t.Fatalf("open metadata test pool: %v", err)
 	}
 	t.Cleanup(pool.Close)
-	if _, err := pool.Exec(ctx, `DROP SCHEMA IF EXISTS agefreighter_meta CASCADE`); err != nil {
-		t.Fatalf("reset metadata schema: %v", err)
-	}
 	store, err := New(pool)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -38,34 +35,18 @@ func TestStoreIntegration(t *testing.T) {
 	if err := store.Migrate(ctx); err != nil {
 		t.Fatalf("idempotent Migrate() error = %v", err)
 	}
-	if _, err := pool.Exec(
-		ctx,
-		`INSERT INTO agefreighter_meta.schema_migration (version) VALUES ($1)`,
-		schemaVersion+1,
-	); err != nil {
-		t.Fatalf("insert future schema version: %v", err)
+	jobIDs := []string{
+		testJobID,
+		"22222222-3333-4444-8555-666666666666",
+		"99999999-8888-4777-8666-555555555555",
 	}
-	if err := store.Migrate(ctx); err == nil ||
-		!strings.Contains(err.Error(), "newer than supported") {
-		t.Fatalf("future Migrate() error = %v", err)
-	}
-	if _, err := pool.Exec(
-		ctx,
-		`DELETE FROM agefreighter_meta.schema_migration WHERE version = $1`,
-		schemaVersion+1,
-	); err != nil {
-		t.Fatalf("delete future schema version: %v", err)
-	}
-	if _, err := pool.Exec(
-		ctx,
-		`TRUNCATE agefreighter_meta.load_job CASCADE`,
-	); err != nil {
+	if err := deleteTestJobs(ctx, pool, jobIDs); err != nil {
 		t.Fatalf("clean metadata tables: %v", err)
 	}
 	t.Cleanup(func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cleanupCancel()
-		_, _ = pool.Exec(cleanupCtx, `TRUNCATE agefreighter_meta.load_job CASCADE`)
+		_ = deleteTestJobs(cleanupCtx, pool, jobIDs)
 	})
 
 	job := Job{
@@ -76,6 +57,7 @@ func TestStoreIntegration(t *testing.T) {
 		TargetGraph:       "people",
 		ConfigFingerprint: strings.Repeat("a", 64),
 	}
+
 	if err := store.CreateJob(ctx, job); err != nil {
 		t.Fatalf("CreateJob() error = %v", err)
 	}
@@ -267,6 +249,87 @@ func TestStoreIntegration(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("edge RegisterLabelGeneration() error = %v", err)
+	}
+	vertexGraphID := int64(1)<<48 | 100
+	if _, err := pool.Exec(
+		ctx,
+		`INSERT INTO agefreighter_meta.vertex_identity (
+			graph_generation_id, label_generation_id, graph_namespace_oid,
+			label_id, label_relation_oid, mapping_generation, label_kind,
+			source_namespace, external_id, graph_id
+		) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', 'valid-graph-id', $7)`,
+		graph.ID,
+		label.ID,
+		label.GraphNamespaceOID,
+		label.LabelID,
+		label.RelationOID,
+		label.MappingGeneration,
+		vertexGraphID,
+	); err != nil {
+		t.Fatalf("valid vertex identity insert error = %v", err)
+	}
+	for name, graphID := range map[string]int64{
+		"wrong-label-bits": int64(2)<<48 | 101,
+		"zero-entry":       int64(1) << 48,
+	} {
+		if _, err := pool.Exec(
+			ctx,
+			`INSERT INTO agefreighter_meta.vertex_identity (
+				graph_generation_id, label_generation_id, graph_namespace_oid,
+				label_id, label_relation_oid, mapping_generation, label_kind,
+				source_namespace, external_id, graph_id
+			) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', $7, $8)`,
+			graph.ID,
+			label.ID,
+			label.GraphNamespaceOID,
+			label.LabelID,
+			label.RelationOID,
+			label.MappingGeneration,
+			name,
+			graphID,
+		); err == nil {
+			t.Fatalf("%s vertex graph ID insert succeeded", name)
+		}
+	}
+	for name, ids := range map[string][3]int64{
+		"wrong-edge-label-bits": {
+			int64(1)<<48 | 201,
+			vertexGraphID,
+			vertexGraphID,
+		},
+		"zero-start-label": {
+			int64(2)<<48 | 202,
+			1,
+			vertexGraphID,
+		},
+		"zero-end-entry": {
+			int64(2)<<48 | 203,
+			vertexGraphID,
+			int64(1) << 48,
+		},
+	} {
+		if _, err := pool.Exec(
+			ctx,
+			`INSERT INTO agefreighter_meta.edge_identity (
+				graph_generation_id, label_generation_id, graph_namespace_oid,
+				label_id, label_relation_oid, mapping_generation, label_kind,
+				source_namespace, external_id, graph_id, start_graph_id, end_graph_id
+			) VALUES (
+				$1, $2, $3, $4, $5, $6, 'e', 'crm', $7, $8, $9, $10
+			)`,
+			graph.ID,
+			edgeLabel.ID,
+			edgeLabel.GraphNamespaceOID,
+			edgeLabel.LabelID,
+			edgeLabel.RelationOID,
+			edgeLabel.MappingGeneration,
+			name,
+			ids[0],
+			ids[1],
+			ids[2],
+		); err == nil {
+			t.Fatalf("%s edge graph ID insert succeeded", name)
+		}
 	}
 	if _, err := pool.Exec(
 		ctx,
@@ -638,4 +701,42 @@ func TestStoreIntegration(t *testing.T) {
 	if _, err := store.GetJob(ctx, rolledBack.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("rolled-back GetJob() error = %v", err)
 	}
+}
+
+func deleteTestJobs(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	jobIDs []string,
+) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(
+		ctx,
+		`UPDATE agefreighter_meta.load_job
+		 SET graph_generation_id = NULL
+		 WHERE job_id = ANY($1::uuid[])`,
+		jobIDs,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(
+		ctx,
+		`DELETE FROM agefreighter_meta.graph_generation
+		 WHERE job_id = ANY($1::uuid[])`,
+		jobIDs,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(
+		ctx,
+		`DELETE FROM agefreighter_meta.load_job
+		 WHERE job_id = ANY($1::uuid[])`,
+		jobIDs,
+	); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }

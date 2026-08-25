@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func TestOpenRejectsInvalidOptions(t *testing.T) {
@@ -84,6 +85,36 @@ func TestOpenReportsConnectionFailure(t *testing.T) {
 	if err == nil {
 		t.Fatal("Open() did not report an unreachable server")
 	}
+}
+
+func TestAdapterLoadSlotsReserveMetadataCapacity(t *testing.T) {
+	config, err := pgxpool.ParseConfig(
+		"postgres://localhost/unused?connect_timeout=1",
+	)
+	if err != nil {
+		t.Fatalf("ParseConfig() error = %v", err)
+	}
+	config.MaxConns = 2
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		t.Fatalf("NewWithConfig() error = %v", err)
+	}
+	t.Cleanup(pool.Close)
+	adapter := &Adapter{pool: pool}
+
+	if err := adapter.acquireLoadSlot(t.Context()); err != nil {
+		t.Fatalf("acquireLoadSlot() error = %v", err)
+	}
+	cancelled, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := adapter.acquireLoadSlot(cancelled); !errors.Is(err, context.Canceled) {
+		t.Fatalf("blocked acquireLoadSlot() error = %v", err)
+	}
+	adapter.releaseLoadSlot()
+	if err := adapter.acquireLoadSlot(t.Context()); err != nil {
+		t.Fatalf("reacquireLoadSlot() error = %v", err)
+	}
+	adapter.releaseLoadSlot()
 }
 
 func TestAdapterSmallHelpers(t *testing.T) {

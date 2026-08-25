@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 5
+const schemaVersion = 7
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -253,10 +253,76 @@ var migrationV5 = []string{
 		ON DELETE CASCADE`,
 }
 
+var migrationV6 = []string{
+	`LOCK TABLE
+		agefreighter_meta.vertex_identity,
+		agefreighter_meta.edge_identity
+		IN SHARE MODE`,
+	`DO $$
+	BEGIN
+		IF EXISTS (
+			SELECT 1
+			FROM agefreighter_meta.vertex_identity
+			GROUP BY graph_generation_id, source_namespace, label_id, external_id
+			HAVING COUNT(*) > 1
+		) THEN
+			RAISE EXCEPTION
+				'cannot enforce vertex identity lookup uniqueness: conflicting mapping generations exist'
+				USING ERRCODE = '23505';
+		END IF;
+	END
+	$$`,
+	`DO $$
+	BEGIN
+		IF EXISTS (
+			SELECT 1
+			FROM agefreighter_meta.edge_identity
+			GROUP BY graph_generation_id, source_namespace, label_id, external_id
+			HAVING COUNT(*) > 1
+		) THEN
+			RAISE EXCEPTION
+				'cannot enforce edge identity lookup uniqueness: conflicting mapping generations exist'
+				USING ERRCODE = '23505';
+		END IF;
+	END
+	$$`,
+	`CREATE UNIQUE INDEX vertex_identity_lookup_uq
+		ON agefreighter_meta.vertex_identity (
+			graph_generation_id, source_namespace, label_id, external_id
+		)`,
+	`CREATE UNIQUE INDEX edge_identity_lookup_uq
+		ON agefreighter_meta.edge_identity (
+			graph_generation_id, source_namespace, label_id, external_id
+		)`,
+}
+
+var migrationV7 = []string{
+	`ALTER TABLE agefreighter_meta.vertex_identity
+			ADD CONSTRAINT vertex_identity_graph_id_check CHECK (
+				((graph_id >> 48) & 65535) = label_id
+				AND (graph_id & 281474976710655) <> 0
+			)`,
+	`ALTER TABLE agefreighter_meta.edge_identity
+			ADD CONSTRAINT edge_identity_graph_id_check CHECK (
+				((graph_id >> 48) & 65535) = label_id
+				AND (graph_id & 281474976710655) <> 0
+			),
+			ADD CONSTRAINT edge_identity_start_graph_id_check CHECK (
+				((start_graph_id >> 48) & 65535) <> 0
+				AND (start_graph_id & 281474976710655) <> 0
+			),
+			ADD CONSTRAINT edge_identity_end_graph_id_check CHECK (
+				((end_graph_id >> 48) & 65535) <> 0
+				AND (end_graph_id & 281474976710655) <> 0
+			)`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
 	migrationV3,
 	migrationV4,
 	migrationV5,
+	migrationV6,
+	migrationV7,
 }

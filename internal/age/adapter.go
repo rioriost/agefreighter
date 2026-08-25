@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -41,6 +42,8 @@ type Adapter struct {
 	pool             *pgxpool.Pool
 	capabilities     Capabilities
 	operationTimeout time.Duration
+	loadSlotOnce     sync.Once
+	loadSlots        chan struct{}
 }
 
 func Open(ctx context.Context, dsn string, options PoolOptions) (*Adapter, error) {
@@ -95,6 +98,25 @@ func Open(ctx context.Context, dsn string, options PoolOptions) (*Adapter, error
 		capabilities:     capabilities,
 		operationTimeout: options.OperationTimeout,
 	}, nil
+}
+
+func (adapter *Adapter) acquireLoadSlot(ctx context.Context) error {
+	adapter.loadSlotOnce.Do(func() {
+		adapter.loadSlots = make(
+			chan struct{},
+			adapter.pool.Config().MaxConns-1,
+		)
+	})
+	select {
+	case adapter.loadSlots <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (adapter *Adapter) releaseLoadSlot() {
+	<-adapter.loadSlots
 }
 
 func initializeSession(ctx context.Context, connection *pgx.Conn) error {

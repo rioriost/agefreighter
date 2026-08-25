@@ -119,6 +119,23 @@ func TestDelimitedDefaultsApplyToFileOverrides(t *testing.T) {
 	}
 }
 
+func TestApplyDelimitedDefaultsFillsEveryEmptyOption(t *testing.T) {
+	var options DelimitedOptions
+
+	applyDelimitedDefaults(&options)
+
+	if options.Delimiter != "," ||
+		options.Quote != `"` ||
+		options.Escape != `"` ||
+		options.Header == nil ||
+		!*options.Header ||
+		options.Encoding != "utf-8" ||
+		options.NullValue == nil ||
+		*options.NullValue != "" {
+		t.Fatalf("applyDelimitedDefaults() = %#v", options)
+	}
+}
+
 func TestLiteralSecretIsRejectedWithoutDisclosure(t *testing.T) {
 	data, err := os.ReadFile("testdata/invalid/literal-secret.yaml")
 	if err != nil {
