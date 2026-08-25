@@ -26,6 +26,20 @@ func EncodeProperties(properties model.Properties) ([]byte, error) {
 	return output.Bytes(), nil
 }
 
+func loadProperties(properties model.Properties, encoded []byte) ([]byte, error) {
+	if encoded == nil {
+		return EncodeProperties(properties)
+	}
+	if !json.Valid(encoded) || len(encoded) < 2 ||
+		encoded[0] != '{' || encoded[len(encoded)-1] != '}' {
+		return nil, fmt.Errorf(
+			"%w: encoded properties must be a JSON object",
+			ErrInvalidProperty,
+		)
+	}
+	return encoded, nil
+}
+
 func encodeValue(output *bytes.Buffer, value model.Value, depth int) error {
 	if depth > maxPropertyDepth {
 		return fmt.Errorf("%w: nesting exceeds %d", ErrInvalidProperty, maxPropertyDepth)

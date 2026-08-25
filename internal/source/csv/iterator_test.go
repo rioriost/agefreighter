@@ -167,6 +167,45 @@ func TestIteratorVerticesBeforeEdgesAndResume(t *testing.T) {
 	}
 }
 
+func TestIteratorPreencodesCanonicalCSVProperties(t *testing.T) {
+	directory := t.TempDir()
+	path := writeTestFile(
+		t,
+		directory,
+		"people.csv",
+		"id,name,note\np1,\"Ada \"\"A\"\"\",NULL\n",
+	)
+	header := true
+	nullValue := "NULL"
+	iterator, err := NewIterator(context.Background(), IteratorOptions{
+		Namespace: "crm",
+		Source: config.CSVSource{
+			Defaults: config.DelimitedOptions{
+				Delimiter: ",", Quote: `"`, Escape: `"`,
+				Header: &header, Encoding: "utf-8", NullValue: &nullValue,
+			},
+			Vertices: []config.CSVVertex{{
+				Label: "Person", Path: path, IDColumn: "id",
+				Properties: map[string]string{"note": "note", "name": "name"},
+			}},
+		},
+		PreencodeProperties: true,
+		OptimizeRFC4180:     true,
+	})
+	if err != nil {
+		t.Fatalf("NewIterator() error = %v", err)
+	}
+	defer iterator.Close()
+	item := nextItem(t, iterator)
+	if item.Record.Vertex.Properties != nil {
+		t.Fatalf("typed properties = %#v, want nil", item.Record.Vertex.Properties)
+	}
+	const want = `{"name":"Ada \"A\"","note":null}`
+	if got := string(item.Record.Vertex.EncodedProperties); got != want {
+		t.Fatalf("encoded properties = %s, want %s", got, want)
+	}
+}
+
 func TestIteratorGzipHeaderlessAndQuarantine(t *testing.T) {
 	directory := t.TempDir()
 	path := filepath.Join(directory, "people.csv.gz")

@@ -73,6 +73,44 @@ func TestParserCustomDelimiterQuoteAndEscape(t *testing.T) {
 	}
 }
 
+func TestParserOptimizedRFC4180RecordsAndPositions(t *testing.T) {
+	parser, err := NewParser(
+		strings.NewReader("id;name\r\n1;\"Ada\r\nLovelace\"\r\n2;\"a\"\"b\"\n"),
+		ParserOptions{
+			Delimiter:       ';',
+			Quote:           '"',
+			Escape:          '"',
+			Resource:        "people.csv",
+			MaxRecordBytes:  1 << 20,
+			OptimizeRFC4180: true,
+		},
+	)
+	if err != nil {
+		t.Fatalf("NewParser() error = %v", err)
+	}
+	for _, want := range []struct {
+		fields []string
+		offset int64
+		line   int64
+	}{
+		{[]string{"id", "name"}, 0, 1},
+		{[]string{"1", "Ada\nLovelace"}, 9, 2},
+		{[]string{"2", `a"b`}, 28, 4},
+	} {
+		fields, position, err := parser.ReadRecord(context.Background())
+		if err != nil {
+			t.Fatalf("ReadRecord() error = %v", err)
+		}
+		if strings.Join(fields, "|") != strings.Join(want.fields, "|") ||
+			position.Offset != want.offset || position.Line != want.line {
+			t.Fatalf("ReadRecord() = %#v, %#v, want %#v", fields, position, want)
+		}
+	}
+	if _, _, err := parser.ReadRecord(context.Background()); !errors.Is(err, io.EOF) {
+		t.Fatalf("final ReadRecord() error = %v, want EOF", err)
+	}
+}
+
 func TestParserFailures(t *testing.T) {
 	tests := []struct {
 		name   string

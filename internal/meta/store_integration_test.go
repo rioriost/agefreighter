@@ -175,69 +175,6 @@ func TestStoreIntegration(t *testing.T) {
 	if _, err := store.RegisterLabelGeneration(ctx, label); err == nil {
 		t.Fatal("duplicate RegisterLabelGeneration() succeeded")
 	}
-	secondJob := job
-	secondJob.ID = "22222222-3333-4444-8555-666666666666"
-	secondJob.Name = "other"
-	secondJob.TargetGraph = "other"
-	if err := store.CreateJob(ctx, secondJob); err != nil {
-		t.Fatalf("second CreateJob() error = %v", err)
-	}
-	secondGraph, err := store.RegisterGraphGeneration(ctx, GraphGeneration{
-		JobID:        secondJob.ID,
-		GraphName:    "other",
-		GraphOID:     52000,
-		NamespaceOID: 52000,
-		Generation:   1,
-		State:        GenerationLoading,
-	})
-	if err != nil {
-		t.Fatalf("second RegisterGraphGeneration() error = %v", err)
-	}
-	secondLabel, err := store.RegisterLabelGeneration(ctx, LabelGeneration{
-		GraphGenerationID: secondGraph.ID,
-		LabelName:         "Person",
-		Kind:              VertexLabel,
-		GraphNamespaceOID: secondGraph.NamespaceOID,
-		LabelID:           2,
-		RelationOID:       53002,
-		SequenceOID:       54002,
-		MappingGeneration: 1,
-	})
-	if err != nil {
-		t.Fatalf("second RegisterLabelGeneration() error = %v", err)
-	}
-	if _, err := pool.Exec(
-		ctx,
-		`INSERT INTO agefreighter_meta.vertex_identity (
-			graph_generation_id, label_generation_id, graph_namespace_oid,
-			label_id, label_relation_oid, mapping_generation, label_kind,
-			source_namespace, external_id, graph_id
-		) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', 'cross-graph', 1)`,
-		graph.ID,
-		secondLabel.ID,
-		secondLabel.GraphNamespaceOID,
-		secondLabel.LabelID,
-		secondLabel.RelationOID,
-		secondLabel.MappingGeneration,
-	); err == nil {
-		t.Fatal("cross-generation vertex identity insert succeeded")
-	}
-	if _, err := pool.Exec(
-		ctx,
-		`INSERT INTO agefreighter_meta.vertex_identity (
-			graph_generation_id, label_generation_id, graph_namespace_oid,
-			label_id, label_relation_oid, mapping_generation, label_kind,
-			source_namespace, external_id, graph_id
-		) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', 'wrong-catalog', 2)`,
-		graph.ID,
-		label.ID,
-		label.GraphNamespaceOID,
-		label.LabelID,
-		label.RelationOID+1,
-		label.MappingGeneration,
-	); err == nil {
-		t.Fatal("catalog-mismatched vertex identity insert succeeded")
-	}
 	edgeLabel, err := store.RegisterLabelGeneration(ctx, LabelGeneration{
 		GraphGenerationID: graph.ID,
 		LabelName:         "KNOWS",
@@ -255,16 +192,12 @@ func TestStoreIntegration(t *testing.T) {
 	if _, err := pool.Exec(
 		ctx,
 		`INSERT INTO agefreighter_meta.vertex_identity (
-			graph_generation_id, label_generation_id, graph_namespace_oid,
-			label_id, label_relation_oid, mapping_generation, label_kind,
+			graph_generation_id, label_generation_id, label_id,
 			source_namespace, external_id, graph_id
-		) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', 'valid-graph-id', $7)`,
+		) VALUES ($1, $2, $3, 'crm', 'valid-graph-id', $4)`,
 		graph.ID,
 		label.ID,
-		label.GraphNamespaceOID,
 		label.LabelID,
-		label.RelationOID,
-		label.MappingGeneration,
 		vertexGraphID,
 	); err != nil {
 		t.Fatalf("valid vertex identity insert error = %v", err)
@@ -276,16 +209,12 @@ func TestStoreIntegration(t *testing.T) {
 		if _, err := pool.Exec(
 			ctx,
 			`INSERT INTO agefreighter_meta.vertex_identity (
-				graph_generation_id, label_generation_id, graph_namespace_oid,
-				label_id, label_relation_oid, mapping_generation, label_kind,
+				graph_generation_id, label_generation_id, label_id,
 				source_namespace, external_id, graph_id
-			) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', $7, $8)`,
+			) VALUES ($1, $2, $3, 'crm', $4, $5)`,
 			graph.ID,
 			label.ID,
-			label.GraphNamespaceOID,
 			label.LabelID,
-			label.RelationOID,
-			label.MappingGeneration,
 			name,
 			graphID,
 		); err == nil {
@@ -312,18 +241,14 @@ func TestStoreIntegration(t *testing.T) {
 		if _, err := pool.Exec(
 			ctx,
 			`INSERT INTO agefreighter_meta.edge_identity (
-				graph_generation_id, label_generation_id, graph_namespace_oid,
-				label_id, label_relation_oid, mapping_generation, label_kind,
+				graph_generation_id, label_generation_id, label_id,
 				source_namespace, external_id, graph_id, start_graph_id, end_graph_id
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, 'e', 'crm', $7, $8, $9, $10
+				$1, $2, $3, 'crm', $4, $5, $6, $7
 			)`,
 			graph.ID,
 			edgeLabel.ID,
-			edgeLabel.GraphNamespaceOID,
 			edgeLabel.LabelID,
-			edgeLabel.RelationOID,
-			edgeLabel.MappingGeneration,
 			name,
 			ids[0],
 			ids[1],
@@ -331,40 +256,6 @@ func TestStoreIntegration(t *testing.T) {
 		); err == nil {
 			t.Fatalf("%s edge graph ID insert succeeded", name)
 		}
-	}
-	if _, err := pool.Exec(
-		ctx,
-		`INSERT INTO agefreighter_meta.vertex_identity (
-			graph_generation_id, label_generation_id, graph_namespace_oid,
-			label_id, label_relation_oid, mapping_generation, label_kind,
-			source_namespace, external_id, graph_id
-		) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', 'edge-as-vertex', 3)`,
-		graph.ID,
-		edgeLabel.ID,
-		edgeLabel.GraphNamespaceOID,
-		edgeLabel.LabelID,
-		edgeLabel.RelationOID,
-		edgeLabel.MappingGeneration,
-	); err == nil {
-		t.Fatal("edge-label vertex identity insert succeeded")
-	}
-	if _, err := pool.Exec(
-		ctx,
-		`INSERT INTO agefreighter_meta.edge_identity (
-			graph_generation_id, label_generation_id, graph_namespace_oid,
-			label_id, label_relation_oid, mapping_generation, label_kind,
-			source_namespace, external_id, graph_id, start_graph_id, end_graph_id
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, 'e', 'crm', 'vertex-as-edge', 4, 1, 1
-		)`,
-		graph.ID,
-		label.ID,
-		label.GraphNamespaceOID,
-		label.LabelID,
-		label.RelationOID,
-		label.MappingGeneration,
-	); err == nil {
-		t.Fatal("vertex-label edge identity insert succeeded")
 	}
 	if err := store.SetGraphGenerationState(
 		ctx,

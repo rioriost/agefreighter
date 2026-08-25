@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,8 +15,28 @@ import (
 	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
+	sourcecontract "github.com/rioriost/agefreighter/internal/source"
+	sourcecsv "github.com/rioriost/agefreighter/internal/source/csv"
 	"go.yaml.in/yaml/v3"
 )
+
+type limitedIterator struct {
+	sourcecontract.Iterator
+	remaining int
+}
+
+func (iterator *limitedIterator) Next(
+	ctx context.Context,
+) (sourcecontract.Item, error) {
+	if iterator.remaining == 0 {
+		return sourcecontract.Item{}, io.EOF
+	}
+	item, err := iterator.Iterator.Next(ctx)
+	if err == nil {
+		iterator.remaining--
+	}
+	return item, err
+}
 
 func TestLoadCSVIntegration(t *testing.T) {
 	dsn := os.Getenv("AGEFREIGHTER_AGE_TEST_DSN")
@@ -67,9 +88,7 @@ func TestLoadCSVIntegration(t *testing.T) {
 		}
 		pool, poolErr := pgxpool.New(cleanupCtx, dsn)
 		if poolErr == nil {
-			_, _ = pool.Exec(cleanupCtx,
-				`DELETE FROM agefreighter_meta.load_job WHERE job_id = $1::uuid`,
-				result.JobID)
+			_ = deleteAppTestJob(cleanupCtx, pool, result.JobID)
 			pool.Close()
 		}
 	})
@@ -463,6 +482,125 @@ func TestRunningAndFailedBatchResumeIntegration(t *testing.T) {
 	}
 }
 
+func TestResumeAfterCommittedBatchIntegration(t *testing.T) {
+	dsn := os.Getenv("AGEFREIGHTER_AGE_TEST_DSN")
+	if dsn == "" {
+		t.Skip("set AGEFREIGHTER_AGE_TEST_DSN to run app integration tests")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	dir := t.TempDir()
+	vertices := filepath.Join(dir, "people.csv")
+	edges := filepath.Join(dir, "knows.csv")
+	if err := os.WriteFile(
+		vertices,
+		[]byte("id,name\np1,Ada\np2,Grace\np3,Linus\n"),
+		0o600,
+	); err != nil {
+		t.Fatalf("write vertices: %v", err)
+	}
+	if err := os.WriteFile(
+		edges,
+		[]byte("id,start,end\ne1,p1,p3\n"),
+		0o600,
+	); err != nil {
+		t.Fatalf("write edges: %v", err)
+	}
+	graphName := fmt.Sprintf("app_boundary_%d", time.Now().UnixNano())
+	t.Setenv("AGEFREIGHTER_APP_TEST_DSN", dsn)
+	job := testLoadJob(graphName, vertices, edges)
+	job.Runtime.BatchRows = 2
+	jobPath := filepath.Join(dir, "job.yaml")
+	data, err := yaml.Marshal(job)
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+	if err := os.WriteFile(jobPath, data, 0o600); err != nil {
+		t.Fatalf("write job: %v", err)
+	}
+	jobID, err := newJobID()
+	if err != nil {
+		t.Fatalf("newJobID() error = %v", err)
+	}
+	registerCleanup(t, dsn, graphName, jobID)
+	adapter, store, err := openTarget(ctx, job)
+	if err != nil {
+		t.Fatalf("openTarget() error = %v", err)
+	}
+	fingerprint, err := jobFingerprint(job)
+	if err != nil {
+		adapter.Close()
+		t.Fatalf("jobFingerprint() error = %v", err)
+	}
+	if err := store.CreateJob(ctx, meta.Job{
+		ID: jobID, Name: job.Metadata.Name,
+		SourceType: string(job.Source.Type), LoadMode: string(job.Target.Mode),
+		TargetGraph: graphName, ConfigFingerprint: fingerprint,
+	}); err != nil {
+		adapter.Close()
+		t.Fatalf("CreateJob() error = %v", err)
+	}
+	if err := store.StartJob(ctx, jobID); err != nil {
+		adapter.Close()
+		t.Fatalf("StartJob() error = %v", err)
+	}
+	graph, labels, err := createCatalog(ctx, adapter, job, jobID)
+	if err != nil {
+		adapter.Close()
+		t.Fatalf("createCatalog() error = %v", err)
+	}
+	iterator, err := sourcecsv.NewIterator(ctx, sourcecsv.IteratorOptions{
+		Namespace:           job.Source.Namespace,
+		Source:              *job.Source.CSV,
+		PreencodeProperties: true,
+		OptimizeRFC4180:     true,
+	})
+	if err != nil {
+		adapter.Close()
+		t.Fatalf("NewIterator() error = %v", err)
+	}
+	runner, err := newPipelineRunner(job, 1, 1)
+	if err != nil {
+		_ = iterator.Close()
+		adapter.Close()
+		t.Fatalf("newPipelineRunner() error = %v", err)
+	}
+	target, err := age.NewLoadSink(ctx, adapter, age.LoadSinkOptions{
+		JobID: jobID, Graph: graph, Labels: labels,
+		MissingEndpoint: job.Errors.MissingEndpoint,
+	})
+	if err != nil {
+		_ = iterator.Close()
+		adapter.Close()
+		t.Fatalf("NewLoadSink() error = %v", err)
+	}
+	if err := runner.Run(ctx, &limitedIterator{
+		Iterator:  iterator,
+		remaining: 2,
+	}, target); err != nil {
+		adapter.Close()
+		t.Fatalf("first batch Run() error = %v", err)
+	}
+	stored, err := store.GetJob(ctx, jobID)
+	if err != nil || stored.NextBatchID != 2 || stored.CommittedRows != 2 ||
+		stored.Status != meta.JobRunning || stored.ResumeToken == "" {
+		adapter.Close()
+		t.Fatalf("job after first batch = %#v, %v", stored, err)
+	}
+	adapter.Close()
+
+	resumed, err := Resume(ctx, jobPath, jobID)
+	if err != nil || resumed.Status != meta.JobCommitted ||
+		resumed.Metrics.RecordsCommitted != 2 {
+		t.Fatalf("Resume() = %#v, %v", resumed, err)
+	}
+	committed, err := Status(ctx, jobPath, jobID)
+	if err != nil || committed.CommittedRows != 4 ||
+		committed.NextBatchID != 3 {
+		t.Fatalf("committed job = %#v, %v", committed, err)
+	}
+}
+
 func TestAppHelpers(t *testing.T) {
 	t.Setenv("APP_SECRET", "postgres://example")
 	if value, err := resolveSecret(config.SecretRef{Env: "APP_SECRET"}); err != nil ||
@@ -627,10 +765,33 @@ func registerCleanup(t *testing.T, dsn, graphName, jobID string) {
 		}
 		pool, poolErr := pgxpool.New(cleanupCtx, dsn)
 		if poolErr == nil {
-			_, _ = pool.Exec(cleanupCtx,
-				`DELETE FROM agefreighter_meta.load_job WHERE job_id = $1::uuid`,
-				jobID)
+			_ = deleteAppTestJob(cleanupCtx, pool, jobID)
 			pool.Close()
 		}
 	})
+}
+
+func deleteAppTestJob(ctx context.Context, pool *pgxpool.Pool, jobID string) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `
+		UPDATE agefreighter_meta.load_job
+		SET graph_generation_id = NULL
+		WHERE job_id = $1::uuid`, jobID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM agefreighter_meta.graph_generation
+		WHERE job_id = $1::uuid`, jobID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM agefreighter_meta.load_job
+		WHERE job_id = $1::uuid`, jobID); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }

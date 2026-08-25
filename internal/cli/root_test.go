@@ -227,9 +227,20 @@ func registerCLICleanup(t *testing.T, dsn, graph, jobID string) {
 			adapter.Close()
 		}
 		if pool, err := pgxpool.New(ctx, dsn); err == nil {
-			_, _ = pool.Exec(ctx,
-				`DELETE FROM agefreighter_meta.load_job WHERE job_id = $1::uuid`,
-				jobID)
+			tx, beginErr := pool.Begin(ctx)
+			if beginErr == nil {
+				_, _ = tx.Exec(ctx, `
+					UPDATE agefreighter_meta.load_job
+					SET graph_generation_id = NULL
+					WHERE job_id = $1::uuid`, jobID)
+				_, _ = tx.Exec(ctx, `
+					DELETE FROM agefreighter_meta.graph_generation
+					WHERE job_id = $1::uuid`, jobID)
+				_, _ = tx.Exec(ctx, `
+					DELETE FROM agefreighter_meta.load_job
+					WHERE job_id = $1::uuid`, jobID)
+				_ = tx.Commit(ctx)
+			}
 			pool.Close()
 		}
 	})

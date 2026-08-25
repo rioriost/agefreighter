@@ -1,11 +1,37 @@
 package age
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"io"
 	"strings"
 	"testing"
 )
+
+func TestCopyBinaryReaderFramesAndBuffersRows(t *testing.T) {
+	reader := &copyBinaryReader{
+		rowCount: 2,
+		rowAt: func(index int, output []byte) []byte {
+			output = appendBinaryInt16(output, 2)
+			output = appendBinaryInt32Field(output, int32(index+1))
+			return appendBinaryTextField(output, "value")
+		},
+	}
+	output, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("ReadAll() error = %v", err)
+	}
+	if !bytes.HasPrefix(output, binaryCopyHeader) {
+		t.Fatal("binary COPY output has no header")
+	}
+	if got := int16(binary.BigEndian.Uint16(output[len(output)-2:])); got != -1 {
+		t.Fatalf("binary COPY trailer = %d, want -1", got)
+	}
+	if count, err := reader.Read(nil); count != 0 || err != nil {
+		t.Fatalf("Read(nil) = %d, %v", count, err)
+	}
+}
 
 func TestCopyTextReaderFramesPartialReads(t *testing.T) {
 	reader := &copyTextReader{

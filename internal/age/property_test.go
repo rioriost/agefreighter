@@ -91,6 +91,34 @@ func TestEncodeEmptyProperties(t *testing.T) {
 	}
 }
 
+func TestLoadPropertiesUsesValidatedPreencodedObject(t *testing.T) {
+	encoded := []byte(`{"name":"Ada","note":null}`)
+	got, err := loadProperties(
+		model.Properties{"ignored": {Kind: model.ValueString, String: "value"}},
+		encoded,
+	)
+	if err != nil || string(got) != string(encoded) {
+		t.Fatalf("loadProperties() = %q, %v", got, err)
+	}
+	for _, invalid := range [][]byte{
+		{},
+		[]byte(`null`),
+		[]byte(`[]`),
+		[]byte(`{"broken":`),
+	} {
+		if _, err := loadProperties(nil, invalid); !errors.Is(err, ErrInvalidProperty) {
+			t.Errorf("loadProperties(%q) error = %v", invalid, err)
+		}
+	}
+	typed, err := loadProperties(
+		model.Properties{"name": {Kind: model.ValueString, String: "Grace"}},
+		nil,
+	)
+	if err != nil || string(typed) != `{"name":"Grace"}` {
+		t.Fatalf("typed loadProperties() = %q, %v", typed, err)
+	}
+}
+
 func FuzzEncodeStringProperty(f *testing.F) {
 	f.Add("plain")
 	f.Add("tabs\tnewlines\nquotes\"slashes\\")

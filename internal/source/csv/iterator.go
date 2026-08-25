@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"io"
@@ -30,14 +31,16 @@ type MalformedRecord struct {
 type MalformedHandler func(context.Context, MalformedRecord) error
 
 type IteratorOptions struct {
-	Namespace      string
-	Source         config.CSVSource
-	AfterToken     string
-	RejectLimit    int
-	MaxRecordBytes int64
-	MaxFields      int
-	MaxProperties  int
-	OnMalformed    MalformedHandler
+	Namespace           string
+	Source              config.CSVSource
+	AfterToken          string
+	RejectLimit         int
+	MaxRecordBytes      int64
+	MaxFields           int
+	MaxProperties       int
+	OnMalformed         MalformedHandler
+	PreencodeProperties bool
+	OptimizeRFC4180     bool
 }
 
 type Iterator struct {
@@ -91,8 +94,9 @@ type fingerprintMapping struct {
 }
 
 type compiledProperty struct {
-	name  string
-	index int
+	name        string
+	encodedName []byte
+	index       int
 }
 
 type compiledMapping struct {
@@ -329,6 +333,8 @@ func (iterator *Iterator) openCurrent(ctx context.Context) error {
 		Resource:       mapping.path,
 		MaxRecordBytes: iterator.options.MaxRecordBytes,
 		MaxFields:      iterator.options.MaxFields,
+		OptimizeRFC4180: iterator.options.OptimizeRFC4180 &&
+			quote == '"' && escape == '"',
 	})
 	if err != nil {
 		if gzipReader != nil {
@@ -489,9 +495,13 @@ func (current *openMapping) compile(
 		if err != nil {
 			return err
 		}
+		encodedName, err := jsontext.AppendQuote(nil, name)
+		if err != nil {
+			return fmt.Errorf("encode CSV property name %q: %w", name, err)
+		}
 		current.compiled.properties = append(
 			current.compiled.properties,
-			compiledProperty{name: name, index: index},
+			compiledProperty{name: name, encodedName: encodedName, index: index},
 		)
 	}
 	return nil
@@ -503,20 +513,37 @@ func (iterator *Iterator) mapRecord(
 	position model.SourcePosition,
 ) (model.Record, error) {
 	current := iterator.current
-	properties := make(model.Properties, len(current.compiled.properties))
 	nullValue := ""
 	if current.mapping.format.NullValue != nil {
 		nullValue = *current.mapping.format.NullValue
 	}
-	for _, property := range current.compiled.properties {
-		if err := ctx.Err(); err != nil {
+	var (
+		properties        model.Properties
+		encodedProperties []byte
+	)
+	if iterator.options.PreencodeProperties {
+		var err error
+		encodedProperties, err = encodeCSVProperties(
+			ctx,
+			current.compiled.properties,
+			fields,
+			nullValue,
+		)
+		if err != nil {
 			return model.Record{}, err
 		}
-		value := fields[property.index]
-		if value == nullValue {
-			properties[property.name] = model.Value{Kind: model.ValueNull}
-		} else {
-			properties[property.name] = model.Value{Kind: model.ValueString, String: value}
+	} else {
+		properties = make(model.Properties, len(current.compiled.properties))
+		for _, property := range current.compiled.properties {
+			if err := ctx.Err(); err != nil {
+				return model.Record{}, err
+			}
+			value := fields[property.index]
+			if value == nullValue {
+				properties[property.name] = model.Value{Kind: model.ValueNull}
+			} else {
+				properties[property.name] = model.Value{Kind: model.ValueString, String: value}
+			}
 		}
 	}
 	if current.mapping.kind == vertexMapping {
@@ -528,8 +555,8 @@ func (iterator *Iterator) mapRecord(
 			Label:      current.mapping.label,
 			Namespace:  current.mapping.namespace,
 			ExternalID: model.ExternalID(externalID),
-			Properties: properties,
-			Position:   position,
+			Properties: properties, EncodedProperties: encodedProperties,
+			Position: position,
 		}), nil
 	}
 
@@ -567,9 +594,40 @@ func (iterator *Iterator) mapRecord(
 			Namespace:  model.Namespace(endNamespace),
 			ExternalID: model.ExternalID(endID),
 		},
-		Properties: properties,
-		Position:   position,
+		Properties: properties, EncodedProperties: encodedProperties,
+		Position: position,
 	}), nil
+}
+
+func encodeCSVProperties(
+	ctx context.Context,
+	properties []compiledProperty,
+	fields []string,
+	nullValue string,
+) ([]byte, error) {
+	output := make([]byte, 0, 2+len(properties)*16)
+	output = append(output, '{')
+	for index, property := range properties {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if index > 0 {
+			output = append(output, ',')
+		}
+		output = append(output, property.encodedName...)
+		output = append(output, ':')
+		value := fields[property.index]
+		if value == nullValue {
+			output = append(output, "null"...)
+			continue
+		}
+		var err error
+		output, err = jsontext.AppendQuote(output, value)
+		if err != nil {
+			return nil, fmt.Errorf("encode CSV property %q: %w", property.name, err)
+		}
+	}
+	return append(output, '}'), nil
 }
 
 func (iterator *Iterator) handleMalformed(

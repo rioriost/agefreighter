@@ -175,25 +175,40 @@ func (transaction *Transaction) copyText(
 	reader io.Reader,
 	expectedRows int,
 ) (int64, error) {
-	table := pgx.Identifier{label.GraphName, label.LabelName}.Sanitize()
+	table := pgx.Identifier{label.GraphName, label.LabelName}
+	rows, err := transaction.copyTextTable(ctx, table, columns, reader, expectedRows)
+	if err != nil {
+		return 0, fmt.Errorf("direct text COPY into %s: %w", table.Sanitize(), err)
+	}
+	return rows, nil
+}
+
+func (transaction *Transaction) copyTextTable(
+	ctx context.Context,
+	table pgx.Identifier,
+	columns []string,
+	reader io.Reader,
+	expectedRows int,
+) (int64, error) {
+	tableName := table.Sanitize()
 	quotedColumns := make([]string, len(columns))
 	for index, column := range columns {
 		quotedColumns[index] = pgx.Identifier{column}.Sanitize()
 	}
 	command := fmt.Sprintf(
 		"COPY %s (%s) FROM STDIN WITH (FORMAT text)",
-		table,
+		tableName,
 		strings.Join(quotedColumns, ", "),
 	)
 	tag, err := transaction.tx.Conn().PgConn().CopyFrom(ctx, reader, command)
 	if err != nil {
-		return 0, fmt.Errorf("direct text COPY into %s: %w", table, err)
+		return 0, err
 	}
 	rowsAffected := tag.RowsAffected()
 	if rowsAffected != int64(expectedRows) {
 		return 0, fmt.Errorf(
-			"direct text COPY into %s wrote %d rows, expected %d",
-			table,
+			"COPY into %s wrote %d rows, expected %d",
+			tableName,
 			rowsAffected,
 			expectedRows,
 		)
@@ -226,8 +241,9 @@ func (reader *copyTextReader) Read(output []byte) (int, error) {
 	return copied, nil
 }
 
-func appendCopyText(output []byte, value []byte) []byte {
-	for _, character := range value {
+func appendCopyText[Bytes ~[]byte | ~string](output []byte, value Bytes) []byte {
+	for index := 0; index < len(value); index++ {
+		character := value[index]
 		switch character {
 		case '\\':
 			output = append(output, '\\', '\\')
@@ -249,29 +265,31 @@ func (transaction *Transaction) copyVerticesStaged(
 	label LabelCatalog,
 	rows []VertexRow,
 ) (int64, error) {
-	const stage = "agefreighter_vertex_stage"
+	stage := fmt.Sprintf("agefreighter_vertex_stage_%d", label.LabelID)
+	stageName := pgx.Identifier{"pg_temp", stage}.Sanitize()
 	if _, err := transaction.tx.Exec(
 		ctx,
-		`CREATE TEMP TABLE IF NOT EXISTS pg_temp.agefreighter_vertex_stage (
+		fmt.Sprintf(`CREATE TEMP TABLE IF NOT EXISTS %s (
 			id bigint NOT NULL,
 			properties text NOT NULL
-		) ON COMMIT DROP`,
+		) ON COMMIT DROP`, stageName),
 	); err != nil {
 		return 0, fmt.Errorf("prepare vertex staging table: %w", err)
 	}
-	if _, err := transaction.tx.Exec(
-		ctx,
-		"TRUNCATE pg_temp.agefreighter_vertex_stage",
-	); err != nil {
-		return 0, fmt.Errorf("truncate vertex staging table: %w", err)
+	reader := &copyBinaryReader{
+		rowCount: len(rows),
+		rowAt: func(index int, output []byte) []byte {
+			output = appendBinaryInt16(output, 2)
+			output = appendBinaryInt64Field(output, int64(rows[index].ID))
+			return appendBinaryTextField(output, rows[index].Properties)
+		},
 	}
-	copied, err := transaction.tx.CopyFrom(
+	copied, err := transaction.copyBinaryTable(
 		ctx,
 		pgx.Identifier{"pg_temp", stage},
 		[]string{"id", "properties"},
-		pgx.CopyFromSlice(len(rows), func(index int) ([]any, error) {
-			return []any{int64(rows[index].ID), string(rows[index].Properties)}, nil
-		}),
+		reader,
+		len(rows),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("binary COPY vertex staging table: %w", err)
@@ -302,37 +320,36 @@ func (transaction *Transaction) copyEdgesStaged(
 	label LabelCatalog,
 	rows []EdgeRow,
 ) (int64, error) {
-	const stage = "agefreighter_edge_stage"
+	stage := fmt.Sprintf("agefreighter_edge_stage_%d", label.LabelID)
+	stageName := pgx.Identifier{"pg_temp", stage}.Sanitize()
 	if _, err := transaction.tx.Exec(
 		ctx,
-		`CREATE TEMP TABLE IF NOT EXISTS pg_temp.agefreighter_edge_stage (
+		fmt.Sprintf(`CREATE TEMP TABLE IF NOT EXISTS %s (
 			id bigint NOT NULL,
 			start_id bigint NOT NULL,
 			end_id bigint NOT NULL,
 			properties text NOT NULL
-		) ON COMMIT DROP`,
+		) ON COMMIT DROP`, stageName),
 	); err != nil {
 		return 0, fmt.Errorf("prepare edge staging table: %w", err)
 	}
-	if _, err := transaction.tx.Exec(
-		ctx,
-		"TRUNCATE pg_temp.agefreighter_edge_stage",
-	); err != nil {
-		return 0, fmt.Errorf("truncate edge staging table: %w", err)
+	reader := &copyBinaryReader{
+		rowCount: len(rows),
+		rowAt: func(index int, output []byte) []byte {
+			row := rows[index]
+			output = appendBinaryInt16(output, 4)
+			output = appendBinaryInt64Field(output, int64(row.ID))
+			output = appendBinaryInt64Field(output, int64(row.StartID))
+			output = appendBinaryInt64Field(output, int64(row.EndID))
+			return appendBinaryTextField(output, row.Properties)
+		},
 	}
-	copied, err := transaction.tx.CopyFrom(
+	copied, err := transaction.copyBinaryTable(
 		ctx,
 		pgx.Identifier{"pg_temp", stage},
 		[]string{"id", "start_id", "end_id", "properties"},
-		pgx.CopyFromSlice(len(rows), func(index int) ([]any, error) {
-			row := rows[index]
-			return []any{
-				int64(row.ID),
-				int64(row.StartID),
-				int64(row.EndID),
-				string(row.Properties),
-			}, nil
-		}),
+		reader,
+		len(rows),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("binary COPY edge staging table: %w", err)

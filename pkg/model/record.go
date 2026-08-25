@@ -45,11 +45,12 @@ type SourcePosition struct {
 }
 
 type Vertex struct {
-	Label      Label
-	Namespace  Namespace
-	ExternalID ExternalID
-	Properties Properties
-	Position   SourcePosition
+	Label             Label
+	Namespace         Namespace
+	ExternalID        ExternalID
+	Properties        Properties
+	EncodedProperties []byte `json:"-"`
+	Position          SourcePosition
 }
 
 type Endpoint struct {
@@ -59,13 +60,14 @@ type Endpoint struct {
 }
 
 type Edge struct {
-	Label      Label
-	Namespace  Namespace
-	ExternalID ExternalID
-	Start      Endpoint
-	End        Endpoint
-	Properties Properties
-	Position   SourcePosition
+	Label             Label
+	Namespace         Namespace
+	ExternalID        ExternalID
+	Start             Endpoint
+	End               Endpoint
+	Properties        Properties
+	EncodedProperties []byte `json:"-"`
+	Position          SourcePosition
 }
 
 type Record struct {

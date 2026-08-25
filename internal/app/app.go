@@ -249,7 +249,8 @@ func execute(
 	iteratorOptions := sourcecsv.IteratorOptions{
 		Namespace: job.Source.Namespace,
 		Source:    *job.Source.CSV, AfterToken: storedJob.ResumeToken,
-		RejectLimit: job.Errors.RejectLimit,
+		RejectLimit: job.Errors.RejectLimit, PreencodeProperties: true,
+		OptimizeRFC4180: true,
 	}
 	if job.Errors.MalformedRecord == config.MalformedQuarantine {
 		iteratorOptions.OnMalformed = func(ctx context.Context, malformed sourcecsv.MalformedRecord) error {
@@ -338,7 +339,7 @@ func openTarget(
 		return nil, nil, fmt.Errorf("resolve target connection: %w", err)
 	}
 	adapter, err := age.Open(ctx, dsn, age.PoolOptions{
-		MinConnections: 2, MaxConnections: int32(job.Runtime.MaxTargetConnections),
+		MinConnections: 1, MaxConnections: int32(job.Runtime.MaxTargetConnections),
 		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
 		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
 	})

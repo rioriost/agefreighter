@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 8
+const schemaVersion = 11
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -323,6 +323,208 @@ var migrationV8 = []string{
 		CHECK (source_rejected_rows >= 0 AND source_rejected_rows <= rejected_rows)`,
 }
 
+var migrationV9 = []string{
+	`LOCK TABLE
+		agefreighter_meta.vertex_identity,
+		agefreighter_meta.edge_identity
+		IN SHARE ROW EXCLUSIVE MODE`,
+	`ALTER TABLE agefreighter_meta.vertex_identity
+		DROP CONSTRAINT IF EXISTS vertex_identity_pkey,
+		DROP CONSTRAINT IF EXISTS vertex_identity_graph_generation_id_graph_id_key,
+		DROP CONSTRAINT IF EXISTS vertex_identity_graph_generation_id_fkey,
+		DROP CONSTRAINT IF EXISTS vertex_identity_label_generation_fk`,
+	`ALTER TABLE agefreighter_meta.edge_identity
+		DROP CONSTRAINT IF EXISTS edge_identity_pkey,
+		DROP CONSTRAINT IF EXISTS edge_identity_graph_generation_id_graph_id_key,
+		DROP CONSTRAINT IF EXISTS edge_identity_graph_generation_id_fkey,
+		DROP CONSTRAINT IF EXISTS edge_identity_label_generation_fk`,
+	`DROP INDEX IF EXISTS agefreighter_meta.vertex_identity_endpoint_idx`,
+	`DROP INDEX IF EXISTS agefreighter_meta.vertex_identity_lookup_uq`,
+	`CREATE UNIQUE INDEX vertex_identity_lookup_uq
+		ON agefreighter_meta.vertex_identity (
+			graph_generation_id, source_namespace, label_id, external_id
+		) INCLUDE (graph_id, label_generation_id)`,
+	`CREATE OR REPLACE FUNCTION agefreighter_meta.validate_vertex_identity_generation()
+		RETURNS trigger
+		LANGUAGE plpgsql
+		AS $$
+	BEGIN
+		IF EXISTS (
+			SELECT 1
+			FROM inserted_identity i
+			LEFT JOIN agefreighter_meta.label_generation l
+			  ON l.label_generation_id = i.label_generation_id
+			 AND l.graph_generation_id = i.graph_generation_id
+			 AND l.graph_namespace_oid = i.graph_namespace_oid
+			 AND l.label_id = i.label_id
+			 AND l.relation_oid = i.label_relation_oid
+			 AND l.mapping_generation = i.mapping_generation
+			 AND l.kind = i.label_kind
+			WHERE l.label_generation_id IS NULL
+		) THEN
+			RAISE foreign_key_violation
+				USING MESSAGE = 'vertex identity does not match its label generation';
+		END IF;
+		RETURN NULL;
+	END
+	$$`,
+	`CREATE OR REPLACE FUNCTION agefreighter_meta.validate_edge_identity_generation()
+		RETURNS trigger
+		LANGUAGE plpgsql
+		AS $$
+	BEGIN
+		IF EXISTS (
+			SELECT 1
+			FROM inserted_identity i
+			LEFT JOIN agefreighter_meta.label_generation l
+			  ON l.label_generation_id = i.label_generation_id
+			 AND l.graph_generation_id = i.graph_generation_id
+			 AND l.graph_namespace_oid = i.graph_namespace_oid
+			 AND l.label_id = i.label_id
+			 AND l.relation_oid = i.label_relation_oid
+			 AND l.mapping_generation = i.mapping_generation
+			 AND l.kind = i.label_kind
+			WHERE l.label_generation_id IS NULL
+		) THEN
+			RAISE foreign_key_violation
+				USING MESSAGE = 'edge identity does not match its label generation';
+		END IF;
+		RETURN NULL;
+	END
+	$$`,
+	`CREATE TRIGGER vertex_identity_generation_insert
+		AFTER INSERT ON agefreighter_meta.vertex_identity
+		REFERENCING NEW TABLE AS inserted_identity
+		FOR EACH STATEMENT
+		EXECUTE FUNCTION agefreighter_meta.validate_vertex_identity_generation()`,
+	`CREATE TRIGGER vertex_identity_generation_update
+		AFTER UPDATE ON agefreighter_meta.vertex_identity
+		REFERENCING NEW TABLE AS inserted_identity
+		FOR EACH STATEMENT
+		EXECUTE FUNCTION agefreighter_meta.validate_vertex_identity_generation()`,
+	`CREATE TRIGGER edge_identity_generation_insert
+		AFTER INSERT ON agefreighter_meta.edge_identity
+		REFERENCING NEW TABLE AS inserted_identity
+		FOR EACH STATEMENT
+		EXECUTE FUNCTION agefreighter_meta.validate_edge_identity_generation()`,
+	`CREATE TRIGGER edge_identity_generation_update
+		AFTER UPDATE ON agefreighter_meta.edge_identity
+		REFERENCING NEW TABLE AS inserted_identity
+		FOR EACH STATEMENT
+		EXECUTE FUNCTION agefreighter_meta.validate_edge_identity_generation()`,
+	`CREATE OR REPLACE FUNCTION agefreighter_meta.delete_label_generation_identities()
+		RETURNS trigger
+		LANGUAGE plpgsql
+		AS $$
+	BEGIN
+		DELETE FROM agefreighter_meta.vertex_identity i
+		USING deleted_generation d
+		WHERE i.label_generation_id = d.label_generation_id;
+		DELETE FROM agefreighter_meta.edge_identity i
+		USING deleted_generation d
+		WHERE i.label_generation_id = d.label_generation_id;
+		RETURN NULL;
+	END
+	$$`,
+	`CREATE TRIGGER label_generation_identity_delete
+		AFTER DELETE ON agefreighter_meta.label_generation
+		REFERENCING OLD TABLE AS deleted_generation
+		FOR EACH STATEMENT
+		EXECUTE FUNCTION agefreighter_meta.delete_label_generation_identities()`,
+}
+
+var migrationV10 = []string{
+	`DROP TRIGGER IF EXISTS vertex_identity_generation_insert
+		ON agefreighter_meta.vertex_identity`,
+	`DROP TRIGGER IF EXISTS vertex_identity_generation_update
+		ON agefreighter_meta.vertex_identity`,
+	`DROP TRIGGER IF EXISTS edge_identity_generation_insert
+		ON agefreighter_meta.edge_identity`,
+	`DROP TRIGGER IF EXISTS edge_identity_generation_update
+		ON agefreighter_meta.edge_identity`,
+	`DROP FUNCTION IF EXISTS agefreighter_meta.validate_vertex_identity_generation()`,
+	`DROP FUNCTION IF EXISTS agefreighter_meta.validate_edge_identity_generation()`,
+	`ALTER TABLE agefreighter_meta.vertex_identity
+		DROP COLUMN graph_namespace_oid,
+		DROP COLUMN label_relation_oid,
+		DROP COLUMN mapping_generation,
+		DROP COLUMN label_kind`,
+	`ALTER TABLE agefreighter_meta.edge_identity
+		DROP COLUMN graph_namespace_oid,
+		DROP COLUMN label_relation_oid,
+		DROP COLUMN mapping_generation,
+		DROP COLUMN label_kind`,
+	`CREATE FUNCTION agefreighter_meta.validate_vertex_identity_generation()
+		RETURNS trigger
+		LANGUAGE plpgsql
+		AS $$
+	BEGIN
+		IF EXISTS (
+			SELECT 1
+			FROM inserted_identity i
+			LEFT JOIN agefreighter_meta.label_generation l
+			  ON l.label_generation_id = i.label_generation_id
+			 AND l.graph_generation_id = i.graph_generation_id
+			 AND l.label_id = i.label_id
+			 AND l.kind = 'v'
+			WHERE l.label_generation_id IS NULL
+		) THEN
+			RAISE foreign_key_violation
+				USING MESSAGE = 'vertex identity does not match its label generation';
+		END IF;
+		RETURN NULL;
+	END
+	$$`,
+	`CREATE FUNCTION agefreighter_meta.validate_edge_identity_generation()
+		RETURNS trigger
+		LANGUAGE plpgsql
+		AS $$
+	BEGIN
+		IF EXISTS (
+			SELECT 1
+			FROM inserted_identity i
+			LEFT JOIN agefreighter_meta.label_generation l
+			  ON l.label_generation_id = i.label_generation_id
+			 AND l.graph_generation_id = i.graph_generation_id
+			 AND l.label_id = i.label_id
+			 AND l.kind = 'e'
+			WHERE l.label_generation_id IS NULL
+		) THEN
+			RAISE foreign_key_violation
+				USING MESSAGE = 'edge identity does not match its label generation';
+		END IF;
+		RETURN NULL;
+	END
+	$$`,
+	`CREATE TRIGGER vertex_identity_generation_insert
+		AFTER INSERT ON agefreighter_meta.vertex_identity
+		REFERENCING NEW TABLE AS inserted_identity
+		FOR EACH STATEMENT
+		EXECUTE FUNCTION agefreighter_meta.validate_vertex_identity_generation()`,
+	`CREATE TRIGGER vertex_identity_generation_update
+		AFTER UPDATE ON agefreighter_meta.vertex_identity
+		REFERENCING NEW TABLE AS inserted_identity
+		FOR EACH STATEMENT
+		EXECUTE FUNCTION agefreighter_meta.validate_vertex_identity_generation()`,
+	`CREATE TRIGGER edge_identity_generation_insert
+		AFTER INSERT ON agefreighter_meta.edge_identity
+		REFERENCING NEW TABLE AS inserted_identity
+		FOR EACH STATEMENT
+		EXECUTE FUNCTION agefreighter_meta.validate_edge_identity_generation()`,
+	`CREATE TRIGGER edge_identity_generation_update
+		AFTER UPDATE ON agefreighter_meta.edge_identity
+		REFERENCING NEW TABLE AS inserted_identity
+		FOR EACH STATEMENT
+		EXECUTE FUNCTION agefreighter_meta.validate_edge_identity_generation()`,
+}
+
+var migrationV11 = []string{
+	`DROP TRIGGER IF EXISTS vertex_identity_generation_insert
+		ON agefreighter_meta.vertex_identity`,
+	`DROP TRIGGER IF EXISTS edge_identity_generation_insert
+		ON agefreighter_meta.edge_identity`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -332,4 +534,7 @@ var migrations = [][]string{
 	migrationV6,
 	migrationV7,
 	migrationV8,
+	migrationV9,
+	migrationV10,
+	migrationV11,
 }

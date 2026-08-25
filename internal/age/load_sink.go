@@ -66,11 +66,18 @@ type vertexIdentityRow struct {
 	graphID    GraphID
 }
 
+type externalIdentity struct {
+	namespace  model.Namespace
+	externalID model.ExternalID
+}
+
 type stagedEdge struct {
-	record     model.Edge
-	label      LoadLabel
-	properties []byte
-	ordinal    int
+	record       *model.Edge
+	label        LoadLabel
+	startLabelID uint16
+	endLabelID   uint16
+	properties   []byte
+	ordinal      int
 }
 
 type resolvedEdge struct {
@@ -243,7 +250,13 @@ func (target *LoadSink) Begin(
 		Bytes:   batch.Bytes,
 		First:   metaPosition(batch.FirstPosition),
 	}
-	stored, err := target.diagnostics.StartBatch(ctx, attempt)
+	ownerStore, err := meta.New(owner.Conn())
+	if err != nil {
+		ownerErr := releaseOwner()
+		release()
+		return nil, errors.Join(err, ownerErr)
+	}
+	stored, err := ownerStore.StartBatch(ctx, attempt)
 	if err != nil {
 		ownerErr := releaseOwner()
 		release()
@@ -331,8 +344,8 @@ func (transaction *loadTransaction) Write(
 	}
 	transaction.wrote = true
 
-	vertexGroups := make(map[model.Label][]model.Vertex)
-	edgeGroups := make(map[model.Label][]model.Edge)
+	vertexCounts := make(map[model.Label]int)
+	edgeCounts := make(map[model.Label]int)
 	seenEdge := false
 	for index, record := range records {
 		switch record.Kind() {
@@ -340,18 +353,33 @@ func (transaction *loadTransaction) Write(
 			if seenEdge {
 				return fmt.Errorf("vertex record %d follows an edge record", index)
 			}
-			vertexGroups[record.Vertex.Label] = append(
-				vertexGroups[record.Vertex.Label],
-				*record.Vertex,
-			)
+			vertexCounts[record.Vertex.Label]++
 		case model.RecordEdge:
 			seenEdge = true
-			edgeGroups[record.Edge.Label] = append(
-				edgeGroups[record.Edge.Label],
-				*record.Edge,
-			)
+			edgeCounts[record.Edge.Label]++
 		default:
 			return fmt.Errorf("load record %d is invalid", index)
+		}
+	}
+	vertexGroups := make(map[model.Label][]*model.Vertex, len(vertexCounts))
+	for label, count := range vertexCounts {
+		vertexGroups[label] = make([]*model.Vertex, 0, count)
+	}
+	edgeGroups := make(map[model.Label][]*model.Edge, len(edgeCounts))
+	for label, count := range edgeCounts {
+		edgeGroups[label] = make([]*model.Edge, 0, count)
+	}
+	for _, record := range records {
+		if record.Vertex != nil {
+			vertexGroups[record.Vertex.Label] = append(
+				vertexGroups[record.Vertex.Label],
+				record.Vertex,
+			)
+		} else {
+			edgeGroups[record.Edge.Label] = append(
+				edgeGroups[record.Edge.Label],
+				record.Edge,
+			)
 		}
 	}
 	for _, label := range sortedLabels(vertexGroups) {
@@ -379,7 +407,7 @@ func sortedLabels[T any](groups map[model.Label][]T) []model.Label {
 func (transaction *loadTransaction) writeVertices(
 	ctx context.Context,
 	labelName model.Label,
-	vertices []model.Vertex,
+	vertices []*model.Vertex,
 ) error {
 	binding, ok := transaction.sink.labels[labelName]
 	if !ok {
@@ -389,17 +417,20 @@ func (transaction *loadTransaction) writeVertices(
 		return fmt.Errorf("label %q is not a vertex label", labelName)
 	}
 	propertiesByIndex := make([][]byte, len(vertices))
-	seen := make(map[string]struct{}, len(vertices))
+	seen := make(map[externalIdentity]struct{}, len(vertices))
 	for index, vertex := range vertices {
 		if vertex.ExternalID == "" || vertex.Namespace == "" {
 			return fmt.Errorf("vertex %d identity is empty", index)
 		}
-		key := string(vertex.Namespace) + "\x00" + string(vertex.ExternalID)
+		key := externalIdentity{
+			namespace:  vertex.Namespace,
+			externalID: vertex.ExternalID,
+		}
 		if _, exists := seen[key]; exists {
 			return fmt.Errorf("vertex %d duplicates external identity in batch", index)
 		}
 		seen[key] = struct{}{}
-		properties, err := EncodeProperties(vertex.Properties)
+		properties, err := loadProperties(vertex.Properties, vertex.EncodedProperties)
 		if err != nil {
 			return fmt.Errorf("encode vertex %q properties: %w", vertex.ExternalID, err)
 		}
@@ -443,86 +474,85 @@ func (transaction *loadTransaction) insertVertexIdentities(
 	ctx context.Context,
 	rows []vertexIdentityRow,
 ) error {
-	const stage = "agefreighter_vertex_identity_stage"
-	if _, err := transaction.tx.Exec(
-		ctx,
-		`CREATE TEMP TABLE IF NOT EXISTS pg_temp.agefreighter_vertex_identity_stage (
-			label_generation_id bigint NOT NULL,
-			graph_namespace_oid oid NOT NULL,
-			label_id integer NOT NULL,
-			label_relation_oid oid NOT NULL,
-			mapping_generation bigint NOT NULL,
-			source_namespace text NOT NULL,
-			external_id text NOT NULL,
-			graph_id bigint NOT NULL
-		) ON COMMIT DROP`,
-	); err != nil {
-		return fmt.Errorf("prepare vertex identity stage: %w", err)
+	if err := transaction.lockIdentityGeneration(ctx, rows[0].label); err != nil {
+		return err
 	}
-	if _, err := transaction.tx.Exec(
-		ctx,
-		`TRUNCATE pg_temp.agefreighter_vertex_identity_stage`,
-	); err != nil {
-		return fmt.Errorf("truncate vertex identity stage: %w", err)
+	reader := &copyBinaryReader{
+		rowCount: len(rows),
+		rowAt: func(index int, output []byte) []byte {
+			row := rows[index]
+			generation := row.label.Generation
+			output = appendBinaryInt16(output, 6)
+			output = appendBinaryInt64Field(output, transaction.sink.options.Graph.ID)
+			output = appendBinaryInt64Field(output, generation.ID)
+			output = appendBinaryInt32Field(output, int32(generation.LabelID))
+			output = appendBinaryTextField(output, row.namespace)
+			output = appendBinaryTextField(output, row.externalID)
+			return appendBinaryInt64Field(output, int64(row.graphID))
+		},
 	}
-	copied, err := transaction.tx.CopyFrom(
+	copied, err := (&Transaction{tx: transaction.tx}).copyBinaryTable(
 		ctx,
-		pgx.Identifier{"pg_temp", stage},
+		pgx.Identifier{"agefreighter_meta", "vertex_identity"},
 		[]string{
+			"graph_generation_id",
 			"label_generation_id",
-			"graph_namespace_oid",
 			"label_id",
-			"label_relation_oid",
-			"mapping_generation",
 			"source_namespace",
 			"external_id",
 			"graph_id",
 		},
-		pgx.CopyFromSlice(len(rows), func(index int) ([]any, error) {
-			row := rows[index]
-			generation := row.label.Generation
-			return []any{
-				generation.ID,
-				generation.GraphNamespaceOID,
-				int32(generation.LabelID),
-				generation.RelationOID,
-				int64(generation.MappingGeneration),
-				string(row.namespace),
-				string(row.externalID),
-				int64(row.graphID),
-			}, nil
-		}),
+		reader,
+		len(rows),
 	)
 	if err != nil {
-		return fmt.Errorf("COPY vertex identities: %w", err)
+		return fmt.Errorf("COPY vertex identities into metadata: %w", err)
 	}
 	if copied != int64(len(rows)) {
-		return fmt.Errorf("COPY staged %d vertex identities, expected %d", copied, len(rows))
+		return fmt.Errorf("COPY wrote %d vertex identities, expected %d", copied, len(rows))
 	}
-	tag, err := transaction.tx.Exec(
+	return nil
+}
+
+func (transaction *loadTransaction) lockIdentityGeneration(
+	ctx context.Context,
+	label LoadLabel,
+) error {
+	var admitted int64
+	err := transaction.tx.QueryRow(
 		ctx,
-		`INSERT INTO agefreighter_meta.vertex_identity (
-			graph_generation_id, label_generation_id, graph_namespace_oid,
-			label_id, label_relation_oid, mapping_generation, label_kind,
-			source_namespace, external_id, graph_id
-		)
-		SELECT $1, label_generation_id, graph_namespace_oid, label_id,
-		       label_relation_oid, mapping_generation, 'v',
-		       source_namespace, external_id, graph_id
-		FROM pg_temp.agefreighter_vertex_identity_stage`,
+		`SELECT label_generation_id
+		 FROM agefreighter_meta.label_generation
+		 WHERE label_generation_id = $1
+		   AND graph_generation_id = $2
+		   AND label_id = $3
+		   AND kind = $4
+		 FOR KEY SHARE`,
+		label.Generation.ID,
 		transaction.sink.options.Graph.ID,
-	)
-	if err != nil {
-		return fmt.Errorf("insert vertex identities: %w", err)
+		int32(label.Generation.LabelID),
+		string(label.Generation.Kind),
+	).Scan(&admitted)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf(
+			"label %q identity generation no longer matches the admitted catalog",
+			label.Generation.LabelName,
+		)
 	}
-	_, err = requireAffectedRows("insert vertex identities", tag.RowsAffected(), len(rows))
-	return err
+	if err != nil {
+		return fmt.Errorf(
+			"lock label %q identity generation: %w",
+			label.Generation.LabelName,
+			err,
+		)
+	}
+	return nil
 }
 
 func (transaction *loadTransaction) writeEdges(
 	ctx context.Context,
 	labelName model.Label,
-	edges []model.Edge,
+	edges []*model.Edge,
 ) error {
 	binding, ok := transaction.sink.labels[labelName]
 	if !ok {
@@ -532,7 +562,7 @@ func (transaction *loadTransaction) writeEdges(
 		return fmt.Errorf("label %q is not an edge label", labelName)
 	}
 	staged := make([]stagedEdge, len(edges))
-	seenIdentities := make(map[string]struct{}, len(edges))
+	seenIdentities := make(map[externalIdentity]struct{}, len(edges))
 	for index, edge := range edges {
 		if edge.Namespace == "" ||
 			edge.Start.Namespace == "" || edge.Start.Label == "" ||
@@ -545,19 +575,45 @@ func (transaction *loadTransaction) writeEdges(
 			return fmt.Errorf("edge %d source position token is empty", index)
 		}
 		if edge.ExternalID != "" {
-			key := string(edge.Namespace) + "\x00" + string(edge.ExternalID)
+			key := externalIdentity{
+				namespace:  edge.Namespace,
+				externalID: edge.ExternalID,
+			}
 			if _, exists := seenIdentities[key]; exists {
 				return fmt.Errorf("edge %d duplicates external identity in batch", index)
 			}
 			seenIdentities[key] = struct{}{}
 		}
-		properties, err := EncodeProperties(edge.Properties)
+		properties, err := loadProperties(edge.Properties, edge.EncodedProperties)
 		if err != nil {
 			return fmt.Errorf("encode edge %q properties: %w", edge.ExternalID, err)
 		}
 		staged[index] = stagedEdge{
-			record: edge, label: binding, properties: properties, ordinal: index,
+			record: edge, label: binding,
+			properties: properties,
+			ordinal:    index,
 		}
+	}
+	for index := range staged {
+		edge := staged[index].record
+		start, ok := transaction.sink.labels[edge.Start.Label]
+		if !ok || start.Catalog.Kind != VertexLabel {
+			return fmt.Errorf(
+				"edge %d start label %q is not a registered vertex label",
+				index,
+				edge.Start.Label,
+			)
+		}
+		end, ok := transaction.sink.labels[edge.End.Label]
+		if !ok || end.Catalog.Kind != VertexLabel {
+			return fmt.Errorf(
+				"edge %d end label %q is not a registered vertex label",
+				index,
+				edge.End.Label,
+			)
+		}
+		staged[index].startLabelID = start.Catalog.LabelID
+		staged[index].endLabelID = end.Catalog.LabelID
 	}
 	resolved, missing, err := transaction.resolveEdges(ctx, staged)
 	if err != nil {
@@ -616,10 +672,14 @@ func (transaction *loadTransaction) resolveEdges(
 	ctx context.Context,
 	edges []stagedEdge,
 ) ([]resolvedEdge, []model.Edge, error) {
-	const stage = "agefreighter_edge_reference_stage"
+	stage := fmt.Sprintf(
+		"agefreighter_edge_reference_stage_%d",
+		edges[0].label.Generation.ID,
+	)
+	stageName := pgx.Identifier{"pg_temp", stage}.Sanitize()
 	if _, err := transaction.tx.Exec(
 		ctx,
-		`CREATE TEMP TABLE IF NOT EXISTS pg_temp.agefreighter_edge_reference_stage (
+		fmt.Sprintf(`CREATE TEMP TABLE IF NOT EXISTS %s (
 			ordinal integer PRIMARY KEY,
 			start_namespace text NOT NULL,
 			start_label_id integer NOT NULL,
@@ -627,17 +687,26 @@ func (transaction *loadTransaction) resolveEdges(
 			end_namespace text NOT NULL,
 			end_label_id integer NOT NULL,
 			end_external_id text NOT NULL
-		) ON COMMIT DROP`,
+		) ON COMMIT DROP`, stageName),
 	); err != nil {
 		return nil, nil, fmt.Errorf("prepare edge reference stage: %w", err)
 	}
-	if _, err := transaction.tx.Exec(
-		ctx,
-		`TRUNCATE pg_temp.agefreighter_edge_reference_stage`,
-	); err != nil {
-		return nil, nil, fmt.Errorf("truncate edge reference stage: %w", err)
+	reader := &copyBinaryReader{
+		rowCount: len(edges),
+		rowAt: func(index int, output []byte) []byte {
+			staged := edges[index]
+			edge := staged.record
+			output = appendBinaryInt16(output, 7)
+			output = appendBinaryInt32Field(output, int32(index))
+			output = appendBinaryTextField(output, edge.Start.Namespace)
+			output = appendBinaryInt32Field(output, int32(staged.startLabelID))
+			output = appendBinaryTextField(output, edge.Start.ExternalID)
+			output = appendBinaryTextField(output, edge.End.Namespace)
+			output = appendBinaryInt32Field(output, int32(staged.endLabelID))
+			return appendBinaryTextField(output, edge.End.ExternalID)
+		},
 	}
-	copied, err := transaction.tx.CopyFrom(
+	copied, err := (&Transaction{tx: transaction.tx}).copyBinaryTable(
 		ctx,
 		pgx.Identifier{"pg_temp", stage},
 		[]string{
@@ -649,34 +718,8 @@ func (transaction *loadTransaction) resolveEdges(
 			"end_label_id",
 			"end_external_id",
 		},
-		pgx.CopyFromSlice(len(edges), func(index int) ([]any, error) {
-			edge := edges[index].record
-			start, ok := transaction.sink.labels[edge.Start.Label]
-			if !ok || start.Catalog.Kind != VertexLabel {
-				return nil, fmt.Errorf(
-					"edge %d start label %q is not a registered vertex label",
-					index,
-					edge.Start.Label,
-				)
-			}
-			end, ok := transaction.sink.labels[edge.End.Label]
-			if !ok || end.Catalog.Kind != VertexLabel {
-				return nil, fmt.Errorf(
-					"edge %d end label %q is not a registered vertex label",
-					index,
-					edge.End.Label,
-				)
-			}
-			return []any{
-				index,
-				string(edge.Start.Namespace),
-				int32(start.Catalog.LabelID),
-				string(edge.Start.ExternalID),
-				string(edge.End.Namespace),
-				int32(end.Catalog.LabelID),
-				string(edge.End.ExternalID),
-			}, nil
-		}),
+		reader,
+		len(edges),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("COPY edge endpoint references: %w", err)
@@ -691,7 +734,7 @@ func (transaction *loadTransaction) resolveEdges(
 	rows, err := transaction.tx.Query(
 		ctx,
 		`SELECT s.ordinal, start_identity.graph_id, end_identity.graph_id
-		 FROM pg_temp.agefreighter_edge_reference_stage s
+		 FROM `+stageName+` s
 		 LEFT JOIN agefreighter_meta.vertex_identity start_identity
 		   ON start_identity.graph_generation_id = $1
 		  AND start_identity.source_namespace = s.start_namespace
@@ -721,7 +764,7 @@ func (transaction *loadTransaction) resolveEdges(
 			return nil, nil, fmt.Errorf("resolved edge ordinal %d is out of range", ordinal)
 		}
 		if startID == nil || endID == nil {
-			missing = append(missing, edges[ordinal].record)
+			missing = append(missing, *edges[ordinal].record)
 			continue
 		}
 		start := GraphID(*startID)
@@ -825,24 +868,8 @@ func (transaction *loadTransaction) insertEdgeIdentities(
 	if identityCount == 0 {
 		return nil
 	}
-	const stage = "agefreighter_edge_identity_stage"
-	if _, err := transaction.tx.Exec(
-		ctx,
-		`CREATE TEMP TABLE IF NOT EXISTS pg_temp.agefreighter_edge_identity_stage (
-			source_namespace text NOT NULL,
-			external_id text NOT NULL,
-			graph_id bigint NOT NULL,
-			start_graph_id bigint NOT NULL,
-			end_graph_id bigint NOT NULL
-		) ON COMMIT DROP`,
-	); err != nil {
-		return fmt.Errorf("prepare edge identity stage: %w", err)
-	}
-	if _, err := transaction.tx.Exec(
-		ctx,
-		`TRUNCATE pg_temp.agefreighter_edge_identity_stage`,
-	); err != nil {
-		return fmt.Errorf("truncate edge identity stage: %w", err)
+	if err := transaction.lockIdentityGeneration(ctx, edges[0].label); err != nil {
+		return err
 	}
 	source := make([]int, 0, identityCount)
 	for index, edge := range edges {
@@ -850,58 +877,47 @@ func (transaction *loadTransaction) insertEdgeIdentities(
 			source = append(source, index)
 		}
 	}
-	copied, err := transaction.tx.CopyFrom(
+	reader := &copyBinaryReader{
+		rowCount: len(source),
+		rowAt: func(index int, output []byte) []byte {
+			sourceIndex := source[index]
+			edge := edges[sourceIndex].record
+			row := rows[sourceIndex]
+			generation := edges[sourceIndex].label.Generation
+			output = appendBinaryInt16(output, 8)
+			output = appendBinaryInt64Field(output, transaction.sink.options.Graph.ID)
+			output = appendBinaryInt64Field(output, generation.ID)
+			output = appendBinaryInt32Field(output, int32(generation.LabelID))
+			output = appendBinaryTextField(output, edge.Namespace)
+			output = appendBinaryTextField(output, edge.ExternalID)
+			output = appendBinaryInt64Field(output, int64(row.ID))
+			output = appendBinaryInt64Field(output, int64(row.StartID))
+			return appendBinaryInt64Field(output, int64(row.EndID))
+		},
+	}
+	copied, err := (&Transaction{tx: transaction.tx}).copyBinaryTable(
 		ctx,
-		pgx.Identifier{"pg_temp", stage},
+		pgx.Identifier{"agefreighter_meta", "edge_identity"},
 		[]string{
+			"graph_generation_id",
+			"label_generation_id",
+			"label_id",
 			"source_namespace",
 			"external_id",
 			"graph_id",
 			"start_graph_id",
 			"end_graph_id",
 		},
-		pgx.CopyFromSlice(len(source), func(index int) ([]any, error) {
-			sourceIndex := source[index]
-			edge := edges[sourceIndex].record
-			row := rows[sourceIndex]
-			return []any{
-				string(edge.Namespace),
-				string(edge.ExternalID),
-				int64(row.ID),
-				int64(row.StartID),
-				int64(row.EndID),
-			}, nil
-		}),
+		reader,
+		len(source),
 	)
 	if err != nil {
-		return fmt.Errorf("COPY edge identities: %w", err)
+		return fmt.Errorf("COPY edge identities into metadata: %w", err)
 	}
 	if copied != int64(identityCount) {
-		return fmt.Errorf("COPY staged %d edge identities, expected %d", copied, identityCount)
+		return fmt.Errorf("COPY wrote %d edge identities, expected %d", copied, identityCount)
 	}
-	generation := edges[0].label.Generation
-	tag, err := transaction.tx.Exec(
-		ctx,
-		`INSERT INTO agefreighter_meta.edge_identity (
-			graph_generation_id, label_generation_id, graph_namespace_oid,
-			label_id, label_relation_oid, mapping_generation, label_kind,
-			source_namespace, external_id, graph_id, start_graph_id, end_graph_id
-		)
-		SELECT $1, $2, $3, $4, $5, $6, 'e',
-		       source_namespace, external_id, graph_id, start_graph_id, end_graph_id
-		FROM pg_temp.agefreighter_edge_identity_stage`,
-		transaction.sink.options.Graph.ID,
-		generation.ID,
-		generation.GraphNamespaceOID,
-		int32(generation.LabelID),
-		generation.RelationOID,
-		int64(generation.MappingGeneration),
-	)
-	if err != nil {
-		return fmt.Errorf("insert edge identities: %w", err)
-	}
-	_, err = requireAffectedRows("insert edge identities", tag.RowsAffected(), identityCount)
-	return err
+	return nil
 }
 
 func (transaction *loadTransaction) Commit(

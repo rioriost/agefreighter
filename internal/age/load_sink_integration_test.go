@@ -399,7 +399,7 @@ func TestLoadSinkIntegration(t *testing.T) {
 		6,
 		1,
 		duplicateEdge,
-		"insert edge identities",
+		"COPY edge identities",
 	)
 	if err := store.StartJob(ctx, jobID); err != nil {
 		t.Fatalf("resume after duplicate edge: %v", err)

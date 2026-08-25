@@ -367,9 +367,14 @@ agefreighter_meta.load_batch
 agefreighter_meta.reject_record
 ```
 
-The identity rows include graph namespace OID, label ID, label relation OID,
-and mapping generation. Before an incremental job, the adapter compares these
-values with the AGE catalog and stops on mismatch.
+Label-generation rows retain graph namespace OID, label ID, relation OID,
+sequence OID, and mapping generation. Identity rows reference that normalized
+generation and retain the label ID needed for endpoint lookup. Before writing
+identities, the data transaction validates and locks the admitted label
+generation with `FOR KEY SHARE`; incremental admission separately compares the
+full generation with the live AGE catalog and stops on mismatch. The identity
+tables are internal implementation tables rather than a supported direct-SQL
+write API.
 
 The data batch, identity rows, and successful checkpoint are committed in the
 same PostgreSQL transaction. A process crash can therefore lead only to:
@@ -378,10 +383,13 @@ same PostgreSQL transaction. A process crash can therefore lead only to:
 - neither being committed.
 
 Rejections, batch-attempt details, and failed job status must survive a batch
-rollback. They are written through a second target connection and independent
-transaction. Every diagnostic row is keyed by job, batch, and attempt so replay
-is idempotent. A diagnostic can therefore describe an attempt whose data
-transaction was rolled back; its status records that outcome explicitly.
+rollback. Batch-attempt start is committed in an independent transaction on
+the advisory-lock owner connection before the data transaction begins.
+Failure diagnostics are written through a second target connection after the
+data transaction rolls back. Every diagnostic row is keyed by job, batch, and
+attempt so replay is idempotent. A diagnostic can therefore describe an
+attempt whose data transaction was rolled back; its status records that
+outcome explicitly.
 
 Local files and SQLite are not authoritative checkpoint stores.
 

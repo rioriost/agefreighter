@@ -3,30 +3,38 @@ package csv
 import (
 	"bufio"
 	"context"
+	stdcsv "encoding/csv"
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/rioriost/agefreighter/pkg/model"
 )
 
 type ParserOptions struct {
-	Delimiter      rune
-	Quote          rune
-	Escape         rune
-	Resource       string
-	MaxRecordBytes int64
-	MaxFields      int
+	Delimiter       rune
+	Quote           rune
+	Escape          rune
+	Resource        string
+	MaxRecordBytes  int64
+	MaxFields       int
+	OptimizeRFC4180 bool
 }
 
 type Parser struct {
 	reader      *bufio.Reader
+	standard    *stdcsv.Reader
 	options     ParserOptions
 	offset      int64
 	line        int64
 	recordStart int64
 	finished    bool
+	pending     bool
+	pendingRune rune
+	pendingSize int
+	canUnread   bool
 }
 
 type ParseError struct {
@@ -73,22 +81,37 @@ func NewParser(input io.Reader, options ParserOptions) (*Parser, error) {
 	case options.MaxFields < 0:
 		return nil, errors.New("CSV maximum fields must be positive")
 	}
-	return &Parser{
+	parser := &Parser{
 		reader:  bufio.NewReader(input),
 		options: options,
 		line:    1,
-	}, nil
+	}
+	if options.OptimizeRFC4180 {
+		if options.Quote != '"' || options.Escape != '"' {
+			return nil, errors.New(
+				"optimized RFC 4180 parsing requires double-quote quoting and escaping",
+			)
+		}
+		parser.standard = stdcsv.NewReader(parser.reader)
+		parser.standard.Comma = options.Delimiter
+		parser.standard.FieldsPerRecord = -1
+	}
+	return parser, nil
 }
 
 func (parser *Parser) ReadRecord(
 	ctx context.Context,
 ) ([]string, model.SourcePosition, error) {
+	if parser.standard != nil {
+		return parser.readStandardRecord(ctx)
+	}
 	position := model.SourcePosition{
 		Connector: "csv",
 		Resource:  parser.options.Resource,
 		Offset:    parser.offset,
 		Line:      parser.line,
 	}
+
 	if parser.finished {
 		return nil, position, io.EOF
 	}
@@ -249,8 +272,63 @@ func (parser *Parser) ReadRecord(
 	}
 }
 
+func (parser *Parser) readStandardRecord(
+	ctx context.Context,
+) ([]string, model.SourcePosition, error) {
+	position := model.SourcePosition{
+		Connector: "csv",
+		Resource:  parser.options.Resource,
+		Offset:    parser.offset,
+		Line:      parser.line,
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, position, err
+	}
+	fields, err := parser.standard.Read()
+	parser.offset = parser.standard.InputOffset()
+	if len(fields) > 0 {
+		line, _ := parser.standard.FieldPos(0)
+		position.Line = int64(line)
+		lastLine, _ := parser.standard.FieldPos(len(fields) - 1)
+		parser.line = int64(lastLine + strings.Count(fields[len(fields)-1], "\n") + 1)
+	}
+	if parser.offset-position.Offset > parser.options.MaxRecordBytes {
+		return nil, position, &ParseError{
+			Position: position,
+			Err:      fmt.Errorf("record exceeds %d bytes", parser.options.MaxRecordBytes),
+		}
+	}
+	if len(fields) > parser.options.MaxFields {
+		return nil, position, &ParseError{
+			Position: position,
+			Err:      fmt.Errorf("record exceeds %d fields", parser.options.MaxFields),
+		}
+	}
+	for _, field := range fields {
+		if !utf8.ValidString(field) {
+			return nil, position, &ParseError{
+				Position: position,
+				Err:      errors.New("input is not valid UTF-8"),
+			}
+		}
+	}
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			parser.finished = true
+			return nil, position, io.EOF
+		}
+		var parseErr *stdcsv.ParseError
+		if errors.As(err, &parseErr) {
+			position.Line = int64(parseErr.StartLine)
+		}
+		return nil, position, &ParseError{Position: position, Err: err}
+	}
+	return fields, position, nil
+}
+
 func (parser *Parser) readRune() (rune, int, error) {
-	character, size, err := parser.reader.ReadRune()
+	parser.canUnread = false
+	character, size, err := parser.readRawRune()
 	if err != nil {
 		return 0, 0, err
 	}
@@ -268,6 +346,7 @@ func (parser *Parser) readRune() (rune, int, error) {
 		}
 	}
 	if parser.offset-parser.recordStart > parser.options.MaxRecordBytes {
+		parser.canUnread = false
 		return 0, 0, &ParseError{
 			Position: model.SourcePosition{
 				Connector: "csv",
@@ -281,19 +360,59 @@ func (parser *Parser) readRune() (rune, int, error) {
 			),
 		}
 	}
+	parser.canUnread = true
+	return character, size, nil
+}
+
+func (parser *Parser) readRawRune() (rune, int, error) {
+	var (
+		character rune
+		size      int
+	)
+	if parser.pending {
+		character = parser.pendingRune
+		size = parser.pendingSize
+		parser.pending = false
+	} else {
+		first, err := parser.reader.ReadByte()
+		if err != nil {
+			return 0, 0, err
+		}
+		if first < utf8.RuneSelf {
+			character = rune(first)
+			size = 1
+		} else {
+			if err := parser.reader.UnreadByte(); err != nil {
+				return 0, 0, fmt.Errorf("unread CSV byte: %w", err)
+			}
+			character, size, err = parser.reader.ReadRune()
+			if err != nil {
+				return 0, 0, err
+			}
+		}
+	}
 	return character, size, nil
 }
 
 func (parser *Parser) unreadRune(character rune) error {
-	if err := parser.reader.UnreadRune(); err != nil {
-		return fmt.Errorf("unread CSV character: %w", err)
+	if !parser.canUnread {
+		return errors.New("no CSV character is available to unread")
 	}
-	parser.offset -= int64(utf8.RuneLen(character))
+	if parser.pending {
+		return errors.New("CSV parser already has a pending character")
+	}
+	size := utf8.RuneLen(character)
+	parser.pending = true
+	parser.pendingRune = character
+	parser.pendingSize = size
+	parser.offset -= int64(size)
+	parser.canUnread = false
 	return nil
 }
 
 func (parser *Parser) consumeOptionalLF() error {
-	next, size, err := parser.reader.ReadRune()
+	next, size, err := parser.readRawRune()
+	parser.canUnread = false
 	if errors.Is(err, io.EOF) {
 		parser.finished = true
 		return nil
@@ -302,9 +421,9 @@ func (parser *Parser) consumeOptionalLF() error {
 		return err
 	}
 	if next != '\n' {
-		if err := parser.reader.UnreadRune(); err != nil {
-			return fmt.Errorf("unread CSV character: %w", err)
-		}
+		parser.pending = true
+		parser.pendingRune = next
+		parser.pendingSize = size
 		return nil
 	}
 	parser.offset += int64(size)
@@ -316,10 +435,7 @@ func (parser *Parser) consumeOptionalLF() error {
 				Offset:    parser.recordStart,
 				Line:      parser.line,
 			},
-			Err: fmt.Errorf(
-				"record exceeds %d bytes",
-				parser.options.MaxRecordBytes,
-			),
+			Err: fmt.Errorf("record exceeds %d bytes", parser.options.MaxRecordBytes),
 		}
 	}
 	return nil

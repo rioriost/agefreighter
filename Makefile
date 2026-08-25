@@ -4,6 +4,9 @@ GO ?= go
 GOVULNCHECK ?= $(shell $(GO) env GOPATH)/bin/govulncheck
 COVERAGE_DIR ?= .coverage
 COVERAGE_THRESHOLD ?= 90.0
+BENCHTIME ?= 5x
+BENCHFLAGS ?=
+SCALE_ROWS ?= 200000
 AGEFREIGHTER_AGE_TEST_DSN ?= postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || printf unknown)
@@ -12,12 +15,23 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 	-X github.com/rioriost/agefreighter/internal/version.Commit=$(COMMIT) \
 	-X github.com/rioriost/agefreighter/internal/version.BuildDate=$(BUILD_DATE)
 
-.PHONY: build check check-full coverage dev-down dev-pull dev-reset dev-smoke \
+.PHONY: bench-csv bench-csv-scale build check check-full coverage dev-down dev-pull dev-reset dev-smoke \
 	dev-status dev-up fmt install-tools test test-race tidy vet vuln
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter ./cmd/agefreighter
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter-tools ./cmd/agefreighter-tools
+
+bench-csv:
+	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+		$(GO) test -run '^$$' -bench '^BenchmarkLegacyCountriesLoad$$' \
+		-benchtime="$(BENCHTIME)" -benchmem $(BENCHFLAGS) ./internal/app
+
+bench-csv-scale:
+	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+		AGEFREIGHTER_BENCH_ROWS="$(SCALE_ROWS)" \
+		$(GO) test -run '^$$' -bench '^BenchmarkGeneratedCSVLoad$$' \
+		-benchtime="1x" -benchmem $(BENCHFLAGS) ./internal/app
 
 fmt:
 	@files="$$(gofmt -l .)"; \
