@@ -145,6 +145,10 @@ func validateDelimitedOptions(options DelimitedOptions, path string, errs *Valid
 		"must contain exactly one character")
 	add(options.Delimiter != "\n" && options.Delimiter != "\r", path+".delimiter", "format",
 		"must not be a line break")
+	add(options.Quote != "\n" && options.Quote != "\r", path+".quote", "format",
+		"must not be a line break")
+	add(options.Escape != "\n" && options.Escape != "\r", path+".escape", "format",
+		"must not be a line break")
 	add(options.Delimiter != options.Quote, path+".delimiter", "format",
 		"must differ from quote")
 	add(options.Encoding == "utf-8", path+".encoding", "unsupported", "only utf-8 is supported in 2.0.0")

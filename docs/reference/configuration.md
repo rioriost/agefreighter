@@ -67,7 +67,17 @@ source:
 ```
 
 Delimiter, quote, and escape values must each contain exactly one Unicode code
-point. Delimiters cannot be line breaks or equal the quote character.
+point. None can be a line break, and the delimiter cannot equal the quote
+character.
+
+At the first read, the CSV source fingerprints the complete ordered manifest:
+every mapped file's bytes and mapping semantics. Resume refuses any change to
+that manifest, including files before or after the checkpoint. An opened file
+descriptor is the immutable snapshot for its active mapping, so atomically
+replacing that path does not mix old and new bytes in the active read. Do not
+modify a mapped file in place while a job is running; such changes violate the
+source contract, fail verification, and cannot be resumed against the changed
+manifest.
 
 ## Load modes
 

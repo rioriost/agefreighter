@@ -52,6 +52,16 @@ func TestValidationErrors(t *testing.T) {
 			path: "source.csv.defaults.delimiter",
 		},
 		{
+			name: "line-break quote",
+			edit: func(job *LoadJob) { job.Source.CSV.Defaults.Quote = "\n" },
+			path: "source.csv.defaults.quote",
+		},
+		{
+			name: "line-break escape",
+			edit: func(job *LoadJob) { job.Source.CSV.Defaults.Escape = "\r" },
+			path: "source.csv.defaults.escape",
+		},
+		{
 			name: "load mode",
 			edit: func(job *LoadJob) { job.Target.Mode = "truncate" },
 			path: "target.mode",
