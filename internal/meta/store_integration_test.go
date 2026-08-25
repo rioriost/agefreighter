@@ -1,0 +1,641 @@
+package meta
+
+import (
+	"context"
+	"errors"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+const metadataTestDSNEnvironment = "AGEFREIGHTER_AGE_TEST_DSN"
+
+func TestStoreIntegration(t *testing.T) {
+	dsn := os.Getenv(metadataTestDSNEnvironment)
+	if dsn == "" {
+		t.Skip("set " + metadataTestDSNEnvironment + " to run metadata integration tests")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatalf("open metadata test pool: %v", err)
+	}
+	t.Cleanup(pool.Close)
+	if _, err := pool.Exec(ctx, `DROP SCHEMA IF EXISTS agefreighter_meta CASCADE`); err != nil {
+		t.Fatalf("reset metadata schema: %v", err)
+	}
+	store, err := New(pool)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	if err := store.Migrate(ctx); err != nil {
+		t.Fatalf("Migrate() error = %v", err)
+	}
+	if err := store.Migrate(ctx); err != nil {
+		t.Fatalf("idempotent Migrate() error = %v", err)
+	}
+	if _, err := pool.Exec(
+		ctx,
+		`INSERT INTO agefreighter_meta.schema_migration (version) VALUES ($1)`,
+		schemaVersion+1,
+	); err != nil {
+		t.Fatalf("insert future schema version: %v", err)
+	}
+	if err := store.Migrate(ctx); err == nil ||
+		!strings.Contains(err.Error(), "newer than supported") {
+		t.Fatalf("future Migrate() error = %v", err)
+	}
+	if _, err := pool.Exec(
+		ctx,
+		`DELETE FROM agefreighter_meta.schema_migration WHERE version = $1`,
+		schemaVersion+1,
+	); err != nil {
+		t.Fatalf("delete future schema version: %v", err)
+	}
+	if _, err := pool.Exec(
+		ctx,
+		`TRUNCATE agefreighter_meta.load_job CASCADE`,
+	); err != nil {
+		t.Fatalf("clean metadata tables: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		_, _ = pool.Exec(cleanupCtx, `TRUNCATE agefreighter_meta.load_job CASCADE`)
+	})
+
+	job := Job{
+		ID:                testJobID,
+		Name:              "people",
+		SourceType:        "csv",
+		LoadMode:          "create",
+		TargetGraph:       "people",
+		ConfigFingerprint: strings.Repeat("a", 64),
+	}
+	if err := store.CreateJob(ctx, job); err != nil {
+		t.Fatalf("CreateJob() error = %v", err)
+	}
+	if err := store.CreateJob(ctx, job); err == nil {
+		t.Fatal("duplicate CreateJob() succeeded")
+	}
+	storedJob, err := store.GetJob(ctx, testJobID)
+	if err != nil {
+		t.Fatalf("GetJob() error = %v", err)
+	}
+	if storedJob.Status != JobPending || storedJob.NextBatchID != 1 {
+		t.Fatalf("new job = %#v", storedJob)
+	}
+	if _, err := store.GetJob(ctx, "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing GetJob() error = %v", err)
+	}
+	if err := store.CompleteJob(
+		ctx,
+		"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+	); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing CompleteJob() error = %v", err)
+	}
+	if _, err := store.LatestBatch(ctx, "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing LatestBatch() error = %v", err)
+	}
+	if err := store.StartJob(ctx, testJobID); err != nil {
+		t.Fatalf("StartJob() error = %v", err)
+	}
+	if err := store.StartJob(ctx, testJobID); !errors.Is(err, ErrConflict) {
+		t.Fatalf("second StartJob() error = %v", err)
+	}
+
+	graph, err := store.RegisterGraphGeneration(ctx, GraphGeneration{
+		JobID:        testJobID,
+		GraphName:    "people",
+		GraphOID:     42000,
+		NamespaceOID: 42000,
+		Generation:   1,
+		State:        GenerationLoading,
+	})
+	if err != nil {
+		t.Fatalf("RegisterGraphGeneration() error = %v", err)
+	}
+	admittedGraph, err := store.AdmitGraphGeneration(ctx, testJobID, graph)
+	if err != nil || admittedGraph.ID != graph.ID {
+		t.Fatalf("AdmitGraphGeneration() = %#v, %v", admittedGraph, err)
+	}
+	changedGraph := graph
+	changedGraph.GraphOID++
+	changedGraph.NamespaceOID++
+	if _, err := store.AdmitGraphGeneration(ctx, testJobID, changedGraph); !errors.Is(err, ErrGenerationMismatch) {
+		t.Fatalf("changed AdmitGraphGeneration() error = %v", err)
+	}
+	changedGraph = graph
+	changedGraph.Generation++
+	if _, err := store.AdmitGraphGeneration(ctx, testJobID, changedGraph); !errors.Is(err, ErrGenerationMismatch) {
+		t.Fatalf("changed logical graph generation error = %v", err)
+	}
+	if _, err := store.RegisterGraphGeneration(ctx, graph); err == nil {
+		t.Fatal("duplicate RegisterGraphGeneration() succeeded")
+	}
+	if _, err := store.AdmitGraphGeneration(
+		ctx,
+		"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		graph,
+	); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing AdmitGraphGeneration() error = %v", err)
+	}
+
+	if _, err := store.RegisterLabelGeneration(ctx, LabelGeneration{
+		GraphGenerationID: graph.ID,
+		LabelName:         "Wrong",
+		Kind:              VertexLabel,
+		GraphNamespaceOID: graph.NamespaceOID + 1,
+		LabelID:           9,
+		RelationOID:       43009,
+		SequenceOID:       44009,
+		MappingGeneration: 1,
+	}); !errors.Is(err, ErrGenerationMismatch) {
+		t.Fatalf("namespace mismatch RegisterLabelGeneration() error = %v", err)
+	}
+	label, err := store.RegisterLabelGeneration(ctx, LabelGeneration{
+		GraphGenerationID: graph.ID,
+		LabelName:         "Person",
+		Kind:              VertexLabel,
+		GraphNamespaceOID: graph.NamespaceOID,
+		LabelID:           1,
+		RelationOID:       43001,
+		SequenceOID:       44001,
+		MappingGeneration: 1,
+	})
+	if err != nil {
+		t.Fatalf("RegisterLabelGeneration() error = %v", err)
+	}
+	admittedLabel, err := store.AdmitLabelGeneration(ctx, graph.ID, label)
+	if err != nil || admittedLabel.ID != label.ID {
+		t.Fatalf("AdmitLabelGeneration() = %#v, %v", admittedLabel, err)
+	}
+	changedLabel := label
+	changedLabel.RelationOID++
+	if _, err := store.AdmitLabelGeneration(ctx, graph.ID, changedLabel); !errors.Is(err, ErrGenerationMismatch) {
+		t.Fatalf("changed AdmitLabelGeneration() error = %v", err)
+	}
+	changedLabel = label
+	changedLabel.MappingGeneration++
+	if _, err := store.AdmitLabelGeneration(ctx, graph.ID, changedLabel); !errors.Is(err, ErrGenerationMismatch) {
+		t.Fatalf("changed logical label generation error = %v", err)
+	}
+	missingLabel := label
+	missingLabel.LabelName = "Missing"
+	if _, err := store.AdmitLabelGeneration(ctx, graph.ID, missingLabel); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing AdmitLabelGeneration() error = %v", err)
+	}
+	if _, err := store.RegisterLabelGeneration(ctx, label); err == nil {
+		t.Fatal("duplicate RegisterLabelGeneration() succeeded")
+	}
+	secondJob := job
+	secondJob.ID = "22222222-3333-4444-8555-666666666666"
+	secondJob.Name = "other"
+	secondJob.TargetGraph = "other"
+	if err := store.CreateJob(ctx, secondJob); err != nil {
+		t.Fatalf("second CreateJob() error = %v", err)
+	}
+	secondGraph, err := store.RegisterGraphGeneration(ctx, GraphGeneration{
+		JobID:        secondJob.ID,
+		GraphName:    "other",
+		GraphOID:     52000,
+		NamespaceOID: 52000,
+		Generation:   1,
+		State:        GenerationLoading,
+	})
+	if err != nil {
+		t.Fatalf("second RegisterGraphGeneration() error = %v", err)
+	}
+	secondLabel, err := store.RegisterLabelGeneration(ctx, LabelGeneration{
+		GraphGenerationID: secondGraph.ID,
+		LabelName:         "Person",
+		Kind:              VertexLabel,
+		GraphNamespaceOID: secondGraph.NamespaceOID,
+		LabelID:           2,
+		RelationOID:       53002,
+		SequenceOID:       54002,
+		MappingGeneration: 1,
+	})
+	if err != nil {
+		t.Fatalf("second RegisterLabelGeneration() error = %v", err)
+	}
+	if _, err := pool.Exec(
+		ctx,
+		`INSERT INTO agefreighter_meta.vertex_identity (
+			graph_generation_id, label_generation_id, graph_namespace_oid,
+			label_id, label_relation_oid, mapping_generation, label_kind,
+			source_namespace, external_id, graph_id
+		) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', 'cross-graph', 1)`,
+		graph.ID,
+		secondLabel.ID,
+		secondLabel.GraphNamespaceOID,
+		secondLabel.LabelID,
+		secondLabel.RelationOID,
+		secondLabel.MappingGeneration,
+	); err == nil {
+		t.Fatal("cross-generation vertex identity insert succeeded")
+	}
+	if _, err := pool.Exec(
+		ctx,
+		`INSERT INTO agefreighter_meta.vertex_identity (
+			graph_generation_id, label_generation_id, graph_namespace_oid,
+			label_id, label_relation_oid, mapping_generation, label_kind,
+			source_namespace, external_id, graph_id
+		) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', 'wrong-catalog', 2)`,
+		graph.ID,
+		label.ID,
+		label.GraphNamespaceOID,
+		label.LabelID,
+		label.RelationOID+1,
+		label.MappingGeneration,
+	); err == nil {
+		t.Fatal("catalog-mismatched vertex identity insert succeeded")
+	}
+	edgeLabel, err := store.RegisterLabelGeneration(ctx, LabelGeneration{
+		GraphGenerationID: graph.ID,
+		LabelName:         "KNOWS",
+		Kind:              EdgeLabel,
+		GraphNamespaceOID: graph.NamespaceOID,
+		LabelID:           2,
+		RelationOID:       43002,
+		SequenceOID:       44002,
+		MappingGeneration: 1,
+	})
+	if err != nil {
+		t.Fatalf("edge RegisterLabelGeneration() error = %v", err)
+	}
+	if _, err := pool.Exec(
+		ctx,
+		`INSERT INTO agefreighter_meta.vertex_identity (
+			graph_generation_id, label_generation_id, graph_namespace_oid,
+			label_id, label_relation_oid, mapping_generation, label_kind,
+			source_namespace, external_id, graph_id
+		) VALUES ($1, $2, $3, $4, $5, $6, 'v', 'crm', 'edge-as-vertex', 3)`,
+		graph.ID,
+		edgeLabel.ID,
+		edgeLabel.GraphNamespaceOID,
+		edgeLabel.LabelID,
+		edgeLabel.RelationOID,
+		edgeLabel.MappingGeneration,
+	); err == nil {
+		t.Fatal("edge-label vertex identity insert succeeded")
+	}
+	if _, err := pool.Exec(
+		ctx,
+		`INSERT INTO agefreighter_meta.edge_identity (
+			graph_generation_id, label_generation_id, graph_namespace_oid,
+			label_id, label_relation_oid, mapping_generation, label_kind,
+			source_namespace, external_id, graph_id, start_graph_id, end_graph_id
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, 'e', 'crm', 'vertex-as-edge', 4, 1, 1
+		)`,
+		graph.ID,
+		label.ID,
+		label.GraphNamespaceOID,
+		label.LabelID,
+		label.RelationOID,
+		label.MappingGeneration,
+	); err == nil {
+		t.Fatal("vertex-label edge identity insert succeeded")
+	}
+	if err := store.SetGraphGenerationState(
+		ctx,
+		0,
+		GenerationLoading,
+		GenerationActive,
+	); err == nil {
+		t.Fatal("zero-ID SetGraphGenerationState() succeeded")
+	}
+	if err := store.SetGraphGenerationState(
+		ctx,
+		graph.ID,
+		GenerationLoading,
+		GenerationLoading,
+	); err == nil {
+		t.Fatal("no-op SetGraphGenerationState() succeeded")
+	}
+	if err := store.SetGraphGenerationState(
+		ctx,
+		graph.ID,
+		GenerationLoading,
+		GenerationRetired,
+	); err == nil {
+		t.Fatal("invalid SetGraphGenerationState() succeeded")
+	}
+	if err := store.SetGraphGenerationState(
+		ctx,
+		graph.ID,
+		GenerationLoading,
+		GenerationActive,
+	); err != nil {
+		t.Fatalf("SetGraphGenerationState() error = %v", err)
+	}
+	if err := store.SetGraphGenerationState(
+		ctx,
+		graph.ID,
+		GenerationLoading,
+		GenerationActive,
+	); !errors.Is(err, ErrConflict) {
+		t.Fatalf("stale SetGraphGenerationState() error = %v", err)
+	}
+
+	batch := BatchAttempt{
+		JobID:   testJobID,
+		BatchID: 1,
+		Attempt: 1,
+		Rows:    2,
+		Bytes:   10,
+		First: Position{
+			Resource:   "people.csv",
+			Line:       2,
+			ByteOffset: 3,
+			Token:      "first",
+		},
+	}
+	futureBatch := batch
+	futureBatch.BatchID = 2
+	if _, err := store.StartBatch(ctx, futureBatch); !errors.Is(err, ErrConflict) {
+		t.Fatalf("future StartBatch() error = %v", err)
+	}
+	started, err := store.StartBatch(ctx, batch)
+	if err != nil || started.Status != BatchRunning {
+		t.Fatalf("StartBatch() = %#v, %v", started, err)
+	}
+	if _, err := store.StartBatch(ctx, batch); err != nil {
+		t.Fatalf("idempotent StartBatch() error = %v", err)
+	}
+	different := batch
+	different.Rows++
+	if _, err := store.StartBatch(ctx, different); !errors.Is(err, ErrConflict) {
+		t.Fatalf("different StartBatch() error = %v", err)
+	}
+	if _, err := store.GetBatch(ctx, testJobID, 1, 2); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing GetBatch() error = %v", err)
+	}
+	last := Position{
+		Resource:   "people.csv",
+		Line:       3,
+		ByteOffset: 10,
+		Token:      "checkpoint-1",
+	}
+	if err := store.CommitBatch(ctx, testJobID, 1, 1, Position{}, 0); err == nil {
+		t.Fatal("tokenless CommitBatch() succeeded")
+	}
+	if err := store.CommitBatch(ctx, testJobID, 1, 1, last, -1); err == nil {
+		t.Fatal("negative-reject CommitBatch() succeeded")
+	}
+	if err := store.CommitBatch(ctx, testJobID, 99, 1, last, 0); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing CommitBatch() error = %v", err)
+	}
+	if err := store.CommitBatch(ctx, testJobID, 1, 1, last, 1); err != nil {
+		t.Fatalf("CommitBatch() error = %v", err)
+	}
+	if err := store.CommitBatch(ctx, testJobID, 1, 1, last, 1); err != nil {
+		t.Fatalf("idempotent CommitBatch() error = %v", err)
+	}
+	committedStart, err := store.StartBatch(ctx, batch)
+	if err != nil || committedStart.Status != BatchCommitted {
+		t.Fatalf("committed idempotent StartBatch() = %#v, %v", committedStart, err)
+	}
+	changedLast := last
+	changedLast.Line++
+	if err := store.CommitBatch(ctx, testJobID, 1, 1, changedLast, 1); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed idempotent CommitBatch() error = %v", err)
+	}
+	latest, err := store.LatestBatch(ctx, testJobID)
+	if err != nil || latest.Status != BatchCommitted || latest.Last != last {
+		t.Fatalf("LatestBatch() = %#v, %v", latest, err)
+	}
+	storedJob, err = store.GetJob(ctx, testJobID)
+	if err != nil {
+		t.Fatalf("GetJob(after batch) error = %v", err)
+	}
+	if storedJob.NextBatchID != 2 ||
+		storedJob.ResumeToken != last.Token ||
+		storedJob.CommittedRows != 2 ||
+		storedJob.CommittedBytes != 10 ||
+		storedJob.RejectedRows != 1 {
+		t.Fatalf("job checkpoint = %#v", storedJob)
+	}
+	inserted, err := store.PutReject(ctx, RejectRecord{
+		JobID:        testJobID,
+		BatchID:      1,
+		Attempt:      1,
+		Position:     Position{Resource: "people.csv", Line: 2, Token: "reject-1"},
+		ErrorClass:   "mapping",
+		ErrorMessage: "empty ID",
+		Record:       []byte(`{"id":""}`),
+	})
+	if err != nil || !inserted {
+		t.Fatalf("PutReject() = %t, %v", inserted, err)
+	}
+	inserted, err = store.PutReject(ctx, RejectRecord{
+		JobID:        testJobID,
+		BatchID:      1,
+		Attempt:      1,
+		Position:     Position{Resource: "people.csv", Line: 2, Token: "reject-1"},
+		ErrorClass:   "mapping",
+		ErrorMessage: "empty ID",
+		Record:       []byte(`{"id":""}`),
+	})
+	if err != nil || inserted {
+		t.Fatalf("idempotent PutReject() = %t, %v", inserted, err)
+	}
+	if _, err := store.PutReject(ctx, RejectRecord{
+		JobID:        testJobID,
+		BatchID:      1,
+		Attempt:      1,
+		Position:     Position{Resource: "people.csv", Line: 2, Token: "reject-1"},
+		ErrorClass:   "mapping",
+		ErrorMessage: "different error",
+		Record:       []byte(`{"id":""}`),
+	}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("conflicting PutReject() error = %v", err)
+	}
+
+	failed := BatchAttempt{
+		JobID:   testJobID,
+		BatchID: 2,
+		Attempt: 1,
+		Rows:    1,
+		Bytes:   5,
+		First:   Position{Token: "first-2"},
+	}
+	if _, err := store.StartBatch(ctx, failed); err != nil {
+		t.Fatalf("second StartBatch() error = %v", err)
+	}
+	prematureFailure := failed
+	prematureFailure.Attempt = 2
+	if err := store.RecordFailedBatch(
+		ctx,
+		prematureFailure,
+		"premature retry failure",
+	); !errors.Is(err, ErrConflict) {
+		t.Fatalf("premature retry RecordFailedBatch() error = %v", err)
+	}
+	if err := store.CompleteJob(ctx, testJobID); !errors.Is(err, ErrConflict) {
+		t.Fatalf("CompleteJob(with running batch) error = %v", err)
+	}
+	if err := store.FailJob(ctx, testJobID, "failure during running batch"); err != nil {
+		t.Fatalf("running-batch FailJob() error = %v", err)
+	}
+	if err := store.CommitBatch(
+		ctx,
+		testJobID,
+		2,
+		1,
+		Position{Token: "should-not-commit"},
+		0,
+	); !errors.Is(err, ErrConflict) {
+		t.Fatalf("failed-job CommitBatch() error = %v", err)
+	}
+	if err := store.StartJob(ctx, testJobID); err != nil {
+		t.Fatalf("running-batch resume StartJob() error = %v", err)
+	}
+	failedDiagnostic := failed
+	failedDiagnostic.RejectedRows = 2
+	if err := store.RecordFailedBatch(ctx, failedDiagnostic, "injected failure"); err != nil {
+		t.Fatalf("RecordFailedBatch() error = %v", err)
+	}
+	storedFailed, err := store.GetBatch(ctx, testJobID, 2, 1)
+	if err != nil || storedFailed.RejectedRows != 2 {
+		t.Fatalf("failed GetBatch() = %#v, %v", storedFailed, err)
+	}
+	conflictingFailure := failedDiagnostic
+	conflictingFailure.RejectedRows++
+	if err := store.RecordFailedBatch(
+		ctx,
+		conflictingFailure,
+		"injected failure",
+	); !errors.Is(err, ErrConflict) {
+		t.Fatalf("conflicting RecordFailedBatch() error = %v", err)
+	}
+	conflictingMetadata := failedDiagnostic
+	conflictingMetadata.Rows++
+	if err := store.RecordFailedBatch(
+		ctx,
+		conflictingMetadata,
+		"injected failure",
+	); !errors.Is(err, ErrConflict) {
+		t.Fatalf("metadata-conflicting RecordFailedBatch() error = %v", err)
+	}
+	skippedFailure := failedDiagnostic
+	skippedFailure.Attempt = 3
+	if err := store.RecordFailedBatch(
+		ctx,
+		skippedFailure,
+		"skipped retry failure",
+	); !errors.Is(err, ErrConflict) {
+		t.Fatalf("skipped retry RecordFailedBatch() error = %v", err)
+	}
+	if err := store.RecordFailedBatch(ctx, failedDiagnostic, ""); err == nil {
+		t.Fatal("message-less RecordFailedBatch() succeeded")
+	}
+	if err := store.RecordFailedBatch(ctx, batch, "cannot fail committed"); !errors.Is(err, ErrConflict) {
+		t.Fatalf("committed RecordFailedBatch() error = %v", err)
+	}
+	storedJob, err = store.GetJob(ctx, testJobID)
+	if err != nil || storedJob.Status != JobFailed {
+		t.Fatalf("failed GetJob() = %#v, %v", storedJob, err)
+	}
+	if err := store.StartJob(ctx, testJobID); err != nil {
+		t.Fatalf("resume StartJob() error = %v", err)
+	}
+	if err := store.RecordFailedBatch(
+		ctx,
+		failedDiagnostic,
+		"injected failure",
+	); err != nil {
+		t.Fatalf("idempotent old RecordFailedBatch() error = %v", err)
+	}
+	storedJob, err = store.GetJob(ctx, testJobID)
+	if err != nil || storedJob.Status != JobRunning {
+		t.Fatalf("idempotent failure changed resumed job = %#v, %v", storedJob, err)
+	}
+	retry := failed
+	retry.Attempt = 2
+	if _, err := store.StartBatch(ctx, retry); err != nil {
+		t.Fatalf("retry StartBatch() error = %v", err)
+	}
+	concurrentAttempt := retry
+	concurrentAttempt.Attempt = 3
+	if _, err := store.StartBatch(ctx, concurrentAttempt); !errors.Is(err, ErrConflict) {
+		t.Fatalf("concurrent StartBatch() error = %v", err)
+	}
+	if err := store.RecordFailedBatch(
+		ctx,
+		failedDiagnostic,
+		"injected failure",
+	); !errors.Is(err, ErrConflict) {
+		t.Fatalf("stale RecordFailedBatch() error = %v", err)
+	}
+	retryDiagnostic := retry
+	retryDiagnostic.RejectedRows = 1
+	if err := store.RecordFailedBatch(
+		ctx,
+		retryDiagnostic,
+		"retry failure",
+	); err != nil {
+		t.Fatalf("retry RecordFailedBatch() error = %v", err)
+	}
+	if err := store.StartJob(ctx, testJobID); err != nil {
+		t.Fatalf("second resume StartJob() error = %v", err)
+	}
+	if err := store.CompleteJob(ctx, testJobID); !errors.Is(err, ErrConflict) {
+		t.Fatalf("CompleteJob(with unresolved failed batch) error = %v", err)
+	}
+	finalRetry := failed
+	finalRetry.Attempt = 3
+	if _, err := store.StartBatch(ctx, finalRetry); err != nil {
+		t.Fatalf("final retry StartBatch() error = %v", err)
+	}
+	if err := store.CommitBatch(
+		ctx,
+		testJobID,
+		2,
+		3,
+		Position{Resource: "people.csv", Line: 4, Token: "checkpoint-2"},
+		0,
+	); err != nil {
+		t.Fatalf("final retry CommitBatch() error = %v", err)
+	}
+	if err := store.FailJob(ctx, testJobID, ""); err == nil {
+		t.Fatal("message-less FailJob() succeeded")
+	}
+	if err := store.FailJob(ctx, testJobID, "manual failure"); err != nil {
+		t.Fatalf("FailJob() error = %v", err)
+	}
+	if err := store.StartJob(ctx, testJobID); err != nil {
+		t.Fatalf("third resume StartJob() error = %v", err)
+	}
+	if err := store.CompleteJob(ctx, testJobID); err != nil {
+		t.Fatalf("CompleteJob() error = %v", err)
+	}
+	if err := store.CompleteJob(ctx, testJobID); !errors.Is(err, ErrConflict) {
+		t.Fatalf("second CompleteJob() error = %v", err)
+	}
+
+	outer, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin outer transaction: %v", err)
+	}
+	transactionStore, err := New(outer)
+	if err != nil {
+		t.Fatalf("New(transaction) error = %v", err)
+	}
+	rolledBack := job
+	rolledBack.ID = "99999999-8888-4777-8666-555555555555"
+	if err := transactionStore.CreateJob(ctx, rolledBack); err != nil {
+		t.Fatalf("transaction CreateJob() error = %v", err)
+	}
+	if err := outer.Rollback(ctx); err != nil {
+		t.Fatalf("rollback outer transaction: %v", err)
+	}
+	if _, err := store.GetJob(ctx, rolledBack.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("rolled-back GetJob() error = %v", err)
+	}
+}
