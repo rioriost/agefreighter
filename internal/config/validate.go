@@ -12,7 +12,7 @@ const maxConcurrency = 256
 
 var (
 	jobNamePattern   = regexp.MustCompile(`^[a-z][a-z0-9-]{2,62}$`)
-	graphNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+	graphNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_]$`)
 	envNamePattern   = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 )
 

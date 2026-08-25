@@ -362,7 +362,7 @@ The initial missing-endpoint policies are `error` and `quarantine`. The bounded
 - verification before promotion
 - graph rename and metadata-generation promotion in one transaction
 - backup naming that satisfies AGE's 3-63 byte graph-name limit and
-  `^[A-Za-z_][A-Za-z0-9_]*$`
+  `^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_]$`
 - explicit old-graph retention and cleanup command
 - resume of a partially loaded shadow graph
 

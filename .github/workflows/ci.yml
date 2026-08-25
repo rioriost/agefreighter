@@ -20,13 +20,17 @@ jobs:
           cache: true
       - name: Install pinned tools
         run: make install-tools
-      - name: Run full quality gate
-        run: make check-full
+      - name: Run database-independent quality gate
+        run: make check
 
   development-environment:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
       - name: Start pinned development databases
         env:
           DEV_RUNTIME: docker
@@ -49,6 +53,12 @@ jobs:
           DEV_RUNTIME: docker
           DEV_PLATFORM: linux/amd64
         run: make dev-reset
+      - name: Run AGE integration and coverage gate
+        env:
+          AGEFREIGHTER_AGE_TEST_DSN: postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable
+        run: |
+          go test -race ./internal/age
+          make coverage
       - name: Stop databases
         if: always()
         env:

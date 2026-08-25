@@ -73,6 +73,7 @@ point. Delimiters cannot be line breaks or equal the quote character.
 
 The target modes are `create`, `replace`, `append`, and `upsert`. Every edge
 mapping in an `upsert` job must provide an external edge identity field or
-column. Graph names must follow Apache AGE naming rules: 3–63 UTF-8 bytes,
-starting with a letter or underscore and containing only letters, digits, and
-underscores.
+column. Graph names must follow the supported Apache AGE naming subset: 3–63 UTF-8
+bytes, starting with a letter or underscore, ending with a letter, digit, or
+underscore, and containing only letters, digits, underscores, dots, and
+hyphens.

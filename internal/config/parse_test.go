@@ -203,6 +203,41 @@ func TestInvalidSecretFailsJSONSchema(t *testing.T) {
 	}
 }
 
+func TestJSONSchemaAGEGraphAndSecretPatterns(t *testing.T) {
+	root := moduleRoot(t)
+	compiler := jsonschema.NewCompiler()
+	schema, err := compiler.Compile(filepath.Join(root, "docs/reference/load-job.schema.json"))
+	if err != nil {
+		t.Fatalf("Compile() schema error = %v", err)
+	}
+	job := validCSVJob(t)
+	job.Target.Graph = "my.graph-name"
+
+	document := schemaDocument(t, job)
+	if err := schema.Validate(document); err != nil {
+		t.Fatalf("schema rejected supported AGE graph name: %v", err)
+	}
+
+	job.Target.Connection.Env = "INVALID-ENV"
+	document = schemaDocument(t, job)
+	if err := schema.Validate(document); err == nil {
+		t.Fatal("schema accepted invalid environment variable name")
+	}
+}
+
+func schemaDocument(t *testing.T, value any) any {
+	t.Helper()
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	var document any
+	if err := json.Unmarshal(encoded, &document); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	return document
+}
+
 func FuzzParse(f *testing.F) {
 	for _, path := range validFixturePaths(f) {
 		data, err := os.ReadFile(path)

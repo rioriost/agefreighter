@@ -27,16 +27,6 @@ func TestValidationErrors(t *testing.T) {
 			path: "target.graph",
 		},
 		{
-			name: "graph name with hyphen",
-			edit: func(job *LoadJob) { job.Target.Graph = "my-graph" },
-			path: "target.graph",
-		},
-		{
-			name: "graph name with dot",
-			edit: func(job *LoadJob) { job.Target.Graph = "my.graph" },
-			path: "target.graph",
-		},
-		{
 			name: "batch exceeds memory",
 			edit: func(job *LoadJob) { job.Runtime.BatchBytes = job.Runtime.MemoryLimit + 1 },
 			path: "runtime.batchBytes",
@@ -111,6 +101,18 @@ func TestUpsertRequiresEdgeIdentity(t *testing.T) {
 
 	if err == nil || !strings.Contains(err.Error(), "externalIdColumn") {
 		t.Fatalf("Validate() error = %v, want edge identity error", err)
+	}
+}
+
+func TestValidationAcceptsSupportedAGEGraphNames(t *testing.T) {
+	for _, graph := range []string{"my.graph", "my-graph", "_my.graph-name_"} {
+		t.Run(graph, func(t *testing.T) {
+			job := validCSVJob(t)
+			job.Target.Graph = graph
+			if err := job.Validate(); err != nil {
+				t.Fatalf("Validate() error = %v", err)
+			}
+		})
 	}
 }
 

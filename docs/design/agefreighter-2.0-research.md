@@ -236,9 +236,11 @@ tested compatibility layer.
 The AGE adapter:
 
 - detects PostgreSQL and AGE versions
-- detects whether AGE is preloaded or can be loaded by the current role
-- initializes every pooled session with the required search path and issues
-  `LOAD 'age'` only when the server requires it and the role is permitted
+- detects whether AGE is preloaded
+- initializes every pooled session with the required search path; when AGE is
+  not preloaded or the setting is hidden, invokes an installed AGE C function
+  to load the library and run `_PG_init` without requiring the superuser-only
+  `LOAD` command
 - creates and renames graphs through AGE functions
 - creates labels through AGE functions
 - reads label ID, relation OID, kind, and actual sequence name from

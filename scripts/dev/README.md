@@ -44,3 +44,26 @@ The runtime and platform can be selected explicitly:
 DEV_RUNTIME=apple DEV_PLATFORM=linux/arm64 ./scripts/dev/dev.sh up
 DEV_RUNTIME=docker DEV_PLATFORM=linux/amd64 ./scripts/dev/dev.sh up
 ```
+
+## AGE adapter integration tests
+
+With the development services running, execute the live AGE adapter contract
+tests with:
+
+```sh
+AGEFREIGHTER_AGE_TEST_DSN='postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable' \
+  go test -v ./internal/age
+```
+
+`make coverage` uses this local DSN by default and therefore requires
+`make dev-up`. This keeps the 90% gate based on the live AGE contract rather
+than counting database adapter code as excluded.
+
+Generate deterministic CSV source data without overwriting an existing output
+directory:
+
+```sh
+go run ./cmd/agefreighter-tools generate fixture --output .local/fixture
+go run ./cmd/agefreighter-tools generate benchmark \
+  --output .local/benchmark --vertices 100000 --edges 500000 --seed 1
+```

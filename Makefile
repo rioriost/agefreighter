@@ -4,6 +4,7 @@ GO ?= go
 GOVULNCHECK ?= $(shell $(GO) env GOPATH)/bin/govulncheck
 COVERAGE_DIR ?= .coverage
 COVERAGE_THRESHOLD ?= 90.0
+AGEFREIGHTER_AGE_TEST_DSN ?= postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || printf unknown)
 BUILD_DATE ?= unknown
@@ -43,7 +44,8 @@ test-race:
 
 coverage:
 	@mkdir -p "$(COVERAGE_DIR)"
-	$(GO) test -covermode=atomic -coverpkg=./... \
+	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+		$(GO) test -covermode=atomic -coverpkg=./... \
 		-coverprofile="$(COVERAGE_DIR)/unit.raw.out" ./...
 	./scripts/coverage/filter.sh \
 		"$(COVERAGE_DIR)/unit.raw.out" \
