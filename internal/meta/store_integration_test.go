@@ -39,6 +39,7 @@ func TestStoreIntegration(t *testing.T) {
 		testJobID,
 		"22222222-3333-4444-8555-666666666666",
 		"99999999-8888-4777-8666-555555555555",
+		"77777777-6666-4555-8444-333333333333",
 	}
 	if err := deleteTestJobs(ctx, pool, jobIDs); err != nil {
 		t.Fatalf("clean metadata tables: %v", err)
@@ -484,6 +485,20 @@ func TestStoreIntegration(t *testing.T) {
 		storedJob.RejectedRows != 1 {
 		t.Fatalf("job checkpoint = %#v", storedJob)
 	}
+	sourcePosition := Position{Resource: "people.csv", Line: 3, Token: "source-reject-2"}
+	if err := store.SetSourceRejections(ctx, testJobID, 2, sourcePosition); err != nil {
+		t.Fatalf("SetSourceRejections() error = %v", err)
+	}
+	if err := store.SetSourceRejections(ctx, testJobID, 2, sourcePosition); err != nil {
+		t.Fatalf("idempotent SetSourceRejections() error = %v", err)
+	}
+	if err := store.SetSourceRejections(ctx, testJobID, 1, sourcePosition); !errors.Is(err, ErrConflict) {
+		t.Fatalf("decreasing SetSourceRejections() error = %v", err)
+	}
+	storedJob, err = store.GetJob(ctx, testJobID)
+	if err != nil || storedJob.SourceRejectedRows != 2 || storedJob.RejectedRows != 3 {
+		t.Fatalf("source rejection checkpoint = %#v, %v", storedJob, err)
+	}
 	inserted, err := store.PutReject(ctx, RejectRecord{
 		JobID:        testJobID,
 		BatchID:      1,
@@ -651,6 +666,9 @@ func TestStoreIntegration(t *testing.T) {
 	if err := store.CompleteJob(ctx, testJobID); !errors.Is(err, ErrConflict) {
 		t.Fatalf("CompleteJob(with unresolved failed batch) error = %v", err)
 	}
+	if err := store.CompleteJobGeneration(ctx, testJobID, graph.ID); !errors.Is(err, ErrConflict) {
+		t.Fatalf("CompleteJobGeneration(with unresolved batch) error = %v", err)
+	}
 	finalRetry := failed
 	finalRetry.Attempt = 3
 	if _, err := store.StartBatch(ctx, finalRetry); err != nil {
@@ -680,6 +698,38 @@ func TestStoreIntegration(t *testing.T) {
 	}
 	if err := store.CompleteJob(ctx, testJobID); !errors.Is(err, ErrConflict) {
 		t.Fatalf("second CompleteJob() error = %v", err)
+	}
+	if err := store.CompleteJobGeneration(
+		ctx,
+		"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		graph.ID,
+	); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing CompleteJobGeneration() error = %v", err)
+	}
+
+	completionJob := job
+	completionJob.ID = "77777777-6666-4555-8444-333333333333"
+	completionJob.Name = "completion"
+	completionJob.TargetGraph = "completion"
+	if err := store.CreateJob(ctx, completionJob); err != nil {
+		t.Fatalf("completion CreateJob() error = %v", err)
+	}
+	if err := store.StartJob(ctx, completionJob.ID); err != nil {
+		t.Fatalf("completion StartJob() error = %v", err)
+	}
+	completionGraph, err := store.RegisterGraphGeneration(ctx, GraphGeneration{
+		JobID: completionJob.ID, GraphName: completionJob.TargetGraph,
+		GraphOID: 62000, NamespaceOID: 62000, Generation: 1, State: GenerationLoading,
+	})
+	if err != nil {
+		t.Fatalf("completion RegisterGraphGeneration() error = %v", err)
+	}
+	if err := store.CompleteJobGeneration(ctx, completionJob.ID, completionGraph.ID); err != nil {
+		t.Fatalf("CompleteJobGeneration() error = %v", err)
+	}
+	completed, err := store.GetJob(ctx, completionJob.ID)
+	if err != nil || completed.Status != JobCommitted {
+		t.Fatalf("completed generation job = %#v, %v", completed, err)
 	}
 
 	outer, err := pool.Begin(ctx)

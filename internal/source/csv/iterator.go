@@ -50,6 +50,7 @@ type Iterator struct {
 	manifest     string
 	manifestSet  bool
 	rejected     int
+	lastPosition model.SourcePosition
 	closed       bool
 	lastCloseErr error
 }
@@ -170,6 +171,7 @@ func NewIterator(ctx context.Context, options IteratorOptions) (*Iterator, error
 		}
 		iterator.mappingIndex = iterator.resume.Mapping
 		iterator.hasResume = true
+		iterator.lastPosition.Token = options.AfterToken
 	}
 	return iterator, nil
 }
@@ -250,6 +252,7 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 			}
 			continue
 		}
+		iterator.lastPosition = position
 		return sourcecontract.Item{
 			Record:    record,
 			SizeBytes: estimateRecordSize(record),
@@ -538,8 +541,8 @@ func (iterator *Iterator) mapRecord(
 	externalID := ""
 	if current.compiled.externalID >= 0 {
 		externalID = fields[current.compiled.externalID]
-		if externalID == nullValue {
-			externalID = ""
+		if externalID == "" || externalID == nullValue {
+			return model.Record{}, errors.New("CSV edge external ID must not be null or empty")
 		}
 	}
 	startNamespace := current.mapping.start.Namespace
@@ -590,10 +593,16 @@ func (iterator *Iterator) handleMalformed(
 		Rejected:    iterator.rejected,
 		Fingerprint: iterator.manifest,
 	})
+	iterator.lastPosition = malformed.Position
 	if err := iterator.options.OnMalformed(ctx, malformed); err != nil {
 		return fmt.Errorf("write CSV quarantine record: %w", err)
 	}
+
 	return nil
+}
+
+func (iterator *Iterator) RejectionCheckpoint() (int64, model.SourcePosition) {
+	return int64(iterator.rejected), iterator.lastPosition
 }
 
 func (iterator *Iterator) closeCurrent() error {

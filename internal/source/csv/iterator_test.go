@@ -76,6 +76,41 @@ func TestIteratorVerticesBeforeEdgesAndResume(t *testing.T) {
 		},
 	}
 
+	t.Run("empty edge identity", func(t *testing.T) {
+		directory := t.TempDir()
+		vertices := writeTestFile(t, directory, "vertices.csv", "id\np1\np2\n")
+		edges := writeTestFile(t, directory, "edges.csv", "id,start,end\n,p1,p2\n")
+		header := true
+		null := ""
+		iterator, err := NewIterator(context.Background(), IteratorOptions{
+			Namespace: "crm",
+			Source: config.CSVSource{
+				Defaults: config.DelimitedOptions{
+					Delimiter: ",", Quote: `"`, Escape: `"`,
+					Header: &header, Encoding: "utf-8", NullValue: &null,
+				},
+				Vertices: []config.CSVVertex{{
+					Label: "Person", Path: vertices, IDColumn: "id",
+				}},
+				Edges: []config.CSVEdge{{
+					Label: "KNOWS", Path: edges, ExternalIDColumn: "id",
+					Start: config.EndpointMapping{Label: "Person", Field: "start"},
+					End:   config.EndpointMapping{Label: "Person", Field: "end"},
+				}},
+			},
+		})
+		if err != nil {
+			t.Fatalf("NewIterator() error = %v", err)
+		}
+		defer iterator.Close()
+		_ = nextItem(t, iterator)
+		_ = nextItem(t, iterator)
+		if _, err := iterator.Next(context.Background()); err == nil ||
+			!strings.Contains(err.Error(), "edge external ID") {
+			t.Fatalf("Next() error = %v", err)
+		}
+	})
+
 	iterator, err := NewIterator(context.Background(), options)
 	if err != nil {
 		t.Fatalf("NewIterator() error = %v", err)
@@ -224,6 +259,21 @@ func TestIteratorGzipHeaderlessAndQuarantine(t *testing.T) {
 		)
 	}
 	_ = quarantineResumed.Close()
+
+	exhaustedOptions := iterator.options
+	exhaustedOptions.AfterToken = resumedItem.Record.Vertex.Position.Token
+	exhausted, err := NewIterator(context.Background(), exhaustedOptions)
+	if err != nil {
+		t.Fatalf("exhausted resume NewIterator() error = %v", err)
+	}
+	if _, err := exhausted.Next(context.Background()); !errors.Is(err, io.EOF) {
+		t.Fatalf("exhausted Next() error = %v, want EOF", err)
+	}
+	rejectedCount, checkpoint := exhausted.RejectionCheckpoint()
+	if rejectedCount != 2 || checkpoint.Token != exhaustedOptions.AfterToken {
+		t.Fatalf("exhausted checkpoint = %d, %#v", rejectedCount, checkpoint)
+	}
+	_ = exhausted.Close()
 
 	resumeOptions.RejectLimit = 1
 	overLimit, err := NewIterator(context.Background(), resumeOptions)

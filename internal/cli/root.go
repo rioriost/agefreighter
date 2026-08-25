@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -31,6 +32,16 @@ func Execute(command *cobra.Command, args []string) error {
 	return command.Execute()
 }
 
+func ExecuteContext(
+	ctx context.Context,
+	command *cobra.Command,
+	args []string,
+) error {
+	command.SetContext(ctx)
+	command.SetArgs(args)
+	return command.Execute()
+}
+
 func newRoot(name, summary string, stdout, stderr io.Writer) *cobra.Command {
 	command := &cobra.Command{
 		Use:           name,
@@ -42,7 +53,14 @@ func newRoot(name, summary string, stdout, stderr io.Writer) *cobra.Command {
 	command.SetErr(stderr)
 	command.AddCommand(newVersionCommand(name))
 	if name == "agefreighter" {
-		command.AddCommand(newValidateCommand(), newPlanCommand())
+		command.AddCommand(
+			newValidateCommand(),
+			newPlanCommand(),
+			newLoadCommand(),
+			newResumeCommand(),
+			newStatusCommand(),
+			newVerifyCommand(),
+		)
 	}
 	return command
 }

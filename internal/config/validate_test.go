@@ -86,6 +86,11 @@ func TestValidationErrors(t *testing.T) {
 			edit: func(job *LoadJob) { job.Errors.RejectLimit = -1 },
 			path: "errors.rejectLimit",
 		},
+		{
+			name: "reject limit without malformed quarantine",
+			edit: func(job *LoadJob) { job.Errors.MalformedRecord = MalformedFail },
+			path: "errors.rejectLimit",
+		},
 	}
 
 	for _, test := range tests {
@@ -105,6 +110,18 @@ func TestValidationErrors(t *testing.T) {
 func TestUpsertRequiresEdgeIdentity(t *testing.T) {
 	job := validCSVJob(t)
 	job.Target.Mode = LoadUpsert
+	job.Source.CSV.Edges[0].ExternalIDColumn = ""
+
+	err := job.Validate()
+
+	if err == nil || !strings.Contains(err.Error(), "externalIdColumn") {
+		t.Fatalf("Validate() error = %v, want edge identity error", err)
+	}
+}
+
+func TestCSVRequiresEdgeIdentityForCreate(t *testing.T) {
+	job := validCSVJob(t)
+	job.Target.Mode = LoadCreate
 	job.Source.CSV.Edges[0].ExternalIDColumn = ""
 
 	err := job.Validate()

@@ -45,6 +45,39 @@ func TestDefaults(t *testing.T) {
 	}
 }
 
+func TestLoadResolvesRelativePathsFromConfigurationDirectory(t *testing.T) {
+	dir := t.TempDir()
+	job := validCSVJob(t)
+	job.Source.CSV.Vertices[0].Path = "data/vertices.csv"
+	job.Source.CSV.Edges[0].Path = "data/edges.csv"
+	job.Target.Connection.Env = ""
+	job.Target.Connection.File = "secrets/age.dsn"
+	job.Errors.QuarantinePath = "rejects/quarantine.jsonl"
+	data, err := yaml.Marshal(job)
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+	path := filepath.Join(dir, "job.yaml")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	loaded, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	for name, got := range map[string]string{
+		"vertex":     loaded.Source.CSV.Vertices[0].Path,
+		"edge":       loaded.Source.CSV.Edges[0].Path,
+		"connection": loaded.Target.Connection.File,
+		"quarantine": loaded.Errors.QuarantinePath,
+	} {
+		if !filepath.IsAbs(got) || !strings.HasPrefix(got, dir+string(filepath.Separator)) {
+			t.Fatalf("%s path = %q, want path under %q", name, got, dir)
+		}
+	}
+}
+
 func TestParseRejectsMultipleDocuments(t *testing.T) {
 	data := []byte(`
 apiVersion: agefreighter.io/v2

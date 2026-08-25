@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 7
+const schemaVersion = 8
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -317,6 +317,12 @@ var migrationV7 = []string{
 			)`,
 }
 
+var migrationV8 = []string{
+	`ALTER TABLE agefreighter_meta.load_job
+		ADD COLUMN source_rejected_rows bigint NOT NULL DEFAULT 0
+		CHECK (source_rejected_rows >= 0 AND source_rejected_rows <= rejected_rows)`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -325,4 +331,5 @@ var migrations = [][]string{
 	migrationV5,
 	migrationV6,
 	migrationV7,
+	migrationV8,
 }

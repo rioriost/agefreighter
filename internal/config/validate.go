@@ -126,6 +126,8 @@ func validateCSV(source CSVSource, namespace string, errs *ValidationErrors) {
 		path := fmt.Sprintf("source.csv.edges[%d]", index)
 		add(edge.Label != "", path+".label", "required", "must not be empty")
 		add(edge.Path != "", path+".path", "required", "must not be empty")
+		add(edge.ExternalIDColumn != "", path+".externalIdColumn", "required",
+			"is required for resumable edge loading and verification")
 		validateEndpoint(edge.Start, namespace, path+".start", errs)
 		validateEndpoint(edge.End, namespace, path+".end", errs)
 		validatePropertyMapping(edge.Properties, path+".properties", errs)
@@ -277,6 +279,8 @@ func validateRuntime(runtime Runtime, errs *ValidationErrors) {
 	validateConcurrency(runtime.MaxSourceConcurrency, "runtime.maxSourceConcurrency", errs)
 	validateConcurrency(runtime.MaxTransformConcurrency, "runtime.maxTransformConcurrency", errs)
 	validateConcurrency(runtime.MaxTargetConnections, "runtime.maxTargetConnections", errs)
+	add(runtime.MaxTargetConnections >= 2, "runtime.maxTargetConnections", "range",
+		"must be at least 2 for AGE loading")
 	add(runtime.OperationTimeout > 0, "runtime.operationTimeout", "range", "must be positive")
 }
 
@@ -297,6 +301,9 @@ func validateErrorPolicies(policies ErrorPolicies, errs *ValidationErrors) {
 		add(false, "errors.missingEndpoint", "unsupported", "must be error, quarantine, or defer")
 	}
 	add(policies.RejectLimit >= 0, "errors.rejectLimit", "range", "must not be negative")
+	add(policies.RejectLimit == 0 || policies.MalformedRecord == MalformedQuarantine,
+		"errors.rejectLimit", "policy",
+		"must be zero unless malformed records are quarantined")
 	quarantine := policies.MalformedRecord == MalformedQuarantine ||
 		policies.MissingEndpoint == MissingEndpointQuarantine
 	add(!quarantine || policies.QuarantinePath != "", "errors.quarantinePath", "required",

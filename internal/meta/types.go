@@ -26,24 +26,25 @@ const (
 )
 
 type Job struct {
-	ID                string
-	Name              string
-	SourceType        string
-	LoadMode          string
-	TargetGraph       string
-	ConfigFingerprint string
-	Status            JobStatus
-	GraphGenerationID int64
-	NextBatchID       uint64
-	ResumeToken       string
-	CommittedRows     int64
-	CommittedBytes    int64
-	RejectedRows      int64
-	ErrorMessage      string
-	CreatedAt         time.Time
-	StartedAt         *time.Time
-	UpdatedAt         time.Time
-	CompletedAt       *time.Time
+	ID                 string
+	Name               string
+	SourceType         string
+	LoadMode           string
+	TargetGraph        string
+	ConfigFingerprint  string
+	Status             JobStatus
+	GraphGenerationID  int64
+	NextBatchID        uint64
+	ResumeToken        string
+	CommittedRows      int64
+	CommittedBytes     int64
+	RejectedRows       int64
+	SourceRejectedRows int64
+	ErrorMessage       string
+	CreatedAt          time.Time
+	StartedAt          *time.Time
+	UpdatedAt          time.Time
+	CompletedAt        *time.Time
 }
 
 type GenerationState string

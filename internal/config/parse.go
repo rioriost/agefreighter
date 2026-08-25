@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"go.yaml.in/yaml/v3"
@@ -27,7 +28,35 @@ func Load(path string) (LoadJob, error) {
 	if len(data) > MaxDocumentBytes {
 		return LoadJob{}, fmt.Errorf("configuration exceeds %d bytes", MaxDocumentBytes)
 	}
-	return Parse(data)
+	job, err := Parse(data)
+	if err != nil {
+		return LoadJob{}, err
+	}
+	base, err := filepath.Abs(filepath.Dir(path))
+	if err != nil {
+		return LoadJob{}, fmt.Errorf("resolve configuration directory: %w", err)
+	}
+	resolveJobPaths(&job, base)
+	return job, nil
+}
+
+func resolveJobPaths(job *LoadJob, base string) {
+	resolve := func(path string) string {
+		if path == "" || filepath.IsAbs(path) {
+			return path
+		}
+		return filepath.Join(base, path)
+	}
+	if job.Source.CSV != nil {
+		for index := range job.Source.CSV.Vertices {
+			job.Source.CSV.Vertices[index].Path = resolve(job.Source.CSV.Vertices[index].Path)
+		}
+		for index := range job.Source.CSV.Edges {
+			job.Source.CSV.Edges[index].Path = resolve(job.Source.CSV.Edges[index].Path)
+		}
+	}
+	job.Target.Connection.File = resolve(job.Target.Connection.File)
+	job.Errors.QuarantinePath = resolve(job.Errors.QuarantinePath)
 }
 
 func Parse(data []byte) (LoadJob, error) {

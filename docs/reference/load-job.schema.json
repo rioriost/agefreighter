@@ -332,6 +332,7 @@
       "required": [
         "label",
         "path",
+        "externalIdColumn",
         "start",
         "end"
       ],
@@ -682,7 +683,9 @@
           "$ref": "#/$defs/concurrency"
         },
         "maxTargetConnections": {
-          "$ref": "#/$defs/concurrency"
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 256
         },
         "operationTimeout": {
           "type": "string",
