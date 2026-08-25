@@ -75,6 +75,25 @@ func New(batchID uint64, position model.SourcePosition) (State, error) {
 	}, nil
 }
 
+func NewRunning(
+	batchID uint64,
+	attempt uint32,
+	position model.SourcePosition,
+) (State, error) {
+	if batchID == 0 {
+		return State{}, fmt.Errorf("%w: batch ID must be positive", ErrInvalidTransition)
+	}
+	if attempt == 0 {
+		return State{}, fmt.Errorf("%w: attempt must be positive", ErrInvalidTransition)
+	}
+	return State{
+		BatchID:  batchID,
+		Attempt:  attempt,
+		Phase:    PhaseRunning,
+		Position: position,
+	}, nil
+}
+
 func (state State) Transition(event Event) (State, error) {
 	next := state
 	switch {

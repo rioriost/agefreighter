@@ -83,6 +83,20 @@ func TestCheckpointRejectsInvalidValues(t *testing.T) {
 	if _, err := state.Transition(EventRetry); !errors.Is(err, ErrInvalidTransition) {
 		t.Fatalf("Transition(retry overflow) error = %v", err)
 	}
+	if _, err := NewRunning(0, 1, model.SourcePosition{}); !errors.Is(err, ErrInvalidTransition) {
+		t.Fatalf("NewRunning(zero batch) error = %v", err)
+	}
+	if _, err := NewRunning(1, 0, model.SourcePosition{}); !errors.Is(err, ErrInvalidTransition) {
+		t.Fatalf("NewRunning(zero attempt) error = %v", err)
+	}
+	running, err := NewRunning(7, 3, model.SourcePosition{Token: "resume"})
+	if err != nil {
+		t.Fatalf("NewRunning() error = %v", err)
+	}
+	if running.BatchID != 7 || running.Attempt != 3 ||
+		running.Phase != PhaseRunning || running.Position.Token != "resume" {
+		t.Fatalf("NewRunning() = %#v", running)
+	}
 }
 
 func TestPhaseAndEventStrings(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -232,6 +233,51 @@ func TestRunBatchesByRowsAndBytes(t *testing.T) {
 		snapshot.Memory.Used != 0 ||
 		snapshot.Memory.Peak > snapshot.Memory.Limit {
 		t.Fatalf("Snapshot() = %#v", snapshot)
+	}
+}
+
+func TestRunStartsAtResumedBatchAttempt(t *testing.T) {
+	options := testOptions()
+	options.InitialBatchID = 7
+	options.InitialAttempt = 3
+	runner, err := New(options)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	target := &fakeSink{}
+	if err := runner.Run(context.Background(), &fakeIterator{
+		items: []source.Item{testItem(1, 10), testItem(2, 10), testItem(3, 10)},
+	}, target); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if len(target.metadata) != 2 ||
+		target.metadata[0].ID != 7 ||
+		target.metadata[0].Attempt != 3 ||
+		target.metadata[1].ID != 8 ||
+		target.metadata[1].Attempt != 1 {
+		t.Fatalf("resumed metadata = %#v", target.metadata)
+	}
+}
+
+func TestRunRejectsBatchIDOverflow(t *testing.T) {
+	options := testOptions()
+	options.InitialBatchID = math.MaxUint64
+	options.MaxBatchRows = 1
+	runner, err := New(options)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	target := &fakeSink{}
+	err = runner.Run(context.Background(), &fakeIterator{
+		items: []source.Item{testItem(1, 10), testItem(2, 10)},
+	}, target)
+	if err == nil || !strings.Contains(err.Error(), "counter is exhausted") {
+		t.Fatalf("Run() error = %v", err)
+	}
+	for _, metadata := range target.metadata {
+		if metadata.ID != math.MaxUint64 {
+			t.Fatalf("overflow metadata = %#v", target.metadata)
+		}
 	}
 }
 

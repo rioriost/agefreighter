@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -23,6 +24,8 @@ type Options struct {
 	RecordChannelCapacity int
 	BatchChannelCapacity  int
 	OperationTimeout      time.Duration
+	InitialBatchID        uint64
+	InitialAttempt        uint32
 }
 
 // recordAccountingOverhead covers the leased-record slot retained by the
@@ -61,6 +64,12 @@ type Runner struct {
 }
 
 func New(options Options) (*Runner, error) {
+	if options.InitialBatchID == 0 {
+		options.InitialBatchID = 1
+	}
+	if options.InitialAttempt == 0 {
+		options.InitialAttempt = 1
+	}
 	if err := options.validate(); err != nil {
 		return nil, err
 	}
@@ -308,6 +317,7 @@ func (runner *Runner) produce(
 
 type batch struct {
 	id      uint64
+	attempt uint32
 	records []leasedRecord
 	bytes   int64
 }
@@ -336,8 +346,10 @@ func (runner *Runner) batch(
 ) {
 	defer close(output)
 
-	nextID := uint64(1)
-	current := &batch{id: nextID}
+	nextID := runner.options.InitialBatchID
+	nextAttempt := runner.options.InitialAttempt
+	current := &batch{id: nextID, attempt: nextAttempt}
+	exhausted := false
 	flush := func() {
 		if len(current.records) == 0 {
 			return
@@ -356,8 +368,14 @@ func (runner *Runner) batch(
 				))
 			}
 		}
+		if nextID == math.MaxUint64 {
+			exhausted = true
+			current = &batch{}
+			return
+		}
 		nextID++
-		current = &batch{id: nextID}
+		nextAttempt = 1
+		current = &batch{id: nextID, attempt: nextAttempt}
 	}
 
 	for record := range input {
@@ -379,6 +397,27 @@ func (runner *Runner) batch(
 			record.item.SizeBytes > runner.options.MaxBatchBytes-current.bytes
 		if exceedsRows || exceedsBytes {
 			flush()
+		}
+		if exhausted {
+			if err := record.release(); err != nil {
+				report(classifiedError(
+					ErrorInternal,
+					"release batch-overflow record memory",
+					0,
+					false,
+					false,
+					err,
+				))
+			}
+			report(classifiedError(
+				ErrorContract,
+				"allocate batch",
+				math.MaxUint64,
+				false,
+				false,
+				errors.New("batch ID counter is exhausted"),
+			))
+			continue
 		}
 		current.records = append(current.records, record)
 		current.bytes += record.item.SizeBytes
@@ -409,22 +448,15 @@ func (runner *Runner) writeBatch(
 	current *batch,
 ) error {
 	firstPosition, lastPosition := current.positions()
-	state, err := checkpoint.New(current.id, lastPosition)
+	state, err := checkpoint.NewRunning(
+		current.id,
+		current.attempt,
+		lastPosition,
+	)
 	if err != nil {
 		return classifiedError(
 			ErrorInternal,
 			"create checkpoint",
-			current.id,
-			false,
-			false,
-			err,
-		)
-	}
-	state, err = state.Transition(checkpoint.EventStart)
-	if err != nil {
-		return classifiedError(
-			ErrorInternal,
-			"start checkpoint",
 			current.id,
 			false,
 			false,
