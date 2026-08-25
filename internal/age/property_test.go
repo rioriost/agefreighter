@@ -63,6 +63,20 @@ func TestEncodePropertiesRejectsUnsupportedValues(t *testing.T) {
 	if _, err := EncodeProperties(model.Properties{"deep": deep}); !errors.Is(err, ErrInvalidProperty) {
 		t.Fatalf("deep EncodeProperties() error = %v", err)
 	}
+	deepObject := model.Value{Kind: model.ValueNull}
+	for range maxPropertyDepth + 2 {
+		deepObject = model.Value{
+			Kind: model.ValueObject,
+			Object: map[string]model.Value{
+				"next": deepObject,
+			},
+		}
+	}
+	if _, err := EncodeProperties(
+		model.Properties{"deep": deepObject},
+	); !errors.Is(err, ErrInvalidProperty) {
+		t.Fatalf("deep object EncodeProperties() error = %v", err)
+	}
 	if _, err := EncodeProperties(model.Properties{
 		string([]byte{0xff}): {Kind: model.ValueNull},
 	}); !errors.Is(err, ErrInvalidProperty) {

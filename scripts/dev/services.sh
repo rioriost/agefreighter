@@ -11,6 +11,10 @@ AGE_CONTAINER=agefreighter-pg17-age160
 POSTGRES_CONTAINER=agefreighter-postgres17-source
 NEO4J_CONTAINER=agefreighter-neo4j526
 
+AGE_CONTAINER_CONFIG=age160-pg17-memory1g-v1
+POSTGRES_CONTAINER_CONFIG=postgres176-v1
+NEO4J_CONTAINER_CONFIG=neo4j526-v1
+
 AGE_VOLUME=agefreighter-pg17-age160-data
 POSTGRES_VOLUME=agefreighter-postgres17-source-data
 NEO4J_VOLUME=agefreighter-neo4j526-data

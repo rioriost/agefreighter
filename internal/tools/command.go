@@ -1,10 +1,16 @@
 package tools
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
+
+const benchmarkDSNEnvironment = "AGEFREIGHTER_AGE_TEST_DSN"
 
 const (
 	fixtureVertices   = 4
@@ -37,6 +43,54 @@ func NewGenerateCommand() *cobra.Command {
 			true,
 		),
 	)
+	return command
+}
+
+func NewBenchmarkCommand() *cobra.Command {
+	var (
+		workload         string
+		strategy         string
+		rows             int
+		endpointVertices int
+		propertyBytes    int
+		timeout          time.Duration
+	)
+	command := &cobra.Command{
+		Use:   "benchmark-age-copy",
+		Short: "Benchmark Apache AGE bulk-write strategies",
+		Args:  cobra.NoArgs,
+		RunE: func(command *cobra.Command, _ []string) error {
+			dsn := os.Getenv(benchmarkDSNEnvironment)
+			if dsn == "" {
+				return fmt.Errorf("%s is required", benchmarkDSNEnvironment)
+			}
+			ctx, cancel := context.WithTimeout(command.Context(), timeout)
+			defer cancel()
+			result, err := RunBulkBenchmark(ctx, BulkBenchmarkOptions{
+				DSN:              dsn,
+				Workload:         BenchmarkWorkload(workload),
+				Strategy:         BenchmarkStrategy(strategy),
+				Rows:             rows,
+				EndpointVertices: endpointVertices,
+				PropertyBytes:    propertyBytes,
+				OperationTimeout: timeout,
+			})
+			if err != nil {
+				return err
+			}
+			encoder := json.NewEncoder(command.OutOrStdout())
+			if err := encoder.Encode(result); err != nil {
+				return fmt.Errorf("write benchmark result: %w", err)
+			}
+			return nil
+		},
+	}
+	command.Flags().StringVar(&workload, "workload", string(BenchmarkEdges), "vertices or edges")
+	command.Flags().StringVar(&strategy, "strategy", string(BenchmarkDirect), "COPY strategy")
+	command.Flags().IntVar(&rows, "rows", 100_000, "rows to write")
+	command.Flags().IntVar(&endpointVertices, "endpoint-vertices", 10_000, "preloaded edge endpoints")
+	command.Flags().IntVar(&propertyBytes, "property-bytes", 64, "payload string bytes")
+	command.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "operation timeout")
 	return command
 }
 

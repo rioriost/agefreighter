@@ -27,7 +27,8 @@ ensure_volume() {
 ensure_container() {
 	name=$1
 	image=$2
-	shift 2
+	config=$3
+	shift 3
 	if runtime_has_container "$name"; then
 		if ! runtime_is_managed "$name"; then
 			printf 'Refusing unmanaged container with reserved name: %s\n' "$name" >&2
@@ -37,20 +38,28 @@ ensure_container() {
 			printf 'Container %s uses a stale image; run make dev-reset\n' "$name" >&2
 			return 1
 		fi
-		if ! runtime_is_running "$name"; then
+		if ! runtime_matches_config "$name" "$config"; then
+			printf 'Recreating container %s for updated configuration\n' "$name"
+			runtime_delete "$name"
+		elif ! runtime_is_running "$name"; then
 			printf 'Starting container %s\n' "$name"
 			runtime_start "$name"
+			return 0
+		else
+			return 0
 		fi
-	else
-		printf 'Creating container %s\n' "$name"
-		runtime_run "$name" "$@" "$image"
 	fi
+	printf 'Creating container %s\n' "$name"
+	runtime_run "$name" \
+		--label "io.agefreighter.config=$config" \
+		"$@" "$image"
 }
 
 start_age() {
 	ensure_volume "$AGE_VOLUME"
-	ensure_container "$AGE_CONTAINER" "$AGE_IMAGE" \
+	ensure_container "$AGE_CONTAINER" "$AGE_IMAGE" "$AGE_CONTAINER_CONFIG" \
 		--publish "127.0.0.1:$AGE_PORT:5432" \
+		--memory 1G \
 		--volume "$AGE_VOLUME:/var/lib/postgresql/data" \
 		--env PGDATA=/var/lib/postgresql/data/pgdata \
 		--env POSTGRES_USER=agefreighter \
@@ -60,7 +69,7 @@ start_age() {
 
 start_postgres() {
 	ensure_volume "$POSTGRES_VOLUME"
-	ensure_container "$POSTGRES_CONTAINER" "$POSTGRES_IMAGE" \
+	ensure_container "$POSTGRES_CONTAINER" "$POSTGRES_IMAGE" "$POSTGRES_CONTAINER_CONFIG" \
 		--publish "127.0.0.1:$POSTGRES_PORT:5432" \
 		--volume "$POSTGRES_VOLUME:/var/lib/postgresql/data" \
 		--env PGDATA=/var/lib/postgresql/data/pgdata \
@@ -71,7 +80,7 @@ start_postgres() {
 
 start_neo4j() {
 	ensure_volume "$NEO4J_VOLUME"
-	ensure_container "$NEO4J_CONTAINER" "$NEO4J_IMAGE" \
+	ensure_container "$NEO4J_CONTAINER" "$NEO4J_IMAGE" "$NEO4J_CONTAINER_CONFIG" \
 		--publish "127.0.0.1:$NEO4J_BOLT_PORT:7687" \
 		--publish "127.0.0.1:$NEO4J_HTTP_PORT:7474" \
 		--volume "$NEO4J_VOLUME:/data" \

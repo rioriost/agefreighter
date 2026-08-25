@@ -305,6 +305,13 @@ Benchmark direct text COPY and staged binary COPY using:
 
 Record the selected strategy in an architecture decision record.
 
+**Decision outcome**
+
+ADR 0001 selects staged binary COPY followed by a set-based cast into AGE
+label tables. The pinned AGE 1.6.0 catalog creates no `start_id` or `end_id`
+indexes on user edge labels, so the conditional index-drop/rebuild arm was
+recorded as not applicable rather than benchmarking a nonexistent index set.
+
 **Rollback commits**
 
 - `feat: add Apache AGE capability adapter`

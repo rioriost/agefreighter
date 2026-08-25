@@ -1,17 +1,26 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/rioriost/agefreighter/internal/cli"
 	"github.com/rioriost/agefreighter/internal/tools"
 )
 
 func run(args []string, stdout, stderr io.Writer) int {
+	return runContext(context.Background(), args, stdout, stderr)
+}
+
+func runContext(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	command := cli.NewTools(stdout, stderr)
-	command.AddCommand(tools.NewGenerateCommand())
+	command.SetContext(ctx)
+	command.AddCommand(tools.NewGenerateCommand(), tools.NewBenchmarkCommand())
 	if err := cli.Execute(command, args); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
@@ -19,6 +28,67 @@ func run(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+func signalContext(parent context.Context) (context.Context, context.CancelFunc) {
+	return signalContextWithExit(parent, os.Exit)
+}
+
+func signalContextWithExit(
+	parent context.Context,
+	forceExit func(int),
+) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(parent)
+	signals := []os.Signal{
+		os.Interrupt,
+		syscall.SIGHUP,
+		syscall.SIGTERM,
+	}
+	notifications := make(chan os.Signal, 2)
+	signal.Notify(notifications, signals...)
+	done := make(chan struct{})
+	var once sync.Once
+	stop := func() {
+		once.Do(func() {
+			signal.Stop(notifications)
+			cancel()
+			close(done)
+		})
+	}
+	go func() {
+		select {
+		case <-notifications:
+			cancel()
+			select {
+			case next := <-notifications:
+				forceExit(signalExitCode(next))
+			case <-done:
+			}
+		case <-parent.Done():
+			stop()
+		case <-done:
+		}
+	}()
+	return ctx, stop
+}
+
+func signalExitCode(received os.Signal) int {
+	switch received {
+	case os.Interrupt:
+		return 130
+	case syscall.SIGHUP:
+		return 129
+	case syscall.SIGTERM:
+		return 143
+	default:
+		return 1
+	}
+}
+
+func execute(args []string, stdout, stderr io.Writer) int {
+	ctx, stop := signalContext(context.Background())
+	defer stop()
+	return runContext(ctx, args, stdout, stderr)
+}
+
 func main() {
-	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+	os.Exit(execute(os.Args[1:], os.Stdout, os.Stderr))
 }

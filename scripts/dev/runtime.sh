@@ -102,6 +102,13 @@ runtime_matches_image() {
 	"$RUNTIME_CLI" inspect "$name" 2>/dev/null | grep -Fq "$digest"
 }
 
+runtime_matches_config() {
+	name=$1
+	config=$2
+	"$RUNTIME_CLI" inspect "$name" 2>/dev/null |
+		grep -Eq '"io.agefreighter.config"[[:space:]]*:[[:space:]]*"'"$config"'"'
+}
+
 runtime_create_volume() {
 	"$RUNTIME_CLI" volume create "$1" >/dev/null
 }

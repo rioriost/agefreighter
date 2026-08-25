@@ -31,6 +31,9 @@ func TestAGENameValidation(t *testing.T) {
 
 func TestDerivedGraphNamesAreStableAndBounded(t *testing.T) {
 	base := strings.Repeat("a", 63)
+	if _, err := DeriveGraphName("x", ShadowName, "job-1"); !errors.Is(err, ErrInvalidName) {
+		t.Fatalf("DeriveGraphName(invalid base) error = %v", err)
+	}
 	shadow, err := DeriveGraphName(base, ShadowName, "job-1")
 	if err != nil {
 		t.Fatalf("DeriveGraphName() error = %v", err)

@@ -2,8 +2,11 @@ package age
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func TestOpenRejectsInvalidOptions(t *testing.T) {
@@ -98,6 +101,78 @@ func TestAdapterSmallHelpers(t *testing.T) {
 	if VertexLabel.String() != "vertex" || EdgeLabel.String() != "edge" {
 		t.Fatal("known label kind strings are incorrect")
 	}
+}
+
+func TestCapabilityProbeErrors(t *testing.T) {
+	queryError := errors.New("injected query failure")
+	for _, row := range []pgx.Row{
+		stubRow(func(...any) error { return pgx.ErrNoRows }),
+		stubRow(func(...any) error { return queryError }),
+		stubRow(func(destinations ...any) error {
+			setCapabilityDestinations(destinations, "bad", "1.6.0")
+			return nil
+		}),
+		stubRow(func(destinations ...any) error {
+			setCapabilityDestinations(destinations, "170007", "bad")
+			return nil
+		}),
+	} {
+		if _, err := ProbeCapabilities(
+			context.Background(),
+			stubQuerier{row: row},
+		); err == nil {
+			t.Fatal("ProbeCapabilities() succeeded")
+		}
+	}
+}
+
+func TestPreloadStatusProbe(t *testing.T) {
+	status, err := probePreloadStatus(
+		context.Background(),
+		stubQuerier{row: stubRow(func(destinations ...any) error {
+			*destinations[0].(*string) = "other, pg_stat_statements"
+			return nil
+		})},
+	)
+	if err != nil || status != PreloadNotConfigured {
+		t.Fatalf("probePreloadStatus() = %q, %v", status, err)
+	}
+	status, err = probePreloadStatus(
+		context.Background(),
+		stubQuerier{row: stubRow(func(...any) error { return pgx.ErrNoRows })},
+	)
+	if err != nil || status != PreloadUnknown {
+		t.Fatalf("unknown probePreloadStatus() = %q, %v", status, err)
+	}
+	if _, err := probePreloadStatus(
+		context.Background(),
+		stubQuerier{row: stubRow(func(...any) error {
+			return errors.New("injected preload failure")
+		})},
+	); err == nil {
+		t.Fatal("probePreloadStatus() ignored query failure")
+	}
+}
+
+type stubQuerier struct {
+	row pgx.Row
+}
+
+func (querier stubQuerier) QueryRow(context.Context, string, ...any) pgx.Row {
+	return querier.row
+}
+
+type stubRow func(...any) error
+
+func (row stubRow) Scan(destinations ...any) error {
+	return row(destinations...)
+}
+
+func setCapabilityDestinations(destinations []any, serverVersion, ageVersion string) {
+	*destinations[0].(*string) = serverVersion
+	*destinations[1].(*string) = ageVersion
+	*destinations[2].(*string) = "test_user"
+	*destinations[3].(*bool) = false
 }
 
 func TestTransactionAndLifecycleRejectInvalidInputs(t *testing.T) {

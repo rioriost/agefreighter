@@ -67,3 +67,20 @@ go run ./cmd/agefreighter-tools generate fixture --output .local/fixture
 go run ./cmd/agefreighter-tools generate benchmark \
   --output .local/benchmark --vertices 100000 --edges 500000 --seed 1
 ```
+
+The Apple Container bulk-write harness records elapsed time, PostgreSQL
+container CPU, WAL bytes, peak target RSS, and peak client RSS for one workload
+and strategy:
+
+```sh
+mkdir -p .local/benchmarks
+AGEFREIGHTER_AGE_TEST_DSN='postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable' \
+  ./scripts/bench/age-copy.sh \
+  edges direct-text 500000 5 .local/benchmarks/edges-direct.jsonl
+```
+
+The output path must not exist. Supported strategies are `direct-text`,
+`staged-binary`, and `plain-relational`. The harness restarts only the fixed AGE
+development container before each trial so kernel `memory.peak` starts from a
+comparable cold baseline; its named volume is preserved. Reported target
+memory is total cgroup memory, while client memory is peak process RSS.

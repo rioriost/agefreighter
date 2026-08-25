@@ -2,9 +2,13 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 )
 
 func TestRunVersion(t *testing.T) {
@@ -51,5 +55,144 @@ func TestRunGenerateFixture(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "generated 4 vertices and 6 edges") {
 		t.Fatalf("run() stdout = %q", stdout.String())
+	}
+}
+
+func TestRunBenchmarkRequiresDSN(t *testing.T) {
+	t.Setenv("AGEFREIGHTER_AGE_TEST_DSN", "")
+	var stdout, stderr bytes.Buffer
+
+	exitCode := run([]string{"benchmark-age-copy"}, &stdout, &stderr)
+
+	if exitCode != 1 {
+		t.Fatalf("run() exit code = %d", exitCode)
+	}
+	if !strings.Contains(stderr.String(), "AGEFREIGHTER_AGE_TEST_DSN is required") {
+		t.Fatalf("run() stderr = %q", stderr.String())
+	}
+}
+
+func TestRunContextCancelsBenchmark(t *testing.T) {
+	t.Setenv(
+		"AGEFREIGHTER_AGE_TEST_DSN",
+		"postgres://127.0.0.1:1/database?sslmode=disable",
+	)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	var stdout, stderr bytes.Buffer
+
+	exitCode := runContext(
+		ctx,
+		[]string{
+			"benchmark-age-copy",
+			"--workload", "vertices",
+			"--strategy", "direct-text",
+			"--rows", "1",
+		},
+		&stdout,
+		&stderr,
+	)
+
+	if exitCode != 1 {
+		t.Fatalf("runContext() exit code = %d, want 1", exitCode)
+	}
+	if got := stderr.String(); !strings.Contains(got, context.Canceled.Error()) {
+		t.Fatalf("runContext() stderr = %q, want cancellation error", got)
+	}
+}
+
+func TestSignalContextStops(t *testing.T) {
+	ctx, stop := signalContext(context.Background())
+	stop()
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("signal context remained active after stop")
+	}
+}
+
+func TestSignalContextCancelsOnSignal(t *testing.T) {
+	ctx, stop := signalContext(context.Background())
+	defer stop()
+	process, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf("find test process: %v", err)
+	}
+	if err := process.Signal(syscall.SIGHUP); err != nil {
+		t.Fatalf("signal test process: %v", err)
+	}
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("signal context remained active after SIGHUP")
+	}
+}
+
+func TestSignalContextForcesExitOnSecondSignal(t *testing.T) {
+	exitCodes := make(chan int, 1)
+	ctx, stop := signalContextWithExit(context.Background(), func(exitCode int) {
+		exitCodes <- exitCode
+	})
+	defer stop()
+	process, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf("find test process: %v", err)
+	}
+	if err := process.Signal(syscall.SIGHUP); err != nil {
+		t.Fatalf("send first signal: %v", err)
+	}
+	select {
+	case <-ctx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("first signal did not cancel context")
+	}
+	if err := process.Signal(syscall.SIGHUP); err != nil {
+		t.Fatalf("send second signal: %v", err)
+	}
+	select {
+	case exitCode := <-exitCodes:
+		if exitCode != 129 {
+			t.Fatalf("forced exit code = %d, want 129", exitCode)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("second signal did not force exit")
+	}
+}
+
+func TestSignalExitCode(t *testing.T) {
+	tests := []struct {
+		signal os.Signal
+		want   int
+	}{
+		{signal: os.Interrupt, want: 130},
+		{signal: syscall.SIGHUP, want: 129},
+		{signal: syscall.SIGTERM, want: 143},
+		{signal: testSignal("other"), want: 1},
+	}
+	for _, test := range tests {
+		if got := signalExitCode(test.signal); got != test.want {
+			t.Fatalf("signalExitCode(%v) = %d, want %d", test.signal, got, test.want)
+		}
+	}
+}
+
+type testSignal string
+
+func (testSignal) Signal() {}
+
+func (signal testSignal) String() string {
+	return string(signal)
+}
+
+func TestExecuteVersion(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	if exitCode := execute([]string{"version"}, &stdout, &stderr); exitCode != 0 {
+		t.Fatalf("execute() exit code = %d; stderr = %q", exitCode, stderr.String())
+	}
+	if got := stdout.String(); !strings.HasPrefix(got, "agefreighter-tools dev") {
+		t.Fatalf("execute() stdout = %q", got)
 	}
 }
