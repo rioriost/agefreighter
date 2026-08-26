@@ -79,6 +79,98 @@ modify a mapped file in place while a job is running; such changes violate the
 source contract, fail verification, and cannot be resumed against the changed
 manifest.
 
+## PostgreSQL options
+
+PostgreSQL sources use a referenced libpq connection string and execute every
+mapping against one exported `REPEATABLE READ`, read-only snapshot. The
+snapshot-exporting transaction remains open until the iterator closes. Reader
+transactions import that snapshot before executing any source query, so
+vertices and edges observe one point in time even when the source is changing.
+
+```yaml
+source:
+  type: postgresql
+  namespace: crm
+  postgresql:
+    connection:
+      env: AGEFREIGHTER_SOURCE_DSN
+    readMode: copy
+    fetchRows: 1000
+    vertices:
+      - label: Person
+        query: SELECT person_id, full_name FROM people ORDER BY person_id
+        idField: person_id
+        properties:
+          name: full_name
+    edges:
+      - label: KNOWS
+        query: SELECT relationship_id, from_id, to_id FROM knows ORDER BY relationship_id
+        externalIdField: relationship_id
+        start:
+          label: Person
+          field: from_id
+        end:
+          label: Person
+          field: to_id
+```
+
+`readMode` defaults to `copy`. It streams
+`COPY (SELECT row_to_json(...)) TO STDOUT` without materializing the complete
+result. `cursor` uses a server-side cursor and retains at most `fetchRows`
+rows. For these modes, restart resume reopens the ordered query and skips the
+checkpointed row count; queries must therefore use a unique total ordering and
+the source must remain unchanged between attempts.
+
+`keyset` is the durable resume mode for very large sources and constrained
+append-only sources. Every mapping must set `keyField`, return a strictly
+increasing unique signed 64-bit integer key, accept `$1` as the prior key (null
+on the first request), and accept `$2` as the fetch limit. Across restart,
+existing rows must not change or disappear and new keys must become visible in
+strictly increasing commit order. A transaction that commits a lower key after
+a higher key was checkpointed cannot be recovered by keyset pagination.
+Restricting keys to signed 64-bit integers avoids database-collation
+differences for text and precision loss for high-precision numeric values. For
+example:
+
+```yaml
+readMode: keyset
+fetchRows: 1000
+vertices:
+  - label: Person
+    query: >-
+      SELECT person_id, full_name
+      FROM people
+      WHERE ($1::bigint IS NULL OR person_id > $1)
+      ORDER BY person_id
+      LIMIT $2
+    keyField: person_id
+    idField: person_id
+```
+
+Queries must be one `SELECT` or `WITH` statement without a semicolon and must
+contain an explicit `ORDER BY` for deterministic restart.
+`fetchRows` defaults to 1000 and must be from 1 to 100000. PostgreSQL nulls,
+booleans, signed 64-bit integers, finite floating-point values, strings,
+arrays, and objects map to the corresponding agefreighter property types.
+Temporal, UUID, network, and other PostgreSQL values emitted by
+`row_to_json` map to strings. Unsupported or overflowing values follow the
+configured malformed-record policy.
+
+The source fingerprint includes a credential-free identity of the configured
+PostgreSQL hosts, user, database, and startup session parameters in addition to
+every mapping. Repointing an environment-variable or file secret at a
+different database, schema search path, or startup role invalidates an old
+checkpoint instead of skipping rows in an unrelated source.
+
+The exported-snapshot owner is intentionally long-lived. It pins the source
+database's xmin horizon until the load closes, so long migrations can delay
+vacuum cleanup. Configure `idle_in_transaction_session_timeout` above the
+maximum job duration. PgBouncer transaction-pooling mode cannot preserve the
+required session and transaction semantics; connect directly or use
+session-pooling mode. The coordinator supports bounded concurrent snapshot
+readers, while the 2.0.0 iterator processes configured mappings sequentially
+to preserve vertex-before-edge order.
+
 ## Cosmos DB for NoSQL options
 
 Cosmos sources authenticate with `DefaultAzureCredential`; account keys and
@@ -139,12 +231,13 @@ header, account key, or source document.
 
 ## Load modes
 
-The target modes are `create`, `replace`, `append`, and `upsert`. CSV and
-Cosmos DB for NoSQL support all four modes. Every edge mapping in an `upsert`
-job must provide an external edge identity field or column. Graph names must
-follow the supported Apache AGE naming subset: 3–63 UTF-8 bytes, starting with
-a letter or underscore, ending with a letter, digit, or underscore, and
-containing only letters, digits, underscores, dots, and hyphens.
+The target modes are `create`, `replace`, `append`, and `upsert`. CSV,
+PostgreSQL, and Cosmos DB for NoSQL support all four modes. Every edge mapping
+in an `upsert` job must provide an external edge identity field or column.
+Graph names must follow the supported Apache AGE naming subset: 3–63 UTF-8
+bytes, starting with a letter or underscore, ending with a letter, digit, or
+underscore, and containing only letters, digits, underscores, dots, and
+hyphens.
 
 Incremental jobs make conflict handling explicit. `appendDuplicate` defaults
 to `error`; `ignore-identical` permits an append replay only when the existing

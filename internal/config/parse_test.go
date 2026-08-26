@@ -110,6 +110,39 @@ func TestDefaults(t *testing.T) {
 			job.Errors.MaxDeferredEdges,
 		)
 	}
+	if job.Source.PostgreSQL.ReadMode != PostgreSQLReadCopy ||
+		job.Source.PostgreSQL.FetchRows != 1_000 {
+		t.Fatalf("PostgreSQL defaults = %#v", job.Source.PostgreSQL)
+	}
+}
+
+func TestPostgreSQLStaticPlan(t *testing.T) {
+	job, err := Load("testdata/valid/postgresql.yaml")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	plan := BuildStaticPlan(job)
+	if plan.Source.PostgreSQLReadMode != PostgreSQLReadCopy ||
+		plan.Source.FetchRows != 1_000 ||
+		plan.Source.Consistency != "exported-repeatable-read-snapshot" {
+		t.Fatalf("PostgreSQL plan source = %#v", plan.Source)
+	}
+}
+
+func TestResolvePostgreSQLConnectionFile(t *testing.T) {
+	job := LoadJob{Source: Source{PostgreSQL: &PostgreSQLSource{
+		Connection: SecretRef{File: "secrets/source.dsn"},
+	}}}
+	base := t.TempDir()
+	resolveJobPaths(&job, base)
+	want := filepath.Join(base, "secrets/source.dsn")
+	if job.Source.PostgreSQL.Connection.File != want {
+		t.Fatalf(
+			"PostgreSQL connection file = %q, want %q",
+			job.Source.PostgreSQL.Connection.File,
+			want,
+		)
+	}
 }
 
 func TestLoadResolvesRelativePathsFromConfigurationDirectory(t *testing.T) {

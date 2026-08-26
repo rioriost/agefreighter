@@ -57,7 +57,8 @@ jobs:
         env:
           AGEFREIGHTER_AGE_TEST_DSN: postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable
         run: |
-          go test -race ./internal/age
+          export AGEFREIGHTER_POSTGRES_TEST_DSN='postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55433/agefreighter?sslmode=disable'
+          go test -race ./internal/age ./internal/source/postgres
           make coverage
       - name: Stop databases
         if: always()

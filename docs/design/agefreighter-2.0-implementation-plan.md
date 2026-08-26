@@ -421,6 +421,8 @@ The initial missing-endpoint policies are `error` and `quarantine`. The bounded
 
 ### Milestone 8: PostgreSQL source
 
+**Implementation status:** Complete.
+
 **Deliverables**
 
 - `COPY (SELECT ...) TO STDOUT` streaming path

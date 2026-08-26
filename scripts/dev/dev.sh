@@ -122,7 +122,7 @@ initialize_fixtures() {
 
 	runtime_exec "$POSTGRES_CONTAINER" \
 		psql -v ON_ERROR_STOP=1 -U agefreighter -d agefreighter \
-		-c 'CREATE TABLE IF NOT EXISTS people (person_id bigint PRIMARY KEY, full_name text NOT NULL); TRUNCATE people; INSERT INTO people VALUES (1, '\''Ada'\''), (2, '\''Grace'\'');' \
+		-c 'CREATE TABLE IF NOT EXISTS people (person_id bigint PRIMARY KEY, full_name text NOT NULL); CREATE TABLE IF NOT EXISTS knows (relationship_id bigint PRIMARY KEY, from_id bigint NOT NULL REFERENCES people(person_id), to_id bigint NOT NULL REFERENCES people(person_id)); TRUNCATE knows, people; INSERT INTO people VALUES (1, '\''Ada'\''), (2, '\''Grace'\''); INSERT INTO knows VALUES (1, 1, 2);' \
 		>/dev/null
 
 	runtime_exec "$NEO4J_CONTAINER" \
@@ -138,8 +138,8 @@ smoke() {
 		grep -Fqx 1
 	runtime_exec "$POSTGRES_CONTAINER" \
 		psql -v ON_ERROR_STOP=1 -U agefreighter -d agefreighter \
-		-tAc 'SELECT count(*) FROM people' |
-		grep -Fqx 2
+		-tAc 'SELECT (SELECT count(*) FROM people), (SELECT count(*) FROM knows)' |
+		grep -Fqx '2|1'
 	runtime_exec "$NEO4J_CONTAINER" \
 		cypher-shell --format plain -u neo4j -p "$AGEFREIGHTER_DEV_PASSWORD" \
 		'MATCH (p:Person) RETURN count(p) AS count' |

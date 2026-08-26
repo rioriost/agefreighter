@@ -489,6 +489,10 @@
           "type": "string",
           "minLength": 1
         },
+        "keyField": {
+          "type": "string",
+          "minLength": 1
+        },
         "properties": {
           "$ref": "#/$defs/propertyMap"
         }
@@ -516,6 +520,10 @@
           "type": "string",
           "minLength": 1
         },
+        "keyField": {
+          "type": "string",
+          "minLength": 1
+        },
         "start": {
           "$ref": "#/$defs/endpoint"
         },
@@ -537,6 +545,18 @@
       "properties": {
         "connection": {
           "$ref": "#/$defs/secretRef"
+        },
+        "readMode": {
+          "enum": [
+            "copy",
+            "cursor",
+            "keyset"
+          ]
+        },
+        "fetchRows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
         },
         "vertices": {
           "type": "array",

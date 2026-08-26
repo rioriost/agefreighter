@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/rioriost/agefreighter/internal/sqlquery"
 )
 
 const maxConcurrency = 256
@@ -104,8 +106,7 @@ func validateSource(source Source, errs *ValidationErrors) {
 		add(source.PostgreSQL != nil, "source.postgresql", "required",
 			"is required when source.type is postgresql")
 		if source.PostgreSQL != nil {
-			validateSecret(source.PostgreSQL.Connection, "source.postgresql.connection", errs)
-			validateQueries(source.PostgreSQL.Vertices, source.PostgreSQL.Edges, source.Namespace, errs)
+			validatePostgreSQL(*source.PostgreSQL, source.Namespace, errs)
 		}
 	case SourceNeo4j:
 		add(source.Neo4j != nil, "source.neo4j", "required", "is required when source.type is neo4j")
@@ -120,6 +121,93 @@ func validateSource(source Source, errs *ValidationErrors) {
 		}
 	default:
 		add(false, "source.type", "unsupported", "must be csv, postgresql, neo4j, or cosmos-nosql")
+	}
+}
+
+func validatePostgreSQL(
+	source PostgreSQLSource,
+	namespace string,
+	errs *ValidationErrors,
+) {
+	add := validationAdder(errs)
+	validateSecret(source.Connection, "source.postgresql.connection", errs)
+	add(
+		source.ReadMode == PostgreSQLReadCopy ||
+			source.ReadMode == PostgreSQLReadCursor ||
+			source.ReadMode == PostgreSQLReadKeyset,
+		"source.postgresql.readMode",
+		"unsupported",
+		"must be copy, cursor, or keyset",
+	)
+	add(
+		source.FetchRows >= 1 && source.FetchRows <= 100_000,
+		"source.postgresql.fetchRows",
+		"range",
+		"must be from 1 to 100000",
+	)
+	validateQueries(source.Vertices, source.Edges, namespace, errs)
+	for index, vertex := range source.Vertices {
+		validatePostgreSQLQuery(
+			source.ReadMode,
+			vertex.Query,
+			vertex.KeyField,
+			fmt.Sprintf("source.postgresql.vertices[%d]", index),
+			errs,
+		)
+	}
+	for index, edge := range source.Edges {
+		validatePostgreSQLQuery(
+			source.ReadMode,
+			edge.Query,
+			edge.KeyField,
+			fmt.Sprintf("source.postgresql.edges[%d]", index),
+			errs,
+		)
+	}
+}
+
+func validatePostgreSQLQuery(
+	mode PostgreSQLReadMode,
+	query string,
+	keyField string,
+	path string,
+	errs *ValidationErrors,
+) {
+	add := validationAdder(errs)
+	trimmed := strings.TrimSpace(query)
+	fields := strings.Fields(trimmed)
+	firstKeyword := ""
+	if len(fields) > 0 {
+		firstKeyword = strings.ToLower(fields[0])
+	}
+	add(
+		firstKeyword == "select" || firstKeyword == "with",
+		path+".query",
+		"format",
+		"must be a SELECT or WITH query",
+	)
+	add(
+		!strings.Contains(trimmed, ";"),
+		path+".query",
+		"format",
+		"must contain exactly one statement without a semicolon",
+	)
+	add(
+		sqlquery.HasTopLevelOrderBy(query),
+		path+".query",
+		"ordering",
+		"must contain ORDER BY for deterministic resume",
+	)
+	if mode == PostgreSQLReadKeyset {
+		add(keyField != "", path+".keyField", "required",
+			"is required in keyset mode")
+		add(strings.Contains(query, "$1"), path+".query", "parameter",
+			"must use $1 for the prior key in keyset mode")
+		add(strings.Contains(query, "$2"), path+".query", "parameter",
+			"must use $2 for the fetch limit in keyset mode")
+	} else {
+		add(keyField == "", path+".keyField", "policy",
+			"is supported only in keyset mode")
 	}
 }
 
@@ -203,6 +291,14 @@ func validateNeo4j(source Neo4jSource, namespace string, errs *ValidationErrors)
 		validateSecret(*source.Password, "source.neo4j.password", errs)
 	}
 	validateQueries(source.Vertices, source.Edges, namespace, errs)
+	for index, vertex := range source.Vertices {
+		add(vertex.KeyField == "", fmt.Sprintf("source.neo4j.vertices[%d].keyField", index),
+			"unsupported", "is supported only for PostgreSQL")
+	}
+	for index, edge := range source.Edges {
+		add(edge.KeyField == "", fmt.Sprintf("source.neo4j.edges[%d].keyField", index),
+			"unsupported", "is supported only for PostgreSQL")
+	}
 }
 
 func validateCosmos(source CosmosSource, namespace string, errs *ValidationErrors) {

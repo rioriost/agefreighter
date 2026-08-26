@@ -10,6 +10,7 @@ import (
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	sourcecosmos "github.com/rioriost/agefreighter/internal/source/cosmos"
 	sourcecsv "github.com/rioriost/agefreighter/internal/source/csv"
+	sourcepostgres "github.com/rioriost/agefreighter/internal/source/postgres"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
 
@@ -22,6 +23,10 @@ func validateImplementedSource(job config.LoadJob) error {
 	case config.SourceCosmos:
 		if job.Source.Cosmos == nil {
 			return errors.New("Cosmos source configuration is required")
+		}
+	case config.SourcePostgreSQL:
+		if job.Source.PostgreSQL == nil {
+			return errors.New("PostgreSQL source configuration is required")
 		}
 	default:
 		return fmt.Errorf("source type %q is not implemented", job.Source.Type)
@@ -79,6 +84,35 @@ func newSourceIterator(
 			return nil, errors.Join(err, client.Close())
 		}
 		return iterator, nil
+	case config.SourcePostgreSQL:
+		dsn, err := resolveSecret(job.Source.PostgreSQL.Connection)
+		if err != nil {
+			return nil, fmt.Errorf("resolve PostgreSQL source connection: %w", err)
+		}
+		options := sourcepostgres.IteratorOptions{
+			Namespace:           job.Source.Namespace,
+			Source:              *job.Source.PostgreSQL,
+			DSN:                 dsn,
+			AfterToken:          afterToken,
+			RejectLimit:         job.Errors.RejectLimit,
+			PreencodeProperties: true,
+			MaxReaders:          job.Runtime.MaxSourceConcurrency,
+		}
+		if job.Errors.MalformedRecord == config.MalformedQuarantine {
+			options.OnMalformed = func(
+				ctx context.Context,
+				malformed sourcepostgres.MalformedRecord,
+			) error {
+				return writeSourceRejection(
+					ctx,
+					quarantine,
+					malformed.Position,
+					nil,
+					malformed.Err,
+				)
+			}
+		}
+		return sourcepostgres.NewIterator(ctx, options)
 	default:
 		return nil, fmt.Errorf("source type %q is not implemented", job.Source.Type)
 	}

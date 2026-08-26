@@ -60,6 +60,11 @@ func resolveJobPaths(job *LoadJob, base string) {
 			job.Source.CSV.Edges[index].Path = resolve(job.Source.CSV.Edges[index].Path)
 		}
 	}
+	if job.Source.PostgreSQL != nil {
+		job.Source.PostgreSQL.Connection.File = resolve(
+			job.Source.PostgreSQL.Connection.File,
+		)
+	}
 	job.Target.Connection.File = resolve(job.Target.Connection.File)
 	job.Errors.QuarantinePath = resolve(job.Errors.QuarantinePath)
 }
@@ -90,6 +95,14 @@ func Parse(data []byte) (LoadJob, error) {
 }
 
 func (job *LoadJob) applyDefaults() {
+	if job.Source.PostgreSQL != nil {
+		if job.Source.PostgreSQL.ReadMode == "" {
+			job.Source.PostgreSQL.ReadMode = PostgreSQLReadCopy
+		}
+		if job.Source.PostgreSQL.FetchRows == 0 {
+			job.Source.PostgreSQL.FetchRows = 1_000
+		}
+	}
 	if job.Target.Mode == "" {
 		job.Target.Mode = LoadCreate
 	}

@@ -86,6 +86,15 @@ func TestValidateImplementedSource(t *testing.T) {
 	if err := validateImplementedSource(job); err == nil {
 		t.Fatal("accepted missing Cosmos configuration")
 	}
+	job.Source.Type = config.SourcePostgreSQL
+	job.Source.PostgreSQL = &config.PostgreSQLSource{}
+	if err := validateImplementedSource(job); err != nil {
+		t.Fatalf("PostgreSQL source error = %v", err)
+	}
+	job.Source.PostgreSQL = nil
+	if err := validateImplementedSource(job); err == nil {
+		t.Fatal("accepted missing PostgreSQL configuration")
+	}
 	job.Source.Type = config.SourceNeo4j
 	if err := validateImplementedSource(job); err == nil {
 		t.Fatal("accepted unimplemented source")
@@ -108,6 +117,7 @@ func TestConfiguredCosmosLabels(t *testing.T) {
 			}},
 		},
 	}
+
 	labels, err := configuredLabels(job)
 	if err != nil {
 		t.Fatalf("configuredLabels: %v", err)
@@ -130,6 +140,32 @@ func TestConfiguredCosmosLabels(t *testing.T) {
 	job.Source.Cosmos = nil
 	if _, err := configuredLabels(job); err == nil {
 		t.Fatal("accepted missing Cosmos source")
+	}
+}
+
+func TestConfiguredPostgreSQLLabels(t *testing.T) {
+	job := config.LoadJob{Source: config.Source{
+		Type: config.SourcePostgreSQL,
+		PostgreSQL: &config.PostgreSQLSource{
+			Vertices: []config.VertexQuery{{Label: "Person"}},
+			Edges: []config.EdgeQuery{{
+				Label: "KNOWS",
+				Start: config.EndpointMapping{Label: "Person"},
+				End:   config.EndpointMapping{Label: "Person"},
+			}},
+		},
+	}}
+	labels, err := configuredLabels(job)
+	if err != nil {
+		t.Fatalf("configuredLabels() error = %v", err)
+	}
+	if labels["Person"] != age.VertexLabel ||
+		labels["KNOWS"] != age.EdgeLabel {
+		t.Fatalf("configuredLabels() = %#v", labels)
+	}
+	job.Source.PostgreSQL = nil
+	if _, err := configuredLabels(job); err == nil {
+		t.Fatal("configuredLabels() accepted missing PostgreSQL source")
 	}
 }
 

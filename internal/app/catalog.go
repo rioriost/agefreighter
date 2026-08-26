@@ -289,6 +289,18 @@ func configuredLabels(job config.LoadJob) (map[string]age.LabelKind, error) {
 				label: edge.Label, start: edge.Start.Label, end: edge.End.Label,
 			})
 		}
+	case config.SourcePostgreSQL:
+		if job.Source.PostgreSQL == nil {
+			return nil, errors.New("PostgreSQL source configuration is required")
+		}
+		for _, vertex := range job.Source.PostgreSQL.Vertices {
+			vertices = append(vertices, vertex.Label)
+		}
+		for _, edge := range job.Source.PostgreSQL.Edges {
+			edges = append(edges, configuredEdge{
+				label: edge.Label, start: edge.Start.Label, end: edge.End.Label,
+			})
+		}
 	default:
 		return nil, fmt.Errorf("source type %q is not implemented", job.Source.Type)
 	}

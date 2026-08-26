@@ -14,6 +14,14 @@ const (
 	SourceCosmos     SourceType = "cosmos-nosql"
 )
 
+type PostgreSQLReadMode string
+
+const (
+	PostgreSQLReadCopy   PostgreSQLReadMode = "copy"
+	PostgreSQLReadCursor PostgreSQLReadMode = "cursor"
+	PostgreSQLReadKeyset PostgreSQLReadMode = "keyset"
+)
+
 type TargetType string
 
 const TargetApacheAGE TargetType = "apache-age"
@@ -120,9 +128,11 @@ type EndpointMapping struct {
 }
 
 type PostgreSQLSource struct {
-	Connection SecretRef     `json:"connection" yaml:"connection"`
-	Vertices   []VertexQuery `json:"vertices" yaml:"vertices"`
-	Edges      []EdgeQuery   `json:"edges,omitempty" yaml:"edges,omitempty"`
+	Connection SecretRef          `json:"connection" yaml:"connection"`
+	ReadMode   PostgreSQLReadMode `json:"readMode" yaml:"readMode"`
+	FetchRows  int                `json:"fetchRows" yaml:"fetchRows"`
+	Vertices   []VertexQuery      `json:"vertices" yaml:"vertices"`
+	Edges      []EdgeQuery        `json:"edges,omitempty" yaml:"edges,omitempty"`
 }
 
 type Neo4jSource struct {
@@ -154,6 +164,7 @@ type VertexQuery struct {
 	Label      string            `json:"label" yaml:"label"`
 	Query      string            `json:"query" yaml:"query"`
 	IDField    string            `json:"idField" yaml:"idField"`
+	KeyField   string            `json:"keyField,omitempty" yaml:"keyField,omitempty"`
 	Properties map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
 }
 
@@ -161,6 +172,7 @@ type EdgeQuery struct {
 	Label           string            `json:"label" yaml:"label"`
 	Query           string            `json:"query" yaml:"query"`
 	ExternalIDField string            `json:"externalIdField,omitempty" yaml:"externalIdField,omitempty"`
+	KeyField        string            `json:"keyField,omitempty" yaml:"keyField,omitempty"`
 	Start           EndpointMapping   `json:"start" yaml:"start"`
 	End             EndpointMapping   `json:"end" yaml:"end"`
 	Properties      map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`

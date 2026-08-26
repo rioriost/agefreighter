@@ -11,8 +11,11 @@ type StaticPlan struct {
 }
 
 type PlanSource struct {
-	Type      SourceType `json:"type"`
-	Namespace string     `json:"namespace"`
+	Type               SourceType         `json:"type"`
+	Namespace          string             `json:"namespace"`
+	PostgreSQLReadMode PostgreSQLReadMode `json:"postgresqlReadMode,omitempty"`
+	FetchRows          int                `json:"fetchRows,omitempty"`
+	Consistency        string             `json:"consistency,omitempty"`
 }
 
 type PlanTarget struct {
@@ -70,6 +73,11 @@ func BuildStaticPlan(job LoadJob) StaticPlan {
 			RejectLimit:      job.Errors.RejectLimit,
 			MaxDeferredEdges: job.Errors.MaxDeferredEdges,
 		},
+	}
+	if job.Source.Type == SourcePostgreSQL && job.Source.PostgreSQL != nil {
+		plan.Source.PostgreSQLReadMode = job.Source.PostgreSQL.ReadMode
+		plan.Source.FetchRows = job.Source.PostgreSQL.FetchRows
+		plan.Source.Consistency = "exported-repeatable-read-snapshot"
 	}
 	switch job.Source.Type {
 	case SourceNeo4j, SourceCosmos:

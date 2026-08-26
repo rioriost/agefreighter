@@ -158,6 +158,86 @@ func TestUpsertRequiresDeferredEdgeCapacity(t *testing.T) {
 	}
 }
 
+func TestPostgreSQLReadModeValidation(t *testing.T) {
+	job, err := Load("testdata/valid/postgresql.yaml")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	tests := []struct {
+		name string
+		edit func(*PostgreSQLSource)
+		path string
+	}{
+		{
+			name: "unsupported mode",
+			edit: func(source *PostgreSQLSource) {
+				source.ReadMode = "offset"
+			},
+			path: "source.postgresql.readMode",
+		},
+		{
+			name: "fetch rows",
+			edit: func(source *PostgreSQLSource) {
+				source.FetchRows = 100_001
+			},
+			path: "source.postgresql.fetchRows",
+		},
+		{
+			name: "non read query",
+			edit: func(source *PostgreSQLSource) {
+				source.Vertices[0].Query = "DELETE FROM person"
+			},
+			path: "source.postgresql.vertices[0].query",
+		},
+		{
+			name: "multiple statements",
+			edit: func(source *PostgreSQLSource) {
+				source.Vertices[0].Query = "SELECT 1; SELECT 2"
+			},
+			path: "source.postgresql.vertices[0].query",
+		},
+		{
+			name: "key outside keyset",
+			edit: func(source *PostgreSQLSource) {
+				source.Vertices[0].KeyField = "person_id"
+			},
+			path: "source.postgresql.vertices[0].keyField",
+		},
+		{
+			name: "keyset key",
+			edit: func(source *PostgreSQLSource) {
+				source.ReadMode = PostgreSQLReadKeyset
+				source.Vertices[0].Query =
+					"SELECT person_id FROM person WHERE ($1::bigint IS NULL OR person_id > $1) ORDER BY person_id LIMIT $2"
+			},
+			path: "source.postgresql.vertices[0].keyField",
+		},
+		{
+			name: "keyset parameters",
+			edit: func(source *PostgreSQLSource) {
+				source.ReadMode = PostgreSQLReadKeyset
+				source.Vertices[0].KeyField = "person_id"
+				source.Vertices[0].Query = "SELECT person_id FROM person"
+			},
+			path: "source.postgresql.vertices[0].query",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			candidate := job
+			source := *job.Source.PostgreSQL
+			source.Vertices = append([]VertexQuery(nil), source.Vertices...)
+			source.Edges = append([]EdgeQuery(nil), source.Edges...)
+			candidate.Source.PostgreSQL = &source
+			test.edit(&source)
+			if err := candidate.Validate(); err == nil ||
+				!strings.Contains(err.Error(), test.path) {
+				t.Fatalf("Validate() error = %v, want %q", err, test.path)
+			}
+		})
+	}
+}
+
 func TestCSVRequiresEdgeIdentityForCreate(t *testing.T) {
 	job := validCSVJob(t)
 	job.Target.Mode = LoadCreate

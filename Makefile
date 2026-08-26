@@ -7,6 +7,7 @@ COVERAGE_THRESHOLD ?= 90.0
 BENCHTIME ?= 5x
 BENCHFLAGS ?=
 SCALE_ROWS ?= 200000
+AGEFREIGHTER_POSTGRES_TEST_DSN ?= postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55433/agefreighter?sslmode=disable
 AGEFREIGHTER_AGE_TEST_DSN ?= postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || printf unknown)
@@ -58,6 +59,7 @@ test-race:
 
 coverage:
 	@mkdir -p "$(COVERAGE_DIR)"
+	AGEFREIGHTER_POSTGRES_TEST_DSN="$(AGEFREIGHTER_POSTGRES_TEST_DSN)" \
 	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
 		$(GO) test -covermode=atomic -coverpkg=./... \
 		-coverprofile="$(COVERAGE_DIR)/unit.raw.out" ./...

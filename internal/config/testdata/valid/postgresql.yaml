@@ -10,7 +10,7 @@ source:
       file: /run/secrets/source-dsn
     vertices:
       - label: Person
-        query: SELECT person_id, full_name FROM person ORDER BY person_id
+        query: SELECT person_id, full_name FROM people ORDER BY person_id
         idField: person_id
         properties:
           name: full_name
