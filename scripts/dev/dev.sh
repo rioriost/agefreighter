@@ -127,7 +127,11 @@ initialize_fixtures() {
 
 	runtime_exec "$NEO4J_CONTAINER" \
 		cypher-shell -u neo4j -p "$AGEFREIGHTER_DEV_PASSWORD" \
-		'CREATE CONSTRAINT person_id IF NOT EXISTS FOR (p:Person) REQUIRE p.id IS UNIQUE; MERGE (:Person {id: 1, name: "Ada"}); MERGE (:Person {id: 2, name: "Grace"});' \
+		'CREATE CONSTRAINT person_id IF NOT EXISTS FOR (p:Person) REQUIRE p.id IS UNIQUE' \
+		>/dev/null
+	runtime_exec "$NEO4J_CONTAINER" \
+		cypher-shell -u neo4j -p "$AGEFREIGHTER_DEV_PASSWORD" \
+		'MERGE (ada:Person {id: 1}) SET ada.name = "Ada" MERGE (grace:Person {id: 2}) SET grace.name = "Grace", grace:Scientist MERGE (ada)-[r:KNOWS {id: 1}]->(grace) SET r.since = date("2020-01-01")' \
 		>/dev/null
 }
 
@@ -142,8 +146,8 @@ smoke() {
 		grep -Fqx '2|1'
 	runtime_exec "$NEO4J_CONTAINER" \
 		cypher-shell --format plain -u neo4j -p "$AGEFREIGHTER_DEV_PASSWORD" \
-		'MATCH (p:Person) RETURN count(p) AS count' |
-		grep -Eq '(^|[[:space:]])2([[:space:]]|$)'
+		'MATCH (p:Person) OPTIONAL MATCH (p)-[r:KNOWS]->() RETURN count(DISTINCT p) AS people, count(r) AS relationships' |
+		grep -Eq '(^|[[:space:]])2([[:space:]]*[|,]?[[:space:]]*)1([[:space:]]|$)'
 	printf 'Development database smoke checks passed\n'
 }
 

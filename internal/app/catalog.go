@@ -301,6 +301,18 @@ func configuredLabels(job config.LoadJob) (map[string]age.LabelKind, error) {
 				label: edge.Label, start: edge.Start.Label, end: edge.End.Label,
 			})
 		}
+	case config.SourceNeo4j:
+		if job.Source.Neo4j == nil {
+			return nil, errors.New("Neo4j source configuration is required")
+		}
+		for _, vertex := range job.Source.Neo4j.Vertices {
+			vertices = append(vertices, vertex.Label)
+		}
+		for _, edge := range job.Source.Neo4j.Edges {
+			edges = append(edges, configuredEdge{
+				label: edge.Label, start: edge.Start.Label, end: edge.End.Label,
+			})
+		}
 	default:
 		return nil, fmt.Errorf("source type %q is not implemented", job.Source.Type)
 	}

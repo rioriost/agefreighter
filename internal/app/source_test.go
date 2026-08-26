@@ -96,8 +96,13 @@ func TestValidateImplementedSource(t *testing.T) {
 		t.Fatal("accepted missing PostgreSQL configuration")
 	}
 	job.Source.Type = config.SourceNeo4j
+	job.Source.Neo4j = &config.Neo4jSource{}
+	if err := validateImplementedSource(job); err != nil {
+		t.Fatalf("Neo4j source error = %v", err)
+	}
+	job.Source.Neo4j = nil
 	if err := validateImplementedSource(job); err == nil {
-		t.Fatal("accepted unimplemented source")
+		t.Fatal("accepted missing Neo4j configuration")
 	}
 }
 
@@ -159,6 +164,7 @@ func TestConfiguredPostgreSQLLabels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("configuredLabels() error = %v", err)
 	}
+
 	if labels["Person"] != age.VertexLabel ||
 		labels["KNOWS"] != age.EdgeLabel {
 		t.Fatalf("configuredLabels() = %#v", labels)
@@ -166,6 +172,32 @@ func TestConfiguredPostgreSQLLabels(t *testing.T) {
 	job.Source.PostgreSQL = nil
 	if _, err := configuredLabels(job); err == nil {
 		t.Fatal("configuredLabels() accepted missing PostgreSQL source")
+	}
+}
+
+func TestConfiguredNeo4jLabels(t *testing.T) {
+	job := config.LoadJob{Source: config.Source{
+		Type: config.SourceNeo4j,
+		Neo4j: &config.Neo4jSource{
+			Vertices: []config.VertexQuery{{Label: "Person"}},
+			Edges: []config.EdgeQuery{{
+				Label: "KNOWS",
+				Start: config.EndpointMapping{Label: "Person"},
+				End:   config.EndpointMapping{Label: "Person"},
+			}},
+		},
+	}}
+	labels, err := configuredLabels(job)
+	if err != nil {
+		t.Fatalf("configuredLabels() error = %v", err)
+	}
+	if labels["Person"] != age.VertexLabel ||
+		labels["KNOWS"] != age.EdgeLabel {
+		t.Fatalf("configuredLabels() = %#v", labels)
+	}
+	job.Source.Neo4j = nil
+	if _, err := configuredLabels(job); err == nil {
+		t.Fatal("configuredLabels() accepted missing Neo4j source")
 	}
 }
 

@@ -8,13 +8,15 @@ source:
   neo4j:
     uri: neo4j+s://example.databases.neo4j.io
     database: neo4j
+    sourceId: crm-primary
     username: neo4j
     password:
       env: AGEFREIGHTER_NEO4J_PASSWORD
     vertices:
       - label: Person
-        query: MATCH (n:Person) RETURN n.id AS id, n.name AS name
+        query: MATCH (n:Person) WHERE $afterKey IS NULL OR n.id > $afterKey RETURN n.id AS id, n.name AS name ORDER BY id
         idField: id
+        keyField: id
         properties:
           name: name
 target:

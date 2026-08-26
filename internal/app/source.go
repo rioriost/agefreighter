@@ -10,6 +10,7 @@ import (
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	sourcecosmos "github.com/rioriost/agefreighter/internal/source/cosmos"
 	sourcecsv "github.com/rioriost/agefreighter/internal/source/csv"
+	sourceneo4j "github.com/rioriost/agefreighter/internal/source/neo4j"
 	sourcepostgres "github.com/rioriost/agefreighter/internal/source/postgres"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
@@ -27,6 +28,10 @@ func validateImplementedSource(job config.LoadJob) error {
 	case config.SourcePostgreSQL:
 		if job.Source.PostgreSQL == nil {
 			return errors.New("PostgreSQL source configuration is required")
+		}
+	case config.SourceNeo4j:
+		if job.Source.Neo4j == nil {
+			return errors.New("Neo4j source configuration is required")
 		}
 	default:
 		return fmt.Errorf("source type %q is not implemented", job.Source.Type)
@@ -113,6 +118,53 @@ func newSourceIterator(
 			}
 		}
 		return sourcepostgres.NewIterator(ctx, options)
+	case config.SourceNeo4j:
+		var password string
+		var err error
+		if job.Source.Neo4j.Password != nil {
+			password, err = resolveSecret(*job.Source.Neo4j.Password)
+			if err != nil {
+				return nil, fmt.Errorf("resolve Neo4j source password: %w", err)
+			}
+		}
+		client, err := sourceneo4j.NewSDKClient(
+			ctx,
+			job.Source.Neo4j.URI,
+			job.Source.Neo4j.Database,
+			job.Source.Neo4j.Username,
+			password,
+			job.Source.Neo4j.FetchRows,
+		)
+		if err != nil {
+			return nil, err
+		}
+		options := sourceneo4j.IteratorOptions{
+			Namespace:           job.Source.Namespace,
+			Source:              *job.Source.Neo4j,
+			Client:              client,
+			AfterToken:          afterToken,
+			RejectLimit:         job.Errors.RejectLimit,
+			PreencodeProperties: true,
+		}
+		if job.Errors.MalformedRecord == config.MalformedQuarantine {
+			options.OnMalformed = func(
+				ctx context.Context,
+				malformed sourceneo4j.MalformedRecord,
+			) error {
+				return writeSourceRejection(
+					ctx,
+					quarantine,
+					malformed.Position,
+					nil,
+					malformed.Err,
+				)
+			}
+		}
+		iterator, err := sourceneo4j.NewIterator(ctx, options)
+		if err != nil {
+			return nil, errors.Join(err, client.Close())
+		}
+		return iterator, nil
 	default:
 		return nil, fmt.Errorf("source type %q is not implemented", job.Source.Type)
 	}

@@ -11,11 +11,12 @@ type StaticPlan struct {
 }
 
 type PlanSource struct {
-	Type               SourceType         `json:"type"`
-	Namespace          string             `json:"namespace"`
-	PostgreSQLReadMode PostgreSQLReadMode `json:"postgresqlReadMode,omitempty"`
-	FetchRows          int                `json:"fetchRows,omitempty"`
-	Consistency        string             `json:"consistency,omitempty"`
+	Type               SourceType            `json:"type"`
+	Namespace          string                `json:"namespace"`
+	PostgreSQLReadMode PostgreSQLReadMode    `json:"postgresqlReadMode,omitempty"`
+	Neo4jMultiLabel    Neo4jMultiLabelPolicy `json:"neo4jMultiLabelPolicy,omitempty"`
+	FetchRows          int                   `json:"fetchRows,omitempty"`
+	Consistency        string                `json:"consistency,omitempty"`
 }
 
 type PlanTarget struct {
@@ -79,8 +80,15 @@ func BuildStaticPlan(job LoadJob) StaticPlan {
 		plan.Source.FetchRows = job.Source.PostgreSQL.FetchRows
 		plan.Source.Consistency = "exported-repeatable-read-snapshot"
 	}
+	if job.Source.Type == SourceNeo4j && job.Source.Neo4j != nil {
+		plan.Source.FetchRows = job.Source.Neo4j.FetchRows
+		plan.Source.Neo4jMultiLabel = job.Source.Neo4j.MultiLabelPolicy
+		plan.Source.Consistency = "per-mapping-read-transaction"
+		plan.Warnings = append(plan.Warnings,
+			"Neo4j mappings are separate read transactions and do not observe one point-in-time graph snapshot")
+	}
 	switch job.Source.Type {
-	case SourceNeo4j, SourceCosmos:
+	case SourceCosmos:
 		plan.Warnings = append(plan.Warnings,
 			"source consistency capabilities are verified when the connector initializes")
 	}

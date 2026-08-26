@@ -445,6 +445,8 @@ The initial missing-endpoint policies are `error` and `quarantine`. The bounded
 
 ### Milestone 9: Neo4j source
 
+**Implementation status:** Complete.
+
 **Deliverables**
 
 - official Go driver adapter

@@ -171,6 +171,88 @@ session-pooling mode. The coordinator supports bounded concurrent snapshot
 readers, while the 2.0.0 iterator processes configured mappings sequentially
 to preserve vertex-before-edge order.
 
+## Neo4j options
+
+Neo4j sources use the official Go driver and stream one read-only Cypher result
+at a time. `fetchRows` is the Bolt pull size, defaults to 1000, and must be from
+1 to 100000; it does not materialize that many records eagerly.
+
+```yaml
+source:
+  type: neo4j
+  namespace: crm
+  neo4j:
+    uri: bolt://127.0.0.1:7687
+    database: neo4j
+    sourceId: crm-primary
+    username: neo4j
+    password:
+      env: AGEFREIGHTER_NEO4J_PASSWORD
+    fetchRows: 1000
+    multiLabelPolicy: configured
+    vertices:
+      - label: Person
+        query: >-
+          MATCH (n:Person)
+          WHERE $afterKey IS NULL OR n.source_key > $afterKey
+          RETURN n.source_key AS source_key, n.person_id AS person_id,
+                 n.name AS name
+          ORDER BY source_key
+        keyField: source_key
+        idField: person_id
+        properties:
+          name: name
+    edges:
+      - label: KNOWS
+        query: >-
+          MATCH (a:Person)-[r:KNOWS]->(b:Person)
+          WHERE $afterKey IS NULL OR r.source_key > $afterKey
+          RETURN r.source_key AS source_key, r.relationship_id AS relationship_id,
+                 a.person_id AS from_id, b.person_id AS to_id
+          ORDER BY source_key
+        keyField: source_key
+        externalIdField: relationship_id
+        start:
+          label: Person
+          field: from_id
+        end:
+          label: Person
+          field: to_id
+```
+
+Every mapping must return a unique, strictly increasing signed 64-bit integer
+`keyField`, reference the nullable `$afterKey` parameter, use a top-level
+ascending `ORDER BY keyField` as the first ordering expression, and avoid
+`SKIP`, `OFFSET`, `LIMIT`, `UNION`, and eager `collect` expressions. The
+driver's Bolt fetch size bounds full-result streaming instead. Checkpoints
+store the last committed key rather
+than a reusable Neo4j internal ID. Across restart, existing rows must not
+change or disappear and new keys must become visible in strictly increasing
+commit order; a late commit below the checkpoint cannot be recovered.
+`sourceId` is an explicit stable dataset identity and is fingerprinted with the
+URI, database, username, and ordered mappings. Change it when a URI is
+repointed at a logically different graph.
+
+`multiLabelPolicy: configured` always uses the mapping's configured target
+label and converts returned Neo4j node values from their properties, ignoring
+additional source labels. `reject` treats a returned node with more than one
+source label as malformed. Relationship values similarly expose only their
+properties; Neo4j internal and element IDs are never selected automatically as
+durable identities.
+
+Neo4j nulls, booleans, signed integers, finite floats, strings, lists, and maps
+map recursively. Date/time values become deterministic strings. Durations
+become objects containing `months`, `days`, `seconds`, and `nanoseconds`.
+Two- and three-dimensional points become objects containing `srid` and their
+coordinates. Unsupported paths, byte arrays, non-finite values, excessive
+nesting, and invalid graph values follow the malformed-record policy.
+
+Each configured mapping runs in its own read transaction. A single mapping is
+streamed consistently, but multiple vertex and edge mappings do not share a
+point-in-time graph snapshot. Mutations committed between mappings can
+therefore be observed by later mappings; the static load plan always reports
+this consistency limitation.
+
 ## Cosmos DB for NoSQL options
 
 Cosmos sources authenticate with `DefaultAzureCredential`; account keys and
@@ -232,7 +314,7 @@ header, account key, or source document.
 ## Load modes
 
 The target modes are `create`, `replace`, `append`, and `upsert`. CSV,
-PostgreSQL, and Cosmos DB for NoSQL support all four modes. Every edge mapping
+PostgreSQL, Neo4j, and Cosmos DB for NoSQL support all four modes. Every edge mapping
 in an `upsert` job must provide an external edge identity field or column.
 Graph names must follow the supported Apache AGE naming subset: 3–63 UTF-8
 bytes, starting with a letter or underscore, ending with a letter, digit, or

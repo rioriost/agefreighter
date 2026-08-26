@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -17,6 +18,8 @@ var (
 	graphNamePattern       = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_]$`)
 	envNamePattern         = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 	cosmosParameterPattern = regexp.MustCompile(`^@[A-Za-z_][A-Za-z0-9_]*$`)
+	sourceIdentityPattern  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
+	queryFieldPattern      = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 )
 
 type ValidationError struct {
@@ -281,10 +284,24 @@ func validateQueries(vertices []VertexQuery, edges []EdgeQuery, namespace string
 
 func validateNeo4j(source Neo4jSource, namespace string, errs *ValidationErrors) {
 	add := validationAdder(errs)
-	add(strings.HasPrefix(source.URI, "neo4j://") || strings.HasPrefix(source.URI, "neo4j+s://") ||
-		strings.HasPrefix(source.URI, "bolt://") || strings.HasPrefix(source.URI, "bolt+s://"),
-		"source.neo4j.uri", "format", "must use neo4j, neo4j+s, bolt, or bolt+s")
+	parsedURI, uriErr := url.Parse(source.URI)
+	validScheme := uriErr == nil && (parsedURI.Scheme == "neo4j" ||
+		parsedURI.Scheme == "neo4j+s" || parsedURI.Scheme == "neo4j+ssc" ||
+		parsedURI.Scheme == "bolt" || parsedURI.Scheme == "bolt+s" ||
+		parsedURI.Scheme == "bolt+ssc")
+	add(validScheme && parsedURI.Host != "" && parsedURI.User == nil,
+		"source.neo4j.uri", "format",
+		"must use neo4j, neo4j+s, neo4j+ssc, bolt, bolt+s, or bolt+ssc without embedded credentials")
 	add(source.Database != "", "source.neo4j.database", "required", "must not be empty")
+	add(sourceIdentityPattern.MatchString(source.SourceID),
+		"source.neo4j.sourceId", "format",
+		"must be 1-128 characters using letters, digits, dots, underscores, colons, or hyphens")
+	add(source.FetchRows >= 1 && source.FetchRows <= 100_000,
+		"source.neo4j.fetchRows", "range", "must be from 1 to 100000")
+	add(source.MultiLabelPolicy == Neo4jMultiLabelConfigured ||
+		source.MultiLabelPolicy == Neo4jMultiLabelReject,
+		"source.neo4j.multiLabelPolicy", "unsupported",
+		"must be configured or reject")
 	add((source.Username == "") == (source.Password == nil), "source.neo4j", "authentication",
 		"username and password must either both be set or both be omitted")
 	if source.Password != nil {
@@ -292,13 +309,41 @@ func validateNeo4j(source Neo4jSource, namespace string, errs *ValidationErrors)
 	}
 	validateQueries(source.Vertices, source.Edges, namespace, errs)
 	for index, vertex := range source.Vertices {
-		add(vertex.KeyField == "", fmt.Sprintf("source.neo4j.vertices[%d].keyField", index),
-			"unsupported", "is supported only for PostgreSQL")
+		validateNeo4jQuery(vertex.Query, vertex.KeyField,
+			fmt.Sprintf("source.neo4j.vertices[%d]", index), errs)
 	}
 	for index, edge := range source.Edges {
-		add(edge.KeyField == "", fmt.Sprintf("source.neo4j.edges[%d].keyField", index),
-			"unsupported", "is supported only for PostgreSQL")
+		validateNeo4jQuery(edge.Query, edge.KeyField,
+			fmt.Sprintf("source.neo4j.edges[%d]", index), errs)
 	}
+}
+
+func validateNeo4jQuery(
+	query string,
+	keyField string,
+	path string,
+	errs *ValidationErrors,
+) {
+	add := validationAdder(errs)
+	add(keyField != "", path+".keyField", "required",
+		"is required for durable Neo4j resume")
+	add(queryFieldPattern.MatchString(keyField), path+".keyField", "format",
+		"must be an unquoted Cypher result identifier")
+	add(sqlquery.HasFinalTopLevelOrderByField(query, keyField),
+		path+".query", "ordering",
+		"must end with ascending ORDER BY keyField for deterministic resume")
+	add(sqlquery.HasParameter(query, "afterKey"), path+".query", "parameter",
+		"must use $afterKey for the prior stable key")
+	add(!sqlquery.HasKeyword(query, "skip"), path+".query", "unsupported",
+		"must use keyset resume rather than SKIP")
+	add(!sqlquery.HasKeyword(query, "offset"), path+".query", "unsupported",
+		"must use keyset resume rather than OFFSET")
+	add(!sqlquery.HasKeyword(query, "limit"), path+".query", "unsupported",
+		"must stream the complete mapping rather than use LIMIT")
+	add(!sqlquery.HasKeyword(query, "union"), path+".query", "unsupported",
+		"must not use UNION because it cannot guarantee one total key order")
+	add(!sqlquery.HasKeyword(query, "collect"), path+".query", "unsupported",
+		"must not eagerly materialize records with collect")
 }
 
 func validateCosmos(source CosmosSource, namespace string, errs *ValidationErrors) {

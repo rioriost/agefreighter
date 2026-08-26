@@ -65,6 +65,9 @@ func resolveJobPaths(job *LoadJob, base string) {
 			job.Source.PostgreSQL.Connection.File,
 		)
 	}
+	if job.Source.Neo4j != nil && job.Source.Neo4j.Password != nil {
+		job.Source.Neo4j.Password.File = resolve(job.Source.Neo4j.Password.File)
+	}
 	job.Target.Connection.File = resolve(job.Target.Connection.File)
 	job.Errors.QuarantinePath = resolve(job.Errors.QuarantinePath)
 }
@@ -101,6 +104,14 @@ func (job *LoadJob) applyDefaults() {
 		}
 		if job.Source.PostgreSQL.FetchRows == 0 {
 			job.Source.PostgreSQL.FetchRows = 1_000
+		}
+	}
+	if job.Source.Neo4j != nil {
+		if job.Source.Neo4j.FetchRows == 0 {
+			job.Source.Neo4j.FetchRows = 1_000
+		}
+		if job.Source.Neo4j.MultiLabelPolicy == "" {
+			job.Source.Neo4j.MultiLabelPolicy = Neo4jMultiLabelConfigured
 		}
 	}
 	if job.Target.Mode == "" {

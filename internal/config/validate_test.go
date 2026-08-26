@@ -282,9 +282,13 @@ func TestQueryUpsertRequiresEdgeIdentity(t *testing.T) {
 			edit: func(job *LoadJob) {
 				job.Target.Mode = LoadUpsert
 				job.Source.Neo4j.Edges = []EdgeQuery{{
-					Label: "KNOWS", Query: "MATCH ()-[r:KNOWS]->() RETURN r",
-					Start: EndpointMapping{Label: "Person", Field: "from"},
-					End:   EndpointMapping{Label: "Person", Field: "to"},
+					Label: "KNOWS",
+					Query: "MATCH ()-[r:KNOWS]->() " +
+						"WHERE $afterKey IS NULL OR r.id > $afterKey " +
+						"RETURN r.id AS id, r.from AS from, r.to AS to ORDER BY id",
+					KeyField: "id",
+					Start:    EndpointMapping{Label: "Person", Field: "from"},
+					End:      EndpointMapping{Label: "Person", Field: "to"},
 				}}
 			},
 		},
@@ -310,6 +314,37 @@ func TestQueryUpsertRequiresEdgeIdentity(t *testing.T) {
 				t.Fatalf("Validate() error = %v, want edge identity error", err)
 			}
 		})
+	}
+}
+
+func TestNeo4jValidation(t *testing.T) {
+	job, err := Load("testdata/valid/neo4j.yaml")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	job.Source.Neo4j.URI = "neo4j://user:password@example.invalid"
+	job.Source.Neo4j.SourceID = "invalid source id"
+	job.Source.Neo4j.FetchRows = 100_001
+	job.Source.Neo4j.MultiLabelPolicy = "first"
+	job.Source.Neo4j.Vertices[0].KeyField = ""
+	job.Source.Neo4j.Vertices[0].Query =
+		"MATCH (n) RETURN '$afterKey ORDER BY id' AS value SKIP 1"
+
+	err = job.Validate()
+
+	for _, want := range []string{
+		"without embedded credentials",
+		"sourceId",
+		"fetchRows",
+		"multiLabelPolicy",
+		"keyField",
+		"ascending ORDER BY",
+		"$afterKey",
+		"rather than SKIP",
+	} {
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("Validate() error = %v, want %q", err, want)
+		}
 	}
 }
 

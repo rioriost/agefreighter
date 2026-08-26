@@ -23,6 +23,27 @@ func TestCosmosDefaults(t *testing.T) {
 	}
 }
 
+func TestNeo4jDefaultsAndStaticPlan(t *testing.T) {
+	job, err := Load("testdata/valid/neo4j.yaml")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if job.Source.Neo4j.FetchRows != 1_000 ||
+		job.Source.Neo4j.MultiLabelPolicy != Neo4jMultiLabelConfigured {
+		t.Fatalf("Neo4j defaults = %#v", job.Source.Neo4j)
+	}
+	plan := BuildStaticPlan(job)
+	if plan.Source.FetchRows != 1_000 ||
+		plan.Source.Neo4jMultiLabel != Neo4jMultiLabelConfigured ||
+		plan.Source.Consistency != "per-mapping-read-transaction" {
+		t.Fatalf("Neo4j plan source = %#v", plan.Source)
+	}
+	if len(plan.Warnings) == 0 ||
+		!strings.Contains(plan.Warnings[0], "point-in-time") {
+		t.Fatalf("Neo4j plan warnings = %#v", plan.Warnings)
+	}
+}
+
 func TestInactiveIncrementalDefaultsAreOmitted(t *testing.T) {
 	job := validCSVJob(t)
 	encoded, err := json.Marshal(job)
@@ -142,6 +163,19 @@ func TestResolvePostgreSQLConnectionFile(t *testing.T) {
 			job.Source.PostgreSQL.Connection.File,
 			want,
 		)
+	}
+}
+
+func TestResolveNeo4jPasswordFile(t *testing.T) {
+	job := LoadJob{Source: Source{Neo4j: &Neo4jSource{
+		Password: &SecretRef{File: "secrets/neo4j-password"},
+	}}}
+	base := t.TempDir()
+	resolveJobPaths(&job, base)
+	want := filepath.Join(base, "secrets/neo4j-password")
+	if job.Source.Neo4j.Password.File != want {
+		t.Fatalf("Neo4j password file = %q, want %q",
+			job.Source.Neo4j.Password.File, want)
 	}
 }
 

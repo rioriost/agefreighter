@@ -22,6 +22,13 @@ const (
 	PostgreSQLReadKeyset PostgreSQLReadMode = "keyset"
 )
 
+type Neo4jMultiLabelPolicy string
+
+const (
+	Neo4jMultiLabelConfigured Neo4jMultiLabelPolicy = "configured"
+	Neo4jMultiLabelReject     Neo4jMultiLabelPolicy = "reject"
+)
+
 type TargetType string
 
 const TargetApacheAGE TargetType = "apache-age"
@@ -136,12 +143,15 @@ type PostgreSQLSource struct {
 }
 
 type Neo4jSource struct {
-	URI      string        `json:"uri" yaml:"uri"`
-	Database string        `json:"database" yaml:"database"`
-	Username string        `json:"username,omitempty" yaml:"username,omitempty"`
-	Password *SecretRef    `json:"password,omitempty" yaml:"password,omitempty"`
-	Vertices []VertexQuery `json:"vertices" yaml:"vertices"`
-	Edges    []EdgeQuery   `json:"edges,omitempty" yaml:"edges,omitempty"`
+	URI              string                `json:"uri" yaml:"uri"`
+	Database         string                `json:"database" yaml:"database"`
+	SourceID         string                `json:"sourceId" yaml:"sourceId"`
+	Username         string                `json:"username,omitempty" yaml:"username,omitempty"`
+	Password         *SecretRef            `json:"password,omitempty" yaml:"password,omitempty"`
+	FetchRows        int                   `json:"fetchRows" yaml:"fetchRows"`
+	MultiLabelPolicy Neo4jMultiLabelPolicy `json:"multiLabelPolicy" yaml:"multiLabelPolicy"`
+	Vertices         []VertexQuery         `json:"vertices" yaml:"vertices"`
+	Edges            []EdgeQuery           `json:"edges,omitempty" yaml:"edges,omitempty"`
 }
 
 type CosmosSource struct {

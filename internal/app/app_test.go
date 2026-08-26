@@ -698,7 +698,7 @@ func TestAppHelpers(t *testing.T) {
 	if _, _, err := openTarget(t.Context(), missingTarget); err == nil {
 		t.Fatal("openTarget() accepted missing target secret")
 	}
-	job.Source.Type = config.SourceNeo4j
+	job.Source.Type = config.SourceType("unsupported")
 	if _, err := execute(t.Context(), job, first, false); err == nil {
 		t.Fatal("execute() accepted unsupported source")
 	}

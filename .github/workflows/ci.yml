@@ -58,7 +58,11 @@ jobs:
           AGEFREIGHTER_AGE_TEST_DSN: postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable
         run: |
           export AGEFREIGHTER_POSTGRES_TEST_DSN='postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55433/agefreighter?sslmode=disable'
-          go test -race ./internal/age ./internal/source/postgres
+          export AGEFREIGHTER_NEO4J_TEST_URI='bolt://127.0.0.1:57687'
+          export AGEFREIGHTER_NEO4J_TEST_USERNAME='neo4j'
+          export AGEFREIGHTER_NEO4J_TEST_PASSWORD='agefreighter_dev_only'
+          export AGEFREIGHTER_NEO4J_TEST_DATABASE='neo4j'
+          go test -race ./internal/age ./internal/source/postgres ./internal/source/neo4j
           make coverage
       - name: Stop databases
         if: always()
