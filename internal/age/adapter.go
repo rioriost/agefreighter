@@ -244,6 +244,12 @@ func (adapter *Adapter) Close() {
 	}
 }
 
+func (adapter *Adapter) ResetSessions() {
+	if adapter != nil && adapter.pool != nil {
+		adapter.pool.Reset()
+	}
+}
+
 type Transaction struct {
 	tx pgx.Tx
 }

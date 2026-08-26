@@ -6,6 +6,67 @@ import (
 	"fmt"
 )
 
+const graphLifecycleLockSeed int64 = 0x6167656672
+
+func (transaction *Transaction) LockGraphLifecycle(
+	ctx context.Context,
+	name string,
+) error {
+	if err := ValidateGraphName(name); err != nil {
+		return err
+	}
+	if _, err := transaction.tx.Exec(
+		ctx,
+		`SELECT pg_catalog.pg_advisory_xact_lock(
+			pg_catalog.hashtextextended($1, $2)
+		)`,
+		"agefreighter:graph-lifecycle:"+name,
+		graphLifecycleLockSeed,
+	); err != nil {
+		return fmt.Errorf("lock graph lifecycle %q: %w", name, err)
+	}
+	return nil
+}
+
+func (transaction *Transaction) PreflightGraphRename(
+	ctx context.Context,
+	graph GraphCatalog,
+) error {
+	if err := ValidateGraphName(graph.Name); err != nil {
+		return err
+	}
+	if graph.NamespaceOID == 0 || graph.GraphOID != graph.NamespaceOID {
+		return errors.New("valid graph catalog is required for rename preflight")
+	}
+	var ownsSchema, canCreateSchema bool
+	if err := transaction.tx.QueryRow(
+		ctx,
+		`SELECT
+			pg_catalog.pg_has_role(current_user, nspowner, 'USAGE'),
+			pg_catalog.has_database_privilege(
+				current_user, current_database(), 'CREATE'
+			)
+		 FROM pg_catalog.pg_namespace
+		 WHERE oid = $1`,
+		graph.NamespaceOID,
+	).Scan(&ownsSchema, &canCreateSchema); err != nil {
+		return fmt.Errorf("preflight graph rename %q: %w", graph.Name, err)
+	}
+	if !ownsSchema {
+		return fmt.Errorf(
+			"preflight graph rename %q: current user does not own the graph schema",
+			graph.Name,
+		)
+	}
+	if !canCreateSchema {
+		return fmt.Errorf(
+			"preflight graph rename %q: current user lacks CREATE on the database",
+			graph.Name,
+		)
+	}
+	return nil
+}
+
 func (transaction *Transaction) CreateGraph(ctx context.Context, name string) error {
 	if err := ValidateGraphName(name); err != nil {
 		return err

@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 11
+const schemaVersion = 13
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -525,6 +525,38 @@ var migrationV11 = []string{
 		ON agefreighter_meta.edge_identity`,
 }
 
+var migrationV12 = []string{
+	`ALTER TABLE agefreighter_meta.load_job
+		ADD COLUMN backup_graph_name text NOT NULL DEFAULT '',
+		ADD COLUMN backup_cleaned_at timestamp with time zone,
+		ADD CONSTRAINT load_job_backup_mode_check CHECK (
+			backup_graph_name = '' OR load_mode = 'replace'
+		),
+		ADD CONSTRAINT load_job_backup_cleanup_check CHECK (
+			backup_cleaned_at IS NULL OR backup_graph_name <> ''
+		)`,
+	`ALTER TABLE agefreighter_meta.graph_generation
+		ADD COLUMN replaces_graph_oid oid,
+		ADD CONSTRAINT graph_generation_replaces_oid_check CHECK (
+			replaces_graph_oid IS NULL OR replaces_graph_oid::bigint > 0
+		)`,
+}
+
+var migrationV13 = []string{
+	`ALTER TABLE agefreighter_meta.graph_generation
+		DROP CONSTRAINT graph_generation_replaces_oid_check,
+		ADD CONSTRAINT graph_generation_replaces_oid_check CHECK (
+			replaces_graph_oid IS NULL OR (
+				replaces_graph_oid::bigint > 0
+				AND replaces_graph_oid <> graph_oid
+			)
+		)`,
+	`ALTER TABLE agefreighter_meta.load_job
+		ADD CONSTRAINT load_job_backup_target_check CHECK (
+			backup_graph_name = '' OR backup_graph_name <> target_graph
+		)`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -537,4 +569,6 @@ var migrations = [][]string{
 	migrationV9,
 	migrationV10,
 	migrationV11,
+	migrationV12,
+	migrationV13,
 }

@@ -24,13 +24,15 @@ func (store *Store) RegisterGraphGeneration(
 	err = tx.QueryRow(
 		ctx,
 		`INSERT INTO agefreighter_meta.graph_generation (
-			job_id, graph_name, graph_oid, namespace_oid, generation, state
-		) VALUES ($1::uuid, $2, $3, $4, $5, $6)
+			job_id, graph_name, graph_oid, namespace_oid, replaces_graph_oid,
+			generation, state
+		) VALUES ($1::uuid, $2, $3, $4, NULLIF($5, 0)::oid, $6, $7)
 		RETURNING graph_generation_id, created_at, updated_at`,
 		value.JobID,
 		value.GraphName,
 		value.GraphOID,
 		value.NamespaceOID,
+		value.ReplacesGraphOID,
 		value.Generation,
 		value.State,
 	).Scan(&value.ID, &value.CreatedAt, &value.UpdatedAt)
@@ -74,13 +76,14 @@ func (store *Store) AdmitGraphGeneration(
 	if err := validateGraphGeneration(current); err != nil {
 		return GraphGeneration{}, err
 	}
-	stored, err := store.graphGenerationForJob(ctx, jobID)
+	stored, err := store.GraphGenerationForJob(ctx, jobID)
 	if err != nil {
 		return GraphGeneration{}, err
 	}
 	if stored.GraphName != current.GraphName ||
 		stored.GraphOID != current.GraphOID ||
 		stored.NamespaceOID != current.NamespaceOID ||
+		stored.ReplacesGraphOID != current.ReplacesGraphOID ||
 		stored.JobID != current.JobID ||
 		stored.Generation != current.Generation ||
 		stored.State != current.State ||
@@ -99,16 +102,20 @@ func (store *Store) AdmitGraphGeneration(
 	return stored, nil
 }
 
-func (store *Store) graphGenerationForJob(
+func (store *Store) GraphGenerationForJob(
 	ctx context.Context,
 	jobID string,
 ) (GraphGeneration, error) {
+	if err := validateJobID(jobID); err != nil {
+		return GraphGeneration{}, err
+	}
 	var value GraphGeneration
 	err := store.database.QueryRow(
 		ctx,
 		`SELECT
 			g.graph_generation_id, g.job_id::text, g.graph_name,
-			g.graph_oid, g.namespace_oid, g.generation, g.state,
+			g.graph_oid, g.namespace_oid, COALESCE(g.replaces_graph_oid, 0),
+			g.generation, g.state,
 			g.created_at, g.updated_at
 		 FROM agefreighter_meta.graph_generation g
 		 JOIN agefreighter_meta.load_job j
@@ -121,6 +128,7 @@ func (store *Store) graphGenerationForJob(
 		&value.GraphName,
 		&value.GraphOID,
 		&value.NamespaceOID,
+		&value.ReplacesGraphOID,
 		&value.Generation,
 		&value.State,
 		&value.CreatedAt,

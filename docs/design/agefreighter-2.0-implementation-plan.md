@@ -363,6 +363,8 @@ The initial missing-endpoint policies are `error` and `quarantine`. The bounded
 
 ### Milestone 6: Atomic `replace`
 
+**Implementation status:** Complete.
+
 **Deliverables**
 
 - shadow graph lifecycle

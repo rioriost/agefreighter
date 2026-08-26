@@ -80,6 +80,25 @@ func newVerifyCommand() *cobra.Command {
 	return command
 }
 
+func newCleanupCommand() *cobra.Command {
+	var targetPath string
+	command := &cobra.Command{
+		Use:   "cleanup JOB_ID",
+		Short: "Remove a retained graph replacement backup",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(command *cobra.Command, args []string) error {
+			result, err := app.Cleanup(command.Context(), targetPath, args[0])
+			if err != nil {
+				return fmt.Errorf("cleanup: %w", err)
+			}
+			return writeJSON(command, result)
+		},
+	}
+	command.Flags().StringVar(&targetPath, "target", "", "replace load job containing target configuration")
+	_ = command.MarkFlagRequired("target")
+	return command
+}
+
 func writeJSON(command *cobra.Command, value any) error {
 	encoder := json.NewEncoder(command.OutOrStdout())
 	encoder.SetEscapeHTML(false)

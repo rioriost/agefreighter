@@ -87,48 +87,32 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if fingerprint != stored.ConfigFingerprint {
 		return meta.Job{}, errors.New("load job configuration fingerprint changed")
 	}
-	graphCatalog, err := adapter.LookupGraph(ctx, job.Target.Graph)
-	if err != nil {
-		return meta.Job{}, fmt.Errorf("verify graph catalog: %w", err)
-	}
-	graph, err := store.AdmitGraphGeneration(ctx, jobID, meta.GraphGeneration{
-		ID: stored.GraphGenerationID, JobID: jobID,
-		GraphName: graphCatalog.Name, GraphOID: graphCatalog.GraphOID,
-		NamespaceOID: graphCatalog.NamespaceOID, Generation: 1,
-		State: meta.GenerationActive,
-	})
-	if err != nil {
-		return meta.Job{}, fmt.Errorf("verify graph generation: %w", err)
-	}
-	kinds, err := configuredLabels(job)
+	graph, err := store.GraphGenerationForJob(ctx, jobID)
 	if err != nil {
 		return meta.Job{}, err
 	}
-	for name, kind := range kinds {
-		catalog, err := adapter.LookupLabel(ctx, job.Target.Graph, name)
-		if err != nil {
-			return meta.Job{}, fmt.Errorf("verify label catalog %q: %w", name, err)
-		}
-		generation, err := store.AdmitLabelGeneration(ctx, graph.ID, meta.LabelGeneration{
-			ID: 1, GraphGenerationID: graph.ID, LabelName: name,
-			Kind: meta.LabelKind(kind), GraphNamespaceOID: catalog.NamespaceOID,
-			LabelID: catalog.LabelID, RelationOID: catalog.RelationOID,
-			SequenceOID: catalog.SequenceOID, MappingGeneration: 1,
-		})
-		if err != nil {
-			return meta.Job{}, fmt.Errorf("verify label generation %q: %w", name, err)
-		}
-		expected, err := store.CountLabelIdentities(
-			ctx, graph.ID, generation.ID, generation.Kind,
+	if graph.State != meta.GenerationActive ||
+		graph.GraphName != job.Target.Graph {
+		return meta.Job{}, fmt.Errorf(
+			"%w: committed graph generation is not active at target %q",
+			meta.ErrGenerationMismatch,
+			job.Target.Graph,
 		)
+	}
+	if err := adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
+		transactionStore, err := transaction.Metadata()
 		if err != nil {
-			return meta.Job{}, err
+			return err
 		}
-		if err := adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
-			return transaction.VerifyLabelRows(ctx, catalog, expected)
-		}); err != nil {
-			return meta.Job{}, err
-		}
+		return verifyGenerationTransaction(
+			ctx,
+			transaction,
+			transactionStore,
+			job,
+			graph,
+		)
+	}); err != nil {
+		return meta.Job{}, err
 	}
 	return stored, nil
 }
@@ -143,8 +127,9 @@ func execute(
 	if job.Source.Type != config.SourceCSV || job.Source.CSV == nil {
 		return result, errors.New("only CSV sources are implemented")
 	}
-	if job.Target.Mode != config.LoadCreate {
-		return result, errors.New("only create load mode is implemented")
+	if job.Target.Mode != config.LoadCreate &&
+		job.Target.Mode != config.LoadReplace {
+		return result, errors.New("only create and replace load modes are implemented")
 	}
 	if job.Errors.MissingEndpoint == config.MissingEndpointDefer {
 		return result, errors.New("deferred missing endpoints are not implemented")
@@ -302,14 +287,20 @@ func execute(
 		}
 		quarantine = nil
 	}
-	if err := store.CompleteJobGeneration(ctx, jobID, graph.ID); err != nil {
+	var completeErr error
+	if job.Target.Mode == config.LoadReplace {
+		completeErr = promoteReplace(ctx, adapter, job, jobID, graph)
+	} else {
+		completeErr = store.CompleteJobGeneration(ctx, jobID, graph.ID)
+	}
+	if completeErr != nil {
 		current, currentErr := store.GetJob(ctx, jobID)
 		if currentErr == nil && current.Status == meta.JobCommitted {
 			return LoadResult{
 				JobID: jobID, Status: meta.JobCommitted, Metrics: runner.Snapshot(),
 			}, nil
 		}
-		return result, recordFailure(err)
+		return result, recordFailure(completeErr)
 	}
 	return LoadResult{
 		JobID: jobID, Status: meta.JobCommitted, Metrics: runner.Snapshot(),

@@ -31,6 +31,7 @@ type Job struct {
 	SourceType         string
 	LoadMode           string
 	TargetGraph        string
+	BackupGraphName    string
 	ConfigFingerprint  string
 	Status             JobStatus
 	GraphGenerationID  int64
@@ -45,6 +46,7 @@ type Job struct {
 	StartedAt          *time.Time
 	UpdatedAt          time.Time
 	CompletedAt        *time.Time
+	BackupCleanedAt    *time.Time
 }
 
 type GenerationState string
@@ -56,15 +58,16 @@ const (
 )
 
 type GraphGeneration struct {
-	ID           int64
-	JobID        string
-	GraphName    string
-	GraphOID     uint32
-	NamespaceOID uint32
-	Generation   uint64
-	State        GenerationState
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID               int64
+	JobID            string
+	GraphName        string
+	GraphOID         uint32
+	NamespaceOID     uint32
+	ReplacesGraphOID uint32
+	Generation       uint64
+	State            GenerationState
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 type LabelKind byte
@@ -191,6 +194,9 @@ func validateGraphGeneration(value GraphGeneration) error {
 	if value.GraphOID == 0 || value.NamespaceOID == 0 ||
 		value.GraphOID != value.NamespaceOID {
 		return errors.New("graph and namespace OIDs must be equal and positive")
+	}
+	if value.ReplacesGraphOID == value.GraphOID {
+		return errors.New("replacement and shadow graph OIDs must differ")
 	}
 	if value.Generation == 0 || value.Generation > math.MaxInt64 {
 		return errors.New("graph generation must be within 1..MaxInt64")

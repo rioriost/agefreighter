@@ -21,14 +21,30 @@ func createCatalog(
 	if err != nil {
 		return meta.GraphGeneration{}, nil, err
 	}
+	graphName, err := loadGraphName(job, jobID)
+	if err != nil {
+		return meta.GraphGeneration{}, nil, err
+	}
 	var graph meta.GraphGeneration
 	labels := make([]age.LoadLabel, 0, len(kinds))
 	if err := adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
-		if err := transaction.CreateGraph(ctx, job.Target.Graph); err != nil {
+		var replacesGraphOID uint32
+		generation := uint64(1)
+		if job.Target.Mode == config.LoadReplace {
+			if err := transaction.LockGraphLifecycle(ctx, job.Target.Graph); err != nil {
+				return err
+			}
+			target, err := transaction.LookupGraph(ctx, job.Target.Graph)
+			if err != nil {
+				return fmt.Errorf("lookup replacement target: %w", err)
+			}
+			replacesGraphOID = target.GraphOID
+		}
+		if err := transaction.CreateGraph(ctx, graphName); err != nil {
 			return err
 		}
 		for name, kind := range kinds {
-			if err := transaction.CreateLabel(ctx, job.Target.Graph, name, kind); err != nil {
+			if err := transaction.CreateLabel(ctx, graphName, name, kind); err != nil {
 				return err
 			}
 		}
@@ -36,20 +52,27 @@ func createCatalog(
 		if err != nil {
 			return err
 		}
-		graphCatalog, err := transaction.LookupGraph(ctx, job.Target.Graph)
+		if job.Target.Mode == config.LoadReplace {
+			generation, err = transactionStore.NextGraphGeneration(ctx, job.Target.Graph)
+			if err != nil {
+				return err
+			}
+		}
+		graphCatalog, err := transaction.LookupGraph(ctx, graphName)
 		if err != nil {
 			return err
 		}
 		graph, err = transactionStore.RegisterGraphGeneration(ctx, meta.GraphGeneration{
 			JobID: jobID, GraphName: graphCatalog.Name,
 			GraphOID: graphCatalog.GraphOID, NamespaceOID: graphCatalog.NamespaceOID,
-			Generation: 1, State: meta.GenerationLoading,
+			ReplacesGraphOID: replacesGraphOID,
+			Generation:       generation, State: meta.GenerationLoading,
 		})
 		if err != nil {
 			return err
 		}
 		for name, kind := range kinds {
-			catalog, err := transaction.LookupLabel(ctx, job.Target.Graph, name)
+			catalog, err := transaction.LookupLabel(ctx, graphName, name)
 			if err != nil {
 				return err
 			}
@@ -78,15 +101,41 @@ func admitCatalog(
 	job config.LoadJob,
 	storedJob meta.Job,
 ) (meta.GraphGeneration, []age.LoadLabel, error) {
-	graphCatalog, err := adapter.LookupGraph(ctx, job.Target.Graph)
+	storedGraph, err := store.GraphGenerationForJob(ctx, storedJob.ID)
 	if err != nil {
 		return meta.GraphGeneration{}, nil, err
+	}
+	graphName, err := loadGraphName(job, storedJob.ID)
+	if err != nil {
+		return meta.GraphGeneration{}, nil, err
+	}
+	graphCatalog, err := adapter.LookupGraph(ctx, graphName)
+	if err != nil {
+		return meta.GraphGeneration{}, nil, err
+	}
+	if job.Target.Mode == config.LoadReplace {
+		target, targetErr := adapter.LookupGraph(ctx, job.Target.Graph)
+		if targetErr != nil {
+			return meta.GraphGeneration{}, nil, fmt.Errorf(
+				"lookup replacement target: %w",
+				targetErr,
+			)
+		}
+		if target.GraphOID != storedGraph.ReplacesGraphOID {
+			return meta.GraphGeneration{}, nil, fmt.Errorf(
+				"%w: replacement target OID changed from %d to %d",
+				meta.ErrGenerationMismatch,
+				storedGraph.ReplacesGraphOID,
+				target.GraphOID,
+			)
+		}
 	}
 	graph, err := store.AdmitGraphGeneration(ctx, storedJob.ID, meta.GraphGeneration{
 		ID: storedJob.GraphGenerationID, JobID: storedJob.ID,
 		GraphName: graphCatalog.Name, GraphOID: graphCatalog.GraphOID,
-		NamespaceOID: graphCatalog.NamespaceOID, Generation: 1,
-		State: meta.GenerationLoading,
+		NamespaceOID:     graphCatalog.NamespaceOID,
+		ReplacesGraphOID: storedGraph.ReplacesGraphOID,
+		Generation:       storedGraph.Generation, State: meta.GenerationLoading,
 	})
 	if err != nil {
 		return meta.GraphGeneration{}, nil, err
@@ -97,7 +146,7 @@ func admitCatalog(
 	}
 	labels := make([]age.LoadLabel, 0, len(kinds))
 	for name, kind := range kinds {
-		catalog, err := adapter.LookupLabel(ctx, job.Target.Graph, name)
+		catalog, err := adapter.LookupLabel(ctx, graphName, name)
 		if err != nil {
 			return meta.GraphGeneration{}, nil, err
 		}
@@ -113,6 +162,17 @@ func admitCatalog(
 		labels = append(labels, age.LoadLabel{Catalog: catalog, Generation: generation})
 	}
 	return graph, labels, nil
+}
+
+func loadGraphName(job config.LoadJob, jobID string) (string, error) {
+	switch job.Target.Mode {
+	case config.LoadCreate:
+		return job.Target.Graph, nil
+	case config.LoadReplace:
+		return age.DeriveGraphName(job.Target.Graph, age.ShadowName, jobID)
+	default:
+		return "", fmt.Errorf("load mode %q is not implemented", job.Target.Mode)
+	}
 }
 
 func configuredLabels(job config.LoadJob) (map[string]age.LabelKind, error) {

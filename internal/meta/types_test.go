@@ -228,6 +228,9 @@ func TestStoreRejectsInvalidPublicInputs(t *testing.T) {
 	if _, err := store.AdmitGraphGeneration(t.Context(), "bad", GraphGeneration{}); err == nil {
 		t.Fatal("AdmitGraphGeneration() accepted invalid job ID")
 	}
+	if _, err := store.GraphGenerationForJob(t.Context(), "bad"); err == nil {
+		t.Fatal("GraphGenerationForJob() accepted invalid job ID")
+	}
 	if _, err := store.AdmitGraphGeneration(
 		t.Context(),
 		testJobID,

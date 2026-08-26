@@ -81,9 +81,31 @@ manifest.
 
 ## Load modes
 
-The target modes are `create`, `replace`, `append`, and `upsert`. Every edge
-mapping in an `upsert` job must provide an external edge identity field or
-column. Graph names must follow the supported Apache AGE naming subset: 3–63 UTF-8
-bytes, starting with a letter or underscore, ending with a letter, digit, or
-underscore, and containing only letters, digits, underscores, dots, and
-hyphens.
+The target modes are `create`, `replace`, `append`, and `upsert`. The current
+runtime implements CSV `create` and `replace`; `append` and `upsert` remain
+reserved for the next milestone. Every edge mapping in an `upsert` job must
+provide an external edge identity field or column. Graph names must follow the
+supported Apache AGE naming subset: 3–63 UTF-8 bytes, starting with a letter or
+underscore, ending with a letter, digit, or underscore, and containing only
+letters, digits, underscores, dots, and hyphens.
+
+`replace` requires the public target graph to exist. It loads into a
+deterministic job-specific shadow graph, so a failed or interrupted job leaves
+the public target unchanged and can resume the admitted shadow. Promotion
+verifies the shadow, renames the old target to a job-specific backup, renames
+the shadow to the public target, and updates job and generation metadata in one
+PostgreSQL transaction. AGE graph and schema OIDs are retained by rename: the
+new active generation keeps the former shadow OID and the backup keeps the old
+target OID.
+
+The backup is retained after a successful replacement. Remove it explicitly:
+
+```sh
+agefreighter cleanup --target job.yaml JOB_ID
+```
+
+Cleanup is idempotent after success. It validates the committed replace job,
+active-generation OID, backup name, and backup OID before dropping the backup;
+it does not require the original full configuration fingerprint to remain
+unchanged. The metadata generation is retained for audit after the physical
+backup is removed.

@@ -680,6 +680,9 @@ func TestAppHelpers(t *testing.T) {
 	if _, err := Verify(t.Context(), "missing.yaml", "bad"); err == nil {
 		t.Fatal("Verify() accepted missing configuration")
 	}
+	if _, err := Cleanup(t.Context(), "missing.yaml", "bad"); err == nil {
+		t.Fatal("Cleanup() accepted missing configuration")
+	}
 	missingTarget := testLoadJob("graph", "vertices", "edges")
 	missingTarget.Target.Connection.Env = "MISSING_TARGET_DSN"
 	if _, _, err := openTarget(t.Context(), missingTarget); err == nil {
@@ -693,6 +696,20 @@ func TestAppHelpers(t *testing.T) {
 	job.Target.Mode = config.LoadAppend
 	if _, err := execute(t.Context(), job, first, false); err == nil {
 		t.Fatal("execute() accepted unsupported mode")
+	}
+	if _, err := loadGraphName(job, first); err == nil {
+		t.Fatal("loadGraphName() accepted unsupported mode")
+	}
+	job.Target.Mode = config.LoadReplace
+	job.Target.Graph = "x"
+	if err := promoteReplace(
+		t.Context(),
+		nil,
+		job,
+		first,
+		meta.GraphGeneration{},
+	); err == nil {
+		t.Fatal("promoteReplace() accepted an invalid target name")
 	}
 	job = testLoadJob("graph", "vertices", "edges")
 	job.Errors.MissingEndpoint = config.MissingEndpointDefer

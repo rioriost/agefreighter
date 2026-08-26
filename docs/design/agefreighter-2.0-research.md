@@ -329,6 +329,22 @@ length-aware, hash-suffixed naming that stays within PostgreSQL's identifier
 limit. The graph rename and promotion of the shadow graph generation in
 `agefreighter_meta` occur in the same transaction.
 
+The implemented promotion records the target OID when the shadow generation is
+created. Promotion takes a target-scoped transaction advisory lock and rejects
+a changed target, changed shadow, existing backup name, unresolved batch, or
+missing schema ownership before the first rename. Managed predecessor
+generations are renamed and retired before the loading generation is renamed
+and activated, satisfying the current-name uniqueness invariant without a
+deferrable partial index. An unmanaged pre-existing target is also supported;
+its OID is still retained as replacement provenance.
+
+Graph rename preserves AGE graph, namespace, label relation, and sequence OIDs.
+The promoted generation therefore keeps the shadow OID while the retired
+generation and backup keep the old target OID. Backend sessions are reset after
+promotion. Cleanup is a separate idempotent operation keyed by the committed
+replace job and rechecks both active and backup OIDs before dropping only the
+backup.
+
 ### 7.3 `append`
 
 - Keep existing records unchanged.

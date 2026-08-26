@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -157,6 +158,97 @@ func TestCapabilityProbeErrors(t *testing.T) {
 	}
 }
 
+func TestCatalogLookupErrors(t *testing.T) {
+	injected := errors.New("injected catalog failure")
+	if _, err := lookupGraph(
+		t.Context(),
+		stubDatabase{row: stubRow(func(...any) error { return pgx.ErrNoRows })},
+		"valid_graph",
+	); !errors.Is(err, ErrCatalogEntryNotFound) {
+		t.Fatalf("lookupGraph(missing) error = %v", err)
+	}
+	if _, err := lookupGraph(
+		t.Context(),
+		stubDatabase{row: stubRow(func(...any) error { return injected })},
+		"valid_graph",
+	); !errors.Is(err, injected) {
+		t.Fatalf("lookupGraph(database) error = %v", err)
+	}
+	if _, err := lookupGraph(
+		t.Context(),
+		stubDatabase{row: stubRow(func(dest ...any) error {
+			*dest[0].(*string) = "valid_graph"
+			*dest[1].(*uint32) = 10
+			*dest[2].(*uint32) = 11
+			return nil
+		})},
+		"valid_graph",
+	); err == nil {
+		t.Fatal("lookupGraph() accepted mismatched catalog OIDs")
+	}
+
+	labelCases := []struct {
+		name string
+		row  stubRow
+	}{
+		{
+			name: "missing",
+			row:  func(...any) error { return pgx.ErrNoRows },
+		},
+		{
+			name: "database",
+			row:  func(...any) error { return injected },
+		},
+		{
+			name: "invalid ID",
+			row: labelCatalogRow(func(dest ...any) {
+				*dest[4].(*int32) = 0
+			}),
+		},
+		{
+			name: "invalid kind",
+			row: labelCatalogRow(func(dest ...any) {
+				*dest[5].(*string) = "x"
+			}),
+		},
+		{
+			name: "namespace mismatch",
+			row: labelCatalogRow(func(dest ...any) {
+				*dest[7].(*uint32) = 11
+			}),
+		},
+	}
+	for _, test := range labelCases {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := lookupLabel(
+				t.Context(),
+				stubDatabase{row: test.row},
+				"valid_graph",
+				"Person",
+			); err == nil {
+				t.Fatal("lookupLabel() error = nil")
+			}
+		})
+	}
+}
+
+func labelCatalogRow(mutate func(...any)) stubRow {
+	return func(dest ...any) error {
+		*dest[0].(*string) = "valid_graph"
+		*dest[1].(*string) = "Person"
+		*dest[2].(*uint32) = 10
+		*dest[3].(*uint32) = 10
+		*dest[4].(*int32) = 1
+		*dest[5].(*string) = "v"
+		*dest[6].(*uint32) = 12
+		*dest[7].(*uint32) = 10
+		*dest[8].(*uint32) = 13
+		*dest[9].(*string) = "Person_id_seq"
+		mutate(dest...)
+		return nil
+	}
+}
+
 func TestPreloadStatusProbe(t *testing.T) {
 	status, err := probePreloadStatus(
 		context.Background(),
@@ -191,6 +283,26 @@ type stubQuerier struct {
 
 func (querier stubQuerier) QueryRow(context.Context, string, ...any) pgx.Row {
 	return querier.row
+}
+
+type stubDatabase struct {
+	row pgx.Row
+}
+
+func (database stubDatabase) Exec(
+	context.Context,
+	string,
+	...any,
+) (pgconn.CommandTag, error) {
+	return pgconn.CommandTag{}, nil
+}
+
+func (database stubDatabase) QueryRow(
+	context.Context,
+	string,
+	...any,
+) pgx.Row {
+	return database.row
 }
 
 type stubRow func(...any) error
@@ -242,6 +354,17 @@ func TestTransactionAndLifecycleRejectInvalidInputs(t *testing.T) {
 	}
 	if err := transaction.DropLabel(ctx, "valid_graph", "Person", true); err == nil {
 		t.Fatal("DropLabel() accepted unsupported force option")
+	}
+	if err := transaction.LockGraphLifecycle(ctx, "x"); err == nil {
+		t.Fatal("LockGraphLifecycle() accepted invalid graph")
+	}
+	if err := transaction.PreflightGraphRename(ctx, GraphCatalog{}); err == nil {
+		t.Fatal("PreflightGraphRename() accepted empty catalog")
+	}
+	if err := transaction.PreflightGraphRename(ctx, GraphCatalog{
+		Name: "valid_graph", GraphOID: 1, NamespaceOID: 2,
+	}); err == nil {
+		t.Fatal("PreflightGraphRename() accepted mismatched OIDs")
 	}
 	if err := transaction.LockLabel(ctx, 0, 1); err == nil {
 		t.Fatal("LockLabel() accepted zero graph OID")

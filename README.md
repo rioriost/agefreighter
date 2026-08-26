@@ -19,6 +19,19 @@ go run ./cmd/agefreighter validate ./path/to/job.yaml
 go run ./cmd/agefreighter plan ./path/to/job.yaml
 ```
 
+CSV `create` and atomic `replace` jobs support the durable lifecycle commands:
+
+```sh
+agefreighter load job.yaml
+agefreighter resume --job job.yaml JOB_ID
+agefreighter status --target job.yaml JOB_ID
+agefreighter verify --target job.yaml JOB_ID
+agefreighter cleanup --target job.yaml JOB_ID
+```
+
+`cleanup` applies only to committed `replace` jobs and removes the retained
+backup graph without removing the active graph.
+
 See the [configuration reference](docs/reference/configuration.md), the
 [architecture research](docs/design/agefreighter-2.0-research.md) and the
 [implementation plan](docs/design/agefreighter-2.0-implementation-plan.md) for

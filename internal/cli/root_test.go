@@ -97,6 +97,7 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		{"resume", "--job", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"status", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"verify", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
+		{"cleanup", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 	}
 	for _, args := range tests {
 		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
@@ -168,6 +169,59 @@ func TestLifecycleCommandsIntegration(t *testing.T) {
 		"resume", "--job", jobPath, loaded.JobID,
 	}); err == nil {
 		t.Fatal("resume accepted a committed job")
+	}
+
+	replaceJob := job
+	replaceJob.Target.Mode = config.LoadReplace
+	replaceData, err := yaml.Marshal(replaceJob)
+	if err != nil {
+		t.Fatalf("marshal replace job: %v", err)
+	}
+	replacePath := filepath.Join(dir, "replace.yaml")
+	if err := os.WriteFile(replacePath, replaceData, 0o600); err != nil {
+		t.Fatalf("write replace job: %v", err)
+	}
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{"load", replacePath}); err != nil {
+		t.Fatalf("replace load error = %v", err)
+	}
+	var replaced struct {
+		JobID  string         `json:"jobId"`
+		Status meta.JobStatus `json:"status"`
+	}
+	if err := json.Unmarshal(output.Bytes(), &replaced); err != nil {
+		t.Fatalf("decode replace output: %v", err)
+	}
+	backup, err := age.DeriveGraphName(graph, age.BackupName, replaced.JobID)
+	if err != nil {
+		t.Fatalf("derive CLI backup: %v", err)
+	}
+	shadow, err := age.DeriveGraphName(graph, age.ShadowName, replaced.JobID)
+	if err != nil {
+		t.Fatalf("derive CLI shadow: %v", err)
+	}
+	registerCLIReplaceCleanup(
+		t,
+		dsn,
+		replaced.JobID,
+		graph,
+		backup,
+		shadow,
+	)
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"cleanup", "--target", replacePath, replaced.JobID,
+	}); err != nil {
+		t.Fatalf("cleanup command error = %v", err)
+	}
+	var cleaned meta.Job
+	if err := json.Unmarshal(output.Bytes(), &cleaned); err != nil {
+		t.Fatalf("decode cleanup output: %v", err)
+	}
+	if cleaned.ID != replaced.JobID || cleaned.BackupCleanedAt == nil {
+		t.Fatalf("cleanup output = %#v", cleaned)
 	}
 }
 
@@ -245,6 +299,56 @@ func registerCLICleanup(t *testing.T, dsn, graph, jobID string) {
 		}
 	})
 }
+
+func registerCLIReplaceCleanup(
+	t *testing.T,
+	dsn string,
+	jobID string,
+	graphs ...string,
+) {
+	t.Helper()
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if adapter, err := age.Open(ctx, dsn, age.PoolOptions{
+			MinConnections: 1, MaxConnections: 2,
+			ConnectTimeout: time.Second, OperationTimeout: 5 * time.Second,
+		}); err == nil {
+			for _, graph := range graphs {
+				_ = adapter.InTransaction(ctx, func(tx *age.Transaction) error {
+					if _, lookupErr := tx.LookupGraph(ctx, graph); errors.Is(
+						lookupErr,
+						age.ErrCatalogEntryNotFound,
+					) {
+						return nil
+					} else if lookupErr != nil {
+						return lookupErr
+					}
+					return tx.DropGraph(ctx, graph, true)
+				})
+			}
+			adapter.Close()
+		}
+		if pool, err := pgxpool.New(ctx, dsn); err == nil {
+			tx, beginErr := pool.Begin(ctx)
+			if beginErr == nil {
+				_, _ = tx.Exec(ctx, `
+					UPDATE agefreighter_meta.load_job
+					SET graph_generation_id = NULL
+					WHERE job_id = $1::uuid`, jobID)
+				_, _ = tx.Exec(ctx, `
+					DELETE FROM agefreighter_meta.graph_generation
+					WHERE job_id = $1::uuid`, jobID)
+				_, _ = tx.Exec(ctx, `
+					DELETE FROM agefreighter_meta.load_job
+					WHERE job_id = $1::uuid`, jobID)
+				_ = tx.Commit(ctx)
+			}
+			pool.Close()
+		}
+	})
+}
+
 func TestValidateCommand(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	command := NewAgefreighter(&stdout, &stderr)

@@ -40,10 +40,11 @@ func (store *Store) GetJob(ctx context.Context, jobID string) (Job, error) {
 		ctx,
 		`SELECT
 			job_id::text, name, source_type, load_mode, target_graph,
-			config_fingerprint::text, status, COALESCE(graph_generation_id, 0),
+			backup_graph_name, config_fingerprint::text, status,
+			COALESCE(graph_generation_id, 0),
 			next_batch_id, resume_token, committed_rows, committed_bytes,
 			rejected_rows, source_rejected_rows, error_message, created_at, started_at, updated_at,
-			completed_at
+			completed_at, backup_cleaned_at
 		 FROM agefreighter_meta.load_job
 		 WHERE job_id = $1::uuid`,
 		jobID,
@@ -53,6 +54,7 @@ func (store *Store) GetJob(ctx context.Context, jobID string) (Job, error) {
 		&job.SourceType,
 		&job.LoadMode,
 		&job.TargetGraph,
+		&job.BackupGraphName,
 		&job.ConfigFingerprint,
 		&job.Status,
 		&job.GraphGenerationID,
@@ -67,6 +69,7 @@ func (store *Store) GetJob(ctx context.Context, jobID string) (Job, error) {
 		&job.StartedAt,
 		&job.UpdatedAt,
 		&job.CompletedAt,
+		&job.BackupCleanedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Job{}, fmt.Errorf("%w: load job %q", ErrNotFound, jobID)
