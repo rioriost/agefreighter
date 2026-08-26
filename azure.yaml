@@ -1,0 +1,7 @@
+name: agefreighter
+metadata:
+  template: agefreighter-cosmos@0.1.0
+infra:
+  provider: bicep
+  path: infra
+  module: main
