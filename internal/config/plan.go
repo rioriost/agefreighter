@@ -16,10 +16,11 @@ type PlanSource struct {
 }
 
 type PlanTarget struct {
-	Type         TargetType   `json:"type"`
-	Graph        string       `json:"graph"`
-	Mode         LoadMode     `json:"mode"`
-	PropertyMode PropertyMode `json:"propertyMode"`
+	Type            TargetType            `json:"type"`
+	Graph           string                `json:"graph"`
+	Mode            LoadMode              `json:"mode"`
+	PropertyMode    PropertyMode          `json:"propertyMode"`
+	AppendDuplicate AppendDuplicatePolicy `json:"appendDuplicate,omitempty"`
 }
 
 type PlanLimits struct {
@@ -33,9 +34,10 @@ type PlanLimits struct {
 }
 
 type PlanPolicies struct {
-	MalformedRecord MalformedRecordPolicy `json:"malformedRecord"`
-	MissingEndpoint MissingEndpointPolicy `json:"missingEndpoint"`
-	RejectLimit     int                   `json:"rejectLimit"`
+	MalformedRecord  MalformedRecordPolicy `json:"malformedRecord"`
+	MissingEndpoint  MissingEndpointPolicy `json:"missingEndpoint"`
+	RejectLimit      int                   `json:"rejectLimit"`
+	MaxDeferredEdges int                   `json:"maxDeferredEdges,omitempty"`
 }
 
 func BuildStaticPlan(job LoadJob) StaticPlan {
@@ -47,10 +49,11 @@ func BuildStaticPlan(job LoadJob) StaticPlan {
 			Namespace: job.Source.Namespace,
 		},
 		Target: PlanTarget{
-			Type:         job.Target.Type,
-			Graph:        job.Target.Graph,
-			Mode:         job.Target.Mode,
-			PropertyMode: job.Target.PropertyMode,
+			Type:            job.Target.Type,
+			Graph:           job.Target.Graph,
+			Mode:            job.Target.Mode,
+			PropertyMode:    job.Target.PropertyMode,
+			AppendDuplicate: job.Target.AppendDuplicate,
 		},
 		Limits: PlanLimits{
 			MemoryLimit:             job.Runtime.MemoryLimit.String(),
@@ -62,9 +65,10 @@ func BuildStaticPlan(job LoadJob) StaticPlan {
 			OperationTimeout:        job.Runtime.OperationTimeout.String(),
 		},
 		Policies: PlanPolicies{
-			MalformedRecord: job.Errors.MalformedRecord,
-			MissingEndpoint: job.Errors.MissingEndpoint,
-			RejectLimit:     job.Errors.RejectLimit,
+			MalformedRecord:  job.Errors.MalformedRecord,
+			MissingEndpoint:  job.Errors.MissingEndpoint,
+			RejectLimit:      job.Errors.RejectLimit,
+			MaxDeferredEdges: job.Errors.MaxDeferredEdges,
 		},
 	}
 	switch job.Source.Type {

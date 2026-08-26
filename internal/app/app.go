@@ -128,12 +128,14 @@ func execute(
 	if err := validateImplementedSource(job); err != nil {
 		return result, err
 	}
-	if job.Target.Mode != config.LoadCreate &&
-		job.Target.Mode != config.LoadReplace {
-		return result, errors.New("only create and replace load modes are implemented")
-	}
-	if job.Errors.MissingEndpoint == config.MissingEndpointDefer {
-		return result, errors.New("deferred missing endpoints are not implemented")
+	switch job.Target.Mode {
+	case config.LoadCreate, config.LoadReplace,
+		config.LoadAppend, config.LoadUpsert:
+	default:
+		return result, fmt.Errorf(
+			"load mode %q is not implemented",
+			job.Target.Mode,
+		)
 	}
 	if _, err := newPipelineRunner(job, 1, 1); err != nil {
 		return result, fmt.Errorf("validate load pipeline: %w", err)
@@ -180,7 +182,16 @@ func execute(
 			}
 		}
 		if storedJob.GraphGenerationID == 0 {
-			graph, labels, err = createCatalog(ctx, adapter, job, jobID)
+			if incrementalMode(job.Target.Mode) {
+				graph, labels, err = admitIncrementalCatalog(
+					ctx,
+					adapter,
+					job,
+					jobID,
+				)
+			} else {
+				graph, labels, err = createCatalog(ctx, adapter, job, jobID)
+			}
 		} else {
 			graph, labels, err = admitCatalog(ctx, adapter, store, job, storedJob)
 		}
@@ -212,7 +223,16 @@ func execute(
 		if err := store.StartJob(ctx, jobID); err != nil {
 			return result, err
 		}
-		graph, labels, err = createCatalog(ctx, adapter, job, jobID)
+		if incrementalMode(job.Target.Mode) {
+			graph, labels, err = admitIncrementalCatalog(
+				ctx,
+				adapter,
+				job,
+				jobID,
+			)
+		} else {
+			graph, labels, err = createCatalog(ctx, adapter, job, jobID)
+		}
 		if err != nil {
 			return result, recordFailure(err)
 		}
@@ -243,7 +263,11 @@ func execute(
 	}
 	sinkOptions := age.LoadSinkOptions{
 		JobID: jobID, Graph: graph, Labels: labels,
-		MissingEndpoint: job.Errors.MissingEndpoint,
+		Mode:             job.Target.Mode,
+		AppendDuplicate:  job.Target.AppendDuplicate,
+		PropertyMode:     job.Target.PropertyMode,
+		MissingEndpoint:  job.Errors.MissingEndpoint,
+		MaxDeferredEdges: job.Errors.MaxDeferredEdges,
 	}
 	if quarantine != nil {
 		sinkOptions.Quarantine = quarantine
@@ -277,9 +301,12 @@ func execute(
 	var completeErr error
 	if job.Target.Mode == config.LoadReplace {
 		completeErr = promoteReplace(ctx, adapter, job, jobID, graph)
+	} else if incrementalMode(job.Target.Mode) {
+		completeErr = completeIncremental(ctx, adapter, jobID, graph)
 	} else {
 		completeErr = store.CompleteJobGeneration(ctx, jobID, graph.ID)
 	}
+
 	if completeErr != nil {
 		current, currentErr := store.GetJob(ctx, jobID)
 		if currentErr == nil && current.Status == meta.JobCommitted {
@@ -294,6 +321,51 @@ func execute(
 		JobID: jobID, Status: meta.JobCommitted, Metrics: runner.Snapshot(),
 		SourceTelemetry: sourceTelemetry(iterator),
 	}, nil
+}
+
+func incrementalMode(mode config.LoadMode) bool {
+	return mode == config.LoadAppend || mode == config.LoadUpsert
+}
+
+func completeIncremental(
+	ctx context.Context,
+	adapter *age.Adapter,
+	jobID string,
+	graph meta.GraphGeneration,
+) error {
+	return adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
+		locked, err := transaction.TryLockGraphLifecycle(ctx, graph.GraphName)
+		if err != nil {
+			return err
+		}
+		if !locked {
+			return meta.ErrIncrementalConflict
+		}
+		catalog, err := transaction.LookupGraph(ctx, graph.GraphName)
+		if err != nil {
+			return err
+		}
+		transactionStore, err := transaction.Metadata()
+		if err != nil {
+			return err
+		}
+		stored, err := transactionStore.GraphGenerationForJob(ctx, jobID)
+		if err != nil {
+			return err
+		}
+		if stored.ID != graph.ID ||
+			stored.State != meta.GenerationActive ||
+			stored.GraphName != catalog.Name ||
+			stored.GraphOID != catalog.GraphOID ||
+			stored.NamespaceOID != catalog.NamespaceOID {
+			return fmt.Errorf(
+				"%w: incremental graph generation is no longer active at %q",
+				meta.ErrGenerationMismatch,
+				graph.GraphName,
+			)
+		}
+		return transactionStore.CompleteJob(ctx, jobID)
+	})
 }
 
 func newPipelineRunner(

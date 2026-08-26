@@ -14,6 +14,32 @@ import (
 
 const testJobID = "11111111-2222-4333-8444-555555555555"
 
+func TestBindActiveGraphGenerationValidation(t *testing.T) {
+	store := &Store{}
+	if _, err := store.BindActiveGraphGeneration(
+		t.Context(),
+		"invalid",
+		"people",
+	); err == nil {
+		t.Fatal("BindActiveGraphGeneration() accepted an invalid job ID")
+	}
+	if _, err := store.BindActiveGraphGeneration(
+		t.Context(),
+		testJobID,
+		"",
+	); err == nil {
+		t.Fatal("BindActiveGraphGeneration() accepted an empty graph name")
+	}
+	store.database = failingDatabase{err: errors.New("begin failed")}
+	if _, err := store.BindActiveGraphGeneration(
+		t.Context(),
+		testJobID,
+		"people",
+	); err == nil {
+		t.Fatal("BindActiveGraphGeneration() accepted a database begin failure")
+	}
+}
+
 func TestMetadataValidation(t *testing.T) {
 	validJob := Job{
 		ID:                testJobID,

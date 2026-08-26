@@ -68,6 +68,7 @@ func TestLoadSinkValidationHelpers(t *testing.T) {
 		{ID: 1, Attempt: 1, Rows: 1, LastPosition: tokenPosition()},
 		{ID: 1, Attempt: 1, Rows: 1, Bytes: 1},
 	}
+
 	for index, batch := range tests {
 		if err := validateBatchMetadata(batch); err == nil {
 			t.Fatalf("invalid batch %d accepted: %#v", index, batch)
@@ -98,6 +99,149 @@ func TestLoadSinkValidationHelpers(t *testing.T) {
 		Resource: "source.csv", Line: 2, ByteOffset: 10, Token: "token",
 	}) {
 		t.Fatalf("metaPosition() = %#v", got)
+	}
+}
+
+func TestIncrementalPropertyResolution(t *testing.T) {
+	if got := deferredAppendDuplicate(config.LoadUpsert, ""); got !=
+		config.AppendDuplicateError {
+		t.Fatalf("deferredAppendDuplicate(upsert) = %q", got)
+	}
+
+	if got := deferredAppendDuplicate(
+		config.LoadAppend,
+		config.AppendDuplicateIgnoreIdentical,
+	); got != config.AppendDuplicateIgnoreIdentical {
+		t.Fatalf("deferredAppendDuplicate(append) = %q", got)
+	}
+	equal, err := equalJSON(
+		[]byte(`{"count":1,"name":"Ada"}`),
+		[]byte(`{"name":"Ada","count":1}`),
+	)
+	if err != nil || !equal {
+		t.Fatalf("equalJSON() = %t, %v", equal, err)
+	}
+	equal, err = equalJSON([]byte(`{"count":1}`), []byte(`{"count":1.0}`))
+	if err != nil || equal {
+		t.Fatalf("equalJSON(number kinds) = %t, %v", equal, err)
+	}
+	if _, err := equalJSON([]byte(`invalid`), []byte(`{}`)); err == nil {
+		t.Fatal("equalJSON() accepted invalid JSON")
+	}
+	if _, err := equalJSON([]byte(`{}`), []byte(`invalid`)); err == nil {
+		t.Fatal("equalJSON() accepted invalid incoming JSON")
+	}
+	if _, err := decodeJSON([]byte(`{} {}`)); err == nil {
+		t.Fatal("decodeJSON() accepted multiple values")
+	}
+
+	merged, err := mergeJSONObject(
+		[]byte(`{"city":"London","name":"Ada","nested":{"keep":null}}`),
+		[]byte(`{"name":"Ada Lovelace","city":null}`),
+		false,
+	)
+	if err != nil {
+		t.Fatalf("mergeJSONObject() error = %v", err)
+	}
+	if string(merged) !=
+		`{"city":null,"name":"Ada Lovelace","nested":{"keep":null}}` {
+		t.Fatalf("mergeJSONObject() = %s", merged)
+	}
+	merged, err = mergeJSONObject(
+		[]byte(`{"city":"London","name":"Ada","nested":{"keep":null}}`),
+		[]byte(`{"name":"Ada Lovelace","city":null}`),
+		true,
+	)
+	if err != nil {
+		t.Fatalf("mergeJSONObject(delete null) error = %v", err)
+	}
+	if string(merged) !=
+		`{"name":"Ada Lovelace","nested":{"keep":null}}` {
+		t.Fatalf("mergeJSONObject(delete null) = %s", merged)
+	}
+	if _, err := mergeJSONObject([]byte(`[]`), []byte(`{}`), false); err == nil {
+		t.Fatal("mergeJSONObject() accepted a non-object")
+	}
+	if _, err := mergeJSONObject([]byte(`{}`), []byte(`invalid`), false); err == nil {
+		t.Fatal("mergeJSONObject() accepted invalid updates")
+	}
+
+	transaction := &loadTransaction{sink: &LoadSink{options: LoadSinkOptions{
+		Mode:            config.LoadAppend,
+		AppendDuplicate: config.AppendDuplicateIgnoreIdentical,
+	}}}
+	if _, err := transaction.resolveExistingProperties(
+		[]byte(`{"name":"Ada"}`),
+		[]byte(`{"name":"Grace"}`),
+	); err == nil {
+		t.Fatal("ignore-identical accepted conflicting properties")
+	}
+	identical, err := transaction.resolveExistingProperties(
+		[]byte(`{"name":"Ada"}`),
+		[]byte(`{"name":"Ada"}`),
+	)
+	if err != nil || string(identical) != `{"name":"Ada"}` {
+		t.Fatalf("ignore-identical properties = %s, %v", identical, err)
+	}
+	transaction.sink.options.AppendDuplicate = config.AppendDuplicateError
+	if _, err := transaction.resolveExistingProperties(
+		[]byte(`{"name":"Ada"}`),
+		[]byte(`{"name":"Ada"}`),
+	); err == nil {
+		t.Fatal("append error policy accepted a duplicate")
+	}
+	transaction.sink.options.AppendDuplicate = config.AppendDuplicatePolicy("invalid")
+	if _, err := transaction.resolveExistingProperties(
+		[]byte(`{}`),
+		[]byte(`{}`),
+	); err == nil {
+		t.Fatal("resolveExistingProperties() accepted an invalid duplicate policy")
+	}
+	transaction.sink.options.Mode = config.LoadUpsert
+	transaction.sink.options.PropertyMode = config.PropertiesReplace
+	replaced, err := transaction.resolveExistingProperties(
+		[]byte(`{"name":"Ada"}`),
+		[]byte(`{"name":"Grace"}`),
+	)
+	if err != nil || string(replaced) != `{"name":"Grace"}` {
+		t.Fatalf("replace properties = %s, %v", replaced, err)
+	}
+	transaction.sink.options.PropertyMode = config.PropertiesMerge
+	merged, err = transaction.resolveExistingProperties(
+		[]byte(`{"city":"London","name":"Ada"}`),
+		[]byte(`{"name":"Ada Lovelace"}`),
+	)
+	if err != nil || string(merged) !=
+		`{"city":"London","name":"Ada Lovelace"}` {
+		t.Fatalf("merge properties = %s, %v", merged, err)
+	}
+	transaction.sink.options.PropertyMode = config.PropertiesMergeDeleteNull
+	merged, err = transaction.resolveExistingProperties(
+		[]byte(`{"city":"London","name":"Ada"}`),
+		[]byte(`{"city":null}`),
+	)
+	if err != nil || string(merged) != `{"name":"Ada"}` {
+		t.Fatalf("merge-delete-null properties = %s, %v", merged, err)
+	}
+	transaction.sink.options.PropertyMode = config.PropertyMode("invalid")
+	if _, err := transaction.resolveExistingProperties(
+		[]byte(`{}`),
+		[]byte(`{}`),
+	); err == nil {
+		t.Fatal("resolveExistingProperties() accepted an invalid property mode")
+	}
+	transaction.sink.options.Mode = config.LoadMode("invalid")
+	if _, err := transaction.resolveExistingProperties(
+		[]byte(`{}`),
+		[]byte(`{}`),
+	); err == nil {
+		t.Fatal("resolveExistingProperties() accepted an invalid load mode")
+	}
+	if _, err := decodeJSON([]byte(`{} invalid`)); err == nil {
+		t.Fatal("decodeJSON() accepted invalid trailing data")
+	}
+	if _, err := mergeJSONObject([]byte(`invalid`), []byte(`{}`), false); err == nil {
+		t.Fatal("mergeJSONObject() accepted invalid existing properties")
 	}
 }
 
@@ -138,6 +282,48 @@ func TestNewLoadSinkRejectsInvalidOptions(t *testing.T) {
 	}
 	t.Cleanup(pool.Close)
 	adapter = &Adapter{pool: pool}
+	for name, options := range map[string]LoadSinkOptions{
+		"mode": {
+			JobID: "11111111-2222-4333-8444-555555555555",
+			Graph: meta.GraphGeneration{ID: 1},
+			Mode:  config.LoadMode("invalid"),
+		},
+		"append duplicate": {
+			JobID:           "11111111-2222-4333-8444-555555555555",
+			Graph:           meta.GraphGeneration{ID: 1},
+			Mode:            config.LoadAppend,
+			AppendDuplicate: config.AppendDuplicatePolicy("invalid"),
+		},
+		"upsert property": {
+			JobID:        "11111111-2222-4333-8444-555555555555",
+			Graph:        meta.GraphGeneration{ID: 1},
+			Mode:         config.LoadUpsert,
+			PropertyMode: config.PropertyMode("invalid"),
+		},
+		"deferred capacity": {
+			JobID:           "11111111-2222-4333-8444-555555555555",
+			Graph:           meta.GraphGeneration{ID: 1},
+			Mode:            config.LoadAppend,
+			AppendDuplicate: config.AppendDuplicateError,
+			MissingEndpoint: config.MissingEndpointDefer,
+		},
+		"missing endpoint": {
+			JobID:           "11111111-2222-4333-8444-555555555555",
+			Graph:           meta.GraphGeneration{ID: 1},
+			Mode:            config.LoadCreate,
+			MissingEndpoint: config.MissingEndpointPolicy("invalid"),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := NewLoadSink(
+				context.Background(),
+				adapter,
+				options,
+			); err == nil {
+				t.Fatalf("NewLoadSink() accepted invalid %s options", name)
+			}
+		})
+	}
 	if _, err := NewLoadSink(
 		context.Background(),
 		adapter,
@@ -166,7 +352,7 @@ func TestNewLoadSinkRejectsInvalidOptions(t *testing.T) {
 			Graph:           meta.GraphGeneration{ID: 1},
 			MissingEndpoint: config.MissingEndpointDefer,
 		},
-	); err == nil || !strings.Contains(err.Error(), "unsupported missing endpoint") {
+	); err == nil || !strings.Contains(err.Error(), "deferred endpoints") {
 		t.Fatalf("unsupported-policy NewLoadSink() error = %v", err)
 	}
 }

@@ -96,6 +96,9 @@ func (job *LoadJob) applyDefaults() {
 	if job.Target.PropertyMode == "" {
 		job.Target.PropertyMode = PropertiesReplace
 	}
+	if job.Target.Mode == LoadAppend && job.Target.AppendDuplicate == "" {
+		job.Target.AppendDuplicate = AppendDuplicateError
+	}
 	if job.Runtime.MemoryLimit == 0 {
 		job.Runtime.MemoryLimit = 1 * gibibyte
 	}
@@ -122,6 +125,11 @@ func (job *LoadJob) applyDefaults() {
 	}
 	if job.Errors.MissingEndpoint == "" {
 		job.Errors.MissingEndpoint = MissingEndpointError
+	}
+	if (job.Target.Mode == LoadUpsert ||
+		job.Errors.MissingEndpoint == MissingEndpointDefer) &&
+		job.Errors.MaxDeferredEdges == 0 {
+		job.Errors.MaxDeferredEdges = 100_000
 	}
 	if job.Source.CSV != nil {
 		applyDelimitedDefaults(&job.Source.CSV.Defaults)

@@ -11,9 +11,12 @@ import (
 )
 
 var (
-	ErrConflict           = errors.New("metadata state conflict")
-	ErrGenerationMismatch = errors.New("target generation mismatch")
-	ErrNotFound           = errors.New("metadata record not found")
+	ErrConflict            = errors.New("metadata state conflict")
+	ErrGenerationMismatch  = errors.New("target generation mismatch")
+	ErrIncrementalConflict = errors.New(
+		"AF_INCREMENTAL_CONFLICT: incremental target is busy",
+	)
+	ErrNotFound = errors.New("metadata record not found")
 )
 
 type JobStatus string

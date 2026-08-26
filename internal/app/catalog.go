@@ -131,11 +131,11 @@ func admitCatalog(
 		}
 	}
 	graph, err := store.AdmitGraphGeneration(ctx, storedJob.ID, meta.GraphGeneration{
-		ID: storedJob.GraphGenerationID, JobID: storedJob.ID,
+		ID: storedJob.GraphGenerationID, JobID: storedGraph.JobID,
 		GraphName: graphCatalog.Name, GraphOID: graphCatalog.GraphOID,
 		NamespaceOID:     graphCatalog.NamespaceOID,
 		ReplacesGraphOID: storedGraph.ReplacesGraphOID,
-		Generation:       storedGraph.Generation, State: meta.GenerationLoading,
+		Generation:       storedGraph.Generation, State: storedGraph.State,
 	})
 	if err != nil {
 		return meta.GraphGeneration{}, nil, err
@@ -164,9 +164,89 @@ func admitCatalog(
 	return graph, labels, nil
 }
 
+func admitIncrementalCatalog(
+	ctx context.Context,
+	adapter *age.Adapter,
+	job config.LoadJob,
+	jobID string,
+) (meta.GraphGeneration, []age.LoadLabel, error) {
+	kinds, err := configuredLabels(job)
+	if err != nil {
+		return meta.GraphGeneration{}, nil, err
+	}
+	var graph meta.GraphGeneration
+	labels := make([]age.LoadLabel, 0, len(kinds))
+	if err := adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
+		locked, err := transaction.TryLockGraphLifecycle(
+			ctx,
+			job.Target.Graph,
+		)
+		if err != nil {
+			return err
+		}
+		if !locked {
+			return meta.ErrIncrementalConflict
+		}
+		graphCatalog, err := transaction.LookupGraph(ctx, job.Target.Graph)
+		if err != nil {
+			return err
+		}
+		transactionStore, err := transaction.Metadata()
+		if err != nil {
+			return err
+		}
+		graph, err = transactionStore.BindActiveGraphGeneration(
+			ctx,
+			jobID,
+			job.Target.Graph,
+		)
+		if err != nil {
+			return err
+		}
+		if graph.GraphOID != graphCatalog.GraphOID ||
+			graph.NamespaceOID != graphCatalog.NamespaceOID {
+			return fmt.Errorf(
+				"%w: active graph %q catalog identity changed",
+				meta.ErrGenerationMismatch,
+				job.Target.Graph,
+			)
+		}
+		for name, kind := range kinds {
+			catalog, err := transaction.LookupLabel(ctx, job.Target.Graph, name)
+			if err != nil {
+				return err
+			}
+			generation, err := transactionStore.AdmitLabelGeneration(
+				ctx,
+				graph.ID,
+				meta.LabelGeneration{
+					ID: 1, GraphGenerationID: graph.ID, LabelName: name,
+					Kind:              meta.LabelKind(kind),
+					GraphNamespaceOID: catalog.NamespaceOID,
+					LabelID:           catalog.LabelID,
+					RelationOID:       catalog.RelationOID,
+					SequenceOID:       catalog.SequenceOID,
+					MappingGeneration: 1,
+				},
+			)
+			if err != nil {
+				return err
+			}
+			labels = append(
+				labels,
+				age.LoadLabel{Catalog: catalog, Generation: generation},
+			)
+		}
+		return nil
+	}); err != nil {
+		return meta.GraphGeneration{}, nil, err
+	}
+	return graph, labels, nil
+}
+
 func loadGraphName(job config.LoadJob, jobID string) (string, error) {
 	switch job.Target.Mode {
-	case config.LoadCreate:
+	case config.LoadCreate, config.LoadAppend, config.LoadUpsert:
 		return job.Target.Graph, nil
 	case config.LoadReplace:
 		return age.DeriveGraphName(job.Target.Graph, age.ShadowName, jobID)

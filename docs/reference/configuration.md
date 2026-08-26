@@ -139,14 +139,39 @@ header, account key, or source document.
 
 ## Load modes
 
-The target modes are `create`, `replace`, `append`, and `upsert`. The current
-runtime implements CSV and Cosmos DB for NoSQL `create` and `replace`; `append`
-and `upsert` remain reserved for a later milestone. Every edge mapping in an
-`upsert` job must provide an external edge identity field or column. Graph
-names must follow the supported Apache AGE naming subset: 3–63 UTF-8 bytes,
-starting with a letter or underscore, ending with a letter, digit, or
-underscore, and containing only letters, digits, underscores, dots, and
-hyphens.
+The target modes are `create`, `replace`, `append`, and `upsert`. CSV and
+Cosmos DB for NoSQL support all four modes. Every edge mapping in an `upsert`
+job must provide an external edge identity field or column. Graph names must
+follow the supported Apache AGE naming subset: 3–63 UTF-8 bytes, starting with
+a letter or underscore, ending with a letter, digit, or underscore, and
+containing only letters, digits, underscores, dots, and hyphens.
+
+Incremental jobs make conflict handling explicit. `appendDuplicate` defaults
+to `error`; `ignore-identical` permits an append replay only when the existing
+identity, endpoints, and properties are identical. Conflicting duplicates are
+always rejected. `propertyMode` controls vertex and edge upserts: `replace`
+replaces the complete property object, `merge` retains keys omitted by the
+source, and `merge-delete-null` also removes keys whose incoming value is null.
+Incremental jobs require an active graph generation previously created or
+replaced by agefreighter. Admission compares the graph OID, namespace OID, and
+every configured label's kind, label ID, relation OID, sequence OID, and
+mapping generation with the stored catalog before any data write.
+
+Only one incremental batch may write a graph at a time. A competing job is
+rejected without waiting with the stable error code
+`AF_INCREMENTAL_CONFLICT`; the failed job can be resumed after the other writer
+releases the graph lock. Batch ownership and label ID allocation use separate
+job- and label-scoped locks.
+
+When `errors.missingEndpoint` is `defer`, unresolved edges are persisted in a
+bounded target-side store rather than Go memory. Upserts are also queued when
+an older deferred row has the same external edge identity, preserving source
+order even when `missingEndpoint` is `error` or `quarantine`.
+`errors.maxDeferredEdges` defaults to 100000 for upsert and whenever deferral
+is enabled, and must be positive in those cases. Resolvable rows are drained
+transactionally by later incremental batches.
+Reaching the limit rolls back the batch deterministically; deferred edges are
+never silently discarded.
 
 `replace` requires the public target graph to exist. It loads into a
 deterministic job-specific shadow graph, so a failed or interrupted job leaves

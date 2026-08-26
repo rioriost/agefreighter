@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 13
+const schemaVersion = 14
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -557,6 +557,51 @@ var migrationV13 = []string{
 		)`,
 }
 
+var migrationV14 = []string{
+	`CREATE TABLE agefreighter_meta.deferred_edge (
+		deferred_edge_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		graph_generation_id bigint NOT NULL
+			REFERENCES agefreighter_meta.graph_generation(graph_generation_id)
+			ON DELETE CASCADE,
+		label_generation_id bigint NOT NULL
+			REFERENCES agefreighter_meta.label_generation(label_generation_id)
+			ON DELETE CASCADE,
+		label_id integer NOT NULL CHECK (label_id BETWEEN 1 AND 65535),
+		job_id uuid NOT NULL
+			REFERENCES agefreighter_meta.load_job(job_id)
+			ON DELETE CASCADE,
+		source_namespace text NOT NULL CHECK (source_namespace <> ''),
+		external_id text,
+		start_namespace text NOT NULL CHECK (start_namespace <> ''),
+		start_label_id integer NOT NULL CHECK (start_label_id BETWEEN 1 AND 65535),
+		start_external_id text NOT NULL CHECK (start_external_id <> ''),
+		end_namespace text NOT NULL CHECK (end_namespace <> ''),
+		end_label_id integer NOT NULL CHECK (end_label_id BETWEEN 1 AND 65535),
+		end_external_id text NOT NULL CHECK (end_external_id <> ''),
+		properties text NOT NULL CHECK (properties::jsonb IS NOT NULL),
+		load_mode text NOT NULL CHECK (load_mode IN ('append', 'upsert')),
+		append_duplicate text NOT NULL CHECK (
+			append_duplicate IN ('error', 'ignore-identical')
+		),
+		property_mode text NOT NULL CHECK (
+			property_mode IN ('replace', 'merge', 'merge-delete-null')
+		),
+		resource text NOT NULL DEFAULT '',
+		line bigint NOT NULL DEFAULT 0 CHECK (line >= 0),
+		byte_offset bigint NOT NULL DEFAULT 0 CHECK (byte_offset >= 0),
+		resume_token text NOT NULL CHECK (resume_token <> ''),
+		created_at timestamp with time zone NOT NULL DEFAULT clock_timestamp(),
+		UNIQUE (graph_generation_id, job_id, resume_token),
+		CHECK (load_mode <> 'upsert' OR external_id IS NOT NULL)
+	)`,
+	`CREATE INDEX deferred_edge_resolution_idx
+		ON agefreighter_meta.deferred_edge (
+			graph_generation_id,
+			start_namespace, start_label_id, start_external_id,
+			end_namespace, end_label_id, end_external_id
+		)`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -571,4 +616,5 @@ var migrations = [][]string{
 	migrationV11,
 	migrationV12,
 	migrationV13,
+	migrationV14,
 }

@@ -358,6 +358,9 @@ func TestTransactionAndLifecycleRejectInvalidInputs(t *testing.T) {
 	if err := transaction.LockGraphLifecycle(ctx, "x"); err == nil {
 		t.Fatal("LockGraphLifecycle() accepted invalid graph")
 	}
+	if _, err := transaction.TryLockGraphLifecycle(ctx, "x"); err == nil {
+		t.Fatal("TryLockGraphLifecycle() accepted invalid graph")
+	}
 	if err := transaction.PreflightGraphRename(ctx, GraphCatalog{}); err == nil {
 		t.Fatal("PreflightGraphRename() accepted empty catalog")
 	}

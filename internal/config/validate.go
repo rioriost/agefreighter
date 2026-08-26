@@ -53,7 +53,21 @@ func (job LoadJob) Validate() error {
 	validateTarget(job.Target, &errs)
 	validateRuntime(job.Runtime, &errs)
 	validateErrorPolicies(job.Errors, &errs)
+	if job.Errors.MissingEndpoint == MissingEndpointDefer {
+		add(
+			job.Target.Mode == LoadAppend || job.Target.Mode == LoadUpsert,
+			"errors.missingEndpoint",
+			"policy",
+			"defer is supported only for append and upsert",
+		)
+	}
 	if job.Target.Mode == LoadUpsert {
+		add(
+			job.Errors.MaxDeferredEdges > 0,
+			"errors.maxDeferredEdges",
+			"required",
+			"must be positive for upsert FIFO ordering",
+		)
 		validateUpsertEdgeIdentity(job.Source, &errs)
 	}
 
@@ -330,6 +344,23 @@ func validateTarget(target Target, errs *ValidationErrors) {
 		add(false, "target.propertyMode", "unsupported",
 			"must be replace, merge, or merge-delete-null")
 	}
+	if target.Mode == LoadAppend {
+		switch target.AppendDuplicate {
+		case AppendDuplicateError, AppendDuplicateIgnoreIdentical:
+		default:
+			add(false, "target.appendDuplicate", "unsupported",
+				"must be error or ignore-identical")
+		}
+	} else {
+		add(
+			target.AppendDuplicate == "" ||
+				target.AppendDuplicate == AppendDuplicateError ||
+				target.AppendDuplicate == AppendDuplicateIgnoreIdentical,
+			"target.appendDuplicate",
+			"unsupported",
+			"must be error or ignore-identical",
+		)
+	}
 	validateSecret(target.Connection, "target.connection", errs)
 }
 
@@ -375,6 +406,12 @@ func validateErrorPolicies(policies ErrorPolicies, errs *ValidationErrors) {
 		add(false, "errors.missingEndpoint", "unsupported", "must be error, quarantine, or defer")
 	}
 	add(policies.RejectLimit >= 0, "errors.rejectLimit", "range", "must not be negative")
+	add(policies.MaxDeferredEdges >= 0, "errors.maxDeferredEdges", "range",
+		"must not be negative")
+	add(policies.MissingEndpoint != MissingEndpointDefer ||
+		policies.MaxDeferredEdges > 0,
+		"errors.maxDeferredEdges", "required",
+		"must be positive when missing endpoints are deferred")
 	add(policies.RejectLimit == 0 || policies.MalformedRecord == MalformedQuarantine,
 		"errors.rejectLimit", "policy",
 		"must be zero unless malformed records are quarantined")

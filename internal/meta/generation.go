@@ -151,6 +151,96 @@ func (store *Store) GraphGenerationForJob(
 	return value, nil
 }
 
+func (store *Store) BindActiveGraphGeneration(
+	ctx context.Context,
+	jobID string,
+	graphName string,
+) (GraphGeneration, error) {
+	if err := validateJobID(jobID); err != nil {
+		return GraphGeneration{}, err
+	}
+	if graphName == "" {
+		return GraphGeneration{}, errors.New("target graph name is required")
+	}
+	tx, err := store.database.Begin(ctx)
+	if err != nil {
+		return GraphGeneration{}, fmt.Errorf(
+			"begin active graph generation binding: %w",
+			err,
+		)
+	}
+	defer rollback(ctx, tx)
+
+	var value GraphGeneration
+	err = tx.QueryRow(
+		ctx,
+		`SELECT
+			graph_generation_id, job_id::text, graph_name,
+			graph_oid, namespace_oid, COALESCE(replaces_graph_oid, 0),
+			generation, state, created_at, updated_at
+		 FROM agefreighter_meta.graph_generation
+		 WHERE graph_name = $1
+		   AND state = 'active'
+		 FOR KEY SHARE`,
+		graphName,
+	).Scan(
+		&value.ID,
+		&value.JobID,
+		&value.GraphName,
+		&value.GraphOID,
+		&value.NamespaceOID,
+		&value.ReplacesGraphOID,
+		&value.Generation,
+		&value.State,
+		&value.CreatedAt,
+		&value.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return GraphGeneration{}, fmt.Errorf(
+			"%w: active graph generation %q",
+			ErrNotFound,
+			graphName,
+		)
+	}
+	if err != nil {
+		return GraphGeneration{}, fmt.Errorf(
+			"read active graph generation %q: %w",
+			graphName,
+			err,
+		)
+	}
+	tag, err := tx.Exec(
+		ctx,
+		`UPDATE agefreighter_meta.load_job
+		 SET graph_generation_id = $2,
+		     updated_at = clock_timestamp()
+		 WHERE job_id = $1::uuid
+		   AND target_graph = $3
+		   AND load_mode IN ('append', 'upsert')
+		   AND status = 'running'
+		   AND graph_generation_id IS NULL`,
+		jobID,
+		value.ID,
+		graphName,
+	)
+	if err != nil {
+		return GraphGeneration{}, fmt.Errorf(
+			"bind active graph generation to incremental job: %w",
+			err,
+		)
+	}
+	if err := rowsAffectedOne(tag, "bind active graph generation to incremental job"); err != nil {
+		return GraphGeneration{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return GraphGeneration{}, fmt.Errorf(
+			"commit active graph generation binding: %w",
+			err,
+		)
+	}
+	return value, nil
+}
+
 func (store *Store) SetGraphGenerationState(
 	ctx context.Context,
 	graphGenerationID int64,

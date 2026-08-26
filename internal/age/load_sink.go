@@ -25,11 +25,15 @@ type LoadLabel struct {
 }
 
 type LoadSinkOptions struct {
-	JobID           string
-	Graph           meta.GraphGeneration
-	Labels          []LoadLabel
-	MissingEndpoint config.MissingEndpointPolicy
-	Quarantine      reject.Writer
+	JobID            string
+	Graph            meta.GraphGeneration
+	Labels           []LoadLabel
+	Mode             config.LoadMode
+	AppendDuplicate  config.AppendDuplicatePolicy
+	PropertyMode     config.PropertyMode
+	MissingEndpoint  config.MissingEndpointPolicy
+	MaxDeferredEdges int
+	Quarantine       reject.Writer
 }
 
 type LoadSink struct {
@@ -42,14 +46,16 @@ type LoadSink struct {
 }
 
 type loadTransaction struct {
-	sink      *LoadSink
-	tx        pgx.Tx
-	owner     *pgxpool.Conn
-	lockKey   string
-	metadata  sinkcontract.BatchMetadata
-	rejected  int64
-	finalized bool
-	wrote     bool
+	sink            *LoadSink
+	tx              pgx.Tx
+	owner           *pgxpool.Conn
+	lockKey         string
+	metadata        sinkcontract.BatchMetadata
+	rejected        int64
+	finalized       bool
+	wrote           bool
+	incrementalLock bool
+	stageSequence   uint64
 }
 
 type committedReplayTransaction struct {
@@ -103,8 +109,42 @@ func NewLoadSink(
 	if options.JobID == "" || options.Graph.ID <= 0 {
 		return nil, errors.New("load job and graph generation are required")
 	}
+	if options.Mode == "" {
+		options.Mode = config.LoadCreate
+	}
+	switch options.Mode {
+	case config.LoadCreate, config.LoadReplace:
+	case config.LoadAppend:
+		switch options.AppendDuplicate {
+		case config.AppendDuplicateError, config.AppendDuplicateIgnoreIdentical:
+		default:
+			return nil, fmt.Errorf(
+				"unsupported append duplicate policy %q",
+				options.AppendDuplicate,
+			)
+		}
+	case config.LoadUpsert:
+		switch options.PropertyMode {
+		case config.PropertiesReplace,
+			config.PropertiesMerge,
+			config.PropertiesMergeDeleteNull:
+		default:
+			return nil, fmt.Errorf(
+				"unsupported upsert property mode %q",
+				options.PropertyMode,
+			)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported load mode %q", options.Mode)
+	}
 	switch options.MissingEndpoint {
 	case config.MissingEndpointError, config.MissingEndpointQuarantine:
+	case config.MissingEndpointDefer:
+		if !incrementalMode(options.Mode) || options.MaxDeferredEdges <= 0 {
+			return nil, errors.New(
+				"deferred endpoints require an incremental mode and positive capacity",
+			)
+		}
 	default:
 		return nil, fmt.Errorf(
 			"unsupported missing endpoint policy %q",
@@ -238,8 +278,48 @@ func (target *LoadSink) Begin(
 		release()
 		return nil, fmt.Errorf("lock AGE load batch: %w", err)
 	}
+	incrementalLock := false
+	if target.incremental() {
+		var locked bool
+		if err := owner.QueryRow(
+			ctx,
+			`SELECT pg_catalog.pg_try_advisory_lock(
+				pg_catalog.hashtextextended(
+					'agefreighter:graph-lifecycle:' || $1,
+					$2
+				)
+			)`,
+			target.options.Graph.GraphName,
+			graphLifecycleLockSeed,
+		).Scan(&locked); err != nil {
+			ownerErr := target.releaseBatchOwner(owner, lockKey, false)
+			release()
+			return nil, errors.Join(
+				fmt.Errorf("lock incremental AGE graph: %w", err),
+				ownerErr,
+			)
+		}
+		if !locked {
+			ownerErr := target.releaseBatchOwner(owner, lockKey, false)
+			release()
+			return nil, errors.Join(meta.ErrIncrementalConflict, ownerErr)
+		}
+		incrementalLock = true
+		if err := target.validateIncrementalGeneration(
+			ctx,
+			owner.Conn(),
+		); err != nil {
+			ownerErr := target.releaseBatchOwner(
+				owner,
+				lockKey,
+				incrementalLock,
+			)
+			release()
+			return nil, errors.Join(err, ownerErr)
+		}
+	}
 	releaseOwner := func() error {
-		return target.releaseBatchOwner(owner, lockKey)
+		return target.releaseBatchOwner(owner, lockKey, incrementalLock)
 	}
 
 	attempt := meta.BatchAttempt{
@@ -304,12 +384,80 @@ func (target *LoadSink) Begin(
 		)
 	}
 	return &loadTransaction{
-		sink:     target,
-		tx:       tx,
-		owner:    owner,
-		lockKey:  lockKey,
-		metadata: batch,
+		sink:            target,
+		tx:              tx,
+		owner:           owner,
+		lockKey:         lockKey,
+		metadata:        batch,
+		incrementalLock: incrementalLock,
 	}, nil
+}
+
+func (target *LoadSink) incremental() bool {
+	return incrementalMode(target.options.Mode)
+}
+
+func (target *LoadSink) validateIncrementalGeneration(
+	ctx context.Context,
+	database *pgx.Conn,
+) error {
+	store, err := meta.New(database)
+	if err != nil {
+		return err
+	}
+	stored, err := store.GraphGenerationForJob(ctx, target.options.JobID)
+	if err != nil {
+		return err
+	}
+	live, err := lookupGraph(ctx, database, target.options.Graph.GraphName)
+	if err != nil {
+		return err
+	}
+	if stored.ID != target.options.Graph.ID ||
+		stored.State != meta.GenerationActive ||
+		stored.GraphName != live.Name ||
+		stored.GraphOID != live.GraphOID ||
+		stored.NamespaceOID != live.NamespaceOID {
+		return fmt.Errorf(
+			"%w: incremental graph generation is no longer active at %q",
+			meta.ErrGenerationMismatch,
+			target.options.Graph.GraphName,
+		)
+	}
+	for _, binding := range target.labels {
+		catalog, err := lookupLabel(
+			ctx,
+			database,
+			live.Name,
+			binding.Catalog.LabelName,
+		)
+		if err != nil {
+			return err
+		}
+		current := binding
+		current.Catalog = catalog
+		if err := validateLoadLabel(stored, current); err != nil {
+			return fmt.Errorf(
+				"%w: %v",
+				meta.ErrGenerationMismatch,
+				err,
+			)
+		}
+		generation := binding.Generation
+		generation.GraphGenerationID = stored.ID
+		if _, err := store.AdmitLabelGeneration(
+			ctx,
+			stored.ID,
+			generation,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func incrementalMode(mode config.LoadMode) bool {
+	return mode == config.LoadAppend || mode == config.LoadUpsert
 }
 
 func validateBatchMetadata(batch sinkcontract.BatchMetadata) error {
@@ -387,12 +535,22 @@ func (transaction *loadTransaction) Write(
 			return err
 		}
 	}
+	if transaction.sink.incremental() {
+		if err := transaction.drainDeferredEdges(ctx); err != nil {
+			return err
+		}
+	}
 	for _, label := range sortedLabels(edgeGroups) {
 		if err := transaction.writeEdges(ctx, label, edgeGroups[label]); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (transaction *loadTransaction) nextStageSequence() uint64 {
+	transaction.stageSequence++
+	return transaction.stageSequence
 }
 
 func sortedLabels[T any](groups map[model.Label][]T) []model.Label {
@@ -435,6 +593,14 @@ func (transaction *loadTransaction) writeVertices(
 			return fmt.Errorf("encode vertex %q properties: %w", vertex.ExternalID, err)
 		}
 		propertiesByIndex[index] = properties
+	}
+	if transaction.sink.incremental() {
+		return transaction.writeVerticesIncremental(
+			ctx,
+			binding,
+			vertices,
+			propertiesByIndex,
+		)
 	}
 	block, err := (&Transaction{tx: transaction.tx}).ReserveIDs(
 		ctx,
@@ -620,21 +786,32 @@ func (transaction *loadTransaction) writeEdges(
 		return err
 	}
 	if len(missing) > 0 {
-		if transaction.sink.options.MissingEndpoint == config.MissingEndpointError {
+		switch transaction.sink.options.MissingEndpoint {
+		case config.MissingEndpointError:
 			return fmt.Errorf(
 				"%d edges have missing endpoints; first at %s:%d",
 				len(missing),
-				missing[0].Position.Resource,
-				missing[0].Position.Line,
+				missing[0].record.Position.Resource,
+				missing[0].record.Position.Line,
 			)
+		case config.MissingEndpointQuarantine:
+			if err := transaction.quarantineMissingEdges(ctx, missing); err != nil {
+				return err
+			}
+			transaction.rejected += int64(len(missing))
+		case config.MissingEndpointDefer:
+			if err := transaction.deferMissingEdges(ctx, missing); err != nil {
+				return err
+			}
+		default:
+			return errors.New("unsupported missing endpoint policy")
 		}
-		if err := transaction.quarantineMissingEdges(ctx, missing); err != nil {
-			return err
-		}
-		transaction.rejected += int64(len(missing))
 	}
 	if len(resolved) == 0 {
 		return nil
+	}
+	if transaction.sink.incremental() {
+		return transaction.writeCurrentEdgesIncremental(ctx, binding, resolved)
 	}
 	block, err := (&Transaction{tx: transaction.tx}).ReserveIDs(
 		ctx,
@@ -671,7 +848,7 @@ func (transaction *loadTransaction) writeEdges(
 func (transaction *loadTransaction) resolveEdges(
 	ctx context.Context,
 	edges []stagedEdge,
-) ([]resolvedEdge, []model.Edge, error) {
+) ([]resolvedEdge, []stagedEdge, error) {
 	stage := fmt.Sprintf(
 		"agefreighter_edge_reference_stage_%d",
 		edges[0].label.Generation.ID,
@@ -753,7 +930,7 @@ func (transaction *loadTransaction) resolveEdges(
 	}
 	defer rows.Close()
 	resolved := make([]resolvedEdge, 0, len(edges))
-	missing := make([]model.Edge, 0)
+	missing := make([]stagedEdge, 0)
 	for rows.Next() {
 		var ordinal int
 		var startID, endID *int64
@@ -764,7 +941,7 @@ func (transaction *loadTransaction) resolveEdges(
 			return nil, nil, fmt.Errorf("resolved edge ordinal %d is out of range", ordinal)
 		}
 		if startID == nil || endID == nil {
-			missing = append(missing, *edges[ordinal].record)
+			missing = append(missing, edges[ordinal])
 			continue
 		}
 		start := GraphID(*startID)
@@ -792,9 +969,10 @@ func (transaction *loadTransaction) resolveEdges(
 
 func (transaction *loadTransaction) quarantineMissingEdges(
 	ctx context.Context,
-	edges []model.Edge,
+	edges []stagedEdge,
 ) error {
-	for _, edge := range edges {
+	for _, staged := range edges {
+		edge := *staged.record
 		payload, err := json.Marshal(edge)
 		if err != nil {
 			return fmt.Errorf("encode missing endpoint quarantine record: %w", err)
@@ -1101,18 +1279,40 @@ func (transaction *loadTransaction) releaseOwner() error {
 	return transaction.sink.releaseBatchOwner(
 		transaction.owner,
 		transaction.lockKey,
+		transaction.incrementalLock,
 	)
 }
 
 func (target *LoadSink) releaseBatchOwner(
 	owner *pgxpool.Conn,
 	lockKey string,
+	incrementalLock bool,
 ) error {
 	releaseCtx, cancel := context.WithTimeout(
 		context.Background(),
 		target.adapter.operationTimeout,
 	)
 	defer cancel()
+	var incrementalErr error
+	if incrementalLock {
+		var unlocked bool
+		err := owner.QueryRow(
+			releaseCtx,
+			`SELECT pg_catalog.pg_advisory_unlock(
+				pg_catalog.hashtextextended(
+					'agefreighter:graph-lifecycle:' || $1,
+					$2
+				)
+			)`,
+			target.options.Graph.GraphName,
+			graphLifecycleLockSeed,
+		).Scan(&unlocked)
+		if err != nil {
+			incrementalErr = fmt.Errorf("unlock incremental AGE graph: %w", err)
+		} else if !unlocked {
+			incrementalErr = errors.New("incremental AGE graph lock was not held")
+		}
+	}
 	var unlocked bool
 	err := owner.QueryRow(
 		releaseCtx,
@@ -1122,18 +1322,24 @@ func (target *LoadSink) releaseBatchOwner(
 		target.options.JobID,
 		lockKey,
 	).Scan(&unlocked)
-	if err != nil || !unlocked {
+	if incrementalErr != nil || err != nil || !unlocked {
 		_ = owner.Conn().Close(releaseCtx)
 	}
 	owner.Release()
 	target.adapter.releaseLoadSlot()
 	if err != nil {
-		return fmt.Errorf("unlock AGE load batch: %w", err)
+		return errors.Join(
+			incrementalErr,
+			fmt.Errorf("unlock AGE load batch: %w", err),
+		)
 	}
 	if !unlocked {
-		return errors.New("AGE load batch ownership lock was not held")
+		return errors.Join(
+			incrementalErr,
+			errors.New("AGE load batch ownership lock was not held"),
+		)
 	}
-	return nil
+	return incrementalErr
 }
 
 func metaPosition(position model.SourcePosition) meta.Position {

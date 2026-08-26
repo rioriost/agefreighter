@@ -754,6 +754,12 @@
             "merge",
             "merge-delete-null"
           ]
+        },
+        "appendDuplicate": {
+          "enum": [
+            "error",
+            "ignore-identical"
+          ]
         }
       }
     },
@@ -815,6 +821,10 @@
           ]
         },
         "rejectLimit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxDeferredEdges": {
           "type": "integer",
           "minimum": 0
         },

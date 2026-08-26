@@ -28,6 +28,27 @@ func (transaction *Transaction) LockGraphLifecycle(
 	return nil
 }
 
+func (transaction *Transaction) TryLockGraphLifecycle(
+	ctx context.Context,
+	name string,
+) (bool, error) {
+	if err := ValidateGraphName(name); err != nil {
+		return false, err
+	}
+	var locked bool
+	if err := transaction.tx.QueryRow(
+		ctx,
+		`SELECT pg_catalog.pg_try_advisory_xact_lock(
+			pg_catalog.hashtextextended($1, $2)
+		)`,
+		"agefreighter:graph-lifecycle:"+name,
+		graphLifecycleLockSeed,
+	).Scan(&locked); err != nil {
+		return false, fmt.Errorf("try lock graph lifecycle %q: %w", name, err)
+	}
+	return locked, nil
+}
+
 func (transaction *Transaction) PreflightGraphRename(
 	ctx context.Context,
 	graph GraphCatalog,

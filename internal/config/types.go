@@ -35,6 +35,13 @@ const (
 	PropertiesMergeDeleteNull PropertyMode = "merge-delete-null"
 )
 
+type AppendDuplicatePolicy string
+
+const (
+	AppendDuplicateError           AppendDuplicatePolicy = "error"
+	AppendDuplicateIgnoreIdentical AppendDuplicatePolicy = "ignore-identical"
+)
+
 type MalformedRecordPolicy string
 
 const (
@@ -186,11 +193,12 @@ type CosmosEdgeQuery struct {
 }
 
 type Target struct {
-	Type         TargetType   `json:"type" yaml:"type"`
-	Graph        string       `json:"graph" yaml:"graph"`
-	Mode         LoadMode     `json:"mode" yaml:"mode"`
-	Connection   SecretRef    `json:"connection" yaml:"connection"`
-	PropertyMode PropertyMode `json:"propertyMode" yaml:"propertyMode"`
+	Type            TargetType            `json:"type" yaml:"type"`
+	Graph           string                `json:"graph" yaml:"graph"`
+	Mode            LoadMode              `json:"mode" yaml:"mode"`
+	Connection      SecretRef             `json:"connection" yaml:"connection"`
+	PropertyMode    PropertyMode          `json:"propertyMode" yaml:"propertyMode"`
+	AppendDuplicate AppendDuplicatePolicy `json:"appendDuplicate,omitempty" yaml:"appendDuplicate,omitempty"`
 }
 
 type SecretRef struct {
@@ -209,8 +217,9 @@ type Runtime struct {
 }
 
 type ErrorPolicies struct {
-	MalformedRecord MalformedRecordPolicy `json:"malformedRecord" yaml:"malformedRecord"`
-	MissingEndpoint MissingEndpointPolicy `json:"missingEndpoint" yaml:"missingEndpoint"`
-	RejectLimit     int                   `json:"rejectLimit" yaml:"rejectLimit"`
-	QuarantinePath  string                `json:"quarantinePath,omitempty" yaml:"quarantinePath,omitempty"`
+	MalformedRecord  MalformedRecordPolicy `json:"malformedRecord" yaml:"malformedRecord"`
+	MissingEndpoint  MissingEndpointPolicy `json:"missingEndpoint" yaml:"missingEndpoint"`
+	RejectLimit      int                   `json:"rejectLimit" yaml:"rejectLimit"`
+	MaxDeferredEdges int                   `json:"maxDeferredEdges,omitempty" yaml:"maxDeferredEdges,omitempty"`
+	QuarantinePath   string                `json:"quarantinePath,omitempty" yaml:"quarantinePath,omitempty"`
 }

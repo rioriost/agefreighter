@@ -40,6 +40,8 @@ func TestStoreIntegration(t *testing.T) {
 		"22222222-3333-4444-8555-666666666666",
 		"99999999-8888-4777-8666-555555555555",
 		"77777777-6666-4555-8444-333333333333",
+		"10101010-2222-4333-8444-555555555555",
+		"aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb",
 	}
 	if err := deleteTestJobs(ctx, pool, jobIDs); err != nil {
 		t.Fatalf("clean metadata tables: %v", err)
@@ -288,6 +290,63 @@ func TestStoreIntegration(t *testing.T) {
 		GenerationActive,
 	); err != nil {
 		t.Fatalf("SetGraphGenerationState() error = %v", err)
+	}
+	incrementalJob := Job{
+		ID:                jobIDs[4],
+		Name:              "append-people",
+		SourceType:        "csv",
+		LoadMode:          "append",
+		TargetGraph:       graph.GraphName,
+		ConfigFingerprint: strings.Repeat("e", 64),
+	}
+	if err := store.CreateJob(ctx, incrementalJob); err != nil {
+		t.Fatalf("create incremental job: %v", err)
+	}
+	if err := store.StartJob(ctx, incrementalJob.ID); err != nil {
+		t.Fatalf("start incremental job: %v", err)
+	}
+	bound, err := store.BindActiveGraphGeneration(
+		ctx,
+		incrementalJob.ID,
+		graph.GraphName,
+	)
+	if err != nil || bound.ID != graph.ID || bound.JobID != graph.JobID {
+		t.Fatalf("BindActiveGraphGeneration() = %#v, %v", bound, err)
+	}
+	boundForJob, err := store.GraphGenerationForJob(ctx, incrementalJob.ID)
+	if err != nil || boundForJob.ID != graph.ID {
+		t.Fatalf("incremental GraphGenerationForJob() = %#v, %v", boundForJob, err)
+	}
+	if _, err := store.BindActiveGraphGeneration(
+		ctx,
+		incrementalJob.ID,
+		graph.GraphName,
+	); !errors.Is(err, ErrConflict) {
+		t.Fatalf("second BindActiveGraphGeneration() error = %v", err)
+	}
+	createModeJob := incrementalJob
+	createModeJob.ID = jobIDs[5]
+	createModeJob.LoadMode = "create"
+	createModeJob.ConfigFingerprint = strings.Repeat("f", 64)
+	if err := store.CreateJob(ctx, createModeJob); err != nil {
+		t.Fatalf("create non-incremental binding job: %v", err)
+	}
+	if err := store.StartJob(ctx, createModeJob.ID); err != nil {
+		t.Fatalf("start non-incremental binding job: %v", err)
+	}
+	if _, err := store.BindActiveGraphGeneration(
+		ctx,
+		createModeJob.ID,
+		graph.GraphName,
+	); !errors.Is(err, ErrConflict) {
+		t.Fatalf("non-incremental BindActiveGraphGeneration() error = %v", err)
+	}
+	if _, err := store.BindActiveGraphGeneration(
+		ctx,
+		incrementalJob.ID,
+		"unmanaged",
+	); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing BindActiveGraphGeneration() error = %v", err)
 	}
 	if err := store.SetGraphGenerationState(
 		ctx,

@@ -22,7 +22,7 @@ awk -v module="$module/" '
 		next
 	}
 	FNR == 1 {
-		print
+		mode = $0
 		next
 	}
 	{
@@ -30,7 +30,19 @@ awk -v module="$module/" '
 		sub(/:[0-9].*$/, "", file)
 		sub("^" module, "", file)
 		if (!(file in excluded)) {
-			print
+			key = $1 " " $2
+			if (!(key in seen)) {
+				seen[key] = 1
+				order[++entries] = key
+			}
+			count[key] += $3
+		}
+	}
+	END {
+		print mode
+		for (i = 1; i <= entries; i++) {
+			key = order[i]
+			print key " " count[key]
 		}
 	}
 ' "$allowlist" "$input" >"$output"

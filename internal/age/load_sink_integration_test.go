@@ -48,8 +48,24 @@ func TestLoadSinkIntegration(t *testing.T) {
 	if err := unlockedTarget.releaseBatchOwner(
 		unlockedOwner,
 		"not-held",
+		false,
 	); err == nil || !strings.Contains(err.Error(), "was not held") {
 		t.Fatalf("releaseBatchOwner(unheld) error = %v", err)
+	}
+	if err := adapter.acquireLoadSlot(ctx); err != nil {
+		t.Fatalf("reserve invalid graph ownership test slot: %v", err)
+	}
+	unlockedGraphOwner, err := adapter.pool.Acquire(ctx)
+	if err != nil {
+		adapter.releaseLoadSlot()
+		t.Fatalf("acquire invalid graph ownership test connection: %v", err)
+	}
+	if err := unlockedTarget.releaseBatchOwner(
+		unlockedGraphOwner,
+		"graph-not-held",
+		true,
+	); err == nil || !strings.Contains(err.Error(), "graph lock was not held") {
+		t.Fatalf("releaseBatchOwner(unheld graph) error = %v", err)
 	}
 	if err := adapter.acquireLoadSlot(ctx); err != nil {
 		t.Fatalf("reserve closed ownership test slot: %v", err)
@@ -67,6 +83,7 @@ func TestLoadSinkIntegration(t *testing.T) {
 	if err := unlockedTarget.releaseBatchOwner(
 		closedOwner,
 		"closed",
+		false,
 	); err == nil || !strings.Contains(err.Error(), "unlock AGE load batch") {
 		t.Fatalf("releaseBatchOwner(closed) error = %v", err)
 	}
@@ -191,7 +208,7 @@ func TestLoadSinkIntegration(t *testing.T) {
 	if _, err := NewLoadSink(ctx, adapter, LoadSinkOptions{
 		JobID: jobID, Graph: graphGeneration,
 		MissingEndpoint: config.MissingEndpointDefer,
-	}); err == nil || !strings.Contains(err.Error(), "unsupported missing endpoint") {
+	}); err == nil || !strings.Contains(err.Error(), "deferred endpoints") {
 		t.Fatalf("deferred NewLoadSink() error = %v", err)
 	}
 	if _, err := NewLoadSink(ctx, adapter, LoadSinkOptions{
@@ -445,12 +462,546 @@ func TestLoadSinkIntegration(t *testing.T) {
 	if err := store.CompleteJob(ctx, jobID); err != nil {
 		t.Fatalf("CompleteJob() error = %v", err)
 	}
+	activeGeneration := graphGeneration
+	activeGeneration.State = meta.GenerationActive
+	const (
+		appendJobID     = "12121212-3434-4567-8890-121212121212"
+		competitorJobID = "23232323-4545-4678-8901-232323232323"
+		upsertJobID     = "34343434-5656-4789-9012-343434343434"
+		staleJobID      = "56565656-7878-4012-8345-565656565656"
+	)
+	for _, incrementalJobID := range []string{
+		appendJobID,
+		competitorJobID,
+		upsertJobID,
+		staleJobID,
+	} {
+		deleteLoadSinkJob(t, ctx, adapter, incrementalJobID)
+		incrementalJobID := incrementalJobID
+		t.Cleanup(func() {
+			cleanupCtx, cleanupCancel := context.WithTimeout(
+				context.Background(),
+				10*time.Second,
+			)
+			defer cleanupCancel()
+			deleteLoadSinkJob(
+				t,
+				cleanupCtx,
+				adapter,
+				incrementalJobID,
+			)
+		})
+	}
+	appendTarget := createIncrementalLoadTarget(
+		t,
+		ctx,
+		adapter,
+		store,
+		appendJobID,
+		activeGeneration,
+		person,
+		personGeneration,
+		knows,
+		knowsGeneration,
+		LoadSinkOptions{
+			Mode:             config.LoadAppend,
+			AppendDuplicate:  config.AppendDuplicateIgnoreIdentical,
+			PropertyMode:     config.PropertiesReplace,
+			MissingEndpoint:  config.MissingEndpointDefer,
+			MaxDeferredEdges: 10,
+		},
+	)
+	competitorAdapter := openIntegrationAdapter(t, ctx, dsn, 2)
+	competitorStore, err := competitorAdapter.Metadata()
+	if err != nil {
+		competitorAdapter.Close()
+		t.Fatalf("open competitor metadata: %v", err)
+	}
+	competitorTarget := createIncrementalLoadTarget(
+		t,
+		ctx,
+		competitorAdapter,
+		competitorStore,
+		competitorJobID,
+		activeGeneration,
+		person,
+		personGeneration,
+		knows,
+		knowsGeneration,
+		LoadSinkOptions{
+			Mode:            config.LoadAppend,
+			AppendDuplicate: config.AppendDuplicateError,
+			PropertyMode:    config.PropertiesReplace,
+			MissingEndpoint: config.MissingEndpointError,
+		},
+	)
+	appendVertices := []model.Record{
+		vertexLoadRecord("p1", "Ada", 20, "append-v1"),
+		vertexLoadRecord("p-new", "New", 21, "append-v2"),
+	}
+	firstPosition, _ := appendVertices[0].SourcePosition()
+	lastPosition, _ := appendVertices[len(appendVertices)-1].SourcePosition()
+	held, err := appendTarget.Begin(ctx, sink.BatchMetadata{
+		ID: 1, Attempt: 1, Rows: len(appendVertices), Bytes: 200,
+		FirstPosition: firstPosition, LastPosition: lastPosition,
+	})
+	if err != nil {
+		t.Fatalf("hold append batch: %v", err)
+	}
+	if _, err := competitorTarget.Begin(ctx, sink.BatchMetadata{
+		ID: 1, Attempt: 1, Rows: 1, Bytes: 100,
+		FirstPosition: loadPosition(22, "competitor"),
+		LastPosition:  loadPosition(22, "competitor"),
+	}); !errors.Is(err, meta.ErrIncrementalConflict) {
+		_ = held.Rollback(ctx)
+		competitorAdapter.Close()
+		t.Fatalf("concurrent incremental Begin() error = %v", err)
+	}
+	if err := held.Rollback(ctx); err != nil {
+		t.Fatalf("rollback held append batch: %v", err)
+	}
+	if err := store.StartJob(ctx, appendJobID); err != nil {
+		t.Fatalf("restart append job: %v", err)
+	}
+	runLoadBatchAttempt(t, ctx, appendTarget, 1, 2, appendVertices, 200)
+	runLoadBatch(t, ctx, appendTarget, 2, []model.Record{
+		edgeLoadRecord("e1", "p1", "p2", 22, "append-e1"),
+		edgeLoadRecord("e-new", "p-new", "p1", 23, "append-e2"),
+		edgeLoadRecord("e-deferred", "p-new", "p-later", 24, "append-e3"),
+	}, 300)
+	runLoadBatch(t, ctx, appendTarget, 3, []model.Record{
+		vertexLoadRecord("p1", "Ada", 25, "append-identical-vertex"),
+	}, 100)
+	runLoadBatch(t, ctx, appendTarget, 4, []model.Record{
+		edgeLoadRecord("e1", "p1", "p2", 26, "append-identical-edge"),
+	}, 100)
+	runLoadBatch(t, ctx, appendTarget, 5, []model.Record{
+		edgeLoadRecord("", "p-new", "p-anonymous-later", 27, "append-anonymous-edge"),
+	}, 100)
+	runLoadBatch(t, ctx, appendTarget, 6, []model.Record{
+		vertexLoadRecord("p-anonymous-later", "Anonymous endpoint", 28, "append-anonymous-endpoint"),
+	}, 100)
+	failLoadBatch(t, ctx, appendTarget, 7, 1, []model.Record{
+		edgeLoadRecord("e1", "p2", "p1", 27, "append-conflicting-edge"),
+	}, "conflicts with existing endpoints")
+	if err := store.StartJob(ctx, appendJobID); err != nil {
+		t.Fatalf("restart conflicting append job: %v", err)
+	}
+	runLoadBatchAttempt(t, ctx, appendTarget, 7, 2, []model.Record{
+		edgeLoadRecord("e1", "p1", "p2", 28, "append-recovered-edge"),
+	}, 100)
+	if err := store.CompleteJob(ctx, appendJobID); err != nil {
+		t.Fatalf("complete append job: %v", err)
+	}
+	failLoadBatch(t, ctx, competitorTarget, 1, 1, []model.Record{
+		vertexLoadRecord("p1", "Ada", 29, "append-error-duplicate"),
+	}, "append duplicate identity")
+	if err := competitorStore.StartJob(ctx, competitorJobID); err != nil {
+		competitorAdapter.Close()
+		t.Fatalf("restart competitor append job: %v", err)
+	}
+	competitorTarget.options.MissingEndpoint = config.MissingEndpointDefer
+	competitorTarget.options.MaxDeferredEdges = 10
+	failLoadBatch(t, ctx, competitorTarget, 1, 2, []model.Record{
+		edgeLoadRecord("same-batch-deferred", "missing-a", "missing-b", 30, "deferred-a"),
+		edgeLoadRecord("same-batch-deferred", "missing-a", "missing-b", 31, "deferred-b"),
+	}, "duplicates external identity in batch")
+	competitorAdapter.Close()
+
+	upsertTarget := createIncrementalLoadTarget(
+		t,
+		ctx,
+		adapter,
+		store,
+		upsertJobID,
+		activeGeneration,
+		person,
+		personGeneration,
+		knows,
+		knowsGeneration,
+		LoadSinkOptions{
+			Mode:            config.LoadUpsert,
+			AppendDuplicate: config.AppendDuplicateError,
+			PropertyMode:    config.PropertiesMerge,
+			MissingEndpoint: config.MissingEndpointError,
+		},
+	)
+	runLoadBatch(t, ctx, upsertTarget, 1, []model.Record{
+		vertexLoadRecord("p1", "Ada Updated", 25, "upsert-v1"),
+		vertexLoadRecord("p-later", "Later", 26, "upsert-v2"),
+	}, 200)
+	runLoadBatch(t, ctx, upsertTarget, 2, []model.Record{
+		edgeLoadRecord("e1", "p1", "p-new", 27, "upsert-e1"),
+	}, 100)
+	failLoadBatch(t, ctx, upsertTarget, 3, 1, []model.Record{
+		edgeLoadRecord("", "p1", "p-new", 30, "upsert-missing-identity"),
+	}, "external identity is required")
+	if err := store.StartJob(ctx, upsertJobID); err != nil {
+		t.Fatalf("restart missing-identity upsert job: %v", err)
+	}
+	runLoadBatchAttempt(t, ctx, upsertTarget, 3, 2, []model.Record{
+		edgeLoadRecord("e1", "p1", "p-new", 31, "upsert-recovered-edge"),
+	}, 100)
+	if err := store.CompleteJob(ctx, upsertJobID); err != nil {
+		t.Fatalf("complete upsert job: %v", err)
+	}
+	var deferred, vertices, edges int64
+	if err := adapter.pool.QueryRow(
+		ctx,
+		fmt.Sprintf(
+			`SELECT
+				(SELECT COUNT(*)
+				 FROM agefreighter_meta.deferred_edge
+				 WHERE graph_generation_id = $1),
+				(SELECT COUNT(*) FROM %s),
+				(SELECT COUNT(*) FROM %s)`,
+			pgxIdentifier(graphName, "Person"),
+			pgxIdentifier(graphName, "KNOWS"),
+		),
+		activeGeneration.ID,
+	).Scan(&deferred, &vertices, &edges); err != nil {
+		t.Fatalf("inspect incremental sink rows: %v", err)
+	}
+	if deferred != 0 || vertices != 6 || edges != 10 {
+		t.Fatalf(
+			"incremental rows = deferred %d vertices %d edges %d",
+			deferred,
+			vertices,
+			edges,
+		)
+	}
+	validationConnection, err := adapter.pool.Acquire(ctx)
+	if err != nil {
+		t.Fatalf("acquire validation connection: %v", err)
+	}
+	originalGraph := appendTarget.options.Graph
+	appendTarget.options.Graph.GraphName = graphName + "_missing"
+	if err := appendTarget.validateIncrementalGeneration(
+		ctx,
+		validationConnection.Conn(),
+	); err == nil {
+		validationConnection.Release()
+		t.Fatal("validateIncrementalGeneration() accepted a missing graph")
+	}
+	appendTarget.options.Graph = originalGraph
+	appendTarget.options.Graph.ID++
+	if err := appendTarget.validateIncrementalGeneration(
+		ctx,
+		validationConnection.Conn(),
+	); !errors.Is(err, meta.ErrGenerationMismatch) {
+		validationConnection.Release()
+		t.Fatalf("validateIncrementalGeneration(graph ID) error = %v", err)
+	}
+	appendTarget.options.Graph = originalGraph
+	personBinding := appendTarget.labels[model.Label("Person")]
+	personBinding.Catalog.LabelName = "MissingLabel"
+	appendTarget.labels[model.Label("Person")] = personBinding
+	if err := appendTarget.validateIncrementalGeneration(
+		ctx,
+		validationConnection.Conn(),
+	); err == nil {
+		validationConnection.Release()
+		t.Fatal("validateIncrementalGeneration() accepted a missing label")
+	}
+	personBinding.Catalog.LabelName = "Person"
+	personBinding.Generation.RelationOID++
+	appendTarget.labels[model.Label("Person")] = personBinding
+	if err := appendTarget.validateIncrementalGeneration(
+		ctx,
+		validationConnection.Conn(),
+	); !errors.Is(err, meta.ErrGenerationMismatch) {
+		validationConnection.Release()
+		t.Fatalf("validateIncrementalGeneration(label catalog) error = %v", err)
+	}
+	personBinding.Generation.RelationOID--
+	appendTarget.labels[model.Label("Person")] = personBinding
+	validationConnection.Release()
+	staleTarget := createIncrementalLoadTarget(
+		t,
+		ctx,
+		adapter,
+		store,
+		staleJobID,
+		activeGeneration,
+		person,
+		personGeneration,
+		knows,
+		knowsGeneration,
+		LoadSinkOptions{
+			Mode:            config.LoadAppend,
+			AppendDuplicate: config.AppendDuplicateError,
+			PropertyMode:    config.PropertiesReplace,
+			MissingEndpoint: config.MissingEndpointError,
+		},
+	)
+	if err := store.SetGraphGenerationState(
+		ctx,
+		activeGeneration.ID,
+		meta.GenerationActive,
+		meta.GenerationRetired,
+	); err != nil {
+		t.Fatalf("retire stale incremental generation: %v", err)
+	}
+	if _, err := staleTarget.Begin(ctx, sink.BatchMetadata{
+		ID: 1, Attempt: 1, Rows: 1, Bytes: 100,
+		FirstPosition: loadPosition(32, "stale-generation"),
+		LastPosition:  loadPosition(32, "stale-generation"),
+	}); !errors.Is(err, meta.ErrGenerationMismatch) {
+		t.Fatalf("Begin(stale generation) error = %v", err)
+	}
 	if _, err := target.Begin(ctx, sink.BatchMetadata{
 		ID: 8, Attempt: 1, Rows: 1, Bytes: 1,
 		FirstPosition: loadPosition(17, "after-complete"),
 		LastPosition:  loadPosition(17, "after-complete"),
 	}); err == nil || !strings.Contains(err.Error(), "start AGE load batch") {
 		t.Fatalf("Begin(after completion) error = %v", err)
+	}
+}
+
+func TestIncrementalSinkClosedTransactionIntegration(t *testing.T) {
+	dsn := integrationDSN(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+	adapter := openIntegrationAdapter(t, ctx, dsn, 2)
+	defer adapter.Close()
+	tx, err := adapter.pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin closed incremental transaction: %v", err)
+	}
+	if err := tx.Rollback(ctx); err != nil {
+		t.Fatalf("close incremental transaction: %v", err)
+	}
+	graph := meta.GraphGeneration{
+		ID: 1, GraphName: "closed_graph", GraphOID: 1, NamespaceOID: 1,
+		State: meta.GenerationActive,
+	}
+	vertexBinding := LoadLabel{
+		Catalog: LabelCatalog{
+			GraphName: "closed_graph", LabelName: "Person",
+			GraphOID: 1, NamespaceOID: 1, LabelID: 1,
+			RelationOID: 2, SequenceOID: 3, Kind: VertexLabel,
+		},
+		Generation: meta.LabelGeneration{
+			ID: 1, GraphGenerationID: 1, LabelName: "Person",
+			Kind: meta.VertexLabel, GraphNamespaceOID: 1, LabelID: 1,
+			RelationOID: 2, SequenceOID: 3, MappingGeneration: 1,
+		},
+	}
+	edgeBinding := vertexBinding
+	edgeBinding.Catalog.LabelName = "KNOWS"
+	edgeBinding.Catalog.LabelID = 2
+	edgeBinding.Catalog.Kind = EdgeLabel
+	edgeBinding.Generation.ID = 2
+	edgeBinding.Generation.LabelName = "KNOWS"
+	edgeBinding.Generation.LabelID = 2
+	edgeBinding.Generation.Kind = meta.EdgeLabel
+	target := &LoadSink{
+		adapter: adapter,
+		options: LoadSinkOptions{
+			JobID:            "45454545-6767-4890-8123-454545454545",
+			Graph:            graph,
+			Mode:             config.LoadAppend,
+			AppendDuplicate:  config.AppendDuplicateError,
+			PropertyMode:     config.PropertiesReplace,
+			MissingEndpoint:  config.MissingEndpointDefer,
+			MaxDeferredEdges: 1,
+		},
+		labels: map[model.Label]LoadLabel{
+			"Person": vertexBinding,
+			"KNOWS":  edgeBinding,
+		},
+	}
+	transaction := &loadTransaction{
+		sink: target,
+		tx:   tx,
+		metadata: sink.BatchMetadata{
+			ID: 1, Attempt: 1, Rows: 1, Bytes: 1,
+		},
+	}
+	vertex := model.Vertex{
+		Label: "Person", Namespace: "crm", ExternalID: "p1",
+		Position: loadPosition(1, "closed-vertex"),
+	}
+	edge := model.Edge{
+		Label: "KNOWS", Namespace: "crm", ExternalID: "e1",
+		Start: model.Endpoint{
+			Label: "Person", Namespace: "crm", ExternalID: "p1",
+		},
+		End: model.Endpoint{
+			Label: "Person", Namespace: "crm", ExternalID: "p2",
+		},
+		Position: loadPosition(2, "closed-edge"),
+	}
+	staged := stagedEdge{
+		record: &edge, label: edgeBinding,
+		startLabelID: 1, endLabelID: 1, properties: []byte(`{}`),
+	}
+	resolved := resolvedEdge{
+		stagedEdge: staged,
+		startID:    GraphID(1<<48 | 1),
+		endID:      GraphID(1<<48 | 2),
+	}
+	checks := []struct {
+		name string
+		run  func() error
+	}{
+		{
+			name: "defer",
+			run: func() error {
+				return transaction.deferMissingEdges(ctx, []stagedEdge{staged})
+			},
+		},
+		{
+			name: "drain",
+			run:  func() error { return transaction.drainDeferredEdges(ctx) },
+		},
+		{
+			name: "write vertices",
+			run: func() error {
+				return transaction.writeVerticesIncremental(
+					ctx,
+					vertexBinding,
+					[]*model.Vertex{&vertex},
+					[][]byte{[]byte(`{}`)},
+				)
+			},
+		},
+		{
+			name: "apply vertices",
+			run: func() error {
+				return transaction.applyIncrementalVertices(
+					ctx,
+					vertexBinding,
+					[]incrementalVertexDecision{{
+						graphID: GraphID(1<<48 | 1),
+					}},
+				)
+			},
+		},
+		{
+			name: "assign vertices",
+			run: func() error {
+				return assignVertexDecisionIDs(
+					ctx,
+					tx,
+					vertexBinding,
+					[]incrementalVertexDecision{{isNew: true}},
+				)
+			},
+		},
+		{
+			name: "write edges",
+			run: func() error {
+				return transaction.writeEdgesIncremental(
+					ctx,
+					edgeBinding,
+					[]resolvedEdge{resolved},
+				)
+			},
+		},
+		{
+			name: "apply edges",
+			run: func() error {
+				return transaction.applyIncrementalEdges(
+					ctx,
+					edgeBinding,
+					[]incrementalEdgeDecision{{
+						graphID: GraphID(2<<48 | 1),
+						startID: resolved.startID,
+						endID:   resolved.endID,
+					}},
+				)
+			},
+		},
+		{
+			name: "assign edges",
+			run: func() error {
+				return assignEdgeDecisionIDs(
+					ctx,
+					tx,
+					edgeBinding,
+					[]incrementalEdgeDecision{{isNew: true}},
+				)
+			},
+		},
+		{
+			name: "write drain",
+			run: func() error {
+				drainTransaction := &loadTransaction{
+					sink: target,
+					tx:   tx,
+					metadata: sink.BatchMetadata{
+						Rows: 0,
+					},
+				}
+				return drainTransaction.Write(ctx, nil)
+			},
+		},
+		{
+			name: "direct vertices",
+			run: func() error {
+				directTarget := &LoadSink{
+					adapter: target.adapter,
+					options: target.options,
+					labels:  target.labels,
+				}
+				directTarget.options.Mode = config.LoadCreate
+				directTransaction := &loadTransaction{
+					sink: directTarget,
+					tx:   tx,
+				}
+				return directTransaction.writeVertices(
+					ctx,
+					"Person",
+					[]*model.Vertex{&vertex},
+				)
+			},
+		},
+		{
+			name: "insert vertex identities",
+			run: func() error {
+				return transaction.insertVertexIdentities(
+					ctx,
+					[]vertexIdentityRow{{
+						label:      vertexBinding,
+						namespace:  "crm",
+						externalID: "p1",
+						graphID:    GraphID(1<<48 | 1),
+					}},
+				)
+			},
+		},
+		{
+			name: "resolve edges",
+			run: func() error {
+				_, _, err := transaction.resolveEdges(
+					ctx,
+					[]stagedEdge{staged},
+				)
+				return err
+			},
+		},
+		{
+			name: "insert edge identities",
+			run: func() error {
+				return transaction.insertEdgeIdentities(
+					ctx,
+					[]resolvedEdge{resolved},
+					[]EdgeRow{{
+						ID:      GraphID(2<<48 | 1),
+						StartID: resolved.startID,
+						EndID:   resolved.endID,
+					}},
+				)
+			},
+		},
+	}
+	for _, check := range checks {
+		t.Run(check.name, func(t *testing.T) {
+			if err := check.run(); err == nil {
+				t.Fatalf("%s succeeded with a closed transaction", check.name)
+			}
+		})
 	}
 }
 
@@ -888,6 +1439,50 @@ func TestLoadSinkRollbackDiagnosticIntegration(t *testing.T) {
 	}); err == nil || !strings.Contains(err.Error(), "has not written") {
 		t.Fatalf("Commit(unwritten) error = %v", err)
 	}
+}
+
+func createIncrementalLoadTarget(
+	t *testing.T,
+	ctx context.Context,
+	adapter *Adapter,
+	store *meta.Store,
+	jobID string,
+	graph meta.GraphGeneration,
+	person LabelCatalog,
+	personGeneration meta.LabelGeneration,
+	knows LabelCatalog,
+	knowsGeneration meta.LabelGeneration,
+	options LoadSinkOptions,
+) *LoadSink {
+	t.Helper()
+	if err := store.CreateJob(ctx, meta.Job{
+		ID:                jobID,
+		Name:              "incremental-load-sink",
+		SourceType:        "csv",
+		LoadMode:          string(options.Mode),
+		TargetGraph:       graph.GraphName,
+		ConfigFingerprint: strings.Repeat("b", 64),
+	}); err != nil {
+		t.Fatalf("create incremental sink job: %v", err)
+	}
+	if err := store.StartJob(ctx, jobID); err != nil {
+		t.Fatalf("start incremental sink job: %v", err)
+	}
+	bound, err := store.BindActiveGraphGeneration(ctx, jobID, graph.GraphName)
+	if err != nil {
+		t.Fatalf("bind incremental sink graph: %v", err)
+	}
+	options.JobID = jobID
+	options.Graph = bound
+	options.Labels = []LoadLabel{
+		{Catalog: person, Generation: personGeneration},
+		{Catalog: knows, Generation: knowsGeneration},
+	}
+	target, err := NewLoadSink(ctx, adapter, options)
+	if err != nil {
+		t.Fatalf("NewLoadSink(incremental) error = %v", err)
+	}
+	return target
 }
 
 func deleteLoadSinkJob(

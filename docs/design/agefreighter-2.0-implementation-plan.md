@@ -391,6 +391,8 @@ The initial missing-endpoint policies are `error` and `quarantine`. The bounded
 
 ### Milestone 7: `append` and `upsert`
 
+**Implementation status:** Complete.
+
 **Deliverables**
 
 - target-side edge identity catalog

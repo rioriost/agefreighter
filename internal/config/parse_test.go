@@ -11,6 +11,61 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+func TestCosmosDefaults(t *testing.T) {
+	job := validCSVJob(t)
+	job.Source.CSV = nil
+	job.Source.Type = SourceCosmos
+	job.Source.Cosmos = &CosmosSource{}
+	job.applyDefaults()
+	if job.Source.Cosmos.Credential != "default-azure" ||
+		job.Source.Cosmos.PageSize != defaultCosmosPageSize {
+		t.Fatalf("Cosmos defaults = %#v", job.Source.Cosmos)
+	}
+}
+
+func TestInactiveIncrementalDefaultsAreOmitted(t *testing.T) {
+	job := validCSVJob(t)
+	encoded, err := json.Marshal(job)
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+	for _, field := range []string{"appendDuplicate", "maxDeferredEdges"} {
+		if strings.Contains(string(encoded), `"`+field+`"`) {
+			t.Fatalf("inactive field %q was serialized: %s", field, encoded)
+		}
+	}
+
+	job.Target.Mode = LoadAppend
+	job.Errors.MissingEndpoint = MissingEndpointDefer
+	job.applyDefaults()
+	if job.Target.AppendDuplicate != AppendDuplicateError ||
+		job.Errors.MaxDeferredEdges != 100_000 {
+		t.Fatalf("active incremental defaults = %#v, %#v", job.Target, job.Errors)
+	}
+
+	job = validCSVJob(t)
+	job.Target.Mode = LoadUpsert
+	job.Errors.MaxDeferredEdges = 0
+	job.applyDefaults()
+	if job.Errors.MaxDeferredEdges != 100_000 {
+		t.Fatalf(
+			"upsert deferred edge limit = %d, want 100000",
+			job.Errors.MaxDeferredEdges,
+		)
+	}
+}
+
+func TestParseReportsSemanticValidation(t *testing.T) {
+	if _, err := Parse([]byte(`
+apiVersion: agefreighter.io/v2
+kind: LoadJob
+metadata:
+  name: INVALID
+`)); err == nil || !strings.Contains(err.Error(), "metadata.name") {
+		t.Fatalf("Parse(semantic error) = %v", err)
+	}
+}
+
 func TestValidFixtures(t *testing.T) {
 	for _, path := range validFixturePaths(t) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
@@ -42,6 +97,18 @@ func TestDefaults(t *testing.T) {
 	}
 	if job.Runtime.OperationTimeout.String() != "30s" {
 		t.Fatalf("Runtime.OperationTimeout = %s, want 30s", job.Runtime.OperationTimeout)
+	}
+	if job.Target.AppendDuplicate != AppendDuplicateError {
+		t.Fatalf(
+			"Target.AppendDuplicate = %q, want error",
+			job.Target.AppendDuplicate,
+		)
+	}
+	if job.Errors.MaxDeferredEdges != 0 {
+		t.Fatalf(
+			"Errors.MaxDeferredEdges = %d, want 0",
+			job.Errors.MaxDeferredEdges,
+		)
 	}
 }
 

@@ -72,6 +72,11 @@ func TestValidationErrors(t *testing.T) {
 			path: "target.propertyMode",
 		},
 		{
+			name: "append duplicate policy",
+			edit: func(job *LoadJob) { job.Target.AppendDuplicate = "overwrite" },
+			path: "target.appendDuplicate",
+		},
+		{
 			name: "malformed policy",
 			edit: func(job *LoadJob) { job.Errors.MalformedRecord = "ignore" },
 			path: "errors.malformedRecord",
@@ -85,6 +90,27 @@ func TestValidationErrors(t *testing.T) {
 			name: "reject limit",
 			edit: func(job *LoadJob) { job.Errors.RejectLimit = -1 },
 			path: "errors.rejectLimit",
+		},
+		{
+			name: "deferred edge limit",
+			edit: func(job *LoadJob) { job.Errors.MaxDeferredEdges = -1 },
+			path: "errors.maxDeferredEdges",
+		},
+		{
+			name: "defer without capacity",
+			edit: func(job *LoadJob) {
+				job.Errors.MissingEndpoint = MissingEndpointDefer
+				job.Errors.MaxDeferredEdges = 0
+			},
+			path: "errors.maxDeferredEdges",
+		},
+		{
+			name: "defer outside incremental mode",
+			edit: func(job *LoadJob) {
+				job.Errors.MissingEndpoint = MissingEndpointDefer
+				job.Errors.MaxDeferredEdges = 1
+			},
+			path: "errors.missingEndpoint",
 		},
 		{
 			name: "reject limit without malformed quarantine",
@@ -110,12 +136,25 @@ func TestValidationErrors(t *testing.T) {
 func TestUpsertRequiresEdgeIdentity(t *testing.T) {
 	job := validCSVJob(t)
 	job.Target.Mode = LoadUpsert
+	job.Errors.MaxDeferredEdges = 100_000
 	job.Source.CSV.Edges[0].ExternalIDColumn = ""
 
 	err := job.Validate()
 
 	if err == nil || !strings.Contains(err.Error(), "externalIdColumn") {
 		t.Fatalf("Validate() error = %v, want edge identity error", err)
+	}
+}
+
+func TestUpsertRequiresDeferredEdgeCapacity(t *testing.T) {
+	job := validCSVJob(t)
+	job.Target.Mode = LoadUpsert
+	job.Errors.MaxDeferredEdges = 0
+
+	err := job.Validate()
+
+	if err == nil || !strings.Contains(err.Error(), "errors.maxDeferredEdges") {
+		t.Fatalf("Validate() error = %v, want deferred edge capacity", err)
 	}
 }
 
@@ -306,6 +345,37 @@ func TestValidationErrorFormatting(t *testing.T) {
 	want := "configuration is invalid:\n- first [required]: missing\n- second [format]: invalid"
 	if got := errs.Error(); got != want {
 		t.Fatalf("ValidationErrors.Error() = %q, want %q", got, want)
+	}
+}
+
+func TestCSVOptionalFormatValidationBranches(t *testing.T) {
+	job := validCSVJob(t)
+	job.Source.Type = SourceType("invalid")
+	if err := job.Validate(); err == nil ||
+		!strings.Contains(err.Error(), "source.type") {
+		t.Fatalf("Validate(invalid source type) = %v", err)
+	}
+
+	job = validCSVJob(t)
+	job.Source.CSV.Vertices[0].Format = &DelimitedOptions{
+		Delimiter: "\n", Quote: `"`, Escape: `"`,
+		Header:   job.Source.CSV.Defaults.Header,
+		Encoding: "utf-8", NullValue: job.Source.CSV.Defaults.NullValue,
+	}
+	if err := job.Validate(); err == nil ||
+		!strings.Contains(err.Error(), "vertices[0].format") {
+		t.Fatalf("Validate(vertex format) = %v", err)
+	}
+
+	job = validCSVJob(t)
+	job.Source.CSV.Edges[0].Format = &DelimitedOptions{
+		Delimiter: ",", Quote: "\n", Escape: `"`,
+		Header:   job.Source.CSV.Defaults.Header,
+		Encoding: "utf-8", NullValue: job.Source.CSV.Defaults.NullValue,
+	}
+	if err := job.Validate(); err == nil ||
+		!strings.Contains(err.Error(), "edges[0].format") {
+		t.Fatalf("Validate(edge format) = %v", err)
 	}
 }
 

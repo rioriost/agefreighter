@@ -668,6 +668,16 @@ func TestAppHelpers(t *testing.T) {
 	if _, err := configuredLabels(job); err == nil {
 		t.Fatal("configuredLabels() accepted missing end label")
 	}
+	job = testLoadJob("graph", "vertices", "edges")
+	job.Source.CSV.Edges[0].Label = "Person"
+	if _, _, err := admitIncrementalCatalog(
+		t.Context(),
+		nil,
+		job,
+		first,
+	); err == nil {
+		t.Fatal("admitIncrementalCatalog() accepted conflicting labels")
+	}
 	if _, err := Load(t.Context(), "missing.yaml"); err == nil {
 		t.Fatal("Load() accepted missing configuration")
 	}
@@ -697,6 +707,14 @@ func TestAppHelpers(t *testing.T) {
 	if _, err := execute(t.Context(), job, first, false); err == nil {
 		t.Fatal("execute() accepted unsupported mode")
 	}
+	if name, err := loadGraphName(job, first); err != nil || name != "graph" {
+		t.Fatalf("loadGraphName(append) = %q, %v", name, err)
+	}
+	job.Target.Mode = config.LoadUpsert
+	if name, err := loadGraphName(job, first); err != nil || name != "graph" {
+		t.Fatalf("loadGraphName(upsert) = %q, %v", name, err)
+	}
+	job.Target.Mode = config.LoadMode("unsupported")
 	if _, err := loadGraphName(job, first); err == nil {
 		t.Fatal("loadGraphName() accepted unsupported mode")
 	}
@@ -751,8 +769,9 @@ func testLoadJob(graph, vertices, edges string) config.LoadJob {
 		},
 		Target: config.Target{
 			Type: config.TargetApacheAGE, Graph: graph, Mode: config.LoadCreate,
-			Connection:   config.SecretRef{Env: "AGEFREIGHTER_APP_TEST_DSN"},
-			PropertyMode: config.PropertiesReplace,
+			Connection:      config.SecretRef{Env: "AGEFREIGHTER_APP_TEST_DSN"},
+			PropertyMode:    config.PropertiesReplace,
+			AppendDuplicate: config.AppendDuplicateError,
 		},
 		Runtime: config.Runtime{
 			MemoryLimit: 16 << 20, BatchRows: 2, BatchBytes: 1 << 20,
@@ -760,8 +779,9 @@ func testLoadJob(graph, vertices, edges string) config.LoadJob {
 			MaxTargetConnections: 2, OperationTimeout: config.Duration(10 * time.Second),
 		},
 		Errors: config.ErrorPolicies{
-			MalformedRecord: config.MalformedFail,
-			MissingEndpoint: config.MissingEndpointError,
+			MalformedRecord:  config.MalformedFail,
+			MissingEndpoint:  config.MissingEndpointError,
+			MaxDeferredEdges: 100_000,
 		},
 	}
 }
