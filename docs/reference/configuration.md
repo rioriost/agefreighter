@@ -79,15 +79,74 @@ modify a mapped file in place while a job is running; such changes violate the
 source contract, fail verification, and cannot be resumed against the changed
 manifest.
 
+## Cosmos DB for NoSQL options
+
+Cosmos sources authenticate with `DefaultAzureCredential`; account keys and
+connection strings are not accepted. Queries run across logical partitions and
+must use named parameters rather than interpolated values. Every mapped field
+is an RFC 6901 JSON Pointer.
+
+```yaml
+source:
+  type: cosmos-nosql
+  namespace: crm
+  cosmos:
+    endpoint: https://example.documents.azure.com:443/
+    credential: default-azure
+    database: agefreighter
+    pageSize: 100
+    vertices:
+      - container: vertices
+        label: Person
+        query: SELECT * FROM c WHERE c.kind = @kind
+        parameters:
+          - name: "@kind"
+            value: person
+        idField: /id
+        properties:
+          name: /profile/name
+    edges:
+      - container: edges
+        label: KNOWS
+        query: SELECT * FROM c WHERE c.kind = @kind
+        parameters:
+          - name: "@kind"
+            value: knows
+        externalIdField: /id
+        start:
+          label: Person
+          field: /from/id
+        end:
+          label: Person
+          field: /to/id
+```
+
+`pageSize` defaults to 100 and must be from 1 to 1000. Parameter values are
+strict JSON values. Integer values must fit in signed 64-bit range. Documents
+are decoded with exact signed 64-bit integer preservation; missing pointers,
+overflowing integers, non-string identities, and unsupported values follow the
+configured malformed-record policy.
+
+Checkpoints bind the complete ordered mapping and store the continuation used
+to open the current page plus the number of documents already handled in that
+page. Resume reopens that page and skips only the checkpointed documents.
+Cosmos query paging is not a transactional snapshot: source inserts, updates,
+deletes, or partition topology changes during a load can change later pages or
+the contents replayed after a restart. Use a stable source dataset for
+repeatable migration. Diagnostics expose only a hash-derived continuation
+identifier, never the full continuation token, access token, authorization
+header, account key, or source document.
+
 ## Load modes
 
 The target modes are `create`, `replace`, `append`, and `upsert`. The current
-runtime implements CSV `create` and `replace`; `append` and `upsert` remain
-reserved for the next milestone. Every edge mapping in an `upsert` job must
-provide an external edge identity field or column. Graph names must follow the
-supported Apache AGE naming subset: 3–63 UTF-8 bytes, starting with a letter or
-underscore, ending with a letter, digit, or underscore, and containing only
-letters, digits, underscores, dots, and hyphens.
+runtime implements CSV and Cosmos DB for NoSQL `create` and `replace`; `append`
+and `upsert` remain reserved for a later milestone. Every edge mapping in an
+`upsert` job must provide an external edge identity field or column. Graph
+names must follow the supported Apache AGE naming subset: 3–63 UTF-8 bytes,
+starting with a letter or underscore, ending with a letter, digit, or
+underscore, and containing only letters, digits, underscores, dots, and
+hyphens.
 
 `replace` requires the public target graph to exist. It loads into a
 deterministic job-specific shadow graph, so a failed or interrupted job leaves

@@ -11,14 +11,21 @@
       "endpoint": "https://example.documents.azure.com:443/",
       "credential": "default-azure",
       "database": "graph-source",
+      "pageSize": 250,
       "vertices": [
         {
           "container": "vertices",
           "label": "Person",
           "query": "SELECT c.id, c.name FROM c WHERE c.kind = @kind",
-          "idField": "id",
+          "parameters": [
+            {
+              "name": "@kind",
+              "value": "person"
+            }
+          ],
+          "idField": "/id",
           "properties": {
-            "name": "name"
+            "name": "/name"
           }
         }
       ],
@@ -27,14 +34,20 @@
           "container": "edges",
           "label": "KNOWS",
           "query": "SELECT c.id, c.fromId, c.toId FROM c WHERE c.kind = @kind",
-          "externalIdField": "id",
+          "parameters": [
+            {
+              "name": "@kind",
+              "value": "knows"
+            }
+          ],
+          "externalIdField": "/id",
           "start": {
             "label": "Person",
-            "field": "fromId"
+            "field": "/fromId"
           },
           "end": {
             "label": "Person",
-            "field": "toId"
+            "field": "/toId"
           }
         }
       ]

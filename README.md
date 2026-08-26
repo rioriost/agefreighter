@@ -19,7 +19,8 @@ go run ./cmd/agefreighter validate ./path/to/job.yaml
 go run ./cmd/agefreighter plan ./path/to/job.yaml
 ```
 
-CSV `create` and atomic `replace` jobs support the durable lifecycle commands:
+CSV and Cosmos DB for NoSQL `create` and atomic `replace` jobs support the
+durable lifecycle commands:
 
 ```sh
 agefreighter load job.yaml

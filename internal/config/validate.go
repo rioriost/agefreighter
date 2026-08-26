@@ -11,9 +11,10 @@ import (
 const maxConcurrency = 256
 
 var (
-	jobNamePattern   = regexp.MustCompile(`^[a-z][a-z0-9-]{2,62}$`)
-	graphNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_]$`)
-	envNamePattern   = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+	jobNamePattern         = regexp.MustCompile(`^[a-z][a-z0-9-]{2,62}$`)
+	graphNamePattern       = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_]$`)
+	envNamePattern         = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+	cosmosParameterPattern = regexp.MustCompile(`^@[A-Za-z_][A-Za-z0-9_]*$`)
 )
 
 type ValidationError struct {
@@ -197,6 +198,8 @@ func validateCosmos(source CosmosSource, namespace string, errs *ValidationError
 	add(source.Credential == "default-azure", "source.cosmos.credential", "unsupported",
 		"must be default-azure")
 	add(source.Database != "", "source.cosmos.database", "required", "must not be empty")
+	add(source.PageSize >= 1 && source.PageSize <= 1000, "source.cosmos.pageSize", "range",
+		"must be from 1 to 1000")
 	add(len(source.Vertices) > 0, "source.cosmos.vertices", "required",
 		"must contain at least one vertex query")
 	for index, vertex := range source.Vertices {
@@ -204,18 +207,89 @@ func validateCosmos(source CosmosSource, namespace string, errs *ValidationError
 		add(vertex.Container != "", path+".container", "required", "must not be empty")
 		add(vertex.Label != "", path+".label", "required", "must not be empty")
 		add(vertex.Query != "", path+".query", "required", "must not be empty")
-		add(vertex.IDField != "", path+".idField", "required", "must not be empty")
-		validatePropertyMapping(vertex.Properties, path+".properties", errs)
+		validateJSONPointer(path+".idField", vertex.IDField, errs)
+		validateCosmosParameters(vertex.Parameters, path+".parameters", errs)
+		validateCosmosPropertyMapping(vertex.Properties, path+".properties", errs)
 	}
 	for index, edge := range source.Edges {
 		path := fmt.Sprintf("source.cosmos.edges[%d]", index)
 		add(edge.Container != "", path+".container", "required", "must not be empty")
 		add(edge.Label != "", path+".label", "required", "must not be empty")
 		add(edge.Query != "", path+".query", "required", "must not be empty")
-		validateEndpoint(edge.Start, namespace, path+".start", errs)
-		validateEndpoint(edge.End, namespace, path+".end", errs)
-		validatePropertyMapping(edge.Properties, path+".properties", errs)
+		if edge.ExternalIDField != "" {
+			validateJSONPointer(path+".externalIdField", edge.ExternalIDField, errs)
+		}
+		validateCosmosEndpoint(edge.Start, namespace, path+".start", errs)
+		validateCosmosEndpoint(edge.End, namespace, path+".end", errs)
+		validateCosmosParameters(edge.Parameters, path+".parameters", errs)
+		validateCosmosPropertyMapping(edge.Properties, path+".properties", errs)
 	}
+}
+
+// validateCosmosEndpoint validates an edge endpoint mapping used by a Cosmos
+// source, where Field must be an RFC 6901 JSON Pointer rather than the
+// column/property name semantics used by other source types.
+func validateCosmosEndpoint(endpoint EndpointMapping, defaultNamespace, path string, errs *ValidationErrors) {
+	add := validationAdder(errs)
+	add(endpoint.Label != "", path+".label", "required", "must not be empty")
+	validateJSONPointer(path+".field", endpoint.Field, errs)
+	add(endpoint.Namespace != "" || defaultNamespace != "", path+".namespace", "required",
+		"must be set when the source has no default namespace")
+}
+
+// validateCosmosPropertyMapping validates a Cosmos property mapping, where
+// each value must be an RFC 6901 JSON Pointer into the source document.
+func validateCosmosPropertyMapping(properties map[string]string, path string, errs *ValidationErrors) {
+	add := validationAdder(errs)
+	keys := make([]string, 0, len(properties))
+	for property := range properties {
+		keys = append(keys, property)
+	}
+	slices.Sort(keys)
+	for _, property := range keys {
+		add(property != "", path, "format", "property names must not be empty")
+		validateJSONPointer(path+"."+property, properties[property], errs)
+	}
+}
+
+// validateCosmosParameters validates named Cosmos query parameters. Names
+// must use the Cosmos DB "@name" convention and must be unique within a
+// single query; values are validated at decode time by CosmosParamValue.
+func validateCosmosParameters(parameters []CosmosQueryParameter, path string, errs *ValidationErrors) {
+	add := validationAdder(errs)
+	seen := make(map[string]bool, len(parameters))
+	for index, parameter := range parameters {
+		itemPath := fmt.Sprintf("%s[%d]", path, index)
+		valid := cosmosParameterPattern.MatchString(parameter.Name)
+		add(valid, itemPath+".name", "format",
+			"must use @ followed by a letter or underscore and letters, digits, or underscores")
+		if valid {
+			add(!seen[parameter.Name], itemPath+".name", "duplicate",
+				"must be unique within the query")
+			seen[parameter.Name] = true
+		}
+	}
+}
+
+// validateJSONPointer validates RFC 6901 JSON Pointer syntax: the value must
+// be non-empty, start with "/", and every "~" escape must be followed by "0"
+// or "1".
+func validateJSONPointer(path, value string, errs *ValidationErrors) {
+	add := validationAdder(errs)
+	valid := value != "" && strings.HasPrefix(value, "/") && jsonPointerEscapesValid(value)
+	add(valid, path, "format", "must be a non-empty RFC 6901 JSON Pointer starting with /")
+}
+
+func jsonPointerEscapesValid(pointer string) bool {
+	for index := 0; index < len(pointer); index++ {
+		if pointer[index] != '~' {
+			continue
+		}
+		if index+1 >= len(pointer) || (pointer[index+1] != '0' && pointer[index+1] != '1') {
+			return false
+		}
+	}
+	return true
 }
 
 func validateEndpoint(endpoint EndpointMapping, defaultNamespace, path string, errs *ValidationErrors) {

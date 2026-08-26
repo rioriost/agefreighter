@@ -19,15 +19,16 @@ import (
 	"github.com/rioriost/agefreighter/internal/meta"
 	"github.com/rioriost/agefreighter/internal/pipeline"
 	"github.com/rioriost/agefreighter/internal/reject"
-	sourcecsv "github.com/rioriost/agefreighter/internal/source/csv"
+	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 )
 
 const maxSecretBytes = 1 << 20
 
 type LoadResult struct {
-	JobID   string                   `json:"jobId"`
-	Status  meta.JobStatus           `json:"status"`
-	Metrics pipeline.MetricsSnapshot `json:"metrics"`
+	JobID           string                    `json:"jobId"`
+	Status          meta.JobStatus            `json:"status"`
+	Metrics         pipeline.MetricsSnapshot  `json:"metrics"`
+	SourceTelemetry *sourcecontract.Telemetry `json:"sourceTelemetry,omitempty"`
 }
 
 func Load(ctx context.Context, path string) (LoadResult, error) {
@@ -124,8 +125,8 @@ func execute(
 	resume bool,
 ) (result LoadResult, resultErr error) {
 	result.JobID = jobID
-	if job.Source.Type != config.SourceCSV || job.Source.CSV == nil {
-		return result, errors.New("only CSV sources are implemented")
+	if err := validateImplementedSource(job); err != nil {
+		return result, err
 	}
 	if job.Target.Mode != config.LoadCreate &&
 		job.Target.Mode != config.LoadReplace {
@@ -231,21 +232,7 @@ func execute(
 			resultErr = errors.Join(resultErr, quarantine.Close())
 		}()
 	}
-	iteratorOptions := sourcecsv.IteratorOptions{
-		Namespace: job.Source.Namespace,
-		Source:    *job.Source.CSV, AfterToken: storedJob.ResumeToken,
-		RejectLimit: job.Errors.RejectLimit, PreencodeProperties: true,
-		OptimizeRFC4180: true,
-	}
-	if job.Errors.MalformedRecord == config.MalformedQuarantine {
-		iteratorOptions.OnMalformed = func(ctx context.Context, malformed sourcecsv.MalformedRecord) error {
-			return quarantine.Write(ctx, reject.Rejection{
-				Fields: malformed.Fields, Position: malformed.Position,
-				Code: "malformed-record", Message: malformed.Err.Error(),
-			})
-		}
-	}
-	iterator, err := sourcecsv.NewIterator(ctx, iteratorOptions)
+	iterator, err := newSourceIterator(ctx, job, storedJob.ResumeToken, quarantine)
 	if err != nil {
 		return result, recordFailure(err)
 	}
@@ -269,7 +256,7 @@ func execute(
 	if err := runner.Run(ctx, iterator, target); err != nil {
 		return result, recordFailure(err)
 	}
-	sourceRejected, sourcePosition := iterator.RejectionCheckpoint()
+	sourceRejected, sourcePosition := sourceRejectionCheckpoint(iterator)
 	if err := store.SetSourceRejections(
 		ctx,
 		jobID,
@@ -298,12 +285,14 @@ func execute(
 		if currentErr == nil && current.Status == meta.JobCommitted {
 			return LoadResult{
 				JobID: jobID, Status: meta.JobCommitted, Metrics: runner.Snapshot(),
+				SourceTelemetry: sourceTelemetry(iterator),
 			}, nil
 		}
 		return result, recordFailure(completeErr)
 	}
 	return LoadResult{
 		JobID: jobID, Status: meta.JobCommitted, Metrics: runner.Snapshot(),
+		SourceTelemetry: sourceTelemetry(iterator),
 	}, nil
 }
 

@@ -225,6 +225,79 @@ func TestCosmosValidation(t *testing.T) {
 	}
 }
 
+func TestCosmosJSONPointerAndParameterValidation(t *testing.T) {
+	job, err := Load("testdata/valid/cosmos.json")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	job.Source.Cosmos.Vertices[0].IDField = "id"               // missing leading slash
+	job.Source.Cosmos.Vertices[0].Properties["name"] = "name~" // dangling escape
+	job.Source.Cosmos.Edges[0].ExternalIDField = "/id~2"       // invalid escape
+	job.Source.Cosmos.Edges[0].Start.Field = "fromId"          // missing leading slash
+	job.Source.Cosmos.Vertices[0].Parameters = []CosmosQueryParameter{
+		{Name: "kind"},                 // missing @ prefix
+		{Name: "@"},                    // no name after @
+		{Name: "@dup"}, {Name: "@dup"}, // duplicate
+	}
+
+	err = job.Validate()
+	if err == nil {
+		t.Fatal("Validate() error = nil, want validation errors")
+	}
+	for _, path := range []string{
+		"source.cosmos.vertices[0].idField",
+		"source.cosmos.vertices[0].properties.name",
+		"source.cosmos.edges[0].externalIdField",
+		"source.cosmos.edges[0].start.field",
+		"source.cosmos.vertices[0].parameters[0].name",
+		"source.cosmos.vertices[0].parameters[1].name",
+		"source.cosmos.vertices[0].parameters[3].name",
+	} {
+		if !strings.Contains(err.Error(), path) {
+			t.Errorf("Validate() error = %v, want %s", err, path)
+		}
+	}
+}
+
+func TestCosmosPageSizeValidation(t *testing.T) {
+	for _, pageSize := range []int{0, -1, 1001} {
+		job, err := Load("testdata/valid/cosmos.json")
+		if err != nil {
+			t.Fatalf("Load() error = %v", err)
+		}
+		job.Source.Cosmos.PageSize = pageSize
+		if err := job.Validate(); err == nil || !strings.Contains(err.Error(), "source.cosmos.pageSize") {
+			t.Fatalf("Validate() pageSize=%d error = %v, want pageSize range error", pageSize, err)
+		}
+	}
+}
+
+func TestJSONPointerEscapeValidity(t *testing.T) {
+	tests := []struct {
+		pointer string
+		valid   bool
+	}{
+		{"/id", true},
+		{"/a~0b", true},
+		{"/a~1b", true},
+		{"/", true},
+		{"", false},
+		{"id", false},
+		{"/a~2b", false},
+		{"/a~", false},
+	}
+	for _, test := range tests {
+		if got := jsonPointerEscapesValid(test.pointer); test.pointer != "" && got != test.valid && strings.HasPrefix(test.pointer, "/") {
+			t.Errorf("jsonPointerEscapesValid(%q) = %v, want %v", test.pointer, got, test.valid)
+		}
+		var errs ValidationErrors
+		validateJSONPointer("path", test.pointer, &errs)
+		if (len(errs) == 0) != test.valid {
+			t.Errorf("validateJSONPointer(%q) errs = %v, want valid=%v", test.pointer, errs, test.valid)
+		}
+	}
+}
+
 func TestValidationErrorFormatting(t *testing.T) {
 	errs := ValidationErrors{
 		{Path: "first", Code: "required", Message: "missing"},

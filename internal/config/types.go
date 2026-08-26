@@ -131,8 +131,16 @@ type CosmosSource struct {
 	Endpoint   string              `json:"endpoint" yaml:"endpoint"`
 	Credential string              `json:"credential" yaml:"credential"`
 	Database   string              `json:"database" yaml:"database"`
+	PageSize   int                 `json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
 	Vertices   []CosmosVertexQuery `json:"vertices" yaml:"vertices"`
 	Edges      []CosmosEdgeQuery   `json:"edges,omitempty" yaml:"edges,omitempty"`
+}
+
+// CosmosQueryParameter binds a named parameter (which must use the Cosmos DB
+// "@name" convention) to a strict JSON value for a parametrized query.
+type CosmosQueryParameter struct {
+	Name  string           `json:"name" yaml:"name"`
+	Value CosmosParamValue `json:"value" yaml:"value"`
 }
 
 type VertexQuery struct {
@@ -151,22 +159,30 @@ type EdgeQuery struct {
 	Properties      map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
 }
 
+// CosmosVertexQuery describes a Cosmos DB for NoSQL vertex source query.
+// IDField, and the values of Properties, are RFC 6901 JSON Pointers into
+// each returned document.
 type CosmosVertexQuery struct {
-	Container  string            `json:"container" yaml:"container"`
-	Label      string            `json:"label" yaml:"label"`
-	Query      string            `json:"query" yaml:"query"`
-	IDField    string            `json:"idField" yaml:"idField"`
-	Properties map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
+	Container  string                 `json:"container" yaml:"container"`
+	Label      string                 `json:"label" yaml:"label"`
+	Query      string                 `json:"query" yaml:"query"`
+	Parameters []CosmosQueryParameter `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	IDField    string                 `json:"idField" yaml:"idField"`
+	Properties map[string]string      `json:"properties,omitempty" yaml:"properties,omitempty"`
 }
 
+// CosmosEdgeQuery describes a Cosmos DB for NoSQL edge source query.
+// ExternalIDField, Start.Field, End.Field, and the values of Properties, are
+// RFC 6901 JSON Pointers into each returned document.
 type CosmosEdgeQuery struct {
-	Container       string            `json:"container" yaml:"container"`
-	Label           string            `json:"label" yaml:"label"`
-	Query           string            `json:"query" yaml:"query"`
-	ExternalIDField string            `json:"externalIdField,omitempty" yaml:"externalIdField,omitempty"`
-	Start           EndpointMapping   `json:"start" yaml:"start"`
-	End             EndpointMapping   `json:"end" yaml:"end"`
-	Properties      map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
+	Container       string                 `json:"container" yaml:"container"`
+	Label           string                 `json:"label" yaml:"label"`
+	Query           string                 `json:"query" yaml:"query"`
+	Parameters      []CosmosQueryParameter `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	ExternalIDField string                 `json:"externalIdField,omitempty" yaml:"externalIdField,omitempty"`
+	Start           EndpointMapping        `json:"start" yaml:"start"`
+	End             EndpointMapping        `json:"end" yaml:"end"`
+	Properties      map[string]string      `json:"properties,omitempty" yaml:"properties,omitempty"`
 }
 
 type Target struct {

@@ -21,3 +21,20 @@ type Iterator interface {
 	Next(ctx context.Context) (Item, error)
 	Close() error
 }
+
+type RejectionCheckpointer interface {
+	RejectionCheckpoint() (int64, model.SourcePosition)
+}
+
+type Telemetry struct {
+	Connector             string  `json:"connector"`
+	Pages                 int64   `json:"pages"`
+	RequestCharge         float64 `json:"requestCharge"`
+	FailedRequestAttempts int64   `json:"failedRequestAttempts"`
+	ThrottledRequests     int64   `json:"throttledRequests"`
+	ContinuationDigest    string  `json:"continuationDigest,omitempty"`
+}
+
+type TelemetryProvider interface {
+	Telemetry() Telemetry
+}

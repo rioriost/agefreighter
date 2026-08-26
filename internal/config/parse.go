@@ -14,6 +14,11 @@ import (
 
 const MaxDocumentBytes = 4 << 20
 
+// defaultCosmosPageSize is applied when a Cosmos source does not set an
+// explicit pageSize; it is a conservative page-size hint that keeps
+// individual pages small enough for bounded-memory iteration.
+const defaultCosmosPageSize = 100
+
 func Load(path string) (LoadJob, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -133,6 +138,9 @@ func (job *LoadJob) applyDefaults() {
 	}
 	if job.Source.Cosmos != nil && job.Source.Cosmos.Credential == "" {
 		job.Source.Cosmos.Credential = "default-azure"
+	}
+	if job.Source.Cosmos != nil && job.Source.Cosmos.PageSize == 0 {
+		job.Source.Cosmos.PageSize = defaultCosmosPageSize
 	}
 }
 

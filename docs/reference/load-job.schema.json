@@ -258,6 +258,86 @@
         }
       }
     },
+    "jsonPointer": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(/([^~/]|~[01])*)+$"
+    },
+    "cosmosEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "field"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field": {
+          "$ref": "#/$defs/jsonPointer"
+        }
+      }
+    },
+    "cosmosPropertyMap": {
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/jsonPointer"
+      }
+    },
+    "jsonValue": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        }
+      ]
+    },
+    "cosmosQueryParameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^@.+$"
+        },
+        "value": {
+          "$ref": "#/$defs/jsonValue"
+        }
+      }
+    },
     "delimitedOptions": {
       "type": "object",
       "additionalProperties": false,
@@ -542,12 +622,17 @@
           "type": "string",
           "minLength": 1
         },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cosmosQueryParameter"
+          }
+        },
         "idField": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/jsonPointer"
         },
         "properties": {
-          "$ref": "#/$defs/propertyMap"
+          "$ref": "#/$defs/cosmosPropertyMap"
         }
       }
     },
@@ -574,18 +659,23 @@
           "type": "string",
           "minLength": 1
         },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cosmosQueryParameter"
+          }
+        },
         "externalIdField": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/jsonPointer"
         },
         "start": {
-          "$ref": "#/$defs/endpoint"
+          "$ref": "#/$defs/cosmosEndpoint"
         },
         "end": {
-          "$ref": "#/$defs/endpoint"
+          "$ref": "#/$defs/cosmosEndpoint"
         },
         "properties": {
-          "$ref": "#/$defs/propertyMap"
+          "$ref": "#/$defs/cosmosPropertyMap"
         }
       }
     },
@@ -608,6 +698,11 @@
         "database": {
           "type": "string",
           "minLength": 1
+        },
+        "pageSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
         },
         "vertices": {
           "type": "array",

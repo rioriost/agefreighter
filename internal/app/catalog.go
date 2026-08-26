@@ -177,20 +177,55 @@ func loadGraphName(job config.LoadJob, jobID string) (string, error) {
 
 func configuredLabels(job config.LoadJob) (map[string]age.LabelKind, error) {
 	labels := make(map[string]age.LabelKind)
-	for _, vertex := range job.Source.CSV.Vertices {
-		labels[vertex.Label] = age.VertexLabel
+	type configuredEdge struct {
+		label string
+		start string
+		end   string
 	}
-	for _, edge := range job.Source.CSV.Edges {
-		if labels[edge.Label] == age.VertexLabel {
-			return nil, fmt.Errorf("label %q is mapped as both vertex and edge", edge.Label)
+	var vertices []string
+	var edges []configuredEdge
+	switch job.Source.Type {
+	case config.SourceCSV:
+		if job.Source.CSV == nil {
+			return nil, errors.New("CSV source configuration is required")
 		}
-		if labels[edge.Start.Label] != age.VertexLabel {
-			return nil, fmt.Errorf("edge label %q start label %q has no vertex mapping", edge.Label, edge.Start.Label)
+		for _, vertex := range job.Source.CSV.Vertices {
+			vertices = append(vertices, vertex.Label)
 		}
-		if labels[edge.End.Label] != age.VertexLabel {
-			return nil, fmt.Errorf("edge label %q end label %q has no vertex mapping", edge.Label, edge.End.Label)
+		for _, edge := range job.Source.CSV.Edges {
+			edges = append(edges, configuredEdge{
+				label: edge.Label, start: edge.Start.Label, end: edge.End.Label,
+			})
 		}
-		labels[edge.Label] = age.EdgeLabel
+	case config.SourceCosmos:
+		if job.Source.Cosmos == nil {
+			return nil, errors.New("Cosmos source configuration is required")
+		}
+		for _, vertex := range job.Source.Cosmos.Vertices {
+			vertices = append(vertices, vertex.Label)
+		}
+		for _, edge := range job.Source.Cosmos.Edges {
+			edges = append(edges, configuredEdge{
+				label: edge.Label, start: edge.Start.Label, end: edge.End.Label,
+			})
+		}
+	default:
+		return nil, fmt.Errorf("source type %q is not implemented", job.Source.Type)
+	}
+	for _, vertex := range vertices {
+		labels[vertex] = age.VertexLabel
+	}
+	for _, edge := range edges {
+		if labels[edge.label] == age.VertexLabel {
+			return nil, fmt.Errorf("label %q is mapped as both vertex and edge", edge.label)
+		}
+		if labels[edge.start] != age.VertexLabel {
+			return nil, fmt.Errorf("edge label %q start label %q has no vertex mapping", edge.label, edge.start)
+		}
+		if labels[edge.end] != age.VertexLabel {
+			return nil, fmt.Errorf("edge label %q end label %q has no vertex mapping", edge.label, edge.end)
+		}
+		labels[edge.label] = age.EdgeLabel
 	}
 	return labels, nil
 }
