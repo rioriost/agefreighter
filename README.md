@@ -38,6 +38,11 @@ For bounded PoC and evaluation loads, add a `trial` block to a `create` or
 endpoints were selected; trial jobs are intentionally non-resumable. See the
 [configuration reference](docs/reference/configuration.md#trial-migrations).
 
+Neo4j jobs can either define explicit Cypher mappings or use bounded,
+read-only graph discovery with application-owned stable key and identity
+properties. See the
+[Neo4j configuration reference](docs/reference/configuration.md#neo4j-options).
+
 Inspect a validated job's source mappings and target configuration without
 connecting to either service:
 

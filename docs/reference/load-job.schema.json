@@ -620,8 +620,7 @@
       "required": [
         "uri",
         "database",
-        "sourceId",
-        "vertices"
+        "sourceId"
       ],
       "properties": {
         "uri": {
@@ -656,6 +655,9 @@
             "reject"
           ],
           "default": "configured"
+        },
+        "discovery": {
+          "$ref": "#/$defs/neo4jDiscovery"
         },
         "vertices": {
           "type": "array",
@@ -699,6 +701,37 @@
           }
         }
       },
+      "oneOf": [
+        {
+          "required": [
+            "discovery"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "vertices"
+                ]
+              },
+              {
+                "required": [
+                  "edges"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "vertices"
+          ],
+          "not": {
+            "required": [
+              "discovery"
+            ]
+          }
+        }
+      ],
       "dependentRequired": {
         "username": [
           "password"
@@ -706,6 +739,58 @@
         "password": [
           "username"
         ]
+      }
+    },
+    "neo4jDiscovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "vertexKeyProperty",
+        "edgeKeyProperty"
+      ],
+      "properties": {
+        "enabled": {
+          "const": true
+        },
+        "labelPrefix": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "relationshipTypePrefix": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "vertexKeyProperty": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "vertexIdProperty": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "edgeKeyProperty": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "edgeIdProperty": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "maxLabels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "maxProperties": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        }
       }
     },
     "cosmosVertexQuery": {

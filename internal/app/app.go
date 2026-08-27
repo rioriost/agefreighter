@@ -74,6 +74,10 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if err != nil {
 		return meta.Job{}, err
 	}
+	job, err = resolveSourceDiscovery(ctx, job)
+	if err != nil {
+		return meta.Job{}, err
+	}
 	adapter, store, err := openTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
@@ -129,6 +133,7 @@ func execute(
 	jobID string,
 	resume bool,
 ) (result LoadResult, resultErr error) {
+	result.JobID = jobID
 	tracer := trace.SpanFromContext(ctx).TracerProvider().Tracer(
 		"github.com/rioriost/agefreighter/internal/app",
 	)
@@ -151,7 +156,11 @@ func execute(
 		}
 		span.End()
 	}()
-	result.JobID = jobID
+	resolvedJob, err := resolveSourceDiscovery(ctx, job)
+	if err != nil {
+		return result, err
+	}
+	job = resolvedJob
 	if err := validateImplementedSource(job); err != nil {
 		return result, err
 	}

@@ -160,8 +160,21 @@ type Neo4jSource struct {
 	Password         *SecretRef            `json:"password,omitempty" yaml:"password,omitempty"`
 	FetchRows        int                   `json:"fetchRows" yaml:"fetchRows"`
 	MultiLabelPolicy Neo4jMultiLabelPolicy `json:"multiLabelPolicy" yaml:"multiLabelPolicy"`
-	Vertices         []VertexQuery         `json:"vertices" yaml:"vertices"`
+	Discovery        *Neo4jDiscovery       `json:"discovery,omitempty" yaml:"discovery,omitempty"`
+	Vertices         []VertexQuery         `json:"vertices,omitempty" yaml:"vertices,omitempty"`
 	Edges            []EdgeQuery           `json:"edges,omitempty" yaml:"edges,omitempty"`
+}
+
+type Neo4jDiscovery struct {
+	Enabled                bool   `json:"enabled" yaml:"enabled"`
+	LabelPrefix            string `json:"labelPrefix,omitempty" yaml:"labelPrefix,omitempty"`
+	RelationshipTypePrefix string `json:"relationshipTypePrefix,omitempty" yaml:"relationshipTypePrefix,omitempty"`
+	VertexKeyProperty      string `json:"vertexKeyProperty" yaml:"vertexKeyProperty"`
+	VertexIDProperty       string `json:"vertexIdProperty,omitempty" yaml:"vertexIdProperty,omitempty"`
+	EdgeKeyProperty        string `json:"edgeKeyProperty" yaml:"edgeKeyProperty"`
+	EdgeIDProperty         string `json:"edgeIdProperty,omitempty" yaml:"edgeIdProperty,omitempty"`
+	MaxLabels              int    `json:"maxLabels" yaml:"maxLabels"`
+	MaxProperties          int    `json:"maxProperties" yaml:"maxProperties"`
 }
 
 type CosmosSource struct {

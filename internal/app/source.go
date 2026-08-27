@@ -39,6 +39,61 @@ func validateImplementedSource(job config.LoadJob) error {
 	return nil
 }
 
+func resolveSourceDiscovery(
+	ctx context.Context,
+	job config.LoadJob,
+) (config.LoadJob, error) {
+	source := job.Source.Neo4j
+	if job.Source.Type != config.SourceNeo4j ||
+		source == nil ||
+		source.Discovery == nil ||
+		!source.Discovery.Enabled {
+		return job, nil
+	}
+	var password string
+	var err error
+	if source.Password != nil {
+		password, err = resolveSecret(*source.Password)
+		if err != nil {
+			return config.LoadJob{}, fmt.Errorf(
+				"resolve Neo4j source password for discovery: %w",
+				err,
+			)
+		}
+	}
+	client, err := sourceneo4j.NewSDKClient(
+		ctx,
+		source.URI,
+		source.Database,
+		source.Username,
+		password,
+		source.FetchRows,
+	)
+	if err != nil {
+		return config.LoadJob{}, err
+	}
+	resolved, discoverErr := sourceneo4j.DiscoverMappings(
+		ctx,
+		*source,
+		client,
+	)
+	closeErr := client.Close()
+	if err := errors.Join(discoverErr, closeErr); err != nil {
+		return config.LoadJob{}, fmt.Errorf(
+			"discover Neo4j graph: %w",
+			err,
+		)
+	}
+	job.Source.Neo4j = &resolved
+	if err := job.Validate(); err != nil {
+		return config.LoadJob{}, fmt.Errorf(
+			"validate discovered Neo4j mappings: %w",
+			err,
+		)
+	}
+	return job, nil
+}
+
 func newSourceIterator(
 	ctx context.Context,
 	job config.LoadJob,

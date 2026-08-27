@@ -44,6 +44,7 @@ func TestNeo4jCreateIntegration(t *testing.T) {
 
 	suffix := time.Now().UnixNano()
 	label := fmt.Sprintf("AgefreighterE2E_%d", suffix)
+	relationshipType := fmt.Sprintf("AGEFREIGHTER_KNOWS_%d", suffix)
 	runNeo4jStatement(t, ctx, driver, database, fmt.Sprintf(`
 		CREATE (ada:%s:Scientist {
 			source_key: 1, person_id: 'p1', name: 'Ada',
@@ -53,10 +54,10 @@ func TestNeo4jCreateIntegration(t *testing.T) {
 			source_key: 2, person_id: 'p2', name: 'Grace',
 			born: date('1906-12-09'), location: point({longitude: -74.0, latitude: 40.7})
 		})
-		CREATE (ada)-[:KNOWS {
+		CREATE (ada)-[:%s {
 			source_key: 1, relationship_id: 'e1', weight: 7
 		}]->(grace)
-	`, label, label))
+	`, label, label, relationshipType))
 	t.Cleanup(func() {
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -105,13 +106,14 @@ func TestNeo4jCreateIntegration(t *testing.T) {
 			Edges: []config.EdgeQuery{{
 				Label: "KNOWS",
 				Query: fmt.Sprintf(
-					"MATCH (a:%s)-[r:KNOWS]->(b:%s) "+
+					"MATCH (a:%s)-[r:%s]->(b:%s) "+
 						"WHERE $afterKey IS NULL OR r.source_key > $afterKey "+
 						"RETURN r.source_key AS source_key, "+
 						"r.relationship_id AS relationship_id, "+
 						"a.person_id AS from_id, b.person_id AS to_id, "+
 						"r.weight AS weight ORDER BY source_key",
 					label,
+					relationshipType,
 					label,
 				),
 				KeyField: "source_key", ExternalIDField: "relationship_id",
@@ -167,6 +169,74 @@ func TestNeo4jCreateIntegration(t *testing.T) {
 		connection.Conn(),
 		graph,
 		"MATCH (:Person)-[r:KNOWS]->(:Person) RETURN count(r)",
+		1,
+	)
+
+	discoveryGraph := fmt.Sprintf("neo4j_discovery_e2e_%d", suffix)
+	discoveryJob := job
+	discoveryJob.Metadata.Name = "neo4j-discovery-create"
+	discoveryJob.Target.Graph = discoveryGraph
+	discoveryJob.Source.Neo4j = &config.Neo4jSource{
+		URI: uri, Database: database,
+		SourceID: fmt.Sprintf("discovery-e2e-%d", suffix),
+		Username: username,
+		Password: &config.SecretRef{
+			Env: "AGEFREIGHTER_NEO4J_APP_TEST_PASSWORD",
+		},
+		FetchRows:        1,
+		MultiLabelPolicy: config.Neo4jMultiLabelConfigured,
+		Discovery: &config.Neo4jDiscovery{
+			Enabled:                true,
+			LabelPrefix:            label,
+			RelationshipTypePrefix: relationshipType,
+			VertexKeyProperty:      "source_key",
+			VertexIDProperty:       "person_id",
+			EdgeKeyProperty:        "source_key",
+			EdgeIDProperty:         "relationship_id",
+			MaxLabels:              10,
+			MaxProperties:          20,
+		},
+	}
+	if username == "" {
+		discoveryJob.Source.Neo4j.Password = nil
+	}
+	discoveryData, err := yaml.Marshal(discoveryJob)
+	if err != nil {
+		t.Fatalf("marshal Neo4j discovery job: %v", err)
+	}
+	discoveryPath := filepath.Join(t.TempDir(), "neo4j-discovery.yaml")
+	if err := os.WriteFile(discoveryPath, discoveryData, 0o600); err != nil {
+		t.Fatalf("write Neo4j discovery job: %v", err)
+	}
+	discoveryResult, err := Load(ctx, discoveryPath)
+	if err != nil {
+		t.Fatalf("Load(discovery) error = %v", err)
+	}
+	registerCleanup(t, targetDSN, discoveryGraph, discoveryResult.JobID)
+	if discoveryResult.Status != meta.JobCommitted ||
+		discoveryResult.Metrics.RecordsCommitted != 3 {
+		t.Fatalf("Load(discovery) = %#v", discoveryResult)
+	}
+	if _, err := Verify(ctx, discoveryPath, discoveryResult.JobID); err != nil {
+		t.Fatalf("Verify(discovery) error = %v", err)
+	}
+	assertCypherCount(
+		t,
+		connection.Conn(),
+		discoveryGraph,
+		fmt.Sprintf("MATCH (n:%s) RETURN count(n)", label),
+		2,
+	)
+	assertCypherCount(
+		t,
+		connection.Conn(),
+		discoveryGraph,
+		fmt.Sprintf(
+			"MATCH (:%s)-[r:%s]->(:%s) RETURN count(r)",
+			label,
+			relationshipType,
+			label,
+		),
 		1,
 	)
 }

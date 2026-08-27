@@ -25,6 +25,7 @@ type SourceInspection struct {
 	ReadMode       config.PostgreSQLReadMode    `json:"readMode,omitempty"`
 	FetchRows      int                          `json:"fetchRows,omitempty"`
 	MultiLabel     config.Neo4jMultiLabelPolicy `json:"multiLabelPolicy,omitempty"`
+	Discovery      bool                         `json:"discovery,omitempty"`
 	Database       string                       `json:"database,omitempty"`
 	SourceID       string                       `json:"sourceId,omitempty"`
 	PageSize       int                          `json:"pageSize,omitempty"`
@@ -161,6 +162,7 @@ func buildNeo4jInspection(target *SourceInspection, source *config.Neo4jSource) 
 	target.SourceID = source.SourceID
 	target.FetchRows = source.FetchRows
 	target.MultiLabel = source.MultiLabelPolicy
+	target.Discovery = source.Discovery != nil && source.Discovery.Enabled
 	if source.Password != nil {
 		target.Credential = secretKind(*source.Password)
 	}

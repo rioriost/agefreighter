@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/rioriost/agefreighter/internal/sqlquery"
@@ -118,13 +119,19 @@ func validateTrial(
 		"is supported only with create or replace")
 
 	available := configuredVertexLabels(source)
+	validateAvailableLabels := !(source.Type == SourceNeo4j &&
+		source.Neo4j != nil &&
+		source.Neo4j.Discovery != nil &&
+		source.Neo4j.Discovery.Enabled)
 	seen := make(map[string]bool, len(trial.IncludeLabels))
 	for index, label := range trial.IncludeLabels {
 		path := fmt.Sprintf("trial.includeLabels[%d]", index)
 		add(label != "", path, "required", "must not be empty")
 		add(!seen[label], path, "duplicate", "must be unique")
-		add(available[label], path, "unknown",
-			"must match a configured vertex label")
+		if validateAvailableLabels {
+			add(available[label], path, "unknown",
+				"must match a configured vertex label")
+		}
 		seen[label] = true
 	}
 	if source.Type == SourceCosmos && source.Cosmos != nil {
@@ -399,7 +406,11 @@ func validateNeo4j(source Neo4jSource, namespace string, errs *ValidationErrors)
 	if source.Password != nil {
 		validateSecret(*source.Password, "source.neo4j.password", errs)
 	}
-	validateQueries(source.Vertices, source.Edges, namespace, errs)
+	if source.Discovery != nil {
+		validateNeo4jDiscovery(*source.Discovery, source, errs)
+	} else {
+		validateQueries(source.Vertices, source.Edges, namespace, errs)
+	}
 	for index, vertex := range source.Vertices {
 		validateNeo4jQuery(vertex.Query, vertex.KeyField,
 			fmt.Sprintf("source.neo4j.vertices[%d]", index), errs)
@@ -408,6 +419,53 @@ func validateNeo4j(source Neo4jSource, namespace string, errs *ValidationErrors)
 		validateNeo4jQuery(edge.Query, edge.KeyField,
 			fmt.Sprintf("source.neo4j.edges[%d]", index), errs)
 	}
+}
+
+func validateNeo4jDiscovery(
+	discovery Neo4jDiscovery,
+	source Neo4jSource,
+	errs *ValidationErrors,
+) {
+	add := validationAdder(errs)
+	add(discovery.Enabled, "source.neo4j.discovery.enabled", "required",
+		"must be true when discovery is configured")
+	add(len(source.Vertices) == 0 && len(source.Edges) == 0,
+		"source.neo4j.discovery", "policy",
+		"cannot be combined with explicit vertex or edge mappings")
+	add(source.MultiLabelPolicy == Neo4jMultiLabelConfigured,
+		"source.neo4j.multiLabelPolicy", "policy",
+		"must be configured when discovery is enabled")
+	for path, property := range map[string]string{
+		"source.neo4j.discovery.vertexKeyProperty": discovery.VertexKeyProperty,
+		"source.neo4j.discovery.vertexIdProperty":  discovery.VertexIDProperty,
+		"source.neo4j.discovery.edgeKeyProperty":   discovery.EdgeKeyProperty,
+		"source.neo4j.discovery.edgeIdProperty":    discovery.EdgeIDProperty,
+	} {
+		add(validDiscoveryIdentifier(property), path, "format",
+			"must be 1-256 UTF-8 bytes without control characters")
+	}
+	for path, prefix := range map[string]string{
+		"source.neo4j.discovery.labelPrefix":            discovery.LabelPrefix,
+		"source.neo4j.discovery.relationshipTypePrefix": discovery.RelationshipTypePrefix,
+	} {
+		add(len(prefix) <= 256 && utf8.ValidString(prefix) &&
+			!strings.ContainsFunc(prefix, unicode.IsControl),
+			path, "format",
+			"must not exceed 256 UTF-8 bytes or contain control characters")
+	}
+	add(discovery.MaxLabels >= 1 && discovery.MaxLabels <= 256,
+		"source.neo4j.discovery.maxLabels", "range",
+		"must be from 1 to 256")
+	add(discovery.MaxProperties >= 1 && discovery.MaxProperties <= 1_024,
+		"source.neo4j.discovery.maxProperties", "range",
+		"must be from 1 to 1024")
+}
+
+func validDiscoveryIdentifier(value string) bool {
+	return value != "" &&
+		len(value) <= 256 &&
+		utf8.ValidString(value) &&
+		!strings.ContainsFunc(value, unicode.IsControl)
 }
 
 func validateNeo4jQuery(

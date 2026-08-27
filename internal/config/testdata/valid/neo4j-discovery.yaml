@@ -1,0 +1,30 @@
+apiVersion: agefreighter.io/v2
+kind: LoadJob
+metadata:
+  name: neo4j-discovery
+source:
+  type: neo4j
+  namespace: crm
+  neo4j:
+    uri: neo4j+s://example.databases.neo4j.io
+    database: neo4j
+    sourceId: crm-primary
+    username: neo4j
+    password:
+      env: AGEFREIGHTER_NEO4J_PASSWORD
+    discovery:
+      enabled: true
+      labelPrefix: App
+      relationshipTypePrefix: APP_
+      vertexKeyProperty: sequence
+      edgeKeyProperty: sequence
+target:
+  type: apache-age
+  graph: crm_graph
+  connection:
+    env: AGEFREIGHTER_TARGET_DSN
+runtime:
+  memoryLimit: 512MiB
+errors:
+  malformedRecord: fail
+  missingEndpoint: error

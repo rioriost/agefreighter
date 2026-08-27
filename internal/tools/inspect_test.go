@@ -101,14 +101,15 @@ func TestBuildInspectionConnectorContracts(t *testing.T) {
 					Database: "neo4j", SourceID: "logical-graph",
 					Password:  &config.SecretRef{Env: "VERY_SECRET_PASSWORD"},
 					FetchRows: 500, MultiLabelPolicy: config.Neo4jMultiLabelReject,
-					Vertices: []config.VertexQuery{{Label: "Person", IDField: "id", KeyField: "key"}},
+					Discovery: &config.Neo4jDiscovery{Enabled: true},
 				}
 			},
 			check: func(t *testing.T, report Inspection) {
 				if report.Source.Database != "neo4j" ||
 					report.Source.SourceID != "logical-graph" ||
 					report.Source.Credential != "environment" ||
-					report.Source.MultiLabel != config.Neo4jMultiLabelReject {
+					report.Source.MultiLabel != config.Neo4jMultiLabelReject ||
+					!report.Source.Discovery {
 					t.Fatalf("Neo4j inspection = %#v", report.Source)
 				}
 			},

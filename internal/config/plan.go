@@ -26,6 +26,7 @@ type PlanSource struct {
 	Namespace          string                `json:"namespace"`
 	PostgreSQLReadMode PostgreSQLReadMode    `json:"postgresqlReadMode,omitempty"`
 	Neo4jMultiLabel    Neo4jMultiLabelPolicy `json:"neo4jMultiLabelPolicy,omitempty"`
+	Neo4jDiscovery     bool                  `json:"neo4jDiscovery,omitempty"`
 	FetchRows          int                   `json:"fetchRows,omitempty"`
 	Consistency        string                `json:"consistency,omitempty"`
 }
@@ -105,9 +106,15 @@ func BuildStaticPlan(job LoadJob) StaticPlan {
 	if job.Source.Type == SourceNeo4j && job.Source.Neo4j != nil {
 		plan.Source.FetchRows = job.Source.Neo4j.FetchRows
 		plan.Source.Neo4jMultiLabel = job.Source.Neo4j.MultiLabelPolicy
+		plan.Source.Neo4jDiscovery = job.Source.Neo4j.Discovery != nil &&
+			job.Source.Neo4j.Discovery.Enabled
 		plan.Source.Consistency = "per-mapping-read-transaction"
 		plan.Warnings = append(plan.Warnings,
 			"Neo4j mappings are separate read transactions and do not observe one point-in-time graph snapshot")
+		if plan.Source.Neo4jDiscovery {
+			plan.Warnings = append(plan.Warnings,
+				"Neo4j labels, relationship endpoint pairs, and properties are resolved before target admission")
+		}
 	}
 	switch job.Source.Type {
 	case SourceCosmos:

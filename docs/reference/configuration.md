@@ -220,6 +220,57 @@ source:
           field: to_id
 ```
 
+Instead of explicit `vertices` and `edges`, Neo4j can discover mappings before
+opening or admitting the target graph:
+
+```yaml
+source:
+  type: neo4j
+  namespace: crm
+  neo4j:
+    uri: bolt://127.0.0.1:7687
+    database: neo4j
+    sourceId: crm-primary
+    username: neo4j
+    password:
+      env: AGEFREIGHTER_NEO4J_PASSWORD
+    discovery:
+      enabled: true
+      labelPrefix: App
+      relationshipTypePrefix: APP_
+      vertexKeyProperty: source_key
+      vertexIdProperty: person_id
+      edgeKeyProperty: source_key
+      edgeIdProperty: relationship_id
+      maxLabels: 256
+      maxProperties: 1024
+```
+
+Discovery and explicit mappings are mutually exclusive. `labelPrefix` and
+`relationshipTypePrefix` select source labels and relationship types without
+renaming them. With no `labelPrefix`, unlabeled nodes are included under the
+target label `NO_LABEL`; a source label named `NO_LABEL` conflicts with that
+mapping. Relationships whose endpoints are outside the selected labels are
+omitted.
+
+Every selected node must contain `vertexKeyProperty` and `vertexIdProperty`;
+every selected relationship must contain `edgeKeyProperty` and
+`edgeIdProperty`. Identity properties default to their corresponding key
+properties when omitted. Key values must satisfy the same unique, strictly
+increasing signed 64-bit integer contract as explicit mappings. Discovery
+never uses Neo4j internal IDs or `elementId()`. All discovered properties are
+copied.
+
+A node with multiple selected labels is assigned once, to its lexicographically
+first selected label. Edge endpoint mappings use the same rule, and discovery
+therefore requires `multiLabelPolicy: configured`. Discovery is rerun for load,
+resume, and verify; the resolved mappings are fingerprinted, so a schema or
+mapping change rejects resume and verification. `maxLabels` bounds both labels
+and relationship types, `maxProperties` bounds the properties of each, and
+generated mappings are capped at 1024. Discovery queries and subsequent mapping
+queries are separate read transactions, so concurrent source mutations can
+still produce inconsistent results.
+
 Every mapping must return a unique, strictly increasing signed 64-bit integer
 `keyField`, reference the nullable `$afterKey` parameter, use a top-level
 ascending `ORDER BY keyField` as the first ordering expression, and avoid

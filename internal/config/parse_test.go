@@ -44,6 +44,27 @@ func TestNeo4jDefaultsAndStaticPlan(t *testing.T) {
 	}
 }
 
+func TestNeo4jDiscoveryDefaultsAndStaticPlan(t *testing.T) {
+	job, err := Load("testdata/valid/neo4j-discovery.yaml")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	discovery := job.Source.Neo4j.Discovery
+	if discovery == nil ||
+		discovery.VertexIDProperty != "sequence" ||
+		discovery.EdgeIDProperty != "sequence" ||
+		discovery.MaxLabels != 256 ||
+		discovery.MaxProperties != 1_024 {
+		t.Fatalf("Neo4j discovery defaults = %#v", discovery)
+	}
+	plan := BuildStaticPlan(job)
+	if !plan.Source.Neo4jDiscovery ||
+		len(plan.Warnings) < 2 ||
+		!strings.Contains(plan.Warnings[1], "resolved") {
+		t.Fatalf("Neo4j discovery plan = %#v", plan)
+	}
+}
+
 func TestInactiveIncrementalDefaultsAreOmitted(t *testing.T) {
 	job := validCSVJob(t)
 	encoded, err := json.Marshal(job)

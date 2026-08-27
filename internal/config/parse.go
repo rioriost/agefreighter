@@ -113,6 +113,21 @@ func (job *LoadJob) applyDefaults() {
 		if job.Source.Neo4j.MultiLabelPolicy == "" {
 			job.Source.Neo4j.MultiLabelPolicy = Neo4jMultiLabelConfigured
 		}
+		if discovery := job.Source.Neo4j.Discovery; discovery != nil &&
+			discovery.Enabled {
+			if discovery.VertexIDProperty == "" {
+				discovery.VertexIDProperty = discovery.VertexKeyProperty
+			}
+			if discovery.EdgeIDProperty == "" {
+				discovery.EdgeIDProperty = discovery.EdgeKeyProperty
+			}
+			if discovery.MaxLabels == 0 {
+				discovery.MaxLabels = 256
+			}
+			if discovery.MaxProperties == 0 {
+				discovery.MaxProperties = 1_024
+			}
+		}
 	}
 	if job.Target.Mode == "" {
 		job.Target.Mode = LoadCreate

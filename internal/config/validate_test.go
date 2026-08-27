@@ -414,6 +414,34 @@ func TestNeo4jValidation(t *testing.T) {
 	}
 }
 
+func TestNeo4jDiscoveryValidation(t *testing.T) {
+	job, err := Load("testdata/valid/neo4j-discovery.yaml")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	job.Source.Neo4j.Vertices = []VertexQuery{{Label: "Person"}}
+	job.Source.Neo4j.Discovery.VertexKeyProperty = "bad\nproperty"
+	job.Source.Neo4j.Discovery.LabelPrefix = "bad\x00prefix"
+	job.Source.Neo4j.Discovery.MaxLabels = 257
+	job.Source.Neo4j.Discovery.MaxProperties = 1_025
+	job.Source.Neo4j.MultiLabelPolicy = Neo4jMultiLabelReject
+
+	err = job.Validate()
+
+	for _, want := range []string{
+		"cannot be combined",
+		"vertexKeyProperty",
+		"labelPrefix",
+		"maxLabels",
+		"maxProperties",
+		"multiLabelPolicy",
+	} {
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("Validate() error = %v, want %q", err, want)
+		}
+	}
+}
+
 func TestCosmosValidation(t *testing.T) {
 	job, err := Load("testdata/valid/cosmos.json")
 	if err != nil {
