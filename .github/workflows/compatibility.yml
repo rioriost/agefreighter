@@ -1,0 +1,46 @@
+name: AGE compatibility
+
+on:
+  schedule:
+    - cron: "43 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  age:
+    name: AGE ${{ matrix.age }} / PostgreSQL ${{ matrix.postgresql }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - age: "1.6.0"
+            postgresql: "17"
+            image: apache/age@sha256:fe8b33905a61549a067f8512808b88011bdcaa82ab65d8788f39fb07a04aa5be
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Start supported AGE image
+        env:
+          AGE_IMAGE: ${{ matrix.image }}
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-up
+      - name: Run compatibility and recovery contracts
+        run: |
+          make test-compatibility
+          make test-recovery
+      - name: Stop databases
+        if: always()
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-down

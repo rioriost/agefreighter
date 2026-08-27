@@ -6,6 +6,7 @@ COVERAGE_DIR ?= .coverage
 COVERAGE_THRESHOLD ?= 90.0
 BENCHTIME ?= 5x
 BENCHFLAGS ?=
+FUZZTIME ?= 3s
 SCALE_ROWS ?= 200000
 AGEFREIGHTER_NEO4J_TEST_URI ?= bolt://127.0.0.1:57687
 AGEFREIGHTER_NEO4J_TEST_USERNAME ?= neo4j
@@ -21,7 +22,7 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 	-X github.com/rioriost/agefreighter/internal/version.BuildDate=$(BUILD_DATE)
 
 .PHONY: bench-csv bench-csv-scale build check check-full coverage dev-down dev-pull dev-reset dev-smoke \
-	dev-status dev-up fmt install-tools test test-race tidy vet vuln
+	dev-status dev-up fmt fuzz-smoke install-tools test test-compatibility test-race test-recovery tidy vet vuln
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter ./cmd/agefreighter
@@ -61,6 +62,23 @@ test:
 test-race:
 	$(GO) test -race ./...
 
+fuzz-smoke:
+	$(GO) test -run '^$$' -fuzz '^FuzzParse$$' -fuzztime="$(FUZZTIME)" ./internal/config
+	$(GO) test -run '^$$' -fuzz '^FuzzAGEGraphNames$$' -fuzztime="$(FUZZTIME)" ./internal/age
+	$(GO) test -run '^$$' -fuzz '^FuzzGraphIDRoundTrip$$' -fuzztime="$(FUZZTIME)" ./internal/age
+	$(GO) test -run '^$$' -fuzz '^FuzzEncodeStringProperty$$' -fuzztime="$(FUZZTIME)" ./internal/age
+	$(GO) test -run '^$$' -fuzz '^FuzzEncodeStringProperty$$' -fuzztime="$(FUZZTIME)" ./pkg/model
+
+test-compatibility:
+	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+		$(GO) test -count=1 ./internal/age ./internal/meta ./internal/app
+
+test-recovery:
+	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+		$(GO) test -count=1 \
+		-run '^(TestResumeAfterPreBatchFailureIntegration|TestRunningAndFailedBatchResumeIntegration|TestResumeAfterCommittedBatchIntegration|TestReplaceFailureResumeAndCleanupIntegration)$$' \
+		./internal/app
+
 coverage:
 	@mkdir -p "$(COVERAGE_DIR)"
 	@AGEFREIGHTER_NEO4J_TEST_URI="$(AGEFREIGHTER_NEO4J_TEST_URI)" \
@@ -77,7 +95,7 @@ coverage:
 		.coverage-exclude
 	./scripts/coverage/check.sh "$(COVERAGE_DIR)/unit.out" "$(COVERAGE_THRESHOLD)"
 
-check: fmt vet vuln test test-race
+check: fmt vet vuln test test-race fuzz-smoke
 
 check-full: check coverage
 

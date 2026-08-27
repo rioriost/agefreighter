@@ -84,3 +84,7 @@ JSON is the default output and is pretty-printed deterministically. Markdown
 uses a stable GitHub-flavored table and three decimal places for throughput.
 Neither format includes a generation timestamp, so identical inputs produce
 identical output.
+
+`--minimum-staged-ratio RATIO` additionally enforces that each staged-binary
+group has an equivalent plain-relational group and that its median throughput
+is at least the requested ratio. The release gate uses `0.40`.

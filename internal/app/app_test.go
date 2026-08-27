@@ -17,6 +17,8 @@ import (
 	"github.com/rioriost/agefreighter/internal/meta"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	sourcecsv "github.com/rioriost/agefreighter/internal/source/csv"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -607,6 +609,7 @@ func TestAppHelpers(t *testing.T) {
 		value != "postgres://example" {
 		t.Fatalf("resolveSecret(env) = %q, %v", value, err)
 	}
+
 	if _, err := resolveSecret(config.SecretRef{Env: "MISSING_APP_SECRET"}); err == nil {
 		t.Fatal("resolveSecret() accepted missing environment variable")
 	}
@@ -740,6 +743,47 @@ func TestAppHelpers(t *testing.T) {
 	job.Runtime.BatchRows = 2
 	if _, err := execute(t.Context(), job, first, false); err == nil {
 		t.Fatal("execute() accepted an overcommitted pipeline")
+	}
+}
+
+func TestExecuteEmitsSafeOpenTelemetrySpan(t *testing.T) {
+	exporter := tracetest.NewInMemoryExporter()
+	provider := sdktrace.NewTracerProvider(
+		sdktrace.WithSyncer(exporter),
+	)
+	t.Cleanup(func() {
+		if err := provider.Shutdown(context.Background()); err != nil {
+			t.Fatalf("shutdown trace provider: %v", err)
+		}
+	})
+	ctx, span := provider.Tracer("test").Start(t.Context(), "parent")
+	job := testLoadJob("sensitive_graph_name", "vertices.csv", "edges.csv")
+	job.Source.Type = "unsupported"
+
+	if _, err := execute(ctx, job, "secret-job-id", false); err == nil {
+		t.Fatal("execute() accepted unsupported source")
+	}
+	span.End()
+
+	spans := exporter.GetSpans()
+	if len(spans) != 2 || spans[0].Name != "load.execute" {
+		t.Fatalf("spans = %#v", spans)
+	}
+	attributes := make(map[string]string)
+	for _, item := range spans[0].Attributes {
+		attributes[string(item.Key)] = item.Value.Emit()
+	}
+	if attributes["source.type"] != "unsupported" ||
+		attributes["target.type"] != "apache-age" ||
+		attributes["load.mode"] != "create" {
+		t.Fatalf("span attributes = %#v", attributes)
+	}
+	for key, value := range attributes {
+		if strings.Contains(key, "job") ||
+			strings.Contains(value, "sensitive_graph_name") ||
+			strings.Contains(value, "secret-job-id") {
+			t.Fatalf("span exposed sensitive identifier: %s=%q", key, value)
+		}
 	}
 }
 

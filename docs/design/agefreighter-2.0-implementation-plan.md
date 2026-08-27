@@ -523,6 +523,8 @@ translation and AI-assisted conversion are not copied from 1.x.
 
 ### Milestone 12: Release hardening
 
+**Implementation status:** Complete.
+
 **Deliverables**
 
 - OpenTelemetry opt-in export

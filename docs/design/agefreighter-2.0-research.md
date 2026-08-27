@@ -706,11 +706,13 @@ alone. A controlled benchmark job enforces release performance budgets.
 - all supported property types round-trip for every supported AGE version
 - CSV `create` throughput is at least twice the measured 1.x baseline, with a
   stretch target of five times
-- AGE write throughput reaches at least 70% of a plain relational COPY baseline
-  using the same payload, equivalent indexes, and durability settings
+- staged AGE write throughput reaches at least 40% of a plain relational COPY
+  baseline using the same payload, equivalent indexes, and durability settings
 
-These performance thresholds are hypotheses until the baseline and proof of
-concept are measured.
+The initial 70% AGE/relational hypothesis was revised after the staged-binary
+prototype measured the unavoidable AGE `graphid` and `agtype` conversion cost.
+The 40% release floor remains below the measured 43–46% range while detecting a
+material regression.
 
 ## 16. Principal risks
 

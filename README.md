@@ -57,6 +57,16 @@ agefreighter-tools benchmark-report --format markdown < results.jsonl
 See the [tools reference](docs/reference/tools.md) for inspection and benchmark
 report schemas, validation, aggregation, and input limits.
 
+Operational logging and OTLP trace export are disabled by default. See the
+[observability reference](docs/reference/observability.md) and
+[compatibility matrix](docs/reference/compatibility.md) for the supported
+runtime contract.
+
+Release archives, checksum and provenance verification, Homebrew installation,
+and source builds are covered by the
+[installation guide](docs/reference/installation.md). Production procedures
+are in the [operations guide](docs/reference/operations.md).
+
 See the [configuration reference](docs/reference/configuration.md), the
 [architecture research](docs/design/agefreighter-2.0-research.md) and the
 [implementation plan](docs/design/agefreighter-2.0-implementation-plan.md) for

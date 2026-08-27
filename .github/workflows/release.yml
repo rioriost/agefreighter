@@ -1,0 +1,376 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v2.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic v2 version to package (dispatch never publishes)"
+        required: true
+        default: "v2.0.0"
+        type: string
+      dry_run:
+        description: "Required safety acknowledgement"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      commit: ${{ steps.metadata.outputs.commit }}
+      build_date: ${{ steps.metadata.outputs.build_date }}
+      epoch: ${{ steps.metadata.outputs.epoch }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate request and derive reproducible metadata
+        id: metadata
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            [[ "$GITHUB_REF_TYPE" == "tag" ]]
+            version="$GITHUB_REF_NAME"
+            [[ "$(git rev-list -n 1 "$version")" == "$GITHUB_SHA" ]]
+          else
+            [[ "$DRY_RUN" == "true" ]]
+            version="$DISPATCH_VERSION"
+          fi
+          [[ "$version" =~ ^v2\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]
+          if [[ "$version" == *-* ]]; then
+            IFS=. read -ra identifiers <<<"${version#*-}"
+            for identifier in "${identifiers[@]}"; do
+              if [[ "$identifier" =~ ^[0-9]+$ && "$identifier" != "0" && "$identifier" == 0* ]]; then
+                printf 'numeric prerelease identifiers must not have leading zeroes\n' >&2
+                exit 2
+              fi
+            done
+          fi
+          epoch="$(git show -s --format=%ct "$GITHUB_SHA")"
+          build_date="$(date -u -d "@$epoch" '+%Y-%m-%dT%H:%M:%SZ')"
+          [[ "$build_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]
+          {
+            printf 'version=%s\n' "$version"
+            printf 'commit=%s\n' "$GITHUB_SHA"
+            printf 'build_date=%s\n' "$build_date"
+            printf 'epoch=%s\n' "$epoch"
+          } >>"$GITHUB_OUTPUT"
+
+  quality:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install pinned quality tools
+        run: make install-tools
+      - name: Start pinned integration databases
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-up
+      - name: Run quality, compatibility, recovery, and performance gates
+        run: |
+          . ./scripts/dev/services.sh
+          export AGEFREIGHTER_AGE_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${AGE_PORT}/agefreighter?sslmode=disable"
+          export AGEFREIGHTER_POSTGRES_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${POSTGRES_PORT}/agefreighter?sslmode=disable"
+          export AGEFREIGHTER_NEO4J_TEST_URI="bolt://127.0.0.1:${NEO4J_BOLT_PORT}"
+          export AGEFREIGHTER_NEO4J_TEST_USERNAME=neo4j
+          export AGEFREIGHTER_NEO4J_TEST_PASSWORD="$AGEFREIGHTER_DEV_PASSWORD"
+          export AGEFREIGHTER_NEO4J_TEST_DATABASE=neo4j
+          make check-full
+          make test-compatibility
+          make test-recovery
+          ./scripts/bench/release-budget.sh performance-artifacts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: quality-performance
+          path: performance-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Stop databases
+        if: always()
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-down
+
+  azure:
+    needs: prepare
+    runs-on: [self-hosted, linux, x64, agefreighter-azure]
+    environment: cosmos-integration
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Start local AGE target
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-up
+      - name: Run Cosmos DB live integration
+        env:
+          AGEFREIGHTER_COSMOS_TEST_ENDPOINT: ${{ vars.AGEFREIGHTER_COSMOS_TEST_ENDPOINT }}
+          AGEFREIGHTER_COSMOS_TEST_DATABASE: ${{ vars.AGEFREIGHTER_COSMOS_TEST_DATABASE }}
+          AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER: ${{ vars.AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER }}
+          AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER: ${{ vars.AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER }}
+        run: |
+          . ./scripts/dev/services.sh
+          export AGEFREIGHTER_AGE_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${AGE_PORT}/agefreighter?sslmode=disable"
+          go test ./internal/app -run '^TestCosmosLiveIntegration$' \
+            -count=1 -timeout=25m -v
+      - name: Stop databases
+        if: always()
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-down
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {goos: darwin, goarch: amd64}
+          - {goos: darwin, goarch: arm64}
+          - {goos: linux, goarch: amd64}
+          - {goos: linux, goarch: arm64}
+          - {goos: windows, goarch: amd64}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build cross-platform archive
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          COMMIT: ${{ needs.prepare.outputs.commit }}
+          BUILD_DATE: ${{ needs.prepare.outputs.build_date }}
+          SOURCE_DATE_EPOCH: ${{ needs.prepare.outputs.epoch }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          scripts/release/build.sh \
+            "$VERSION" "$COMMIT" "$BUILD_DATE" "$GOOS" "$GOARCH" "$PWD/dist"
+      - name: Install pinned Syft
+        id: syft
+        uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
+        with:
+          syft-version: v1.30.0
+      - name: Generate SPDX SBOM
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          SYFT: ${{ steps.syft.outputs.cmd }}
+        run: |
+          set -euo pipefail
+          export PATH="$(dirname "$SYFT"):$PATH"
+          if [[ "$GOOS" == "windows" ]]; then extension=zip; else extension=tar.gz; fi
+          archive="dist/agefreighter_${VERSION}_${GOOS}_${GOARCH}.${extension}"
+          scripts/release/sbom.sh "$archive" "$archive.spdx.json"
+      - name: Upload platform package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  verify-unix:
+    needs: [prepare, build]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {goos: darwin, goarch: amd64, runner: macos-15-intel}
+          - {goos: darwin, goarch: arm64, runner: macos-15}
+          - {goos: linux, goarch: amd64, runner: ubuntu-24.04}
+          - {goos: linux, goarch: arm64, runner: ubuntu-24.04-arm}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist
+      - name: Extract and execute both native binaries
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          scripts/release/verify.sh \
+            "dist/agefreighter_${VERSION}_${GOOS}_${GOARCH}.tar.gz" \
+            "$GOOS" "$GOARCH" "$VERSION"
+
+  verify-windows:
+    needs: [prepare, build]
+    runs-on: windows-2025
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-windows-amd64
+          path: dist
+      - name: Extract and execute both native binaries
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64") {
+            throw "Refusing to execute amd64 binaries on $env:PROCESSOR_ARCHITECTURE"
+          }
+          $archive = "dist/agefreighter_$env:VERSION`_windows_amd64.zip"
+          $entries = [IO.Compression.ZipFile]::OpenRead($archive)
+          try {
+            $names = @($entries.Entries | ForEach-Object { $_.FullName })
+            if (($names | Where-Object { $_ -eq "agefreighter.exe" }).Count -ne 1 -or
+                ($names | Where-Object { $_ -eq "agefreighter-tools.exe" }).Count -ne 1 -or
+                ($names | Where-Object { $_ -match '(^|/)\.\.(/|$)|^/' }).Count -ne 0) {
+              throw "Archive content validation failed"
+            }
+          } finally {
+            $entries.Dispose()
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath extracted
+          $expected = $env:VERSION.Substring(1)
+          foreach ($binary in @("agefreighter.exe", "agefreighter-tools.exe")) {
+            $output = & "./extracted/$binary" version
+            if ($LASTEXITCODE -ne 0 -or $output -notmatch [regex]::Escape($expected)) {
+              throw "$binary version verification failed"
+            }
+          }
+
+  assemble:
+    needs: [prepare, verify-unix, verify-windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Create checksums and Homebrew formula
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mapfile -t archives < <(find dist -maxdepth 1 -type f \
+            \( -name '*.tar.gz' -o -name '*.zip' \) -print | LC_ALL=C sort)
+          [[ "${#archives[@]}" -eq 5 ]]
+          scripts/release/checksum.sh dist/checksums.txt "${archives[@]}"
+          scripts/release/generate-formula.sh \
+            "$VERSION" "$REPOSITORY" dist dist/agefreighter.rb
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-assets-unsigned
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  attest:
+    needs: [prepare, assemble]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-assets-unsigned
+          path: dist
+      - name: Attest release assets with GitHub OIDC
+        id: provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.spdx.json
+            dist/checksums.txt
+            dist/agefreighter.rb
+      - name: Include attestation bundle
+        env:
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: cp "$BUNDLE" "dist/agefreighter-${VERSION}.intoto.jsonl"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-assets
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  publish:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: [prepare, quality, azure, attest]
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-assets
+          path: dist
+      - name: Publish assets to existing validated tag
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.version }}
+          draft: false
+          prerelease: ${{ contains(needs.prepare.outputs.version, '-') }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          overwrite_files: false
+          files: dist/*

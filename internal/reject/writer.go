@@ -12,8 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
-	"time"
 
 	"github.com/rioriost/agefreighter/pkg/model"
 )
@@ -310,27 +308,11 @@ func (writer *JSONLWriter) withExclusiveLock(
 	ctx context.Context,
 	run func() error,
 ) (err error) {
-	for {
-		err = syscall.Flock(
-			int(writer.file.Fd()),
-			syscall.LOCK_EX|syscall.LOCK_NB,
-		)
-		if err == nil {
-			break
-		}
-		if !errors.Is(err, syscall.EWOULDBLOCK) &&
-			!errors.Is(err, syscall.EAGAIN) &&
-			!errors.Is(err, syscall.EINTR) {
-			return fmt.Errorf("lock quarantine output: %w", err)
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(10 * time.Millisecond):
-		}
+	if err := lockExclusive(ctx, writer.file); err != nil {
+		return fmt.Errorf("lock quarantine output: %w", err)
 	}
 	defer func() {
-		unlockErr := syscall.Flock(int(writer.file.Fd()), syscall.LOCK_UN)
+		unlockErr := unlockExclusive(writer.file)
 		if unlockErr != nil {
 			err = errors.Join(err, fmt.Errorf("unlock quarantine output: %w", unlockErr))
 		}

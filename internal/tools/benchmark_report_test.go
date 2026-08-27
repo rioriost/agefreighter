@@ -452,6 +452,31 @@ func TestBenchmarkReportCommand(t *testing.T) {
 		t.Fatalf("benchmark-report output = %q", output.String())
 	}
 
+	budgetInput := filepath.Join(root, "budget.jsonl")
+	if err := os.WriteFile(
+		budgetInput,
+		[]byte(
+			benchmarkJSON(BenchmarkVertices, BenchmarkStaged, 10, 4, 2_000_000_000, 10)+"\n"+
+				benchmarkJSON(BenchmarkVertices, BenchmarkRelational, 10, 4, 1_000_000_000, 10),
+		),
+		0o600,
+	); err != nil {
+		t.Fatalf("write budget input: %v", err)
+	}
+	command = NewBenchmarkReportCommand()
+	command.SetOut(io.Discard)
+	command.SetArgs([]string{"--minimum-staged-ratio", "0.5", budgetInput})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("passing benchmark budget: %v", err)
+	}
+	command = NewBenchmarkReportCommand()
+	command.SetOut(io.Discard)
+	command.SetArgs([]string{"--minimum-staged-ratio", "0.6", budgetInput})
+	if err := command.Execute(); err == nil ||
+		!strings.Contains(err.Error(), "benchmark budget") {
+		t.Fatalf("failing benchmark budget error = %v", err)
+	}
+
 	for _, test := range []struct {
 		name   string
 		args   []string

@@ -97,7 +97,10 @@ func NewBenchmarkCommand() *cobra.Command {
 }
 
 func NewBenchmarkReportCommand() *cobra.Command {
-	var format string
+	var (
+		format             string
+		minimumStagedRatio float64
+	)
 	command := &cobra.Command{
 		Use:   "benchmark-report [FILE...]",
 		Short: "Normalize AGE benchmark results into a deterministic report",
@@ -119,6 +122,14 @@ func NewBenchmarkReportCommand() *cobra.Command {
 			if err := errors.Join(normalizeErr, closeErr); err != nil {
 				return err
 			}
+			if minimumStagedRatio != 0 {
+				if err := ValidateStagedBenchmarkBudget(
+					report,
+					minimumStagedRatio,
+				); err != nil {
+					return fmt.Errorf("benchmark budget: %w", err)
+				}
+			}
 			return WriteBenchmarkReport(
 				command.OutOrStdout(),
 				report,
@@ -131,6 +142,12 @@ func NewBenchmarkReportCommand() *cobra.Command {
 		"format",
 		string(BenchmarkReportJSON),
 		"output format: json or markdown",
+	)
+	command.Flags().Float64Var(
+		&minimumStagedRatio,
+		"minimum-staged-ratio",
+		0,
+		"require staged-binary median throughput relative to plain-relational",
 	)
 	return command
 }

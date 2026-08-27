@@ -20,6 +20,9 @@ import (
 	"github.com/rioriost/agefreighter/internal/pipeline"
 	"github.com/rioriost/agefreighter/internal/reject"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const maxSecretBytes = 1 << 20
@@ -124,6 +127,27 @@ func execute(
 	jobID string,
 	resume bool,
 ) (result LoadResult, resultErr error) {
+	tracer := trace.SpanFromContext(ctx).TracerProvider().Tracer(
+		"github.com/rioriost/agefreighter/internal/app",
+	)
+	ctx, span := tracer.Start(
+		ctx,
+		"load.execute",
+		trace.WithAttributes(
+			attribute.String("source.type", string(job.Source.Type)),
+			attribute.String("target.type", string(job.Target.Type)),
+			attribute.String("load.mode", string(job.Target.Mode)),
+			attribute.Bool("load.resume", resume),
+		),
+	)
+	defer func() {
+		if resultErr != nil {
+			span.SetStatus(codes.Error, "load failed")
+		} else {
+			span.SetStatus(codes.Ok, "")
+		}
+		span.End()
+	}()
 	result.JobID = jobID
 	if err := validateImplementedSource(job); err != nil {
 		return result, err

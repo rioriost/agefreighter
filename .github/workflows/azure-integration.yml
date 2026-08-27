@@ -1,0 +1,51 @@
+name: Azure integration
+
+on:
+  schedule:
+    - cron: "11 5 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  cosmos:
+    runs-on: [self-hosted, linux, x64, agefreighter-azure]
+    environment: cosmos-integration
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Start local AGE target
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-up
+      - name: Run Cosmos DB live integration
+        env:
+          AGEFREIGHTER_COSMOS_TEST_ENDPOINT: ${{ vars.AGEFREIGHTER_COSMOS_TEST_ENDPOINT }}
+          AGEFREIGHTER_COSMOS_TEST_DATABASE: ${{ vars.AGEFREIGHTER_COSMOS_TEST_DATABASE }}
+          AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER: ${{ vars.AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER }}
+          AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER: ${{ vars.AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER }}
+        run: |
+          . ./scripts/dev/services.sh
+          export AGEFREIGHTER_AGE_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${AGE_PORT}/agefreighter?sslmode=disable"
+          go test ./internal/app -run '^TestCosmosLiveIntegration$' \
+            -count=1 -timeout=25m -v
+      - name: Stop databases
+        if: always()
+        env:
+          DEV_RUNTIME: docker
+          DEV_PLATFORM: linux/amd64
+        run: make dev-down

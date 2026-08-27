@@ -47,6 +47,24 @@ The test seeds run-scoped documents across several logical partitions and
 removes only those exact documents afterward. It exercises a committed-batch
 resume, verification, and atomic replacement against local Apache AGE.
 
+## Controlled CI
+
+The `Azure integration` workflow runs weekly or by explicit dispatch on a
+self-hosted Linux runner carrying the `agefreighter-azure` label. The runner
+must be inside the Network Security Perimeter ingress boundary and provide
+Docker. Its protected `cosmos-integration` GitHub environment defines:
+
+- `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` for an
+  OpenID Connect federated identity;
+- `AGEFREIGHTER_COSMOS_TEST_ENDPOINT`;
+- `AGEFREIGHTER_COSMOS_TEST_DATABASE`;
+- `AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER`;
+- `AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER`.
+
+The federated identity receives only Cosmos DB Built-in Data Contributor on the
+test account. The workflow requests `id-token: write`, uses no client secret,
+does not provision resources, and removes only run-scoped fixture documents.
+
 Network Security Perimeter changes can take several minutes to propagate. If
 the developer's public address changes, update
 `AZURE_COSMOS_DEVELOPER_IP`, preview, and provision again.

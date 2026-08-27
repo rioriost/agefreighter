@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -393,11 +392,11 @@ func TestJSONLWriterLockWaitHonorsCancellation(t *testing.T) {
 		t.Fatalf("NewJSONLWriter(second) error = %v", err)
 	}
 	t.Cleanup(func() { _ = second.Close() })
-	if err := syscall.Flock(int(first.file.Fd()), syscall.LOCK_EX); err != nil {
-		t.Fatalf("Flock() error = %v", err)
+	if err := lockExclusive(t.Context(), first.file); err != nil {
+		t.Fatalf("lockExclusive() error = %v", err)
 	}
 	defer func() {
-		_ = syscall.Flock(int(first.file.Fd()), syscall.LOCK_UN)
+		_ = unlockExclusive(first.file)
 	}()
 	ctx, cancel := context.WithCancel(t.Context())
 	time.AfterFunc(20*time.Millisecond, cancel)
