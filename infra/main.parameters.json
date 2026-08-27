@@ -13,6 +13,9 @@
     },
     "developerIp": {
       "value": "${AZURE_COSMOS_DEVELOPER_IP}"
+    },
+    "runnerIp": {
+      "value": "${AZURE_COSMOS_RUNNER_IP}"
     }
   }
 }

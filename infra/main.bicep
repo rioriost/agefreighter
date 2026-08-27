@@ -14,6 +14,9 @@ param developerPrincipalId string
 @description('Public IPv4 address allowed through the Cosmos DB firewall.')
 param developerIp string
 
+@description('Static public IPv4 address of the controlled GitHub Actions runner.')
+param runnerIp string
+
 var resourceGroupName = 'rg-agefreighter-${environmentName}'
 var resourceTags = {
   'azd-env-name': environmentName
@@ -54,6 +57,7 @@ module networkPerimeter 'modules/network-perimeter.bicep' = {
   params: {
     accountId: cosmosBase.outputs.accountId
     developerIp: developerIp
+    runnerIp: runnerIp
     location: location
     perimeterName: 'nsp-agefreighter-${environmentName}'
     tags: resourceTags

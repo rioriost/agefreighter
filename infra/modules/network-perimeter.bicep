@@ -4,6 +4,9 @@ param accountId string
 @description('Public IPv4 address allowed to reach the protected account.')
 param developerIp string
 
+@description('Static public IPv4 address of the controlled GitHub Actions runner.')
+param runnerIp string
+
 @description('Azure region for the network security perimeter.')
 param location string
 
@@ -32,6 +35,17 @@ resource developerIngress 'Microsoft.Network/networkSecurityPerimeters/profiles/
   properties: {
     addressPrefixes: [
       '${developerIp}/32'
+    ]
+    direction: 'Inbound'
+  }
+}
+
+resource runnerIngress 'Microsoft.Network/networkSecurityPerimeters/profiles/accessRules@2025-07-01' = {
+  parent: profile
+  name: 'runner-ipv4'
+  properties: {
+    addressPrefixes: [
+      '${runnerIp}/32'
     ]
     direction: 'Inbound'
   }

@@ -15,13 +15,15 @@ azd env set AZURE_SUBSCRIPTION_ID <subscription-id>
 azd env set AZURE_LOCATION japaneast
 azd env set AZURE_COSMOS_PRINCIPAL_ID <entra-object-id>
 azd env set AZURE_COSMOS_DEVELOPER_IP <public-ipv4>
+azd env set AZURE_COSMOS_RUNNER_IP <runner-public-ipv4>
 ```
 
 The deployment creates a serverless, single-region account with Session
 consistency, local/key authentication disabled, TLS 1.2 minimum, and public
 access secured by an enforced Network Security Perimeter. The perimeter allows
-inbound access only from the configured IPv4 address. The principal receives
-the Cosmos DB Built-in Data Contributor role at account scope.
+inbound access only from the configured developer and controlled-runner IPv4
+addresses. The principal receives the Cosmos DB Built-in Data Contributor role
+at account scope.
 
 ## Preview and provision
 
@@ -53,10 +55,11 @@ resume, verification, and atomic replacement against local Apache AGE.
 The `Azure integration` workflow runs weekly or by explicit dispatch on a
 self-hosted Linux runner carrying the `agefreighter-azure` label. The runner
 must be inside the Network Security Perimeter ingress boundary and provide
-Docker. Its protected `cosmos-integration` GitHub environment defines:
+Azure CLI, Docker Engine, and Docker Compose v2. Its protected
+`cosmos-integration` GitHub environment defines:
 
-- `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` for an
-  OpenID Connect federated identity;
+- `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` for an OpenID Connect federated
+  identity with data-plane-only access;
 - `AGEFREIGHTER_COSMOS_TEST_ENDPOINT`;
 - `AGEFREIGHTER_COSMOS_TEST_DATABASE`;
 - `AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER`;
@@ -67,8 +70,9 @@ test account. The workflow requests `id-token: write`, uses no client secret,
 does not provision resources, and removes only run-scoped fixture documents.
 
 Network Security Perimeter changes can take several minutes to propagate. If
-the developer's public address changes, update
-`AZURE_COSMOS_DEVELOPER_IP`, preview, and provision again.
+either approved public address changes, update
+`AZURE_COSMOS_DEVELOPER_IP` or `AZURE_COSMOS_RUNNER_IP`, preview, and provision
+again.
 
 ## Cleanup boundary
 
