@@ -1,7 +1,7 @@
 # agefreighter-tools reference
 
-`agefreighter-tools` contains reproducible fixture, inspection, and benchmark
-utilities. It does not mutate loader metadata or production graphs.
+`agefreighter-tools` contains reproducible fixture, inspection, conversion, and
+benchmark utilities. It does not mutate loader metadata or production graphs.
 
 ## Inspect a load job
 
@@ -30,6 +30,32 @@ query text, connection strings, credentials, credential environment-variable
 names, or credential file paths. This makes its JSON suitable for diagnostics,
 subject to the sensitivity of source file paths and logical database names in
 the job itself.
+
+## Convert Gremlin to openCypher
+
+```sh
+export OPENAI_API_KEY='...'
+agefreighter-tools convert-gremlin --query "g.V().hasLabel('Person')"
+
+# Avoid putting a query in shell history:
+agefreighter-tools convert-gremlin --input query.gremlin
+agefreighter-tools convert-gremlin --input - < query.gremlin
+```
+
+The command sends one bounded Gremlin traversal to the OpenAI Responses API and
+writes a versioned JSON result containing `status`, `cypher`, `confidence`,
+`warnings`, and `model`. The default model is `gpt-4.1-mini`; override it with
+`--model` or `AGEFREIGHTER_OPENAI_MODEL`.
+
+`status` is `converted` when a query was produced, `unsupported` when the model
+could not produce an equivalent query, or `refused` when the OpenAI API declined
+the request content. Consumers must inspect `status` before using `cypher`.
+
+The API key is accepted only through `OPENAI_API_KEY`. Input is limited to 64
+KiB, output is requested with a strict JSON schema, and malformed or unbounded
+responses are rejected. Query text, response content, and the API key are never
+written to logs or traces. Generated Cypher is validated structurally but is
+never executed.
 
 ## Run an AGE copy benchmark
 

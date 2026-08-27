@@ -40,6 +40,7 @@ func runContext(ctx context.Context, args []string, stdout, stderr io.Writer) in
 			tools.NewBenchmarkCommand(),
 			tools.NewBenchmarkReportCommand(),
 			tools.NewInspectCommand(),
+			tools.NewConvertGremlinCommand(),
 		)
 		return cli.ExecuteContext(commandContext, command, args)
 	})

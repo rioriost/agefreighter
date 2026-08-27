@@ -107,6 +107,27 @@ func TestRunBenchmarkRequiresDSN(t *testing.T) {
 	}
 }
 
+func TestRunConvertGremlinRequiresAPIKey(t *testing.T) {
+	t.Setenv(tools.OpenAIAPIKeyEnvironment, "")
+	var stdout, stderr bytes.Buffer
+
+	exitCode := run(
+		[]string{"convert-gremlin", "--query", "g.V()"},
+		&stdout,
+		&stderr,
+	)
+
+	if exitCode != 1 {
+		t.Fatalf("run() exit code = %d", exitCode)
+	}
+	if !strings.Contains(stderr.String(), "OPENAI_API_KEY is required") {
+		t.Fatalf("run() stderr = %q", stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("run() stdout = %q", stdout.String())
+	}
+}
+
 func TestRunInspect(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	path := filepath.Join("..", "..", "internal", "config", "testdata", "valid", "csv.yaml")

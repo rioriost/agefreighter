@@ -9,7 +9,7 @@ from agefreighter 1.x. The 1.x implementation remains on the `main` branch.
 ## Commands
 
 - `agefreighter`: production migration CLI
-- `agefreighter-tools`: fixtures, diagnostics, and benchmarks
+- `agefreighter-tools`: fixtures, diagnostics, AI-assisted conversion, and benchmarks
 
 The versioned load-job configuration, offline validation, and static planning
 commands are available:
@@ -45,6 +45,13 @@ locations, identity/resume fields, endpoint mappings, and target behavior while
 omitting query text, connection strings, credentials, and credential reference
 names.
 
+Convert a Gremlin traversal to openCypher without executing either query:
+
+```sh
+OPENAI_API_KEY='...' \
+  agefreighter-tools convert-gremlin --input query.gremlin
+```
+
 Normalize one or more `benchmark-age-copy` result streams into a canonical JSON
 or Markdown report:
 
@@ -54,8 +61,8 @@ agefreighter-tools benchmark-report run-1.json run-2.json
 agefreighter-tools benchmark-report --format markdown < results.jsonl
 ```
 
-See the [tools reference](docs/reference/tools.md) for inspection and benchmark
-report schemas, validation, aggregation, and input limits.
+See the [tools reference](docs/reference/tools.md) for conversion and inspection
+contracts, benchmark report schemas, validation, aggregation, and input limits.
 
 Operational logging and OTLP trace export are disabled by default. See the
 [observability reference](docs/reference/observability.md) and

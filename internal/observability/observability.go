@@ -340,7 +340,8 @@ func safeCommandName(command string) string {
 		"generate",
 		"benchmark-age-copy",
 		"benchmark-report",
-		"inspect":
+		"inspect",
+		"convert-gremlin":
 		return command
 	default:
 		return "other"

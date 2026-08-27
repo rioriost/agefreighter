@@ -144,11 +144,12 @@ func TestRuntimeValidationAndSafeCommandNames(t *testing.T) {
 	}
 
 	tests := map[string]string{
-		"":             "root",
-		"--help":       "root",
-		"load":         "load",
-		"benchmark-1":  "other",
-		"secret=value": "other",
+		"":                "root",
+		"--help":          "root",
+		"load":            "load",
+		"convert-gremlin": "convert-gremlin",
+		"benchmark-1":     "other",
+		"secret=value":    "other",
 	}
 	for input, want := range tests {
 		if got := safeCommandName(input); got != want {
