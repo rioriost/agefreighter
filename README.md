@@ -6,32 +6,112 @@ graph migration into [Apache AGE](https://age.apache.org/).
 This branch does not preserve the Python API, CLI, configuration, or defaults
 from agefreighter 1.x. The 1.x implementation remains on the `main` branch.
 
-## Commands
+## Installation
+
+Release archives contain both `agefreighter` and `agefreighter-tools`. Verify
+the downloaded archive against `checksums.txt` and the GitHub build-provenance
+attestation before installing it.
+
+### macOS
+
+Download `agefreighter.rb` from the desired
+[GitHub release](https://github.com/rioriost/agefreighter/releases), then install
+the checksum-bound Homebrew formula:
+
+```sh
+gh release download v2.0.0 --pattern agefreighter.rb
+brew install --formula ./agefreighter.rb
+```
+
+Alternatively, download the `darwin_arm64` archive for Apple silicon or
+`darwin_amd64` for Intel, extract it, and install both binaries:
+
+```sh
+tar -xzf agefreighter_v2.0.0_darwin_arm64.tar.gz
+sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
+```
+
+### Linux
+
+Download the `linux_amd64` or `linux_arm64` archive for the host architecture:
+
+```sh
+tar -xzf agefreighter_v2.0.0_linux_amd64.tar.gz
+sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
+```
+
+### Windows
+
+Download `agefreighter_v2.0.0_windows_amd64.zip`, extract
+`agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
+`PATH`:
+
+```powershell
+Expand-Archive .\agefreighter_v2.0.0_windows_amd64.zip -DestinationPath .\agefreighter
+.\agefreighter\agefreighter.exe version
+```
+
+### Build from source
+
+With the Go version declared in `go.mod` installed:
+
+```sh
+git clone https://github.com/rioriost/agefreighter.git
+cd agefreighter
+git checkout v2.0.0
+make build VERSION=2.0.0
+```
+
+See the [installation guide](docs/reference/installation.md) for archive names,
+checksum and provenance verification, and source-build details.
+
+## Quick Usage
 
 - `agefreighter`: production migration CLI
 - `agefreighter-tools`: fixtures, diagnostics, AI-assisted conversion, and benchmarks
 
-The versioned load-job configuration, offline validation, and static planning
-commands are available:
+Start with the validated example for the source being migrated, copy it to
+`job.yaml`, and replace its source mappings, credential references, and Apache
+AGE target:
+
+| Source | Start from | Usage notes |
+|---|---|---|
+| CSV or other delimited files | [`csv.yaml`](internal/config/testdata/valid/csv.yaml) | Map stable vertex IDs and edge endpoints by column. Comma, tab, or any other supported single-code-point delimiter can be selected globally or per file. |
+| PostgreSQL | [`postgresql.yaml`](internal/config/testdata/valid/postgresql.yaml) | Reference the source DSN through an environment variable and provide ordered SQL vertex and edge queries. `copy` is the default streaming mode; `keyset` provides durable resume for suitable append-only sources. |
+| Neo4j | [`neo4j.yaml`](internal/config/testdata/valid/neo4j.yaml) | Reference Bolt credentials and provide ordered Cypher mappings with stable keys and external IDs, or use [`neo4j-discovery.yaml`](internal/config/testdata/valid/neo4j-discovery.yaml) for bounded automatic graph discovery. |
+| Cosmos DB for NoSQL | [`cosmos.json`](internal/config/testdata/valid/cosmos.json) | Authenticate with `DefaultAzureCredential`, use parameterized cross-partition queries, and map fields with JSON Pointers. For Cosmos Gremlin backing documents, use [`cosmos-gremlin.json`](internal/config/testdata/valid/cosmos-gremlin.json) to discover and interpret the graph automatically. |
+
+Credentials are references to environment variables or files; literal secrets
+are rejected. Export the variables named by the selected job, then validate and
+inspect the execution plan without connecting to the source or target:
 
 ```sh
-go run ./cmd/agefreighter validate ./path/to/job.yaml
-go run ./cmd/agefreighter plan ./path/to/job.yaml
+agefreighter validate job.yaml
+agefreighter plan job.yaml
 ```
 
 CSV, PostgreSQL, Neo4j, and Cosmos DB for NoSQL sources support `create`, atomic
-`replace`, `append`, and `upsert` through the durable lifecycle commands:
+`replace`, `append`, and `upsert`. Run the migration and verify the committed
+graph:
 
 ```sh
 agefreighter load job.yaml
-agefreighter resume --job job.yaml JOB_ID
 agefreighter status --target job.yaml JOB_ID
 agefreighter verify --target job.yaml JOB_ID
-agefreighter cleanup --target job.yaml JOB_ID
 ```
 
-`cleanup` applies only to committed `replace` jobs and removes the retained
-backup graph without removing the active graph.
+If a load fails after committing a resumable checkpoint, continue the same job:
+
+```sh
+agefreighter resume --job job.yaml JOB_ID
+```
+
+For a committed `replace`, remove the retained backup graph when it is no
+longer needed:
+
+```sh
+agefreighter cleanup --target job.yaml JOB_ID
+```
 
 For bounded PoC and evaluation loads, add a `trial` block to a `create` or
 `replace` job. Trial mode selects bounded vertices and emits only edges whose
@@ -84,10 +164,7 @@ Operational logging and OTLP trace export are disabled by default. See the
 [compatibility matrix](docs/reference/compatibility.md) for the supported
 runtime contract.
 
-Release archives, checksum and provenance verification, Homebrew installation,
-and source builds are covered by the
-[installation guide](docs/reference/installation.md). Production procedures
-are in the [operations guide](docs/reference/operations.md).
+Production procedures are in the [operations guide](docs/reference/operations.md).
 
 See the [configuration reference](docs/reference/configuration.md), the
 [architecture research](docs/design/agefreighter-2.0-research.md) and the
