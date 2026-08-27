@@ -504,6 +504,14 @@ bytes, starting with a letter or underscore, ending with a letter, digit, or
 underscore, and containing only letters, digits, underscores, dots, and
 hyphens.
 
+The connector integration contract runs the same ordered mode matrix for every
+source: `create` establishes vertices, edges, endpoints, and properties;
+`replace` swaps the complete graph generation; `append` adds new identities;
+and `upsert` updates existing vertex and edge identities while adding new ones.
+Each phase verifies target counts and graph metadata. PostgreSQL, Neo4j, and
+Cosmos cases additionally assert representative boolean, numeric, collection,
+and structured or source-native property values.
+
 Incremental jobs make conflict handling explicit. `appendDuplicate` defaults
 to `error`; `ignore-identical` permits an append replay only when the existing
 identity, endpoints, and properties are identical. Conflicting duplicates are

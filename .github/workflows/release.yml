@@ -121,7 +121,7 @@ jobs:
     needs: prepare
     runs-on: [self-hosted, linux, x64, agefreighter-azure]
     environment: cosmos-integration
-    timeout-minutes: 35
+    timeout-minutes: 50
     permissions:
       contents: read
       id-token: write
@@ -152,8 +152,9 @@ jobs:
         run: |
           . ./scripts/dev/services.sh
           export AGEFREIGHTER_AGE_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${AGE_PORT}/agefreighter?sslmode=disable"
-          go test ./internal/app -run '^TestCosmosLiveIntegration$' \
-            -count=1 -timeout=25m -v
+          go test ./internal/app \
+            -run '^(TestCosmosLiveIntegration|TestCosmosSourceModeMatrixIntegration)$' \
+            -count=1 -timeout=45m -v
       - name: Stop databases
         if: always()
         env:

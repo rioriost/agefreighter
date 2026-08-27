@@ -39,8 +39,9 @@ set -a
 eval "$(azd env get-values | grep '^AGEFREIGHTER_COSMOS_TEST_')"
 set +a
 export AGEFREIGHTER_AGE_TEST_DSN='postgres://...'
-go test ./internal/app -run '^TestCosmosLiveIntegration$' \
-  -count=1 -timeout=25m -v
+go test ./internal/app \
+  -run '^(TestCosmosLiveIntegration|TestCosmosSourceModeMatrixIntegration)$' \
+  -count=1 -timeout=45m -v
 ```
 
 The test seeds run-scoped documents across several logical partitions and

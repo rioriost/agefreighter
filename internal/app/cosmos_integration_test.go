@@ -251,6 +251,104 @@ func TestCosmosLiveIntegration(t *testing.T) {
 	)
 }
 
+func TestCosmosSourceModeMatrixIntegration(t *testing.T) {
+	endpoint := os.Getenv("AGEFREIGHTER_COSMOS_TEST_ENDPOINT")
+	targetDSN := os.Getenv("AGEFREIGHTER_AGE_TEST_DSN")
+	if endpoint == "" || targetDSN == "" {
+		t.Skip("set AGEFREIGHTER_COSMOS_TEST_ENDPOINT and AGEFREIGHTER_AGE_TEST_DSN")
+	}
+	database := envOrDefault("AGEFREIGHTER_COSMOS_TEST_DATABASE", "agefreighter")
+	vertexContainer := envOrDefault(
+		"AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER",
+		"vertices",
+	)
+	edgeContainer := envOrDefault(
+		"AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER",
+		"edges",
+	)
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Minute)
+	defer cancel()
+	runID, err := newJobID()
+	if err != nil {
+		t.Fatalf("newJobID: %v", err)
+	}
+	seedCosmosSourceModeFixture(
+		t,
+		ctx,
+		endpoint,
+		database,
+		vertexContainer,
+		edgeContainer,
+		runID,
+	)
+
+	graph := fmt.Sprintf("af_cosmos_mode_matrix_%d", time.Now().UnixNano())
+	t.Setenv("AGEFREIGHTER_APP_TEST_DSN", targetDSN)
+	runSourceModeMatrix(
+		t,
+		targetDSN,
+		t.TempDir(),
+		graph,
+		"cosmos",
+		func(mode config.LoadMode, dataset string) config.LoadJob {
+			runParam, err := config.NewCosmosParamValue(runID)
+			if err != nil {
+				t.Fatalf("build Cosmos run parameter: %v", err)
+			}
+			datasetParam, err := config.NewCosmosParamValue(dataset)
+			if err != nil {
+				t.Fatalf("build Cosmos dataset parameter: %v", err)
+			}
+			parameters := []config.CosmosQueryParameter{
+				{Name: "@runId", Value: runParam},
+				{Name: "@dataset", Value: datasetParam},
+			}
+			job := testLoadJob(graph, "unused-vertices", "unused-edges")
+			job.Metadata.Name = "cosmos-matrix-" + dataset
+			job.Target.Mode = mode
+			job.Source = config.Source{
+				Type: config.SourceCosmos, Namespace: "crm",
+				Cosmos: &config.CosmosSource{
+					Endpoint: endpoint, Credential: "default-azure",
+					Database: database, PageSize: 2,
+					Vertices: []config.CosmosVertexQuery{{
+						Container: vertexContainer, Label: "Person",
+						Query: "SELECT * FROM c WHERE c.runId = @runId " +
+							"AND c.dataset = @dataset AND c.kind = 'vertex'",
+						Parameters: parameters, IDField: "/personId",
+						Properties: map[string]string{
+							"name": "/name", "active": "/active", "score": "/score",
+							"tags": "/tags", "profile": "/profile",
+						},
+					}},
+					Edges: []config.CosmosEdgeQuery{{
+						Container: edgeContainer, Label: "KNOWS",
+						Query: "SELECT * FROM c WHERE c.runId = @runId " +
+							"AND c.dataset = @dataset AND c.kind = 'edge'",
+						Parameters: parameters, ExternalIDField: "/relationshipId",
+						Start: config.EndpointMapping{
+							Label: "Person", Field: "/fromId",
+						},
+						End: config.EndpointMapping{
+							Label: "Person", Field: "/toId",
+						},
+						Properties: map[string]string{"weight": "/weight"},
+					}},
+				},
+			}
+			return job
+		},
+		sourceModeTypedExpectations{
+			predicates: []string{
+				"n.active = true",
+				"n.score = 9.5",
+				"n.tags[0] = 'math'",
+				"n.profile.city = 'London'",
+			},
+		},
+	)
+}
+
 func cosmosLiveJob(
 	t *testing.T,
 	graph string,
@@ -308,6 +406,123 @@ func cosmosLiveJob(
 	job.Runtime.BatchBytes = 1 << 20
 	job.Runtime.MemoryLimit = 64 << 20
 	return job
+}
+
+func seedCosmosSourceModeFixture(
+	t *testing.T,
+	ctx context.Context,
+	endpoint string,
+	database string,
+	vertexContainerName string,
+	edgeContainerName string,
+	runID string,
+) {
+	t.Helper()
+	credential, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		t.Fatalf("NewDefaultAzureCredential: %v", err)
+	}
+	client, err := azcosmos.NewClient(endpoint, credential, nil)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	t.Cleanup(client.Close)
+	vertexContainer, err := client.NewContainer(database, vertexContainerName)
+	if err != nil {
+		t.Fatalf("NewContainer(vertices): %v", err)
+	}
+	edgeContainer, err := client.NewContainer(database, edgeContainerName)
+	if err != nil {
+		t.Fatalf("NewContainer(edges): %v", err)
+	}
+
+	vertices := []map[string]any{
+		{
+			"dataset": "create", "personId": "p1", "name": "Ada Create",
+			"active": true, "score": 1.5, "tags": []any{"math"},
+			"profile": map[string]any{"city": "London"},
+		},
+		{
+			"dataset": "create", "personId": "p2", "name": "Grace Create",
+			"active": false, "score": 2.0, "tags": []any{"compiler"},
+			"profile": map[string]any{"city": "New York"},
+		},
+		{
+			"dataset": "replace", "personId": "p1", "name": "Ada Replace",
+			"active": true, "score": 2.5, "tags": []any{"math"},
+			"profile": map[string]any{"city": "London"},
+		},
+		{
+			"dataset": "replace", "personId": "p2", "name": "Grace Replace",
+			"active": false, "score": 3.0, "tags": []any{"compiler"},
+			"profile": map[string]any{"city": "New York"},
+		},
+		{
+			"dataset": "append", "personId": "p3", "name": "Katherine Append",
+			"active": true, "score": 4.5, "tags": []any{"space"},
+			"profile": map[string]any{"city": "Washington"},
+		},
+		{
+			"dataset": "upsert", "personId": "p1", "name": "Ada Upsert",
+			"active": true, "score": 9.5, "tags": []any{"math"},
+			"profile": map[string]any{"city": "London"},
+		},
+		{
+			"dataset": "upsert", "personId": "p4", "name": "Dorothy Upsert",
+			"active": true, "score": 5.5, "tags": []any{"navy"},
+			"profile": map[string]any{"city": "Arlington"},
+		},
+	}
+	edges := []map[string]any{
+		{
+			"dataset": "create", "relationshipId": "e1",
+			"fromId": "p1", "toId": "p2", "weight": int64(1),
+		},
+		{
+			"dataset": "replace", "relationshipId": "e1",
+			"fromId": "p1", "toId": "p2", "weight": int64(2),
+		},
+		{
+			"dataset": "append", "relationshipId": "e2",
+			"fromId": "p2", "toId": "p3", "weight": int64(3),
+		},
+		{
+			"dataset": "upsert", "relationshipId": "e1",
+			"fromId": "p1", "toId": "p4", "weight": int64(9),
+		},
+		{
+			"dataset": "upsert", "relationshipId": "e3",
+			"fromId": "p3", "toId": "p4", "weight": int64(4),
+		},
+	}
+	refs := make([]cosmosFixtureRef, 0, len(vertices)+len(edges))
+	t.Cleanup(func() {
+		deleteCosmosFixture(t, refs)
+	})
+	for index, item := range vertices {
+		id := fmt.Sprintf("%s-mv-%d", runID, index)
+		partition := fmt.Sprintf("%s-mvp-%d", runID, index%3)
+		item["id"] = id
+		item["partitionKey"] = partition
+		item["runId"] = runID
+		item["kind"] = "vertex"
+		refs = append(refs, cosmosFixtureRef{
+			container: vertexContainer, id: id, partition: partition,
+		})
+		upsertCosmosFixture(t, ctx, vertexContainer, partition, item)
+	}
+	for index, item := range edges {
+		id := fmt.Sprintf("%s-me-%d", runID, index)
+		partition := fmt.Sprintf("%s-mep-%d", runID, index%3)
+		item["id"] = id
+		item["partitionKey"] = partition
+		item["runId"] = runID
+		item["kind"] = "edge"
+		refs = append(refs, cosmosFixtureRef{
+			container: edgeContainer, id: id, partition: partition,
+		})
+		upsertCosmosFixture(t, ctx, edgeContainer, partition, item)
+	}
 }
 
 func runPartialCosmosLoad(
