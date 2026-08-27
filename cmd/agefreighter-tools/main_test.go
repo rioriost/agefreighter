@@ -3,12 +3,16 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/rioriost/agefreighter/internal/cli"
+	"github.com/rioriost/agefreighter/internal/tools"
 )
 
 func TestRunVersion(t *testing.T) {
@@ -69,6 +73,44 @@ func TestRunBenchmarkRequiresDSN(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "AGEFREIGHTER_AGE_TEST_DSN is required") {
 		t.Fatalf("run() stderr = %q", stderr.String())
+	}
+}
+
+func TestRunInspect(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	path := filepath.Join("..", "..", "internal", "config", "testdata", "valid", "csv.yaml")
+
+	exitCode := run([]string{"inspect", path}, &stdout, &stderr)
+
+	if exitCode != 0 {
+		t.Fatalf("run() exit code = %d; stderr = %q", exitCode, stderr.String())
+	}
+	var report tools.Inspection
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("decode inspection: %v; output = %q", err, stdout.String())
+	}
+	if report.FormatVersion != tools.InspectionFormatVersion ||
+		report.Source.Type != "csv" ||
+		len(report.Source.VertexMappings) == 0 {
+		t.Fatalf("inspection = %#v", report)
+	}
+}
+
+func TestRunBenchmarkReportFromStandardInput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	command := `{"workload":"vertices","strategy":"direct-text","rows":10,` +
+		`"propertyBytes":4,"elapsedNanos":1000000000,` +
+		`"rowsPerSecond":10,"walBytes":12}`
+
+	root := cli.NewTools(&stdout, &stderr)
+	root.SetIn(strings.NewReader(command))
+	root.AddCommand(tools.NewBenchmarkReportCommand())
+	if err := cli.Execute(root, []string{"benchmark-report", "--format", "markdown"}); err != nil {
+		t.Fatalf("benchmark-report: %v", err)
+	}
+	if !strings.Contains(stdout.String(), "# Benchmark Report") ||
+		!strings.Contains(stdout.String(), "| vertices | 10 | 4 | direct-text | 1 |") {
+		t.Fatalf("benchmark report = %q", stdout.String())
 	}
 }
 

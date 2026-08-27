@@ -507,6 +507,8 @@ The initial missing-endpoint policies are `error` and `quarantine`. The bounded
 
 ### Milestone 11: agefreighter-tools expansion
 
+**Implementation status:** Complete.
+
 **Initial commands**
 
 - source and target inspection

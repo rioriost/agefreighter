@@ -33,6 +33,30 @@ agefreighter cleanup --target job.yaml JOB_ID
 `cleanup` applies only to committed `replace` jobs and removes the retained
 backup graph without removing the active graph.
 
+Inspect a validated job's source mappings and target configuration without
+connecting to either service:
+
+```sh
+agefreighter-tools inspect job.yaml
+```
+
+Inspection output is deterministic JSON. It identifies configured source
+locations, identity/resume fields, endpoint mappings, and target behavior while
+omitting query text, connection strings, credentials, and credential reference
+names.
+
+Normalize one or more `benchmark-age-copy` result streams into a canonical JSON
+or Markdown report:
+
+```sh
+agefreighter-tools benchmark-age-copy > run-1.json
+agefreighter-tools benchmark-report run-1.json run-2.json
+agefreighter-tools benchmark-report --format markdown < results.jsonl
+```
+
+See the [tools reference](docs/reference/tools.md) for inspection and benchmark
+report schemas, validation, aggregation, and input limits.
+
 See the [configuration reference](docs/reference/configuration.md), the
 [architecture research](docs/design/agefreighter-2.0-research.md) and the
 [implementation plan](docs/design/agefreighter-2.0-implementation-plan.md) for

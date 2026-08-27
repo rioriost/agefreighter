@@ -20,7 +20,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 func runContext(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	command := cli.NewTools(stdout, stderr)
 	command.SetContext(ctx)
-	command.AddCommand(tools.NewGenerateCommand(), tools.NewBenchmarkCommand())
+	command.AddCommand(
+		tools.NewGenerateCommand(),
+		tools.NewBenchmarkCommand(),
+		tools.NewBenchmarkReportCommand(),
+		tools.NewInspectCommand(),
+	)
 	if err := cli.Execute(command, args); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
