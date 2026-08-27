@@ -37,6 +37,21 @@ connection:
   file: /run/secrets/age-dsn
 ```
 
+## Runtime concurrency
+
+`maxSourceConcurrency` bounds connector-side source readers where the
+connector can preserve snapshot and resume semantics. `maxTargetConnections`
+bounds the Apache AGE connection pool and must be at least 2.
+
+`maxTransformConcurrency` is fixed at `1`. Record parsing, validation,
+position assignment, malformed-record accounting, and property encoding form
+one ordered connector operation. A 200,000-row CSV-to-AGE profile on the
+release benchmark showed this transform path at 3.45% of sampled CPU time,
+while target I/O and scheduler waits dominated. An ordered worker pool would
+therefore add channels, resequencing buffers, and retained memory without a
+material end-to-end gain. Values above 1 are rejected rather than silently
+ignored.
+
 ## CSV options
 
 CSV files use UTF-8 and default to comma delimiters, double-quote quoting and

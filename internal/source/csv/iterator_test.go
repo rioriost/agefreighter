@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +16,38 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
+
+func BenchmarkEncodeCSVProperties(b *testing.B) {
+	for _, propertyCount := range []int{1, 4, 16, 64} {
+		b.Run(fmt.Sprintf("properties=%d", propertyCount), func(b *testing.B) {
+			properties := make([]compiledProperty, propertyCount)
+			fields := make([]string, propertyCount)
+			for index := range propertyCount {
+				name := fmt.Sprintf("property_%02d", index)
+				properties[index] = compiledProperty{
+					name:        name,
+					encodedName: []byte(strconv.Quote(name)),
+					index:       index,
+				}
+				fields[index] = fmt.Sprintf("value_%02d", index)
+			}
+			ctx := context.Background()
+			b.ReportAllocs()
+			b.ReportMetric(float64(propertyCount), "properties/op")
+			b.ResetTimer()
+			for range b.N {
+				if _, err := encodeCSVProperties(
+					ctx,
+					properties,
+					fields,
+					"",
+				); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
 
 func TestIteratorVerticesBeforeEdgesAndResume(t *testing.T) {
 	directory := t.TempDir()

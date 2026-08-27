@@ -760,7 +760,9 @@ func validateRuntime(runtime Runtime, errs *ValidationErrors) {
 	add(runtime.BatchBytes <= runtime.MemoryLimit, "runtime.batchBytes", "range",
 		"must not exceed memoryLimit")
 	validateConcurrency(runtime.MaxSourceConcurrency, "runtime.maxSourceConcurrency", errs)
-	validateConcurrency(runtime.MaxTransformConcurrency, "runtime.maxTransformConcurrency", errs)
+	add(runtime.MaxTransformConcurrency == 1,
+		"runtime.maxTransformConcurrency", "unsupported",
+		"must be 1; connector transforms are ordered and execute within source iteration")
 	validateConcurrency(runtime.MaxTargetConnections, "runtime.maxTargetConnections", errs)
 	add(runtime.MaxTargetConnections >= 2, "runtime.maxTargetConnections", "range",
 		"must be at least 2 for AGE loading")

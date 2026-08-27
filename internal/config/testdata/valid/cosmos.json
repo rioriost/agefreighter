@@ -67,7 +67,7 @@
     "batchRows": 5000,
     "batchBytes": "8MiB",
     "maxSourceConcurrency": 4,
-    "maxTransformConcurrency": 4,
+    "maxTransformConcurrency": 1,
     "maxTargetConnections": 2,
     "operationTimeout": "1m"
   },

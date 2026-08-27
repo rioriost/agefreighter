@@ -44,7 +44,7 @@ runtime:
   batchRows: 10000
   batchBytes: 16MiB
   maxSourceConcurrency: 2
-  maxTransformConcurrency: 4
+  maxTransformConcurrency: 1
   maxTargetConnections: 2
   operationTimeout: 30s
 errors:

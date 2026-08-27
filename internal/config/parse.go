@@ -151,7 +151,7 @@ func (job *LoadJob) applyDefaults() {
 		job.Runtime.MaxSourceConcurrency = 4
 	}
 	if job.Runtime.MaxTransformConcurrency == 0 {
-		job.Runtime.MaxTransformConcurrency = 4
+		job.Runtime.MaxTransformConcurrency = 1
 	}
 	if job.Runtime.MaxTargetConnections == 0 {
 		job.Runtime.MaxTargetConnections = 4

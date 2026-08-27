@@ -160,6 +160,12 @@ func TestDefaults(t *testing.T) {
 	if job.Runtime.OperationTimeout.String() != "30s" {
 		t.Fatalf("Runtime.OperationTimeout = %s, want 30s", job.Runtime.OperationTimeout)
 	}
+	if job.Runtime.MaxTransformConcurrency != 1 {
+		t.Fatalf(
+			"Runtime.MaxTransformConcurrency = %d, want 1",
+			job.Runtime.MaxTransformConcurrency,
+		)
+	}
 	if job.Target.AppendDuplicate != AppendDuplicateError {
 		t.Fatalf(
 			"Target.AppendDuplicate = %q, want error",

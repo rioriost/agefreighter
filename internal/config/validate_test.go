@@ -42,6 +42,11 @@ func TestValidationErrors(t *testing.T) {
 			path: "runtime.maxTargetConnections",
 		},
 		{
+			name: "transform concurrency",
+			edit: func(job *LoadJob) { job.Runtime.MaxTransformConcurrency = 2 },
+			path: "runtime.maxTransformConcurrency [unsupported]",
+		},
+		{
 			name: "quarantine path",
 			edit: func(job *LoadJob) { job.Errors.QuarantinePath = "" },
 			path: "errors.quarantinePath",

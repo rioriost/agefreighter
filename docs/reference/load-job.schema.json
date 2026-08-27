@@ -1053,7 +1053,7 @@
           "$ref": "#/$defs/concurrency"
         },
         "maxTransformConcurrency": {
-          "$ref": "#/$defs/concurrency"
+          "const": 1
         },
         "maxTargetConnections": {
           "type": "integer",
