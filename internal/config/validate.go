@@ -57,6 +57,7 @@ func (job LoadJob) Validate() error {
 	validateSource(job.Source, &errs)
 	validateTarget(job.Target, &errs)
 	validateRuntime(job.Runtime, &errs)
+	validateTrial(job.Trial, job.Source, job.Target, job.Runtime, &errs)
 	validateErrorPolicies(job.Errors, &errs)
 	if job.Errors.MissingEndpoint == MissingEndpointDefer {
 		add(
@@ -80,6 +81,97 @@ func (job LoadJob) Validate() error {
 		return errs
 	}
 	return nil
+}
+
+func validateTrial(
+	trial *TrialOptions,
+	source Source,
+	target Target,
+	runtime Runtime,
+	errs *ValidationErrors,
+) {
+	if trial == nil {
+		return
+	}
+	add := validationAdder(errs)
+	add(trial.Enabled, "trial.enabled", "required",
+		"must be true when the trial block is present")
+	add(trial.MaxVerticesPerLabel >= 1 &&
+		trial.MaxVerticesPerLabel <= 100_000,
+		"trial.maxVerticesPerLabel", "range",
+		"must be from 1 to 100000")
+	add(trial.MaxVertices >= 1 && trial.MaxVertices <= 1_000_000,
+		"trial.maxVertices", "range",
+		"must be from 1 to 1000000")
+	add(trial.MaxVerticesPerLabel <= trial.MaxVertices,
+		"trial.maxVerticesPerLabel", "range",
+		"must not exceed maxVertices")
+	add(trial.MaxEdges >= 1 && trial.MaxEdges <= 1_000_000,
+		"trial.maxEdges", "range",
+		"must be from 1 to 1000000")
+	add(trial.MaxBytes > 0, "trial.maxBytes", "range",
+		"must be positive")
+	add(trial.MaxBytes <= runtime.MemoryLimit, "trial.maxBytes", "range",
+		"must not exceed runtime.memoryLimit")
+	add(target.Mode == LoadCreate || target.Mode == LoadReplace,
+		"trial", "policy",
+		"is supported only with create or replace")
+
+	available := configuredVertexLabels(source)
+	seen := make(map[string]bool, len(trial.IncludeLabels))
+	for index, label := range trial.IncludeLabels {
+		path := fmt.Sprintf("trial.includeLabels[%d]", index)
+		add(label != "", path, "required", "must not be empty")
+		add(!seen[label], path, "duplicate", "must be unique")
+		add(available[label], path, "unknown",
+			"must match a configured vertex label")
+		seen[label] = true
+	}
+	if source.Type == SourceCosmos && source.Cosmos != nil {
+		for index, mapping := range source.Cosmos.Vertices {
+			add(sqlquery.HasTopLevelOrderBy(mapping.Query),
+				fmt.Sprintf("source.cosmos.vertices[%d].query", index),
+				"ordering",
+				"must contain ORDER BY on a stable unique key in trial mode")
+		}
+		for index, mapping := range source.Cosmos.Edges {
+			add(sqlquery.HasTopLevelOrderBy(mapping.Query),
+				fmt.Sprintf("source.cosmos.edges[%d].query", index),
+				"ordering",
+				"must contain ORDER BY on a stable unique key in trial mode")
+		}
+	}
+}
+
+func configuredVertexLabels(source Source) map[string]bool {
+	labels := make(map[string]bool)
+	switch source.Type {
+	case SourceCSV:
+		if source.CSV != nil {
+			for _, mapping := range source.CSV.Vertices {
+				labels[mapping.Label] = true
+			}
+		}
+	case SourcePostgreSQL:
+		if source.PostgreSQL != nil {
+			for _, mapping := range source.PostgreSQL.Vertices {
+				labels[mapping.Label] = true
+			}
+		}
+	case SourceNeo4j:
+		if source.Neo4j != nil {
+			for _, mapping := range source.Neo4j.Vertices {
+				labels[mapping.Label] = true
+			}
+		}
+	case SourceCosmos:
+		if source.Cosmos != nil {
+			for _, mapping := range source.Cosmos.Vertices {
+				labels[mapping.Label] = true
+			}
+		}
+	}
+	return labels
 }
 
 func validateSource(source Source, errs *ValidationErrors) {

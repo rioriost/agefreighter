@@ -1284,7 +1284,14 @@ func assertLoadSinkRows(
 		ctx,
 		`SELECT start_graph_id, end_graph_id
 		 FROM agefreighter_meta.edge_identity
-		 WHERE source_namespace = 'crm' AND external_id = 'e2'`,
+		 WHERE graph_generation_id = (
+		       SELECT graph_generation_id
+		       FROM agefreighter_meta.graph_generation
+		       WHERE job_id = $1::uuid
+		 )
+		   AND source_namespace = 'crm'
+		   AND external_id = 'e2'`,
+		jobID,
 	).Scan(&startID, &endID); err != nil {
 		t.Fatalf("query self-loop identity: %v", err)
 	}

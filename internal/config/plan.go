@@ -1,13 +1,24 @@
 package config
 
+import "slices"
+
 type StaticPlan struct {
 	APIVersion string       `json:"apiVersion"`
 	Job        string       `json:"job"`
 	Source     PlanSource   `json:"source"`
 	Target     PlanTarget   `json:"target"`
+	Trial      *PlanTrial   `json:"trial,omitempty"`
 	Limits     PlanLimits   `json:"limits"`
 	Policies   PlanPolicies `json:"policies"`
 	Warnings   []string     `json:"warnings,omitempty"`
+}
+
+type PlanTrial struct {
+	MaxVerticesPerLabel int      `json:"maxVerticesPerLabel"`
+	MaxVertices         int      `json:"maxVertices"`
+	MaxEdges            int      `json:"maxEdges"`
+	MaxBytes            string   `json:"maxBytes"`
+	IncludeLabels       []string `json:"includeLabels,omitempty"`
 }
 
 type PlanSource struct {
@@ -74,6 +85,17 @@ func BuildStaticPlan(job LoadJob) StaticPlan {
 			RejectLimit:      job.Errors.RejectLimit,
 			MaxDeferredEdges: job.Errors.MaxDeferredEdges,
 		},
+	}
+	if job.Trial != nil && job.Trial.Enabled {
+		plan.Trial = &PlanTrial{
+			MaxVerticesPerLabel: job.Trial.MaxVerticesPerLabel,
+			MaxVertices:         job.Trial.MaxVertices,
+			MaxEdges:            job.Trial.MaxEdges,
+			MaxBytes:            job.Trial.MaxBytes.String(),
+			IncludeLabels:       slices.Clone(job.Trial.IncludeLabels),
+		}
+		plan.Warnings = append(plan.Warnings,
+			"trial mode is deterministic, non-resumable, and emits only edges between selected vertices")
 	}
 	if job.Source.Type == SourcePostgreSQL && job.Source.PostgreSQL != nil {
 		plan.Source.PostgreSQLReadMode = job.Source.PostgreSQL.ReadMode

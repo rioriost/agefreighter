@@ -137,6 +137,71 @@ func TestDefaults(t *testing.T) {
 	}
 }
 
+func TestTrialDefaultsAndStaticPlan(t *testing.T) {
+	job := validCSVJob(t)
+	job.Trial = &TrialOptions{Enabled: true}
+	job.applyDefaults()
+
+	if job.Trial.MaxVerticesPerLabel != 1_000 ||
+		job.Trial.MaxVertices != 10_000 ||
+		job.Trial.MaxEdges != 10_000 ||
+		job.Trial.MaxBytes != 64*mebibyte {
+		t.Fatalf("trial defaults = %#v", job.Trial)
+	}
+	if err := job.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+	plan := BuildStaticPlan(job)
+	if plan.Trial == nil ||
+		plan.Trial.MaxVertices != 10_000 ||
+		plan.Trial.MaxBytes != "64MiB" ||
+		len(plan.Warnings) == 0 ||
+		!strings.Contains(plan.Warnings[0], "non-resumable") {
+		t.Fatalf("trial plan = %#v", plan)
+	}
+}
+
+func TestTrialSupportsEveryConfiguredSource(t *testing.T) {
+	for _, path := range []string{
+		"testdata/valid/csv.yaml",
+		"testdata/valid/postgresql.yaml",
+		"testdata/valid/neo4j.yaml",
+		"testdata/valid/cosmos.json",
+	} {
+		t.Run(filepath.Base(path), func(t *testing.T) {
+			job, err := Load(path)
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			job.Target.Mode = LoadCreate
+			job.Target.AppendDuplicate = ""
+			job.Errors.MissingEndpoint = MissingEndpointError
+			if job.Source.Cosmos != nil {
+				for index := range job.Source.Cosmos.Vertices {
+					job.Source.Cosmos.Vertices[index].Query += " ORDER BY c.id"
+				}
+				for index := range job.Source.Cosmos.Edges {
+					job.Source.Cosmos.Edges[index].Query += " ORDER BY c.id"
+				}
+			}
+			labels := configuredVertexLabels(job.Source)
+			var include string
+			for label := range labels {
+				include = label
+				break
+			}
+			job.Trial = &TrialOptions{
+				Enabled:       true,
+				IncludeLabels: []string{include},
+			}
+			job.applyDefaults()
+			if err := job.Validate(); err != nil {
+				t.Fatalf("Validate() error = %v", err)
+			}
+		})
+	}
+}
+
 func TestPostgreSQLStaticPlan(t *testing.T) {
 	job, err := Load("testdata/valid/postgresql.yaml")
 	if err != nil {

@@ -227,8 +227,9 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 		setPosition(&record, position)
 		iterator.lastPosition = position
 		return sourcecontract.Item{
-			Record:    record,
-			SizeBytes: saturatingAdd(size, page.pageBytes),
+			Record:      record,
+			SampleBytes: size,
+			SizeBytes:   saturatingAdd(size, page.pageBytes),
 		}, nil
 	}
 }

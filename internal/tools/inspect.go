@@ -10,11 +10,12 @@ import (
 const InspectionFormatVersion = 1
 
 type Inspection struct {
-	FormatVersion int              `json:"formatVersion"`
-	Job           string           `json:"job"`
-	Source        SourceInspection `json:"source"`
-	Target        TargetInspection `json:"target"`
-	Warnings      []string         `json:"warnings,omitempty"`
+	FormatVersion int               `json:"formatVersion"`
+	Job           string            `json:"job"`
+	Source        SourceInspection  `json:"source"`
+	Target        TargetInspection  `json:"target"`
+	Trial         *config.PlanTrial `json:"trial,omitempty"`
+	Warnings      []string          `json:"warnings,omitempty"`
 }
 
 type SourceInspection struct {
@@ -82,6 +83,7 @@ func BuildInspection(job config.LoadJob) Inspection {
 			AppendDuplicate: job.Target.AppendDuplicate,
 			Connection:      secretKind(job.Target.Connection),
 		},
+		Trial:    plan.Trial,
 		Warnings: slices.Clone(plan.Warnings),
 	}
 	switch job.Source.Type {

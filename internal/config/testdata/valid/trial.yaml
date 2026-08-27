@@ -1,0 +1,57 @@
+apiVersion: agefreighter.io/v2
+kind: LoadJob
+metadata:
+  name: trial-people
+trial:
+  enabled: true
+  maxVerticesPerLabel: 2
+  maxVertices: 4
+  maxEdges: 3
+  maxBytes: 1MiB
+  includeLabels:
+    - Person
+source:
+  type: csv
+  namespace: crm
+  csv:
+    defaults:
+      delimiter: ","
+      quote: '"'
+      escape: '"'
+      header: true
+      encoding: utf-8
+      nullValue: ""
+    vertices:
+      - label: Person
+        path: people.csv
+        idColumn: person_id
+        properties:
+          name: full_name
+    edges:
+      - label: KNOWS
+        path: knows.csv
+        externalIdColumn: relationship_id
+        start:
+          label: Person
+          field: from_id
+        end:
+          label: Person
+          field: to_id
+target:
+  type: apache-age
+  graph: trial_graph
+  mode: create
+  connection:
+    env: AGEFREIGHTER_TARGET_DSN
+  propertyMode: replace
+runtime:
+  memoryLimit: 16MiB
+  batchRows: 1000
+  batchBytes: 1MiB
+  maxSourceConcurrency: 1
+  maxTransformConcurrency: 1
+  maxTargetConnections: 2
+  operationTimeout: 30s
+errors:
+  malformedRecord: fail
+  missingEndpoint: error

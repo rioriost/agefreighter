@@ -20,6 +20,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/pipeline"
 	"github.com/rioriost/agefreighter/internal/reject"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
+	"github.com/rioriost/agefreighter/pkg/model"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -28,10 +29,11 @@ import (
 const maxSecretBytes = 1 << 20
 
 type LoadResult struct {
-	JobID           string                    `json:"jobId"`
-	Status          meta.JobStatus            `json:"status"`
-	Metrics         pipeline.MetricsSnapshot  `json:"metrics"`
-	SourceTelemetry *sourcecontract.Telemetry `json:"sourceTelemetry,omitempty"`
+	JobID           string                       `json:"jobId"`
+	Status          meta.JobStatus               `json:"status"`
+	Metrics         pipeline.MetricsSnapshot     `json:"metrics"`
+	SourceTelemetry *sourcecontract.Telemetry    `json:"sourceTelemetry,omitempty"`
+	Trial           *sourcecontract.TrialSummary `json:"trial,omitempty"`
 }
 
 func Load(ctx context.Context, path string) (LoadResult, error) {
@@ -138,6 +140,7 @@ func execute(
 			attribute.String("target.type", string(job.Target.Type)),
 			attribute.String("load.mode", string(job.Target.Mode)),
 			attribute.Bool("load.resume", resume),
+			attribute.Bool("load.trial", job.Trial != nil && job.Trial.Enabled),
 		),
 	)
 	defer func() {
@@ -159,6 +162,11 @@ func execute(
 		return result, fmt.Errorf(
 			"load mode %q is not implemented",
 			job.Target.Mode,
+		)
+	}
+	if resume && job.Trial != nil && job.Trial.Enabled {
+		return result, errors.New(
+			"trial jobs cannot be resumed; start a new load instead",
 		)
 	}
 	if _, err := newPipelineRunner(job, 1, 1); err != nil {
@@ -276,9 +284,33 @@ func execute(
 			resultErr = errors.Join(resultErr, quarantine.Close())
 		}()
 	}
-	iterator, err := newSourceIterator(ctx, job, storedJob.ResumeToken, quarantine)
+	baseIterator, err := newSourceIterator(
+		ctx,
+		job,
+		storedJob.ResumeToken,
+		quarantine,
+	)
 	if err != nil {
 		return result, recordFailure(err)
+	}
+	iterator := baseIterator
+	var trialIterator *sourcecontract.TrialIterator
+	if job.Trial != nil && job.Trial.Enabled {
+		trialIterator, err = sourcecontract.NewTrialIterator(
+			baseIterator,
+			sourcecontract.TrialOptions{
+				MaxVerticesPerLabel: int64(job.Trial.MaxVerticesPerLabel),
+				MaxVertices:         int64(job.Trial.MaxVertices),
+				MaxEdges:            int64(job.Trial.MaxEdges),
+				MaxBytes:            int64(job.Trial.MaxBytes),
+				IncludeLabels:       trialLabels(job.Trial.IncludeLabels),
+			},
+		)
+		if err != nil {
+			_ = baseIterator.Close()
+			return result, recordFailure(err)
+		}
+		iterator = trialIterator
 	}
 	runner, err := newPipelineRunner(job, storedJob.NextBatchID, initialAttempt)
 	if err != nil {
@@ -304,7 +336,7 @@ func execute(
 	if err := runner.Run(ctx, iterator, target); err != nil {
 		return result, recordFailure(err)
 	}
-	sourceRejected, sourcePosition := sourceRejectionCheckpoint(iterator)
+	sourceRejected, sourcePosition := sourceRejectionCheckpoint(baseIterator)
 	if err := store.SetSourceRejections(
 		ctx,
 		jobID,
@@ -334,17 +366,40 @@ func execute(
 	if completeErr != nil {
 		current, currentErr := store.GetJob(ctx, jobID)
 		if currentErr == nil && current.Status == meta.JobCommitted {
-			return LoadResult{
+			result := LoadResult{
 				JobID: jobID, Status: meta.JobCommitted, Metrics: runner.Snapshot(),
-				SourceTelemetry: sourceTelemetry(iterator),
-			}, nil
+				SourceTelemetry: sourceTelemetry(baseIterator),
+			}
+			setTrialSummary(&result, trialIterator)
+			return result, nil
 		}
 		return result, recordFailure(completeErr)
 	}
-	return LoadResult{
+	result = LoadResult{
 		JobID: jobID, Status: meta.JobCommitted, Metrics: runner.Snapshot(),
-		SourceTelemetry: sourceTelemetry(iterator),
-	}, nil
+		SourceTelemetry: sourceTelemetry(baseIterator),
+	}
+	setTrialSummary(&result, trialIterator)
+	return result, nil
+}
+
+func trialLabels(labels []string) []model.Label {
+	result := make([]model.Label, len(labels))
+	for index, label := range labels {
+		result[index] = model.Label(label)
+	}
+	return result
+}
+
+func setTrialSummary(
+	result *LoadResult,
+	iterator *sourcecontract.TrialIterator,
+) {
+	if iterator == nil {
+		return
+	}
+	summary := iterator.Summary()
+	result.Trial = &summary
 }
 
 func incrementalMode(mode config.LoadMode) bool {

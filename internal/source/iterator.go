@@ -9,6 +9,11 @@ import (
 type Item struct {
 	Record model.Record
 
+	// SampleBytes is the estimated logical size used by trial migration
+	// budgets. Zero uses SizeBytes. Connectors set it when SizeBytes includes
+	// shared buffers that are intentionally charged to multiple records.
+	SampleBytes int64
+
 	// SizeBytes is the retained heap size of the record and any source buffers
 	// that remain live until the target commits it. The pipeline adds its own
 	// per-record container overhead to this value.

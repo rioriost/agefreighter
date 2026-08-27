@@ -13,10 +13,20 @@ import (
 
 func TestBuildInspectionCSVDoesNotExposeSecrets(t *testing.T) {
 	job := inspectionJob()
+	job.Trial = &config.TrialOptions{
+		Enabled:             true,
+		MaxVerticesPerLabel: 2,
+		MaxVertices:         4,
+		MaxEdges:            3,
+		MaxBytes:            1 << 20,
+		IncludeLabels:       []string{"Person"},
+	}
 	report := BuildInspection(job)
 
 	if report.FormatVersion != InspectionFormatVersion ||
 		report.Job != "inspect-test" ||
+		report.Trial == nil ||
+		report.Trial.MaxVertices != 4 ||
 		report.Source.Type != config.SourceCSV ||
 		report.Source.Consistency != "files-at-open-time" {
 		t.Fatalf("BuildInspection() = %#v", report)

@@ -21,6 +21,10 @@ The source section includes:
 - source locations such as CSV paths or Cosmos container names;
 - identity, resume-key, endpoint, and property source fields.
 
+When trial migration is enabled, inspection also includes the normalized
+`trial` limits and optional included labels. Its warnings identify trial jobs
+as deterministic and non-resumable.
+
 The target section includes the graph, load mode, property policy, duplicate
 policy, and whether the connection is supplied by an environment variable or a
 file.

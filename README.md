@@ -33,6 +33,11 @@ agefreighter cleanup --target job.yaml JOB_ID
 `cleanup` applies only to committed `replace` jobs and removes the retained
 backup graph without removing the active graph.
 
+For bounded PoC and evaluation loads, add a `trial` block to a `create` or
+`replace` job. Trial mode selects bounded vertices and emits only edges whose
+endpoints were selected; trial jobs are intentionally non-resumable. See the
+[configuration reference](docs/reference/configuration.md#trial-migrations).
+
 Inspect a validated job's source mappings and target configuration without
 connecting to either service:
 

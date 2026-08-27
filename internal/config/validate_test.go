@@ -117,6 +117,72 @@ func TestValidationErrors(t *testing.T) {
 			edit: func(job *LoadJob) { job.Errors.MalformedRecord = MalformedFail },
 			path: "errors.rejectLimit",
 		},
+		{
+			name: "trial must be enabled",
+			edit: func(job *LoadJob) {
+				job.Trial = &TrialOptions{
+					MaxVerticesPerLabel: 1,
+					MaxVertices:         1,
+					MaxEdges:            1,
+					MaxBytes:            1,
+				}
+			},
+			path: "trial.enabled",
+		},
+		{
+			name: "trial per-label limit",
+			edit: func(job *LoadJob) {
+				job.Trial = &TrialOptions{
+					Enabled:             true,
+					MaxVerticesPerLabel: 2,
+					MaxVertices:         1,
+					MaxEdges:            1,
+					MaxBytes:            1,
+				}
+			},
+			path: "trial.maxVerticesPerLabel",
+		},
+		{
+			name: "trial memory limit",
+			edit: func(job *LoadJob) {
+				job.Trial = &TrialOptions{
+					Enabled:             true,
+					MaxVerticesPerLabel: 1,
+					MaxVertices:         1,
+					MaxEdges:            1,
+					MaxBytes:            job.Runtime.MemoryLimit + 1,
+				}
+			},
+			path: "trial.maxBytes",
+		},
+		{
+			name: "trial incremental mode",
+			edit: func(job *LoadJob) {
+				job.Target.Mode = LoadAppend
+				job.Trial = &TrialOptions{
+					Enabled:             true,
+					MaxVerticesPerLabel: 1,
+					MaxVertices:         1,
+					MaxEdges:            1,
+					MaxBytes:            1,
+				}
+			},
+			path: "trial [policy]",
+		},
+		{
+			name: "trial unknown label",
+			edit: func(job *LoadJob) {
+				job.Trial = &TrialOptions{
+					Enabled:             true,
+					MaxVerticesPerLabel: 1,
+					MaxVertices:         1,
+					MaxEdges:            1,
+					MaxBytes:            1,
+					IncludeLabels:       []string{"Unknown"},
+				}
+			},
+			path: "trial.includeLabels[0]",
+		},
 	}
 
 	for _, test := range tests {
@@ -507,6 +573,27 @@ func TestBuildStaticPlanWarnings(t *testing.T) {
 	}
 	if plan.Limits.MemoryLimit != "1GiB" || plan.Target.Mode != LoadUpsert {
 		t.Fatalf("BuildStaticPlan() = %#v, want configured limits and mode", plan)
+	}
+}
+
+func TestCosmosTrialRequiresDeterministicQueries(t *testing.T) {
+	job, err := Load("testdata/valid/cosmos.json")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	job.Target.Mode = LoadCreate
+	job.Errors.MissingEndpoint = MissingEndpointError
+	job.Trial = &TrialOptions{Enabled: true}
+	job.applyDefaults()
+
+	err = job.Validate()
+
+	if err == nil ||
+		!strings.Contains(
+			err.Error(),
+			"source.cosmos.vertices[0].query [ordering]",
+		) {
+		t.Fatalf("Validate() error = %v", err)
 	}
 }
 

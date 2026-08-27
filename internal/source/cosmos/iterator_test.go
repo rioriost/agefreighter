@@ -769,6 +769,13 @@ func TestIteratorSizeBytesScalesWithRetainedPage(t *testing.T) {
 			smallItem.SizeBytes, largeItem.SizeBytes,
 		)
 	}
+	if largeItem.SampleBytes != smallItem.SampleBytes {
+		t.Errorf(
+			"SampleBytes included shared page memory: small=%d large=%d",
+			smallItem.SampleBytes,
+			largeItem.SampleBytes,
+		)
+	}
 }
 
 func TestIteratorRejectsInvalidOptions(t *testing.T) {

@@ -76,10 +76,20 @@ type LoadJob struct {
 	APIVersion string        `json:"apiVersion" yaml:"apiVersion"`
 	Kind       string        `json:"kind" yaml:"kind"`
 	Metadata   Metadata      `json:"metadata" yaml:"metadata"`
+	Trial      *TrialOptions `json:"trial,omitempty" yaml:"trial,omitempty"`
 	Source     Source        `json:"source" yaml:"source"`
 	Target     Target        `json:"target" yaml:"target"`
 	Runtime    Runtime       `json:"runtime" yaml:"runtime"`
 	Errors     ErrorPolicies `json:"errors" yaml:"errors"`
+}
+
+type TrialOptions struct {
+	Enabled             bool     `json:"enabled" yaml:"enabled"`
+	MaxVerticesPerLabel int      `json:"maxVerticesPerLabel" yaml:"maxVerticesPerLabel"`
+	MaxVertices         int      `json:"maxVertices" yaml:"maxVertices"`
+	MaxEdges            int      `json:"maxEdges" yaml:"maxEdges"`
+	MaxBytes            ByteSize `json:"maxBytes" yaml:"maxBytes"`
+	IncludeLabels       []string `json:"includeLabels,omitempty" yaml:"includeLabels,omitempty"`
 }
 
 type Metadata struct {

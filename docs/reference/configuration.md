@@ -311,6 +311,46 @@ repeatable migration. Diagnostics expose only a hash-derived continuation
 identifier, never the full continuation token, access token, authorization
 header, account key, or source document.
 
+## Trial migrations
+
+Trial mode creates a deterministic, bounded PoC/Evaluation graph without
+requiring connector-specific query changes:
+
+```yaml
+trial:
+  enabled: true
+  maxVerticesPerLabel: 1000
+  maxVertices: 10000
+  maxEdges: 10000
+  maxBytes: 64MiB
+  includeLabels:
+    - Person
+    - Organization
+```
+
+The limits default to the values shown, except `maxBytes`, which is capped by
+`runtime.memoryLimit`. Vertices are selected in configured source order, first
+by the per-label limit and then by the total limit. The source is then scanned
+for edges whose start and end identities are both among the selected vertices.
+This endpoint-closure rule ensures trial mode never creates a dangling edge.
+`includeLabels` optionally restricts vertex selection to configured labels.
+
+Trial mode works identically for CSV, PostgreSQL, Neo4j, and Cosmos DB sources.
+It is intentionally restricted to `create` and `replace`: sampling an
+incremental load could silently produce an incomplete update. Trial jobs are
+also non-resumable. After a failure, start a new trial load; removing or changing
+the trial block changes the job fingerprint.
+
+Cosmos trial queries must contain `ORDER BY` on a stable unique key, normally
+the document ID. The source dataset must remain unchanged for the duration of
+the load. This makes first-N selection repeatable across continuation pages.
+
+The load command's JSON result includes selected counts per label, total
+vertices, edges and estimated logical record bytes, skipped counts, and every
+limit reached. `maxBytes` bounds selected decoded record data rather than
+connector page buffers; the vertex identity index is additionally bounded by
+`maxVertices`.
+
 ## Load modes
 
 The target modes are `create`, `replace`, `append`, and `upsert`. CSV,

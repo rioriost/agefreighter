@@ -144,6 +144,20 @@ func (job *LoadJob) applyDefaults() {
 	if job.Runtime.OperationTimeout == 0 {
 		job.Runtime.OperationTimeout = Duration(30 * time.Second)
 	}
+	if job.Trial != nil && job.Trial.Enabled {
+		if job.Trial.MaxVertices == 0 {
+			job.Trial.MaxVertices = 10_000
+		}
+		if job.Trial.MaxVerticesPerLabel == 0 {
+			job.Trial.MaxVerticesPerLabel = min(job.Trial.MaxVertices, 1_000)
+		}
+		if job.Trial.MaxEdges == 0 {
+			job.Trial.MaxEdges = 10_000
+		}
+		if job.Trial.MaxBytes == 0 {
+			job.Trial.MaxBytes = min(job.Runtime.MemoryLimit, 64*mebibyte)
+		}
+	}
 	if job.Errors.MalformedRecord == "" {
 		job.Errors.MalformedRecord = MalformedFail
 	}
