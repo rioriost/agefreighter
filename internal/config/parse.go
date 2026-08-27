@@ -148,7 +148,7 @@ func (job *LoadJob) applyDefaults() {
 		job.Runtime.BatchBytes = 16 * mebibyte
 	}
 	if job.Runtime.MaxSourceConcurrency == 0 {
-		job.Runtime.MaxSourceConcurrency = 4
+		job.Runtime.MaxSourceConcurrency = 1
 	}
 	if job.Runtime.MaxTransformConcurrency == 0 {
 		job.Runtime.MaxTransformConcurrency = 1

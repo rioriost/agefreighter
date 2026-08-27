@@ -759,7 +759,9 @@ func validateRuntime(runtime Runtime, errs *ValidationErrors) {
 	add(runtime.BatchBytes > 0, "runtime.batchBytes", "range", "must be positive")
 	add(runtime.BatchBytes <= runtime.MemoryLimit, "runtime.batchBytes", "range",
 		"must not exceed memoryLimit")
-	validateConcurrency(runtime.MaxSourceConcurrency, "runtime.maxSourceConcurrency", errs)
+	add(runtime.MaxSourceConcurrency == 1,
+		"runtime.maxSourceConcurrency", "unsupported",
+		"must be 1; connectors preserve ordered checkpoint and resume semantics")
 	add(runtime.MaxTransformConcurrency == 1,
 		"runtime.maxTransformConcurrency", "unsupported",
 		"must be 1; connector transforms are ordered and execute within source iteration")

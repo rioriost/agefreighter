@@ -43,7 +43,7 @@ runtime:
   memoryLimit: 1GiB
   batchRows: 10000
   batchBytes: 16MiB
-  maxSourceConcurrency: 2
+  maxSourceConcurrency: 1
   maxTransformConcurrency: 1
   maxTargetConnections: 2
   operationTimeout: 30s

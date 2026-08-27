@@ -39,9 +39,18 @@ connection:
 
 ## Runtime concurrency
 
-`maxSourceConcurrency` bounds connector-side source readers where the
-connector can preserve snapshot and resume semantics. `maxTargetConnections`
-bounds the Apache AGE connection pool and must be at least 2.
+`maxSourceConcurrency` is fixed at `1`. Every connector assigns checkpoints,
+malformed-record counts, and resume positions in source order. CSV and Cosmos
+also depend on sequential file/page state; Neo4j does not provide one shared
+snapshot across mapping queries; PostgreSQL can share an exported snapshot,
+but emitting mappings concurrently would require retaining and resequencing an
+unbounded later mapping. A five-run 200,000-row CSV-to-AGE comparison measured
+median throughput of 203,347 rows/s at 1, 195,547 at 2, and 193,461 at 4; the
+higher values only enlarged the record channel because no additional reader
+was started. Values above 1 are rejected rather than silently ignored.
+
+`maxTargetConnections` bounds the Apache AGE connection pool and must be at
+least 2.
 
 `maxTransformConcurrency` is fixed at `1`. Record parsing, validation,
 position assignment, malformed-record accounting, and property encoding form
@@ -98,8 +107,8 @@ manifest.
 
 PostgreSQL sources use a referenced libpq connection string and execute every
 mapping against one exported `REPEATABLE READ`, read-only snapshot. The
-snapshot-exporting transaction remains open until the iterator closes. Reader
-transactions import that snapshot before executing any source query, so
+snapshot-exporting transaction remains open until the iterator closes. The
+reader transaction imports that snapshot before executing its source query, so
 vertices and edges observe one point in time even when the source is changing.
 
 ```yaml
@@ -182,9 +191,8 @@ database's xmin horizon until the load closes, so long migrations can delay
 vacuum cleanup. Configure `idle_in_transaction_session_timeout` above the
 maximum job duration. PgBouncer transaction-pooling mode cannot preserve the
 required session and transaction semantics; connect directly or use
-session-pooling mode. The coordinator supports bounded concurrent snapshot
-readers, while the 2.0.0 iterator processes configured mappings sequentially
-to preserve vertex-before-edge order.
+session-pooling mode. The 2.0.0 iterator processes configured mappings
+sequentially to preserve vertex-before-edge and checkpoint order.
 
 ## Neo4j options
 

@@ -1050,7 +1050,7 @@
           "$ref": "#/$defs/byteSize"
         },
         "maxSourceConcurrency": {
-          "$ref": "#/$defs/concurrency"
+          "const": 1
         },
         "maxTransformConcurrency": {
           "const": 1
@@ -1069,11 +1069,6 @@
     "byteSize": {
       "type": "string",
       "pattern": "^[1-9][0-9]*(B|KB|MB|GB|TB|KiB|MiB|GiB|TiB)$"
-    },
-    "concurrency": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 256
     },
     "errors": {
       "type": "object",

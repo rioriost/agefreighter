@@ -166,6 +166,12 @@ func TestDefaults(t *testing.T) {
 			job.Runtime.MaxTransformConcurrency,
 		)
 	}
+	if job.Runtime.MaxSourceConcurrency != 1 {
+		t.Fatalf(
+			"Runtime.MaxSourceConcurrency = %d, want 1",
+			job.Runtime.MaxSourceConcurrency,
+		)
+	}
 	if job.Target.AppendDuplicate != AppendDuplicateError {
 		t.Fatalf(
 			"Target.AppendDuplicate = %q, want error",

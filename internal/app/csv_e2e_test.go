@@ -217,7 +217,7 @@ func generatedCSVJob(graph, path string) config.LoadJob {
 		},
 		Runtime: config.Runtime{
 			MemoryLimit: 64 << 20, BatchRows: 10_000, BatchBytes: 16 << 20,
-			MaxSourceConcurrency: 2, MaxTransformConcurrency: 1,
+			MaxSourceConcurrency: 1, MaxTransformConcurrency: 1,
 			MaxTargetConnections: 3, OperationTimeout: config.Duration(30 * time.Second),
 		},
 		Errors: config.ErrorPolicies{
@@ -275,7 +275,7 @@ func countriesFixtureJob(graph, fixture string) config.LoadJob {
 		},
 		Runtime: config.Runtime{
 			MemoryLimit: 64 << 20, BatchRows: 25_000, BatchBytes: 16 << 20,
-			MaxSourceConcurrency: 2, MaxTransformConcurrency: 1,
+			MaxSourceConcurrency: 1, MaxTransformConcurrency: 1,
 			MaxTargetConnections: 3, OperationTimeout: config.Duration(30 * time.Second),
 		},
 		Errors: config.ErrorPolicies{

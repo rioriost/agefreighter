@@ -66,7 +66,7 @@
     "memoryLimit": "1GiB",
     "batchRows": 5000,
     "batchBytes": "8MiB",
-    "maxSourceConcurrency": 4,
+    "maxSourceConcurrency": 1,
     "maxTransformConcurrency": 1,
     "maxTargetConnections": 2,
     "operationTimeout": "1m"
