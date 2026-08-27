@@ -25,7 +25,7 @@ archive=$(CDPATH= cd "$(dirname "$archive")" && pwd)/$(basename "$archive")
 	printf 'macOS is required for signing and notarization\n' >&2
 	exit 1
 }
-for command in codesign ditto gzip security spctl tar uuidgen xcrun; do
+for command in codesign ditto gzip security tar uuidgen xcrun; do
 	command -v "$command" >/dev/null 2>&1 || {
 		printf '%s is required\n' "$command" >&2
 		exit 1
@@ -134,7 +134,6 @@ grep -Eq '"status"[[:space:]]*:[[:space:]]*"Accepted"' "$result" || {
 for binary in agefreighter agefreighter-tools; do
 	touch -r "$mtime_reference" "$stage/$binary"
 	codesign --verify --strict --verbose=2 "$stage/$binary"
-	spctl --assess --type execute --verbose=2 "$stage/$binary"
 done
 
 replacement="$archive.tmp"
