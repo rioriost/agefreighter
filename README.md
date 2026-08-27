@@ -14,17 +14,16 @@ attestation before installing it.
 
 ### macOS
 
-Download `agefreighter.rb` from the desired
-[GitHub release](https://github.com/rioriost/agefreighter/releases), then install
-the checksum-bound Homebrew formula:
+Install the checksum-bound Formula from the `rioriost/cask` tap:
 
 ```sh
-gh release download v2.0.0 --pattern agefreighter.rb
-brew install --formula ./agefreighter.rb
+brew install rioriost/cask/agefreighter
 ```
 
-Alternatively, download the `darwin_arm64` archive for Apple silicon or
-`darwin_amd64` for Intel, extract it, and install both binaries:
+The Formula selects the notarized `darwin_arm64` archive for Apple silicon or
+`darwin_amd64` for Intel. Alternatively, download the matching archive from the
+desired [GitHub release](https://github.com/rioriost/agefreighter/releases),
+extract it, and install both binaries:
 
 ```sh
 tar -xzf agefreighter_v2.0.0_darwin_arm64.tar.gz

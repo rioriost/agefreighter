@@ -35,8 +35,12 @@ gh attestation verify agefreighter_v2.0.0_darwin_arm64.tar.gz \
   --repo rioriost/agefreighter
 ```
 
-The release workflow uses short-lived GitHub OIDC identity. It does not use or
-store a signing key. Verify both the checksum and provenance before
+The release workflow uses short-lived GitHub OIDC identity for provenance.
+macOS binaries are additionally signed with a Developer ID Application
+certificate, hardened-runtime enabled, securely timestamped, and accepted by
+Apple's notarization service before checksums and attestations are generated.
+The certificate and App Store Connect API key are restricted to the protected
+`release` environment. Verify both the checksum and provenance before
 installation.
 
 ## Install an archive
@@ -55,15 +59,19 @@ For Windows, extract the zip and place `agefreighter.exe` and
 
 ## Homebrew
 
-Every release includes a generated, checksum-bound `agefreighter.rb`:
+Every release includes a generated, checksum-bound `agefreighter.rb`. After the
+GitHub release is published, automation commits that Formula to
+[`rioriost/homebrew-cask`](https://github.com/rioriost/homebrew-cask), which
+Homebrew resolves as the `rioriost/cask` tap:
 
 ```sh
-brew install --formula ./agefreighter.rb
+brew install rioriost/cask/agefreighter
 ```
 
-The formula installs and tests both executables. The repository stores only the
-generator, not a placeholder formula that could be installed without valid
-release checksums.
+The Formula installs and tests both executables. The agefreighter repository
+stores only the generator, not a placeholder Formula that could be installed
+without valid release checksums. A fully qualified install trusts only this
+Formula rather than every package in the third-party tap.
 
 ## Build from source
 

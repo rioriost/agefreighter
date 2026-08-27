@@ -169,8 +169,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {goos: darwin, goarch: amd64}
-          - {goos: darwin, goarch: arm64}
           - {goos: linux, goarch: amd64}
           - {goos: linux, goarch: arm64}
           - {goos: windows, goarch: amd64}
@@ -219,8 +217,77 @@ jobs:
           retention-days: 14
           compression-level: 0
 
+  build-macos:
+    needs: prepare
+    environment: release
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {goarch: amd64, runner: macos-15-intel}
+          - {goarch: arm64, runner: macos-15}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build macOS archive
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          COMMIT: ${{ needs.prepare.outputs.commit }}
+          BUILD_DATE: ${{ needs.prepare.outputs.build_date }}
+          SOURCE_DATE_EPOCH: ${{ needs.prepare.outputs.epoch }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          scripts/release/build.sh \
+            "$VERSION" "$COMMIT" "$BUILD_DATE" darwin "$GOARCH" "$PWD/dist"
+      - name: Sign and notarize macOS binaries
+        env:
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_DEVELOPER_ID_CERTIFICATE_P12: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_P12 }}
+          APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          SOURCE_DATE_EPOCH: ${{ needs.prepare.outputs.epoch }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          scripts/release/sign-notarize-macos.sh \
+            "dist/agefreighter_${VERSION}_darwin_${GOARCH}.tar.gz" \
+            "$VERSION" \
+            "$GOARCH"
+      - name: Install pinned Syft
+        id: syft
+        uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
+        with:
+          syft-version: v1.30.0
+      - name: Generate signed archive SPDX SBOM
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          GOARCH: ${{ matrix.goarch }}
+          SYFT: ${{ steps.syft.outputs.cmd }}
+        run: |
+          set -euo pipefail
+          export PATH="$(dirname "$SYFT"):$PATH"
+          archive="dist/agefreighter_${VERSION}_darwin_${GOARCH}.tar.gz"
+          scripts/release/sbom.sh "$archive" "$archive.spdx.json"
+      - name: Upload signed macOS package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-darwin-${{ matrix.goarch }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
   verify-unix:
-    needs: [prepare, build]
+    needs: [prepare, build, build-macos]
     strategy:
       fail-fast: false
       matrix:
@@ -375,3 +442,67 @@ jobs:
           fail_on_unmatched_files: true
           overwrite_files: false
           files: dist/*
+
+  publish-homebrew:
+    if: >-
+      github.event_name == 'push' &&
+      github.ref_type == 'tag' &&
+      !contains(needs.prepare.outputs.version, '-')
+    needs: [prepare, publish]
+    runs-on: ubuntu-24.04
+    environment: release
+    concurrency:
+      group: homebrew-tap-agefreighter
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-assets
+          path: dist
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rioriost/homebrew-cask
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+      - name: Publish formula to rioriost/cask
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          destination=homebrew-tap/Formula/agefreighter.rb
+          incoming="${VERSION#v}"
+          if [[ -f "$destination" ]]; then
+            current="$(sed -n 's/^  version "\(.*\)"$/\1/p' "$destination")"
+            [[ "$current" =~ ^2\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+            comparison="$(ruby -rrubygems -e \
+              'puts Gem::Version.new(ARGV[0]) <=> Gem::Version.new(ARGV[1])' \
+              "$incoming" "$current")"
+            if [[ "$comparison" -lt 0 ]]; then
+              printf 'Keeping newer Formula %s instead of %s\n' \
+                "$current" "$incoming"
+              exit 0
+            fi
+            if [[ "$comparison" -eq 0 ]]; then
+              cmp --silent dist/agefreighter.rb "$destination" || {
+                printf 'Formula %s already exists with different content\n' \
+                  "$incoming" >&2
+                exit 1
+              }
+              printf 'Formula already matches %s\n' "$VERSION"
+              exit 0
+            fi
+          fi
+          install -D -m 0644 dist/agefreighter.rb \
+            "$destination"
+          cd homebrew-tap
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add Formula/agefreighter.rb
+          git diff --cached --quiet -- Formula/agefreighter.rb && {
+            printf 'Formula already matches %s\n' "$VERSION"
+            exit 0
+          }
+          git commit -m "Update agefreighter to ${VERSION#v}"
+          git pull --rebase origin main
+          git push origin HEAD:main
