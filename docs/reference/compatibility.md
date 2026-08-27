@@ -12,6 +12,7 @@ graph is changed.
 | PostgreSQL source | 17.x | PostgreSQL 17.6 pinned image |
 | Neo4j source | 5.26.x | Neo4j 5.26 pinned image |
 | Cosmos DB for NoSQL | Current Azure service API supported by Azure SDK v1.5 | Controlled Azure integration environment |
+| Cosmos DB for Apache Gremlin backing documents | Current `_isEdge`, `_vertexId`, `_sink`, and `_value` document layout through the NoSQL API | Controlled Azure integration environment |
 
 The weekly and manually runnable `AGE compatibility` workflow executes the AGE
 adapter, metadata, CSV load, incremental load, and replace/recovery contracts

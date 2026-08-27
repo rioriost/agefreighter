@@ -117,12 +117,19 @@ func validateTrial(
 	add(target.Mode == LoadCreate || target.Mode == LoadReplace,
 		"trial", "policy",
 		"is supported only with create or replace")
+	cosmosGremlin := source.Type == SourceCosmos &&
+		source.Cosmos != nil &&
+		source.Cosmos.Gremlin != nil &&
+		source.Cosmos.Gremlin.Enabled
+	add(!cosmosGremlin, "trial", "unsupported",
+		"is not supported with Cosmos Gremlin interpretation because the Go SDK cannot execute the cross-partition ordering required for deterministic sampling")
 
 	available := configuredVertexLabels(source)
 	validateAvailableLabels := !(source.Type == SourceNeo4j &&
 		source.Neo4j != nil &&
 		source.Neo4j.Discovery != nil &&
-		source.Neo4j.Discovery.Enabled)
+		source.Neo4j.Discovery.Enabled) &&
+		!cosmosGremlin
 	seen := make(map[string]bool, len(trial.IncludeLabels))
 	for index, label := range trial.IncludeLabels {
 		path := fmt.Sprintf("trial.includeLabels[%d]", index)
@@ -505,8 +512,12 @@ func validateCosmos(source CosmosSource, namespace string, errs *ValidationError
 	add(source.Database != "", "source.cosmos.database", "required", "must not be empty")
 	add(source.PageSize >= 1 && source.PageSize <= 1000, "source.cosmos.pageSize", "range",
 		"must be from 1 to 1000")
-	add(len(source.Vertices) > 0, "source.cosmos.vertices", "required",
-		"must contain at least one vertex query")
+	if source.Gremlin != nil {
+		validateCosmosGremlin(*source.Gremlin, source, errs)
+	} else {
+		add(len(source.Vertices) > 0, "source.cosmos.vertices", "required",
+			"must contain at least one vertex query")
+	}
 	for index, vertex := range source.Vertices {
 		path := fmt.Sprintf("source.cosmos.vertices[%d]", index)
 		add(vertex.Container != "", path+".container", "required", "must not be empty")
@@ -515,6 +526,14 @@ func validateCosmos(source CosmosSource, namespace string, errs *ValidationError
 		validateJSONPointer(path+".idField", vertex.IDField, errs)
 		validateCosmosParameters(vertex.Parameters, path+".parameters", errs)
 		validateCosmosPropertyMapping(vertex.Properties, path+".properties", errs)
+		validateCosmosDocumentFormat(
+			vertex.DocumentFormat,
+			vertex.PartitionKeyProperty,
+			vertex.MaxProperties,
+			vertex.Properties,
+			path,
+			errs,
+		)
 	}
 	for index, edge := range source.Edges {
 		path := fmt.Sprintf("source.cosmos.edges[%d]", index)
@@ -528,7 +547,75 @@ func validateCosmos(source CosmosSource, namespace string, errs *ValidationError
 		validateCosmosEndpoint(edge.End, namespace, path+".end", errs)
 		validateCosmosParameters(edge.Parameters, path+".parameters", errs)
 		validateCosmosPropertyMapping(edge.Properties, path+".properties", errs)
+		validateCosmosDocumentFormat(
+			edge.DocumentFormat,
+			edge.PartitionKeyProperty,
+			edge.MaxProperties,
+			edge.Properties,
+			path,
+			errs,
+		)
 	}
+}
+
+func validateCosmosDocumentFormat(
+	format CosmosDocumentFormat,
+	partitionKeyProperty string,
+	maxProperties int,
+	properties map[string]string,
+	path string,
+	errs *ValidationErrors,
+) {
+	if format == "" {
+		return
+	}
+	add := validationAdder(errs)
+	add(format == CosmosDocumentGremlin, path+".documentFormat",
+		"unsupported", "must be cosmos-gremlin")
+	add(validDiscoveryIdentifier(partitionKeyProperty),
+		path+".partitionKeyProperty", "format",
+		"must be 1-256 UTF-8 bytes without control characters")
+	add(maxProperties >= 1 && maxProperties <= 1_024,
+		path+".maxProperties", "range", "must be from 1 to 1024")
+	add(len(properties) == 0, path+".properties", "policy",
+		"must be omitted for automatically interpreted Gremlin documents")
+}
+
+func validateCosmosGremlin(
+	gremlin CosmosGremlin,
+	source CosmosSource,
+	errs *ValidationErrors,
+) {
+	add := validationAdder(errs)
+	add(gremlin.Enabled, "source.cosmos.gremlin.enabled", "required",
+		"must be true when Gremlin interpretation is configured")
+	add(len(source.Vertices) == 0 && len(source.Edges) == 0,
+		"source.cosmos.gremlin", "policy",
+		"cannot be combined with explicit vertex or edge mappings")
+	add(gremlin.Container != "", "source.cosmos.gremlin.container",
+		"required", "must not be empty")
+	add(validDiscoveryIdentifier(gremlin.PartitionKeyProperty),
+		"source.cosmos.gremlin.partitionKeyProperty", "format",
+		"must be 1-256 UTF-8 bytes without control characters")
+	for path, prefix := range map[string]string{
+		"source.cosmos.gremlin.labelPrefix":            gremlin.LabelPrefix,
+		"source.cosmos.gremlin.relationshipTypePrefix": gremlin.RelationshipTypePrefix,
+	} {
+		add(len(prefix) <= 256 && utf8.ValidString(prefix) &&
+			!strings.ContainsFunc(prefix, unicode.IsControl),
+			path, "format",
+			"must not exceed 256 UTF-8 bytes or contain control characters")
+	}
+	add(gremlin.MaxLabels >= 1 && gremlin.MaxLabels <= 256,
+		"source.cosmos.gremlin.maxLabels", "range",
+		"must be from 1 to 256")
+	add(gremlin.MaxProperties >= 1 && gremlin.MaxProperties <= 1_024,
+		"source.cosmos.gremlin.maxProperties", "range",
+		"must be from 1 to 1024")
+	add(gremlin.MaxDiscoveryDocuments >= 1 &&
+		gremlin.MaxDiscoveryDocuments <= 1_000_000,
+		"source.cosmos.gremlin.maxDiscoveryDocuments", "range",
+		"must be from 1 to 1000000")
 }
 
 // validateCosmosEndpoint validates an edge endpoint mapping used by a Cosmos

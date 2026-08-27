@@ -74,7 +74,7 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if err != nil {
 		return meta.Job{}, err
 	}
-	job, err = resolveSourceDiscovery(ctx, job)
+	job, err = resolveSource(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
@@ -156,7 +156,7 @@ func execute(
 		}
 		span.End()
 	}()
-	resolvedJob, err := resolveSourceDiscovery(ctx, job)
+	resolvedJob, err := resolveSource(ctx, job)
 	if err != nil {
 		return result, err
 	}

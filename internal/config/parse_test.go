@@ -23,6 +23,26 @@ func TestCosmosDefaults(t *testing.T) {
 	}
 }
 
+func TestCosmosGremlinDefaultsAndStaticPlan(t *testing.T) {
+	job, err := Load("testdata/valid/cosmos-gremlin.json")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	gremlin := job.Source.Cosmos.Gremlin
+	if gremlin == nil ||
+		gremlin.MaxLabels != 256 ||
+		gremlin.MaxProperties != 1_024 ||
+		gremlin.MaxDiscoveryDocuments != 100_000 {
+		t.Fatalf("Cosmos Gremlin defaults = %#v", gremlin)
+	}
+	plan := BuildStaticPlan(job)
+	if !plan.Source.CosmosGremlin ||
+		len(plan.Warnings) < 2 ||
+		!strings.Contains(plan.Warnings[1], "interpreted") {
+		t.Fatalf("Cosmos Gremlin plan = %#v", plan)
+	}
+}
+
 func TestNeo4jDefaultsAndStaticPlan(t *testing.T) {
 	job, err := Load("testdata/valid/neo4j.yaml")
 	if err != nil {

@@ -203,6 +203,18 @@ func (job *LoadJob) applyDefaults() {
 	if job.Source.Cosmos != nil && job.Source.Cosmos.PageSize == 0 {
 		job.Source.Cosmos.PageSize = defaultCosmosPageSize
 	}
+	if gremlin := job.Source.Cosmos; gremlin != nil &&
+		gremlin.Gremlin != nil && gremlin.Gremlin.Enabled {
+		if gremlin.Gremlin.MaxLabels == 0 {
+			gremlin.Gremlin.MaxLabels = 256
+		}
+		if gremlin.Gremlin.MaxProperties == 0 {
+			gremlin.Gremlin.MaxProperties = 1_024
+		}
+		if gremlin.Gremlin.MaxDiscoveryDocuments == 0 {
+			gremlin.Gremlin.MaxDiscoveryDocuments = 100_000
+		}
+	}
 }
 
 func applyDelimitedDefaults(options *DelimitedOptions) {

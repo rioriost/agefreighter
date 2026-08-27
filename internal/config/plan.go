@@ -27,6 +27,7 @@ type PlanSource struct {
 	PostgreSQLReadMode PostgreSQLReadMode    `json:"postgresqlReadMode,omitempty"`
 	Neo4jMultiLabel    Neo4jMultiLabelPolicy `json:"neo4jMultiLabelPolicy,omitempty"`
 	Neo4jDiscovery     bool                  `json:"neo4jDiscovery,omitempty"`
+	CosmosGremlin      bool                  `json:"cosmosGremlin,omitempty"`
 	FetchRows          int                   `json:"fetchRows,omitempty"`
 	Consistency        string                `json:"consistency,omitempty"`
 }
@@ -118,8 +119,17 @@ func BuildStaticPlan(job LoadJob) StaticPlan {
 	}
 	switch job.Source.Type {
 	case SourceCosmos:
+		if job.Source.Cosmos != nil {
+			plan.Source.CosmosGremlin =
+				job.Source.Cosmos.Gremlin != nil &&
+					job.Source.Cosmos.Gremlin.Enabled
+		}
 		plan.Warnings = append(plan.Warnings,
 			"source consistency capabilities are verified when the connector initializes")
+		if plan.Source.CosmosGremlin {
+			plan.Warnings = append(plan.Warnings,
+				"Cosmos Gremlin labels and endpoint pairs are interpreted before target admission")
+		}
 	}
 	if job.Target.Mode == LoadAppend || job.Target.Mode == LoadUpsert {
 		plan.Warnings = append(plan.Warnings,

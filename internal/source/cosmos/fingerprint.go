@@ -18,22 +18,25 @@ type fingerprintParameter struct {
 // used when binding the overall source fingerprint. Every field that can
 // change the meaning of the data returned by a mapping is included.
 type fingerprintMapping struct {
-	Index           int                    `json:"index"`
-	Kind            string                 `json:"kind"`
-	Container       string                 `json:"container"`
-	Label           string                 `json:"label"`
-	Namespace       string                 `json:"namespace"`
-	Query           string                 `json:"query"`
-	Parameters      []fingerprintParameter `json:"parameters,omitempty"`
-	IDField         string                 `json:"idField,omitempty"`
-	ExternalIDField string                 `json:"externalIdField,omitempty"`
-	StartLabel      string                 `json:"startLabel,omitempty"`
-	StartNamespace  string                 `json:"startNamespace,omitempty"`
-	StartField      string                 `json:"startField,omitempty"`
-	EndLabel        string                 `json:"endLabel,omitempty"`
-	EndNamespace    string                 `json:"endNamespace,omitempty"`
-	EndField        string                 `json:"endField,omitempty"`
-	Properties      map[string]string      `json:"properties,omitempty"`
+	Index                int                    `json:"index"`
+	Kind                 string                 `json:"kind"`
+	Container            string                 `json:"container"`
+	Label                string                 `json:"label"`
+	Namespace            string                 `json:"namespace"`
+	Query                string                 `json:"query"`
+	Parameters           []fingerprintParameter `json:"parameters,omitempty"`
+	IDField              string                 `json:"idField,omitempty"`
+	ExternalIDField      string                 `json:"externalIdField,omitempty"`
+	StartLabel           string                 `json:"startLabel,omitempty"`
+	StartNamespace       string                 `json:"startNamespace,omitempty"`
+	StartField           string                 `json:"startField,omitempty"`
+	EndLabel             string                 `json:"endLabel,omitempty"`
+	EndNamespace         string                 `json:"endNamespace,omitempty"`
+	EndField             string                 `json:"endField,omitempty"`
+	Properties           map[string]string      `json:"properties,omitempty"`
+	DocumentFormat       string                 `json:"documentFormat,omitempty"`
+	PartitionKeyProperty string                 `json:"partitionKeyProperty,omitempty"`
+	MaxProperties        int                    `json:"maxProperties,omitempty"`
 }
 
 // fingerprintManifest is the canonical JSON shape hashed to produce a
@@ -70,12 +73,15 @@ func bindFingerprint(
 	}
 	for index, mapping := range mappings {
 		entry := fingerprintMapping{
-			Index:     index,
-			Kind:      mapping.kind.String(),
-			Container: mapping.container,
-			Label:     string(mapping.label),
-			Namespace: string(mapping.namespace),
-			Query:     mapping.query,
+			Index:                index,
+			Kind:                 mapping.kind.String(),
+			Container:            mapping.container,
+			Label:                string(mapping.label),
+			Namespace:            string(mapping.namespace),
+			Query:                mapping.query,
+			DocumentFormat:       string(mapping.documentFormat),
+			PartitionKeyProperty: mapping.partitionKeyProperty,
+			MaxProperties:        mapping.maxProperties,
 		}
 		if len(mapping.parameters) > 0 {
 			entry.Parameters = make([]fingerprintParameter, len(mapping.parameters))

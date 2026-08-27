@@ -133,3 +133,41 @@ func TestBindFingerprintMappingOrderMatters(t *testing.T) {
 		t.Error("bindFingerprint: expected mapping order to affect the fingerprint")
 	}
 }
+
+func TestBindFingerprintIncludesGremlinInterpretation(t *testing.T) {
+	options := *gremlinSource().Gremlin
+	vertex, err := gremlinVertexQuery(options, "AppPerson")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := gremlinSource()
+	source.Gremlin = nil
+	source.Vertices = []config.CosmosVertexQuery{vertex}
+	base := compileTestMappings(t, source)
+	baseFingerprint, err := bindFingerprint(
+		source.Endpoint,
+		source.Database,
+		"ns",
+		int32(source.PageSize),
+		base,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	source.Vertices[0].PartitionKeyProperty = "tenant"
+	changed := compileTestMappings(t, source)
+	changedFingerprint, err := bindFingerprint(
+		source.Endpoint,
+		source.Database,
+		"ns",
+		int32(source.PageSize),
+		changed,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changedFingerprint == baseFingerprint {
+		t.Fatal("partition-key property did not affect fingerprint")
+	}
+}

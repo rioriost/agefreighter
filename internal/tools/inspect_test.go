@@ -137,6 +137,28 @@ func TestBuildInspectionConnectorContracts(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "cosmos gremlin",
+			mutate: func(job *config.LoadJob) {
+				job.Source.Type = config.SourceCosmos
+				job.Source.CSV = nil
+				job.Source.Cosmos = &config.CosmosSource{
+					Endpoint: "https://private.invalid", Credential: "default-azure",
+					Database: "graph", PageSize: 42,
+					Gremlin: &config.CosmosGremlin{
+						Enabled: true, Container: "graph",
+						PartitionKeyProperty: "pk",
+					},
+				}
+			},
+			check: func(t *testing.T, report Inspection) {
+				if !report.Source.Gremlin ||
+					len(report.Source.VertexMappings) != 0 ||
+					len(report.Source.EdgeMappings) != 0 {
+					t.Fatalf("Cosmos Gremlin inspection = %#v", report.Source)
+				}
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

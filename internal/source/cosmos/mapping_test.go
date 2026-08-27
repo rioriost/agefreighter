@@ -102,6 +102,69 @@ func TestBuildMappingsRejectsEmptySource(t *testing.T) {
 	}
 }
 
+func TestBuildMappingsRejectsInvalidDocumentFormat(t *testing.T) {
+	base := config.CosmosSource{
+		Vertices: []config.CosmosVertexQuery{{
+			Container: "a",
+			Label:     "A",
+			Query:     "SELECT * FROM c",
+			IDField:   "/id",
+		}},
+	}
+	tests := []struct {
+		name string
+		edit func(*config.CosmosVertexQuery)
+	}{
+		{
+			name: "unsupported",
+			edit: func(mapping *config.CosmosVertexQuery) {
+				mapping.DocumentFormat = "future"
+			},
+		},
+		{
+			name: "missing partition key",
+			edit: func(mapping *config.CosmosVertexQuery) {
+				mapping.DocumentFormat = config.CosmosDocumentGremlin
+				mapping.MaxProperties = 10
+			},
+		},
+		{
+			name: "missing property limit",
+			edit: func(mapping *config.CosmosVertexQuery) {
+				mapping.DocumentFormat = config.CosmosDocumentGremlin
+				mapping.PartitionKeyProperty = "pk"
+			},
+		},
+		{
+			name: "explicit properties",
+			edit: func(mapping *config.CosmosVertexQuery) {
+				mapping.DocumentFormat = config.CosmosDocumentGremlin
+				mapping.PartitionKeyProperty = "pk"
+				mapping.MaxProperties = 10
+				mapping.Properties = map[string]string{"name": "/name"}
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			source := base
+			source.Vertices = append(
+				[]config.CosmosVertexQuery(nil),
+				base.Vertices...,
+			)
+			test.edit(&source.Vertices[0])
+			if _, err := buildMappings(
+				context.Background(),
+				"ns",
+				source,
+				1_024,
+			); err == nil {
+				t.Fatal("buildMappings() accepted invalid document format")
+			}
+		})
+	}
+}
+
 func TestCompileParametersRejectsMissingAtPrefix(t *testing.T) {
 	value, err := config.NewCosmosParamValue("x")
 	if err != nil {

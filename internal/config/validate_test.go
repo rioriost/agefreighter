@@ -473,6 +473,60 @@ func TestCosmosValidation(t *testing.T) {
 	}
 }
 
+func TestCosmosGremlinValidation(t *testing.T) {
+	job, err := Load("testdata/valid/cosmos-gremlin.json")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	job.Source.Cosmos.Vertices = []CosmosVertexQuery{{Label: "Person"}}
+	job.Source.Cosmos.Gremlin.Enabled = false
+	job.Source.Cosmos.Gremlin.Container = ""
+	job.Source.Cosmos.Gremlin.PartitionKeyProperty = "bad\nproperty"
+	job.Source.Cosmos.Gremlin.LabelPrefix = "bad\x00prefix"
+	job.Source.Cosmos.Gremlin.MaxLabels = 257
+	job.Source.Cosmos.Gremlin.MaxProperties = 1_025
+	job.Source.Cosmos.Gremlin.MaxDiscoveryDocuments = 1_000_001
+
+	err = job.Validate()
+
+	for _, want := range []string{
+		"cannot be combined",
+		"gremlin.enabled",
+		"gremlin.container",
+		"partitionKeyProperty",
+		"labelPrefix",
+		"maxLabels",
+		"maxProperties",
+		"maxDiscoveryDocuments",
+	} {
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("Validate() error = %v, want %q", err, want)
+		}
+	}
+}
+
+func TestCosmosGremlinRejectsTrial(t *testing.T) {
+	job, err := Load("testdata/valid/cosmos-gremlin.json")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	job.Trial = &TrialOptions{
+		Enabled:             true,
+		MaxVerticesPerLabel: 10,
+		MaxVertices:         100,
+		MaxEdges:            100,
+		MaxBytes:            ByteSize(1 << 20),
+	}
+
+	err = job.Validate()
+
+	if err == nil ||
+		!strings.Contains(err.Error(), "trial [unsupported]") ||
+		!strings.Contains(err.Error(), "cross-partition ordering") {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
 func TestCosmosJSONPointerAndParameterValidation(t *testing.T) {
 	job, err := Load("testdata/valid/cosmos.json")
 	if err != nil {

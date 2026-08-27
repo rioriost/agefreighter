@@ -26,6 +26,7 @@ type SourceInspection struct {
 	FetchRows      int                          `json:"fetchRows,omitempty"`
 	MultiLabel     config.Neo4jMultiLabelPolicy `json:"multiLabelPolicy,omitempty"`
 	Discovery      bool                         `json:"discovery,omitempty"`
+	Gremlin        bool                         `json:"gremlin,omitempty"`
 	Database       string                       `json:"database,omitempty"`
 	SourceID       string                       `json:"sourceId,omitempty"`
 	PageSize       int                          `json:"pageSize,omitempty"`
@@ -191,6 +192,7 @@ func buildCosmosInspection(target *SourceInspection, source *config.CosmosSource
 	target.PageSize = source.PageSize
 	target.Credential = source.Credential
 	target.Consistency = "connector-verified"
+	target.Gremlin = source.Gremlin != nil && source.Gremlin.Enabled
 	for _, mapping := range source.Vertices {
 		target.VertexMappings = append(target.VertexMappings, MappingInspection{
 			Label:          mapping.Label,

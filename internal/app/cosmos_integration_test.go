@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,6 +54,14 @@ func TestCosmosLiveIntegration(t *testing.T) {
 		database,
 		vertexContainer,
 		edgeContainer,
+		runID,
+	)
+	gremlinLabel, gremlinRelationship := seedCosmosGremlinFixture(
+		t,
+		ctx,
+		endpoint,
+		database,
+		vertexContainer,
 		runID,
 	)
 
@@ -144,6 +153,44 @@ func TestCosmosLiveIntegration(t *testing.T) {
 		t.Fatalf("Cleanup(replace backup): %v", err)
 	}
 
+	gremlinGraph := fmt.Sprintf("af_cosmos_gremlin_%d", time.Now().UnixNano())
+	gremlinJob := testLoadJob(gremlinGraph, "unused.csv", "unused.csv")
+	gremlinJob.Metadata.Name = "cosmos-gremlin-live"
+	gremlinJob.Source = config.Source{
+		Type: config.SourceCosmos, Namespace: "cosmos-gremlin-live",
+		Cosmos: &config.CosmosSource{
+			Endpoint: endpoint, Credential: "default-azure",
+			Database: database, PageSize: 2,
+			Gremlin: &config.CosmosGremlin{
+				Enabled:                true,
+				Container:              vertexContainer,
+				PartitionKeyProperty:   "partitionKey",
+				LabelPrefix:            gremlinLabel,
+				RelationshipTypePrefix: gremlinRelationship,
+				MaxLabels:              10,
+				MaxProperties:          20,
+			},
+		},
+	}
+	gremlinPath := writeLoadJob(
+		t,
+		dir,
+		"cosmos-gremlin-create.yaml",
+		gremlinJob,
+	)
+	gremlinResult, err := Load(ctx, gremlinPath)
+	if err != nil {
+		t.Fatalf("Load(Cosmos Gremlin) error = %v", err)
+	}
+	registerCleanup(t, dsn, gremlinGraph, gremlinResult.JobID)
+	if gremlinResult.Status != meta.JobCommitted ||
+		gremlinResult.Metrics.RecordsCommitted != 3 {
+		t.Fatalf("Load(Cosmos Gremlin) = %#v", gremlinResult)
+	}
+	if _, err := Verify(ctx, gremlinPath, gremlinResult.JobID); err != nil {
+		t.Fatalf("Verify(Cosmos Gremlin): %v", err)
+	}
+
 	connection, err := pgx.Connect(ctx, dsn)
 	if err != nil {
 		t.Fatalf("connect AGE for verification: %v", err)
@@ -165,6 +212,42 @@ func TestCosmosLiveIntegration(t *testing.T) {
 		graph,
 		"MATCH (:Person)-[r:KNOWS]->(:Person) RETURN count(r)",
 		5,
+	)
+	assertCypherCount(
+		t,
+		connection,
+		gremlinGraph,
+		fmt.Sprintf("MATCH (n:%s) RETURN count(n)", gremlinLabel),
+		2,
+	)
+	assertCypherCount(
+		t,
+		connection,
+		gremlinGraph,
+		fmt.Sprintf(
+			"MATCH (:%s)-[r:%s]->(:%s) RETURN count(r)",
+			gremlinLabel,
+			gremlinRelationship,
+			gremlinLabel,
+		),
+		1,
+	)
+	assertCypherValueContains(
+		t,
+		connection,
+		gremlinGraph,
+		fmt.Sprintf(
+			"MATCH (n:%s) WHERE n.name = 'Ada' RETURN n.skills",
+			gremlinLabel,
+		),
+		`"math"`,
+		`"code"`,
+	)
+	assertCosmosGremlinIdentities(
+		t,
+		connection,
+		gremlinResult.JobID,
+		runID,
 	)
 }
 
@@ -350,6 +433,80 @@ func seedCosmosFixture(
 	}
 }
 
+func seedCosmosGremlinFixture(
+	t *testing.T,
+	ctx context.Context,
+	endpoint string,
+	database string,
+	containerName string,
+	runID string,
+) (string, string) {
+	t.Helper()
+	credential, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		t.Fatalf("NewDefaultAzureCredential: %v", err)
+	}
+	client, err := azcosmos.NewClient(endpoint, credential, nil)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	t.Cleanup(func() {
+		client.Close()
+	})
+	container, err := client.NewContainer(database, containerName)
+	if err != nil {
+		t.Fatalf("NewContainer(Gremlin): %v", err)
+	}
+	suffix := strings.ReplaceAll(runID, "-", "_")
+	label := "GV_" + suffix
+	relationship := "GE_" + suffix
+	vertexIDs := []string{runID + "-gv1", runID + "-gv2"}
+	partitions := []string{runID + "-gp1", runID + "-gp2"}
+	items := []map[string]any{
+		{
+			"id": vertexIDs[0], "partitionKey": partitions[0],
+			"label": label,
+			"name": []any{map[string]any{
+				"id": runID + "-vp1", "_value": "Ada", "_meta": map[string]any{},
+			}},
+			"skills": []any{
+				map[string]any{"id": runID + "-vp2", "_value": "math"},
+				map[string]any{"id": runID + "-vp3", "_value": "code"},
+			},
+		},
+		{
+			"id": vertexIDs[1], "partitionKey": partitions[1],
+			"label": label,
+			"name": []any{map[string]any{
+				"id": runID + "-vp4", "_value": "Grace", "_meta": map[string]any{},
+			}},
+		},
+		{
+			"id": runID + "-ge1", "partitionKey": partitions[0],
+			"label": relationship, "_isEdge": true,
+			"_vertexId": vertexIDs[0], "_vertexLabel": label,
+			"_sink": vertexIDs[1], "_sinkLabel": label,
+			"_sinkPartition": partitions[1],
+			"weight":         7,
+		},
+	}
+	refs := make([]cosmosFixtureRef, 0, len(items))
+	for _, item := range items {
+		id := item["id"].(string)
+		partition := item["partitionKey"].(string)
+		refs = append(refs, cosmosFixtureRef{
+			container: container,
+			id:        id,
+			partition: partition,
+		})
+		upsertCosmosFixture(t, ctx, container, partition, item)
+	}
+	t.Cleanup(func() {
+		deleteCosmosFixture(t, refs)
+	})
+	return label, relationship
+}
+
 func upsertCosmosFixture(
 	t *testing.T,
 	ctx context.Context,
@@ -411,6 +568,77 @@ func deleteCosmosFixture(t *testing.T, refs []cosmosFixtureRef) {
 			ref.partition,
 			err,
 		)
+	}
+}
+
+func assertCypherValueContains(
+	t *testing.T,
+	connection *pgx.Conn,
+	graph string,
+	query string,
+	want ...string,
+) {
+	t.Helper()
+	statement := fmt.Sprintf(
+		`SELECT value::text
+		 FROM ag_catalog.cypher('%s', $$%s$$)
+		 AS result(value ag_catalog.agtype)`,
+		graph,
+		query,
+	)
+	var value string
+	if err := connection.QueryRow(t.Context(), statement).Scan(&value); err != nil {
+		t.Fatalf("Cypher %q error = %v", query, err)
+	}
+	for _, part := range want {
+		if !strings.Contains(value, part) {
+			t.Fatalf("Cypher %q value = %q, want substring %q", query, value, part)
+		}
+	}
+}
+
+func assertCosmosGremlinIdentities(
+	t *testing.T,
+	connection *pgx.Conn,
+	jobID string,
+	runID string,
+) {
+	t.Helper()
+	query := `
+		SELECT edge.external_id, source.external_id, sink.external_id
+		FROM agefreighter_meta.edge_identity edge
+		JOIN agefreighter_meta.graph_generation generation
+		  USING (graph_generation_id)
+		JOIN agefreighter_meta.vertex_identity source
+		  ON source.graph_generation_id = edge.graph_generation_id
+		 AND source.graph_id = edge.start_graph_id
+		JOIN agefreighter_meta.vertex_identity sink
+		  ON sink.graph_generation_id = edge.graph_generation_id
+		 AND sink.graph_id = edge.end_graph_id
+		WHERE generation.job_id = $1::uuid`
+	var edge, source, sink string
+	if err := connection.QueryRow(t.Context(), query, jobID).Scan(
+		&edge,
+		&source,
+		&sink,
+	); err != nil {
+		t.Fatalf("query Cosmos Gremlin identities: %v", err)
+	}
+	want := []string{
+		fmt.Sprintf("[%q,%q]", runID+"-gp1", runID+"-ge1"),
+		fmt.Sprintf("[%q,%q]", runID+"-gp1", runID+"-gv1"),
+		fmt.Sprintf("[%q,%q]", runID+"-gp2", runID+"-gv2"),
+	}
+	got := []string{edge, source, sink}
+	for index := range want {
+		if got[index] != want[index] {
+			t.Fatalf(
+				"Cosmos Gremlin identity[%d] = %q, want %q",
+				index,
+				got[index],
+				want[index],
+			)
+		}
 	}
 }
 

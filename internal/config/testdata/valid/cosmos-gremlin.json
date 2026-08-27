@@ -1,0 +1,46 @@
+{
+  "apiVersion": "agefreighter.io/v2",
+  "kind": "LoadJob",
+  "metadata": {
+    "name": "cosmos-gremlin"
+  },
+  "source": {
+    "type": "cosmos-nosql",
+    "namespace": "crm",
+    "cosmos": {
+      "endpoint": "https://example.documents.azure.com:443/",
+      "credential": "default-azure",
+      "database": "graph-source",
+      "gremlin": {
+        "enabled": true,
+        "container": "graph",
+        "partitionKeyProperty": "partitionKey",
+        "labelPrefix": "App",
+        "relationshipTypePrefix": "APP_"
+      }
+    }
+  },
+  "target": {
+    "type": "apache-age",
+    "graph": "crm_graph",
+    "mode": "create",
+    "connection": {
+      "env": "AGEFREIGHTER_TARGET_DSN"
+    },
+    "propertyMode": "replace"
+  },
+  "runtime": {
+    "memoryLimit": "1GiB",
+    "batchRows": 5000,
+    "batchBytes": "8MiB",
+    "maxSourceConcurrency": 1,
+    "maxTransformConcurrency": 1,
+    "maxTargetConnections": 2,
+    "operationTimeout": "1m"
+  },
+  "errors": {
+    "malformedRecord": "fail",
+    "missingEndpoint": "error",
+    "rejectLimit": 0
+  }
+}

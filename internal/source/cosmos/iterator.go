@@ -425,6 +425,9 @@ func (iterator *Iterator) decodeRecord(
 	if err != nil {
 		return model.Record{}, 0, err
 	}
+	if mapping.documentFormat == config.CosmosDocumentGremlin {
+		return iterator.decodeGremlinRecord(ctx, mapping, document)
+	}
 
 	if mapping.kind == vertexMapping {
 		externalID, err := resolveRequiredString(document, mapping.idField, "idField")

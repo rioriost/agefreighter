@@ -58,6 +58,10 @@ type compiledMapping struct {
 	endField   pointer                // edge only
 
 	properties []compiledProperty
+
+	documentFormat       config.CosmosDocumentFormat
+	partitionKeyProperty string
+	maxProperties        int
 }
 
 // buildMappings compiles a Cosmos source's vertex and edge queries, in
@@ -81,6 +85,18 @@ func buildMappings(
 				vertex.Label, len(vertex.Properties), maxProperties,
 			)
 		}
+		if err := validateDocumentFormat(
+			vertex.DocumentFormat,
+			vertex.PartitionKeyProperty,
+			vertex.MaxProperties,
+			len(vertex.Properties),
+		); err != nil {
+			return nil, fmt.Errorf(
+				"Cosmos vertex mapping %q: %w",
+				vertex.Label,
+				err,
+			)
+		}
 		idField, err := parsePointer(vertex.IDField)
 		if err != nil {
 			return nil, fmt.Errorf("Cosmos vertex mapping %q idField: %w", vertex.Label, err)
@@ -94,14 +110,17 @@ func buildMappings(
 			return nil, err
 		}
 		mappings = append(mappings, compiledMapping{
-			kind:       vertexMapping,
-			container:  vertex.Container,
-			label:      model.Label(vertex.Label),
-			namespace:  model.Namespace(namespace),
-			query:      vertex.Query,
-			parameters: parameters,
-			idField:    idField,
-			properties: properties,
+			kind:                 vertexMapping,
+			container:            vertex.Container,
+			label:                model.Label(vertex.Label),
+			namespace:            model.Namespace(namespace),
+			query:                vertex.Query,
+			parameters:           parameters,
+			idField:              idField,
+			properties:           properties,
+			documentFormat:       vertex.DocumentFormat,
+			partitionKeyProperty: vertex.PartitionKeyProperty,
+			maxProperties:        vertex.MaxProperties,
 		})
 	}
 	for _, edge := range source.Edges {
@@ -112,6 +131,18 @@ func buildMappings(
 			return nil, fmt.Errorf(
 				"Cosmos edge mapping %q has %d properties, maximum is %d",
 				edge.Label, len(edge.Properties), maxProperties,
+			)
+		}
+		if err := validateDocumentFormat(
+			edge.DocumentFormat,
+			edge.PartitionKeyProperty,
+			edge.MaxProperties,
+			len(edge.Properties),
+		); err != nil {
+			return nil, fmt.Errorf(
+				"Cosmos edge mapping %q: %w",
+				edge.Label,
+				err,
 			)
 		}
 		var (
@@ -143,25 +174,63 @@ func buildMappings(
 			return nil, err
 		}
 		mappings = append(mappings, compiledMapping{
-			kind:            edgeMapping,
-			container:       edge.Container,
-			label:           model.Label(edge.Label),
-			namespace:       model.Namespace(namespace),
-			query:           edge.Query,
-			parameters:      parameters,
-			hasExternalID:   hasExternalID,
-			externalIDField: externalIDField,
-			start:           edge.Start,
-			startField:      startField,
-			end:             edge.End,
-			endField:        endField,
-			properties:      properties,
+			kind:                 edgeMapping,
+			container:            edge.Container,
+			label:                model.Label(edge.Label),
+			namespace:            model.Namespace(namespace),
+			query:                edge.Query,
+			parameters:           parameters,
+			hasExternalID:        hasExternalID,
+			externalIDField:      externalIDField,
+			start:                edge.Start,
+			startField:           startField,
+			end:                  edge.End,
+			endField:             endField,
+			properties:           properties,
+			documentFormat:       edge.DocumentFormat,
+			partitionKeyProperty: edge.PartitionKeyProperty,
+			maxProperties:        edge.MaxProperties,
 		})
 	}
 	if len(mappings) == 0 {
 		return nil, errors.New("Cosmos source has no mappings")
 	}
 	return mappings, nil
+}
+
+func validateDocumentFormat(
+	format config.CosmosDocumentFormat,
+	partitionKeyProperty string,
+	gremlinMaxProperties int,
+	configuredProperties int,
+) error {
+	if format == "" {
+		if partitionKeyProperty != "" || gremlinMaxProperties != 0 {
+			return errors.New(
+				"document format is required for format-specific options",
+			)
+		}
+		return nil
+	}
+	if format != config.CosmosDocumentGremlin {
+		return fmt.Errorf("unsupported document format %q", format)
+	}
+	if partitionKeyProperty == "" {
+		return errors.New(
+			"Gremlin partition key property is required",
+		)
+	}
+	if gremlinMaxProperties < 1 {
+		return errors.New(
+			"Gremlin maximum properties must be positive",
+		)
+	}
+	if configuredProperties != 0 {
+		return errors.New(
+			"Gremlin documents cannot use explicit property mappings",
+		)
+	}
+	return nil
 }
 
 func compileProperties(properties map[string]string) ([]compiledProperty, error) {

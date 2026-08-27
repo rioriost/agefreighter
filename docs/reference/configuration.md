@@ -362,6 +362,75 @@ repeatable migration. Diagnostics expose only a hash-derived continuation
 identifier, never the full continuation token, access token, authorization
 header, account key, or source document.
 
+### Cosmos DB for Apache Gremlin documents
+
+To interpret the backing JSON documents of a Cosmos DB for Apache Gremlin
+container automatically, replace explicit `vertices` and `edges` with a
+`gremlin` block:
+
+```yaml
+source:
+  type: cosmos-nosql
+  namespace: crm
+  cosmos:
+    endpoint: https://example.documents.azure.com:443/
+    credential: default-azure
+    database: graph-source
+    pageSize: 100
+    gremlin:
+      enabled: true
+      container: graph
+      partitionKeyProperty: partitionKey
+      labelPrefix: App
+      relationshipTypePrefix: APP_
+      maxLabels: 256
+      maxProperties: 1024
+      maxDiscoveryDocuments: 100000
+```
+
+The adapter queries the container through the Cosmos DB for NoSQL endpoint
+using `DefaultAzureCredential`; it does not connect to the Gremlin endpoint or
+accept account keys. It discovers vertex labels and edge label/endpoint-label
+combinations before target admission, sorts them deterministically, then
+streams vertices before edges. Prefixes filter source labels without renaming
+them. Edges whose endpoint labels are outside the selected vertex labels are
+omitted. `maxLabels` bounds both vertex and edge labels, `maxProperties` bounds
+the properties interpreted from each document, `maxDiscoveryDocuments` bounds
+the documents scanned by each of the vertex and edge discovery queries, and
+generated mappings are capped at 1024. Duplicate labels are removed in the
+client because the Go SDK's gateway transport cannot execute a cross-partition
+`DISTINCT` query.
+
+Vertex `id` and `label` fields, `_value` property wrappers, and flat-schema
+properties are interpreted automatically. A single wrapped value becomes one
+AGE property value; multiple wrapped values become a list. Edge fields
+`_vertexId`/`_vertexLabel` identify the source and `_sink`/`_sinkLabel` plus
+`_sinkPartition` identify the target. Edge properties are read from their flat
+JSON values. Graph/system fields, all underscore-prefixed fields, and the
+configured partition-key property are excluded from AGE properties.
+Meta-properties in `_meta` are not migrated.
+
+Cosmos Gremlin IDs are unique only within a logical partition. The adapter
+therefore encodes every vertex and edge identity as a JSON pair containing the
+partition-key value and element ID. The edge source uses its own partition key;
+the edge target uses `_sinkPartition`. Missing or non-primitive partition keys
+are malformed records. Trial mode is not supported for automatically
+interpreted Gremlin documents: the Go SDK's gateway transport cannot execute
+the cross-partition ordering required for deterministic first-N sampling.
+
+Interpretation is rerun for load, resume, and verify. The resolved mappings,
+partition-key property, property bound, and generated queries are
+fingerprinted, so a discovered label or endpoint mapping change rejects resume
+and verification. Discovery and mapping queries are separate cross-partition
+reads rather than a transactional snapshot; keep the source stable throughout
+the operation.
+
+The interpreted layout is the backing NoSQL document representation, not the
+Gremlin wire response. See Microsoft's
+[Gremlin JSON format](https://learn.microsoft.com/azure/cosmos-db/gremlin/support#gremlin-wire-format)
+and
+[partitioning model](https://learn.microsoft.com/azure/cosmos-db/gremlin/partitioning#graph-partitioning-mechanism).
+
 ## Trial migrations
 
 Trial mode creates a deterministic, bounded PoC/Evaluation graph without

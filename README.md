@@ -43,6 +43,11 @@ read-only graph discovery with application-owned stable key and identity
 properties. See the
 [Neo4j configuration reference](docs/reference/configuration.md#neo4j-options).
 
+Cosmos DB for Apache Gremlin backing documents can be interpreted directly
+through the NoSQL endpoint, including property wrappers and partition-aware
+vertex/edge identities. See the
+[Cosmos configuration reference](docs/reference/configuration.md#cosmos-db-for-apache-gremlin-documents).
+
 Inspect a validated job's source mappings and target configuration without
 connecting to either service:
 

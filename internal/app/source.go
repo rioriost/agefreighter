@@ -39,13 +39,26 @@ func validateImplementedSource(job config.LoadJob) error {
 	return nil
 }
 
-func resolveSourceDiscovery(
+func resolveSource(
+	ctx context.Context,
+	job config.LoadJob,
+) (config.LoadJob, error) {
+	switch job.Source.Type {
+	case config.SourceNeo4j:
+		return resolveNeo4jDiscovery(ctx, job)
+	case config.SourceCosmos:
+		return resolveCosmosGremlin(ctx, job)
+	default:
+		return job, nil
+	}
+}
+
+func resolveNeo4jDiscovery(
 	ctx context.Context,
 	job config.LoadJob,
 ) (config.LoadJob, error) {
 	source := job.Source.Neo4j
-	if job.Source.Type != config.SourceNeo4j ||
-		source == nil ||
+	if source == nil ||
 		source.Discovery == nil ||
 		!source.Discovery.Enabled {
 		return job, nil
@@ -88,6 +101,46 @@ func resolveSourceDiscovery(
 	if err := job.Validate(); err != nil {
 		return config.LoadJob{}, fmt.Errorf(
 			"validate discovered Neo4j mappings: %w",
+			err,
+		)
+	}
+	return job, nil
+}
+
+func resolveCosmosGremlin(
+	ctx context.Context,
+	job config.LoadJob,
+) (config.LoadJob, error) {
+	source := job.Source.Cosmos
+	if source == nil ||
+		source.Gremlin == nil ||
+		!source.Gremlin.Enabled {
+		return job, nil
+	}
+	client, err := sourcecosmos.NewSDKQueryClient(
+		ctx,
+		source.Endpoint,
+		source.Database,
+	)
+	if err != nil {
+		return config.LoadJob{}, err
+	}
+	resolved, interpretErr := sourcecosmos.InterpretGremlinDocuments(
+		ctx,
+		*source,
+		client,
+	)
+	closeErr := client.Close()
+	if err := errors.Join(interpretErr, closeErr); err != nil {
+		return config.LoadJob{}, fmt.Errorf(
+			"interpret Cosmos Gremlin documents: %w",
+			err,
+		)
+	}
+	job.Source.Cosmos = &resolved
+	if err := job.Validate(); err != nil {
+		return config.LoadJob{}, fmt.Errorf(
+			"validate interpreted Cosmos Gremlin mappings: %w",
 			err,
 		)
 	}
