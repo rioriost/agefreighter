@@ -121,4 +121,4 @@ tidy:
 	$(GO) mod tidy
 
 install-tools:
-	$(GO) install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+	$(GO) install golang.org/x/vuln/cmd/govulncheck@v1.7.0
