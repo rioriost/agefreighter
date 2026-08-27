@@ -157,6 +157,50 @@ func TestDiscoverMappingsPartitionsMultiLabelVertices(t *testing.T) {
 	) {
 		t.Fatalf("partitioned vertex mappings = %#v", resolved.Vertices)
 	}
+	if len(client.queries) < 4 ||
+		!strings.Contains(
+			client.queries[3],
+			"WHERE n:`Role` AND NOT n:`Person`",
+		) {
+		t.Fatalf("partitioned property discovery queries = %#v", client.queries)
+	}
+}
+
+func TestDiscoverMappingsOmitsEmptyPrimaryLabelPartition(t *testing.T) {
+	client := &fakeClient{streams: []RecordStream{
+		discoveryStream(
+			record(map[string]any{"label": "Role"}, "label"),
+			record(map[string]any{"label": "Person"}, "label"),
+		),
+		discoveryStream(record(map[string]any{"count": int64(0)}, "count")),
+		discoveryStream(
+			record(map[string]any{"property": "vid"}, "property"),
+			record(map[string]any{"property": "seq"}, "property"),
+		),
+		discoveryStream(),
+		discoveryStream(record(map[string]any{"count": int64(0)}, "count")),
+		discoveryStream(),
+	}}
+
+	resolved, err := DiscoverMappings(
+		context.Background(),
+		discoverySource(),
+		client,
+	)
+	if err != nil {
+		t.Fatalf("DiscoverMappings() error = %v", err)
+	}
+	if len(resolved.Vertices) != 1 ||
+		resolved.Vertices[0].Label != "Person" {
+		t.Fatalf("resolved vertices = %#v", resolved.Vertices)
+	}
+	if len(client.queries) < 5 ||
+		!strings.Contains(
+			client.queries[4],
+			"WHERE n:`Role` AND NOT n:`Person`",
+		) {
+		t.Fatalf("partition count queries = %#v", client.queries)
+	}
 }
 
 func TestDiscoverMappingsSkipsEdgesOutsideLabelPrefix(t *testing.T) {

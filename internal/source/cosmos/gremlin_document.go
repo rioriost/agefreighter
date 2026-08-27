@@ -14,9 +14,6 @@ import (
 var gremlinStructuralFields = map[string]struct{}{
 	"id":                {},
 	"label":             {},
-	"type":              {},
-	"outE":              {},
-	"properties":        {},
 	"_rid":              {},
 	"_self":             {},
 	"_etag":             {},

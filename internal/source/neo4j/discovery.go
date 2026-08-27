@@ -73,7 +73,7 @@ func DiscoverMappings(
 		properties, err := discoverProperties(
 			ctx,
 			client,
-			vertexPropertyQuery(label),
+			vertexPropertyQuery(label, labels),
 			options.MaxProperties,
 		)
 		if err != nil {
@@ -82,6 +82,23 @@ func DiscoverMappings(
 				label.target,
 				err,
 			)
+		}
+		if len(properties) == 0 {
+			count, err := discoverCount(
+				ctx,
+				client,
+				vertexPartitionCountQuery(label, labels),
+			)
+			if err != nil {
+				return config.Neo4jSource{}, fmt.Errorf(
+					"count Neo4j vertex label %q partition: %w",
+					label.target,
+					err,
+				)
+			}
+			if count == 0 {
+				continue
+			}
 		}
 		if err := requireProperties(
 			properties,
@@ -602,7 +619,10 @@ func endpointIDExpression(
 	return variable + "." + quoteCypherIdentifier(idProperty)
 }
 
-func vertexPropertyQuery(label discoveredLabel) string {
+func vertexPropertyQuery(
+	label discoveredLabel,
+	labels []discoveredLabel,
+) string {
 	if label.source == "" {
 		return `MATCH (n)
 WHERE size(labels(n)) = 0
@@ -611,9 +631,22 @@ RETURN DISTINCT property AS property
 ORDER BY property`
 	}
 	return "MATCH (n:" + quoteCypherIdentifier(label.source) + `)
+WHERE ` + primaryLabelPredicate("n", label.target, labels) + `
 UNWIND keys(n) AS property
 RETURN DISTINCT property AS property
 ORDER BY property`
+}
+
+func vertexPartitionCountQuery(
+	label discoveredLabel,
+	labels []discoveredLabel,
+) string {
+	if label.source == "" {
+		return discoverUnlabeledQuery
+	}
+	return "MATCH (n:" + quoteCypherIdentifier(label.source) + ")\n" +
+		"WHERE " + primaryLabelPredicate("n", label.target, labels) + "\n" +
+		"RETURN count(n) AS count"
 }
 
 func relationshipPropertyQuery(relationshipType string) string {

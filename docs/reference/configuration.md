@@ -285,14 +285,16 @@ never uses Neo4j internal IDs or `elementId()`. All discovered properties are
 copied.
 
 A node with multiple selected labels is assigned once, to its lexicographically
-first selected label. Edge endpoint mappings use the same rule, and discovery
-therefore requires `multiLabelPolicy: configured`. Discovery is rerun for load,
-resume, and verify; the resolved mappings are fingerprinted, so a schema or
-mapping change rejects resume and verification. `maxLabels` bounds both labels
-and relationship types, `maxProperties` bounds the properties of each, and
-generated mappings are capped at 1024. Discovery queries and subsequent mapping
-queries are separate read transactions, so concurrent source mutations can
-still produce inconsistent results.
+first selected label. Property discovery uses that same partition, and a later
+label with no independently assigned nodes does not generate an empty mapping.
+Edge endpoint mappings use the same rule, and discovery therefore requires
+`multiLabelPolicy: configured`. Discovery is rerun for load, resume, and verify;
+the resolved mappings are fingerprinted, so a schema or mapping change rejects
+resume and verification. `maxLabels` bounds both labels and relationship types,
+`maxProperties` bounds the properties of each, and generated mappings are capped
+at 1024. Discovery queries and subsequent mapping queries are separate read
+transactions, so concurrent source mutations can still produce inconsistent
+results.
 
 Every mapping must return a unique, strictly increasing signed 64-bit integer
 `keyField`, reference the nullable `$afterKey` parameter, use a top-level
@@ -431,7 +433,9 @@ AGE property value; multiple wrapped values become a list. Edge fields
 `_sinkPartition` identify the target. Edge properties are read from their flat
 JSON values. Graph/system fields, all underscore-prefixed fields, and the
 configured partition-key property are excluded from AGE properties.
-Meta-properties in `_meta` are not migrated.
+Meta-properties in `_meta` are not migrated. Other top-level backing-document
+fields, including user properties named `type`, `outE`, or `properties`, are
+preserved.
 
 Cosmos Gremlin IDs are unique only within a logical partition. The adapter
 therefore encodes every vertex and edge identity as a JSON pair containing the

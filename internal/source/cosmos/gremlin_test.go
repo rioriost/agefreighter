@@ -244,6 +244,9 @@ func TestIteratorInterpretsGremlinDocuments(t *testing.T) {
 				{"id":"vp3","_value":"code","_meta":{}}
 			],
 			"active":true,
+			"type":[{"id":"vp4","_value":"employee","_meta":{}}],
+			"outE":[{"id":"vp5","_value":"visible","_meta":{}}],
+			"properties":[{"id":"vp6","_value":"preserved","_meta":{}}],
 			"_rid":"internal"
 		}`)}},
 	)
@@ -285,6 +288,9 @@ func TestIteratorInterpretsGremlinDocuments(t *testing.T) {
 	if vertexRecord.ExternalID != `["source","v1"]` ||
 		vertexRecord.Properties["name"].String != "Ada" ||
 		vertexRecord.Properties["active"].Kind != model.ValueBoolean ||
+		vertexRecord.Properties["type"].String != "employee" ||
+		vertexRecord.Properties["outE"].String != "visible" ||
+		vertexRecord.Properties["properties"].String != "preserved" ||
 		len(vertexRecord.Properties["tags"].List) != 2 {
 		t.Fatalf("vertex = %#v", vertexRecord)
 	}
