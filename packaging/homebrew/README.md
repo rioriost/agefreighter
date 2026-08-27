@@ -32,7 +32,7 @@ The protected GitHub `release` environment must define:
 | `APPLE_API_KEY_P8` | Base64-encoded App Store Connect API private key |
 | `APPLE_API_KEY_ID` | App Store Connect API key ID |
 | `APPLE_API_ISSUER_ID` | App Store Connect API issuer ID |
-| `HOMEBREW_TAP_TOKEN` | Fine-grained token with Contents read/write access only to `rioriost/homebrew-cask` |
+| `HOMEBREW_TAP_DEPLOY_KEY` | Private half of a write-enabled deploy key registered only on `rioriost/homebrew-cask` |
 
 macOS archives are built on native GitHub-hosted runners. Both executables are
 signed with hardened runtime and a secure timestamp, submitted together to
