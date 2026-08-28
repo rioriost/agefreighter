@@ -29,9 +29,10 @@ func TestAdapterIntegration(t *testing.T) {
 
 	adapter := openIntegrationAdapter(t, ctx, dsn, 3)
 	t.Cleanup(adapter.Close)
-	if adapter.Capabilities().PostgreSQLMajor != 17 ||
-		adapter.Capabilities().AGEVersion.Major != 1 ||
-		adapter.Capabilities().AGEVersion.Minor != 6 {
+	if err := ValidateVersions(
+		adapter.Capabilities().PostgreSQLVersionNumber,
+		adapter.Capabilities().AGEVersion,
+	); err != nil {
 		t.Fatalf("unexpected capabilities: %#v", adapter.Capabilities())
 	}
 	if adapter.Capabilities().AGEPreloadStatus != PreloadConfigured {

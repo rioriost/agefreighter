@@ -18,19 +18,76 @@ jobs:
       matrix:
         include:
           - age: "1.6.0"
+            postgresql: "14"
+            image: apache/age@sha256:d840e88fdc3ba9f60b6beeccec4576f66b73081c69d1f4d794bbde67c69bcb57
+            source_commit: ""
+            postgres_image: ""
+          - age: "1.6.0"
+            postgresql: "15"
+            image: apache/age@sha256:bd653255f4b9449c3f52bac3849524069cf83a6d867a25b1fc6d8535171498b7
+            source_commit: ""
+            postgres_image: ""
+          - age: "1.6.0"
+            postgresql: "16"
+            image: apache/age@sha256:16aa423d20a31aed36a3313244bf7aa00731325862f20ed584510e381f2feaed
+            source_commit: ""
+            postgres_image: ""
+          - age: "1.6.0"
             postgresql: "17"
             image: apache/age@sha256:fe8b33905a61549a067f8512808b88011bdcaa82ab65d8788f39fb07a04aa5be
+            source_commit: ""
+            postgres_image: ""
+          - age: "1.7.0"
+            postgresql: "17"
+            image: ""
+            source_commit: e1467f12e0b1d15dd35d3ab93f057a7112d425b8
+            postgres_image: postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675
+          - age: "1.7.0"
+            postgresql: "18"
+            image: apache/age@sha256:e7de1717e487dac7c1be93a1cd5360a2cf07ff4170342c2af2ac4713c21baf00
+            source_commit: ""
+            postgres_image: ""
+          - age: "1.8.0"
+            postgresql: "18"
+            image: apache/age@sha256:c7255d32a10de6b5d84daa12346aa545e062b223fa3e574fe96a5c428f249894
+            source_commit: ""
+            postgres_image: ""
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: matrix.source_commit != ''
+        with:
+          repository: apache/age
+          ref: ${{ matrix.source_commit }}
+          path: .compatibility-age-source
           persist-credentials: false
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version-file: go.mod
           cache: true
+      - name: Select pinned AGE release image
+        if: matrix.image != ''
+        run: printf 'AGE_IMAGE=%s\n' '${{ matrix.image }}' >>"$GITHUB_ENV"
+      - name: Build pinned AGE release source
+        if: matrix.source_commit != ''
+        env:
+          AGE_VERSION: ${{ matrix.age }}
+          POSTGRES_IMAGE: ${{ matrix.postgres_image }}
+          POSTGRES_MAJOR: ${{ matrix.postgresql }}
+        run: |
+          image="agefreighter-compat:pg${POSTGRES_MAJOR}-age${AGE_VERSION}"
+          docker build \
+            --build-arg "AGE_VERSION=$AGE_VERSION" \
+            --build-arg "POSTGRES_IMAGE=$POSTGRES_IMAGE" \
+            --build-arg "POSTGRES_MAJOR=$POSTGRES_MAJOR" \
+            --file scripts/compatibility/age.Dockerfile \
+            --tag "$image" \
+            .compatibility-age-source
+          printf 'AGE_IMAGE=%s\n' "$image" >>"$GITHUB_ENV"
       - name: Start supported AGE image
         env:
-          AGE_IMAGE: ${{ matrix.image }}
           DEV_RUNTIME: docker
           DEV_PLATFORM: linux/amd64
         run: make dev-up
