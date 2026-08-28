@@ -52,6 +52,14 @@ tar -tvzf "$archive" | awk 'substr($0, 1, 1) == "l" { bad=1 } END { exit bad }' 
 	exit 1
 }
 tar -xzf "$archive" -C "$work"
+for document in LICENSE THIRD_PARTY_NOTICES.txt; do
+	path=$(find "$work" -type f -name "$document" -print)
+	[ "$(printf '%s\n' "$path" | awk 'NF { count++ } END { print count+0 }')" -eq 1 ] &&
+		[ -s "$path" ] || {
+		printf 'archive must contain exactly one non-empty %s\n' "$document" >&2
+		exit 1
+	}
+done
 for binary in agefreighter agefreighter-tools; do
 	path=$(find "$work" -type f -name "$binary" -print)
 	[ "$(printf '%s\n' "$path" | awk 'NF { count++ } END { print count+0 }')" -eq 1 ] || {

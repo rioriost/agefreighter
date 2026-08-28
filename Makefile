@@ -2,6 +2,7 @@ SHELL := /bin/sh
 
 GO ?= go
 GOVULNCHECK ?= $(shell $(GO) env GOPATH)/bin/govulncheck
+ACTIONLINT ?= $(shell $(GO) env GOPATH)/bin/actionlint
 COVERAGE_DIR ?= .coverage
 COVERAGE_THRESHOLD ?= 90.0
 BENCHTIME ?= 5x
@@ -22,7 +23,7 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 	-X github.com/rioriost/agefreighter/internal/version.BuildDate=$(BUILD_DATE)
 
 .PHONY: bench-csv bench-csv-scale build check check-full coverage dev-down dev-pull dev-reset dev-smoke \
-	dev-status dev-up fmt fuzz-smoke install-tools test test-compatibility test-race test-recovery tidy vet vuln
+	dev-status dev-up fmt fuzz-smoke install-tools release-check test test-compatibility test-race test-recovery tidy vet vuln workflow-lint
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter ./cmd/agefreighter
@@ -99,7 +100,17 @@ coverage:
 		.coverage-exclude
 	./scripts/coverage/check.sh "$(COVERAGE_DIR)/unit.out" "$(COVERAGE_THRESHOLD)"
 
-check: fmt vet vuln test test-race fuzz-smoke
+release-check:
+	./scripts/release/self-check.sh
+
+workflow-lint:
+	@command -v $(ACTIONLINT) >/dev/null 2>&1 || { \
+		printf 'actionlint is required; run make install-tools\n' >&2; \
+		exit 1; \
+	}
+	$(ACTIONLINT) -config-file .github/actionlint.yaml
+
+check: fmt vet vuln workflow-lint test test-race fuzz-smoke release-check
 
 check-full: check coverage
 
@@ -126,3 +137,4 @@ tidy:
 
 install-tools:
 	$(GO) install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+	$(GO) install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12

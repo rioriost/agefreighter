@@ -1,15 +1,19 @@
 # agefreighter 2.0 Architecture Research
 
-**Status:** Reviewed and revised  
-**Branch:** `2.0.0`  
+**Status:** Historical design record; implementation completed
+**Branch at time of research:** `2.0.0`
 **Date:** 2026-08-24
+
+> This document records the pre-release architecture decision. The current 2.x
+> implementation is maintained on `main`; 1.x maintenance moved to
+> `release/1.x`.
 
 ## 1. Executive decision
 
 agefreighter 2.x is a greenfield implementation. It does not preserve the Python
 API, the 1.x CLI, configuration files, package layout, or behavioral defaults.
-The `main` branch remains the maintenance line for 1.x. The `2.0.0` branch is
-the only development line for the new implementation.
+The implementation was developed on the `2.0.0` branch. At release, `main`
+became the 2.x development line and 1.x maintenance moved to `release/1.x`.
 
 The recommended product shape is:
 
@@ -95,10 +99,10 @@ being met.
 
 ## 4. Product and repository boundaries
 
-The repository will become a Go repository on the `2.0.0` branch. Python source,
-Python packaging, 1.x fixtures, generated distributions, and 1.x documentation
-will be removed from this branch. Git history and the `main` branch preserve
-them.
+The repository became a Go repository on the `2.0.0` development branch.
+Python source, Python packaging, 1.x fixtures, generated distributions, and
+1.x documentation were removed from that branch. Git history and the current
+`release/1.x` maintenance branch preserve them.
 
 Proposed top-level layout:
 

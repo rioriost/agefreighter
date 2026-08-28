@@ -2,8 +2,8 @@
 
 ## Supported binaries
 
-Each stable 2.x release contains both `agefreighter` and
-`agefreighter-tools` for:
+Each stable 2.x release contains `agefreighter`, `agefreighter-tools`, the
+project `LICENSE`, and `THIRD_PARTY_NOTICES.txt` for:
 
 | Operating system | Architecture | Archive |
 |---|---|---|
@@ -93,3 +93,7 @@ make build VERSION=2.0.0
 
 Source builds require the Go version declared in `go.mod`. Database services
 are not required to compile the binaries.
+
+Existing 1.x installations are not upgraded in place. Follow the
+[1.x to 2.0 migration guide](../migration-1.x-to-2.0.md), validate a new v2 job,
+and complete a trial migration before replacing the 1.x command.

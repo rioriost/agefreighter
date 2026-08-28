@@ -12,13 +12,17 @@ openCypher queries while retaining PostgreSQL's relational capabilities.
 is Microsoft's managed PostgreSQL service and can enable the AGE extension.
 
 This branch does not preserve the Python API, CLI, configuration, or defaults
-from agefreighter 1.x. The 1.x implementation remains on the `main` branch.
+from agefreighter 1.x. The 2.x implementation is maintained on `main`; the 1.x
+maintenance line remains available on [`release/1.x`](https://github.com/rioriost/agefreighter/tree/release/1.x).
+Follow the [1.x to 2.0 migration guide](docs/migration-1.x-to-2.0.md) before
+replacing an existing installation.
 
 ## Installation
 
-Release archives contain both `agefreighter` and `agefreighter-tools`. Verify
-the downloaded archive against `checksums.txt` and the GitHub build-provenance
-attestation before installing it.
+Release archives contain `agefreighter`, `agefreighter-tools`, the project
+`LICENSE`, and `THIRD_PARTY_NOTICES.txt`. Verify the downloaded archive against
+`checksums.txt` and the GitHub build-provenance attestation before installing
+it.
 
 ### macOS
 
