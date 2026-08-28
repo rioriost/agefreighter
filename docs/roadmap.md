@@ -1,6 +1,6 @@
 # agefreighter 2.1 implementation plan
 
-- Status: implemented; environment-gated release qualification pending
+- Status: implemented; Cosmos runner qualification pending
 - Baseline: agefreighter 2.0.0
 - Target compatibility: PostgreSQL 17.x and Apache AGE 1.6.x
 
@@ -547,7 +547,7 @@ determinism, or compatibility guarantees.
 - [ ] Run the Cosmos connector matrix in the protected Azure integration
   environment.
 - [x] Record the 109,190 rows/s M4 Max calibration-host result.
-- [ ] Record the
+- [x] Record the
   50,000 rows/s hosted-release result with the 2 GiB RSS evidence.
 
 These are release executions, not missing implementations. They intentionally
@@ -573,10 +573,13 @@ runner are present.
 - The final calibrated M4 Max release gate measured **111,930 rows/s**, passing the
   unchanged 109,190 rows/s floor. Three independent seven-load confirmations
   measured 118,305, 118,866, and 114,461 rows/s.
-- Cosmos was not run because no
-  `AGEFREIGHTER_COSMOS_TEST_ENDPOINT`/Azure workload identity was available.
-  The hosted 50,000 rows/s run was not run because a GitHub hosted release
-  runner is unavailable from this local session.
+- The hosted release gate measured **62,435 rows/s**, passing the 50,000
+  rows/s floor. Peak client RSS was **303,202,304 bytes** for the countries
+  fixture and **297,017,344 bytes** for the 200,000-row generated load,
+  passing the 2 GiB gate; the generated load measured 92,090 rows/s.
+- The Cosmos environment now allows the `2.1` qualification branch, but its
+  only matching self-hosted runner, `agefreighter-azure-japaneast`, was
+  offline. The queued qualification run was canceled without executing tests.
 
 ## Deferred roadmap
 
