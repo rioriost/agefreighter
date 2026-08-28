@@ -48,7 +48,7 @@
       "id": "property-statistics",
       "status": "unavailable",
       "summary": "live AGE property statistics and index recommendations were not produced",
-      "detail": "Apache AGE 1.6 cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled"
+      "detail": "Apache AGE cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled"
     },
     {
       "id": "required-age-indexes",
@@ -84,7 +84,7 @@
       "fields": [
         {
           "name": "cardinalityAndIndexRecommendations",
-          "value": "Apache AGE 1.6 cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled",
+          "value": "Apache AGE cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled",
           "status": "unavailable"
         }
       ]
@@ -304,7 +304,7 @@
         },
         {
           "name": "ginAgtypeOperatorClass",
-          "value": "no supported allowlisted AGE 1.6 operator class detected",
+          "value": "no supported allowlisted AGE operator class detected",
           "status": "pass"
         },
         {

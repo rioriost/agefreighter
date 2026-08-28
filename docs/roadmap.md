@@ -2,7 +2,8 @@
 
 - Status: implemented; Cosmos runner qualification pending
 - Baseline: agefreighter 2.0.0
-- Target compatibility: PostgreSQL 17.x and Apache AGE 1.6.x
+- Target compatibility: the exact PostgreSQL 14–18 and Apache AGE 1.6–1.8
+  pairings listed in `docs/reference/compatibility.md`
 
 ## Release theme
 

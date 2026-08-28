@@ -32,8 +32,8 @@ const (
 	MaxOptimizeQueryEvidence   = 128
 )
 
-const propertyEvidenceUnavailable = "Apache AGE 1.6 cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled"
-const propertyWorkloadEvidence = "Apache AGE 1.6 live property parsing and cardinality remain unavailable; structurally proven workload predicates may produce review-only expression-index candidates with medium confidence"
+const propertyEvidenceUnavailable = "Apache AGE cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled"
+const propertyWorkloadEvidence = "Apache AGE live property parsing and cardinality remain unavailable; structurally proven workload predicates may produce review-only expression-index candidates with medium confidence"
 
 var errOptimizerSavepointRecovery = errors.New(
 	"optimizer inspection savepoint could not be recovered",
@@ -188,7 +188,7 @@ func OptimizationReport(
 		probe.AGELoadabilityStatus != age.ProbePass {
 		cancelEvidence()
 		return report.Document{}, errors.New(
-			"optimizer requires a compatible, loadable PostgreSQL 17 and Apache AGE 1.6 target",
+			"optimizer requires a compatible, loadable PostgreSQL and Apache AGE target pairing",
 		)
 	}
 	dsn, err := resolveSecret(job.Target.Connection)
@@ -1130,7 +1130,7 @@ func validateAnalyzePreconditions(snapshot optimizationSnapshot) error {
 		snapshot.Probe.AGEPresenceStatus != age.ProbePass ||
 		snapshot.Probe.AGEVersionStatus != age.ProbePass ||
 		snapshot.Probe.AGELoadabilityStatus != age.ProbePass {
-		return errors.New("--apply-analyze requires a compatible, loadable PostgreSQL 17 and Apache AGE 1.6 target")
+		return errors.New("--apply-analyze requires a compatible, loadable PostgreSQL and Apache AGE target pairing")
 	}
 	if err := snapshot.Schema.RequireCurrent(); err != nil {
 		return fmt.Errorf("--apply-analyze requires current metadata: %w", err)
@@ -1925,9 +1925,9 @@ func optimizationTargetSection(
 					return "operator-class visibility is unknown"
 				}
 				if snapshot.GINSupported {
-					return "supported allowlisted AGE 1.6 operator class detected"
+					return "supported allowlisted AGE operator class detected"
 				}
-				return "no supported allowlisted AGE 1.6 operator class detected"
+				return "no supported allowlisted AGE operator class detected"
 			}(),
 			Status: snapshot.GINStatus,
 		},

@@ -21,7 +21,7 @@
 | duplicate-indexes | pass | exact catalog-equivalent indexes were inspected | duplicate\_groups=0 |
 | index-usage | pass | bounded index usage was inspected with its statistics-reset timestamp | zero\_scan\_indexes=0 |
 | metadata-schema | pass | metadata schema is current |  |
-| property-statistics | unavailable | live AGE property statistics and index recommendations were not produced | Apache AGE 1.6 cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled |
+| property-statistics | unavailable | live AGE property statistics and index recommendations were not produced | Apache AGE cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled |
 | required-age-indexes | pass | required AGE label indexes were inspected | missing\_or\_invalid\_required\_indexes=0 unknown\_relations=0 |
 | required-metadata-indexes | pass | version-compatible agefreighter metadata indexes were inspected | invalid\_or\_missing\_indexes=0 missing\_relations=0 schema\_version=17 |
 | statistics-freshness | pass | bounded analyze and dead-tuple evidence was inspected | never\_analyzed=0 stale\_indicators=0 unknown=0 |
@@ -31,7 +31,7 @@
 
 | Field | Value | Status |
 |---|---|---|
-| cardinalityAndIndexRecommendations | Apache AGE 1.6 cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled | unavailable |
+| cardinalityAndIndexRecommendations | Apache AGE cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled | unavailable |
 
 ## Bounded relation statistics
 
@@ -99,7 +99,7 @@
 | databaseStatisticsReset | 2026-08-27T00:00:00Z | pass |
 | evidencePhase | captured before any explicitly requested ANALYZE | pass |
 | filesystemFreeBytes | unknown; use platform storage monitoring | unavailable |
-| ginAgtypeOperatorClass | no supported allowlisted AGE 1.6 operator class detected | pass |
+| ginAgtypeOperatorClass | no supported allowlisted AGE operator class detected | pass |
 | metadataInstalledVersion | 17 | pass |
 | metadataSupportedVersion | 17 | pass |
 | mode | recommendation-only | pass |

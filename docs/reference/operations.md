@@ -111,9 +111,9 @@ outcome. Values, graph IDs, external IDs, source positions, records, query
 text, SQL error bodies, DSNs, and secrets are never reported.
 
 Live AGE property parsing and cardinality inspection are disabled for this
-milestone. Apache AGE 1.6 serializes and fully detoasts an `agtype` value before
-a text substring can cap the result, so the optimizer cannot safely pre-bound
-property serialization. The report explicitly marks property statistics and
+milestone. The qualified AGE releases do not provide a proven way to cap
+`agtype` serialization before detoast, so the optimizer cannot safely
+pre-bound property serialization. The report explicitly marks property statistics and
 data-only property-index recommendations unavailable and emits no property
 recommendation from absent evidence. When `--queries` provides a compatible,
 structurally proven label plus equality/range/order property pattern, the
@@ -121,7 +121,7 @@ report may emit a deduplicated, review-only AGE expression-index candidate at
 `medium` confidence because selectivity remains unavailable. Containment-only,
 ambiguous-label, unsupported, and unknown patterns remain evidence only. The
 target capability check may still
-report whether an allowlisted AGE 1.6 `agtype` GIN operator class exists, but
+report whether an allowlisted `agtype` GIN operator class exists, but
 that fact alone does not produce an index recommendation.
 
 Exact duplicate and zero-scan evidence is advisory: statistics-reset time and
@@ -140,7 +140,7 @@ savepoints inside the shared repeatable-read snapshot.
 agefreighter optimize --target job.yaml --apply-analyze
 ```
 
-It requires PostgreSQL 17, AGE 1.6, a current v17 metadata schema, a complete
+It requires a qualified PostgreSQL/AGE target pairing, a current v17 metadata schema, a complete
 allowlisted metadata catalog, and a non-truncated active graph label catalog.
 Each operation revalidates relation ownership and catalog identity, quotes the
 identifier, and runs in its own transaction with the configured command
