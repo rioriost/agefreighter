@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -31,8 +32,126 @@ type RetainedBackup struct {
 	BackupGraphOID          uint32 `json:"backupGraphOid"`
 }
 
+type ActiveJobHealth struct {
+	ID          string
+	TargetGraph string
+	Status      JobStatus
+	UpdatedAt   time.Time
+	Conflicting bool
+}
+
+type ActiveJobHealthPage struct {
+	Jobs     []ActiveJobHealth
+	Complete bool
+}
+
+type GraphGenerationPage struct {
+	Generations []GraphGeneration
+	Complete    bool
+}
+
+type LabelGenerationPage struct {
+	Generations []LabelGeneration
+	Complete    bool
+}
+
 type rowsQuerier interface {
 	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+func (store *Store) ListActiveJobHealth(
+	ctx context.Context,
+	limit int,
+) (ActiveJobHealthPage, error) {
+	rows, err := store.queryBounded(
+		ctx,
+		`SELECT
+			job_id::text, target_graph, status, updated_at,
+			COUNT(*) OVER (PARTITION BY target_graph) > 1
+		 FROM agefreighter_meta.load_job
+		 WHERE status IN ('pending', 'running')
+		 ORDER BY updated_at DESC, job_id
+		 LIMIT $1 + 1`,
+		limit,
+	)
+	if err != nil {
+		return ActiveJobHealthPage{}, fmt.Errorf("list active load-job health: %w", err)
+	}
+	defer rows.Close()
+	page := ActiveJobHealthPage{
+		Jobs:     make([]ActiveJobHealth, 0, limit),
+		Complete: true,
+	}
+	for rows.Next() {
+		var value ActiveJobHealth
+		if err := rows.Scan(
+			&value.ID,
+			&value.TargetGraph,
+			&value.Status,
+			&value.UpdatedAt,
+			&value.Conflicting,
+		); err != nil {
+			return ActiveJobHealthPage{}, fmt.Errorf("read active load-job health: %w", err)
+		}
+		if len(page.Jobs) == limit {
+			page.Complete = false
+			continue
+		}
+		page.Jobs = append(page.Jobs, value)
+	}
+	if err := rows.Err(); err != nil {
+		return ActiveJobHealthPage{}, fmt.Errorf("list active load-job health: %w", err)
+	}
+	return page, nil
+}
+
+func (store *Store) ListCurrentGraphGenerations(
+	ctx context.Context,
+	graphName string,
+	limit int,
+) (GraphGenerationPage, error) {
+	if strings.TrimSpace(graphName) == "" {
+		return GraphGenerationPage{}, errors.New("target graph name is required")
+	}
+	rows, err := store.queryBounded(
+		ctx,
+		graphGenerationSelect+`
+		 WHERE graph_name = $1
+		   AND state IN ('loading', 'active')
+		 ORDER BY graph_generation_id DESC
+		 LIMIT $2 + 1`,
+		limit,
+		graphName,
+	)
+	if err != nil {
+		return GraphGenerationPage{}, fmt.Errorf(
+			"list current target graph generations: %w",
+			err,
+		)
+	}
+	defer rows.Close()
+	page := GraphGenerationPage{
+		Generations: make([]GraphGeneration, 0, limit),
+		Complete:    true,
+	}
+	for rows.Next() {
+		value, scanErr := scanGraphGeneration(rows)
+		if scanErr != nil {
+			return GraphGenerationPage{}, scanErr
+		}
+		if len(page.Generations) == limit {
+			page.Complete = false
+			continue
+		}
+		page.Generations = append(page.Generations, value)
+	}
+	if err := rows.Err(); err != nil {
+		return GraphGenerationPage{}, fmt.Errorf(
+			"list current target graph generations: %w",
+			err,
+		)
+	}
+	return page, nil
 }
 
 func (store *Store) ListJobs(ctx context.Context, limit int) ([]Job, error) {
@@ -151,6 +270,78 @@ func (store *Store) ListLabelGenerations(
 		return nil, fmt.Errorf("list label generations: %w", err)
 	}
 	return values, nil
+}
+
+func (store *Store) ListLabelGenerationPage(
+	ctx context.Context,
+	graphGenerationID int64,
+	limit int,
+) (LabelGenerationPage, error) {
+	if graphGenerationID <= 0 {
+		return LabelGenerationPage{}, errors.New("graph generation ID must be positive")
+	}
+	rows, err := store.queryBounded(
+		ctx,
+		`SELECT
+			label_generation_id, graph_generation_id, label_name, kind,
+			graph_namespace_oid, label_id, relation_oid, sequence_oid,
+			mapping_generation, created_at, updated_at
+		 FROM agefreighter_meta.label_generation
+		 WHERE graph_generation_id = $1
+		 ORDER BY label_name, mapping_generation DESC, label_generation_id
+		 LIMIT $2 + 1`,
+		limit,
+		graphGenerationID,
+	)
+	if err != nil {
+		return LabelGenerationPage{}, fmt.Errorf(
+			"list target label generations: %w",
+			err,
+		)
+	}
+	defer rows.Close()
+	page := LabelGenerationPage{
+		Generations: make([]LabelGeneration, 0, limit),
+		Complete:    true,
+	}
+	for rows.Next() {
+		var value LabelGeneration
+		var kind string
+		if err := rows.Scan(
+			&value.ID,
+			&value.GraphGenerationID,
+			&value.LabelName,
+			&kind,
+			&value.GraphNamespaceOID,
+			&value.LabelID,
+			&value.RelationOID,
+			&value.SequenceOID,
+			&value.MappingGeneration,
+			&value.CreatedAt,
+			&value.UpdatedAt,
+		); err != nil {
+			return LabelGenerationPage{}, fmt.Errorf(
+				"read target label generation: %w",
+				err,
+			)
+		}
+		if len(kind) != 1 {
+			return LabelGenerationPage{}, fmt.Errorf("stored label kind %q is invalid", kind)
+		}
+		value.Kind = LabelKind(kind[0])
+		if len(page.Generations) == limit {
+			page.Complete = false
+			continue
+		}
+		page.Generations = append(page.Generations, value)
+	}
+	if err := rows.Err(); err != nil {
+		return LabelGenerationPage{}, fmt.Errorf(
+			"list target label generations: %w",
+			err,
+		)
+	}
+	return page, nil
 }
 
 func (store *Store) ListBatches(

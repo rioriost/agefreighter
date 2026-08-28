@@ -99,6 +99,8 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		{"resume", "--job", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"status", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"report", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
+		{"doctor", "--target", "missing.yaml"},
+		{"doctor", "history", "--target", "missing.yaml"},
 		{"verify", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"cleanup", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 	}
@@ -107,6 +109,46 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		if err := Execute(command, args); err == nil {
 			t.Fatalf("Execute(%v) error = nil", args)
 		}
+	}
+}
+
+func TestDoctorCommandValidatesFlagsBeforeConnecting(t *testing.T) {
+	tests := [][]string{
+		{"doctor", "--target", "missing.yaml", "--format", "yaml"},
+		{"doctor", "--target", "missing.yaml", "--output", ""},
+		{"doctor", "history", "--target", "missing.yaml", "--limit", "0"},
+		{
+			"doctor", "history", "--target", "missing.yaml",
+			"--limit", fmt.Sprint(app.MaxDoctorHistory + 1),
+		},
+		{
+			"doctor", "history", "--target", "missing.yaml",
+			"--format", "yaml",
+		},
+	}
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) error = nil", args)
+		}
+	}
+}
+
+func TestDoctorPropagatesCancellation(t *testing.T) {
+	t.Setenv(
+		"AGEFREIGHTER_TARGET_DSN",
+		"postgres://localhost/agefreighter_cancel_test",
+	)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+	err := ExecuteContext(ctx, command, []string{
+		"doctor",
+		"--target",
+		configFixture(t, "valid/csv.yaml"),
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("doctor cancellation error = %v", err)
 	}
 }
 
@@ -246,6 +288,36 @@ func TestLifecycleCommandsIntegration(t *testing.T) {
 		len(migrationReport.Sections) == 0 {
 		t.Fatalf("report output = %#v", migrationReport)
 	}
+
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"doctor", "--target", jobPath, "--persist",
+	}); err != nil {
+		t.Fatalf("doctor error = %v", err)
+	}
+	var doctorReport report.Document
+	if err := json.Unmarshal(output.Bytes(), &doctorReport); err != nil {
+		t.Fatalf("decode doctor output: %v", err)
+	}
+	if doctorReport.Command != "doctor" || doctorReport.Target == nil {
+		t.Fatalf("doctor output = %#v", doctorReport)
+	}
+
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"doctor", "history", "--target", jobPath, "--limit", "1",
+	}); err != nil {
+		t.Fatalf("doctor history error = %v", err)
+	}
+	var historyReport report.Document
+	if err := json.Unmarshal(output.Bytes(), &historyReport); err != nil {
+		t.Fatalf("decode doctor history output: %v", err)
+	}
+	if historyReport.Command != "doctor" || len(historyReport.Sections) == 0 {
+		t.Fatalf("doctor history output = %#v", historyReport)
+	}
 	command = NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
 	if err := Execute(command, []string{
 		"resume", "--job", jobPath, loaded.JobID,
@@ -365,6 +437,9 @@ func registerCLICleanup(t *testing.T, dsn, graph, jobID string) {
 		if pool, err := pgxpool.New(ctx, dsn); err == nil {
 			tx, beginErr := pool.Begin(ctx)
 			if beginErr == nil {
+				_, _ = tx.Exec(ctx, `
+					DELETE FROM agefreighter_meta.diagnostic_history
+					WHERE target_graph = $1`, graph)
 				_, _ = tx.Exec(ctx, `
 					UPDATE agefreighter_meta.load_job
 					SET graph_generation_id = NULL

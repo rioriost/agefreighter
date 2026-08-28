@@ -44,6 +44,48 @@ func TestStoreIntegration(t *testing.T) {
 	).Scan(&telemetryTableExists); err != nil || !telemetryTableExists {
 		t.Fatalf("v15 telemetry migration = %v, %v", telemetryTableExists, err)
 	}
+	var diagnosticTableExists bool
+	if err := pool.QueryRow(
+		ctx,
+		`SELECT pg_catalog.to_regclass(
+			'agefreighter_meta.diagnostic_history'
+		) IS NOT NULL`,
+	).Scan(&diagnosticTableExists); err != nil || !diagnosticTableExists {
+		t.Fatalf("v16 diagnostic migration = %v, %v", diagnosticTableExists, err)
+	}
+	const diagnosticGraph = "meta_store_integration"
+	if _, err := pool.Exec(ctx, `
+		DELETE FROM agefreighter_meta.diagnostic_history
+		WHERE target_graph = $1`, diagnosticGraph); err != nil {
+		t.Fatalf("clean diagnostic history: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(
+			context.Background(),
+			5*time.Second,
+		)
+		defer cleanupCancel()
+		_, _ = pool.Exec(cleanupCtx, `
+			DELETE FROM agefreighter_meta.diagnostic_history
+			WHERE target_graph = $1`, diagnosticGraph)
+	})
+	persisted, err := store.PersistDiagnostic(ctx, DiagnosticRecord{
+		Outcome:                 "pass",
+		TargetGraph:             diagnosticGraph,
+		PostgreSQLVersionNumber: 170000,
+		AGEVersion:              "1.6.0",
+		MetadataSchemaVersion:   SupportedSchemaVersion,
+		Report:                  []byte(`{"outcome":"pass"}`),
+	})
+	if err != nil || persisted.ID <= 0 || persisted.RecordedAt.IsZero() {
+		t.Fatalf("PersistDiagnostic() = %#v, %v", persisted, err)
+	}
+	history, err := store.ListDiagnostics(ctx, diagnosticGraph, 1)
+	if err != nil || len(history) != 1 ||
+		history[0].TargetGraph != diagnosticGraph ||
+		len(history[0].Report) != 0 {
+		t.Fatalf("ListDiagnostics() = %#v, %v", history, err)
+	}
 	jobIDs := []string{
 		testJobID,
 		"22222222-3333-4444-8555-666666666666",

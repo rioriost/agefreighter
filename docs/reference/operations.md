@@ -86,11 +86,54 @@ a new regular file with mode `0600` and refuses existing paths and symlinks.
 The JSON contract is
 [`migration-report.schema.json`](migration-report.schema.json).
 
-Metadata schema v14 (2.0) remains readable by `report`, `status`, `verify`, and
-`cleanup`. Reports mark v15 connector telemetry and unstored per-label counters
-as unavailable. These read-only commands do not upgrade v14. The next 2.1
-`load` or `resume` applies the non-destructive v15 migration; older writers
-must be upgraded first. Schemas newer than the binary supports are rejected.
+Metadata schemas v14 (2.0) and v15 remain readable by `report`, `status`,
+`verify`, and `cleanup`. Reports mark v15 connector telemetry and unstored
+per-label counters as unavailable where appropriate. These read-only commands
+do not upgrade metadata. The next 2.1 `load` or `resume` applies the
+non-destructive migrations through v16; older writers must be upgraded first.
+Schemas newer than the binary supports are rejected.
+
+## Target doctor
+
+`doctor` starts with a plain PostgreSQL degraded probe, then progressively
+checks AGE, metadata, the configured graph and bounded catalog/operational
+state:
+
+```sh
+agefreighter doctor --target job.yaml
+agefreighter doctor --target job.yaml --format markdown --output doctor.md
+```
+
+The default command is strictly read-only and emits a report even when AGE is
+missing, unloadable, unsupported, not preloaded, or metadata is absent, stale,
+invalid, or not visible. `fail` and `incomplete` are report outcomes, not
+command failures. Connection, cancellation, and rendering failures still
+return command errors. Catalog and metadata lists are bounded and filter the
+configured graph or health-critical job states before applying limits; a
+truncated check is `unknown`, never `pass`. Identity and graph rows are never
+scanned. Required metadata indexes are checked for their table, readiness,
+validity, uniqueness, exact key/include columns, ordering, and predicate.
+Permission failures are `unknown`, never `pass`. Files written with `--output`
+use the same exclusive mode-`0600` writer as migration reports. The contract is
+[`doctor-report.schema.json`](doctor-report.schema.json).
+
+`--persist` is the only doctor write path. It stores the final bounded JSON
+report and a small set of typed summary fields. It requires load or resume to
+have already upgraded metadata to current v16 and requires a compatible,
+loadable AGE target. Persistence takes the metadata migration lock and
+revalidates exact v16 while holding it; doctor never migrates or repairs
+metadata.
+
+Persisted summaries are read newest first:
+
+```sh
+agefreighter doctor history --target job.yaml
+agefreighter doctor history --target job.yaml --limit 100 --format markdown
+```
+
+History defaults to 20 records and is capped at 100. On v14/v15 it reports
+history as unavailable without migrating. Newer-than-supported schemas fail
+closed.
 
 ## Operational checks
 

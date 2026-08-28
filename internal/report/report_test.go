@@ -75,6 +75,38 @@ func TestMigrationReportJSONSchemaContract(t *testing.T) {
 	}
 }
 
+func TestDoctorReportJSONSchemaContract(t *testing.T) {
+	data, err := os.ReadFile("../../docs/reference/doctor-report.schema.json")
+	if err != nil {
+		t.Fatalf("ReadFile(schema) error = %v", err)
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(data, &schema); err != nil {
+		t.Fatalf("schema JSON error = %v", err)
+	}
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		t.Fatal("schema properties are missing")
+	}
+	version, ok := properties["schemaVersion"].(map[string]any)
+	if !ok || version["const"] != float64(SchemaVersion) {
+		t.Fatalf("schema version contract = %#v", version)
+	}
+	command, ok := properties["command"].(map[string]any)
+	if !ok || command["const"] != "doctor" {
+		t.Fatalf("schema command contract = %#v", command)
+	}
+	required, ok := schema["required"].([]any)
+	if !ok {
+		t.Fatal("schema required contract is missing")
+	}
+	for _, name := range required {
+		if name == "job" {
+			t.Fatal("doctor schema requires a migration job ID")
+		}
+	}
+}
+
 func TestRenderIsDeterministicAndCanonical(t *testing.T) {
 	document := validDocument()
 	document.Checks = []Check{

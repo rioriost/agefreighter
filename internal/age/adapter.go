@@ -238,6 +238,20 @@ func (adapter *Adapter) Capabilities() Capabilities {
 	return adapter.capabilities
 }
 
+func (adapter *Adapter) CurrentSearchPath(ctx context.Context) (string, error) {
+	if adapter == nil || adapter.pool == nil {
+		return "", errors.New("Apache AGE adapter is required")
+	}
+	var value string
+	if err := adapter.pool.QueryRow(
+		ctx,
+		`SELECT current_setting('search_path')`,
+	).Scan(&value); err != nil {
+		return "", fmt.Errorf("read Apache AGE search path: %w", err)
+	}
+	return value, nil
+}
+
 func (adapter *Adapter) Close() {
 	if adapter != nil && adapter.pool != nil {
 		adapter.pool.Close()

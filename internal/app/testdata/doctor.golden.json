@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "command": "doctor",
+  "agefreighterVersion": "dev",
+  "generatedAt": "2026-08-28T07:00:00Z",
+  "outcome": "pass",
+  "target": {
+    "postgresql": {
+      "value": "17.6",
+      "status": "pass"
+    },
+    "age": {
+      "value": "1.6.0",
+      "status": "pass"
+    }
+  },
+  "checks": [
+    {
+      "id": "age-installation",
+      "status": "pass",
+      "summary": "Apache AGE extension installation was probed"
+    },
+    {
+      "id": "age-loadability",
+      "status": "pass",
+      "summary": "Apache AGE loadability was probed"
+    },
+    {
+      "id": "age-preload",
+      "status": "pass",
+      "summary": "Apache AGE is configured in shared_preload_libraries"
+    },
+    {
+      "id": "age-version",
+      "status": "pass",
+      "summary": "Apache AGE extension compatibility was probed"
+    },
+    {
+      "id": "postgresql-version",
+      "status": "pass",
+      "summary": "PostgreSQL server compatibility was probed"
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "incompleteChecks": [],
+  "sections": []
+}

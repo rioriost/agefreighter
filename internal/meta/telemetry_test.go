@@ -45,7 +45,7 @@ func TestConnectorTelemetryValidation(t *testing.T) {
 }
 
 func TestConnectorTelemetryMigrationIsCurrentVersion(t *testing.T) {
-	if schemaVersion != 15 || len(migrations) != schemaVersion {
+	if schemaVersion < 15 || len(migrations) != schemaVersion {
 		t.Fatalf("schema version=%d migrations=%d", schemaVersion, len(migrations))
 	}
 	if len(migrationV15) != 1 ||

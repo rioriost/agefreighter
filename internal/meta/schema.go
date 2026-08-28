@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 15
+const schemaVersion = 16
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -631,6 +631,34 @@ var migrationV15 = []string{
 	)`,
 }
 
+var migrationV16 = []string{
+	`CREATE TABLE agefreighter_meta.diagnostic_history (
+		diagnostic_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		recorded_at timestamp with time zone NOT NULL DEFAULT clock_timestamp(),
+		outcome text NOT NULL CHECK (
+			outcome IN ('pass', 'fail', 'incomplete')
+		),
+		target_graph text NOT NULL CHECK (
+			target_graph <> '' AND octet_length(target_graph) <= 63
+		),
+		postgresql_version_number integer NOT NULL CHECK (
+			postgresql_version_number >= 0
+		),
+		age_version text NOT NULL CHECK (octet_length(age_version) <= 64),
+		metadata_schema_version integer NOT NULL CHECK (
+			metadata_schema_version >= 0
+		),
+		report jsonb NOT NULL CHECK (
+			jsonb_typeof(report) = 'object'
+			AND octet_length(report::text) <= 4194304
+		)
+	)`,
+	`CREATE INDEX diagnostic_history_recent_idx
+		ON agefreighter_meta.diagnostic_history (
+			recorded_at DESC, diagnostic_id DESC
+		)`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -647,4 +675,5 @@ var migrations = [][]string{
 	migrationV13,
 	migrationV14,
 	migrationV15,
+	migrationV16,
 }

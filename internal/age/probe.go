@@ -198,7 +198,15 @@ func probeDegradedCapabilities(
 		return DegradedProbe{}, fmt.Errorf("probe Apache AGE loadability: %w", err)
 	default:
 		result.AGELoadabilityStatus = ProbeFail
-		result.AGELoadabilityDetail = err.Error()
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			result.AGELoadabilityDetail = fmt.Sprintf(
+				"Apache AGE loadability probe failed (SQLSTATE %s)",
+				pgErr.Code,
+			)
+		} else {
+			result.AGELoadabilityDetail = "Apache AGE loadability probe failed"
+		}
 	}
 	return result, nil
 }

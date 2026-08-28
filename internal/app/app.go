@@ -511,7 +511,12 @@ func openMutatingTarget(
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := store.Migrate(ctx); err != nil {
+	migrationCtx, cancel := context.WithTimeout(
+		ctx,
+		time.Duration(job.Runtime.OperationTimeout),
+	)
+	defer cancel()
+	if err := store.Migrate(migrationCtx); err != nil {
 		adapter.Close()
 		return nil, nil, err
 	}

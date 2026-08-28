@@ -241,9 +241,11 @@ func (scriptedLifecycleDatabase) QueryRow(context.Context, string, ...any) pgx.R
 
 type scriptedLifecycleTx struct {
 	pgx.Tx
-	rows      []scanLifecycleRow
-	exec      []scriptedLifecycleExec
-	commitErr error
+	rows       []scanLifecycleRow
+	exec       []scriptedLifecycleExec
+	statements []string
+	arguments  [][]any
+	commitErr  error
 }
 
 func (tx *scriptedLifecycleTx) QueryRow(context.Context, string, ...any) pgx.Row {
@@ -253,8 +255,10 @@ func (tx *scriptedLifecycleTx) QueryRow(context.Context, string, ...any) pgx.Row
 }
 
 func (tx *scriptedLifecycleTx) Exec(
-	context.Context, string, ...any,
+	_ context.Context, statement string, arguments ...any,
 ) (pgconn.CommandTag, error) {
+	tx.statements = append(tx.statements, statement)
+	tx.arguments = append(tx.arguments, arguments)
 	result := tx.exec[0]
 	tx.exec = tx.exec[1:]
 	return result.tag, result.err
