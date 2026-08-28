@@ -96,6 +96,8 @@ output files use the shared report renderer.
 ```sh
 agefreighter optimize --target job.yaml
 agefreighter optimize --target job.yaml --format markdown --output optimizer.md
+agefreighter optimize --target job.yaml \
+  --queries service-a.cypher --queries service-b.cypher
 ```
 
 The report covers PostgreSQL, AGE, and metadata versions; migration and
@@ -112,8 +114,13 @@ Live AGE property parsing and cardinality inspection are disabled for this
 milestone. Apache AGE 1.6 serializes and fully detoasts an `agtype` value before
 a text substring can cap the result, so the optimizer cannot safely pre-bound
 property serialization. The report explicitly marks property statistics and
-property-index recommendations unavailable and emits no property
-recommendation from absent evidence. The target capability check may still
+data-only property-index recommendations unavailable and emits no property
+recommendation from absent evidence. When `--queries` provides a compatible,
+structurally proven label plus equality/range/order property pattern, the
+report may emit a deduplicated, review-only AGE expression-index candidate at
+`medium` confidence because selectivity remains unavailable. Containment-only,
+ambiguous-label, unsupported, and unknown patterns remain evidence only. The
+target capability check may still
 report whether an allowlisted AGE 1.6 `agtype` GIN operator class exists, but
 that fact alone does not produce an index recommendation.
 
@@ -146,10 +153,51 @@ The report gives attempted, succeeded, and failed counts and a sanitized result
 per relation; partial completion is incomplete. Cancellation stops further
 work and propagates to the caller. No optimizer history is persisted.
 
-Workload query ingestion, Cypher compatibility analysis, automatic schema or
-index changes, and live `pg_stat_statements` collection are intentionally
-deferred. The JSON contract is
+Automatic schema or index changes and live `pg_stat_statements` collection are
+intentionally deferred. The JSON contract is
 [`optimizer-report.schema.json`](optimizer-report.schema.json).
+
+## Static Cypher compatibility
+
+`agefreighter-tools check-cypher FILE ... [--target-age 1.6]
+[--format json|markdown]` analyzes regular local UTF-8 files.
+It never reads standard input, follows symlinks, executes a query, opens a
+database, uses the network, invokes an LLM, or rewrites input.
+Each filesystem operation has a fixed two-second limit, and the complete
+analysis has a fixed 30-second limit. At most 64 filesystem workers can remain
+occupied by uninterruptible operating-system calls.
+
+```sh
+agefreighter-tools check-cypher app.cypher \
+  --format markdown
+agefreighter-tools check-cypher app.cypher \
+  --format json --strict
+```
+
+The AGE 1.6 rule catalog reports each query as `compatible`,
+`compatible-with-manual-change`, `unsupported`, or `unknown`. Findings contain
+stable rule codes, file/query/line/column locations, sanitized bounded
+evidence, and remediation. Strings, numbers, parameter names/values, comments,
+and uncataloged identifiers are not copied into evidence snippets. An unknown
+query is never counted as supported, and the compatibility percentage is
+withheld whenever unknown queries exist.
+
+Analysis is capped at 64 files, 1 MiB per file, 8 MiB total, 1,024 queries,
+8,192 tokens per query, nesting depth 128, 4,096 findings, and 4 MiB output.
+Cancellation is checked during reads, lexing, output, and between queries.
+Reports use basenames, with deterministic opaque IDs for duplicate basenames;
+directories and absolute paths are never emitted. Inputs and
+findings/patterns are canonically sorted.
+`--target-age` fails closed for anything other than the cataloged `1.6`.
+The JSON contract is
+[`cypher-compatibility-report.schema.json`](cypher-compatibility-report.schema.json).
+
+Exit status is zero for compatible queries, warnings/manual changes, and
+non-strict unsupported or malformed/unknown reports. `--strict` returns
+nonzero after writing the report when any query is unsupported or unknown.
+Flag errors, unsafe/special files, limit violations, cancellation, I/O errors,
+and output errors always return nonzero. Query manifests and automatic
+rewrites are not part of the 2.1 input contract; pass each local file directly.
 
 ## Failure and recovery
 

@@ -141,6 +141,17 @@ allowlist under statement, lock, and operation deadlines. The optimizer never
 applies index DDL. See
 [recommendation-first target optimization](docs/reference/operations.md#recommendation-first-target-optimization).
 
+Statically check local Cypher without connecting to a database or service:
+
+```sh
+agefreighter-tools check-cypher queries.cypher --format json
+agefreighter-tools check-cypher queries.cypher --strict
+```
+
+The same bounded analyzer can add deduplicated workload evidence to an
+optimizer report with repeated `--queries FILE` flags. Query text and parameter
+values are never included in either report.
+
 If a load fails after committing a resumable checkpoint, continue the same job:
 
 ```sh

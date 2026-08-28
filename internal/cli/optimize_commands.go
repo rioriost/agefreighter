@@ -14,6 +14,7 @@ func newOptimizeCommand() *cobra.Command {
 		formatValue string
 		outputPath  string
 		analyze     bool
+		queryPaths  []string
 	)
 	command := &cobra.Command{
 		Use:   "optimize",
@@ -30,7 +31,9 @@ func newOptimizeCommand() *cobra.Command {
 			document, err := app.OptimizationReport(
 				command.Context(),
 				targetPath,
-				app.OptimizeOptions{Analyze: analyze},
+				app.OptimizeOptions{
+					Analyze: analyze, QueryPaths: queryPaths,
+				},
 			)
 			if err != nil {
 				return fmt.Errorf("optimize: %w", err)
@@ -66,6 +69,12 @@ func newOptimizeCommand() *cobra.Command {
 		"apply-analyze",
 		false,
 		"run bounded ANALYZE on allowlisted owned relations",
+	)
+	command.Flags().StringArrayVar(
+		&queryPaths,
+		"queries",
+		nil,
+		"local Cypher query file (repeat for multiple files)",
 	)
 	_ = command.MarkFlagRequired("target")
 	return command

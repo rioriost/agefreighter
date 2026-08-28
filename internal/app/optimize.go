@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -15,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
+	"github.com/rioriost/agefreighter/internal/cypher"
 	"github.com/rioriost/agefreighter/internal/meta"
 	"github.com/rioriost/agefreighter/internal/report"
 )
@@ -25,9 +29,11 @@ const (
 	MaxOptimizeBatchAttempts   = 1000
 	MaxOptimizeIndexFindings   = 128
 	MaxOptimizeRecommendations = 128
+	MaxOptimizeQueryEvidence   = 128
 )
 
 const propertyEvidenceUnavailable = "Apache AGE 1.6 cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled"
+const propertyWorkloadEvidence = "Apache AGE 1.6 live property parsing and cardinality remain unavailable; structurally proven workload predicates may produce review-only expression-index candidates with medium confidence"
 
 var errOptimizerSavepointRecovery = errors.New(
 	"optimizer inspection savepoint could not be recovered",
@@ -42,6 +48,7 @@ var errOptimizerUnknownSchema = errors.New(
 type OptimizeOptions struct {
 	Analyze     bool
 	GeneratedAt time.Time
+	QueryPaths  []string
 }
 
 type optimizationSnapshot struct {
@@ -81,6 +88,7 @@ type optimizationSnapshot struct {
 	GINStatus                report.CheckStatus
 	GINSupported             bool
 	AnalyzeResults           []analyzeResult
+	QueryReport              *cypher.Report
 }
 
 type relationEvidence struct {
@@ -140,6 +148,21 @@ func OptimizationReport(
 	path string,
 	options OptimizeOptions,
 ) (report.Document, error) {
+	var queryReport *cypher.Report
+	if len(options.QueryPaths) > 0 {
+		analyzed, analyzeErr := cypher.AnalyzeFiles(
+			ctx,
+			options.QueryPaths,
+			cypher.Options{},
+		)
+		if analyzeErr != nil {
+			return report.Document{}, fmt.Errorf(
+				"analyze local query evidence: %w",
+				analyzeErr,
+			)
+		}
+		queryReport = &analyzed
+	}
 	job, err := config.Load(path)
 	if err != nil {
 		return report.Document{}, fmt.Errorf("load target configuration: %w", err)
@@ -187,6 +210,7 @@ func OptimizationReport(
 	if err != nil {
 		return report.Document{}, err
 	}
+	snapshot.QueryReport = queryReport
 	if options.Analyze {
 		if err := validateAnalyzePreconditions(snapshot); err != nil {
 			return report.Document{}, err
@@ -1562,6 +1586,26 @@ func buildOptimizationReport(
 		optimizationIndexSection(snapshot),
 		optimizationRecommendationSection(snapshot),
 	)
+	if snapshot.QueryReport != nil {
+		addOptimizationQueryCheck(&document, *snapshot.QueryReport)
+		document.Sections = append(
+			document.Sections,
+			optimizationQueryEvidenceSection(*snapshot.QueryReport),
+		)
+		if queryEvidenceTruncated(*snapshot.QueryReport) {
+			document.Warnings = append(document.Warnings, report.Finding{
+				Code: "QUERY_EVIDENCE_TRUNCATED",
+				Message: fmt.Sprintf(
+					"query pattern evidence is limited to %d deterministic entries",
+					MaxOptimizeQueryEvidence,
+				),
+			})
+			document.IncompleteChecks = append(
+				document.IncompleteChecks,
+				"query-evidence",
+			)
+		}
+	}
 	if analyze {
 		document.Sections = append(
 			document.Sections,
@@ -1768,9 +1812,14 @@ func addOptimizationChecks(
 			unknown,
 		))
 
+	propertyDetail := propertyEvidenceUnavailable
+	propertySummary := "live AGE property statistics and index recommendations were not produced"
+	if snapshot.QueryReport != nil {
+		propertyDetail = propertyWorkloadEvidence
+		propertySummary = "live AGE property statistics were not produced; local workload evidence was considered separately"
+	}
 	addCheck(document, "property-statistics", report.CheckUnavailable,
-		"live AGE property statistics and index recommendations were not produced",
-		propertyEvidenceUnavailable)
+		propertySummary, propertyDetail)
 
 	duplicateCount, unusedCount := countIndexSignals(snapshot)
 	duplicateStatus := report.CheckPass
@@ -2214,15 +2263,151 @@ func optimizationMetadataRelationSection(snapshot optimizationSnapshot) report.S
 	return section
 }
 
-func optimizationPropertySection(_ optimizationSnapshot) report.Section {
+func optimizationPropertySection(snapshot optimizationSnapshot) report.Section {
+	value := propertyEvidenceUnavailable
+	if snapshot.QueryReport != nil {
+		value = propertyWorkloadEvidence
+	}
 	return report.Section{
 		Title: "AGE property evidence",
 		Fields: []report.Field{{
 			Name:   "cardinalityAndIndexRecommendations",
-			Value:  propertyEvidenceUnavailable,
+			Value:  value,
 			Status: report.CheckUnavailable,
 		}},
 	}
+}
+
+type queryPatternEvidence struct {
+	Kind          string
+	Label         string
+	Property      string
+	Operator      string
+	QueryCount    int
+	EligibleCount int
+}
+
+func addOptimizationQueryCheck(
+	document *report.Document,
+	queryReport cypher.Report,
+) {
+	status := report.CheckPass
+	detail := fmt.Sprintf(
+		"files=%d queries=%d compatible=%d manual-change=%d unsupported=%d unknown=%d",
+		queryReport.Summary.Files,
+		queryReport.Summary.Queries,
+		queryReport.Summary.Compatible,
+		queryReport.Summary.CompatibleWithManualChange,
+		queryReport.Summary.Unsupported,
+		queryReport.Summary.Unknown,
+	)
+	switch {
+	case queryReport.Summary.Unknown > 0:
+		status = report.CheckUnknown
+	case queryReport.Summary.Unsupported > 0 ||
+		queryReport.Summary.CompatibleWithManualChange > 0:
+		status = report.CheckWarning
+	}
+	addCheck(
+		document,
+		"query-evidence",
+		status,
+		"bounded local Cypher workload evidence was structurally analyzed",
+		detail,
+	)
+}
+
+func optimizationQueryEvidenceSection(
+	queryReport cypher.Report,
+) report.Section {
+	section := report.Section{
+		Title:  "Cypher query evidence",
+		Fields: []report.Field{},
+	}
+	patterns := collectQueryPatternEvidence(queryReport)
+	for index, pattern := range patterns {
+		if index >= MaxOptimizeQueryEvidence {
+			break
+		}
+		status := report.CheckPass
+		if pattern.EligibleCount != pattern.QueryCount {
+			status = report.CheckUnknown
+		}
+		section.Fields = append(section.Fields, report.Field{
+			Name: fmt.Sprintf("%03d", index+1),
+			Value: boundedReportValue(fmt.Sprintf(
+				"kind=%s label=%s property=%s operator=%s queries=%d eligible=%d",
+				pattern.Kind,
+				safeQueryIdentifier(pattern.Label),
+				safeQueryIdentifier(pattern.Property),
+				pattern.Operator,
+				pattern.QueryCount,
+				pattern.EligibleCount,
+			)),
+			Status: status,
+		})
+	}
+	if len(section.Fields) == 0 {
+		section.Fields = append(section.Fields, report.Field{
+			Name:   "summary",
+			Value:  "no structurally proven label, property predicate, containment, or ordering evidence was available",
+			Status: report.CheckUnavailable,
+		})
+	}
+	return section
+}
+
+func collectQueryPatternEvidence(
+	queryReport cypher.Report,
+) []queryPatternEvidence {
+	byKey := make(map[string]queryPatternEvidence)
+	for _, query := range queryReport.Queries {
+		eligible := query.Classification == cypher.Compatible ||
+			query.Classification == cypher.CompatibleWithManualChange
+		seen := make(map[string]bool)
+		for _, pattern := range query.Patterns {
+			key := pattern.Kind + "\x00" + pattern.Label + "\x00" +
+				pattern.Property + "\x00" + pattern.Operator
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			value := byKey[key]
+			value.Kind = pattern.Kind
+			value.Label = pattern.Label
+			value.Property = pattern.Property
+			value.Operator = pattern.Operator
+			value.QueryCount++
+			if eligible {
+				value.EligibleCount++
+			}
+			byKey[key] = value
+		}
+	}
+	values := make([]queryPatternEvidence, 0, len(byKey))
+	for _, value := range byKey {
+		values = append(values, value)
+	}
+	slices.SortFunc(values, func(left, right queryPatternEvidence) int {
+		leftKey := left.Kind + "\x00" + left.Label + "\x00" +
+			left.Property + "\x00" + left.Operator
+		rightKey := right.Kind + "\x00" + right.Label + "\x00" +
+			right.Property + "\x00" + right.Operator
+		return strings.Compare(leftKey, rightKey)
+	})
+	return values
+}
+
+func queryEvidenceTruncated(queryReport cypher.Report) bool {
+	return len(collectQueryPatternEvidence(queryReport)) >
+		MaxOptimizeQueryEvidence
+}
+
+func safeQueryIdentifier(value string) string {
+	if value == "" {
+		return "-"
+	}
+	return strconv.QuoteToASCII(value)
 }
 
 func optimizationIndexSection(snapshot optimizationSnapshot) report.Section {
@@ -2355,6 +2540,17 @@ func optimizationRecommendationSection(
 			), report.CheckWarning)
 		}
 	}
+	for _, candidate := range workloadIndexCandidates(snapshot) {
+		add(fmt.Sprintf(
+			"action=review-expression-index-candidate scope=%s.%s property=%s confidence=medium evidence=compatible-query-patterns:%d operators=%s limitation=selectivity-unavailable,no-auto-apply sql=%s",
+			candidate.Schema,
+			candidate.Label,
+			safeQueryIdentifier(candidate.Property),
+			candidate.QueryCount,
+			strings.Join(candidate.Operators, ","),
+			candidate.SQL,
+		), report.CheckWarning)
+	}
 	if number == 0 {
 		section.Fields = append(section.Fields, passField(
 			"summary",
@@ -2362,6 +2558,105 @@ func optimizationRecommendationSection(
 		))
 	}
 	return section
+}
+
+type workloadIndexCandidate struct {
+	Schema     string
+	Label      string
+	Property   string
+	QueryCount int
+	Operators  []string
+	SQL        string
+}
+
+func workloadIndexCandidates(
+	snapshot optimizationSnapshot,
+) []workloadIndexCandidate {
+	if snapshot.QueryReport == nil {
+		return nil
+	}
+	type aggregate struct {
+		Schema    string
+		Label     string
+		Property  string
+		Queries   map[string]bool
+		Operators map[string]bool
+	}
+	relations := make(map[string]relationEvidence)
+	for _, relation := range snapshot.Relations {
+		if relation.Status == report.CheckPass {
+			relations[relation.Name] = relation
+		}
+	}
+	byKey := make(map[string]*aggregate)
+	for queryIndex, query := range snapshot.QueryReport.Queries {
+		if query.Classification != cypher.Compatible &&
+			query.Classification != cypher.CompatibleWithManualChange {
+			continue
+		}
+		queryKey := strconv.Itoa(queryIndex)
+		for _, pattern := range query.Patterns {
+			if pattern.Kind != "predicate" && pattern.Kind != "ordering" {
+				continue
+			}
+			switch pattern.Operator {
+			case "=", "<", "<=", ">", ">=", "ORDER BY":
+			default:
+				continue
+			}
+			relation, exists := relations[pattern.Label]
+			if !exists || pattern.Property == "" {
+				continue
+			}
+			key := relation.Schema + "\x00" + relation.Name + "\x00" +
+				pattern.Property
+			value := byKey[key]
+			if value == nil {
+				value = &aggregate{
+					Schema: relation.Schema, Label: relation.Name,
+					Property: pattern.Property,
+					Queries:  make(map[string]bool), Operators: make(map[string]bool),
+				}
+				byKey[key] = value
+			}
+			value.Queries[queryKey] = true
+			value.Operators[pattern.Operator] = true
+		}
+	}
+	values := make([]workloadIndexCandidate, 0, len(byKey))
+	for _, value := range byKey {
+		operators := make([]string, 0, len(value.Operators))
+		for operator := range value.Operators {
+			operators = append(operators, operator)
+		}
+		slices.Sort(operators)
+		values = append(values, workloadIndexCandidate{
+			Schema: value.Schema, Label: value.Label, Property: value.Property,
+			QueryCount: len(value.Queries), Operators: operators,
+			SQL: workloadExpressionIndexSQL(
+				value.Schema,
+				value.Label,
+				value.Property,
+			),
+		})
+	}
+	slices.SortFunc(values, func(left, right workloadIndexCandidate) int {
+		leftKey := left.Schema + "\x00" + left.Label + "\x00" + left.Property
+		rightKey := right.Schema + "\x00" + right.Label + "\x00" + right.Property
+		return strings.Compare(leftKey, rightKey)
+	})
+	return values
+}
+
+func workloadExpressionIndexSQL(schema, label, property string) string {
+	digest := sha256.Sum256([]byte(schema + "\x00" + label + "\x00" + property))
+	name := "agefreighter_q_" + hex.EncodeToString(digest[:6])
+	jsonProperty, _ := json.Marshal(property)
+	propertyLiteral := strings.ReplaceAll(string(jsonProperty), "'", "''")
+	return "CREATE INDEX " + pgx.Identifier{name}.Sanitize() +
+		" ON " + pgx.Identifier{schema, label}.Sanitize() +
+		" USING btree (ag_catalog.agtype_access_operator(properties, '" +
+		propertyLiteral + "'::ag_catalog.agtype));"
 }
 
 func optimizationAnalyzeSection(results []analyzeResult) report.Section {
@@ -2484,6 +2779,7 @@ func recommendationOutputTruncated(snapshot optimizationSnapshot) bool {
 	) {
 		count += len(duplicateIndexGroups(relation.Indexes))
 	}
+	count += len(workloadIndexCandidates(snapshot))
 	return count > MaxOptimizeRecommendations
 }
 

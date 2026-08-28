@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rioriost/agefreighter/internal/age"
+	"github.com/rioriost/agefreighter/internal/cypher"
 	"github.com/rioriost/agefreighter/internal/meta"
 	"github.com/rioriost/agefreighter/internal/report"
 )
@@ -247,6 +249,138 @@ func TestOptimizerKeepsNonPropertyRecommendations(t *testing.T) {
 			t.Fatalf("missing non-property recommendation %q: %s", expected, recommendations)
 		}
 	}
+}
+
+func TestOptimizerQueryEvidenceDeduplicatesAcrossFiles(t *testing.T) {
+	directory := t.TempDir()
+	paths := []string{
+		fileWithContents(t, directory, "one.cypher",
+			"MATCH (n:Person) WHERE n.name = $value RETURN n"),
+		fileWithContents(t, directory, "two.cypher",
+			"MATCH (n:Person) WHERE n.name = $other RETURN n ORDER BY n.name"),
+	}
+	queryReport, err := cypher.AnalyzeFiles(
+		t.Context(),
+		paths,
+		cypher.Options{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := optimizationGoldenSnapshot()
+	snapshot.QueryReport = &queryReport
+	candidates := workloadIndexCandidates(snapshot)
+	if len(candidates) != 1 {
+		t.Fatalf("candidates = %#v", candidates)
+	}
+	candidate := candidates[0]
+	if candidate.QueryCount != 2 ||
+		!slices.Equal(candidate.Operators, []string{"=", "ORDER BY"}) ||
+		candidate.Schema != "people" ||
+		candidate.Label != "Person" ||
+		candidate.Property != "name" {
+		t.Fatalf("candidate = %#v", candidate)
+	}
+	if !strings.Contains(
+		candidate.SQL,
+		`ON "people"."Person" USING btree`,
+	) || !strings.Contains(
+		candidate.SQL,
+		`ag_catalog.agtype_access_operator(properties, '"name"'::ag_catalog.agtype)`,
+	) {
+		t.Fatalf("candidate SQL = %s", candidate.SQL)
+	}
+	document, err := buildOptimizationReport(
+		snapshot,
+		false,
+		time.Date(2026, 8, 28, 9, 0, 0, 0, time.UTC),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if optimizerSectionByTitle(document, "Cypher query evidence") == nil {
+		t.Fatal("query evidence section not emitted")
+	}
+	recommendations := optimizerSectionByTitle(document, "Recommendations")
+	if recommendations == nil ||
+		!strings.Contains(
+			recommendations.Fields[len(recommendations.Fields)-1].Value,
+			"confidence=medium",
+		) {
+		t.Fatalf("recommendations = %#v", recommendations)
+	}
+}
+
+func TestOptimizerUnknownQueryNeverRecommendsIndex(t *testing.T) {
+	path := fileWithContents(
+		t, t.TempDir(), "unknown.cypher",
+		"MATCH (n:Person) WHERE n.name = vendorMagic($secret) RETURN n",
+	)
+	queryReport, err := cypher.AnalyzeFiles(
+		t.Context(),
+		[]string{path},
+		cypher.Options{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := optimizationGoldenSnapshot()
+	snapshot.QueryReport = &queryReport
+	if candidates := workloadIndexCandidates(snapshot); len(candidates) != 0 {
+		t.Fatalf("unknown query candidates = %#v", candidates)
+	}
+	document, err := buildOptimizationReport(
+		snapshot,
+		false,
+		time.Date(2026, 8, 28, 9, 0, 0, 0, time.UTC),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if document.Outcome != report.OutcomeIncomplete {
+		t.Fatalf("unknown query outcome = %s", document.Outcome)
+	}
+}
+
+func TestWorkloadExpressionIndexSQLQuotesIdentifiersAndProperty(t *testing.T) {
+	sql := workloadExpressionIndexSQL(
+		`graph"name`,
+		`Label"; DROP TABLE secret`,
+		`prop'erty`,
+	)
+	for _, expected := range []string{
+		`ON "graph""name"."Label""; DROP TABLE secret"`,
+		`'"prop''erty"'::ag_catalog.agtype`,
+		`CREATE INDEX "agefreighter_q_`,
+	} {
+		if !strings.Contains(sql, expected) {
+			t.Fatalf("safe SQL lacks %q: %s", expected, sql)
+		}
+	}
+}
+
+func fileWithContents(
+	t *testing.T,
+	directory, name, contents string,
+) string {
+	t.Helper()
+	path := filepath.Join(directory, name)
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func optimizerSectionByTitle(
+	document report.Document,
+	title string,
+) *report.Section {
+	for index := range document.Sections {
+		if document.Sections[index].Title == title {
+			return &document.Sections[index]
+		}
+	}
+	return nil
 }
 
 func optimizationGoldenSnapshot() optimizationSnapshot {

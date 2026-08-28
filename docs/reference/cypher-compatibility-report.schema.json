@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rioriost/agefreighter/docs/reference/cypher-compatibility-report.schema.json",
+  "title": "agefreighter deterministic Cypher compatibility report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "command", "target", "limits", "files", "queries", "summary"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "command": { "const": "check-cypher" },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["age"],
+      "properties": {
+        "age": { "const": "1.6" }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxFiles", "maxFileBytes", "maxTotalBytes", "maxQueries", "maxTokensPerQuery", "maxTokenDepth", "maxOutputBytes"],
+      "properties": {
+        "maxFiles": { "const": 64 },
+        "maxFileBytes": { "const": 1048576 },
+        "maxTotalBytes": { "const": 8388608 },
+        "maxQueries": { "const": 1024 },
+        "maxTokensPerQuery": { "const": 8192 },
+        "maxTokenDepth": { "const": 128 },
+        "maxOutputBytes": { "const": 4194304 }
+      }
+    },
+    "files": {
+      "type": "array", "maxItems": 64,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "bytes", "queries"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "bytes": { "type": "integer", "minimum": 0, "maximum": 1048576 },
+          "queries": { "type": "integer", "minimum": 0, "maximum": 1024 }
+        }
+      }
+    },
+    "queries": {
+      "type": "array", "minItems": 1, "maxItems": 1024,
+      "items": { "$ref": "#/$defs/query" }
+    },
+    "summary": { "$ref": "#/$defs/summary" }
+  },
+  "$defs": {
+    "classification": {
+      "enum": ["compatible", "compatible-with-manual-change", "unsupported", "unknown"]
+    },
+    "query": {
+      "type": "object", "additionalProperties": false,
+      "required": ["file", "number", "line", "column", "classification", "findings", "patterns"],
+      "properties": {
+        "file": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "number": { "type": "integer", "minimum": 1, "maximum": 1024 },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "classification": { "$ref": "#/$defs/classification" },
+        "findings": {
+          "type": "array", "maxItems": 4096,
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "patterns": {
+          "type": "array", "maxItems": 8192,
+          "items": { "$ref": "#/$defs/pattern" }
+        }
+      }
+    },
+    "finding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "severity", "line", "column", "evidence", "remediation"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^AGE16-[CUWX][0-9]{3}$" },
+        "severity": { "enum": ["info", "warning", "error", "unknown"] },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "evidence": { "type": "string", "maxLength": 384 },
+        "remediation": { "type": "string", "minLength": 1, "maxLength": 1024 }
+      }
+    },
+    "pattern": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "label"],
+      "properties": {
+        "kind": { "enum": ["vertex-label", "edge-label", "predicate", "ordering"] },
+        "label": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "property": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "operator": { "enum": ["=", "<", "<=", ">", ">=", "IN", "CONTAINS", "STARTS WITH", "ENDS WITH", "ORDER BY"] }
+      }
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["files", "queries", "compatible", "compatibleWithManualChange", "unsupported", "unknown", "warnings", "findings", "compatibilityScore"],
+      "properties": {
+        "files": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "queries": { "type": "integer", "minimum": 1, "maximum": 1024 },
+        "compatible": { "type": "integer", "minimum": 0, "maximum": 1024 },
+        "compatibleWithManualChange": { "type": "integer", "minimum": 0, "maximum": 1024 },
+        "unsupported": { "type": "integer", "minimum": 0, "maximum": 1024 },
+        "unknown": { "type": "integer", "minimum": 0, "maximum": 1024 },
+        "warnings": { "type": "integer", "minimum": 0, "maximum": 4096 },
+        "findings": { "type": "integer", "minimum": 0, "maximum": 4096 },
+        "compatibilityScore": {
+          "type": "object", "additionalProperties": false,
+          "required": ["knownQueries", "compatibleQueries", "percent", "conclusive"],
+          "properties": {
+            "knownQueries": { "type": "integer", "minimum": 0, "maximum": 1024 },
+            "compatibleQueries": { "type": "integer", "minimum": 0, "maximum": 1024 },
+            "percent": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+            "conclusive": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}

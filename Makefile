@@ -64,6 +64,7 @@ test-race:
 
 fuzz-smoke:
 	$(GO) test -run '^$$' -fuzz '^FuzzParse$$' -fuzztime="$(FUZZTIME)" ./internal/config
+	$(GO) test -run '^$$' -fuzz '^FuzzCypherLexer$$' -fuzztime="$(FUZZTIME)" ./internal/cypher
 	$(GO) test -run '^$$' -fuzz '^FuzzAGEGraphNames$$' -fuzztime="$(FUZZTIME)" ./internal/age
 	$(GO) test -run '^$$' -fuzz '^FuzzGraphIDRoundTrip$$' -fuzztime="$(FUZZTIME)" ./internal/age
 	$(GO) test -run '^$$' -fuzz '^FuzzEncodeStringProperty$$' -fuzztime="$(FUZZTIME)" ./internal/age
