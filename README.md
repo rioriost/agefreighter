@@ -1,7 +1,15 @@
 # agefreighter
 
-agefreighter 2.x is a greenfield Go implementation for validated, resumable
-graph migration into [Apache AGE](https://age.apache.org/).
+agefreighter 2.x is a Go command-line tool for validated, resumable graph
+migration from CSV and other delimited files, PostgreSQL, Neo4j, and Azure
+Cosmos DB into [Apache AGE](https://age.apache.org/). Property graphs represent
+entities as vertices, relationships as edges, and their attributes as
+properties.
+
+Apache AGE is an open-source PostgreSQL extension that adds graph storage and
+openCypher queries while retaining PostgreSQL's relational capabilities.
+[Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/azure-ai/generative-ai-age-overview)
+is Microsoft's managed PostgreSQL service and can enable the AGE extension.
 
 This branch does not preserve the Python API, CLI, configuration, or defaults
 from agefreighter 1.x. The 1.x implementation remains on the `main` branch.
