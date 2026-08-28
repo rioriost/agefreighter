@@ -80,14 +80,33 @@ start_postgres() {
 
 start_neo4j() {
 	ensure_volume "$NEO4J_VOLUME"
-	ensure_container "$NEO4J_CONTAINER" "$NEO4J_IMAGE" "$NEO4J_CONTAINER_CONFIG" \
-		--publish "127.0.0.1:$NEO4J_BOLT_PORT:7687" \
-		--publish "127.0.0.1:$NEO4J_HTTP_PORT:7474" \
-		--volume "$NEO4J_VOLUME:/data" \
-		--env "NEO4J_AUTH=neo4j/$AGEFREIGHTER_DEV_PASSWORD" \
-		--env NEO4J_server_memory_heap_initial__size=256m \
-		--env NEO4J_server_memory_heap_max__size=512m \
-		--env NEO4J_server_memory_pagecache_size=256m
+	case "$NEO4J_CONFIG_FAMILY" in
+		4)
+			ensure_container "$NEO4J_CONTAINER" "$NEO4J_IMAGE" "$NEO4J_CONTAINER_CONFIG" \
+				--publish "127.0.0.1:$NEO4J_BOLT_PORT:7687" \
+				--publish "127.0.0.1:$NEO4J_HTTP_PORT:7474" \
+				--volume "$NEO4J_VOLUME:/data" \
+				--env "NEO4J_AUTH=neo4j/$AGEFREIGHTER_DEV_PASSWORD" \
+				--env NEO4J_dbms_memory_heap_initial__size=256m \
+				--env NEO4J_dbms_memory_heap_max__size=512m \
+				--env NEO4J_dbms_memory_pagecache_size=256m
+			;;
+		5)
+			ensure_container "$NEO4J_CONTAINER" "$NEO4J_IMAGE" "$NEO4J_CONTAINER_CONFIG" \
+				--publish "127.0.0.1:$NEO4J_BOLT_PORT:7687" \
+				--publish "127.0.0.1:$NEO4J_HTTP_PORT:7474" \
+				--volume "$NEO4J_VOLUME:/data" \
+				--env "NEO4J_AUTH=neo4j/$AGEFREIGHTER_DEV_PASSWORD" \
+				--env NEO4J_server_memory_heap_initial__size=256m \
+				--env NEO4J_server_memory_heap_max__size=512m \
+				--env NEO4J_server_memory_pagecache_size=256m
+			;;
+		*)
+			printf 'Unsupported Neo4j configuration family: %s\n' \
+				"$NEO4J_CONFIG_FAMILY" >&2
+			return 1
+			;;
+	esac
 }
 
 wait_ready() {
