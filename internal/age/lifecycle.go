@@ -198,7 +198,7 @@ func (transaction *Transaction) DropLabel(
 		return err
 	}
 	if force {
-		return errors.New("Apache AGE 1.6 does not support forced label drops")
+		return errors.New("agefreighter does not support forced Apache AGE label drops")
 	}
 	if _, err := transaction.tx.Exec(
 		ctx,
