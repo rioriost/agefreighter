@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -22,6 +23,11 @@ func TestLifecycleMetadataValidation(t *testing.T) {
 	}
 	if _, err := store.CountLabelIdentities(t.Context(), 1, 1, LabelKind('x')); err == nil {
 		t.Fatal("CountLabelIdentities() accepted invalid label kind")
+	}
+	if _, err := store.CountLabelIdentitiesWithTimeout(
+		t.Context(), 1, 1, VertexLabel, time.Second,
+	); err == nil {
+		t.Fatal("CountLabelIdentitiesWithTimeout() accepted context without deadline")
 	}
 	if err := store.SetSourceRejections(t.Context(), "bad", 0, Position{}); err == nil {
 		t.Fatal("SetSourceRejections() accepted invalid job ID")

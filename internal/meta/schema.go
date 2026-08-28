@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 14
+const schemaVersion = 15
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -602,6 +602,35 @@ var migrationV14 = []string{
 		)`,
 }
 
+var migrationV15 = []string{
+	`CREATE TABLE agefreighter_meta.connector_telemetry (
+		job_id uuid PRIMARY KEY
+			REFERENCES agefreighter_meta.load_job(job_id)
+			ON DELETE CASCADE,
+		connector text NOT NULL CHECK (
+			connector IN ('csv', 'postgresql', 'neo4j', 'cosmos-nosql')
+		),
+		pages bigint NOT NULL CHECK (pages >= 0),
+		request_charge double precision NOT NULL CHECK (
+			request_charge >= 0
+			AND request_charge <> 'Infinity'::double precision
+			AND request_charge <> 'NaN'::double precision
+		),
+		failed_request_attempts bigint NOT NULL CHECK (
+			failed_request_attempts >= 0
+		),
+		throttled_requests bigint NOT NULL CHECK (throttled_requests >= 0),
+		continuation_digest text NOT NULL DEFAULT '' CHECK (
+			octet_length(continuation_digest) <= 128
+			AND (
+				continuation_digest = ''
+				OR continuation_digest ~ '^[0-9a-f]{8,128}$'
+			)
+		),
+		recorded_at timestamp with time zone NOT NULL DEFAULT clock_timestamp()
+	)`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -617,4 +646,5 @@ var migrations = [][]string{
 	migrationV12,
 	migrationV13,
 	migrationV14,
+	migrationV15,
 }

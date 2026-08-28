@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 type Format string
@@ -40,7 +41,11 @@ func Render(document Document, format Format) ([]byte, error) {
 func renderMarkdown(document Document) string {
 	var output strings.Builder
 	output.WriteString("# agefreighter ")
-	output.WriteString(escapeMarkdown(document.Command))
+	if document.Command == "report" {
+		output.WriteString("migration")
+	} else {
+		output.WriteString(escapeMarkdown(document.Command))
+	}
 	output.WriteString(" report\n\n")
 	fmt.Fprintf(&output, "- Schema version: %d\n", document.SchemaVersion)
 	fmt.Fprintf(
@@ -153,6 +158,12 @@ func writeMarkdownRow(output *strings.Builder, values ...string) {
 func escapeMarkdown(value string) string {
 	value = strings.ReplaceAll(value, "\r", " ")
 	value = strings.ReplaceAll(value, "\n", " ")
+	value = strings.Map(func(character rune) rune {
+		if unicode.IsControl(character) {
+			return -1
+		}
+		return character
+	}, value)
 	value = strings.ReplaceAll(value, `\`, `\\`)
 	value = strings.ReplaceAll(value, "|", `\|`)
 	value = strings.ReplaceAll(value, "`", "\\`")

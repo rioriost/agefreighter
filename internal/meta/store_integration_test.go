@@ -35,6 +35,15 @@ func TestStoreIntegration(t *testing.T) {
 	if err := store.Migrate(ctx); err != nil {
 		t.Fatalf("idempotent Migrate() error = %v", err)
 	}
+	var telemetryTableExists bool
+	if err := pool.QueryRow(
+		ctx,
+		`SELECT pg_catalog.to_regclass(
+			'agefreighter_meta.connector_telemetry'
+		) IS NOT NULL`,
+	).Scan(&telemetryTableExists); err != nil || !telemetryTableExists {
+		t.Fatalf("v15 telemetry migration = %v, %v", telemetryTableExists, err)
+	}
 	jobIDs := []string{
 		testJobID,
 		"22222222-3333-4444-8555-666666666666",
@@ -73,6 +82,20 @@ func TestStoreIntegration(t *testing.T) {
 	}
 	if storedJob.Status != JobPending || storedJob.NextBatchID != 1 {
 		t.Fatalf("new job = %#v", storedJob)
+	}
+	telemetry := ConnectorTelemetry{
+		JobID: testJobID, Connector: "csv",
+	}
+	if err := store.PutConnectorTelemetry(ctx, telemetry); err != nil {
+		t.Fatalf("PutConnectorTelemetry() error = %v", err)
+	}
+	if err := store.PutConnectorTelemetry(ctx, telemetry); err != nil {
+		t.Fatalf("idempotent PutConnectorTelemetry() error = %v", err)
+	}
+	storedTelemetry, err := store.GetConnectorTelemetry(ctx, testJobID)
+	if err != nil || storedTelemetry.Connector != "csv" ||
+		storedTelemetry.RecordedAt.IsZero() {
+		t.Fatalf("GetConnectorTelemetry() = %#v, %v", storedTelemetry, err)
 	}
 	if _, err := store.GetJob(ctx, "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing GetJob() error = %v", err)

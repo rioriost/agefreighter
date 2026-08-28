@@ -18,6 +18,7 @@
 agefreighter load job.yaml
 agefreighter status --target job.yaml JOB_ID
 agefreighter verify --target job.yaml JOB_ID
+agefreighter report --target job.yaml JOB_ID
 ```
 
 Standard output is reserved for command results. Diagnostic logs use standard
@@ -62,6 +63,34 @@ agefreighter cleanup --target job.yaml JOB_ID
 `cleanup` is intentionally scoped to a committed replacement job. Do not use
 manual `DROP SCHEMA`, `drop_graph`, metadata deletion, or broad container
 cleanup as a recovery shortcut.
+
+## Migration reports
+
+`agefreighter report --target JOB JOB_ID` reads durable metadata without
+running metadata migrations or scanning graph and identity tables. JSON is the
+default; use `--format markdown` for review output. The report includes the
+job and graph generations, a bounded label catalog and reject summary, the
+latest checkpoint, replacement-backup state, target versions, and connector
+telemetry recorded by 2.1 loads.
+
+Batch details are opt-in and bounded:
+
+```sh
+agefreighter report --target job.yaml --limit-batches 20 JOB_ID
+```
+
+Exact per-label identity counts require `--include-counts`. Every count has
+both a client deadline and PostgreSQL statement timeout; timeout or permission
+failure is reported as incomplete rather than as zero. `--output FILE` creates
+a new regular file with mode `0600` and refuses existing paths and symlinks.
+The JSON contract is
+[`migration-report.schema.json`](migration-report.schema.json).
+
+Metadata schema v14 (2.0) remains readable by `report`, `status`, `verify`, and
+`cleanup`. Reports mark v15 connector telemetry and unstored per-label counters
+as unavailable. These read-only commands do not upgrade v14. The next 2.1
+`load` or `resume` applies the non-destructive v15 migration; older writers
+must be upgraded first. Schemas newer than the binary supports are rejected.
 
 ## Operational checks
 

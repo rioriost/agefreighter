@@ -112,6 +112,7 @@ graph:
 agefreighter load job.yaml
 agefreighter status --target job.yaml JOB_ID
 agefreighter verify --target job.yaml JOB_ID
+agefreighter report --target job.yaml JOB_ID
 ```
 
 If a load fails after committing a resumable checkpoint, continue the same job:

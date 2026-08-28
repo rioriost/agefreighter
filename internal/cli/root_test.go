@@ -14,8 +14,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rioriost/agefreighter/internal/age"
+	"github.com/rioriost/agefreighter/internal/app"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
+	"github.com/rioriost/agefreighter/internal/report"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -96,6 +98,7 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		{"load", "missing.yaml"},
 		{"resume", "--job", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"status", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
+		{"report", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"verify", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"cleanup", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 	}
@@ -104,6 +107,62 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		if err := Execute(command, args); err == nil {
 			t.Fatalf("Execute(%v) error = nil", args)
 		}
+	}
+}
+
+func TestReportCommandValidatesFlagsBeforeConnecting(t *testing.T) {
+	const validJobID = "11111111-2222-4333-8444-555555555555"
+	tests := [][]string{
+		{"report", "--target", "missing.yaml", "--format", "yaml", validJobID},
+		{"report", "--target", "missing.yaml", "--limit-batches", "0", validJobID},
+		{"report", "--target", "missing.yaml", "--output", "", validJobID},
+		{
+			"report", "--target", "missing.yaml", "--limit-batches",
+			fmt.Sprint(app.MaxReportBatches + 1), validJobID,
+		},
+	}
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) error = nil", args)
+		}
+	}
+	command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+	err := Execute(command, []string{
+		"report", "--target", configFixture(t, "valid/csv.yaml"), "not-a-uuid",
+	})
+	if err == nil || !strings.Contains(err.Error(), "canonical UUID") {
+		t.Fatalf("invalid report UUID error = %v", err)
+	}
+}
+
+func TestWriteExclusiveReport(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "report.json")
+	data := []byte("{\"safe\":true}\n")
+	if err := writeExclusiveReport(path, data); err != nil {
+		t.Fatalf("writeExclusiveReport() error = %v", err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat() error = %v", err)
+	}
+	if !bytes.Equal(got, data) || info.Mode().Perm() != 0o600 {
+		t.Fatalf("report = %q mode=%o", got, info.Mode().Perm())
+	}
+	if err := writeExclusiveReport(path, []byte("overwrite")); err == nil {
+		t.Fatal("writeExclusiveReport() overwrote an existing file")
+	}
+	link := filepath.Join(directory, "report-link")
+	if err := os.Symlink(path, link); err != nil {
+		t.Fatalf("Symlink() error = %v", err)
+	}
+	if err := writeExclusiveReport(link, data); err == nil {
+		t.Fatal("writeExclusiveReport() followed a symlink")
 	}
 }
 
@@ -163,6 +222,29 @@ func TestLifecycleCommandsIntegration(t *testing.T) {
 		if stored.ID != loaded.JobID || stored.Status != meta.JobCommitted {
 			t.Fatalf("%s output = %#v", name, stored)
 		}
+	}
+
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"report", "--target", jobPath, "--limit-batches", "2",
+		"--include-counts", loaded.JobID,
+	}); err != nil {
+		t.Fatalf("report error = %v", err)
+	}
+	var migrationReport struct {
+		SchemaVersion int              `json:"schemaVersion"`
+		Job           *report.Job      `json:"job"`
+		Sections      []report.Section `json:"sections"`
+	}
+	if err := json.Unmarshal(output.Bytes(), &migrationReport); err != nil {
+		t.Fatalf("decode report output: %v", err)
+	}
+	if migrationReport.SchemaVersion != report.SchemaVersion ||
+		migrationReport.Job == nil ||
+		migrationReport.Job.ID != loaded.JobID ||
+		len(migrationReport.Sections) == 0 {
+		t.Fatalf("report output = %#v", migrationReport)
 	}
 	command = NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
 	if err := Execute(command, []string{

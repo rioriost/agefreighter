@@ -9,6 +9,7 @@ import (
 )
 
 const SupportedSchemaVersion = schemaVersion
+const MinimumReadCompatibleSchemaVersion = 14
 
 type SchemaState string
 
@@ -37,6 +38,21 @@ func (inspection SchemaInspection) RequireCurrent() error {
 		"metadata schema is %s (installed version %d, supported version %d)",
 		inspection.State,
 		inspection.InstalledVersion,
+		inspection.SupportedVersion,
+	)
+}
+
+func (inspection SchemaInspection) RequireReadCompatible() error {
+	if (inspection.State == SchemaCurrent || inspection.State == SchemaPending) &&
+		inspection.InstalledVersion >= MinimumReadCompatibleSchemaVersion &&
+		inspection.InstalledVersion <= inspection.SupportedVersion {
+		return nil
+	}
+	return fmt.Errorf(
+		"metadata schema is %s (installed version %d, supported versions %d..%d)",
+		inspection.State,
+		inspection.InstalledVersion,
+		MinimumReadCompatibleSchemaVersion,
 		inspection.SupportedVersion,
 	)
 }

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "command": "report",
+  "agefreighterVersion": "dev",
+  "generatedAt": "2026-08-27T21:00:00Z",
+  "outcome": "incomplete",
+  "job": {
+    "id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "configFingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "target": {
+    "postgresql": {
+      "value": "17.9",
+      "status": "pass"
+    },
+    "age": {
+      "value": "1.6.0",
+      "status": "pass"
+    }
+  },
+  "checks": [
+    {
+      "id": "metadata",
+      "status": "pass",
+      "summary": "metadata is current"
+    },
+    {
+      "id": "telemetry",
+      "status": "unavailable",
+      "summary": "not recorded by metadata schema v14"
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "incompleteChecks": [],
+  "sections": [
+    {
+      "title": "Job",
+      "fields": [
+        {
+          "name": "sourceType",
+          "value": "csv",
+          "status": "pass"
+        },
+        {
+          "name": "telemetry",
+          "value": "requires schema v15",
+          "status": "unavailable"
+        }
+      ]
+    }
+  ]
+}

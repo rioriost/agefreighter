@@ -364,12 +364,18 @@ func execute(
 		quarantine = nil
 	}
 	var completeErr error
+	telemetry := completionTelemetry(job.Source.Type, baseIterator)
 	if job.Target.Mode == config.LoadReplace {
-		completeErr = promoteReplace(ctx, adapter, job, jobID, graph)
+		completeErr = promoteReplace(ctx, adapter, job, jobID, graph, telemetry)
 	} else if incrementalMode(job.Target.Mode) {
-		completeErr = completeIncremental(ctx, adapter, jobID, graph)
+		completeErr = completeIncremental(ctx, adapter, jobID, graph, telemetry)
 	} else {
-		completeErr = store.CompleteJobGeneration(ctx, jobID, graph.ID)
+		completeErr = store.CompleteJobGenerationWithTelemetry(
+			ctx,
+			jobID,
+			graph.ID,
+			telemetry,
+		)
 	}
 
 	if completeErr != nil {
@@ -420,7 +426,11 @@ func completeIncremental(
 	adapter *age.Adapter,
 	jobID string,
 	graph meta.GraphGeneration,
+	telemetry ...meta.ConnectorTelemetry,
 ) error {
+	if len(telemetry) > 1 {
+		return errors.New("at most one connector telemetry summary is allowed")
+	}
 	return adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
 		locked, err := transaction.TryLockGraphLifecycle(ctx, graph.GraphName)
 		if err != nil {
@@ -452,8 +462,31 @@ func completeIncremental(
 				graph.GraphName,
 			)
 		}
+		if len(telemetry) == 1 {
+			return transactionStore.CompleteJobWithTelemetry(
+				ctx,
+				jobID,
+				telemetry[0],
+			)
+		}
 		return transactionStore.CompleteJob(ctx, jobID)
 	})
+}
+
+func completionTelemetry(
+	sourceType config.SourceType,
+	iterator sourcecontract.Iterator,
+) meta.ConnectorTelemetry {
+	value := meta.ConnectorTelemetry{Connector: string(sourceType)}
+	if telemetry := sourceTelemetry(iterator); telemetry != nil {
+		value.Connector = telemetry.Connector
+		value.Pages = telemetry.Pages
+		value.RequestCharge = telemetry.RequestCharge
+		value.FailedRequestAttempts = telemetry.FailedRequestAttempts
+		value.ThrottledRequests = telemetry.ThrottledRequests
+		value.ContinuationDigest = telemetry.ContinuationDigest
+	}
+	return value
 }
 
 func newPipelineRunner(
@@ -526,7 +559,7 @@ func openCurrentTarget(
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := target.Metadata.RequireCurrent(); err != nil {
+	if err := target.Metadata.RequireReadCompatible(); err != nil {
 		target.Adapter.Close()
 		return nil, nil, err
 	}

@@ -122,6 +122,43 @@ func TestSchemaInspectionRequireCurrent(t *testing.T) {
 	}
 }
 
+func TestSchemaInspectionReadCompatibility(t *testing.T) {
+	for _, version := range []int{
+		MinimumReadCompatibleSchemaVersion,
+		SupportedSchemaVersion,
+	} {
+		state := SchemaCurrent
+		if version < SupportedSchemaVersion {
+			state = SchemaPending
+		}
+		inspection := SchemaInspection{
+			State: state, InstalledVersion: version,
+			SupportedVersion: SupportedSchemaVersion,
+		}
+		if err := inspection.RequireReadCompatible(); err != nil {
+			t.Fatalf("schema v%d rejected: %v", version, err)
+		}
+	}
+	for _, inspection := range []SchemaInspection{
+		{
+			State: SchemaPending, InstalledVersion: MinimumReadCompatibleSchemaVersion - 1,
+			SupportedVersion: SupportedSchemaVersion,
+		},
+		{
+			State: SchemaNewer, InstalledVersion: SupportedSchemaVersion + 1,
+			SupportedVersion: SupportedSchemaVersion,
+		},
+		{
+			State: SchemaInvalid, InstalledVersion: SupportedSchemaVersion,
+			SupportedVersion: SupportedSchemaVersion,
+		},
+	} {
+		if err := inspection.RequireReadCompatible(); err == nil {
+			t.Fatalf("incompatible schema accepted: %#v", inspection)
+		}
+	}
+}
+
 func inspectCatalogRow(schema, table bool) pgx.Row {
 	return stubInspectRow(func(dest ...any) error {
 		*dest[0].(*bool) = schema

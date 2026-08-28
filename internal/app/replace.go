@@ -16,7 +16,11 @@ func promoteReplace(
 	job config.LoadJob,
 	jobID string,
 	graph meta.GraphGeneration,
+	telemetry ...meta.ConnectorTelemetry,
 ) error {
+	if len(telemetry) > 1 {
+		return errors.New("at most one connector telemetry summary is allowed")
+	}
 	backupGraph, err := age.DeriveGraphName(
 		job.Target.Graph,
 		age.BackupName,
@@ -103,6 +107,13 @@ func promoteReplace(
 			job.Target.Graph,
 		); err != nil {
 			return err
+		}
+		if len(telemetry) == 1 {
+			value := telemetry[0]
+			value.JobID = jobID
+			if err := transactionStore.PutConnectorTelemetry(ctx, value); err != nil {
+				return err
+			}
 		}
 		return transactionStore.CompleteReplacePromotion(
 			ctx,

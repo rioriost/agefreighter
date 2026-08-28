@@ -2,11 +2,78 @@ package report
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestGoldenReportContracts(t *testing.T) {
+	document := validDocument()
+	document.Outcome = OutcomeIncomplete
+	document.Checks = append(document.Checks, Check{
+		ID: "telemetry", Status: CheckUnavailable,
+		Summary: "not recorded by metadata schema v14",
+	})
+	document.Sections = []Section{{
+		Title: "Job",
+		Fields: []Field{
+			{Name: "sourceType", Value: "csv", Status: CheckPass},
+			{Name: "telemetry", Value: "requires schema v15", Status: CheckUnavailable},
+		},
+	}}
+	for _, format := range []Format{FormatJSON, FormatMarkdown} {
+		format := format
+		t.Run(string(format), func(t *testing.T) {
+			got, err := Render(document, format)
+			if err != nil {
+				t.Fatalf("Render() error = %v", err)
+			}
+			path := filepath.Join("testdata", "migration-report.golden."+string(format))
+			if os.Getenv("UPDATE_REPORT_GOLDEN") == "1" {
+				if err := os.MkdirAll("testdata", 0o755); err != nil {
+					t.Fatalf("MkdirAll() error = %v", err)
+				}
+				if err := os.WriteFile(path, got, 0o600); err != nil {
+					t.Fatalf("WriteFile() error = %v", err)
+				}
+			}
+			want, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("ReadFile(%s) error = %v", path, err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Fatalf("%s golden mismatch:\n%s", format, got)
+			}
+		})
+	}
+}
+
+func TestMigrationReportJSONSchemaContract(t *testing.T) {
+	data, err := os.ReadFile("../../docs/reference/migration-report.schema.json")
+	if err != nil {
+		t.Fatalf("ReadFile(schema) error = %v", err)
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(data, &schema); err != nil {
+		t.Fatalf("schema JSON error = %v", err)
+	}
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		t.Fatal("schema properties are missing")
+	}
+	version, ok := properties["schemaVersion"].(map[string]any)
+	if !ok || version["const"] != float64(SchemaVersion) {
+		t.Fatalf("schema version contract = %#v", version)
+	}
+	command, ok := properties["command"].(map[string]any)
+	if !ok || command["const"] != "report" {
+		t.Fatalf("schema command contract = %#v", command)
+	}
+}
 
 func TestRenderIsDeterministicAndCanonical(t *testing.T) {
 	document := validDocument()
@@ -176,7 +243,7 @@ func TestRenderedOutputIsBounded(t *testing.T) {
 
 func TestMarkdownEscapesReportValues(t *testing.T) {
 	document := validDocument()
-	document.Checks[0].Summary = "unsafe | *value* <tag>\nnext ![track](https://example.invalid)"
+	document.Checks[0].Summary = "unsafe | *value* <tag>\nnext ![track](https://example.invalid)\x1b[31mspoof"
 	output, err := Render(document, FormatMarkdown)
 	if err != nil {
 		t.Fatalf("Render() error = %v", err)
@@ -191,6 +258,9 @@ func TestMarkdownEscapesReportValues(t *testing.T) {
 		if !bytes.Contains(output, []byte(expected)) {
 			t.Fatalf("Markdown missing %q:\n%s", expected, output)
 		}
+	}
+	if bytes.Contains(output, []byte{0x1b}) {
+		t.Fatalf("Markdown retained a terminal escape character:\n%s", output)
 	}
 }
 

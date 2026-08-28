@@ -103,6 +103,26 @@ func (store *Store) StartJob(ctx context.Context, jobID string) error {
 }
 
 func (store *Store) CompleteJob(ctx context.Context, jobID string) error {
+	return store.completeJob(ctx, jobID, nil)
+}
+
+func (store *Store) CompleteJobWithTelemetry(
+	ctx context.Context,
+	jobID string,
+	telemetry ConnectorTelemetry,
+) error {
+	telemetry.JobID = jobID
+	if err := validateConnectorTelemetry(telemetry); err != nil {
+		return err
+	}
+	return store.completeJob(ctx, jobID, &telemetry)
+}
+
+func (store *Store) completeJob(
+	ctx context.Context,
+	jobID string,
+	telemetry *ConnectorTelemetry,
+) error {
 	if err := validateJobID(jobID); err != nil {
 		return err
 	}
@@ -149,6 +169,11 @@ func (store *Store) CompleteJob(ctx context.Context, jobID string) error {
 			nextBatchID,
 		)
 	}
+	if telemetry != nil {
+		if err := (&Store{database: tx}).PutConnectorTelemetry(ctx, *telemetry); err != nil {
+			return err
+		}
+	}
 	tag, err := tx.Exec(
 		ctx,
 		`UPDATE agefreighter_meta.load_job
@@ -176,6 +201,33 @@ func (store *Store) CompleteJobGeneration(
 	ctx context.Context,
 	jobID string,
 	graphGenerationID int64,
+) error {
+	return store.completeJobGeneration(ctx, jobID, graphGenerationID, nil)
+}
+
+func (store *Store) CompleteJobGenerationWithTelemetry(
+	ctx context.Context,
+	jobID string,
+	graphGenerationID int64,
+	telemetry ConnectorTelemetry,
+) error {
+	telemetry.JobID = jobID
+	if err := validateConnectorTelemetry(telemetry); err != nil {
+		return err
+	}
+	return store.completeJobGeneration(
+		ctx,
+		jobID,
+		graphGenerationID,
+		&telemetry,
+	)
+}
+
+func (store *Store) completeJobGeneration(
+	ctx context.Context,
+	jobID string,
+	graphGenerationID int64,
+	telemetry *ConnectorTelemetry,
 ) error {
 	if err := validateJobID(jobID); err != nil {
 		return err
@@ -221,6 +273,11 @@ func (store *Store) CompleteJobGeneration(
 	}
 	if unresolved != 0 {
 		return fmt.Errorf("%w: load job has unresolved attempts", ErrConflict)
+	}
+	if telemetry != nil {
+		if err := (&Store{database: tx}).PutConnectorTelemetry(ctx, *telemetry); err != nil {
+			return err
+		}
 	}
 	tag, err := tx.Exec(
 		ctx,

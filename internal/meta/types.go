@@ -177,6 +177,10 @@ func validateJobID(value string) error {
 	return nil
 }
 
+func ValidateJobID(value string) error {
+	return validateJobID(value)
+}
+
 func validateFingerprint(value string) error {
 	if len(value) != 64 || strings.ToLower(value) != value {
 		return errors.New("config fingerprint must be 64 lowercase hexadecimal characters")

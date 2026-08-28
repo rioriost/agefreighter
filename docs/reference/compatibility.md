@@ -1,6 +1,6 @@
 # Compatibility matrix
 
-agefreighter 2.0 deliberately has a narrow target compatibility boundary.
+agefreighter 2.x deliberately has a narrow target compatibility boundary.
 Unsupported versions fail during the Apache AGE capability probe before any
 graph is changed.
 
@@ -18,6 +18,11 @@ The weekly and manually runnable `AGE compatibility` workflow executes the AGE
 adapter, metadata, CSV load, incremental load, and replace/recovery contracts
 against every entry listed in its matrix. The matrix contains one target pair
 for 2.0.0: PostgreSQL 17 with AGE 1.6.0.
+
+The 2.1 metadata schema is v15. Read-only lifecycle and report commands accept
+compatible v14 metadata without migration; `load` and `resume` upgrade it to
+v15 to persist one bounded, non-secret connector telemetry summary per
+completed job. Newer-than-supported metadata fails closed.
 
 Compatibility does not imply support for arbitrary combinations within other
 PostgreSQL or AGE major/minor lines. Adding a matrix entry requires a pinned
