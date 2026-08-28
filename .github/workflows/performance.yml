@@ -27,6 +27,8 @@ jobs:
           DEV_PLATFORM: linux/amd64
         run: make dev-up
       - name: Enforce release performance budgets
+        env:
+          AGEFREIGHTER_MINIMUM_CSV_ROWS_PER_SECOND: "60000"
         run: |
           . ./scripts/dev/services.sh
           export AGEFREIGHTER_AGE_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${AGE_PORT}/agefreighter?sslmode=disable"
