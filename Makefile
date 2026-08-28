@@ -70,8 +70,12 @@ fuzz-smoke:
 	$(GO) test -run '^$$' -fuzz '^FuzzEncodeStringProperty$$' -fuzztime="$(FUZZTIME)" ./pkg/model
 
 test-compatibility:
-	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
-		$(GO) test -count=1 ./internal/age ./internal/meta ./internal/app
+	@AGEFREIGHTER_NEO4J_TEST_URI="$(AGEFREIGHTER_NEO4J_TEST_URI)" \
+	AGEFREIGHTER_NEO4J_TEST_USERNAME="$(AGEFREIGHTER_NEO4J_TEST_USERNAME)" \
+	AGEFREIGHTER_NEO4J_TEST_PASSWORD="$(AGEFREIGHTER_NEO4J_TEST_PASSWORD)" \
+	AGEFREIGHTER_NEO4J_TEST_DATABASE="$(AGEFREIGHTER_NEO4J_TEST_DATABASE)" \
+	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+		$(GO) test -count=1 ./internal/age ./internal/meta ./internal/source/neo4j ./internal/app
 
 test-recovery:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \

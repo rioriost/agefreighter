@@ -5,7 +5,8 @@ export AGEFREIGHTER_DEV_PASSWORD
 
 : "${AGE_IMAGE:=apache/age@sha256:fe8b33905a61549a067f8512808b88011bdcaa82ab65d8788f39fb07a04aa5be}"
 : "${POSTGRES_IMAGE:=postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94}"
-: "${NEO4J_IMAGE:=neo4j@sha256:89d577f2e49606de76441eca8cf7a0fe88e594cbaac4d2a3d86c6e59676e2b1e}"
+: "${NEO4J_IMAGE:=neo4j@sha256:037cf5756f0135cbfd66b739b6df7c7c4bb100f9ce11602f6f9538e17e02c74d}"
+: "${NEO4J_CONFIG_FAMILY:=5}"
 
 AGE_CONTAINER=agefreighter-pg17-age160
 POSTGRES_CONTAINER=agefreighter-postgres17-source
@@ -13,7 +14,7 @@ NEO4J_CONTAINER=agefreighter-neo4j526
 
 AGE_CONTAINER_CONFIG=age160-pg17-memory1g-v1
 POSTGRES_CONTAINER_CONFIG=postgres176-v1
-NEO4J_CONTAINER_CONFIG=neo4j526-v1
+: "${NEO4J_CONTAINER_CONFIG:=neo4j526-v2}"
 
 AGE_VOLUME=agefreighter-pg17-age160-data
 POSTGRES_VOLUME=agefreighter-postgres17-source-data
