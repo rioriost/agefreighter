@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+    <parameter name="fileVersion" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file
+      path="agefreighter.exe"
+      product-name="agefreighter"
+      product-version="${version}"
+      file-version="${fileVersion}"
+      copyright="Copyright (c) 2025 Rio Fujita"
+      original-filename="agefreighter.exe">
+      <authenticode-sign
+        hash-algorithm="sha256"
+        description="agefreighter"
+        description-url="https://github.com/rioriost/agefreighter" />
+    </pe-file>
+    <pe-file
+      path="agefreighter-tools.exe"
+      product-name="agefreighter"
+      product-version="${version}"
+      file-version="${fileVersion}"
+      copyright="Copyright (c) 2025 Rio Fujita"
+      original-filename="agefreighter-tools.exe">
+      <authenticode-sign
+        hash-algorithm="sha256"
+        description="agefreighter-tools"
+        description-url="https://github.com/rioriost/agefreighter" />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

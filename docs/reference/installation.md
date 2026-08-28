@@ -39,12 +39,13 @@ The release workflow uses short-lived GitHub OIDC identity for provenance.
 macOS binaries are additionally signed with a Developer ID Application
 certificate, hardened-runtime enabled, securely timestamped, and accepted by
 Apple's notarization service before checksums and attestations are generated.
-Windows executables are signed with a Public Trust certificate from Azure
-Artifact Signing and an RFC 3161 timestamp, then verified with Windows
-Authenticode policy before the ZIP, SBOM, checksums, and attestations are
-generated. Apple credentials and the Azure release OIDC identity are restricted
-to the protected `release` environment. Verify both the checksum and provenance
-before installation.
+Windows executables are signed with a publicly trusted Authenticode certificate
+provided by SignPath Foundation and an RFC 3161 timestamp, then verified with
+Windows Authenticode policy before the ZIP, SBOM, checksums, and attestations
+are generated. See the [code signing policy](../code-signing-policy.md). Apple
+credentials and the SignPath submission token are restricted to the protected
+`release` environment. Verify both the checksum and provenance before
+installation.
 
 ## Install an archive
 

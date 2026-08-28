@@ -49,6 +49,10 @@ if [ "$goos" = windows ]; then
 		printf 'zip is required for Windows archives\n' >&2
 		exit 1
 	}
+	command -v go-winres >/dev/null 2>&1 || {
+		printf 'go-winres is required for Windows version resources\n' >&2
+		exit 1
+	}
 else
 	command -v tar >/dev/null 2>&1 || {
 		printf 'tar is required for Unix archives\n' >&2
@@ -77,12 +81,40 @@ work="$output/.work-$goos-$goarch"
 stage="$work/$name"
 rm -rf "$work"
 mkdir -p "$stage"
-trap 'rm -rf "$work"' EXIT HUP INT TERM
+resource_files=
+cleanup() {
+	rm -rf "$work"
+	for resource_file in $resource_files; do
+		rm -f "$resource_file"
+	done
+}
+trap cleanup EXIT HUP INT TERM
 
 suffix=
 [ "$goos" != windows ] || suffix=.exe
 ldflags="-s -w -buildid= -X github.com/rioriost/agefreighter/internal/version.Version=${version#v} -X github.com/rioriost/agefreighter/internal/version.Commit=$commit -X github.com/rioriost/agefreighter/internal/version.BuildDate=$build_date"
 for binary in agefreighter agefreighter-tools; do
+	if [ "$goos" = windows ]; then
+		resource_prefix="cmd/$binary/rsrc"
+		resource_file="${resource_prefix}_windows_${goarch}.syso"
+		[ ! -e "$resource_file" ] && [ ! -L "$resource_file" ] || {
+			printf 'refusing to overwrite Windows resource: %s\n' "$resource_file" >&2
+			exit 1
+		}
+		resource_files="$resource_files $resource_file"
+		numeric_version=${version#v}
+		numeric_version=${numeric_version%%-*}.0
+		go-winres simply \
+			--arch "$goarch" \
+			--out "$resource_prefix" \
+			--manifest cli \
+			--product-name agefreighter \
+			--product-version "${version#v}" \
+			--file-version "$numeric_version" \
+			--file-description "$binary command-line application" \
+			--original-filename "$binary.exe" \
+			--copyright 'Copyright (c) 2025 Rio Fujita'
+	fi
 	CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" GOFLAGS=-mod=readonly \
 		go build -trimpath -buildvcs=false -ldflags "$ldflags" \
 		-o "$stage/$binary$suffix" "./cmd/$binary"

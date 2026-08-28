@@ -44,7 +44,8 @@ sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 Download `agefreighter_v2.0.0_windows_amd64.zip`, extract
 `agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
 `PATH`. Release executables carry a timestamped Windows Authenticode signature
-issued through Azure Artifact Signing:
+provided through SignPath Foundation. See the
+[code signing policy](docs/code-signing-policy.md):
 
 ```powershell
 Expand-Archive .\agefreighter_v2.0.0_windows_amd64.zip -DestinationPath .\agefreighter
