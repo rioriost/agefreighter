@@ -17,7 +17,7 @@ graph is changed.
 The weekly and manually runnable `AGE compatibility` workflow executes the AGE
 adapter, metadata, CSV load, incremental load, and replace/recovery contracts
 against every entry listed in its matrix. The matrix contains one target pair
-for 2.0.0: PostgreSQL 17 with AGE 1.6.0.
+for 2.0 and 2.1: PostgreSQL 17 with AGE 1.6.0.
 
 The 2.1 metadata schema is v17. Read-only lifecycle and report commands accept
 compatible v14 through v16 metadata without migration; `load` and `resume`
@@ -32,6 +32,11 @@ Per-label rows record completeness and provenance; migrating a v14-v16 job
 does not synthesize missing historical counters.
 `doctor history` marks v14/v15 history
 unavailable rather than migrating. Newer-than-supported metadata fails closed.
+Only `load` and `resume` invoke metadata migration. Diagnostic and lifecycle
+read paths inspect v14-v17 without changing it. Once either writer upgrades a
+target to v17, an unmodified 2.0 binary (whose maximum is v14) rejects that
+target as newer than supported; upgrade every writer before the first 2.1
+`load` or `resume`.
 
 Compatibility does not imply support for arbitrary combinations within other
 PostgreSQL or AGE major/minor lines. Adding a matrix entry requires a pinned

@@ -1,9 +1,12 @@
 package report
 
 import (
+	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 	"time"
@@ -106,6 +109,26 @@ func New(command string, generatedAt time.Time) Document {
 		IncompleteChecks:    []string{},
 		Sections:            []Section{},
 	}
+}
+
+// Decode validates one bounded JSON report document and rejects unknown fields.
+func Decode(data []byte) (Document, error) {
+	if len(data) > MaxOutputBytes {
+		return Document{}, fmt.Errorf("report input exceeds %d bytes", MaxOutputBytes)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	var document Document
+	if err := decoder.Decode(&document); err != nil {
+		return Document{}, fmt.Errorf("decode report: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return Document{}, errors.New("report input must contain one JSON object")
+	}
+	if err := validate(document); err != nil {
+		return Document{}, err
+	}
+	return document, nil
 }
 
 func canonical(document Document) (Document, error) {

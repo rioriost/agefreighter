@@ -36,7 +36,17 @@ jobs:
         run: make dev-up
       - name: Run compatibility and recovery contracts
         run: |
+          . ./scripts/dev/services.sh
+          export AGEFREIGHTER_AGE_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${AGE_PORT}/agefreighter?sslmode=disable"
+          export AGEFREIGHTER_POSTGRES_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${POSTGRES_PORT}/agefreighter?sslmode=disable"
+          export AGEFREIGHTER_NEO4J_TEST_URI="bolt://127.0.0.1:${NEO4J_BOLT_PORT}"
+          export AGEFREIGHTER_NEO4J_TEST_USERNAME=neo4j
+          export AGEFREIGHTER_NEO4J_TEST_PASSWORD="$AGEFREIGHTER_DEV_PASSWORD"
+          export AGEFREIGHTER_NEO4J_TEST_DATABASE=neo4j
           make test-compatibility
+          make test-connectors-local
+          make test-release-integration
+          make test-diagnostics-race
           make test-recovery
       - name: Stop databases
         if: always()

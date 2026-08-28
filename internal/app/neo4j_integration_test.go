@@ -217,8 +217,14 @@ func TestNeo4jCreateIntegration(t *testing.T) {
 		discoveryResult.Metrics.RecordsCommitted != 3 {
 		t.Fatalf("Load(discovery) = %#v", discoveryResult)
 	}
+	if username != "" {
+		t.Setenv(
+			"AGEFREIGHTER_NEO4J_APP_TEST_PASSWORD",
+			"invalid-after-load",
+		)
+	}
 	if _, err := Verify(ctx, discoveryPath, discoveryResult.JobID); err != nil {
-		t.Fatalf("Verify(discovery) error = %v", err)
+		t.Fatalf("Verify(discovery snapshot without source access) error = %v", err)
 	}
 	assertCypherCount(
 		t,

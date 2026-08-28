@@ -55,9 +55,13 @@ AGEFREIGHTER_AGE_TEST_DSN='postgres://agefreighter:agefreighter_dev_only@127.0.0
   go test -v ./internal/age
 ```
 
-`make coverage` uses this local DSN by default and therefore requires
-`make dev-up`. This keeps the 90% gate based on the live AGE contract rather
-than counting database adapter code as excluded.
+Integration DSNs and connector credentials have no Makefile defaults: an
+unset environment causes the corresponding Go integration test to print an
+explicit skip reason. After `make dev-up`, source `scripts/dev/services.sh`,
+export the AGE, PostgreSQL, and Neo4j variables as shown in CI, and run
+`make coverage`. This keeps the 80% unexcluded repository-wide gate based on
+the live connector contracts rather than counting database code as excluded
+or pretending an absent service passed.
 
 Generate deterministic CSV source data without overwriting an existing output
 directory:

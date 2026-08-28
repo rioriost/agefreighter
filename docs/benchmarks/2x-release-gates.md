@@ -55,3 +55,9 @@ The hardware-normalized staged-binary ratio remains 40% in every environment.
 The `Release performance` workflow runs this gate for 2.x tags and on explicit
 dispatch. Performance is intentionally excluded from pull-request CI because
 shared runners are noisy.
+
+The same gate measures peak client RSS with the operating system's maximum-RSS
+counter. Both the countries end-to-end benchmark and a separate 200,000-row
+generated CSV load must remain at or below **2 GiB**. This absolute memory
+budget complements the pipeline's byte accounting and rejects input-size
+retention; it is not inferred from throughput or a relative comparison.

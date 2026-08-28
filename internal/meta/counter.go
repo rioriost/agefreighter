@@ -12,17 +12,8 @@ import (
 )
 
 func (store *Store) PutJobVerification(ctx context.Context, value JobVerification) error {
-	if err := validateJobID(value.JobID); err != nil {
+	if err := validateJobVerification(value); err != nil {
 		return err
-	}
-	if err := validateFingerprint(value.SubmittedConfigFingerprint); err != nil {
-		return fmt.Errorf("submitted configuration: %w", err)
-	}
-	if err := validateFingerprint(value.ResolvedMappingFingerprint); err != nil {
-		return fmt.Errorf("resolved mapping: %w", err)
-	}
-	if len(value.ResolvedMappingSummary) == 0 || !jsonValidObject(value.ResolvedMappingSummary) {
-		return errors.New("resolved mapping summary must be a JSON object")
 	}
 	tag, err := store.database.Exec(ctx, `
 		INSERT INTO agefreighter_meta.job_verification (
@@ -48,6 +39,22 @@ func (store *Store) PutJobVerification(ctx context.Context, value JobVerificatio
 		return fmt.Errorf("store job verification metadata: %w", err)
 	}
 	return rowsAffectedOne(tag, "store job verification metadata")
+}
+
+func validateJobVerification(value JobVerification) error {
+	if err := validateJobID(value.JobID); err != nil {
+		return err
+	}
+	if err := validateFingerprint(value.SubmittedConfigFingerprint); err != nil {
+		return fmt.Errorf("submitted configuration: %w", err)
+	}
+	if err := validateFingerprint(value.ResolvedMappingFingerprint); err != nil {
+		return fmt.Errorf("resolved mapping: %w", err)
+	}
+	if len(value.ResolvedMappingSummary) == 0 || !jsonValidObject(value.ResolvedMappingSummary) {
+		return errors.New("resolved mapping summary must be a JSON object")
+	}
+	return nil
 }
 
 func (store *Store) GetJobVerification(

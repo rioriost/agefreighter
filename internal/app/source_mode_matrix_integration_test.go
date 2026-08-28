@@ -13,6 +13,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
+	"github.com/rioriost/agefreighter/internal/report"
 )
 
 type sourceModeJobFactory func(mode config.LoadMode, dataset string) config.LoadJob
@@ -223,6 +224,22 @@ func runSourceModeMatrix(
 			}
 			if _, err := Verify(t.Context(), path, result.JobID); err != nil {
 				t.Fatalf("Verify(%s): %v", phase.mode, err)
+			}
+			countReport, err := VerificationReport(
+				t.Context(),
+				path,
+				result.JobID,
+				VerifyOptions{Counts: true, Limit: DefaultIntegrityLimit},
+			)
+			if err != nil {
+				t.Fatalf("VerificationReport counts (%s): %v", phase.mode, err)
+			}
+			if countReport.Outcome == report.OutcomeFail {
+				t.Fatalf(
+					"VerificationReport counts (%s) failed: %#v",
+					phase.mode,
+					countReport.Checks,
+				)
 			}
 			assertCypherCount(
 				t,

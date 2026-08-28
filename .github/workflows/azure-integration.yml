@@ -41,9 +41,7 @@ jobs:
         run: |
           . ./scripts/dev/services.sh
           export AGEFREIGHTER_AGE_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${AGE_PORT}/agefreighter?sslmode=disable"
-          go test ./internal/app \
-            -run '^(TestCosmosLiveIntegration|TestCosmosSourceModeMatrixIntegration)$' \
-            -count=1 -timeout=45m -v
+          make test-connectors-cosmos
       - name: Stop databases
         if: always()
         env:

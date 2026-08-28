@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/rioriost/agefreighter/internal/meta"
 )
 
 var ErrCatalogEntryNotFound = errors.New("Apache AGE catalog entry not found")
@@ -169,6 +170,220 @@ func lookupLabel(
 		)
 	}
 	return label, nil
+}
+
+func (transaction *Transaction) RegisterCreatedLabel(
+	ctx context.Context,
+	graphGenerationID int64,
+	graphName string,
+	labelName string,
+	expectedKind LabelKind,
+) (LoadLabel, error) {
+	if graphGenerationID <= 0 {
+		return LoadLabel{}, errors.New("graph generation ID must be positive")
+	}
+	if err := ValidateGraphName(graphName); err != nil {
+		return LoadLabel{}, err
+	}
+	if err := ValidateLabelName(labelName); err != nil {
+		return LoadLabel{}, err
+	}
+	if expectedKind != VertexLabel && expectedKind != EdgeLabel {
+		return LoadLabel{}, fmt.Errorf("invalid label kind %d", expectedKind)
+	}
+	var (
+		value      LoadLabel
+		labelID    int32
+		kind       string
+		relationNS uint32
+	)
+	err := transaction.tx.QueryRow(
+		ctx,
+		`WITH catalog AS MATERIALIZED (
+			SELECT
+				graph.name::text AS graph_name,
+				label.name::text AS label_name,
+				graph.graphid::oid AS graph_oid,
+				graph.namespace::oid AS namespace_oid,
+				label.id::integer AS label_id,
+				label.kind::text AS kind,
+				label.relation::oid AS relation_oid,
+				relation.relnamespace::oid AS relation_namespace_oid,
+				sequence.oid AS sequence_oid,
+				label.seq_name::text AS sequence_name
+			FROM ag_catalog.ag_graph graph
+			JOIN ag_catalog.ag_label label ON label.graph = graph.graphid
+			JOIN pg_class relation ON relation.oid = label.relation
+			JOIN pg_class sequence
+			  ON sequence.relnamespace = graph.namespace
+			 AND sequence.relname = label.seq_name
+			 AND sequence.relkind = 'S'
+			WHERE graph.name = $1::name
+			  AND label.name = $2::name
+		),
+		inserted AS (
+			INSERT INTO agefreighter_meta.label_generation (
+				graph_generation_id, label_name, kind, graph_namespace_oid,
+				label_id, relation_oid, sequence_oid, mapping_generation
+			)
+			SELECT $3, catalog.label_name, catalog.kind, catalog.namespace_oid,
+			       catalog.label_id, catalog.relation_oid, catalog.sequence_oid, 1
+			FROM catalog
+			JOIN agefreighter_meta.graph_generation generation
+			  ON generation.graph_generation_id = $3
+			 AND generation.namespace_oid = catalog.namespace_oid
+			WHERE catalog.kind = $4
+			  AND catalog.graph_oid = catalog.namespace_oid
+			  AND catalog.relation_namespace_oid = catalog.namespace_oid
+			RETURNING label_generation_id, created_at, updated_at
+		)
+		SELECT
+			catalog.graph_name, catalog.label_name, catalog.graph_oid,
+			catalog.namespace_oid, catalog.label_id, catalog.kind,
+			catalog.relation_oid, catalog.relation_namespace_oid,
+			catalog.sequence_oid, catalog.sequence_name,
+			inserted.label_generation_id, inserted.created_at, inserted.updated_at
+		FROM catalog
+		CROSS JOIN inserted`,
+		pgx.QueryExecModeExec,
+		graphName,
+		labelName,
+		graphGenerationID,
+		string(byte(expectedKind)),
+	).Scan(
+		&value.Catalog.GraphName,
+		&value.Catalog.LabelName,
+		&value.Catalog.GraphOID,
+		&value.Catalog.NamespaceOID,
+		&labelID,
+		&kind,
+		&value.Catalog.RelationOID,
+		&relationNS,
+		&value.Catalog.SequenceOID,
+		&value.Catalog.SequenceName,
+		&value.Generation.ID,
+		&value.Generation.CreatedAt,
+		&value.Generation.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return LoadLabel{}, fmt.Errorf(
+			"%w: created label %q in graph %q",
+			meta.ErrGenerationMismatch,
+			labelName,
+			graphName,
+		)
+	}
+	if err != nil {
+		return LoadLabel{}, fmt.Errorf(
+			"register created label %q in graph %q: %w",
+			labelName,
+			graphName,
+			err,
+		)
+	}
+	if labelID <= 0 || labelID > int32(MaxLabelID) ||
+		len(kind) != 1 || LabelKind(kind[0]) != expectedKind ||
+		value.Catalog.GraphOID != value.Catalog.NamespaceOID ||
+		relationNS != value.Catalog.NamespaceOID {
+		return LoadLabel{}, fmt.Errorf(
+			"%w: invalid created label %q catalog",
+			meta.ErrGenerationMismatch,
+			labelName,
+		)
+	}
+	value.Catalog.LabelID = uint16(labelID)
+	value.Catalog.Kind = expectedKind
+	value.Generation.GraphGenerationID = graphGenerationID
+	value.Generation.LabelName = labelName
+	value.Generation.Kind = meta.LabelKind(expectedKind)
+	value.Generation.GraphNamespaceOID = value.Catalog.NamespaceOID
+	value.Generation.LabelID = value.Catalog.LabelID
+	value.Generation.RelationOID = value.Catalog.RelationOID
+	value.Generation.SequenceOID = value.Catalog.SequenceOID
+	value.Generation.MappingGeneration = 1
+	return value, nil
+}
+
+func (transaction *Transaction) RegisterCreatedGraph(
+	ctx context.Context,
+	jobID string,
+	graphName string,
+	replacesGraphOID uint32,
+	generation uint64,
+) (meta.GraphGeneration, error) {
+	if err := meta.ValidateJobID(jobID); err != nil {
+		return meta.GraphGeneration{}, err
+	}
+	if err := ValidateGraphName(graphName); err != nil {
+		return meta.GraphGeneration{}, err
+	}
+	if generation == 0 {
+		return meta.GraphGeneration{}, errors.New("graph generation must be positive")
+	}
+	var value meta.GraphGeneration
+	err := transaction.tx.QueryRow(ctx, `
+		WITH catalog AS MATERIALIZED (
+			SELECT name::text AS graph_name, graphid::oid AS graph_oid,
+			       namespace::oid AS namespace_oid
+			FROM ag_catalog.ag_graph
+			WHERE name = $2::name
+			  AND graphid = namespace
+		),
+		inserted AS (
+			INSERT INTO agefreighter_meta.graph_generation (
+				job_id, graph_name, graph_oid, namespace_oid,
+				replaces_graph_oid, generation, state
+			)
+			SELECT $1::uuid, catalog.graph_name, catalog.graph_oid,
+			       catalog.namespace_oid, NULLIF($3, 0)::oid, $4, 'loading'
+			FROM catalog
+			RETURNING graph_generation_id, job_id::text, graph_name,
+			          graph_oid, namespace_oid, COALESCE(replaces_graph_oid, 0),
+			          generation, state, created_at, updated_at
+		),
+		bound AS (
+			UPDATE agefreighter_meta.load_job job
+			SET graph_generation_id = inserted.graph_generation_id,
+			    updated_at = clock_timestamp()
+			FROM inserted
+			WHERE job.job_id = $1::uuid
+			  AND job.graph_generation_id IS NULL
+			RETURNING inserted.*
+		)
+		SELECT *
+		FROM bound`,
+		pgx.QueryExecModeExec,
+		jobID,
+		graphName,
+		replacesGraphOID,
+		generation,
+	).Scan(
+		&value.ID,
+		&value.JobID,
+		&value.GraphName,
+		&value.GraphOID,
+		&value.NamespaceOID,
+		&value.ReplacesGraphOID,
+		&value.Generation,
+		&value.State,
+		&value.CreatedAt,
+		&value.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return meta.GraphGeneration{}, fmt.Errorf(
+			"%w: created graph %q",
+			meta.ErrGenerationMismatch,
+			graphName,
+		)
+	}
+	if err != nil {
+		return meta.GraphGeneration{}, fmt.Errorf(
+			"register created graph %q: %w",
+			graphName,
+			err,
+		)
+	}
+	return value, nil
 }
 
 func (adapter *Adapter) LookupGraph(

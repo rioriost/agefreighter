@@ -1,6 +1,6 @@
 # agefreighter 2.1 implementation plan
 
-- Status: proposed
+- Status: implemented; environment-gated release qualification pending
 - Baseline: agefreighter 2.0.0
 - Target compatibility: PostgreSQL 17.x and Apache AGE 1.6.x
 
@@ -71,6 +71,10 @@ output. Markdown is an explicit presentation format.
 
 ```text
 agefreighter doctor --target JOB [--format json|markdown]
+  [--output FILE] [--persist]
+
+agefreighter doctor history --target JOB
+  [--limit N] [--format json|markdown] [--output FILE]
 
 agefreighter report --target JOB JOB_ID
   [--format json|markdown]
@@ -80,6 +84,8 @@ agefreighter report --target JOB JOB_ID
 
 agefreighter verify --target JOB JOB_ID
   [--level catalog|counts]
+  [--counts] [--integrity] [--limit N]
+  [--format json|markdown] [--output FILE]
 
 agefreighter profile JOB
   [--mode sample|exact]
@@ -90,18 +96,20 @@ agefreighter optimize --target JOB
   [--queries FILE ...]
   [--apply-analyze]
   [--format json|markdown]
+  [--output FILE]
 
 agefreighter-tools check-cypher FILE ...
   [--target-age 1.6]
   [--format json|markdown]
+  [--strict]
 ```
 
 Command rules:
 
 - `doctor`, `report`, `profile`, `verify`, and `optimize` are read-only by
-  default.
-- `optimize --apply-analyze` is the only mutating operation among the new
-  diagnostic and advisory commands.
+  default. `doctor --persist` is an explicit bounded metadata write.
+- `optimize --apply-analyze` is the only target-maintenance mutation among the
+  new diagnostics; `doctor --persist` writes only its bounded metadata record.
 - `verify` without `--level` preserves the 2.0 catalog-verification behavior.
 - `profile --mode sample` is the default. Exact source scans require an
   explicit flag.
@@ -109,6 +117,8 @@ Command rules:
   property-count, and execution-time limits.
 - Reports never contain resolved secrets, raw credentials, or unrestricted
   source records.
+- `profile` writes only to standard output. `doctor`, `report`, deep `verify`,
+  and `optimize` support exclusive mode-`0600` output files.
 
 ## Target access and metadata upgrade policy
 
@@ -136,6 +146,15 @@ one-way: after a target is upgraded beyond the 2.0 metadata schema, 2.0
 binaries reject it as newer than supported. Operators must upgrade all writers
 before the first 2.1 `load` or `resume`. This policy must be documented and
 covered by mixed-version integration tests.
+
+The shipped schema is v17 and its read-compatible window is v14-v17.
+Read-only schema inspection and diagnostic commands do not apply v15
+(connector telemetry), v16 (diagnostic history), or v17 (resolved-mapping and
+per-label verification) migrations. Tests exercise v14 inspection, v14-to-v17
+upgrade, each version in the read window, and the older-writer rejection path.
+Legacy default verification that must rediscover a source marks
+`VerificationSourceAccess` and explains that its evidence is not the original
+migration snapshot.
 
 ## Milestone 1: report foundation
 
@@ -478,6 +497,86 @@ Phases 3 and 4 can proceed independently after the report contracts are
 stable. The release is complete only when all P0 items and their cross-connector
 tests pass. P1 items may be moved to 2.2 rather than weakening limits,
 determinism, or compatibility guarantees.
+
+## Milestone 7 release readiness
+
+### Implementation status
+
+- [x] CSV, PostgreSQL, Neo4j, and Cosmos source-mode matrix hooks cover
+  `create`, `replace`, `append`, and `upsert`; live connectors skip with an
+  explicit missing-environment message when credentials are absent.
+- [x] Degraded PostgreSQL doctor coverage checks a target without AGE and
+  verifies that the report is incomplete, useful, and DSN-redacted.
+- [x] Deep-verification corruption coverage exercises deleted physical rows,
+  wrong graph-label IDs, missing identities, dangling identity endpoints,
+  changed physical endpoints, orphan physical rows, and invalid retained
+  backup ownership.
+- [x] Parallel `doctor`, `report`, `verify`, and `optimize` paths have a
+  targeted race gate and assert that diagnostics leave the metadata version
+  unchanged.
+- [x] Metadata v14 is upgraded through v17 only by the mutating migration path;
+  v14-v17 read compatibility and a 2.0-compatible writer's newer-schema
+  rejection are tested.
+- [x] CLI help and reference examples match the implemented flags, including
+  doctor history/persistence, deep verification, exclusive output files,
+  optimizer query evidence, and strict Cypher analysis.
+- [x] Versioned JSON schemas and deterministic JSON/Markdown goldens cover
+  migration, doctor, verification, profile, optimizer, and Cypher reports.
+- [x] Secret, DSN, source-value, query-evidence, path, and telemetry redaction
+  is covered at configuration, CLI, report, profile, doctor, optimizer,
+  observability, and analyzer boundaries.
+- [x] CI/release gates include formatting, vet, full tests, vulnerability
+  scanning, race detection, Cypher/report/identifier fuzz smoke, unexcluded
+  repository-wide coverage at the required 80% threshold, connector hooks,
+  recovery, and compatibility.
+- [x] Release performance keeps the calibrated absolute floors: 109,190 rows/s
+  on the M4 Max calibration host and 50,000 rows/s on hosted release runners.
+  The staged/relational 40% guard is additional evidence, not a replacement or
+  a noisy 5% comparison.
+- [x] The release benchmark enforces peak client RSS at or below 2 GiB for both
+  the end-to-end CSV fixture and a 200,000-row generated CSV load.
+- [x] AGE 1.6 property-serialization safety is preserved: live `agtype`
+  property inspection remains unavailable because serialization fully
+  detoasts before a text bound can apply. No unsafe property scan or automatic
+  property-index recommendation was added.
+
+### Qualification still requiring configured environments
+
+- [x] Run the local PostgreSQL 17 / AGE 1.6 / Neo4j connector and corruption
+  gates on the pinned development services.
+- [ ] Run the Cosmos connector matrix in the protected Azure integration
+  environment.
+- [x] Record the 109,190 rows/s M4 Max calibration-host result.
+- [ ] Record the
+  50,000 rows/s hosted-release result with the 2 GiB RSS evidence.
+
+These are release executions, not missing implementations. They intentionally
+remain unchecked until the corresponding service credentials and calibrated
+runner are present.
+
+### Validation snapshot (2026-08-28)
+
+- Database-independent `go test ./...`, full `go test -race ./...`, `go vet
+  ./...`, report/Cypher/identifier fuzz smoke, and `govulncheck ./...` passed.
+  `govulncheck` found no reachable vulnerabilities.
+- The pinned local connector matrix passed all four modes for CSV, PostgreSQL,
+  and Neo4j. Metadata v14-to-v17 upgrade, degraded doctor, deliberate
+  corruption, and parallel read-only diagnostic race tests passed.
+- Repository-wide atomic statement coverage was **84.6%** with no file
+  exclusions, satisfying the 80% gate.
+- The local staged-binary medians were 793,947 vertex rows/s and 674,275 edge
+  rows/s, respectively 50.50% and 49.23% of their relational controls, passing
+  the 40% floor.
+- Peak client RSS was **320,651,264 bytes** for the countries fixture and
+  **321,241,088 bytes** for the 200,000-row generated load, passing the 2 GiB
+  gate. The generated load measured 175,143 rows/s.
+- The final calibrated M4 Max release gate measured **111,930 rows/s**, passing the
+  unchanged 109,190 rows/s floor. Three independent seven-load confirmations
+  measured 118,305, 118,866, and 114,461 rows/s.
+- Cosmos was not run because no
+  `AGEFREIGHTER_COSMOS_TEST_ENDPOINT`/Azure workload identity was available.
+  The hosted 50,000 rows/s run was not run because a GitHub hosted release
+  runner is unavailable from this local session.
 
 ## Deferred roadmap
 

@@ -100,6 +100,7 @@ jobs:
       - name: Run quality, compatibility, recovery, and performance gates
         env:
           AGEFREIGHTER_MINIMUM_CSV_ROWS_PER_SECOND: "50000"
+          AGEFREIGHTER_MAXIMUM_CLIENT_RSS_BYTES: "2147483648"
         run: |
           . ./scripts/dev/services.sh
           export AGEFREIGHTER_AGE_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${AGE_PORT}/agefreighter?sslmode=disable"
@@ -110,8 +111,11 @@ jobs:
           export AGEFREIGHTER_NEO4J_TEST_DATABASE=neo4j
           make check-full
           make test-compatibility
+          make test-connectors-local
+          make test-release-integration
+          make test-diagnostics-race
           make test-recovery
-          ./scripts/bench/release-budget.sh performance-artifacts
+          make bench-release
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -154,6 +158,7 @@ jobs:
         run: make dev-up
       - name: Run Cosmos DB live integration
         env:
+          AGEFREIGHTER_REQUIRE_COSMOS_TESTS: "1"
           AGEFREIGHTER_COSMOS_TEST_ENDPOINT: ${{ vars.AGEFREIGHTER_COSMOS_TEST_ENDPOINT }}
           AGEFREIGHTER_COSMOS_TEST_DATABASE: ${{ vars.AGEFREIGHTER_COSMOS_TEST_DATABASE }}
           AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER: ${{ vars.AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER }}
@@ -161,9 +166,7 @@ jobs:
         run: |
           . ./scripts/dev/services.sh
           export AGEFREIGHTER_AGE_TEST_DSN="postgres://agefreighter:${AGEFREIGHTER_DEV_PASSWORD}@127.0.0.1:${AGE_PORT}/agefreighter?sslmode=disable"
-          go test ./internal/app \
-            -run '^(TestCosmosLiveIntegration|TestCosmosSourceModeMatrixIntegration)$' \
-            -count=1 -timeout=45m -v
+          make test-connectors-cosmos
       - name: Stop databases
         if: always()
         env:

@@ -124,10 +124,7 @@ func TestSchemaInspectionRequireCurrent(t *testing.T) {
 }
 
 func TestSchemaInspectionReadCompatibility(t *testing.T) {
-	for _, version := range []int{
-		MinimumReadCompatibleSchemaVersion,
-		SupportedSchemaVersion,
-	} {
+	for version := MinimumReadCompatibleSchemaVersion; version <= SupportedSchemaVersion; version++ {
 		state := SchemaCurrent
 		if version < SupportedSchemaVersion {
 			state = SchemaPending

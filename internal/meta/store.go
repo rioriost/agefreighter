@@ -31,8 +31,40 @@ func New(database Database) (*Store, error) {
 }
 
 func (store *Store) Migrate(ctx context.Context) error {
+	return store.migrate(ctx, schemaVersion)
+}
+
+func (store *Store) MigrateIfNeeded(ctx context.Context) error {
 	if store == nil || store.database == nil {
 		return errors.New("metadata store is required")
+	}
+	var minimum, maximum, count int
+	err := store.database.QueryRow(ctx, `
+		SELECT
+			COALESCE(MIN(version), 0),
+			COALESCE(MAX(version), 0),
+			COUNT(*)::integer
+		FROM agefreighter_meta.schema_migration`,
+	).Scan(&minimum, &maximum, &count)
+	if err == nil && minimum == 1 && maximum == schemaVersion && count == schemaVersion {
+		return nil
+	}
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if !errors.As(err, &pgErr) ||
+			(pgErr.Code != "42P01" && pgErr.Code != "3F000") {
+			return fmt.Errorf("inspect metadata schema version: %w", err)
+		}
+	}
+	return store.Migrate(ctx)
+}
+
+func (store *Store) migrate(ctx context.Context, supportedVersion int) error {
+	if store == nil || store.database == nil {
+		return errors.New("metadata store is required")
+	}
+	if supportedVersion < 1 || supportedVersion > len(migrations) {
+		return fmt.Errorf("invalid supported metadata schema version %d", supportedVersion)
 	}
 	migrationCtx := ctx
 	cancel := func() {}
@@ -87,14 +119,14 @@ func (store *Store) Migrate(ctx context.Context) error {
 	).Scan(&current); err != nil {
 		return fmt.Errorf("read metadata schema version: %w", err)
 	}
-	if current > schemaVersion {
+	if current > supportedVersion {
 		return fmt.Errorf(
 			"metadata schema version %d is newer than supported version %d",
 			current,
-			schemaVersion,
+			supportedVersion,
 		)
 	}
-	for version := current + 1; version <= schemaVersion; version++ {
+	for version := current + 1; version <= supportedVersion; version++ {
 		for _, statement := range migrations[version-1] {
 			if _, err := tx.Exec(migrationCtx, statement); err != nil {
 				return fmt.Errorf("apply metadata migration %d: %w", version, err)

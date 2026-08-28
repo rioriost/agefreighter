@@ -26,10 +26,12 @@ rows=${AGEFREIGHTER_BENCH_ROWS:-100000}
 property_bytes=${AGEFREIGHTER_BENCH_PROPERTY_BYTES:-64}
 minimum_ratio=${AGEFREIGHTER_MINIMUM_STAGED_RATIO:-0.40}
 minimum_csv_rows_per_second=${AGEFREIGHTER_MINIMUM_CSV_ROWS_PER_SECOND:-109190}
+maximum_client_rss_bytes=${AGEFREIGHTER_MAXIMUM_CLIENT_RSS_BYTES:-2147483648}
+memory_rows=${AGEFREIGHTER_MEMORY_GATE_ROWS:-200000}
 
-for value in "$samples" "$rows" "$property_bytes"; do
+for value in "$samples" "$rows" "$property_bytes" "$maximum_client_rss_bytes" "$memory_rows"; do
 	if ! printf '%s\n' "$value" | awk 'BEGIN { ok = 0 } /^[0-9]+$/ { ok = ($0 + 0 > 0) } END { exit !ok }'; then
-		printf 'sample, row, and property-byte values must be positive integers\n' >&2
+		printf 'sample, row, property-byte, RSS, and memory-row values must be positive integers\n' >&2
 		exit 2
 	fi
 done
@@ -47,6 +49,46 @@ csv_output="$output/csv-create.txt"
 binary="$output/.agefreighter-tools"
 trap 'rm -f "$binary"' EXIT HUP INT TERM
 : >"$raw"
+
+run_with_rss_gate() {
+	metric_file=$1
+	transcript=$2
+	shift 2
+	time_file="${metric_file}.time"
+	case "$(uname -s)" in
+	Darwin)
+		/usr/bin/time -l -o "$time_file" "$@" >"$transcript" 2>&1
+		rss_bytes=$(awk '/maximum resident set size/ { print $1 }' "$time_file")
+		;;
+	Linux)
+		/usr/bin/time -v -o "$time_file" "$@" >"$transcript" 2>&1
+		rss_kib=$(awk -F: '/Maximum resident set size/ {
+			gsub(/[[:space:]]/, "", $2); print $2
+		}' "$time_file")
+		rss_bytes=$((rss_kib * 1024))
+		;;
+	*)
+		printf 'unsupported platform for RSS gate: %s\n' "$(uname -s)" >&2
+		return 2
+		;;
+	esac
+	rm -f "$time_file"
+	case "$rss_bytes" in
+	""|*[!0-9]*)
+		printf 'maximum resident set size was not reported\n' >&2
+		return 1
+		;;
+	esac
+	printf '{"maximumClientRSSBytes":%s,"limitBytes":%s}\n' \
+		"$rss_bytes" "$maximum_client_rss_bytes" >"$metric_file"
+	if [ "$rss_bytes" -gt "$maximum_client_rss_bytes" ]; then
+		printf 'client RSS %s bytes exceeds required maximum %s bytes\n' \
+			"$rss_bytes" "$maximum_client_rss_bytes" >&2
+		return 1
+	fi
+	printf 'client RSS %s bytes meets required maximum %s bytes\n' \
+		"$rss_bytes" "$maximum_client_rss_bytes"
+}
 
 go build -trimpath -o "$binary" ./cmd/agefreighter-tools
 for workload in vertices edges; do
@@ -71,9 +113,13 @@ done
 	--minimum-staged-ratio "$minimum_ratio" \
 	"$raw" >"$report"
 
-AGEFREIGHTER_AGE_TEST_DSN="$AGEFREIGHTER_AGE_TEST_DSN" \
+run_with_rss_gate \
+	"$output/csv-create-rss.json" \
+	"$csv_output" \
+	env AGEFREIGHTER_AGE_TEST_DSN="$AGEFREIGHTER_AGE_TEST_DSN" \
 	go test -run '^$' -bench '^BenchmarkLegacyCountriesLoad$' \
-	-benchtime="${samples}x" -count=1 ./internal/app | tee "$csv_output"
+	-benchtime="${samples}x" -count=1 ./internal/app
+cat "$csv_output"
 
 csv_rows_per_second=$(awk '
 	/^BenchmarkLegacyCountriesLoad-/ {
@@ -93,6 +139,17 @@ csv_rows_per_second=$(awk '
 	printf 'CSV rows/s metric not found in benchmark output\n' >&2
 	exit 1
 }
+
+memory_output="$output/memory-scale.txt"
+run_with_rss_gate \
+	"$output/memory-scale-rss.json" \
+	"$memory_output" \
+	env AGEFREIGHTER_AGE_TEST_DSN="$AGEFREIGHTER_AGE_TEST_DSN" \
+	AGEFREIGHTER_BENCH_ROWS="$memory_rows" \
+	go test -run '^$' -bench '^BenchmarkGeneratedCSVLoad$' \
+	-benchtime='1x' -count=1 ./internal/app
+cat "$memory_output"
+
 if ! awk -v actual="$csv_rows_per_second" -v minimum="$minimum_csv_rows_per_second" \
 	'BEGIN { exit !(actual + 0 >= minimum + 0) }'; then
 	printf 'CSV throughput %s rows/s is below required %s rows/s\n' \

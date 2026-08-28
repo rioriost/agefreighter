@@ -677,6 +677,53 @@ func TestResumeAfterCommittedBatchIntegration(t *testing.T) {
 	}
 }
 
+func TestSourceResolutionAccessRequired(t *testing.T) {
+	tests := []struct {
+		name string
+		job  config.LoadJob
+		want bool
+	}{
+		{
+			name: "CSV",
+			job:  config.LoadJob{Source: config.Source{Type: config.SourceCSV}},
+		},
+		{
+			name: "Neo4j configured mappings",
+			job: config.LoadJob{Source: config.Source{
+				Type:  config.SourceNeo4j,
+				Neo4j: &config.Neo4jSource{},
+			}},
+		},
+		{
+			name: "Neo4j discovery",
+			job: config.LoadJob{Source: config.Source{
+				Type: config.SourceNeo4j,
+				Neo4j: &config.Neo4jSource{
+					Discovery: &config.Neo4jDiscovery{Enabled: true},
+				},
+			}},
+			want: true,
+		},
+		{
+			name: "Cosmos Gremlin discovery",
+			job: config.LoadJob{Source: config.Source{
+				Type: config.SourceCosmos,
+				Cosmos: &config.CosmosSource{
+					Gremlin: &config.CosmosGremlin{Enabled: true},
+				},
+			}},
+			want: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := sourceResolutionAccessRequired(test.job); got != test.want {
+				t.Fatalf("sourceResolutionAccessRequired() = %t, want %t", got, test.want)
+			}
+		})
+	}
+}
+
 func TestAppHelpers(t *testing.T) {
 	t.Setenv("APP_SECRET", "postgres://example")
 	if value, err := resolveSecret(config.SecretRef{Env: "APP_SECRET"}); err != nil ||

@@ -437,6 +437,23 @@ func TestMigrationBoundsTransactionBeforeLockAndDDL(t *testing.T) {
 	}
 }
 
+func TestOlderWriterRejectsNewerMetadata(t *testing.T) {
+	ok := scriptedLifecycleExec{tag: pgconn.NewCommandTag("SELECT 1")}
+	tx := &scriptedLifecycleTx{
+		exec: []scriptedLifecycleExec{ok, ok, ok, ok},
+		rows: []scanLifecycleRow{func(dest ...any) error {
+			*dest[0].(*int) = schemaVersion
+			return nil
+		}},
+	}
+	store := &Store{database: scriptedLifecycleDatabase{tx: tx}}
+	err := store.migrate(t.Context(), MinimumReadCompatibleSchemaVersion)
+	if err == nil ||
+		!strings.Contains(err.Error(), "newer than supported version 14") {
+		t.Fatalf("2.0-compatible writer rejection error = %v", err)
+	}
+}
+
 func replacePromotionJobRow(
 	mode string,
 	status JobStatus,

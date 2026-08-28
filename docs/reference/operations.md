@@ -294,12 +294,21 @@ checks only those exact label generations and ignores unrelated labels already
 present in an append/upsert target. More than 128 expected labels yields an
 explicit incomplete result without scanning a truncated subset.
 
+For v17 jobs, both default catalog verification and deep verification use this
+persisted resolved-mapping snapshot and never reconnect to Neo4j or Cosmos for
+discovery. The v14-v16 compatibility path has no such snapshot and may perform
+source discovery; that fallback sets `VerificationSourceAccess` and
+`VerificationEvidence` in the legacy verify output to state that the evidence
+is not an original migration snapshot.
+
 Metadata schemas v14 through v16 remain readable by `report`, `status`,
 `verify`, and `cleanup`. Reports mark v15 connector telemetry and unstored
 per-label counters as unavailable where appropriate. These read-only commands
 do not upgrade metadata. The next 2.1 `load` or `resume` applies the
 non-destructive migrations through v17; older writers must be upgraded first.
-Schemas newer than the binary supports are rejected.
+Schemas newer than the binary supports are rejected. In particular, a 2.0
+binary supports metadata only through v14 and rejects a target after a 2.1
+writer upgrades it to v17.
 
 Per-label counters carry explicit completeness and provenance. A v14-v16 job
 resumed after migration keeps incomplete, null aggregate values because its
@@ -372,6 +381,9 @@ in [`scripts/dev/README.md`](../../scripts/dev/README.md):
 make dev-up
 make dev-status
 make test-compatibility
+make test-connectors-local
+make test-release-integration
+make test-diagnostics-race
 make test-recovery
 make dev-down
 ```

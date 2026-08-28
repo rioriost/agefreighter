@@ -524,6 +524,28 @@ func TestMarkdownEscapesReportValues(t *testing.T) {
 	}
 }
 
+func FuzzReportDecode(f *testing.F) {
+	seed, err := Render(validDocument(), FormatJSON)
+	if err != nil {
+		f.Fatalf("render fuzz seed: %v", err)
+	}
+	f.Add(seed)
+	f.Add([]byte(`{"schemaVersion":2}`))
+	f.Add([]byte(`{}`))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		document, err := Decode(data)
+		if err != nil {
+			return
+		}
+		if _, err := Render(document, FormatJSON); err != nil {
+			t.Fatalf("decoded report did not render: %v", err)
+		}
+		if _, err := Render(document, FormatMarkdown); err != nil {
+			t.Fatalf("decoded report did not render as Markdown: %v", err)
+		}
+	})
+}
+
 func validDocument() Document {
 	document := New("report", time.Date(2026, 8, 28, 6, 0, 0, 0, time.FixedZone("JST", 9*60*60)))
 	document.Outcome = OutcomePass

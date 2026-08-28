@@ -34,6 +34,8 @@ type LoadSinkOptions struct {
 	MissingEndpoint  config.MissingEndpointPolicy
 	MaxDeferredEdges int
 	Quarantine       reject.Writer
+	JobVerification  *meta.JobVerification
+	CatalogAdmitted  bool
 }
 
 type LoadSink struct {
@@ -161,15 +163,17 @@ func NewLoadSink(
 	if err != nil {
 		return nil, err
 	}
-	storedGraph, err := diagnostics.AdmitGraphGeneration(
-		ctx,
-		options.JobID,
-		options.Graph,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("admit load graph generation: %w", err)
+	if !options.CatalogAdmitted {
+		storedGraph, err := diagnostics.AdmitGraphGeneration(
+			ctx,
+			options.JobID,
+			options.Graph,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("admit load graph generation: %w", err)
+		}
+		options.Graph = storedGraph
 	}
-	options.Graph = storedGraph
 	labels := make(map[model.Label]LoadLabel, len(options.Labels))
 	for _, binding := range options.Labels {
 		if err := validateLoadLabel(options.Graph, binding); err != nil {
@@ -179,28 +183,23 @@ func NewLoadSink(
 		if _, exists := labels[key]; exists {
 			return nil, fmt.Errorf("duplicate load label %q", key)
 		}
-		current := binding.Generation
-		current.GraphGenerationID = options.Graph.ID
-		storedGeneration, err := diagnostics.AdmitLabelGeneration(
-			ctx,
-			options.Graph.ID,
-			current,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("admit load label %q: %w", key, err)
+		if !options.CatalogAdmitted {
+			current := binding.Generation
+			current.GraphGenerationID = options.Graph.ID
+			storedGeneration, err := diagnostics.AdmitLabelGeneration(
+				ctx,
+				options.Graph.ID,
+				current,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("admit load label %q: %w", key, err)
+			}
+			binding.Generation = storedGeneration
 		}
-		binding.Generation = storedGeneration
 		labels[key] = binding
 	}
 	if len(labels) == 0 {
 		return nil, errors.New("load sink requires at least one label")
-	}
-	counterLabels := make([]meta.LabelGeneration, 0, len(labels))
-	for _, binding := range labels {
-		counterLabels = append(counterLabels, binding.Generation)
-	}
-	if err := diagnostics.EnsureLabelCounters(ctx, options.JobID, counterLabels); err != nil {
-		return nil, fmt.Errorf("initialize per-label counters: %w", err)
 	}
 	return &LoadSink{
 		adapter:     adapter,
@@ -391,6 +390,13 @@ func (target *LoadSink) Begin(
 			ownerErr,
 		)
 	}
+	labelCounters := make(map[int64]meta.BatchLabelCounter, len(target.labels))
+	for _, label := range target.labels {
+		labelCounters[label.Generation.ID] = meta.BatchLabelCounter{
+			LabelGenerationID: label.Generation.ID,
+			Kind:              label.Generation.Kind,
+		}
+	}
 	return &loadTransaction{
 		sink:            target,
 		tx:              tx,
@@ -398,7 +404,7 @@ func (target *LoadSink) Begin(
 		lockKey:         lockKey,
 		metadata:        batch,
 		incrementalLock: incrementalLock,
-		labelCounters:   make(map[int64]meta.BatchLabelCounter),
+		labelCounters:   labelCounters,
 	}, nil
 }
 
@@ -1194,7 +1200,7 @@ func (transaction *loadTransaction) Commit(
 	if err != nil {
 		return transaction.abortKnown(ctx, err)
 	}
-	if err := store.CommitBatchWithLabelCounters(
+	if err := store.CommitBatchWithLabelCountersAndVerification(
 		ctx,
 		transaction.sink.options.JobID,
 		transaction.metadata.ID,
@@ -1202,6 +1208,7 @@ func (transaction *loadTransaction) Commit(
 		metaPosition(state.Position),
 		transaction.rejected,
 		transaction.counters(),
+		transaction.sink.options.JobVerification,
 	); err != nil {
 		return transaction.abortKnown(
 			ctx,
@@ -1217,6 +1224,7 @@ func (transaction *loadTransaction) Commit(
 			ownerErr,
 		)
 	}
+	transaction.sink.options.JobVerification = nil
 	ownerErr := transaction.releaseOwner()
 	transaction.sink.release()
 	return ownerErr
