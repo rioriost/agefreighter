@@ -2,7 +2,8 @@
 
 ## Supported binaries
 
-Each 2.x release contains both `agefreighter` and `agefreighter-tools` for:
+Each stable 2.x release contains both `agefreighter` and
+`agefreighter-tools` for:
 
 | Operating system | Architecture | Archive |
 |---|---|---|
@@ -13,6 +14,10 @@ Each 2.x release contains both `agefreighter` and `agefreighter-tools` for:
 | Windows | amd64 | `agefreighter_vVERSION_windows_amd64.zip` |
 
 `vVERSION` includes the leading `v`, for example `v2.0.0`.
+
+Prereleases published while SignPath Foundation enrollment is pending may omit
+the Windows archive. Official Windows binaries are never published unsigned;
+check the assets and notes for the release you are installing.
 
 ## Verify a release
 

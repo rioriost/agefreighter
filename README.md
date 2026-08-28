@@ -55,6 +55,10 @@ Download `agefreighter_v2.0.0_windows_amd64.zip`, extract
 provided through SignPath Foundation. See the
 [code signing policy](docs/code-signing-policy.md):
 
+Prereleases published while SignPath Foundation enrollment is pending may omit
+the Windows archive. Official Windows binaries are never published unsigned;
+check the assets and notes for the release you are installing.
+
 ```powershell
 Expand-Archive .\agefreighter_v2.0.0_windows_amd64.zip -DestinationPath .\agefreighter
 Get-AuthenticodeSignature .\agefreighter\agefreighter.exe

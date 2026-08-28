@@ -250,7 +250,10 @@ jobs:
             "$VERSION" "$COMMIT" "$BUILD_DATE" windows amd64 "$PWD/dist"
       - name: Upload raw unsigned archive for trusted-build verification
         id: unsigned
-        if: github.event_name == 'push' && github.ref_type == 'tag'
+        if: >-
+          github.event_name == 'push' &&
+          github.ref_type == 'tag' &&
+          !contains(needs.prepare.outputs.version, '-')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           path: dist/agefreighter_${{ needs.prepare.outputs.version }}_windows_amd64.zip
@@ -258,7 +261,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Submit trusted artifact to SignPath Foundation
-        if: github.event_name == 'push' && github.ref_type == 'tag'
+        if: >-
+          github.event_name == 'push' &&
+          github.ref_type == 'tag' &&
+          !contains(needs.prepare.outputs.version, '-')
         uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
@@ -280,7 +286,7 @@ jobs:
         run: |
           set -euo pipefail
           unsigned="dist/agefreighter_${VERSION}_windows_amd64.zip"
-          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" && "$VERSION" != *-* ]]; then
             source="dist/signed/$(basename "$unsigned")"
           else
             source="$unsigned"
@@ -293,7 +299,7 @@ jobs:
         uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
         with:
           syft-version: v1.30.0
-      - name: Generate signed archive SPDX SBOM
+      - name: Generate Windows archive SPDX SBOM
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           SYFT: ${{ steps.syft.outputs.cmd }}
@@ -302,10 +308,10 @@ jobs:
           archive="dist/final/agefreighter_${VERSION}_windows_amd64.zip"
           export PATH="$(dirname "$SYFT"):$PATH"
           scripts/release/sbom.sh "$archive" "$archive.spdx.json"
-      - name: Upload signed Windows package
+      - name: Upload Windows verification or release package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: release-windows-amd64
+          name: ${{ contains(needs.prepare.outputs.version, '-') && 'verification-windows-amd64' || 'release-windows-amd64' }}
           path: |
             dist/final/*.zip
             dist/final/*.spdx.json
@@ -417,13 +423,13 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: release-windows-amd64
+          name: ${{ contains(needs.prepare.outputs.version, '-') && 'verification-windows-amd64' || 'release-windows-amd64' }}
           path: dist
       - name: Extract and execute both native binaries
         shell: pwsh
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-          REQUIRE_SIGNATURE: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+          REQUIRE_SIGNATURE: ${{ github.event_name == 'push' && github.ref_type == 'tag' && !contains(needs.prepare.outputs.version, '-') }}
         run: |
           $ErrorActionPreference = "Stop"
           if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64") {
@@ -488,7 +494,9 @@ jobs:
           set -euo pipefail
           mapfile -t archives < <(find dist -maxdepth 1 -type f \
             \( -name '*.tar.gz' -o -name '*.zip' \) -print | LC_ALL=C sort)
-          [[ "${#archives[@]}" -eq 5 ]]
+          expected=5
+          [[ "$VERSION" == *-* ]] && expected=4
+          [[ "${#archives[@]}" -eq "$expected" ]]
           scripts/release/checksum.sh dist/checksums.txt "${archives[@]}"
           scripts/release/generate-formula.sh \
             "$VERSION" "$REPOSITORY" dist dist/agefreighter.rb
@@ -516,12 +524,7 @@ jobs:
         id: provenance
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
-          subject-path: |
-            dist/*.tar.gz
-            dist/*.zip
-            dist/*.spdx.json
-            dist/checksums.txt
-            dist/agefreighter.rb
+          subject-path: dist/*
       - name: Include attestation bundle
         env:
           BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
@@ -554,6 +557,7 @@ jobs:
           draft: false
           prerelease: ${{ contains(needs.prepare.outputs.version, '-') }}
           generate_release_notes: true
+          body: ${{ contains(needs.prepare.outputs.version, '-') && 'Windows binaries are intentionally omitted from this prerelease while SignPath Foundation enrollment is pending. Official Windows binaries will not be published unsigned.' || '' }}
           fail_on_unmatched_files: true
           overwrite_files: false
           files: dist/*
