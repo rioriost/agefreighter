@@ -212,7 +212,8 @@ jobs:
           SYFT: ${{ steps.syft.outputs.cmd }}
         run: |
           set -euo pipefail
-          export PATH="$(dirname "$SYFT"):$PATH"
+          PATH="$(dirname "$SYFT"):$PATH"
+          export PATH
           archive="dist/agefreighter_${VERSION}_${GOOS}_${GOARCH}.tar.gz"
           scripts/release/sbom.sh "$archive" "$archive.spdx.json"
       - name: Upload platform package
@@ -309,7 +310,8 @@ jobs:
         run: |
           set -euo pipefail
           archive="dist/final/agefreighter_${VERSION}_windows_amd64.zip"
-          export PATH="$(dirname "$SYFT"):$PATH"
+          PATH="$(dirname "$SYFT"):$PATH"
+          export PATH
           scripts/release/sbom.sh "$archive" "$archive.spdx.json"
       - name: Upload Windows verification or release package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -379,7 +381,8 @@ jobs:
           SYFT: ${{ steps.syft.outputs.cmd }}
         run: |
           set -euo pipefail
-          export PATH="$(dirname "$SYFT"):$PATH"
+          PATH="$(dirname "$SYFT"):$PATH"
+          export PATH
           archive="dist/agefreighter_${VERSION}_darwin_${GOARCH}.tar.gz"
           scripts/release/sbom.sh "$archive" "$archive.spdx.json"
       - name: Upload signed macOS package
