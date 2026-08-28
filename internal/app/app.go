@@ -61,7 +61,7 @@ func Status(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if err != nil {
 		return meta.Job{}, fmt.Errorf("load target configuration: %w", err)
 	}
-	adapter, store, err := openTarget(ctx, job)
+	adapter, store, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
@@ -78,7 +78,7 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if err != nil {
 		return meta.Job{}, err
 	}
-	adapter, store, err := openTarget(ctx, job)
+	adapter, store, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
@@ -181,7 +181,7 @@ func execute(
 	if _, err := newPipelineRunner(job, 1, 1); err != nil {
 		return result, fmt.Errorf("validate load pipeline: %w", err)
 	}
-	adapter, store, err := openTarget(ctx, job)
+	adapter, store, err := openMutatingTarget(ctx, job)
 	if err != nil {
 		return result, err
 	}
@@ -470,7 +470,84 @@ func newPipelineRunner(
 	})
 }
 
+func openMutatingTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (*age.Adapter, *meta.Store, error) {
+	adapter, store, err := openAGEStore(ctx, job)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := store.Migrate(ctx); err != nil {
+		adapter.Close()
+		return nil, nil, err
+	}
+	return adapter, store, nil
+}
+
+// openTarget retains the 2.0 mutating target-open contract for load/resume and
+// existing internal callers.
 func openTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (*age.Adapter, *meta.Store, error) {
+	return openMutatingTarget(ctx, job)
+}
+
+type readOnlyTarget struct {
+	Adapter  *age.Adapter
+	Store    *meta.Store
+	Metadata meta.SchemaInspection
+}
+
+func openReadOnlyTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (readOnlyTarget, error) {
+	adapter, store, err := openAGEStore(ctx, job)
+	if err != nil {
+		return readOnlyTarget{}, err
+	}
+	inspection, err := store.InspectSchema(ctx)
+	if err != nil {
+		adapter.Close()
+		return readOnlyTarget{}, err
+	}
+	return readOnlyTarget{
+		Adapter: adapter, Store: store, Metadata: inspection,
+	}, nil
+}
+
+func openCurrentTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (*age.Adapter, *meta.Store, error) {
+	target, err := openReadOnlyTarget(ctx, job)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := target.Metadata.RequireCurrent(); err != nil {
+		target.Adapter.Close()
+		return nil, nil, err
+	}
+	return target.Adapter, target.Store, nil
+}
+
+func probeTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (age.DegradedProbe, error) {
+	dsn, err := resolveSecret(job.Target.Connection)
+	if err != nil {
+		return age.DegradedProbe{}, fmt.Errorf("resolve target connection: %w", err)
+	}
+	return age.ProbeDegraded(ctx, dsn, age.ProbeOptions{
+		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
+		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
+	})
+}
+
+func openAGEStore(
 	ctx context.Context,
 	job config.LoadJob,
 ) (*age.Adapter, *meta.Store, error) {
@@ -488,10 +565,6 @@ func openTarget(
 	}
 	store, err := adapter.Metadata()
 	if err != nil {
-		adapter.Close()
-		return nil, nil, err
-	}
-	if err := store.Migrate(ctx); err != nil {
 		adapter.Close()
 		return nil, nil, err
 	}

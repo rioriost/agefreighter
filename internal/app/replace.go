@@ -126,7 +126,7 @@ func Cleanup(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if job.Target.Mode != config.LoadReplace {
 		return meta.Job{}, errors.New("cleanup requires a replace load job")
 	}
-	adapter, store, err := openTarget(ctx, job)
+	adapter, store, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
