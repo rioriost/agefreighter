@@ -5,7 +5,8 @@
 1. Keep the load-job file and referenced secret files readable only by the
    service account.
 2. Run `agefreighter validate JOB` and review `agefreighter plan JOB`.
-3. Confirm the target reports PostgreSQL 17 and Apache AGE 1.6.x.
+3. Confirm the target reports an exact PostgreSQL and Apache AGE pairing listed
+   in the [compatibility matrix](compatibility.md).
 4. Confirm that the configured memory, batch, concurrency, and timeout limits
    fit the host and database capacity.
 5. For `replace`, verify that enough database storage exists for the active,

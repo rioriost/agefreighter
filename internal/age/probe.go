@@ -120,14 +120,13 @@ func probeDegradedCapabilities(
 		} else {
 			result.PostgreSQLVersionNumber = versionNumber
 			result.PostgreSQLMajor = versionNumber / 10000
-			if result.PostgreSQLMajor == SupportedPostgreSQLMajor {
+			if isSupportedPostgreSQLMajor(result.PostgreSQLMajor) {
 				result.PostgreSQLStatus = ProbePass
 			} else {
 				result.PostgreSQLStatus = ProbeFail
 				result.PostgreSQLDetail = fmt.Sprintf(
-					"unsupported PostgreSQL major version %d; supported major is %d",
+					"unsupported PostgreSQL major version %d; supported majors are 14 through 18",
 					result.PostgreSQLMajor,
-					SupportedPostgreSQLMajor,
 				)
 			}
 		}
@@ -164,17 +163,29 @@ func probeDegradedCapabilities(
 			"Apache AGE extension version %q is not valid",
 			ageVersionText,
 		)
-	} else if ageVersion.Major == SupportedAGEMajor &&
-		ageVersion.Minor == SupportedAGEMinor {
+	} else if result.PostgreSQLVersionNumber > 0 &&
+		isSupportedTargetVersion(result.PostgreSQLMajor, ageVersion) {
+		result.AGEVersionStatus = ProbePass
+	} else if result.PostgreSQLVersionNumber == 0 &&
+		isSupportedAGEVersion(ageVersion) {
 		result.AGEVersionStatus = ProbePass
 	} else {
 		result.AGEVersionStatus = ProbeFail
-		result.AGEVersionDetail = fmt.Sprintf(
-			"unsupported Apache AGE version %s; supported series is %d.%d.x",
-			ageVersion,
-			SupportedAGEMajor,
-			SupportedAGEMinor,
-		)
+		if result.PostgreSQLVersionNumber > 0 &&
+			isSupportedPostgreSQLMajor(result.PostgreSQLMajor) {
+			result.AGEVersionDetail = fmt.Sprintf(
+				"unsupported Apache AGE version %s for PostgreSQL %d; supported series is %s",
+				ageVersion,
+				result.PostgreSQLMajor,
+				supportedAGESeries(result.PostgreSQLMajor),
+			)
+		} else {
+			result.AGEVersionDetail = fmt.Sprintf(
+				"Apache AGE version %s cannot be paired with unsupported PostgreSQL major %d",
+				ageVersion,
+				result.PostgreSQLMajor,
+			)
+		}
 	}
 
 	preloadStatus, err := probePreloadStatus(ctx, database)

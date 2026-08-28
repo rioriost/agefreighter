@@ -85,7 +85,7 @@ func TestDegradedProbeReportsUnsupportedVersions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("probeDegradedCapabilities() error = %v", err)
 	}
-	if result.PostgreSQLStatus != ProbeFail ||
+	if result.PostgreSQLStatus != ProbePass ||
 		result.AGEVersionStatus != ProbeFail ||
 		result.AGELoadabilityStatus != ProbePass {
 		t.Fatalf("probe = %#v", result)

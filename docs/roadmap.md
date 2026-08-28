@@ -2,7 +2,9 @@
 
 - Status: proposed
 - Baseline: agefreighter 2.0.0
-- Target compatibility: PostgreSQL 17.x and Apache AGE 1.6.x
+- Target compatibility: the exact PostgreSQL 14.x through 18.x and Apache AGE
+  1.6.x through 1.8.x pairings in the
+  [compatibility matrix](reference/compatibility.md)
 
 ## Release theme
 
