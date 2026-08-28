@@ -11,6 +11,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -134,6 +135,10 @@ func execute(
 	resume bool,
 ) (result LoadResult, resultErr error) {
 	result.JobID = jobID
+	submittedFingerprint, err := jobFingerprint(job)
+	if err != nil {
+		return result, fmt.Errorf("fingerprint submitted job: %w", err)
+	}
 	tracer := trace.SpanFromContext(ctx).TracerProvider().Tracer(
 		"github.com/rioriost/agefreighter/internal/app",
 	)
@@ -264,6 +269,7 @@ func execute(
 		if err := store.StartJob(ctx, jobID); err != nil {
 			return result, err
 		}
+
 		if incrementalMode(job.Target.Mode) {
 			graph, labels, err = admitIncrementalCatalog(
 				ctx,
@@ -281,6 +287,11 @@ func execute(
 		if err != nil {
 			return result, recordFailure(err)
 		}
+	}
+	if err := putJobVerification(
+		ctx, store, job, jobID, submittedFingerprint, labels, resume,
+	); err != nil {
+		return result, recordFailure(err)
 	}
 
 	var quarantine *reject.JSONLWriter
@@ -396,6 +407,254 @@ func execute(
 	}
 	setTrialSummary(&result, trialIterator)
 	return result, nil
+}
+
+const (
+	legacyResolvedMappingSummaryVersion = 1
+	resolvedMappingSummaryVersion       = 2
+)
+
+type identityCoverage string
+
+const (
+	identityCoverageUnknown  identityCoverage = ""
+	identityCoverageFull     identityCoverage = "full"
+	identityCoverageOptional identityCoverage = "optional"
+)
+
+type resolvedMappingSnapshot struct {
+	SchemaVersion int                     `json:"schemaVersion"`
+	SourceType    string                  `json:"sourceType"`
+	Labels        []resolvedLabelSnapshot `json:"labels"`
+}
+
+type resolvedLabelSnapshot struct {
+	ID                int64            `json:"labelGenerationId"`
+	GraphGenerationID int64            `json:"graphGenerationId"`
+	Name              string           `json:"name"`
+	Kind              string           `json:"kind"`
+	GraphNamespaceOID uint32           `json:"graphNamespaceOid"`
+	LabelID           uint16           `json:"labelId"`
+	RelationOID       uint32           `json:"relationOid"`
+	SequenceOID       uint32           `json:"sequenceOid"`
+	MappingGeneration uint64           `json:"mappingGeneration"`
+	IdentityCoverage  identityCoverage `json:"identityCoverage,omitempty"`
+}
+
+func putJobVerification(
+	ctx context.Context,
+	store *meta.Store,
+	job config.LoadJob,
+	jobID string,
+	submittedFingerprint string,
+	labels []age.LoadLabel,
+	allowLegacy bool,
+) error {
+	summary, err := resolvedMappingSummary(job, labels)
+	if err != nil {
+		return err
+	}
+	digest := sha256.Sum256(summary)
+	value := meta.JobVerification{
+		JobID:                      jobID,
+		SubmittedConfigFingerprint: submittedFingerprint,
+		ResolvedMappingFingerprint: hex.EncodeToString(digest[:]),
+		ResolvedMappingSummary:     summary,
+	}
+	err = store.PutJobVerification(ctx, value)
+	if err == nil || !allowLegacy || !errors.Is(err, meta.ErrConflict) {
+		return err
+	}
+	stored, readErr := store.GetJobVerification(ctx, jobID)
+	if readErr != nil {
+		return errors.Join(err, readErr)
+	}
+	if legacyErr := validateLegacyJobVerification(
+		stored, job, submittedFingerprint, labels,
+	); legacyErr != nil {
+		return errors.Join(err, legacyErr)
+	}
+	return nil
+}
+
+func validateLegacyJobVerification(
+	stored meta.JobVerification,
+	job config.LoadJob,
+	submittedFingerprint string,
+	loadLabels []age.LoadLabel,
+) error {
+	if stored.SubmittedConfigFingerprint != submittedFingerprint {
+		return errors.New("legacy submitted configuration fingerprint changed")
+	}
+	snapshot, labels, _, err := parseResolvedMappingSummary(
+		stored.ResolvedMappingSummary,
+	)
+	if err != nil {
+		return fmt.Errorf("validate legacy resolved mapping: %w", err)
+	}
+	if snapshot.SchemaVersion != legacyResolvedMappingSummaryVersion ||
+		snapshot.SourceType != string(job.Source.Type) {
+		return errors.New("stored resolved mapping is not a compatible legacy snapshot")
+	}
+	canonical, err := json.Marshal(snapshot)
+	if err != nil {
+		return fmt.Errorf("canonicalize legacy resolved mapping: %w", err)
+	}
+	digest := sha256.Sum256(canonical)
+	if hex.EncodeToString(digest[:]) != stored.ResolvedMappingFingerprint {
+		return errors.New("legacy resolved mapping fingerprint changed")
+	}
+	if len(labels) != len(loadLabels) {
+		return errors.New("legacy resolved label set changed")
+	}
+	byID := make(map[int64]meta.LabelGeneration, len(labels))
+	for _, label := range labels {
+		byID[label.ID] = label
+	}
+	for _, loadLabel := range loadLabels {
+		storedLabel, ok := byID[loadLabel.Generation.ID]
+		if !ok || !sameResolvedLabel(storedLabel, loadLabel.Generation) {
+			return errors.New("legacy resolved label set changed")
+		}
+	}
+	return nil
+}
+
+func resolvedMappingSummary(
+	job config.LoadJob,
+	loadLabels []age.LoadLabel,
+) (json.RawMessage, error) {
+	kinds, err := configuredLabels(job)
+	if err != nil {
+		return nil, fmt.Errorf("summarize resolved mappings: %w", err)
+	}
+	coverage, err := resolvedIdentityCoverage(job)
+	if err != nil {
+		return nil, fmt.Errorf("summarize resolved identity coverage: %w", err)
+	}
+	labels := make([]resolvedLabelSnapshot, 0, len(loadLabels))
+	seen := make(map[string]age.LabelKind, len(loadLabels))
+	for _, loadLabel := range loadLabels {
+		generation := loadLabel.Generation
+		if err := validateResolvedLabelSnapshot(generation); err != nil {
+			return nil, fmt.Errorf("summarize resolved mapping %q: %w", generation.LabelName, err)
+		}
+		if _, exists := seen[generation.LabelName]; exists {
+			return nil, fmt.Errorf("duplicate resolved label %q", generation.LabelName)
+		}
+		generationKind := age.VertexLabel
+		if generation.Kind == meta.EdgeLabel {
+			generationKind = age.EdgeLabel
+		}
+		seen[generation.LabelName] = generationKind
+		labels = append(labels, resolvedLabelSnapshot{
+			ID:                generation.ID,
+			GraphGenerationID: generation.GraphGenerationID,
+			Name:              generation.LabelName,
+			Kind:              string(byte(generation.Kind)),
+			GraphNamespaceOID: generation.GraphNamespaceOID,
+			LabelID:           generation.LabelID,
+			RelationOID:       generation.RelationOID,
+			SequenceOID:       generation.SequenceOID,
+			MappingGeneration: generation.MappingGeneration,
+			IdentityCoverage:  coverage[generation.LabelName],
+		})
+	}
+
+	if len(seen) != len(kinds) {
+		return nil, errors.New("resolved label set does not match configured mappings")
+	}
+	for name, kind := range kinds {
+		if seen[name] != kind {
+			return nil, fmt.Errorf("resolved label %q kind does not match configured mapping", name)
+		}
+	}
+	slices.SortFunc(labels, func(left, right resolvedLabelSnapshot) int {
+		if left.Name != right.Name {
+			return strings.Compare(left.Name, right.Name)
+		}
+		if left.Kind != right.Kind {
+			return strings.Compare(left.Kind, right.Kind)
+		}
+		if left.ID < right.ID {
+			return -1
+		}
+		if left.ID > right.ID {
+			return 1
+		}
+		return 0
+	})
+	return json.Marshal(resolvedMappingSnapshot{
+		SchemaVersion: resolvedMappingSummaryVersion,
+		SourceType:    string(job.Source.Type),
+		Labels:        labels,
+	})
+}
+
+func resolvedIdentityCoverage(
+	job config.LoadJob,
+) (map[string]identityCoverage, error) {
+	kinds, err := configuredLabels(job)
+	if err != nil {
+		return nil, err
+	}
+	coverage := make(map[string]identityCoverage, len(kinds))
+	for name, kind := range kinds {
+		if kind == age.VertexLabel {
+			coverage[name] = identityCoverageFull
+		}
+	}
+	recordEdge := func(name string, hasExternalIdentity bool) {
+		value := identityCoverageOptional
+		if hasExternalIdentity {
+			value = identityCoverageFull
+		}
+		if coverage[name] == identityCoverageOptional ||
+			value == identityCoverageOptional {
+			coverage[name] = identityCoverageOptional
+			return
+		}
+		coverage[name] = identityCoverageFull
+	}
+	switch job.Source.Type {
+	case config.SourceCSV:
+		for _, edge := range job.Source.CSV.Edges {
+			recordEdge(edge.Label, edge.ExternalIDColumn != "")
+		}
+	case config.SourcePostgreSQL:
+		for _, edge := range job.Source.PostgreSQL.Edges {
+			recordEdge(edge.Label, edge.ExternalIDField != "")
+		}
+	case config.SourceNeo4j:
+		for _, edge := range job.Source.Neo4j.Edges {
+			recordEdge(edge.Label, edge.ExternalIDField != "")
+		}
+	case config.SourceCosmos:
+		for _, edge := range job.Source.Cosmos.Edges {
+			recordEdge(edge.Label, edge.ExternalIDField != "")
+		}
+	default:
+		return nil, fmt.Errorf("source type %q is not implemented", job.Source.Type)
+	}
+	for name := range kinds {
+		if coverage[name] == identityCoverageUnknown {
+			return nil, fmt.Errorf("label %q identity coverage is unresolved", name)
+		}
+	}
+	return coverage, nil
+}
+
+func validateResolvedLabelSnapshot(label meta.LabelGeneration) error {
+	if label.ID <= 0 || label.GraphGenerationID <= 0 ||
+		label.LabelName == "" || label.GraphNamespaceOID == 0 ||
+		label.LabelID == 0 || label.RelationOID == 0 ||
+		label.SequenceOID == 0 || label.MappingGeneration == 0 {
+		return errors.New("resolved label catalog identity is incomplete")
+	}
+	if label.Kind != meta.VertexLabel && label.Kind != meta.EdgeLabel {
+		return errors.New("resolved label kind is invalid")
+	}
+	return nil
 }
 
 func trialLabels(labels []string) []model.Label {

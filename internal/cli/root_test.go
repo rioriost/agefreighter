@@ -112,6 +112,24 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 	}
 }
 
+func TestVerifyDeepFlagValidation(t *testing.T) {
+	const jobID = "11111111-2222-4333-8444-555555555555"
+	tests := [][]string{
+		{"verify", "--target", "job.yaml", "--level", "arbitrary", jobID},
+		{
+			"verify", "--target", "job.yaml", "--integrity",
+			"--limit", "1001", jobID,
+		},
+		{"verify", "--target", "job.yaml", "--format", "markdown", jobID},
+	}
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) succeeded", args)
+		}
+	}
+}
+
 func TestDoctorCommandValidatesFlagsBeforeConnecting(t *testing.T) {
 	tests := [][]string{
 		{"doctor", "--target", "missing.yaml", "--format", "yaml"},
@@ -264,6 +282,23 @@ func TestLifecycleCommandsIntegration(t *testing.T) {
 		if stored.ID != loaded.JobID || stored.Status != meta.JobCommitted {
 			t.Fatalf("%s output = %#v", name, stored)
 		}
+	}
+
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"verify", "--target", jobPath, "--counts", "--integrity",
+		"--limit", "10", loaded.JobID,
+	}); err != nil {
+		t.Fatalf("deep verify error = %v", err)
+	}
+	var verificationReport report.Document
+	if err := json.Unmarshal(output.Bytes(), &verificationReport); err != nil {
+		t.Fatalf("decode deep verify output: %v", err)
+	}
+	if verificationReport.Command != "verify" ||
+		verificationReport.Outcome != report.OutcomePass {
+		t.Fatalf("deep verify output = %#v", verificationReport)
 	}
 
 	output.Reset()

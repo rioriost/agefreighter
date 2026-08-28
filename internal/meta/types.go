@@ -80,6 +80,26 @@ const (
 	EdgeLabel   LabelKind = 'e'
 )
 
+func (kind *LabelKind) Scan(source any) error {
+	if kind == nil {
+		return errors.New("label kind scan target is nil")
+	}
+	var value string
+	switch source := source.(type) {
+	case string:
+		value = source
+	case []byte:
+		value = string(source)
+	default:
+		return fmt.Errorf("cannot scan label kind from %T", source)
+	}
+	if len(value) != 1 || (value[0] != byte(VertexLabel) && value[0] != byte(EdgeLabel)) {
+		return fmt.Errorf("stored label kind %q is invalid", value)
+	}
+	*kind = LabelKind(value[0])
+	return nil
+}
+
 type LabelGeneration struct {
 	ID                int64
 	GraphGenerationID int64
@@ -122,6 +142,49 @@ type BatchAttempt struct {
 	ErrorMessage string
 	StartedAt    time.Time
 	FinishedAt   *time.Time
+}
+
+type JobVerification struct {
+	JobID                      string
+	SubmittedConfigFingerprint string
+	ResolvedMappingFingerprint string
+	ResolvedMappingSummary     json.RawMessage
+}
+
+type CounterCompleteness string
+
+const (
+	CounterComplete   CounterCompleteness = "complete"
+	CounterIncomplete CounterCompleteness = "incomplete"
+)
+
+type CounterProvenance string
+
+const (
+	CounterProvenanceLifecycle           CounterProvenance = "v17-lifecycle"
+	CounterProvenanceLegacyResume        CounterProvenance = "legacy-resume"
+	CounterProvenanceBaselineUnavailable CounterProvenance = "baseline-unavailable"
+)
+
+type LabelCounter struct {
+	JobID             string
+	LabelGenerationID int64
+	Kind              LabelKind
+	Completeness      CounterCompleteness
+	Provenance        CounterProvenance
+	AcceptedRows      *int64
+	CommittedRows     *int64
+	CommittedBytes    *int64
+	RejectedRows      *int64
+}
+
+type BatchLabelCounter struct {
+	LabelGenerationID int64
+	Kind              LabelKind
+	AcceptedRows      int64
+	CommittedRows     int64
+	CommittedBytes    *int64
+	RejectedRows      int64
 }
 
 type RejectRecord struct {

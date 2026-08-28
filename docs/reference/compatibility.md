@@ -19,11 +19,18 @@ adapter, metadata, CSV load, incremental load, and replace/recovery contracts
 against every entry listed in its matrix. The matrix contains one target pair
 for 2.0.0: PostgreSQL 17 with AGE 1.6.0.
 
-The 2.1 metadata schema is v16. Read-only lifecycle and report commands accept
-compatible v14 and v15 metadata without migration; `load` and `resume` upgrade
-it through v16. Version 15 stores one bounded, non-secret connector telemetry
-summary per completed job. Version 16 adds bounded diagnostic history, written
-only by explicit `doctor --persist`. `doctor history` marks v14/v15 history
+The 2.1 metadata schema is v17. Read-only lifecycle and report commands accept
+compatible v14 through v16 metadata without migration; `load` and `resume`
+upgrade it through v17. Version 15 stores one bounded, non-secret connector
+telemetry summary per completed job. Version 16 adds bounded diagnostic history,
+written only by explicit `doctor --persist`. Version 17 adds migration-snapshot
+fingerprints and aggregate per-batch/per-label verification counters.
+Resolved-mapping snapshot version 2 adds per-label external-identity coverage;
+version 1 snapshots remain readable, with edge reverse-coverage checks reported
+as unavailable rather than inferred.
+Per-label rows record completeness and provenance; migrating a v14-v16 job
+does not synthesize missing historical counters.
+`doctor history` marks v14/v15 history
 unavailable rather than migrating. Newer-than-supported metadata fails closed.
 
 Compatibility does not imply support for arbitrary combinations within other

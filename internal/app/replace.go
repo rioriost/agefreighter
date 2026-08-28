@@ -232,6 +232,10 @@ func verifyGenerationTransaction(
 	if err != nil {
 		return err
 	}
+	coverage, err := resolvedIdentityCoverage(job)
+	if err != nil {
+		return err
+	}
 	for name, kind := range kinds {
 		catalog, err := transaction.LookupLabel(ctx, graph.GraphName, name)
 		if err != nil {
@@ -255,7 +259,13 @@ func verifyGenerationTransaction(
 		if err != nil {
 			return err
 		}
-		if err := transaction.VerifyLabelRows(ctx, catalog, expected); err != nil {
+		_, err = transaction.VerifyLabelRowsForIdentityCoverage(
+			ctx,
+			catalog,
+			expected,
+			kind == age.VertexLabel || coverage[name] == identityCoverageFull,
+		)
+		if err != nil {
 			return err
 		}
 	}

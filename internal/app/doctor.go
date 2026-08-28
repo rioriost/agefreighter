@@ -958,6 +958,17 @@ var requiredMetadataIndexes = []metadataIndexDefinition{
 		Include:    []string{"graph_id", "label_generation_id"},
 	},
 	{
+		Name: "vertex_identity_graph_id_uq", Relation: "vertex_identity",
+		Unique:     true,
+		Keys:       []string{"graph_generation_id", "graph_id"},
+		KeyOptions: []int16{0, 0},
+	},
+	{
+		Name: "vertex_identity_label_graph_id_idx", Relation: "vertex_identity",
+		Keys:       []string{"graph_generation_id", "label_generation_id", "graph_id"},
+		KeyOptions: []int16{0, 0, 0},
+	},
+	{
 		Name: "edge_identity_lookup_uq", Relation: "edge_identity",
 		Unique: true,
 		Keys: []string{
@@ -966,9 +977,25 @@ var requiredMetadataIndexes = []metadataIndexDefinition{
 		KeyOptions: []int16{0, 0, 0, 0},
 	},
 	{
+		Name: "edge_identity_graph_id_uq", Relation: "edge_identity",
+		Unique:     true,
+		Keys:       []string{"graph_generation_id", "graph_id"},
+		KeyOptions: []int16{0, 0},
+	},
+	{
+		Name: "edge_identity_label_graph_id_idx", Relation: "edge_identity",
+		Keys:       []string{"graph_generation_id", "label_generation_id", "graph_id"},
+		KeyOptions: []int16{0, 0, 0},
+	},
+	{
 		Name: "diagnostic_history_recent_idx", Relation: "diagnostic_history",
 		Keys:       []string{"recorded_at", "diagnostic_id"},
 		KeyOptions: []int16{3, 3},
+	},
+	{
+		Name: "job_label_counter_label_idx", Relation: "job_label_counter",
+		Keys:       []string{"label_generation_id", "job_id"},
+		KeyOptions: []int16{0, 0},
 	},
 	{
 		Name: "reject_record_attempt_idx", Relation: "reject_record",
@@ -990,6 +1017,11 @@ func requiredMetadataIndexesForVersion(version int) []metadataIndexDefinition {
 	definitions := make([]metadataIndexDefinition, 0, len(requiredMetadataIndexes))
 	for _, definition := range requiredMetadataIndexes {
 		if version < 16 && definition.Name == "diagnostic_history_recent_idx" {
+			continue
+		}
+		if version < 17 && (definition.Name == "job_label_counter_label_idx" ||
+			strings.HasSuffix(definition.Name, "_graph_id_uq") ||
+			strings.HasSuffix(definition.Name, "_label_graph_id_idx")) {
 			continue
 		}
 		definitions = append(definitions, definition)

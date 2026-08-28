@@ -14,6 +14,34 @@ import (
 
 const testJobID = "11111111-2222-4333-8444-555555555555"
 
+func TestLabelKindScan(t *testing.T) {
+	for _, test := range []struct {
+		input any
+		want  LabelKind
+	}{
+		{"v", VertexLabel},
+		{[]byte("e"), EdgeLabel},
+	} {
+		var kind LabelKind
+		if err := kind.Scan(test.input); err != nil {
+			t.Fatalf("Scan(%v) error = %v", test.input, err)
+		}
+		if kind != test.want {
+			t.Fatalf("Scan(%v) = %q, want %q", test.input, kind, test.want)
+		}
+	}
+	for _, input := range []any{nil, "", "x", "vv", 1} {
+		var kind LabelKind
+		if err := kind.Scan(input); err == nil {
+			t.Errorf("Scan(%v) succeeded", input)
+		}
+	}
+	var nilKind *LabelKind
+	if err := nilKind.Scan("v"); err == nil {
+		t.Fatal("nil LabelKind.Scan() succeeded")
+	}
+}
+
 func TestBindActiveGraphGenerationValidation(t *testing.T) {
 	store := &Store{}
 	if _, err := store.BindActiveGraphGeneration(

@@ -86,12 +86,60 @@ a new regular file with mode `0600` and refuses existing paths and symlinks.
 The JSON contract is
 [`migration-report.schema.json`](migration-report.schema.json).
 
-Metadata schemas v14 (2.0) and v15 remain readable by `report`, `status`,
+## Deep verification
+
+The default `verify` remains the read-only catalog-level check and keeps its
+2.0 JSON job output. Opt in to 2.1 persisted-versus-live counts and bounded
+identity/endpoint consistency checks:
+
+```sh
+agefreighter verify --target job.yaml --counts JOB_ID
+agefreighter verify --target job.yaml --integrity --limit 100 JOB_ID
+agefreighter verify --target job.yaml --counts --integrity \
+  --format markdown --output verification.md JOB_ID
+```
+
+`--level counts` is equivalent to `--counts`. Integrity selection is ordered
+by graph ID and capped at 1,000 rows per identity and physical-label window;
+the default is 100. A clean truncated sample is `incomplete`, never a pass.
+Counts compare persisted committed-row counters with exact live physical-label
+totals, using client deadlines and PostgreSQL statement timeouts. The resolved
+mapping snapshot records whether each label guarantees an external identity
+for every accepted row. Full-coverage labels additionally require exact
+physical/identity count equality and check both identity-to-physical and
+physical-to-identity integrity. Edge labels whose mappings intentionally omit
+external IDs still check every persisted identity row, its physical edge, and
+its endpoints, but report reverse physical-to-identity coverage as unavailable
+and the outcome as incomplete. Snapshot version 1 edge labels receive the same
+conservative treatment because their coverage capability was not recorded.
+Missing legacy counters, permission failures, and timeouts are
+unavailable/unknown rather than zero. Reports contain only aggregate counts and
+statuses—never raw graph IDs, external IDs, properties, or source records.
+`--output` uses the same exclusive mode-`0600` writer as migration reports. The
+JSON contract is
+[`verification-report.schema.json`](verification-report.schema.json).
+
+Deep verification validates the versioned resolved-label snapshot and its
+fingerprint, including identity coverage derived from the actually resolved
+source mappings after Neo4j discovery or Cosmos Gremlin interpretation. It
+checks only those exact label generations and ignores unrelated labels already
+present in an append/upsert target. More than 128 expected labels yields an
+explicit incomplete result without scanning a truncated subset.
+
+Metadata schemas v14 through v16 remain readable by `report`, `status`,
 `verify`, and `cleanup`. Reports mark v15 connector telemetry and unstored
 per-label counters as unavailable where appropriate. These read-only commands
 do not upgrade metadata. The next 2.1 `load` or `resume` applies the
-non-destructive migrations through v16; older writers must be upgraded first.
+non-destructive migrations through v17; older writers must be upgraded first.
 Schemas newer than the binary supports are rejected.
+
+Per-label counters carry explicit completeness and provenance. A v14-v16 job
+resumed after migration keeps incomplete, null aggregate values because its
+historical accepted, rejected, and byte attribution cannot be reconstructed.
+Fresh create/replace jobs begin with a known-zero lifecycle baseline.
+Append/upsert jobs do not scan or count pre-existing identities; when no exact
+baseline exists, their aggregate is explicitly incomplete while per-batch
+counter records remain atomic and idempotent.
 
 ## Target doctor
 
@@ -119,9 +167,9 @@ use the same exclusive mode-`0600` writer as migration reports. The contract is
 
 `--persist` is the only doctor write path. It stores the final bounded JSON
 report and a small set of typed summary fields. It requires load or resume to
-have already upgraded metadata to current v16 and requires a compatible,
+have already upgraded metadata to current v17 and requires a compatible,
 loadable AGE target. Persistence takes the metadata migration lock and
-revalidates exact v16 while holding it; doctor never migrates or repairs
+revalidates exact v17 while holding it; doctor never migrates or repairs
 metadata.
 
 Persisted summaries are read newest first:

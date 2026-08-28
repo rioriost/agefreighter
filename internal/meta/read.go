@@ -272,6 +272,80 @@ func (store *Store) ListLabelGenerations(
 	return values, nil
 }
 
+func (store *Store) ListLabelGenerationsByID(
+	ctx context.Context,
+	graphGenerationID int64,
+	labelGenerationIDs []int64,
+) ([]LabelGeneration, error) {
+	if graphGenerationID <= 0 {
+		return nil, errors.New("graph generation ID must be positive")
+	}
+	ids := slices.Clone(labelGenerationIDs)
+	slices.Sort(ids)
+	if len(ids) == 0 {
+		return []LabelGeneration{}, nil
+	}
+	if len(ids) > MaxReadLimit {
+		return nil, fmt.Errorf("label generation limit must be within 1..%d", MaxReadLimit)
+	}
+	for index, id := range ids {
+		if id <= 0 {
+			return nil, errors.New("label generation IDs must be positive")
+		}
+		if index > 0 && ids[index-1] == id {
+			return nil, errors.New("label generation IDs must be unique")
+		}
+	}
+	rows, err := store.queryBounded(
+		ctx,
+		`SELECT
+			label_generation_id, graph_generation_id, label_name, kind,
+			graph_namespace_oid, label_id, relation_oid, sequence_oid,
+			mapping_generation, created_at, updated_at
+		 FROM agefreighter_meta.label_generation
+		 WHERE graph_generation_id = $1
+		   AND label_generation_id = ANY($2::bigint[])
+		 ORDER BY label_generation_id
+		 LIMIT $3`,
+		len(ids),
+		graphGenerationID,
+		ids,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list expected label generations: %w", err)
+	}
+	defer rows.Close()
+	values := make([]LabelGeneration, 0, len(ids))
+	for rows.Next() {
+		var value LabelGeneration
+		var kind string
+		if err := rows.Scan(
+			&value.ID,
+			&value.GraphGenerationID,
+			&value.LabelName,
+			&kind,
+			&value.GraphNamespaceOID,
+			&value.LabelID,
+			&value.RelationOID,
+			&value.SequenceOID,
+			&value.MappingGeneration,
+			&value.CreatedAt,
+			&value.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("read expected label generation: %w", err)
+		}
+		if len(kind) != 1 {
+			return nil, fmt.Errorf("stored label kind %q is invalid", kind)
+		}
+		value.Kind = LabelKind(kind[0])
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list expected label generations: %w", err)
+	}
+	return values, nil
+}
+
 func (store *Store) ListLabelGenerationPage(
 	ctx context.Context,
 	graphGenerationID int64,

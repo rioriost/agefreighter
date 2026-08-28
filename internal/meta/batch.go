@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -192,6 +193,30 @@ func (store *Store) CommitBatch(
 	last Position,
 	rejectedRows int64,
 ) error {
+	return store.CommitBatchWithLabelCounters(
+		ctx, jobID, batchID, attempt, last, rejectedRows, nil,
+	)
+}
+
+func (store *Store) CommitBatchWithLabelCounters(
+	ctx context.Context,
+	jobID string,
+	batchID uint64,
+	attempt uint32,
+	last Position,
+	rejectedRows int64,
+	counters []BatchLabelCounter,
+) error {
+	counters = slices.Clone(counters)
+	slices.SortFunc(counters, func(left, right BatchLabelCounter) int {
+		if left.LabelGenerationID < right.LabelGenerationID {
+			return -1
+		}
+		if left.LabelGenerationID > right.LabelGenerationID {
+			return 1
+		}
+		return 0
+	})
 	if err := validateBatchKey(jobID, batchID, attempt); err != nil {
 		return err
 	}
@@ -206,6 +231,9 @@ func (store *Store) CommitBatch(
 	}
 	if rejectedRows < 0 {
 		return errors.New("committed rejected rows cannot be negative")
+	}
+	if err := validateBatchLabelCounters(counters, rejectedRows); err != nil {
+		return err
 	}
 
 	tx, err := store.database.Begin(ctx)
@@ -283,6 +311,13 @@ func (store *Store) CommitBatch(
 			(jobStatus != JobRunning && jobStatus != JobCommitted) {
 			return fmt.Errorf("%w: batch attempt cannot be committed", ErrConflict)
 		}
+		if counters != nil {
+			if err := verifyBatchLabelCounters(
+				ctx, tx, jobID, batchID, attempt, counters,
+			); err != nil {
+				return err
+			}
+		}
 		if err := tx.Commit(ctx); err != nil {
 			return fmt.Errorf("commit idempotent batch state: %w", err)
 		}
@@ -317,8 +352,136 @@ func (store *Store) CommitBatch(
 	if err := rowsAffectedOne(tag, "advance load job checkpoint"); err != nil {
 		return err
 	}
+	for _, counter := range counters {
+		tag, err := tx.Exec(ctx, `
+			INSERT INTO agefreighter_meta.load_batch_label_counter (
+				job_id, batch_id, attempt, label_generation_id, kind,
+				accepted_rows, committed_rows_delta, committed_bytes, rejected_rows
+			) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9)`,
+			jobID, batchID, attempt, counter.LabelGenerationID,
+			string(counter.Kind), counter.AcceptedRows, counter.CommittedRows,
+			counter.CommittedBytes, counter.RejectedRows,
+		)
+		if err != nil {
+			return fmt.Errorf("store batch label counter: %w", err)
+		}
+		if err := rowsAffectedOne(tag, "store batch label counter"); err != nil {
+			return err
+		}
+		tag, err = tx.Exec(ctx, `
+			UPDATE agefreighter_meta.job_label_counter
+			SET accepted_rows = CASE
+			      WHEN accepted_rows IS NULL THEN NULL
+			      ELSE accepted_rows + $3
+			    END,
+			    committed_rows = CASE
+			      WHEN committed_rows IS NULL THEN NULL
+			      ELSE committed_rows + $4
+			    END,
+			    committed_bytes = CASE
+			      WHEN committed_bytes IS NULL OR $5::bigint IS NULL THEN NULL
+			      ELSE committed_bytes + $5
+			    END,
+			    rejected_rows = CASE
+			      WHEN rejected_rows IS NULL THEN NULL
+			      ELSE rejected_rows + $6
+			    END,
+			    updated_at = clock_timestamp()
+			WHERE job_id = $1::uuid
+			  AND label_generation_id = $2
+			  AND kind = $7`,
+			jobID, counter.LabelGenerationID, counter.AcceptedRows,
+			counter.CommittedRows, counter.CommittedBytes,
+			counter.RejectedRows, string(counter.Kind),
+		)
+		if err != nil {
+			return fmt.Errorf("advance job label counter: %w", err)
+		}
+		if err := rowsAffectedOne(tag, "advance job label counter"); err != nil {
+			return err
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit batch checkpoint: %w", err)
+	}
+	return nil
+}
+
+func validateBatchLabelCounters(
+	counters []BatchLabelCounter,
+	rejectedRows int64,
+) error {
+	seen := make(map[int64]struct{}, len(counters))
+	var attributedRejected int64
+	for _, counter := range counters {
+		if counter.LabelGenerationID <= 0 {
+			return errors.New("label counter generation ID must be positive")
+		}
+		if counter.Kind != VertexLabel && counter.Kind != EdgeLabel {
+			return fmt.Errorf("unsupported label counter kind %q", counter.Kind)
+		}
+		if counter.AcceptedRows < 0 || counter.CommittedRows < 0 ||
+			counter.RejectedRows < 0 ||
+			(counter.CommittedBytes != nil && *counter.CommittedBytes < 0) {
+			return errors.New("label counter values cannot be negative")
+		}
+		if _, exists := seen[counter.LabelGenerationID]; exists {
+			return errors.New("duplicate batch label counter")
+		}
+		seen[counter.LabelGenerationID] = struct{}{}
+		attributedRejected += counter.RejectedRows
+	}
+	if attributedRejected > rejectedRows {
+		return errors.New("attributed label rejects exceed batch rejects")
+	}
+	return nil
+}
+
+func verifyBatchLabelCounters(
+	ctx context.Context,
+	tx pgx.Tx,
+	jobID string,
+	batchID uint64,
+	attempt uint32,
+	expected []BatchLabelCounter,
+) error {
+	rows, err := tx.Query(ctx, `
+			SELECT label_generation_id, kind, accepted_rows,
+			       committed_rows_delta, committed_bytes, rejected_rows
+			FROM agefreighter_meta.load_batch_label_counter
+			WHERE job_id = $1::uuid AND batch_id = $2 AND attempt = $3
+			ORDER BY label_generation_id`,
+		jobID, batchID, attempt,
+	)
+	if err != nil {
+		return fmt.Errorf("read idempotent batch label counters: %w", err)
+	}
+	defer rows.Close()
+	actual := make([]BatchLabelCounter, 0, len(expected))
+	for rows.Next() {
+		var value BatchLabelCounter
+		if err := rows.Scan(
+			&value.LabelGenerationID, &value.Kind, &value.AcceptedRows,
+			&value.CommittedRows, &value.CommittedBytes, &value.RejectedRows,
+		); err != nil {
+			return fmt.Errorf("scan idempotent batch label counter: %w", err)
+		}
+		actual = append(actual, value)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("read idempotent batch label counters: %w", err)
+	}
+	if !slices.EqualFunc(actual, expected, func(left, right BatchLabelCounter) bool {
+		return left.LabelGenerationID == right.LabelGenerationID &&
+			left.Kind == right.Kind &&
+			left.AcceptedRows == right.AcceptedRows &&
+			left.CommittedRows == right.CommittedRows &&
+			left.RejectedRows == right.RejectedRows &&
+			(left.CommittedBytes == nil && right.CommittedBytes == nil ||
+				left.CommittedBytes != nil && right.CommittedBytes != nil &&
+					*left.CommittedBytes == *right.CommittedBytes)
+	}) {
+		return fmt.Errorf("%w: batch label counters differ", ErrConflict)
 	}
 	return nil
 }

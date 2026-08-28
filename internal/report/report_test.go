@@ -52,6 +52,51 @@ func TestGoldenReportContracts(t *testing.T) {
 	}
 }
 
+func TestGoldenVerificationReportContracts(t *testing.T) {
+	document := validDocument()
+	document.Command = "verify"
+	document.Target = nil
+	document.Sections = []Section{
+		{
+			Title: "Bounded integrity",
+			Fields: []Field{{
+				Name:   "e.KNOWS",
+				Value:  "limit=100,identityCoverage=full,identityRowsChecked=1,physicalRowsChecked=1,reversePhysicalCoverage=checked,missingPhysicalRows=0,orphanPhysicalRows=0,missingEndpointRows=0,changedEndpointRows=0,identityTruncated=false,physicalTruncated=false",
+				Status: CheckPass,
+			}},
+		},
+		{
+			Title: "Per-label counts",
+			Fields: []Field{{
+				Name:   "v.Person",
+				Value:  "counterCompleteness=complete,counterProvenance=v17-lifecycle,identityCoverage=full,acceptedRows=2,committedRows=2,livePhysicalRows=2,liveIdentityRows=2,storedPhysicalComparison=verified,physicalIdentityEquality=verified,committedBytes=unavailable,rejectedRows=0",
+				Status: CheckPass,
+			}},
+		},
+	}
+	for _, format := range []Format{FormatJSON, FormatMarkdown} {
+		t.Run(string(format), func(t *testing.T) {
+			got, err := Render(document, format)
+			if err != nil {
+				t.Fatalf("Render() error = %v", err)
+			}
+			path := filepath.Join("testdata", "verification-report.golden."+string(format))
+			if os.Getenv("UPDATE_REPORT_GOLDEN") == "1" {
+				if err := os.WriteFile(path, got, 0o600); err != nil {
+					t.Fatalf("WriteFile() error = %v", err)
+				}
+			}
+			want, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("ReadFile(%s) error = %v", path, err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Fatalf("%s golden mismatch:\n%s", format, got)
+			}
+		})
+	}
+}
+
 func TestMigrationReportJSONSchemaContract(t *testing.T) {
 	data, err := os.ReadFile("../../docs/reference/migration-report.schema.json")
 	if err != nil {
@@ -71,6 +116,29 @@ func TestMigrationReportJSONSchemaContract(t *testing.T) {
 	}
 	command, ok := properties["command"].(map[string]any)
 	if !ok || command["const"] != "report" {
+		t.Fatalf("schema command contract = %#v", command)
+	}
+}
+
+func TestVerificationReportJSONSchemaContract(t *testing.T) {
+	data, err := os.ReadFile("../../docs/reference/verification-report.schema.json")
+	if err != nil {
+		t.Fatalf("ReadFile(schema) error = %v", err)
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(data, &schema); err != nil {
+		t.Fatalf("schema JSON error = %v", err)
+	}
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		t.Fatal("schema properties are missing")
+	}
+	version, ok := properties["schemaVersion"].(map[string]any)
+	if !ok || version["const"] != float64(SchemaVersion) {
+		t.Fatalf("schema version contract = %#v", version)
+	}
+	command, ok := properties["command"].(map[string]any)
+	if !ok || command["const"] != "verify" {
 		t.Fatalf("schema command contract = %#v", command)
 	}
 }
@@ -248,6 +316,33 @@ func TestReportValidationRejectsInvalidAndOversizedData(t *testing.T) {
 	}
 	if _, err := Render(validDocument(), Format("yaml")); err == nil {
 		t.Fatal("Render() accepted unsupported format")
+	}
+}
+
+func TestRenderVerificationReportUsesSharedContract(t *testing.T) {
+	document := validDocument()
+	document.Command = "verify"
+	document.Target = nil
+	document.Sections = []Section{{
+		Title: "Per-label counts",
+		Fields: []Field{{
+			Name:   "v.Person",
+			Value:  "identityCoverage=full,acceptedRows=2,committedRows=2,livePhysicalRows=2,liveIdentityRows=2,physicalIdentityEquality=verified",
+			Status: CheckPass,
+		}},
+	}}
+	for _, format := range []Format{FormatJSON, FormatMarkdown} {
+		first, err := Render(document, format)
+		if err != nil {
+			t.Fatalf("Render(%s) error = %v", format, err)
+		}
+		second, err := Render(document, format)
+		if err != nil || string(first) != string(second) {
+			t.Fatalf("Render(%s) is not deterministic: %v", format, err)
+		}
+		if strings.Contains(string(first), "external-id") {
+			t.Fatalf("Render(%s) disclosed raw identity data", format)
+		}
 	}
 }
 

@@ -2,6 +2,7 @@ package meta
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -11,13 +12,33 @@ import (
 )
 
 func TestDiagnosticMigrationIsCurrentVersion(t *testing.T) {
-	if schemaVersion != 16 || len(migrations) != schemaVersion {
+	if schemaVersion != 17 || len(migrations) != schemaVersion {
 		t.Fatalf("schema version=%d migrations=%d", schemaVersion, len(migrations))
 	}
 	if len(migrationV16) != 2 ||
 		!strings.Contains(migrationV16[0], "diagnostic_history") ||
 		!strings.Contains(migrationV16[1], "diagnostic_history_recent_idx") {
 		t.Fatalf("migrationV16 = %#v", migrationV16)
+	}
+	if len(migrationV17) == 0 ||
+		!slices.ContainsFunc(migrationV17, func(statement string) bool {
+			return strings.Contains(statement, "job_verification")
+		}) {
+		t.Fatalf("migrationV17 = %#v", migrationV17)
+	}
+	if !slices.ContainsFunc(migrationV17, func(statement string) bool {
+		return strings.Contains(statement, "job_label_counter") &&
+			strings.Contains(statement, "counter_completeness") &&
+			strings.Contains(statement, "counter_provenance")
+	}) {
+		t.Fatalf("migrationV17 counter provenance = %#v", migrationV17)
+	}
+	for _, statement := range migrationV17 {
+		normalized := strings.ToUpper(strings.TrimSpace(statement))
+		if strings.HasPrefix(normalized, "UPDATE ") ||
+			strings.HasPrefix(normalized, "DELETE ") {
+			t.Fatalf("migrationV17 destructively rewrites existing rows: %q", statement)
+		}
 	}
 }
 

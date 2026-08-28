@@ -127,8 +127,8 @@ func TestValidateMetadataIndexesRejectsMalformedDefinitions(t *testing.T) {
 
 func TestRequiredMetadataIndexesMatchInstalledVersion(t *testing.T) {
 	v15 := requiredMetadataIndexesForVersion(15)
-	if len(v15) != len(requiredMetadataIndexes)-1 {
-		t.Fatalf("v15 required indexes = %d, want %d", len(v15), len(requiredMetadataIndexes)-1)
+	if len(v15) != len(requiredMetadataIndexes)-6 {
+		t.Fatalf("v15 required indexes = %d, want %d", len(v15), len(requiredMetadataIndexes)-6)
 	}
 	for _, definition := range v15 {
 		if definition.Name == "diagnostic_history_recent_idx" {
@@ -136,8 +136,8 @@ func TestRequiredMetadataIndexesMatchInstalledVersion(t *testing.T) {
 		}
 	}
 	v16 := requiredMetadataIndexesForVersion(16)
-	if len(v16) != len(requiredMetadataIndexes) {
-		t.Fatalf("v16 required indexes = %d, want %d", len(v16), len(requiredMetadataIndexes))
+	if len(v16) != len(requiredMetadataIndexes)-5 {
+		t.Fatalf("v16 required indexes = %d, want %d", len(v16), len(requiredMetadataIndexes)-5)
 	}
 }
 

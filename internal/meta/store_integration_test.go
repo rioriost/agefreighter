@@ -53,6 +53,19 @@ func TestStoreIntegration(t *testing.T) {
 	).Scan(&diagnosticTableExists); err != nil || !diagnosticTableExists {
 		t.Fatalf("v16 diagnostic migration = %v, %v", diagnosticTableExists, err)
 	}
+	var verificationTables int
+	if err := pool.QueryRow(ctx, `
+		SELECT COUNT(*)::integer
+		FROM pg_catalog.pg_class relation
+		JOIN pg_catalog.pg_namespace namespace
+		  ON namespace.oid = relation.relnamespace
+		WHERE namespace.nspname = 'agefreighter_meta'
+		  AND relation.relname = ANY(ARRAY[
+			'job_verification', 'job_label_counter',
+			'load_batch_label_counter', 'job_unclassified_counter'
+		  ])`).Scan(&verificationTables); err != nil || verificationTables != 4 {
+		t.Fatalf("v17 verification migrations = %d, %v", verificationTables, err)
+	}
 	const diagnosticGraph = "meta_store_integration"
 	if _, err := pool.Exec(ctx, `
 		DELETE FROM agefreighter_meta.diagnostic_history

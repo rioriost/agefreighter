@@ -430,6 +430,7 @@ func TestLoadTransactionRejectsInvalidRecordsBeforeIO(t *testing.T) {
 	vertexBinding := LoadLabel{
 		Catalog: LabelCatalog{LabelName: "Person", Kind: VertexLabel},
 	}
+
 	edgeBinding := LoadLabel{
 		Catalog: LabelCatalog{LabelName: "KNOWS", Kind: EdgeLabel},
 	}
@@ -580,6 +581,32 @@ func TestLoadTransactionRejectsInvalidRecordsBeforeIO(t *testing.T) {
 		[]model.Record{validUnitVertex("p1")},
 	); err == nil || !strings.Contains(err.Error(), "expected 2") {
 		t.Fatalf("mismatched Write() error = %v", err)
+	}
+}
+
+func TestLoadTransactionAggregatesLabelCountersDeterministically(t *testing.T) {
+	transaction := &loadTransaction{}
+	vertex := LoadLabel{Generation: meta.LabelGeneration{
+		ID: 2, Kind: meta.VertexLabel,
+	}}
+	edge := LoadLabel{Generation: meta.LabelGeneration{
+		ID: 1, Kind: meta.EdgeLabel,
+	}}
+	transaction.addAccepted(vertex, 3)
+	transaction.addCommitted(vertex, 2)
+	transaction.addRejected(vertex, 1)
+	transaction.addAccepted(edge, 4)
+	transaction.addCommitted(edge, 4)
+	got := transaction.counters()
+	if len(got) != 2 ||
+		got[0].LabelGenerationID != 1 ||
+		got[0].AcceptedRows != 4 ||
+		got[0].CommittedRows != 4 ||
+		got[1].LabelGenerationID != 2 ||
+		got[1].AcceptedRows != 3 ||
+		got[1].CommittedRows != 2 ||
+		got[1].RejectedRows != 1 {
+		t.Fatalf("counters() = %#v", got)
 	}
 }
 

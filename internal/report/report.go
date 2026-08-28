@@ -166,7 +166,7 @@ func validate(document Document) error {
 		return fmt.Errorf("unsupported report schema version %d", document.SchemaVersion)
 	}
 	switch document.Command {
-	case "report", "doctor", "profile", "optimize", "check-cypher":
+	case "report", "doctor", "verify", "profile", "optimize", "check-cypher":
 	default:
 		return fmt.Errorf("unsupported report command %q", document.Command)
 	}
@@ -198,6 +198,10 @@ func validate(document Document) error {
 		}
 		if document.Target == nil {
 			return errors.New("migration report requires a target")
+		}
+	case "verify":
+		if document.Job == nil {
+			return errors.New("verification report requires a job")
 		}
 	case "doctor", "optimize":
 		if document.Target == nil {

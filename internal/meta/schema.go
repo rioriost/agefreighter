@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 16
+const schemaVersion = 17
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -659,6 +659,109 @@ var migrationV16 = []string{
 		)`,
 }
 
+var migrationV17 = []string{
+	`CREATE UNIQUE INDEX vertex_identity_graph_id_uq
+		ON agefreighter_meta.vertex_identity (
+			graph_generation_id, graph_id
+		)`,
+	`CREATE INDEX vertex_identity_label_graph_id_idx
+		ON agefreighter_meta.vertex_identity (
+			graph_generation_id, label_generation_id, graph_id
+		)`,
+	`CREATE UNIQUE INDEX edge_identity_graph_id_uq
+		ON agefreighter_meta.edge_identity (
+			graph_generation_id, graph_id
+		)`,
+	`CREATE INDEX edge_identity_label_graph_id_idx
+		ON agefreighter_meta.edge_identity (
+			graph_generation_id, label_generation_id, graph_id
+		)`,
+	`CREATE TABLE agefreighter_meta.job_verification (
+		job_id uuid PRIMARY KEY
+			REFERENCES agefreighter_meta.load_job(job_id)
+			ON DELETE CASCADE,
+		submitted_config_fingerprint character(64) NOT NULL CHECK (
+			submitted_config_fingerprint ~ '^[0-9a-f]{64}$'
+		),
+		resolved_mapping_fingerprint character(64) NOT NULL CHECK (
+			resolved_mapping_fingerprint ~ '^[0-9a-f]{64}$'
+		),
+		resolved_mapping_summary jsonb NOT NULL CHECK (
+			jsonb_typeof(resolved_mapping_summary) = 'object'
+			AND octet_length(resolved_mapping_summary::text) <= 1048576
+		)
+	)`,
+	`CREATE TABLE agefreighter_meta.job_label_counter (
+		job_id uuid NOT NULL
+			REFERENCES agefreighter_meta.load_job(job_id)
+			ON DELETE CASCADE,
+		label_generation_id bigint NOT NULL
+			REFERENCES agefreighter_meta.label_generation(label_generation_id)
+			ON DELETE CASCADE,
+		kind character(1) NOT NULL CHECK (kind IN ('v', 'e')),
+		counter_completeness text NOT NULL CHECK (
+			counter_completeness IN ('complete', 'incomplete')
+		),
+		counter_provenance text NOT NULL CHECK (
+			counter_provenance IN (
+				'v17-lifecycle', 'legacy-resume', 'baseline-unavailable'
+			)
+		),
+		accepted_rows bigint CHECK (accepted_rows >= 0),
+		committed_rows bigint CHECK (committed_rows >= 0),
+		committed_bytes bigint CHECK (committed_bytes >= 0),
+		rejected_rows bigint CHECK (rejected_rows >= 0),
+		updated_at timestamp with time zone NOT NULL DEFAULT clock_timestamp(),
+		PRIMARY KEY (job_id, label_generation_id),
+		CHECK (
+			(
+				counter_completeness = 'complete'
+				AND accepted_rows IS NOT NULL
+				AND committed_rows IS NOT NULL
+				AND rejected_rows IS NOT NULL
+			)
+			OR
+			(
+				counter_completeness = 'incomplete'
+				AND accepted_rows IS NULL
+				AND committed_rows IS NULL
+				AND committed_bytes IS NULL
+				AND rejected_rows IS NULL
+			)
+		)
+	)`,
+	`CREATE INDEX job_label_counter_label_idx
+		ON agefreighter_meta.job_label_counter (
+			label_generation_id, job_id
+		)`,
+	`CREATE TABLE agefreighter_meta.load_batch_label_counter (
+		job_id uuid NOT NULL,
+		batch_id bigint NOT NULL,
+		attempt integer NOT NULL,
+		label_generation_id bigint NOT NULL
+			REFERENCES agefreighter_meta.label_generation(label_generation_id)
+			ON DELETE CASCADE,
+		kind character(1) NOT NULL CHECK (kind IN ('v', 'e')),
+		accepted_rows bigint NOT NULL CHECK (accepted_rows >= 0),
+		committed_rows_delta bigint NOT NULL CHECK (committed_rows_delta >= 0),
+		committed_bytes bigint CHECK (committed_bytes >= 0),
+		rejected_rows bigint NOT NULL CHECK (rejected_rows >= 0),
+		PRIMARY KEY (
+			job_id, batch_id, attempt, label_generation_id
+		),
+		FOREIGN KEY (job_id, batch_id, attempt)
+			REFERENCES agefreighter_meta.load_batch(job_id, batch_id, attempt)
+			ON DELETE CASCADE
+	)`,
+	`CREATE TABLE agefreighter_meta.job_unclassified_counter (
+		job_id uuid PRIMARY KEY
+			REFERENCES agefreighter_meta.load_job(job_id)
+			ON DELETE CASCADE,
+		rejected_rows bigint NOT NULL DEFAULT 0 CHECK (rejected_rows >= 0),
+		updated_at timestamp with time zone NOT NULL DEFAULT clock_timestamp()
+	)`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -676,4 +779,5 @@ var migrations = [][]string{
 	migrationV14,
 	migrationV15,
 	migrationV16,
+	migrationV17,
 }

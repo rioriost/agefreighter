@@ -710,6 +710,7 @@ func (transaction *loadTransaction) applyIncrementalVertices(
 	); err != nil {
 		return fmt.Errorf("insert incremental vertex identities: %w", err)
 	}
+	transaction.addCommitted(binding, expectedNew)
 	return nil
 }
 
@@ -1124,6 +1125,7 @@ func (transaction *loadTransaction) applyIncrementalEdges(
 			return fmt.Errorf("update incremental edge identities: %w", err)
 		}
 	}
+	transaction.addCommitted(binding, expectedNew)
 	return nil
 }
 
