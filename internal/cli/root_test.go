@@ -103,6 +103,7 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		{"doctor", "history", "--target", "missing.yaml"},
 		{"verify", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"profile", "missing.yaml"},
+		{"optimize", "--target", "missing.yaml"},
 		{"cleanup", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 	}
 	for _, args := range tests {
@@ -197,10 +198,26 @@ func TestDoctorCommandValidatesFlagsBeforeConnecting(t *testing.T) {
 			"--format", "yaml",
 		},
 	}
+
 	for _, args := range tests {
 		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
 		if err := Execute(command, args); err == nil {
 			t.Fatalf("Execute(%v) error = nil", args)
+		}
+	}
+}
+
+func TestOptimizeCommandValidatesFlagsBeforeConnecting(t *testing.T) {
+	tests := [][]string{
+		{"optimize", "--target", "missing.yaml", "--format", "yaml"},
+		{"optimize", "--target", "missing.yaml", "--output", ""},
+		{"optimize", "--target", "missing.yaml", "--apply-analyze"},
+		{"optimize", "--target", "missing.yaml", "--queries", "workload.cypher"},
+	}
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) succeeded", args)
 		}
 	}
 }
@@ -375,6 +392,25 @@ func TestLifecycleCommandsIntegration(t *testing.T) {
 		migrationReport.Job.ID != loaded.JobID ||
 		len(migrationReport.Sections) == 0 {
 		t.Fatalf("report output = %#v", migrationReport)
+	}
+
+	for _, arguments := range [][]string{
+		{"optimize", "--target", jobPath},
+		{"optimize", "--target", jobPath, "--apply-analyze"},
+	} {
+		output.Reset()
+		command = NewAgefreighter(&output, &bytes.Buffer{})
+		if err := Execute(command, arguments); err != nil {
+			t.Fatalf("%v error = %v", arguments, err)
+		}
+		var optimizerReport report.Document
+		if err := json.Unmarshal(output.Bytes(), &optimizerReport); err != nil {
+			t.Fatalf("decode optimizer output: %v", err)
+		}
+		if optimizerReport.Command != "optimize" ||
+			optimizerReport.Target == nil {
+			t.Fatalf("optimizer output = %#v", optimizerReport)
+		}
 	}
 
 	output.Reset()

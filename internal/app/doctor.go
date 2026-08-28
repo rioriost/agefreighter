@@ -1076,9 +1076,13 @@ type metadataIndexInspection struct {
 	Ready bool
 }
 
+type catalogRowsQuerier interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
 func inspectMetadataIndexes(
 	ctx context.Context,
-	pool *pgxpool.Pool,
+	pool catalogRowsQuerier,
 	timeout time.Duration,
 	definitions []metadataIndexDefinition,
 ) ([]metadataIndexInspection, error) {

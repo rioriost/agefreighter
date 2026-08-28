@@ -332,11 +332,11 @@ Implement `agefreighter optimize` as an evidence-producing advisor:
 - verify required AGE and agefreighter identity indexes
 - detect exact duplicate indexes
 - report unused-index statistics with the statistics-reset timestamp
-- sample property presence, type, null rate, and cardinality within configured
-  limits
-- recommend B-tree expression indexes proven by integration tests; recommend a
-  GIN strategy only when the target capability probe finds a supported AGE 1.6
-  operator class
+- mark live property statistics unavailable because AGE 1.6 cannot pre-bound
+  `agtype` serialization before detoast
+- withhold property-index recommendations until bounded property or workload
+  evidence is available; report GIN operator-class capability without treating
+  it as sufficient recommendation evidence
 - emit quoted, reviewable SQL without executing it
 - run catalog-safe `ANALYZE` only with `--apply-analyze`
 
@@ -374,7 +374,7 @@ Unknown syntax must not produce an index recommendation.
 - Default execution performs no DDL or statistics mutation.
 - Suggested SQL uses PostgreSQL identifier quoting and parameter-safe literal
   handling.
-- Existing, duplicate, low-selectivity, and unsupported-property cases have
+- Required, duplicate, zero-scan, and unavailable-property-evidence cases have
   deterministic tests.
 - `--apply-analyze` validates graph and label catalogs immediately before each
   operation and reports partial completion explicitly.

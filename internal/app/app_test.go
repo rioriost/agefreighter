@@ -15,6 +15,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
+	"github.com/rioriost/agefreighter/internal/report"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	sourcecsv "github.com/rioriost/agefreighter/internal/source/csv"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -105,6 +106,79 @@ func TestLoadCSVIntegration(t *testing.T) {
 	}
 	if _, err := Verify(ctx, jobPath, result.JobID); err != nil {
 		t.Fatalf("Verify() error = %v", err)
+	}
+	statsPool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatalf("open optimizer statistics check: %v", err)
+	}
+	defer statsPool.Close()
+	manualAnalyzeCount := func() int {
+		var count int
+		if err := statsPool.QueryRow(ctx, `
+			SELECT COUNT(*)::integer
+			FROM pg_catalog.pg_stat_user_tables
+			WHERE schemaname = $1
+			  AND last_analyze IS NOT NULL`,
+			graphName,
+		).Scan(&count); err != nil {
+			t.Fatalf("read optimizer statistics check: %v", err)
+		}
+		return count
+	}
+	beforeRecommendationOnly := manualAnalyzeCount()
+	optimizer, err := OptimizationReport(
+		ctx,
+		jobPath,
+		OptimizeOptions{},
+	)
+	if err != nil || optimizer.Command != "optimize" {
+		t.Fatalf("OptimizationReport() = %#v, %v", optimizer, err)
+	}
+	var recommendations string
+	for _, section := range optimizer.Sections {
+		if section.Title != "Recommendations" {
+			continue
+		}
+		for _, field := range section.Fields {
+			recommendations += field.Value + "\n"
+		}
+	}
+	if strings.Contains(recommendations, "property-index") ||
+		strings.Contains(recommendations, "expression-index") {
+		t.Fatalf("property recommendation emitted without evidence: %q", recommendations)
+	}
+	propertyUnavailable := false
+	for _, check := range optimizer.Checks {
+		if check.ID == "property-statistics" &&
+			check.Status == report.CheckUnavailable &&
+			check.Detail == propertyEvidenceUnavailable {
+			propertyUnavailable = true
+		}
+	}
+	if !propertyUnavailable {
+		t.Fatalf("property unavailable evidence = %#v", optimizer.Checks)
+	}
+	if after := manualAnalyzeCount(); after != beforeRecommendationOnly {
+		t.Fatalf(
+			"recommendation-only optimizer changed analyze statistics: before=%d after=%d",
+			beforeRecommendationOnly,
+			after,
+		)
+	}
+	optimizer, err = OptimizationReport(
+		ctx,
+		jobPath,
+		OptimizeOptions{Analyze: true},
+	)
+	if err != nil || optimizer.Command != "optimize" {
+		t.Fatalf("OptimizationReport(--apply-analyze) = %#v, %v", optimizer, err)
+	}
+	if after := manualAnalyzeCount(); after <= beforeRecommendationOnly {
+		t.Fatalf(
+			"explicit optimizer ANALYZE did not update graph label statistics: before=%d after=%d",
+			beforeRecommendationOnly,
+			after,
+		)
 	}
 	if _, err := Verify(
 		ctx, jobPath, "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",

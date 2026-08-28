@@ -132,6 +132,39 @@ func (store *Store) InspectSchema(ctx context.Context) (SchemaInspection, error)
 	return inspection, nil
 }
 
+// LockCurrentSchema prevents a metadata migration from starting while a
+// caller performs one explicitly authorized bounded maintenance operation.
+func (store *Store) LockCurrentSchema(ctx context.Context) (SchemaInspection, error) {
+	if store == nil || store.database == nil {
+		return SchemaInspection{}, errors.New("metadata store is required")
+	}
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		return SchemaInspection{}, errors.New("metadata schema lock context requires a deadline")
+	}
+	if _, err := store.database.Exec(
+		ctx,
+		`SELECT pg_catalog.pg_advisory_xact_lock_shared($1)`,
+		migrationLockID,
+	); err != nil {
+		return SchemaInspection{}, fmt.Errorf("lock metadata schema version: %w", err)
+	}
+	inspection, err := store.InspectSchema(ctx)
+	if err != nil {
+		return SchemaInspection{}, err
+	}
+	if err := inspection.RequireCurrent(); err != nil {
+		return inspection, err
+	}
+	if inspection.InstalledVersion != SupportedSchemaVersion {
+		return inspection, fmt.Errorf(
+			"metadata schema version %d is not the exact supported version %d",
+			inspection.InstalledVersion,
+			SupportedSchemaVersion,
+		)
+	}
+	return inspection, nil
+}
+
 func metadataPermissionDenied(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "42501"

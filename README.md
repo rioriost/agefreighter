@@ -128,6 +128,19 @@ signals without including source values, record identities, query text,
 credentials, or continuation tokens. See the
 [operations guide](docs/reference/operations.md#bounded-source-profiles).
 
+Inspect bounded target evidence and review deterministic post-load
+recommendations without changing the target:
+
+```sh
+agefreighter optimize --target job.yaml
+```
+
+Only the explicit `--apply-analyze` flag permits the optimizer to run `ANALYZE`, and
+then only for revalidated active label relations and an exact metadata
+allowlist under statement, lock, and operation deadlines. The optimizer never
+applies index DDL. See
+[recommendation-first target optimization](docs/reference/operations.md#recommendation-first-target-optimization).
+
 If a load fails after committing a resumable checkpoint, continue the same job:
 
 ```sh

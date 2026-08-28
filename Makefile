@@ -71,7 +71,8 @@ fuzz-smoke:
 
 test-compatibility:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
-		$(GO) test -count=1 ./internal/age ./internal/meta ./internal/app
+		$(GO) test -count=1 \
+		./internal/age ./internal/meta ./internal/app ./internal/cli
 
 test-recovery:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \

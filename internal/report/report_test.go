@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 func TestGoldenReportContracts(t *testing.T) {
@@ -239,6 +241,7 @@ func TestSourceProfileJSONSchemaContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile(schema) error = %v", err)
 	}
+
 	var schema map[string]any
 	if err := json.Unmarshal(data, &schema); err != nil {
 		t.Fatalf("schema JSON error = %v", err)
@@ -259,6 +262,49 @@ func TestSourceProfileJSONSchemaContract(t *testing.T) {
 		if _, found := properties[forbidden]; found {
 			t.Fatalf("source-only profile schema defines %q", forbidden)
 		}
+	}
+}
+
+func TestOptimizerJSONSchemaContract(t *testing.T) {
+	data, err := os.ReadFile("../../docs/reference/optimizer-report.schema.json")
+	if err != nil {
+		t.Fatalf("ReadFile(schema) error = %v", err)
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(data, &schema); err != nil {
+		t.Fatalf("schema JSON error = %v", err)
+	}
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		t.Fatal("schema properties are missing")
+	}
+	version, ok := properties["schemaVersion"].(map[string]any)
+	if !ok || version["const"] != float64(SchemaVersion) {
+		t.Fatalf("schema version contract = %#v", version)
+	}
+	command, ok := properties["command"].(map[string]any)
+	if !ok || command["const"] != "optimize" {
+		t.Fatalf("schema command contract = %#v", command)
+	}
+	if _, found := properties["job"]; found {
+		t.Fatal("optimizer schema exposes a raw migration job identity")
+	}
+	compiled, err := jsonschema.NewCompiler().Compile(
+		"../../docs/reference/optimizer-report.schema.json",
+	)
+	if err != nil {
+		t.Fatalf("Compile(schema) error = %v", err)
+	}
+	golden, err := os.ReadFile("../app/testdata/optimizer.golden.json")
+	if err != nil {
+		t.Fatalf("ReadFile(golden) error = %v", err)
+	}
+	var document any
+	if err := json.Unmarshal(golden, &document); err != nil {
+		t.Fatalf("golden JSON error = %v", err)
+	}
+	if err := compiled.Validate(document); err != nil {
+		t.Fatalf("optimizer golden schema validation error = %v", err)
 	}
 }
 

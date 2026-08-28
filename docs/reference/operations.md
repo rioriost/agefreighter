@@ -85,6 +85,72 @@ unavailable facts remain explicitly unavailable, preventing a false `pass`.
 The report contract is
 [`source-profile.schema.json`](source-profile.schema.json).
 
+## Recommendation-first target optimization
+
+`agefreighter optimize --target JOB` opens the target through the read-only
+diagnostic path and produces evidence and recommendations only. It does not run
+`ANALYZE`, DDL, arbitrary SQL, `VACUUM`, `REINDEX`, configuration changes, or
+metadata migrations. JSON is the default; Markdown and exclusive mode-`0600`
+output files use the shared report renderer.
+
+```sh
+agefreighter optimize --target job.yaml
+agefreighter optimize --target job.yaml --format markdown --output optimizer.md
+```
+
+The report covers PostgreSQL, AGE, and metadata versions; migration and
+connector counters; estimated graph and label sizes and edge density; database,
+WAL, dead-tuple, analyze, and statistics-reset visibility; required and exact
+duplicate indexes; and zero-scan indexes. Lists are deterministic and bounded
+to 64 active labels, 64 indexes per relation, 1,000 batch attempts, and 128
+index and recommendation entries. Truncation, permission failures, and
+timeouts produce `unknown` or `unavailable` evidence and an incomplete
+outcome. Values, graph IDs, external IDs, source positions, records, query
+text, SQL error bodies, DSNs, and secrets are never reported.
+
+Live AGE property parsing and cardinality inspection are disabled for this
+milestone. Apache AGE 1.6 serializes and fully detoasts an `agtype` value before
+a text substring can cap the result, so the optimizer cannot safely pre-bound
+property serialization. The report explicitly marks property statistics and
+property-index recommendations unavailable and emits no property
+recommendation from absent evidence. The target capability check may still
+report whether an allowlisted AGE 1.6 `agtype` GIN operator class exists, but
+that fact alone does not produce an index recommendation.
+
+Exact duplicate and zero-scan evidence is advisory: statistics-reset time and
+application requirements must be reviewed before any manual DDL. The optimizer
+makes no source-versus-target performance claim. Required AGE indexes must be
+valid, ready, non-partial B-tree indexes with exact keys and ordering; `id`
+must be a unique primary key, while `start_id` and `end_id` must be non-unique,
+non-primary edge indexes. Required-index checks use separate targeted,
+uncapped catalog probes, so a capped alphabetical index-display list is never
+used to infer that an index is missing. Recoverable evidence probes use
+savepoints inside the shared repeatable-read snapshot.
+
+`--apply-analyze` is the sole optimizer mutation opt-in:
+
+```sh
+agefreighter optimize --target job.yaml --apply-analyze
+```
+
+It requires PostgreSQL 17, AGE 1.6, a current v17 metadata schema, a complete
+allowlisted metadata catalog, and a non-truncated active graph label catalog.
+Each operation revalidates relation ownership and catalog identity, quotes the
+identifier, and runs in its own transaction with the configured command
+deadline plus local statement and lock timeouts. Before revalidation it takes
+and retains a `SHARE UPDATE EXCLUSIVE` lock on the quoted relation, so a
+concurrent drop, rename, or replacement either waits or causes exact OID and
+ownership validation to fail safely. Only the exact current agefreighter
+metadata relations and active graph label relations are eligible.
+The report gives attempted, succeeded, and failed counts and a sanitized result
+per relation; partial completion is incomplete. Cancellation stops further
+work and propagates to the caller. No optimizer history is persisted.
+
+Workload query ingestion, Cypher compatibility analysis, automatic schema or
+index changes, and live `pg_stat_statements` collection are intentionally
+deferred. The JSON contract is
+[`optimizer-report.schema.json`](optimizer-report.schema.json).
+
 ## Failure and recovery
 
 Do not start a second writer for the same target graph. First inspect the

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -131,6 +132,7 @@ func TestSchemaInspectionReadCompatibility(t *testing.T) {
 		if version < SupportedSchemaVersion {
 			state = SchemaPending
 		}
+
 		inspection := SchemaInspection{
 			State: state, InstalledVersion: version,
 			SupportedVersion: SupportedSchemaVersion,
@@ -159,6 +161,29 @@ func TestSchemaInspectionReadCompatibility(t *testing.T) {
 	}
 }
 
+func TestLockCurrentSchemaRequiresDeadlineAndExactCurrentVersion(t *testing.T) {
+	database := &inspectDatabase{}
+	store := &Store{database: database}
+	if _, err := store.LockCurrentSchema(context.Background()); err == nil {
+		t.Fatal("LockCurrentSchema() accepted a context without a deadline")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	database.rows = []pgx.Row{
+		inspectCatalogRow(true, true),
+		inspectVersionRow(1, SupportedSchemaVersion, SupportedSchemaVersion),
+	}
+	inspection, err := store.LockCurrentSchema(ctx)
+	if err != nil || inspection.State != SchemaCurrent || database.execCalls != 1 {
+		t.Fatalf(
+			"LockCurrentSchema() = %#v, %v, execCalls=%d",
+			inspection,
+			err,
+			database.execCalls,
+		)
+	}
+}
+
 func inspectCatalogRow(schema, table bool) pgx.Row {
 	return stubInspectRow(func(dest ...any) error {
 		*dest[0].(*bool) = schema
@@ -177,19 +202,22 @@ func inspectVersionRow(minimum, maximum, count int) pgx.Row {
 }
 
 type inspectDatabase struct {
-	rows []pgx.Row
+	rows      []pgx.Row
+	execCalls int
+	execErr   error
 }
 
 func (*inspectDatabase) Begin(context.Context) (pgx.Tx, error) {
 	panic("unexpected Begin")
 }
 
-func (*inspectDatabase) Exec(
+func (database *inspectDatabase) Exec(
 	context.Context,
 	string,
 	...any,
 ) (pgconn.CommandTag, error) {
-	panic("unexpected Exec")
+	database.execCalls++
+	return pgconn.CommandTag{}, database.execErr
 }
 
 func (database *inspectDatabase) QueryRow(

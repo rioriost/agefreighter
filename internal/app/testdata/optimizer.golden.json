@@ -1,0 +1,358 @@
+{
+  "schemaVersion": 1,
+  "command": "optimize",
+  "agefreighterVersion": "dev",
+  "generatedAt": "2026-08-28T09:00:00Z",
+  "outcome": "incomplete",
+  "target": {
+    "postgresql": {
+      "value": "17.6",
+      "status": "pass"
+    },
+    "age": {
+      "value": "1.6.0",
+      "status": "pass"
+    }
+  },
+  "checks": [
+    {
+      "id": "active-graph",
+      "status": "pass",
+      "summary": "active graph generation ownership was inspected",
+      "detail": "one active agefreighter-owned graph generation was selected"
+    },
+    {
+      "id": "bounded-catalog-visibility",
+      "status": "pass",
+      "summary": "bounded graph relation and index catalogs were inspected",
+      "detail": "labels=1 relation_visibility_problems=0 labels_truncated=false indexes_truncated=false"
+    },
+    {
+      "id": "duplicate-indexes",
+      "status": "pass",
+      "summary": "exact catalog-equivalent indexes were inspected",
+      "detail": "duplicate_groups=0"
+    },
+    {
+      "id": "index-usage",
+      "status": "pass",
+      "summary": "bounded index usage was inspected with its statistics-reset timestamp",
+      "detail": "zero_scan_indexes=0"
+    },
+    {
+      "id": "metadata-schema",
+      "status": "pass",
+      "summary": "metadata schema is current"
+    },
+    {
+      "id": "property-statistics",
+      "status": "unavailable",
+      "summary": "live AGE property statistics and index recommendations were not produced",
+      "detail": "Apache AGE 1.6 cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled"
+    },
+    {
+      "id": "required-age-indexes",
+      "status": "pass",
+      "summary": "required AGE label indexes were inspected",
+      "detail": "missing_or_invalid_required_indexes=0 unknown_relations=0"
+    },
+    {
+      "id": "required-metadata-indexes",
+      "status": "pass",
+      "summary": "version-compatible agefreighter metadata indexes were inspected",
+      "detail": "invalid_or_missing_indexes=0 missing_relations=0 schema_version=17"
+    },
+    {
+      "id": "statistics-freshness",
+      "status": "pass",
+      "summary": "bounded analyze and dead-tuple evidence was inspected",
+      "detail": "never_analyzed=0 stale_indicators=0 unknown=0"
+    },
+    {
+      "id": "storage-wal-visibility",
+      "status": "pass",
+      "summary": "database storage and WAL counters were inspected",
+      "detail": "filesystem free capacity is not exposed by portable PostgreSQL catalogs"
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "incompleteChecks": [],
+  "sections": [
+    {
+      "title": "AGE property evidence",
+      "fields": [
+        {
+          "name": "cardinalityAndIndexRecommendations",
+          "value": "Apache AGE 1.6 cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled",
+          "status": "unavailable"
+        }
+      ]
+    },
+    {
+      "title": "Bounded relation statistics",
+      "fields": [
+        {
+          "name": "001.vertex.Person",
+          "value": "kind=v estimatedRows=100 liveRows=100 deadRows=0 totalBytes=8192 indexBytes=4096 seqScans=0 indexScans=0 lastAnalyze=2026-08-28T08:00:00Z lastAutoAnalyze=unknown",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Graph size and density",
+      "fields": [
+        {
+          "name": "activeLabelsInspected",
+          "value": "1",
+          "status": "pass"
+        },
+        {
+          "name": "estimatedEdgeDensity",
+          "value": "0.000000",
+          "status": "pass"
+        },
+        {
+          "name": "estimatedEdgeRows",
+          "value": "0",
+          "status": "pass"
+        },
+        {
+          "name": "estimatedVertexRows",
+          "value": "100",
+          "status": "pass"
+        },
+        {
+          "name": "labelIndexBytes",
+          "value": "4096",
+          "status": "pass"
+        },
+        {
+          "name": "labelRelationBytes",
+          "value": "8192",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Index evidence",
+      "fields": [
+        {
+          "name": "summary",
+          "value": "no exact duplicate or missing required indexes were detected in the bounded catalog",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Metadata relation statistics",
+      "fields": [
+        {
+          "name": "001.load_job",
+          "value": "estimatedRows=1 liveRows=1 deadRows=0 totalBytes=8192 indexBytes=4096 seqScans=0 indexScans=0 lastAnalyze=unknown lastAutoAnalyze=2026-08-28T08:00:00Z",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Migration counters and telemetry",
+      "fields": [
+        {
+          "name": "batchAttemptsObserved",
+          "value": "1",
+          "status": "pass"
+        },
+        {
+          "name": "batchAttemptsTruncated",
+          "value": "false",
+          "status": "pass"
+        },
+        {
+          "name": "committedBatchCount",
+          "value": "1",
+          "status": "pass"
+        },
+        {
+          "name": "committedBytes",
+          "value": "8192",
+          "status": "pass"
+        },
+        {
+          "name": "committedRows",
+          "value": "100",
+          "status": "pass"
+        },
+        {
+          "name": "connectorPages",
+          "value": "1",
+          "status": "pass"
+        },
+        {
+          "name": "failedRequestAttempts",
+          "value": "0",
+          "status": "pass"
+        },
+        {
+          "name": "labelCounterCommittedBytesKnown",
+          "value": "8192",
+          "status": "pass"
+        },
+        {
+          "name": "labelCounterCommittedRows",
+          "value": "100",
+          "status": "pass"
+        },
+        {
+          "name": "labelCounterRejectedRows",
+          "value": "0",
+          "status": "pass"
+        },
+        {
+          "name": "labelCountersComplete",
+          "value": "1",
+          "status": "pass"
+        },
+        {
+          "name": "labelCountersIncomplete",
+          "value": "0",
+          "status": "pass"
+        },
+        {
+          "name": "latestBatchAttempt",
+          "value": "0",
+          "status": "pass"
+        },
+        {
+          "name": "latestBatchBytes",
+          "value": "8192",
+          "status": "pass"
+        },
+        {
+          "name": "latestBatchRejectedRows",
+          "value": "0",
+          "status": "pass"
+        },
+        {
+          "name": "latestBatchRows",
+          "value": "100",
+          "status": "pass"
+        },
+        {
+          "name": "latestBatchStatus",
+          "value": "committed",
+          "status": "pass"
+        },
+        {
+          "name": "loadMode",
+          "value": "create",
+          "status": "pass"
+        },
+        {
+          "name": "rejectedRows",
+          "value": "0",
+          "status": "pass"
+        },
+        {
+          "name": "requestCharge",
+          "value": "0",
+          "status": "pass"
+        },
+        {
+          "name": "sourceRejectedRows",
+          "value": "0",
+          "status": "pass"
+        },
+        {
+          "name": "sourceType",
+          "value": "csv",
+          "status": "pass"
+        },
+        {
+          "name": "status",
+          "value": "committed",
+          "status": "pass"
+        },
+        {
+          "name": "throttledRequests",
+          "value": "0",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Optimizer target evidence",
+      "fields": [
+        {
+          "name": "databaseBytes",
+          "value": "1048576",
+          "status": "pass"
+        },
+        {
+          "name": "databaseStatisticsReset",
+          "value": "2026-08-27T00:00:00Z",
+          "status": "pass"
+        },
+        {
+          "name": "evidencePhase",
+          "value": "captured before any explicitly requested ANALYZE",
+          "status": "pass"
+        },
+        {
+          "name": "filesystemFreeBytes",
+          "value": "unknown; use platform storage monitoring",
+          "status": "unavailable"
+        },
+        {
+          "name": "ginAgtypeOperatorClass",
+          "value": "no supported allowlisted AGE 1.6 operator class detected",
+          "status": "pass"
+        },
+        {
+          "name": "metadataInstalledVersion",
+          "value": "17",
+          "status": "pass"
+        },
+        {
+          "name": "metadataSupportedVersion",
+          "value": "17",
+          "status": "pass"
+        },
+        {
+          "name": "mode",
+          "value": "recommendation-only",
+          "status": "pass"
+        },
+        {
+          "name": "walBytesSinceReset",
+          "value": "4096",
+          "status": "pass"
+        },
+        {
+          "name": "walStatisticsReset",
+          "value": "2026-08-27T00:00:00Z",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Per-label row evidence",
+      "fields": [
+        {
+          "name": "001.vertex.Person",
+          "value": "kind=v catalogEstimatedRows=100 statisticsLiveRows=100 storedCommittedRows=100 counterCompleteness=complete",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Recommendations",
+      "fields": [
+        {
+          "name": "summary",
+          "value": "no recommendation met the bounded evidence rules",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}
