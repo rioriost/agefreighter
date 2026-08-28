@@ -39,9 +39,12 @@ The release workflow uses short-lived GitHub OIDC identity for provenance.
 macOS binaries are additionally signed with a Developer ID Application
 certificate, hardened-runtime enabled, securely timestamped, and accepted by
 Apple's notarization service before checksums and attestations are generated.
-The certificate and App Store Connect API key are restricted to the protected
-`release` environment. Verify both the checksum and provenance before
-installation.
+Windows executables are signed with a Public Trust certificate from Azure
+Artifact Signing and an RFC 3161 timestamp, then verified with Windows
+Authenticode policy before the ZIP, SBOM, checksums, and attestations are
+generated. Apple credentials and the Azure release OIDC identity are restricted
+to the protected `release` environment. Verify both the checksum and provenance
+before installation.
 
 ## Install an archive
 

@@ -137,7 +137,7 @@ jobs:
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
       - name: Start local AGE target
         env:
           DEV_RUNTIME: docker
@@ -171,7 +171,6 @@ jobs:
         include:
           - {goos: linux, goarch: amd64}
           - {goos: linux, goarch: arm64}
-          - {goos: windows, goarch: amd64}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -205,14 +204,150 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$(dirname "$SYFT"):$PATH"
-          if [[ "$GOOS" == "windows" ]]; then extension=zip; else extension=tar.gz; fi
-          archive="dist/agefreighter_${VERSION}_${GOOS}_${GOARCH}.${extension}"
+          archive="dist/agefreighter_${VERSION}_${GOOS}_${GOARCH}.tar.gz"
           scripts/release/sbom.sh "$archive" "$archive.spdx.json"
       - name: Upload platform package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  build-windows:
+    needs: prepare
+    runs-on: windows-2025
+    environment: release
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build native Windows binaries
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          COMMIT: ${{ needs.prepare.outputs.commit }}
+          BUILD_DATE: ${{ needs.prepare.outputs.build_date }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $stage = Join-Path $PWD "dist\stage"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          $versionNumber = $env:VERSION.Substring(1)
+          $ldflags = "-s -w -buildid= " +
+            "-X github.com/rioriost/agefreighter/internal/version.Version=$versionNumber " +
+            "-X github.com/rioriost/agefreighter/internal/version.Commit=$env:COMMIT " +
+            "-X github.com/rioriost/agefreighter/internal/version.BuildDate=$env:BUILD_DATE"
+          $env:CGO_ENABLED = "0"
+          $env:GOOS = "windows"
+          $env:GOARCH = "amd64"
+          $env:GOFLAGS = "-mod=readonly"
+          foreach ($binary in @("agefreighter", "agefreighter-tools")) {
+            $output = Join-Path $stage "$binary.exe"
+            & go build -trimpath -buildvcs=false "-ldflags=$ldflags" -o $output "./cmd/$binary"
+            if ($LASTEXITCODE -ne 0) {
+              throw "go build failed for $binary"
+            }
+            if ((Get-AuthenticodeSignature -LiteralPath $output).Status -ne "NotSigned") {
+              throw "$binary.exe unexpectedly had a signature before Artifact Signing"
+            }
+          }
+      - name: Authenticate to Azure with release OIDC identity
+        uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Sign Windows binaries with Azure Artifact Signing
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_PROFILE }}
+          files: |
+            ${{ github.workspace }}\dist\stage\agefreighter.exe
+            ${{ github.workspace }}\dist\stage\agefreighter-tools.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: agefreighter
+          description-url: https://github.com/rioriost/agefreighter
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+      - name: Verify signatures and package signed archive
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $stage = Join-Path $PWD "dist\stage"
+          $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if ($null -eq $signTool) {
+            throw "signtool.exe was not found"
+          }
+          foreach ($binary in @("agefreighter.exe", "agefreighter-tools.exe")) {
+            $path = Join-Path $stage $binary
+            & $signTool.FullName verify /pa /all /v $path
+            if ($LASTEXITCODE -ne 0) {
+              throw "Authenticode verification failed for $binary"
+            }
+            $signature = Get-AuthenticodeSignature -LiteralPath $path
+            if ($signature.Status -ne "Valid" -or $null -eq $signature.TimeStamperCertificate) {
+              throw "$binary does not have a valid timestamped Authenticode signature"
+            }
+          }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = Join-Path $PWD "dist\agefreighter_$env:VERSION`_windows_amd64.zip"
+          [IO.Compression.ZipFile]::CreateFromDirectory(
+            $stage,
+            $archive,
+            [IO.Compression.CompressionLevel]::Optimal,
+            $false
+          )
+      - name: Install pinned Syft
+        id: syft
+        uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
+        with:
+          syft-version: v1.30.0
+      - name: Generate signed archive SPDX SBOM
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SYFT: ${{ steps.syft.outputs.cmd }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $archive = Join-Path $PWD "dist\agefreighter_$env:VERSION`_windows_amd64.zip"
+          $output = "$archive.spdx.json"
+          & $env:SYFT $archive -o "spdx-json=$output"
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $output) -or
+              (Get-Item -LiteralPath $output).Length -eq 0) {
+            throw "Syft did not create the signed Windows SBOM"
+          }
+      - name: Upload signed Windows package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-windows-amd64
+          path: |
+            dist/*.zip
+            dist/*.spdx.json
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -316,7 +451,7 @@ jobs:
             "$GOOS" "$GOARCH" "$VERSION"
 
   verify-windows:
-    needs: [prepare, build]
+    needs: [prepare, build-windows]
     runs-on: windows-2025
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -345,8 +480,22 @@ jobs:
             $entries.Dispose()
           }
           Expand-Archive -LiteralPath $archive -DestinationPath extracted
+          $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if ($null -eq $signTool) {
+            throw "signtool.exe was not found"
+          }
           $expected = $env:VERSION.Substring(1)
           foreach ($binary in @("agefreighter.exe", "agefreighter-tools.exe")) {
+            & $signTool.FullName verify /pa /all /v "./extracted/$binary"
+            if ($LASTEXITCODE -ne 0) {
+              throw "$binary Authenticode verification failed"
+            }
+            $signature = Get-AuthenticodeSignature -LiteralPath "./extracted/$binary"
+            if ($signature.Status -ne "Valid" -or $null -eq $signature.TimeStamperCertificate) {
+              throw "$binary does not have a valid timestamped Authenticode signature"
+            }
             $output = & "./extracted/$binary" version
             if ($LASTEXITCODE -ne 0 -or $output -notmatch [regex]::Escape($expected)) {
               throw "$binary version verification failed"
@@ -379,7 +528,7 @@ jobs:
             "$VERSION" "$REPOSITORY" dist dist/agefreighter.rb
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: release-assets-unsigned
+          name: release-assets-pre-attestation
           path: dist/*
           if-no-files-found: error
           retention-days: 14
@@ -395,7 +544,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: release-assets-unsigned
+          name: release-assets-pre-attestation
           path: dist
       - name: Attest release assets with GitHub OIDC
         id: provenance
