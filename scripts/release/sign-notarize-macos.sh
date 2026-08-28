@@ -74,12 +74,14 @@ security unlock-keychain -p "$keychain_password" "$keychain"
 security import "$certificate" \
 	-k "$keychain" \
 	-P "$APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD" \
-	-T /usr/bin/codesign
+	-A \
+	-t cert \
+	-f pkcs12
 security set-key-partition-list \
-	-S apple-tool:,apple:,codesign: \
-	-s \
+	-S apple-tool:,apple: \
 	-k "$keychain_password" \
 	"$keychain" >/dev/null
+security list-keychains -d user -s "$keychain"
 security find-identity -v -p codesigning "$keychain" |
 	grep -F "\"$APPLE_SIGNING_IDENTITY\"" >/dev/null || {
 	printf 'signing identity was not imported: %s\n' "$APPLE_SIGNING_IDENTITY" >&2
