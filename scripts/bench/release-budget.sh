@@ -22,14 +22,15 @@ if [ -L "$output" ]; then
 	exit 2
 fi
 samples=${AGEFREIGHTER_BENCH_SAMPLES:-3}
+benchmark_count=${AGEFREIGHTER_BENCH_COUNT:-3}
 rows=${AGEFREIGHTER_BENCH_ROWS:-100000}
 property_bytes=${AGEFREIGHTER_BENCH_PROPERTY_BYTES:-64}
 minimum_ratio=${AGEFREIGHTER_MINIMUM_STAGED_RATIO:-0.40}
 minimum_csv_rows_per_second=${AGEFREIGHTER_MINIMUM_CSV_ROWS_PER_SECOND:-109190}
 
-for value in "$samples" "$rows" "$property_bytes"; do
+for value in "$samples" "$benchmark_count" "$rows" "$property_bytes"; do
 	if ! printf '%s\n' "$value" | awk 'BEGIN { ok = 0 } /^[0-9]+$/ { ok = ($0 + 0 > 0) } END { exit !ok }'; then
-		printf 'sample, row, and property-byte values must be positive integers\n' >&2
+		printf 'sample, benchmark-count, row, and property-byte values must be positive integers\n' >&2
 		exit 2
 	fi
 done
@@ -68,21 +69,34 @@ done
 
 AGEFREIGHTER_AGE_TEST_DSN="$AGEFREIGHTER_AGE_TEST_DSN" \
 	go test -run '^$' -bench '^BenchmarkLegacyCountriesLoad$' \
-	-benchtime="${samples}x" -count=1 ./internal/app | tee "$csv_output"
+	-benchtime="${samples}x" -count="$benchmark_count" ./internal/app | tee "$csv_output"
 
 csv_rows_per_second=$(awk '
 	/^BenchmarkLegacyCountriesLoad-/ {
 		for (field = 1; field < NF; field++) {
 			if ($(field + 1) == "rows/s") {
-				value = $field
+				values[++n] = $field + 0
 			}
 		}
 	}
 	END {
-		if (value == "") {
+		if (n == 0) {
 			exit 1
 		}
-		print value
+		for (index = 2; index <= n; index++) {
+			value = values[index]
+			position = index - 1
+			while (position >= 1 && values[position] > value) {
+				values[position + 1] = values[position]
+				position--
+			}
+			values[position + 1] = value
+		}
+		if (n % 2 == 1) {
+			print values[(n + 1) / 2]
+		} else {
+			print (values[n / 2] + values[n / 2 + 1]) / 2
+		}
 	}
 ' "$csv_output") || {
 	printf 'CSV rows/s metric not found in benchmark output\n' >&2
