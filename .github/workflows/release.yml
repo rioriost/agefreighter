@@ -35,7 +35,7 @@ jobs:
       build_date: ${{ steps.metadata.outputs.build_date }}
       epoch: ${{ steps.metadata.outputs.epoch }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -83,10 +83,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -111,8 +111,8 @@ jobs:
           make check-full
           make test-compatibility
           make test-recovery
-          ./scripts/bench/release-budget.sh performance-artifacts
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+          ./scripts/bench/release-gate.sh performance-artifacts
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: quality-performance
@@ -135,14 +135,14 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache: true
-      - uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+          cache: false
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -151,7 +151,7 @@ jobs:
         env:
           DEV_RUNTIME: docker
           DEV_PLATFORM: linux/amd64
-        run: make dev-up
+        run: make dev-reset
       - name: Run Cosmos DB live integration
         env:
           AGEFREIGHTER_COSMOS_TEST_ENDPOINT: ${{ vars.AGEFREIGHTER_COSMOS_TEST_ENDPOINT }}
@@ -181,10 +181,10 @@ jobs:
           - {goos: linux, goarch: amd64}
           - {goos: linux, goarch: arm64}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -201,9 +201,9 @@ jobs:
             "$VERSION" "$COMMIT" "$BUILD_DATE" "$GOOS" "$GOARCH" "$PWD/dist"
       - name: Install pinned Syft
         id: syft
-        uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          syft-version: v1.30.0
+          syft-version: v1.51.1
       - name: Generate SPDX SBOM
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
@@ -216,7 +216,7 @@ jobs:
           archive="dist/agefreighter_${VERSION}_${GOOS}_${GOARCH}.tar.gz"
           scripts/release/sbom.sh "$archive" "$archive.spdx.json"
       - name: Upload platform package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/*
@@ -233,10 +233,10 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -299,9 +299,9 @@ jobs:
           cp "$source" "dist/final/$(basename "$unsigned")"
       - name: Install pinned Syft
         id: syft
-        uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          syft-version: v1.30.0
+          syft-version: v1.51.1
       - name: Generate Windows archive SPDX SBOM
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
@@ -312,7 +312,7 @@ jobs:
           export PATH="$(dirname "$SYFT"):$PATH"
           scripts/release/sbom.sh "$archive" "$archive.spdx.json"
       - name: Upload Windows verification or release package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ contains(needs.prepare.outputs.version, '-') && 'verification-windows-amd64' || 'release-windows-amd64' }}
           path: |
@@ -334,10 +334,10 @@ jobs:
           - {goarch: arm64, runner: macos-15}
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -369,9 +369,9 @@ jobs:
             "$GOARCH"
       - name: Install pinned Syft
         id: syft
-        uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          syft-version: v1.30.0
+          syft-version: v1.51.1
       - name: Generate signed archive SPDX SBOM
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
@@ -383,7 +383,7 @@ jobs:
           archive="dist/agefreighter_${VERSION}_darwin_${GOARCH}.tar.gz"
           scripts/release/sbom.sh "$archive" "$archive.spdx.json"
       - name: Upload signed macOS package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-darwin-${{ matrix.goarch }}
           path: dist/*
@@ -403,10 +403,10 @@ jobs:
           - {goos: linux, goarch: arm64, runner: ubuntu-24.04-arm}
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist
@@ -424,7 +424,7 @@ jobs:
     needs: [prepare, build-windows]
     runs-on: windows-2025
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ contains(needs.prepare.outputs.version, '-') && 'verification-windows-amd64' || 'release-windows-amd64' }}
           path: dist
@@ -444,6 +444,9 @@ jobs:
             $names = @($entries.Entries | ForEach-Object { $_.FullName })
             if (($names | Where-Object { $_ -eq "agefreighter.exe" }).Count -ne 1 -or
                 ($names | Where-Object { $_ -eq "agefreighter-tools.exe" }).Count -ne 1 -or
+                ($names | Where-Object { $_ -eq "LICENSE" }).Count -ne 1 -or
+                ($names | Where-Object { $_ -eq "THIRD_PARTY_NOTICES.txt" }).Count -ne 1 -or
+                $names.Count -ne 4 -or
                 ($names | Where-Object { $_ -match '(^|/)\.\.(/|$)|^/' }).Count -ne 0) {
               throw "Archive content validation failed"
             }
@@ -481,10 +484,10 @@ jobs:
     needs: [prepare, verify-unix, verify-windows]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: release-*
           path: dist
@@ -503,7 +506,7 @@ jobs:
           scripts/release/checksum.sh dist/checksums.txt "${archives[@]}"
           scripts/release/generate-formula.sh \
             "$VERSION" "$REPOSITORY" dist dist/agefreighter.rb
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-assets-pre-attestation
           path: dist/*
@@ -519,13 +522,13 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-assets-pre-attestation
           path: dist
       - name: Attest release assets with GitHub OIDC
         id: provenance
-        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dist/*
       - name: Include attestation bundle
@@ -533,7 +536,7 @@ jobs:
           BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
           VERSION: ${{ needs.prepare.outputs.version }}
         run: cp "$BUNDLE" "dist/agefreighter-${VERSION}.intoto.jsonl"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-assets
           path: dist/*
@@ -541,20 +544,50 @@ jobs:
           retention-days: 14
           compression-level: 0
 
+  homebrew-preflight:
+    needs: [prepare, assemble]
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-assets-pre-attestation
+          path: dist
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: rioriost/homebrew-cask
+          ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+          path: homebrew-tap
+      - name: Validate Formula and deploy-key write access without publishing
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          ruby -c dist/agefreighter.rb
+          expected="${VERSION#v}"
+          actual="$(sed -n 's/^  version "\(.*\)"$/\1/p' dist/agefreighter.rb)"
+          [[ "$actual" == "$expected" ]]
+          grep -F 'bin.install "agefreighter"' dist/agefreighter.rb >/dev/null
+          grep -F 'bin.install "agefreighter-tools"' dist/agefreighter.rb >/dev/null
+          preflight_ref="refs/heads/agefreighter-preflight-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git -C homebrew-tap push --dry-run origin "HEAD:$preflight_ref"
+
   publish:
     if: github.event_name == 'push' && github.ref_type == 'tag'
-    needs: [prepare, quality, azure, attest]
+    needs: [prepare, quality, azure, attest, homebrew-preflight]
     runs-on: ubuntu-24.04
     environment: release
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-assets
           path: dist
       - name: Publish assets to existing validated tag
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
           draft: false
@@ -577,11 +610,11 @@ jobs:
       group: homebrew-tap-agefreighter
       cancel-in-progress: false
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-assets
           path: dist
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: rioriost/homebrew-cask
           ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}

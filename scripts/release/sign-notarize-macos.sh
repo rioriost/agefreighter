@@ -98,7 +98,9 @@ for binary in agefreighter agefreighter-tools; do
 		exit 1
 	}
 done
-[ "$(find "$stage" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')" -eq 2 ] &&
+[ -f "$stage/LICENSE" ] && [ ! -L "$stage/LICENSE" ] &&
+	[ -s "$stage/THIRD_PARTY_NOTICES.txt" ] && [ ! -L "$stage/THIRD_PARTY_NOTICES.txt" ] &&
+	[ "$(find "$stage" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')" -eq 4 ] &&
 	[ -z "$(find "$stage" -mindepth 1 -maxdepth 1 ! -type f -print -quit)" ] || {
 	printf 'archive contains unexpected entries\n' >&2
 	exit 1
@@ -148,6 +150,6 @@ COPYFILE_DISABLE=1 tar \
 	--uname root \
 	-cf - \
 	-C "$stage" \
-	agefreighter agefreighter-tools |
+	agefreighter agefreighter-tools LICENSE THIRD_PARTY_NOTICES.txt |
 	gzip -n >"$replacement"
 mv "$replacement" "$archive"
