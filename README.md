@@ -192,6 +192,25 @@ the delivery sequence.
 - Docker on Linux for CI database integration tests
 - Azure CLI and Azure Developer CLI for Cosmos DB integration tests
 
+## Performance
+
+The release benchmark compares end-to-end CSV `create` throughput using the
+same 20,200-row countries corpus, Apple M4 Max host, and pinned PostgreSQL 17 /
+Apache AGE 1.6 environment. Throughput is the number of rows verified in AGE
+divided by wall-clock load time.
+
+| Version | Implementation | Reported throughput | Relative throughput |
+|---|---|---:|---:|
+| 1.0.36 | Python | 54,595 rows/s | 1.00x |
+| 2.0.0 | Go | 118,832 rows/s | **2.18x** |
+
+The 1.0.36 result is the median of five measured loads after one warm-up; the
+2.0.0 result averages three complete loads. This is a whole-load comparison,
+not a language microbenchmark: the 2.0.0 path also persists target identities
+and durable checkpoints. See the [1.0.36 baseline](docs/benchmarks/1x-baseline.md)
+and [2.0.0 release performance gates](docs/benchmarks/2x-release-gates.md) for
+the full procedure, environment, and release thresholds.
+
 ## Development
 
 Install the pinned development tools:
