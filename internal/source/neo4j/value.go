@@ -214,13 +214,13 @@ func estimateRecordSize(record Record, limit int64) (int64, error) {
 	seen := make(map[string]struct{}, len(record.Keys()))
 	for _, key := range record.Keys() {
 		if _, duplicate := seen[key]; duplicate {
-			return 0, errors.New("Neo4j record has duplicate column names")
+			return size, errors.New("Neo4j record has duplicate column names")
 		}
 		seen[key] = struct{}{}
 		size = saturatingAdd(size, int64(len(key)))
 		value, ok := record.Get(key)
 		if !ok {
-			return 0, errors.New("Neo4j record columns are inconsistent")
+			return size, errors.New("Neo4j record columns are inconsistent")
 		}
 		size = saturatingAdd(size, estimateRawSize(value, 0, limit-size))
 		if size > limit {

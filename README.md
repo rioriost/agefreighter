@@ -115,6 +115,19 @@ agefreighter verify --target job.yaml JOB_ID
 agefreighter report --target job.yaml JOB_ID
 ```
 
+Profile the configured source without opening or changing the Apache AGE target:
+
+```sh
+agefreighter profile job.yaml
+agefreighter profile --mode exact --format markdown job.yaml
+```
+
+The default profile is a bounded prefix sample. It reports aggregate mapping,
+type, null, cardinality, width, endpoint, capacity, and connector-telemetry
+signals without including source values, record identities, query text,
+credentials, or continuation tokens. See the
+[operations guide](docs/reference/operations.md#bounded-source-profiles).
+
 If a load fails after committing a resumable checkpoint, continue the same job:
 
 ```sh

@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rioriost/agefreighter/internal/config"
+	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
 
@@ -565,14 +566,22 @@ func TestFingerprintAndTelemetry(t *testing.T) {
 	var telemetry telemetryState
 	telemetry.page()
 	telemetry.page()
+	if err := telemetry.input(7, 11); err != nil {
+		t.Fatal(err)
+	}
 	telemetry.failure()
 	got := telemetry.snapshot()
-	if got.Connector != "postgresql" || got.Pages != 2 || got.FailedRequestAttempts != 1 {
+	if got.Connector != "postgresql" || got.Pages != 2 ||
+		got.RawInputBytes != 7 || got.DecodedInputBytes != 11 ||
+		got.FailedRequestAttempts != 1 {
 		t.Fatalf("telemetry = %#v", got)
 	}
 	iterator := &Iterator{}
 	iterator.telemetry.page()
 	iterator.telemetry.page()
+	if err := iterator.telemetry.input(7, 11); err != nil {
+		t.Fatal(err)
+	}
 	iterator.telemetry.failure()
 	if iterator.Telemetry() != got {
 		t.Fatalf("Iterator.Telemetry() = %#v", iterator.Telemetry())
@@ -976,7 +985,12 @@ func TestKeysetReaderPureBranches(t *testing.T) {
 		{"decreasing", `{"id":1}`, &keyValue{kind: keyNumber, native: int64(2)}, "strictly increasing"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			state := &telemetryState{}
+			budget := sourcecontract.NewProfileBudget(
+				sourcecontract.ProfileBudgetLimits{
+					Rows: 10, DecodedInputBytes: 1 << 20,
+				},
+			)
+			state := &telemetryState{profileBudget: budget}
 			reader := &keysetReader{
 				mapping: mapping, fetchRows: 2,
 				rows:    &fakeRows{values: []string{test.value}},
@@ -986,6 +1000,10 @@ func TestKeysetReaderPureBranches(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), test.want) ||
 				state.snapshot().FailedRequestAttempts != 1 {
 				t.Fatalf("keyset error = %v, telemetry %#v", err, state.snapshot())
+			}
+			usage, _ := budget.Snapshot()
+			if usage.Rows != 1 || usage.DecodedInputBytes != int64(len(test.value)) {
+				t.Fatalf("keyset invalid-row usage = %#v", usage)
 			}
 		})
 	}
@@ -1010,6 +1028,76 @@ func TestKeysetReaderPureBranches(t *testing.T) {
 	}
 	if err := reader.Close(); !errors.Is(err, closeErr) {
 		t.Fatalf("second keyset Close() = %v", err)
+	}
+}
+
+func TestPagedReadersCheckBudgetBeforeQueryAndChargeEmptyPage(t *testing.T) {
+	tests := []struct {
+		name string
+		next func(*telemetryState, func(context.Context, string, ...any) (pgx.Rows, error)) error
+	}{
+		{
+			name: "cursor",
+			next: func(telemetry *telemetryState, query func(context.Context, string, ...any) (pgx.Rows, error)) error {
+				_, err := (&cursorReader{
+					fetchRows: 2, telemetry: telemetry, query: query,
+				}).Next(t.Context())
+				return err
+			},
+		},
+		{
+			name: "keyset",
+			next: func(telemetry *telemetryState, query func(context.Context, string, ...any) (pgx.Rows, error)) error {
+				_, err := (&keysetReader{
+					mapping:   compiledMapping{query: "SELECT 1", keyField: "id"},
+					fetchRows: 2, telemetry: telemetry, query: query,
+				}).Next(t.Context())
+				return err
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name+" exhausted", func(t *testing.T) {
+			budget := sourcecontract.NewProfileBudget(
+				sourcecontract.ProfileBudgetLimits{Pages: 1},
+			)
+			if err := budget.Charge(sourcecontract.ProfileBudgetUsage{Pages: 1}); err != nil {
+				t.Fatal(err)
+			}
+			queries := 0
+			err := test.next(
+				&telemetryState{profileBudget: budget},
+				func(context.Context, string, ...any) (pgx.Rows, error) {
+					queries++
+					return &fakeRows{}, nil
+				},
+			)
+			if !errors.Is(err, sourcecontract.ErrProfileBudget) || queries != 0 {
+				t.Fatalf("Next() error = %v, queries = %d", err, queries)
+			}
+		})
+		t.Run(test.name+" empty page", func(t *testing.T) {
+			budget := sourcecontract.NewProfileBudget(
+				sourcecontract.ProfileBudgetLimits{Pages: 2},
+			)
+			telemetry := &telemetryState{profileBudget: budget}
+			queries := 0
+			err := test.next(
+				telemetry,
+				func(context.Context, string, ...any) (pgx.Rows, error) {
+					queries++
+					return &fakeRows{}, nil
+				},
+			)
+			usage, _ := budget.Snapshot()
+			if !errors.Is(err, io.EOF) || queries != 1 ||
+				usage.Pages != 1 || telemetry.snapshot().Pages != 1 {
+				t.Fatalf(
+					"Next() error = %v, queries = %d, usage = %#v, telemetry = %#v",
+					err, queries, usage, telemetry.snapshot(),
+				)
+			}
+		})
 	}
 }
 

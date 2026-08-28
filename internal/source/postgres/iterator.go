@@ -34,6 +34,7 @@ type IteratorOptions struct {
 	OnMalformed         MalformedHandler
 	PreencodeProperties bool
 	MaxReaders          int
+	ProfileBudget       *sourcecontract.ProfileBudget
 }
 
 // Iterator reads all configured vertex mappings followed by edge mappings
@@ -131,6 +132,7 @@ func NewIterator(ctx context.Context, options IteratorOptions) (*Iterator, error
 	iterator := &Iterator{
 		options: options, mappings: mappings, fingerprint: fingerprint,
 	}
+	iterator.telemetry.profileBudget = options.ProfileBudget
 	if options.AfterToken != "" {
 		resume, err := parseResumeToken(options.AfterToken)
 		if err != nil {
@@ -186,6 +188,9 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 		if err := ctx.Err(); err != nil {
 			return sourcecontract.Item{}, err
 		}
+		if err := iterator.options.ProfileBudget.CanProcess(); err != nil {
+			return sourcecontract.Item{}, err
+		}
 		if iterator.current == nil {
 			if iterator.mappingIndex >= len(iterator.mappings) {
 				iterator.exhausted = true
@@ -207,6 +212,11 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 		}
 		if err != nil {
 			return sourcecontract.Item{}, err
+		}
+		if !row.accounted {
+			if err := iterator.telemetry.input(0, int64(len(row.raw))); err != nil {
+				return sourcecontract.Item{}, err
+			}
 		}
 		iterator.consumed++
 		if row.key != nil {
@@ -231,6 +241,9 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 }
 
 func (iterator *Iterator) openCurrent(ctx context.Context) error {
+	if err := iterator.options.ProfileBudget.Full(); err != nil {
+		return err
+	}
 	mapping := iterator.mappings[iterator.mappingIndex]
 	var afterKey *keyValue
 	if iterator.hasResume &&

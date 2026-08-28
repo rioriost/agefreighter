@@ -180,6 +180,10 @@ func TestIteratorVerticesBeforeEdgesAndResume(t *testing.T) {
 	if _, err := iterator.Next(context.Background()); !errors.Is(err, io.EOF) {
 		t.Fatalf("final Next() error = %v, want EOF", err)
 	}
+	if telemetry := iterator.Telemetry(); telemetry.RawInputBytes == 0 ||
+		telemetry.DecodedInputBytes == 0 || telemetry.Pages != 2 {
+		t.Fatalf("telemetry = %#v", telemetry)
+	}
 	if err := iterator.Close(); err != nil {
 		t.Fatalf("Close() error = %v", err)
 	}

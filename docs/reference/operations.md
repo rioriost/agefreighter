@@ -5,7 +5,8 @@
 1. Keep the load-job file and referenced secret files readable only by the
    service account.
 2. Run `agefreighter validate JOB` and review `agefreighter plan JOB`.
-3. Confirm the target reports PostgreSQL 17 and Apache AGE 1.6.x.
+3. Confirm the target reports an exact PostgreSQL and Apache AGE pairing listed
+   in the [compatibility matrix](compatibility.md).
 4. Confirm that the configured memory, batch, concurrency, and timeout limits
    fit the host and database capacity.
 5. For `replace`, verify that enough database storage exists for the active,
@@ -30,6 +31,59 @@ Source-specific consistency and resume constraints are part of the
 [configuration contract](configuration.md). In particular, PostgreSQL
 snapshot modes, Neo4j per-mapping transactions, Cosmos paging, and CSV file
 stability have different restart boundaries.
+
+## Bounded source profiles
+
+`agefreighter profile JOB` validates and resolves the configured source
+mappings, then reads only the source. It never resolves the target credential,
+opens the target, creates metadata, writes rejects, or changes the load-job
+document. JSON is the default; `--format markdown` uses the shared deterministic
+report renderer.
+
+```sh
+agefreighter profile job.yaml
+agefreighter profile --sample-size 25000 job.yaml
+agefreighter profile --mode exact --format markdown job.yaml
+```
+
+Sample mode defaults to 10,000 rows and is capped at 100,000 requested rows,
+64 MiB each of raw and decoded input, 100,000 connector pages, 1,000 Cosmos
+request units, 64 resolved mappings, 256 properties, 1,024 distinct hashes per
+property, and the job's operation timeout. Discovery and sampling share these
+cumulative limits; every successful connector page response is charged once
+(including an empty terminal PostgreSQL cursor/keyset response), and malformed
+or unmapped input is included. A reached bound is `unknown` and the report outcome
+is `incomplete`; observed counts are never extrapolated into a false total.
+Exact mode is explicit approval to stream each configured mapping, including
+Cosmos cross-partition queries. It still fails closed at 1,000,000 rows, 1 GiB
+each of raw and decoded input, 1,000,000 pages, 10,000 request units, and the
+operation timeout, so it is exact only when discovery and every mapping reach
+end of input.
+
+CSV uses the configured delimiter, quote, escape, header, encoding, and null
+rules and reports cumulative input-byte telemetry. PostgreSQL executes the configured
+queries unchanged in the connector's repeatable-read, read-only snapshot; it
+does not add `COUNT(*)`, `ANALYZE`, or write statements. Neo4j and Cosmos reuse
+their bounded discovery and read-only iterator paths. Cosmos Gremlin profile
+discovery uses one bounded catalog scan rather than separate large vertex and
+edge scans. Connector retry and rate-limit behavior is unchanged.
+
+Reports contain only aggregate facts: resolved labels and endpoint-label
+combinations, sampled rows and bytes, missing identity/endpoint/property
+signals, nulls, observed value kinds, hashed distinct-value indicators, value
+widths, and non-binding storage ranges. No raw value, record identity, source
+position, query, DSN, credential reference, secret, or continuation token is
+rendered. Storage ranges are capacity indicators, not promises: graph data is
+modeled at 2–4 times observed logical bytes, identity metadata at 128–384 bytes
+per observed row, staging at 1–2 times logical bytes, and WAL at 1–2 times the
+graph high range. Replace-mode ranges also include a shadow and retained
+backup. Migration time remains unavailable unless a trustworthy recorded or
+user-selected throughput baseline exists.
+
+Source versions not exposed by the existing iterator contract and other
+unavailable facts remain explicitly unavailable, preventing a false `pass`.
+The report contract is
+[`source-profile.schema.json`](source-profile.schema.json).
 
 ## Failure and recovery
 

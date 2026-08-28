@@ -102,6 +102,7 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		{"doctor", "--target", "missing.yaml"},
 		{"doctor", "history", "--target", "missing.yaml"},
 		{"verify", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
+		{"profile", "missing.yaml"},
 		{"cleanup", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 	}
 	for _, args := range tests {
@@ -109,6 +110,58 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		if err := Execute(command, args); err == nil {
 			t.Fatalf("Execute(%v) error = nil", args)
 		}
+	}
+}
+
+func TestProfileCommandValidatesFlagsBeforeReadingJob(t *testing.T) {
+	tests := [][]string{
+		{"profile", "--mode", "arbitrary", "missing.yaml"},
+		{"profile", "--sample-size", "0", "missing.yaml"},
+		{
+			"profile", "--sample-size",
+			fmt.Sprint(app.MaxProfileSampleSize + 1), "missing.yaml",
+		},
+		{"profile", "--format", "yaml", "missing.yaml"},
+	}
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) succeeded", args)
+		}
+	}
+}
+
+func TestProfileCommandEmitsSourceOnlyReport(t *testing.T) {
+	directory := t.TempDir()
+	vertices := filepath.Join(directory, "vertices.csv")
+	edges := filepath.Join(directory, "edges.csv")
+	if err := os.WriteFile(vertices, []byte("id,name\np1,Alice\np2,Bob\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(edges, []byte("id,start,end\ne1,p1,p2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	job := cliTestLoadJob("profile_target_not_opened", vertices, edges)
+	job.Target.Connection = config.SecretRef{Env: "PROFILE_CLI_TARGET_MUST_NOT_BE_READ"}
+	data, err := yaml.Marshal(job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(directory, "job.yaml")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	command := NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"profile", "--mode", "exact", "--format", "markdown", path,
+	}); err != nil {
+		t.Fatalf("profile command error = %v", err)
+	}
+	if !strings.Contains(output.String(), "# agefreighter profile report") ||
+		strings.Contains(output.String(), "Alice") ||
+		strings.Contains(output.String(), "p1") {
+		t.Fatalf("profile output = %s", output.String())
 	}
 }
 

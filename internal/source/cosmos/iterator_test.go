@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/rioriost/agefreighter/internal/config"
+	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
 
@@ -664,11 +665,11 @@ func TestIteratorTelemetryAndThrottleWithoutTokenLeakage(t *testing.T) {
 	client.script("people", "SELECT * FROM c",
 		fakePage{
 			items: [][]byte{jsonItem(`{"id":"p1"}`)}, hasContinuation: true,
-			continuationToken: "super-secret-continuation-value", requestCharge: 2.5, failedRequestCount: 1,
+			continuationToken: "super-secret-continuation-value", requestCharge: 2.5,
+			failedRequestCount: 1, throttledCount: 3,
 		},
 		fakePage{items: [][]byte{jsonItem(`{"id":"p2"}`)}, requestCharge: 1.5},
 	)
-	client.addThrottled(3)
 
 	iterator, err := NewIterator(context.Background(), IteratorOptions{
 		Namespace: "ns", Source: source, Client: client,
@@ -688,6 +689,9 @@ func TestIteratorTelemetryAndThrottleWithoutTokenLeakage(t *testing.T) {
 	if telemetry.RequestCharge != 4.0 {
 		t.Errorf("RequestCharge = %v, want 4.0", telemetry.RequestCharge)
 	}
+	if telemetry.RawInputBytes == 0 || telemetry.DecodedInputBytes == 0 {
+		t.Errorf("input byte telemetry = %#v", telemetry)
+	}
 	if telemetry.FailedRequestAttempts != 1 {
 		t.Errorf("FailedRequestAttempts = %d, want 1", telemetry.FailedRequestAttempts)
 	}
@@ -699,6 +703,93 @@ func TestIteratorTelemetryAndThrottleWithoutTokenLeakage(t *testing.T) {
 	}
 	if strings.Contains(fmt.Sprintf("%+v", telemetry), "super-secret-continuation-value") {
 		t.Fatal("telemetry snapshot must never contain the raw continuation token")
+	}
+}
+
+func TestIteratorChargesTerminalPageFailureAttempt(t *testing.T) {
+	source := baseVertexSource()
+	client := newFakeClient()
+	client.script("people", "SELECT * FROM c", fakePage{
+		nextPageErr: errors.New("terminal request failure"),
+	})
+	budget := sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+		Rows: 10, Pages: 10,
+	})
+	iterator, err := NewIterator(t.Context(), IteratorOptions{
+		Namespace: "ns", Source: source, Client: client, ProfileBudget: budget,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer iterator.Close()
+	if _, err := iterator.Next(t.Context()); err == nil ||
+		!strings.Contains(err.Error(), "terminal request failure") {
+		t.Fatalf("Next() error = %v", err)
+	}
+	telemetry := iterator.Telemetry()
+	usage, _ := budget.Snapshot()
+	if telemetry.FailedRequestAttempts != 1 || telemetry.Pages != 0 {
+		t.Fatalf("telemetry = %#v", telemetry)
+	}
+	if usage.FailedRequestAttempts != 1 || usage.Pages != 0 {
+		t.Fatalf("budget usage = %#v", usage)
+	}
+}
+
+func TestIteratorSuccessfulPageRetryCountIsExact(t *testing.T) {
+	source := baseVertexSource()
+	client := newFakeClient()
+	client.script("people", "SELECT * FROM c", fakePage{
+		items:              [][]byte{jsonItem(`{"id":"p1"}`)},
+		failedRequestCount: 2,
+	})
+	budget := sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+		Rows: 10, Pages: 10,
+	})
+	iterator, err := NewIterator(t.Context(), IteratorOptions{
+		Namespace: "ns", Source: source, Client: client, ProfileBudget: budget,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer iterator.Close()
+	if _, err := iterator.Next(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	telemetry := iterator.Telemetry()
+	usage, _ := budget.Snapshot()
+	if telemetry.FailedRequestAttempts != 2 {
+		t.Fatalf("failed request telemetry = %d, want 2", telemetry.FailedRequestAttempts)
+	}
+	if usage.FailedRequestAttempts != 2 {
+		t.Fatalf("failed request budget usage = %d, want 2", usage.FailedRequestAttempts)
+	}
+}
+
+func TestIteratorDoesNotChargeCancellationAsFailedAttempt(t *testing.T) {
+	source := baseVertexSource()
+	client := newFakeClient()
+	client.script("people", "SELECT * FROM c", fakePage{
+		nextPageErr: context.Canceled,
+	})
+	budget := sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+		Rows: 10, Pages: 10,
+	})
+	iterator, err := NewIterator(t.Context(), IteratorOptions{
+		Namespace: "ns", Source: source, Client: client, ProfileBudget: budget,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer iterator.Close()
+	if _, err := iterator.Next(t.Context()); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Next() error = %v", err)
+	}
+	telemetry := iterator.Telemetry()
+	usage, _ := budget.Snapshot()
+	if telemetry.FailedRequestAttempts != 0 ||
+		usage.FailedRequestAttempts != 0 {
+		t.Fatalf("telemetry=%#v usage=%#v", telemetry, usage)
 	}
 }
 

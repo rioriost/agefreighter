@@ -189,6 +189,19 @@ func runSourceModeMatrix(
 				fmt.Sprintf("%s-%s.yaml", connector, phase.mode),
 				job,
 			)
+			if phase.mode == config.LoadCreate {
+				profile, profileErr := SourceProfile(
+					t.Context(),
+					path,
+					ProfileOptions{Mode: ProfileSample, SampleSize: 100},
+				)
+				if profileErr != nil {
+					t.Fatalf("SourceProfile(%s): %v", connector, profileErr)
+				}
+				if profile.Command != "profile" || len(profile.Sections) == 0 {
+					t.Fatalf("SourceProfile(%s) = %#v", connector, profile)
+				}
+			}
 			result, loadErr := Load(t.Context(), path)
 			if result.JobID != "" {
 				registerCleanup(matrixT, targetDSN, graph, result.JobID)

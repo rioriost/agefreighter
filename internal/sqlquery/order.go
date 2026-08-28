@@ -176,6 +176,44 @@ func HasFinalTopLevelOrderByField(query, field string) bool {
 	return tokens[next] == ","
 }
 
+// HasTopLevelOrderByField reports whether the final top-level ORDER BY starts
+// with field ascending. Unlike HasFinalTopLevelOrderByField, it permits SQL
+// pagination clauses after the ordering expression.
+func HasTopLevelOrderByField(query, field string) bool {
+	tokens := topLevelTokens(query)
+	orderIndex := -1
+	for index := 0; index+1 < len(tokens); index++ {
+		if strings.EqualFold(tokens[index], "union") {
+			return false
+		}
+		if strings.EqualFold(tokens[index], "order") &&
+			strings.EqualFold(tokens[index+1], "by") {
+			orderIndex = index
+		}
+	}
+	if orderIndex < 0 || orderIndex+2 >= len(tokens) ||
+		tokens[orderIndex+2] != field {
+		return false
+	}
+	next := orderIndex + 3
+	if next >= len(tokens) {
+		return true
+	}
+	if strings.EqualFold(tokens[next], "desc") || tokens[next] == "." {
+		return false
+	}
+	if strings.EqualFold(tokens[next], "asc") {
+		next++
+		if next >= len(tokens) {
+			return true
+		}
+	}
+	return tokens[next] == "," ||
+		strings.EqualFold(tokens[next], "limit") ||
+		strings.EqualFold(tokens[next], "offset") ||
+		strings.EqualFold(tokens[next], "fetch")
+}
+
 func topLevelTokens(query string) []string {
 	var tokens []string
 	depth := 0

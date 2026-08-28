@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/rioriost/agefreighter/internal/config"
+	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 )
 
 const maxGremlinMappings = 1_024
@@ -41,6 +42,15 @@ func InterpretGremlinDocuments(
 	source config.CosmosSource,
 	client QueryClient,
 ) (config.CosmosSource, error) {
+	return InterpretGremlinDocumentsBounded(ctx, source, client, nil)
+}
+
+func InterpretGremlinDocumentsBounded(
+	ctx context.Context,
+	source config.CosmosSource,
+	client QueryClient,
+	budget *sourcecontract.ProfileBudget,
+) (config.CosmosSource, error) {
 	if ctx == nil {
 		return config.CosmosSource{}, errors.New(
 			"Cosmos Gremlin interpretation context is required",
@@ -56,11 +66,27 @@ func InterpretGremlinDocuments(
 			"Cosmos Gremlin interpretation configuration is required",
 		)
 	}
+	var initialThrottled int64
+	if observer, ok := client.(ThrottleObserver); ok && budget != nil {
+		initialThrottled = observer.ThrottledRequests()
+		defer func() {
+			current := observer.ThrottledRequests()
+			if current > initialThrottled {
+				_ = budget.Charge(sourcecontract.ProfileBudgetUsage{
+					ThrottledRequests: current - initialThrottled,
+				})
+			}
+		}()
+	}
 	options := *source.Gremlin
+	if budget != nil {
+		return interpretGremlinCatalogBounded(ctx, source, client, options, budget)
+	}
 	labels, err := discoverGremlinLabels(ctx, client, source, options)
 	if err != nil {
 		return config.CosmosSource{}, err
 	}
+
 	if len(labels) == 0 {
 		return config.CosmosSource{}, errors.New(
 			"Cosmos Gremlin interpretation found no matching vertices",
@@ -82,6 +108,152 @@ func InterpretGremlinDocuments(
 	}
 	source.Edges = make([]config.CosmosEdgeQuery, len(edges))
 	for index, edge := range edges {
+		mapping, err := gremlinEdgeQuery(options, edge)
+		if err != nil {
+			return config.CosmosSource{}, err
+		}
+		source.Edges[index] = mapping
+	}
+	return source, nil
+}
+
+const gremlinCatalogQuery = `SELECT
+	c._isEdge AS isEdge,
+	c.label AS label,
+	c._vertexLabel AS startLabel,
+	c._sinkLabel AS endLabel
+FROM c
+WHERE IS_STRING(c.label)
+	AND (
+		NOT IS_DEFINED(c._isEdge)
+		OR (
+			c._isEdge = true
+			AND IS_STRING(c._vertexLabel)
+			AND IS_STRING(c._sinkLabel)
+		)
+	)`
+
+// interpretGremlinCatalogBounded uses one container scan so profiling never
+// performs separate large vertex and edge discovery passes.
+func interpretGremlinCatalogBounded(
+	ctx context.Context,
+	source config.CosmosSource,
+	client QueryClient,
+	options config.CosmosGremlin,
+	budget *sourcecontract.ProfileBudget,
+) (config.CosmosSource, error) {
+	labels := make(map[string]struct{})
+	edges := make(map[gremlinEdgeMapping]struct{})
+	err := visitGremlinDiscovery(
+		ctx, client, options.Container, gremlinCatalogQuery, nil,
+		source.PageSize, options.MaxDiscoveryDocuments, budget,
+		func(raw []byte) error {
+			value, err := decodeDocument(raw)
+			if err != nil {
+				return err
+			}
+			document, ok := value.(map[string]any)
+			if !ok {
+				return errors.New("Cosmos Gremlin discovery returned an invalid catalog row")
+			}
+			label, ok := document["label"].(string)
+			if !ok || !validGremlinName(label) {
+				return errors.New("Cosmos Gremlin discovery returned an invalid label")
+			}
+			isEdge, _ := document["isEdge"].(bool)
+			if !isEdge {
+				if !strings.HasPrefix(label, options.LabelPrefix) {
+					return nil
+				}
+				if _, exists := labels[label]; !exists {
+					labels[label] = struct{}{}
+					if err := budget.Charge(sourcecontract.ProfileBudgetUsage{Labels: 1}); err != nil {
+						return err
+					}
+					if len(labels) > options.MaxLabels {
+						return fmt.Errorf(
+							"Cosmos Gremlin discovery found more than %d vertex labels",
+							options.MaxLabels,
+						)
+					}
+				}
+				return nil
+			}
+			start, startOK := document["startLabel"].(string)
+			end, endOK := document["endLabel"].(string)
+			if !startOK || !endOK || !validGremlinName(start) || !validGremlinName(end) {
+				return errors.New("Cosmos Gremlin discovery returned an invalid edge mapping")
+			}
+			if !strings.HasPrefix(label, options.RelationshipTypePrefix) ||
+				!strings.HasPrefix(start, options.LabelPrefix) ||
+				!strings.HasPrefix(end, options.LabelPrefix) {
+				return nil
+			}
+			mapping := gremlinEdgeMapping{label: label, start: start, end: end}
+			if _, exists := edges[mapping]; !exists {
+				edges[mapping] = struct{}{}
+				if err := budget.Charge(sourcecontract.ProfileBudgetUsage{Labels: 1}); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return config.CosmosSource{}, err
+	}
+	if len(labels) == 0 {
+		return config.CosmosSource{}, errors.New(
+			"Cosmos Gremlin interpretation found no matching vertices",
+		)
+	}
+	labelList := make([]string, 0, len(labels))
+	for label := range labels {
+		labelList = append(labelList, label)
+	}
+	slices.Sort(labelList)
+	edgeList := make([]gremlinEdgeMapping, 0, len(edges))
+	relationshipTypes := make(map[string]struct{})
+	for edge := range edges {
+		if _, startOK := labels[edge.start]; startOK {
+			if _, endOK := labels[edge.end]; endOK {
+				relationshipTypes[edge.label] = struct{}{}
+				if len(relationshipTypes) > options.MaxLabels {
+					return config.CosmosSource{}, fmt.Errorf(
+						"Cosmos Gremlin discovery found more than %d relationship types",
+						options.MaxLabels,
+					)
+				}
+				edgeList = append(edgeList, edge)
+				if len(labelList)+len(edgeList) > maxGremlinMappings {
+					return config.CosmosSource{}, fmt.Errorf(
+						"Cosmos Gremlin discovery exceeds %d generated mappings",
+						maxGremlinMappings,
+					)
+				}
+			}
+		}
+	}
+	slices.SortFunc(edgeList, func(left, right gremlinEdgeMapping) int {
+		if compared := strings.Compare(left.label, right.label); compared != 0 {
+			return compared
+		}
+		if compared := strings.Compare(left.start, right.start); compared != 0 {
+			return compared
+		}
+		return strings.Compare(left.end, right.end)
+	})
+	source.Gremlin = nil
+	source.Vertices = make([]config.CosmosVertexQuery, len(labelList))
+	for index, label := range labelList {
+		mapping, err := gremlinVertexQuery(options, label)
+		if err != nil {
+			return config.CosmosSource{}, err
+		}
+		source.Vertices[index] = mapping
+	}
+	source.Edges = make([]config.CosmosEdgeQuery, len(edgeList))
+	for index, edge := range edgeList {
 		mapping, err := gremlinEdgeQuery(options, edge)
 		if err != nil {
 			return config.CosmosSource{}, err
@@ -114,6 +286,7 @@ func discoverGremlinLabels(
 		parameters,
 		source.PageSize,
 		options.MaxDiscoveryDocuments,
+		nil,
 		func(raw []byte) error {
 			value, err := decodeDocument(raw)
 			if err != nil {
@@ -183,6 +356,7 @@ func discoverGremlinEdges(
 		parameters,
 		source.PageSize,
 		options.MaxDiscoveryDocuments,
+		nil,
 		func(raw []byte) error {
 			value, err := decodeDocument(raw)
 			if err != nil {
@@ -248,6 +422,7 @@ func visitGremlinDiscovery(
 	parameters []Parameter,
 	pageSize int,
 	maxDocuments int,
+	budget *sourcecontract.ProfileBudget,
 	visit func([]byte) error,
 ) error {
 	hasContinuation := false
@@ -255,6 +430,9 @@ func visitGremlinDiscovery(
 	documents := 0
 	for {
 		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if err := budget.Full(sourcecontract.ProfileBudgetLabels); err != nil {
 			return err
 		}
 		pager, err := client.NewQueryPager(
@@ -273,15 +451,41 @@ func visitGremlinDiscovery(
 		}
 		page, err := pager.NextPage(ctx)
 		if err != nil {
+			if ctx.Err() == nil &&
+				!errors.Is(err, context.Canceled) &&
+				!errors.Is(err, context.DeadlineExceeded) {
+				_ = budget.Charge(sourcecontract.ProfileBudgetUsage{
+					FailedRequestAttempts: 1,
+				})
+			}
 			return fmt.Errorf("fetch Cosmos Gremlin discovery page: %w", err)
 		}
+		var rawBytes int64
 		for _, item := range page.Items {
+			rawBytes += int64(len(item))
+		}
+		if err := budget.Charge(sourcecontract.ProfileBudgetUsage{
+			Pages: 1, RawInputBytes: rawBytes,
+			RequestCharge:         page.RequestCharge,
+			FailedRequestAttempts: int64(page.FailedRequestCount),
+		}); err != nil {
+			return err
+		}
+		for _, item := range page.Items {
+			if err := budget.CanProcess(); err != nil {
+				return err
+			}
 			documents++
 			if documents > maxDocuments {
 				return fmt.Errorf(
 					"Cosmos Gremlin discovery scanned more than %d documents",
 					maxDocuments,
 				)
+			}
+			if err := budget.Charge(sourcecontract.ProfileBudgetUsage{
+				Rows: 1, DecodedInputBytes: int64(len(item)),
+			}); err != nil {
+				return err
 			}
 			if err := visit(item); err != nil {
 				return err

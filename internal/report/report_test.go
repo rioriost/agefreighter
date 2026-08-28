@@ -97,6 +97,65 @@ func TestGoldenVerificationReportContracts(t *testing.T) {
 	}
 }
 
+func TestGoldenSourceProfileReportContracts(t *testing.T) {
+	document := New("profile", time.Date(2026, 8, 28, 0, 0, 0, 0, time.UTC))
+	document.Outcome = OutcomeIncomplete
+	document.Checks = []Check{
+		{
+			ID: "source-read", Status: CheckUnknown,
+			Summary: "source profile was truncated by a configured bound",
+			Detail:  "limit=rows",
+		},
+		{
+			ID: "source-version", Status: CheckUnavailable,
+			Summary: "source version is not exposed by the connector iterator",
+		},
+	}
+	document.Warnings = []Finding{{
+		Code:    "PROFILE_TRUNCATED",
+		Message: "reported counts and statistics are lower-bound observations from a bounded prefix",
+	}}
+	document.IncompleteChecks = []string{"source-profile"}
+	document.Sections = []Section{
+		{
+			Title: "Source",
+			Fields: []Field{
+				{Name: "connector", Value: "csv", Status: CheckPass},
+				{Name: "mode", Value: "sample", Status: CheckPass},
+			},
+		},
+		{
+			Title: "Vertex labels",
+			Fields: []Field{{
+				Name:   "001",
+				Value:  "label=Person,sampledRows=2,countRange=2..unknown,countMethod=observed-bounded-prefix,configuredProperties=1",
+				Status: CheckPass,
+			}},
+		},
+	}
+	for _, format := range []Format{FormatJSON, FormatMarkdown} {
+		t.Run(string(format), func(t *testing.T) {
+			got, err := Render(document, format)
+			if err != nil {
+				t.Fatalf("Render() error = %v", err)
+			}
+			path := filepath.Join("testdata", "source-profile.golden."+string(format))
+			if os.Getenv("UPDATE_REPORT_GOLDEN") == "1" {
+				if err := os.WriteFile(path, got, 0o600); err != nil {
+					t.Fatalf("WriteFile() error = %v", err)
+				}
+			}
+			want, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("ReadFile(%s) error = %v", path, err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Fatalf("%s golden mismatch:\n%s", format, got)
+			}
+		})
+	}
+}
+
 func TestMigrationReportJSONSchemaContract(t *testing.T) {
 	data, err := os.ReadFile("../../docs/reference/migration-report.schema.json")
 	if err != nil {
@@ -171,6 +230,34 @@ func TestDoctorReportJSONSchemaContract(t *testing.T) {
 	for _, name := range required {
 		if name == "job" {
 			t.Fatal("doctor schema requires a migration job ID")
+		}
+	}
+}
+
+func TestSourceProfileJSONSchemaContract(t *testing.T) {
+	data, err := os.ReadFile("../../docs/reference/source-profile.schema.json")
+	if err != nil {
+		t.Fatalf("ReadFile(schema) error = %v", err)
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(data, &schema); err != nil {
+		t.Fatalf("schema JSON error = %v", err)
+	}
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		t.Fatal("schema properties are missing")
+	}
+	version, ok := properties["schemaVersion"].(map[string]any)
+	if !ok || version["const"] != float64(SchemaVersion) {
+		t.Fatalf("schema version contract = %#v", version)
+	}
+	command, ok := properties["command"].(map[string]any)
+	if !ok || command["const"] != "profile" {
+		t.Fatalf("schema command contract = %#v", command)
+	}
+	for _, forbidden := range []string{"job", "target"} {
+		if _, found := properties[forbidden]; found {
+			t.Fatalf("source-only profile schema defines %q", forbidden)
 		}
 	}
 }

@@ -99,3 +99,26 @@ func TestHasFinalTopLevelOrderByField(t *testing.T) {
 		}
 	}
 }
+
+func TestHasTopLevelOrderByFieldAllowsSQLPagination(t *testing.T) {
+	t.Parallel()
+	for _, query := range []string{
+		"SELECT id FROM people ORDER BY id LIMIT $2",
+		"SELECT id FROM people ORDER BY id ASC OFFSET 1",
+		"SELECT id FROM people ORDER BY id, created_at FETCH FIRST 10 ROWS ONLY",
+	} {
+		if !HasTopLevelOrderByField(query, "id") {
+			t.Fatalf("HasTopLevelOrderByField(%q) rejected stable ordering", query)
+		}
+	}
+	for _, query := range []string{
+		"SELECT id FROM people ORDER BY created_at LIMIT $2",
+		"SELECT id FROM people ORDER BY id DESC LIMIT $2",
+		"SELECT id FROM people ORDER BY people.id LIMIT $2",
+		"SELECT id FROM a UNION SELECT id FROM b ORDER BY id",
+	} {
+		if HasTopLevelOrderByField(query, "id") {
+			t.Fatalf("HasTopLevelOrderByField(%q) accepted unsafe ordering", query)
+		}
+	}
+}

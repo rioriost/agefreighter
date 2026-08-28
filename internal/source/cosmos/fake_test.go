@@ -15,6 +15,7 @@ type fakePage struct {
 	hasContinuation    bool
 	requestCharge      float64
 	failedRequestCount int
+	throttledCount     int64
 	nextPageErr        error
 	newQueryPagerErr   error
 }
@@ -105,6 +106,7 @@ func (c *fakeClient) NewQueryPager(
 	}
 	page := pages[0]
 	c.queue[key] = pages[1:]
+	c.addThrottled(page.throttledCount)
 	if page.newQueryPagerErr != nil {
 		return nil, page.newQueryPagerErr
 	}

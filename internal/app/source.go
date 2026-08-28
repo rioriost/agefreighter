@@ -43,11 +43,19 @@ func resolveSource(
 	ctx context.Context,
 	job config.LoadJob,
 ) (config.LoadJob, error) {
+	return resolveSourceBounded(ctx, job, nil)
+}
+
+func resolveSourceBounded(
+	ctx context.Context,
+	job config.LoadJob,
+	budget *sourcecontract.ProfileBudget,
+) (config.LoadJob, error) {
 	switch job.Source.Type {
 	case config.SourceNeo4j:
-		return resolveNeo4jDiscovery(ctx, job)
+		return resolveNeo4jDiscovery(ctx, job, budget)
 	case config.SourceCosmos:
-		return resolveCosmosGremlin(ctx, job)
+		return resolveCosmosGremlin(ctx, job, budget)
 	default:
 		return job, nil
 	}
@@ -56,6 +64,7 @@ func resolveSource(
 func resolveNeo4jDiscovery(
 	ctx context.Context,
 	job config.LoadJob,
+	budget *sourcecontract.ProfileBudget,
 ) (config.LoadJob, error) {
 	source := job.Source.Neo4j
 	if source == nil ||
@@ -85,10 +94,11 @@ func resolveNeo4jDiscovery(
 	if err != nil {
 		return config.LoadJob{}, err
 	}
-	resolved, discoverErr := sourceneo4j.DiscoverMappings(
+	resolved, discoverErr := sourceneo4j.DiscoverMappingsBounded(
 		ctx,
 		*source,
 		client,
+		budget,
 	)
 	closeErr := client.Close()
 	if err := errors.Join(discoverErr, closeErr); err != nil {
@@ -110,6 +120,7 @@ func resolveNeo4jDiscovery(
 func resolveCosmosGremlin(
 	ctx context.Context,
 	job config.LoadJob,
+	budget *sourcecontract.ProfileBudget,
 ) (config.LoadJob, error) {
 	source := job.Source.Cosmos
 	if source == nil ||
@@ -125,10 +136,11 @@ func resolveCosmosGremlin(
 	if err != nil {
 		return config.LoadJob{}, err
 	}
-	resolved, interpretErr := sourcecosmos.InterpretGremlinDocuments(
+	resolved, interpretErr := sourcecosmos.InterpretGremlinDocumentsBounded(
 		ctx,
 		*source,
 		client,
+		budget,
 	)
 	closeErr := client.Close()
 	if err := errors.Join(interpretErr, closeErr); err != nil {

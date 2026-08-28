@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/rioriost/agefreighter/internal/config"
+	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 )
 
 const (
@@ -43,6 +44,15 @@ func DiscoverMappings(
 	source config.Neo4jSource,
 	client Client,
 ) (config.Neo4jSource, error) {
+	return DiscoverMappingsBounded(ctx, source, client, nil)
+}
+
+func DiscoverMappingsBounded(
+	ctx context.Context,
+	source config.Neo4jSource,
+	client Client,
+	budget *sourcecontract.ProfileBudget,
+) (config.Neo4jSource, error) {
 	if ctx == nil {
 		return config.Neo4jSource{}, errors.New(
 			"Neo4j discovery context is required",
@@ -59,7 +69,7 @@ func DiscoverMappings(
 		)
 	}
 	options := *source.Discovery
-	labels, err := discoverLabels(ctx, client, options)
+	labels, err := discoverLabels(ctx, client, options, budget)
 	if err != nil {
 		return config.Neo4jSource{}, err
 	}
@@ -75,6 +85,7 @@ func DiscoverMappings(
 			client,
 			vertexPropertyQuery(label, labels),
 			options.MaxProperties,
+			budget,
 		)
 		if err != nil {
 			return config.Neo4jSource{}, fmt.Errorf(
@@ -88,6 +99,7 @@ func DiscoverMappings(
 				ctx,
 				client,
 				vertexPartitionCountQuery(label, labels),
+				budget,
 			)
 			if err != nil {
 				return config.Neo4jSource{}, fmt.Errorf(
@@ -124,6 +136,8 @@ func DiscoverMappings(
 		"relationshipType",
 		options.RelationshipTypePrefix,
 		options.MaxLabels,
+		budget,
+		sourcecontract.ProfileBudgetUsage{Labels: 1},
 	)
 	if err != nil {
 		return config.Neo4jSource{}, fmt.Errorf(
@@ -138,6 +152,7 @@ func DiscoverMappings(
 			client,
 			relationshipType,
 			labels,
+			budget,
 		)
 		if err != nil {
 			return config.Neo4jSource{}, err
@@ -150,6 +165,7 @@ func DiscoverMappings(
 			client,
 			relationshipPropertyQuery(relationshipType),
 			options.MaxProperties,
+			budget,
 		)
 		if err != nil {
 			return config.Neo4jSource{}, fmt.Errorf(
@@ -195,6 +211,7 @@ func discoverLabels(
 	ctx context.Context,
 	client Client,
 	options config.Neo4jDiscovery,
+	budget *sourcecontract.ProfileBudget,
 ) ([]discoveredLabel, error) {
 	names, err := discoverStrings(
 		ctx,
@@ -203,6 +220,8 @@ func discoverLabels(
 		"label",
 		options.LabelPrefix,
 		options.MaxLabels,
+		budget,
+		sourcecontract.ProfileBudgetUsage{Labels: 1},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("discover Neo4j labels: %w", err)
@@ -214,7 +233,13 @@ func discoverLabels(
 	if options.LabelPrefix != "" {
 		return labels, nil
 	}
-	count, err := discoverCount(ctx, client, discoverUnlabeledQuery)
+	count, err := discoverCount(
+		ctx,
+		client,
+		discoverUnlabeledQuery,
+		budget,
+		sourcecontract.ProfileBudgetLabels,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("discover unlabeled Neo4j vertices: %w", err)
 	}
@@ -226,6 +251,9 @@ func discoverLabels(
 			)
 		}
 		labels = append(labels, discoveredLabel{target: unlabeledTargetLabel})
+		if err := budget.Charge(sourcecontract.ProfileBudgetUsage{Labels: 1}); err != nil {
+			return nil, err
+		}
 	}
 	slices.SortFunc(labels, func(left, right discoveredLabel) int {
 		return strings.Compare(left.target, right.target)
@@ -247,19 +275,48 @@ func discoverStrings(
 	field string,
 	prefix string,
 	maximum int,
+	budget *sourcecontract.ProfileBudget,
+	catalogCharge sourcecontract.ProfileBudgetUsage,
 ) ([]string, error) {
-	stream, err := client.Query(ctx, query, nil)
-	if err != nil {
+	var dimension sourcecontract.ProfileBudgetDimension
+	if catalogCharge.Labels != 0 {
+		dimension |= sourcecontract.ProfileBudgetLabels
+	}
+	if catalogCharge.Properties != 0 {
+		dimension |= sourcecontract.ProfileBudgetProperties
+	}
+	if err := budget.Full(dimension); err != nil {
 		return nil, err
 	}
+	stream, err := client.Query(ctx, query, nil)
+	if err != nil {
+		_ = budget.Charge(sourcecontract.ProfileBudgetUsage{FailedRequestAttempts: 1})
+		return nil, err
+	}
+	if err := budget.Charge(sourcecontract.ProfileBudgetUsage{Pages: 1}); err != nil {
+		return nil, errors.Join(err, stream.Close(ctx))
+	}
 	var values []string
+	seen := make(map[string]struct{})
 	for {
+		if err := budget.CanProcess(); err != nil {
+			return nil, errors.Join(err, stream.Close(ctx))
+		}
 		record, nextErr := stream.Next(ctx)
 		if errors.Is(nextErr, io.EOF) {
 			break
 		}
 		if nextErr != nil {
 			return nil, errors.Join(nextErr, stream.Close(ctx))
+		}
+		size, sizeErr := estimateRecordSize(record, int64(^uint64(0)>>1))
+		if err := budget.Charge(sourcecontract.ProfileBudgetUsage{
+			Rows: 1, DecodedInputBytes: size,
+		}); err != nil {
+			return nil, errors.Join(err, stream.Close(ctx))
+		}
+		if sizeErr != nil {
+			return nil, errors.Join(sizeErr, stream.Close(ctx))
 		}
 		raw, found := record.Get(field)
 		value, ok := raw.(string)
@@ -271,6 +328,13 @@ func discoverStrings(
 		}
 		if !strings.HasPrefix(value, prefix) {
 			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		if err := budget.Charge(catalogCharge); err != nil {
+			return nil, errors.Join(err, stream.Close(ctx))
 		}
 		values = append(values, value)
 		if len(values) > maximum {
@@ -296,14 +360,32 @@ func discoverCount(
 	ctx context.Context,
 	client Client,
 	query string,
+	budget *sourcecontract.ProfileBudget,
+	dimensions ...sourcecontract.ProfileBudgetDimension,
 ) (int64, error) {
+	if err := budget.Full(dimensions...); err != nil {
+		return 0, err
+	}
 	stream, err := client.Query(ctx, query, nil)
 	if err != nil {
+		_ = budget.Charge(sourcecontract.ProfileBudgetUsage{FailedRequestAttempts: 1})
 		return 0, err
+	}
+	if err := budget.Charge(sourcecontract.ProfileBudgetUsage{Pages: 1}); err != nil {
+		return 0, errors.Join(err, stream.Close(ctx))
 	}
 	record, err := stream.Next(ctx)
 	if err != nil {
 		return 0, errors.Join(err, stream.Close(ctx))
+	}
+	size, sizeErr := estimateRecordSize(record, int64(^uint64(0)>>1))
+	if err := budget.Charge(sourcecontract.ProfileBudgetUsage{
+		Rows: 1, DecodedInputBytes: size,
+	}); err != nil {
+		return 0, errors.Join(err, stream.Close(ctx))
+	}
+	if sizeErr != nil {
+		return 0, errors.Join(sizeErr, stream.Close(ctx))
 	}
 	raw, found := record.Get("count")
 	count, ok := raw.(int64)
@@ -313,7 +395,22 @@ func discoverCount(
 			stream.Close(ctx),
 		)
 	}
-	if _, err := stream.Next(ctx); !errors.Is(err, io.EOF) {
+	if err := budget.CanProcess(); err != nil {
+		return 0, errors.Join(err, stream.Close(ctx))
+	}
+	extra, err := stream.Next(ctx)
+	if !errors.Is(err, io.EOF) {
+		if err == nil {
+			size, sizeErr := estimateRecordSize(extra, int64(^uint64(0)>>1))
+			if chargeErr := budget.Charge(sourcecontract.ProfileBudgetUsage{
+				Rows: 1, DecodedInputBytes: size,
+			}); chargeErr != nil {
+				return 0, errors.Join(chargeErr, stream.Close(ctx))
+			}
+			if sizeErr != nil {
+				return 0, errors.Join(sizeErr, stream.Close(ctx))
+			}
+		}
 		if err == nil {
 			err = errors.New("Neo4j discovery count returned multiple rows")
 		}
@@ -327,6 +424,7 @@ func discoverProperties(
 	client Client,
 	query string,
 	maxProperties int,
+	budget *sourcecontract.ProfileBudget,
 ) ([]string, error) {
 	return discoverStrings(
 		ctx,
@@ -335,6 +433,8 @@ func discoverProperties(
 		"property",
 		"",
 		maxProperties,
+		budget,
+		sourcecontract.ProfileBudgetUsage{Properties: 1},
 	)
 }
 
@@ -343,23 +443,43 @@ func discoverEndpointPairs(
 	client Client,
 	relationshipType string,
 	labels []discoveredLabel,
+	budget *sourcecontract.ProfileBudget,
 ) ([]endpointPair, error) {
+	if err := budget.Full(sourcecontract.ProfileBudgetLabels); err != nil {
+		return nil, err
+	}
 	stream, err := client.Query(
 		ctx,
 		relationshipPairQuery(relationshipType),
 		nil,
 	)
 	if err != nil {
+		_ = budget.Charge(sourcecontract.ProfileBudgetUsage{FailedRequestAttempts: 1})
 		return nil, err
+	}
+	if err := budget.Charge(sourcecontract.ProfileBudgetUsage{Pages: 1}); err != nil {
+		return nil, errors.Join(err, stream.Close(ctx))
 	}
 	pairs := make(map[endpointPair]struct{})
 	for {
+		if err := budget.CanProcess(); err != nil {
+			return nil, errors.Join(err, stream.Close(ctx))
+		}
 		record, nextErr := stream.Next(ctx)
 		if errors.Is(nextErr, io.EOF) {
 			break
 		}
 		if nextErr != nil {
 			return nil, errors.Join(nextErr, stream.Close(ctx))
+		}
+		size, sizeErr := estimateRecordSize(record, int64(^uint64(0)>>1))
+		if err := budget.Charge(sourcecontract.ProfileBudgetUsage{
+			Rows: 1, DecodedInputBytes: size,
+		}); err != nil {
+			return nil, errors.Join(err, stream.Close(ctx))
+		}
+		if sizeErr != nil {
+			return nil, errors.Join(sizeErr, stream.Close(ctx))
 		}
 		start, selected, err := endpointPrimaryLabel(
 			record,
@@ -379,7 +499,15 @@ func discoverEndpointPairs(
 		if !selected {
 			continue
 		}
-		pairs[endpointPair{start: start, end: end}] = struct{}{}
+		pair := endpointPair{start: start, end: end}
+		if _, exists := pairs[pair]; !exists {
+			if err := budget.Charge(
+				sourcecontract.ProfileBudgetUsage{Labels: 1},
+			); err != nil {
+				return nil, errors.Join(err, stream.Close(ctx))
+			}
+			pairs[pair] = struct{}{}
+		}
 		if len(pairs) > maxDiscoveryMappings {
 			return nil, errors.Join(
 				fmt.Errorf(

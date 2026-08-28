@@ -21,6 +21,7 @@ type ParserOptions struct {
 	MaxRecordBytes  int64
 	MaxFields       int
 	OptimizeRFC4180 bool
+	OnInputBytes    func(int64) error
 }
 
 type Parser struct {
@@ -101,11 +102,20 @@ func NewParser(input io.Reader, options ParserOptions) (*Parser, error) {
 
 func (parser *Parser) ReadRecord(
 	ctx context.Context,
-) ([]string, model.SourcePosition, error) {
+) (fields []string, position model.SourcePosition, resultErr error) {
+	before := parser.offset
+	defer func() {
+		if parser.options.OnInputBytes != nil && parser.offset > before {
+			if err := parser.options.OnInputBytes(parser.offset - before); err != nil {
+				fields = nil
+				resultErr = err
+			}
+		}
+	}()
 	if parser.standard != nil {
 		return parser.readStandardRecord(ctx)
 	}
-	position := model.SourcePosition{
+	position = model.SourcePosition{
 		Connector: "csv",
 		Resource:  parser.options.Resource,
 		Offset:    parser.offset,
@@ -118,7 +128,6 @@ func (parser *Parser) ReadRecord(
 	parser.recordStart = position.Offset
 
 	var (
-		fields      []string
 		field       []byte
 		quoted      bool
 		closedQuote bool

@@ -30,6 +30,7 @@ type IteratorOptions struct {
 	MaxProperties       int
 	OnMalformed         MalformedHandler
 	PreencodeProperties bool
+	ProfileBudget       *sourcecontract.ProfileBudget
 }
 
 type Iterator struct {
@@ -171,6 +172,9 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 		if err := ctx.Err(); err != nil {
 			return sourcecontract.Item{}, err
 		}
+		if err := iterator.options.ProfileBudget.CanProcess(); err != nil {
+			return sourcecontract.Item{}, iterator.fail(err)
+		}
 		if iterator.current == nil {
 			if iterator.mappingIndex >= len(iterator.mappings) {
 				iterator.exhausted = true
@@ -206,11 +210,19 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 				safeError(ctx, "read Neo4j query result", err),
 			)
 		}
-		iterator.telemetry.record()
+		rawSize, err := estimateRecordSize(record, math.MaxInt64)
+		iterator.telemetry.record(rawSize)
+		if budgetErr := iterator.options.ProfileBudget.Charge(
+			sourcecontract.ProfileBudgetUsage{
+				Rows: 1, DecodedInputBytes: rawSize,
+			},
+		); budgetErr != nil {
+			return sourcecontract.Item{}, iterator.fail(budgetErr)
+		}
 		mapping := iterator.mappings[iterator.mappingIndex]
-		key, err := extractKey(record, mapping.keyField)
-		if err != nil {
-			return sourcecontract.Item{}, iterator.fail(err)
+		key, keyErr := extractKey(record, mapping.keyField)
+		if keyErr != nil {
+			return sourcecontract.Item{}, iterator.fail(keyErr)
 		}
 		if iterator.lastKey != nil && key <= *iterator.lastKey {
 			return sourcecontract.Item{}, iterator.fail(errors.New(
@@ -220,7 +232,6 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 		iterator.lastKey = &key
 		iterator.consumed++
 
-		rawSize, err := estimateRecordSize(record, iterator.options.MaxRecordBytes)
 		if err != nil {
 			if handled := iterator.handleMalformed(ctx, mapping, err); handled != nil {
 				return sourcecontract.Item{}, iterator.fail(handled)
@@ -266,6 +277,9 @@ func (iterator *Iterator) fail(err error) error {
 }
 
 func (iterator *Iterator) openCurrent(ctx context.Context) error {
+	if err := iterator.options.ProfileBudget.Full(); err != nil {
+		return err
+	}
 	mapping := iterator.mappings[iterator.mappingIndex]
 	var afterKey any
 	if iterator.hasResume {
@@ -279,6 +293,11 @@ func (iterator *Iterator) openCurrent(ctx context.Context) error {
 		return safeError(ctx, "open Neo4j query", err)
 	}
 	iterator.telemetry.query()
+	if err := iterator.options.ProfileBudget.Charge(
+		sourcecontract.ProfileBudgetUsage{Pages: 1},
+	); err != nil {
+		return errors.Join(err, stream.Close(ctx))
+	}
 	iterator.current = stream
 	iterator.hasResume = false
 	return nil

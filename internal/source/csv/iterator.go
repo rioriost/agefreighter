@@ -41,6 +41,7 @@ type IteratorOptions struct {
 	OnMalformed         MalformedHandler
 	PreencodeProperties bool
 	OptimizeRFC4180     bool
+	ProfileBudget       *sourcecontract.ProfileBudget
 }
 
 type Iterator struct {
@@ -56,6 +57,7 @@ type Iterator struct {
 	lastPosition model.SourcePosition
 	closed       bool
 	lastCloseErr error
+	telemetry    telemetryState
 }
 
 type mappingKind uint8
@@ -188,6 +190,9 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 		if err := ctx.Err(); err != nil {
 			return sourcecontract.Item{}, err
 		}
+		if err := iterator.options.ProfileBudget.CanProcess(); err != nil {
+			return sourcecontract.Item{}, err
+		}
 		if iterator.current == nil {
 			if iterator.mappingIndex >= len(iterator.mappings) {
 				return sourcecontract.Item{}, io.EOF
@@ -199,7 +204,10 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 
 		fields, position, err := iterator.current.parser.ReadRecord(ctx)
 		if errors.Is(err, io.EOF) {
-			verifyErr := iterator.current.verifyFingerprint(ctx)
+			var verifyErr error
+			if iterator.options.ProfileBudget == nil {
+				verifyErr = iterator.current.verifyFingerprint(ctx)
+			}
 			closeErr := iterator.closeCurrent()
 			if err := errors.Join(verifyErr, closeErr); err != nil {
 				return sourcecontract.Item{}, err
@@ -208,12 +216,24 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 			continue
 		}
 		if err != nil {
+			if !errors.Is(err, sourcecontract.ErrProfileBudget) &&
+				!errors.Is(err, context.Canceled) &&
+				!errors.Is(err, context.DeadlineExceeded) {
+				_ = iterator.options.ProfileBudget.Charge(
+					sourcecontract.ProfileBudgetUsage{Rows: 1},
+				)
+			}
 			return sourcecontract.Item{}, fmt.Errorf(
 				"read CSV record at %s:%d: %w",
 				positionFromError(err, position).Resource,
 				positionFromError(err, position).Line,
 				err,
 			)
+		}
+		if err := iterator.options.ProfileBudget.Charge(
+			sourcecontract.ProfileBudgetUsage{Rows: 1},
+		); err != nil {
+			return sourcecontract.Item{}, err
 		}
 		iterator.current.recordIndex++
 		position.Token = formatResumeToken(resumeToken{
@@ -227,6 +247,7 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 		if !iterator.current.compiled.exactFields {
 			fieldCountInvalid = len(fields) < iterator.current.compiled.fieldCount
 		}
+
 		if fieldCountInvalid {
 			if handledErr := iterator.handleMalformed(ctx, MalformedRecord{
 				Position: position,
@@ -273,6 +294,25 @@ func (iterator *Iterator) Close() error {
 	return iterator.lastCloseErr
 }
 
+func (iterator *Iterator) Telemetry() sourcecontract.Telemetry {
+	return iterator.telemetry.snapshot()
+}
+
+type profileCountingReader struct {
+	input   io.Reader
+	observe func(int64) error
+}
+
+func (reader *profileCountingReader) Read(output []byte) (int, error) {
+	count, err := reader.input.Read(output)
+	if count > 0 {
+		if observeErr := reader.observe(int64(count)); observeErr != nil {
+			return count, observeErr
+		}
+	}
+	return count, err
+}
+
 func (iterator *Iterator) openCurrent(ctx context.Context) error {
 	if err := iterator.ensureManifest(ctx); err != nil {
 		return err
@@ -282,27 +322,49 @@ func (iterator *Iterator) openCurrent(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("open CSV source %q: %w", mapping.path, err)
 	}
-	actualFingerprint, err := fingerprintFile(
-		ctx,
-		file,
-		mapping.path,
-		mapping.fingerprintInput,
-	)
-	if err != nil {
+	if iterator.options.ProfileBudget == nil {
+		actualFingerprint, err := fingerprintFile(
+			ctx,
+			file,
+			mapping.path,
+			mapping.fingerprintInput,
+		)
+		if err != nil {
+			_ = file.Close()
+			return err
+		}
+		if mapping.fingerprint != "" && mapping.fingerprint != actualFingerprint {
+			_ = file.Close()
+			return errors.New("CSV source fingerprint changed while opening source")
+		}
+		mapping.fingerprint = actualFingerprint
+		iterator.mappings[iterator.mappingIndex].fingerprint = actualFingerprint
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			_ = file.Close()
+			return fmt.Errorf("rewind CSV source %q: %w", mapping.path, err)
+		}
+	}
+	if err := iterator.options.ProfileBudget.Full(); err != nil {
 		_ = file.Close()
 		return err
 	}
-	if mapping.fingerprint != "" && mapping.fingerprint != actualFingerprint {
+	iterator.telemetry.page()
+	if err := iterator.options.ProfileBudget.Charge(
+		sourcecontract.ProfileBudgetUsage{Pages: 1},
+	); err != nil {
 		_ = file.Close()
-		return errors.New("CSV source fingerprint changed while opening source")
+		return err
 	}
-	mapping.fingerprint = actualFingerprint
-	iterator.mappings[iterator.mappingIndex].fingerprint = actualFingerprint
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("rewind CSV source %q: %w", mapping.path, err)
-	}
-	buffered := bufio.NewReader(file)
+	rawInput := io.Reader(&profileCountingReader{
+		input: file,
+		observe: func(bytes int64) error {
+			iterator.telemetry.raw(bytes)
+			return iterator.options.ProfileBudget.Charge(
+				sourcecontract.ProfileBudgetUsage{RawInputBytes: bytes},
+			)
+		},
+	})
+	buffered := bufio.NewReader(rawInput)
 	input := io.Reader(buffered)
 	var gzipReader *gzip.Reader
 	header, peekErr := buffered.Peek(2)
@@ -335,6 +397,14 @@ func (iterator *Iterator) openCurrent(ctx context.Context) error {
 		MaxFields:      iterator.options.MaxFields,
 		OptimizeRFC4180: iterator.options.OptimizeRFC4180 &&
 			quote == '"' && escape == '"',
+		OnInputBytes: func(bytes int64) error {
+			iterator.telemetry.decoded(bytes)
+			return iterator.options.ProfileBudget.Charge(
+				sourcecontract.ProfileBudgetUsage{
+					Rows: 0, DecodedInputBytes: bytes,
+				},
+			)
+		},
 	})
 	if err != nil {
 		if gzipReader != nil {
@@ -385,6 +455,11 @@ func (iterator *Iterator) openCurrent(ctx context.Context) error {
 
 func (iterator *Iterator) ensureManifest(ctx context.Context) error {
 	if iterator.manifestSet {
+		return nil
+	}
+	if iterator.options.ProfileBudget != nil {
+		iterator.manifest = "bounded-profile"
+		iterator.manifestSet = true
 		return nil
 	}
 	manifest, err := bindManifest(ctx, iterator.mappings)

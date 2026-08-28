@@ -15,13 +15,29 @@ import (
 )
 
 type sourceRow struct {
-	raw []byte
-	key *keyValue
+	raw       []byte
+	key       *keyValue
+	accounted bool
 }
 
 type recordReader interface {
 	Next(context.Context) (sourceRow, error)
 	Close() error
+}
+
+type telemetryReader struct {
+	input   io.Reader
+	observe func(int64) error
+}
+
+func (reader *telemetryReader) Read(output []byte) (int, error) {
+	count, err := reader.input.Read(output)
+	if count > 0 {
+		if observeErr := reader.observe(int64(count)); observeErr != nil {
+			return count, observeErr
+		}
+	}
+	return count, err
 }
 
 func openRecordReader(
@@ -77,7 +93,9 @@ func newCopyReader(
 ) (*copyReader, error) {
 	pipeReader, pipeWriter := io.Pipe()
 	streamCtx, cancel := context.WithCancel(context.Background())
-	scanner := bufio.NewScanner(pipeReader)
+	scanner := bufio.NewScanner(&telemetryReader{
+		input: pipeReader, observe: telemetry.raw,
+	})
 	maxWireBytes := boundedScannerSize(maxRecordBytes)
 	initial := 64 << 10
 	if maxWireBytes < initial {
@@ -89,7 +107,18 @@ func newCopyReader(
 		cancel: cancel, done: make(chan error, 1), telemetry: telemetry,
 	}
 	sql := "COPY (" + rowJSONQuery(mapping.query) + ") TO STDOUT WITH (FORMAT csv)"
-	telemetry.page()
+	if err := telemetry.canFetchPage(); err != nil {
+		cancel()
+		_ = pipeReader.Close()
+		_ = reader.Close()
+		return nil, err
+	}
+	if err := telemetry.page(); err != nil {
+		cancel()
+		_ = pipeReader.Close()
+		_ = reader.Close()
+		return nil, err
+	}
 	go func() {
 		_, err := reader.conn.PgConn().CopyTo(streamCtx, pipeWriter, sql)
 		if err != nil {
@@ -133,6 +162,7 @@ func (reader *copyReader) Next(ctx context.Context) (sourceRow, error) {
 		raw, err := decodeCopyCSV(reader.scanner.Bytes())
 		return sourceRow{raw: raw}, err
 	}
+
 	if err := reader.scanner.Err(); err != nil {
 		return sourceRow{}, err
 	}
@@ -177,6 +207,7 @@ type cursorReader struct {
 	snapshot  *SnapshotReader
 	fetchRows int
 	rows      pgx.Rows
+	query     func(context.Context, string, ...any) (pgx.Rows, error)
 	pageRows  int
 	done      bool
 	telemetry *telemetryState
@@ -208,14 +239,24 @@ func (reader *cursorReader) Next(ctx context.Context) (sourceRow, error) {
 			return sourceRow{}, io.EOF
 		}
 		if reader.rows == nil {
+			if err := reader.telemetry.canFetchPage(); err != nil {
+				return sourceRow{}, err
+			}
 			sql := "FETCH FORWARD " + strconv.Itoa(reader.fetchRows) +
 				" FROM agefreighter_cursor"
-			rows, err := reader.snapshot.tx.Query(ctx, sql)
+			query := reader.query
+			if query == nil {
+				query = reader.snapshot.tx.Query
+			}
+			rows, err := query(ctx, sql)
 			if err != nil {
 				reader.telemetry.failure()
 				return sourceRow{}, safeDatabaseError(ctx, "fetch PostgreSQL cursor", err)
 			}
-			reader.telemetry.page()
+			if err := reader.telemetry.page(); err != nil {
+				rows.Close()
+				return sourceRow{}, err
+			}
 			reader.rows = rows
 			reader.pageRows = 0
 		}
@@ -261,6 +302,7 @@ type keysetReader struct {
 	mapping   compiledMapping
 	fetchRows int
 	rows      pgx.Rows
+	query     func(context.Context, string, ...any) (pgx.Rows, error)
 	pageRows  int
 	done      bool
 	lastKey   *keyValue
@@ -288,17 +330,27 @@ func (reader *keysetReader) Next(ctx context.Context) (sourceRow, error) {
 			return sourceRow{}, io.EOF
 		}
 		if reader.rows == nil {
+			if err := reader.telemetry.canFetchPage(); err != nil {
+				return sourceRow{}, err
+			}
 			var prior any
 			if reader.lastKey != nil {
 				prior = reader.lastKey.native
 			}
 			sql := rowJSONQuery(reader.mapping.query) + " LIMIT $2"
-			rows, err := reader.snapshot.tx.Query(ctx, sql, prior, reader.fetchRows)
+			query := reader.query
+			if query == nil {
+				query = reader.snapshot.tx.Query
+			}
+			rows, err := query(ctx, sql, prior, reader.fetchRows)
 			if err != nil {
 				reader.telemetry.failure()
 				return sourceRow{}, safeDatabaseError(ctx, "fetch PostgreSQL keyset page", err)
 			}
-			reader.telemetry.page()
+			if err := reader.telemetry.page(); err != nil {
+				rows.Close()
+				return sourceRow{}, err
+			}
 			reader.rows = rows
 			reader.pageRows = 0
 		}
@@ -307,6 +359,10 @@ func (reader *keysetReader) Next(ctx context.Context) (sourceRow, error) {
 			if err := reader.rows.Scan(&text); err != nil {
 				reader.telemetry.failure()
 				return sourceRow{}, safeDatabaseError(ctx, "scan PostgreSQL keyset row", err)
+			}
+			reader.pageRows++
+			if err := reader.telemetry.input(0, int64(len(text))); err != nil {
+				return sourceRow{}, err
 			}
 			key, err := extractKey([]byte(text), reader.mapping.keyField)
 			if err != nil {
@@ -326,9 +382,8 @@ func (reader *keysetReader) Next(ctx context.Context) (sourceRow, error) {
 					)
 				}
 			}
-			reader.pageRows++
 			reader.lastKey = &key
-			return sourceRow{raw: []byte(text), key: &key}, nil
+			return sourceRow{raw: []byte(text), key: &key, accounted: true}, nil
 		}
 		err := reader.rows.Err()
 		reader.rows.Close()

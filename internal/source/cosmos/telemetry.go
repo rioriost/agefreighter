@@ -24,6 +24,8 @@ type telemetryState struct {
 	mu                    sync.Mutex
 	pages                 int64
 	requestCharge         float64
+	rawInputBytes         int64
+	decodedInputBytes     int64
 	failedRequestAttempts int64
 	continuationDigest    string
 }
@@ -34,11 +36,26 @@ func (state *telemetryState) recordPage(page Page) {
 	state.pages++
 	state.requestCharge += page.RequestCharge
 	state.failedRequestAttempts += int64(page.FailedRequestCount)
+	for _, item := range page.Items {
+		state.rawInputBytes += int64(len(item))
+	}
 	if page.HasContinuation {
 		state.continuationDigest = truncatedDigest(page.ContinuationToken)
 	} else {
 		state.continuationDigest = ""
 	}
+}
+
+func (state *telemetryState) recordDecoded(bytes int64) {
+	state.mu.Lock()
+	state.decodedInputBytes += bytes
+	state.mu.Unlock()
+}
+
+func (state *telemetryState) recordFailedRequestAttempt() {
+	state.mu.Lock()
+	state.failedRequestAttempts++
+	state.mu.Unlock()
 }
 
 func (state *telemetryState) snapshot(throttledRequests int64) Telemetry {
@@ -47,6 +64,8 @@ func (state *telemetryState) snapshot(throttledRequests int64) Telemetry {
 	return Telemetry{
 		Connector:             "cosmos-nosql",
 		Pages:                 state.pages,
+		RawInputBytes:         state.rawInputBytes,
+		DecodedInputBytes:     state.decodedInputBytes,
 		RequestCharge:         state.requestCharge,
 		FailedRequestAttempts: state.failedRequestAttempts,
 		ThrottledRequests:     throttledRequests,

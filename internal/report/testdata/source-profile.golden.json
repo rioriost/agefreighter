@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "command": "profile",
+  "agefreighterVersion": "dev",
+  "generatedAt": "2026-08-28T00:00:00Z",
+  "outcome": "incomplete",
+  "checks": [
+    {
+      "id": "source-read",
+      "status": "unknown",
+      "summary": "source profile was truncated by a configured bound",
+      "detail": "limit=rows"
+    },
+    {
+      "id": "source-version",
+      "status": "unavailable",
+      "summary": "source version is not exposed by the connector iterator"
+    }
+  ],
+  "warnings": [
+    {
+      "code": "PROFILE_TRUNCATED",
+      "message": "reported counts and statistics are lower-bound observations from a bounded prefix"
+    }
+  ],
+  "errors": [],
+  "incompleteChecks": [
+    "source-profile"
+  ],
+  "sections": [
+    {
+      "title": "Source",
+      "fields": [
+        {
+          "name": "connector",
+          "value": "csv",
+          "status": "pass"
+        },
+        {
+          "name": "mode",
+          "value": "sample",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Vertex labels",
+      "fields": [
+        {
+          "name": "001",
+          "value": "label=Person,sampledRows=2,countRange=2..unknown,countMethod=observed-bounded-prefix,configuredProperties=1",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}
