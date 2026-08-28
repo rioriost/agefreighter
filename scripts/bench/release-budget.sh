@@ -50,16 +50,21 @@ trap 'rm -f "$binary"' EXIT HUP INT TERM
 
 go build -trimpath -o "$binary" ./cmd/agefreighter-tools
 for workload in vertices edges; do
-	for strategy in staged-binary plain-relational; do
-		sample=1
-		while [ "$sample" -le "$samples" ]; do
+	sample=1
+	while [ "$sample" -le "$samples" ]; do
+		if [ $((sample % 2)) -eq 1 ]; then
+			strategies="staged-binary plain-relational"
+		else
+			strategies="plain-relational staged-binary"
+		fi
+		for strategy in $strategies; do
 			"$binary" benchmark-age-copy \
 				--workload "$workload" \
 				--strategy "$strategy" \
 				--rows "$rows" \
 				--property-bytes "$property_bytes" >>"$raw"
-			sample=$((sample + 1))
 		done
+		sample=$((sample + 1))
 	done
 done
 "$binary" benchmark-report \

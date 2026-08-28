@@ -6,8 +6,10 @@ pinned PostgreSQL 17 / Apache AGE 1.6.0 development image.
 
 ## AGE staged-binary versus relational COPY
 
-The release benchmark ran three independent samples of 100,000 rows with
-64-byte generated properties for each workload and strategy.
+The release benchmark ran three paired samples of 100,000 rows with 64-byte
+generated properties for each workload and strategy. Strategy order alternates
+within each workload so host-level performance drift affects both sides of the
+ratio instead of one strategy exclusively.
 
 | Workload | Strategy | Median rows/s | Ratio to relational |
 |---|---|---:|---:|
