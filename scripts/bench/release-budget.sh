@@ -83,9 +83,9 @@ csv_rows_per_second=$(awk '
 		if (n == 0) {
 			exit 1
 		}
-		for (index = 2; index <= n; index++) {
-			value = values[index]
-			position = index - 1
+		for (sample_index = 2; sample_index <= n; sample_index++) {
+			value = values[sample_index]
+			position = sample_index - 1
 			while (position >= 1 && values[position] > value) {
 				values[position + 1] = values[position]
 				position--
