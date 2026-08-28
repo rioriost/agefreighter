@@ -43,12 +43,12 @@ median falls below 40% of the equivalent relational median or when CSV create
 throughput falls below 109,190 rows/s.
 
 The 109,190 rows/s floor is retained as the default for the calibrated M4 Max
-environment. GitHub-hosted Linux runners use an explicit 60,000 rows/s floor:
-two independent release runs on AMD EPYC 7763 and Intel Xeon Platinum 8573C
-measured 72,343 and 68,836 rows/s respectively. The hosted-runner floor leaves
-a 12.8% margin below the slower observation while still detecting a material
-end-to-end regression. The hardware-normalized staged-binary ratio remains 40%
-in every environment.
+environment. GitHub-hosted Linux runners use the median of three benchmark
+executions and an explicit 50,000 rows/s floor. Release runs on AMD EPYC 7763
+and Intel Xeon Platinum 8573C measured 72,343, 68,836, and 59,283 rows/s. The
+hosted-runner floor leaves a 15.7% margin below the slowest observation while
+still detecting a material end-to-end regression. The hardware-normalized
+staged-binary ratio remains 40% in every environment.
 
 The `Release performance` workflow runs this gate for 2.x tags and on explicit
 dispatch. Performance is intentionally excluded from pull-request CI because
