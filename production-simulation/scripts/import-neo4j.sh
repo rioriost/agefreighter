@@ -76,7 +76,7 @@ for relationship in SUPPLIES PRODUCED_AT PLACED_WITH CONTAINS FULFILLS ORIGINATE
 	set -- "$@" "--relationships=$relationship=/fixture/headers/edges/$relationship.header.csv,/fixture/edges/$relationship/part-.*"
 done
 
-set -- "$@" --id-type=integer --bad-tolerance=0 \
+set -- "$@" --id-type=INTEGER --bad-tolerance=0 \
 	--skip-bad-relationships=false --skip-duplicate-nodes=false
 
 printf 'Starting reviewed Neo4j %s offline import with image %s\n' "$version" "$image" >&2
