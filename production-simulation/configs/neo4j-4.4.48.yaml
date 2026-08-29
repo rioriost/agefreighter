@@ -28,7 +28,7 @@ target:
   mode: create
   propertyMode: replace
   connection:
-    env: AGEFREIGHTER_TARGET_DSN
+    env: AGEFREIGHTER_TARGET_DSN_NEO4J44
 runtime:
   memoryLimit: 2GiB
   batchRows: 10000

@@ -56,11 +56,10 @@ test does not collapse into an unrealistically narrow integer-only graph.
 
 The fixed seed controls every value and endpoint. Endpoint selection includes
 skew for suppliers, products, facilities, and carriers so a small population
-becomes high degree. The initial fallback generator supplies deterministic
-time, region, lifecycle, Unicode, empty-property, and value-width distributions
-without using production data. Before P1, reviewers must compare those
-distributions with approved aggregate statistics from a historical project and
-either calibrate the generator or record why the fallback is representative.
+becomes high degree. The fallback generator supplies deterministic time,
+region, lifecycle, Unicode, empty-property, and value-width distributions
+without using production data. The P1 calibration decision and its limitations
+are recorded in [`fixture-calibration.md`](fixture-calibration.md).
 
 The generator emits headerless, sharded Neo4j bulk-import CSV plus separate
 header files. A manifest records phase, seed, cardinalities, byte counts, each
@@ -81,10 +80,13 @@ are never overwritten.
 ## Independent target verification
 
 The agefreighter built-in count and integrity checks are retained. In addition,
-P2 and P3 export canonical records by fixed `source_key` ranges. Each range is
+P1 through P3 export canonical records by fixed `source_key` ranges. Each range is
 sorted, normalized by type, and compared with its generator digest. A Merkle
 root identifies the complete graph while allowing a mismatch to be localized
 without holding the entire graph in memory.
 
-The canonical target exporter is a review gate before P2. Until it is
-implemented and proven at P1, no P2 or P3 run is authorized.
+`cmd/rangedigest` implements the generator-side and target-side streaming
+exporters. Its canonical encoding preserves integer/float distinctions, sorts
+property names, includes relationship endpoint identities, and produces
+100,000-record leaves by default. The implementation is unit-tested and has a
+P0 target proof; P1 must still pass it before P2 is authorized.

@@ -33,6 +33,12 @@ The template enables the `AGE` allowlist entry, but Azure controls the hosted
 extension build. Deployment success does not prove AGE 1.7. The SQL version
 gate in the runbook remains mandatory before any migration.
 
+Each source version uses a separate database on this one server. After the
+server is deployed, `scripts/prepare-target-databases.sh` creates the two
+phase-specific databases and installs AGE. Reusing one database for both paths
+is prohibited because accumulated identity metadata materially biases the
+second measurement.
+
 No deployment wrapper is included before review. This intentionally prevents a
 repository command from turning the candidate sizing into live resources by
 accident. A reviewed deployment entry point can be added after the first

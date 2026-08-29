@@ -21,6 +21,7 @@ each migration run. The scripts reject live operations unless
 | [`docs/acceptance.md`](docs/acceptance.md) | Metrics, correctness checks, stop and pass criteria |
 | [`docs/runbook.md`](docs/runbook.md) | Review, deployment, execution, recovery, and cleanup procedure |
 | `cmd/fixturegen` | Deterministic sharded CSV generator and manifest verifier |
+| `cmd/rangedigest` | Independent fixture/AGE canonical range-digest verifier |
 | `internal/fixture` | Tested dataset model and streaming generator implementation |
 | `configs` | Static agefreighter jobs for both Neo4j versions |
 | `infra` | Review-only Azure deployment contract and parameters |

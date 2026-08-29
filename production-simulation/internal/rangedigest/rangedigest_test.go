@@ -1,0 +1,106 @@
+package rangedigest
+
+import (
+	"context"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	fixturemodel "github.com/rioriost/agefreighter/production-simulation/internal/fixture"
+)
+
+func TestFixtureManifestIsIndependentOfShardLayout(t *testing.T) {
+	t.Parallel()
+
+	roots := []string{
+		filepath.Join(t.TempDir(), "one-shard"),
+		filepath.Join(t.TempDir(), "three-shards"),
+	}
+	shards := []int{1, 3}
+	manifests := make([]Manifest, len(roots))
+	for index := range roots {
+		_, err := fixturemodel.Generate(context.Background(), fixturemodel.GenerateConfig{
+			Phase: fixturemodel.PhaseTiny, Output: roots[index], Shards: shards[index],
+			Workers: 2, Seed: 20260829,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		manifests[index], err = FixtureManifest(
+			context.Background(), filepath.Join(roots[index], "manifest.json"), 17,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if manifests[0].FixtureRoot == manifests[1].FixtureRoot {
+		t.Fatal("fixture file roots unexpectedly match across different shard layouts")
+	}
+	if manifests[0].RootSHA256 != manifests[1].RootSHA256 {
+		t.Fatalf("canonical roots differ: %s != %s", manifests[0].RootSHA256, manifests[1].RootSHA256)
+	}
+	if manifests[0].RecordCount != 560 || len(manifests[0].Leaves) == 0 {
+		t.Fatalf("unexpected digest manifest: %#v", manifests[0])
+	}
+}
+
+func TestCanonicalJSONPropertiesSortsKeysAndPreservesTypes(t *testing.T) {
+	t.Parallel()
+
+	properties, encoded, err := canonicalJSONProperties(
+		`{"z":[1,"two"],"float":2.0,"integer":2,"a":true}`,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const expected = `{"a":true,"float":2.0,"integer":2,"z":[1,"two"]}`
+	if string(encoded) != expected {
+		t.Fatalf("encoded = %s, want %s", encoded, expected)
+	}
+	if properties["float"].Kind == properties["integer"].Kind {
+		t.Fatal("float and integer canonical types collapsed")
+	}
+}
+
+func TestCompareReportsFirstLeafMismatch(t *testing.T) {
+	t.Parallel()
+
+	leaf := Leaf{Kind: "v", Name: "Supplier", RangeIndex: 0, StartKey: 1, EndKey: 2, Rows: 2, SHA256: strings.Repeat("a", 64)}
+	expected := Manifest{
+		Version: ManifestVersion, CanonicalVersion: CanonicalVersion,
+		Source: "fixture", FixtureRoot: strings.Repeat("b", 64), RangeRows: 2,
+		RecordCount: 2, Leaves: []Leaf{leaf}, RootSHA256: strings.Repeat("c", 64),
+	}
+	actual := expected
+	actual.Source = "apache-age"
+	comparison, err := Compare(expected, actual)
+	if err != nil || comparison.Status != "pass" {
+		t.Fatalf("matching compare = %#v, %v", comparison, err)
+	}
+
+	actual.Leaves = append([]Leaf(nil), actual.Leaves...)
+	actual.Leaves[0].SHA256 = strings.Repeat("d", 64)
+	comparison, err = Compare(expected, actual)
+	if err == nil || comparison.Status != "fail" || !strings.Contains(comparison.Mismatch, "leaf 0") {
+		t.Fatalf("mismatch compare = %#v, %v", comparison, err)
+	}
+}
+
+func TestRangeBuilderRejectsOutOfOrderKeys(t *testing.T) {
+	t.Parallel()
+
+	builder, err := newRangeBuilder(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := builder.begin("v", "Supplier"); err != nil {
+		t.Fatal(err)
+	}
+	if err := builder.add(2, []byte("two")); err != nil {
+		t.Fatal(err)
+	}
+	if err := builder.add(1, []byte("one")); err == nil {
+		t.Fatal("accepted an out-of-order source key")
+	}
+}

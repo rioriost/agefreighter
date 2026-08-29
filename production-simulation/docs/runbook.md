@@ -69,7 +69,11 @@ After import:
 
 ## 5. PostgreSQL target preflight
 
-Before every timed run, use a new empty graph and record:
+Before every phase, create two new isolated databases with
+`scripts/prepare-target-databases.sh`. Point `AGEFREIGHTER_ADMIN_DSN` at the
+`postgres` administration database; the script refuses to reuse either name.
+Before every timed run, use the matching source-specific DSN, a new empty graph,
+and record:
 
 ```sql
 SELECT version();
@@ -81,7 +85,10 @@ SELECT extname, extversion FROM pg_extension WHERE extname = 'age';
 
 The run is blocked unless PostgreSQL reports major version 18 and AGE reports
 the 1.7 release line (`1.7` or `1.7.0`). Capture storage, IOPS, throughput, HA mode, zone, and relevant
-server parameters. Keep durability settings at their production values.
+server parameters. Keep durability settings at their production values. Do not
+treat the Azure control-plane `Ready` state as SQL readiness: the preflight
+retries the data-plane version query because managed `pg_hba` propagation can
+lag a stop/start operation.
 
 ## 6. Migration
 
@@ -90,7 +97,8 @@ binary. Export the two secret references only in the process environment:
 
 ```sh
 export AGEFREIGHTER_NEO4J_PASSWORD='...'
-export AGEFREIGHTER_TARGET_DSN='...'
+export AGEFREIGHTER_TARGET_DSN_NEO4J44='...dbname=agefreighter_p1_neo4j44...'
+export AGEFREIGHTER_TARGET_DSN_NEO4J526='...dbname=agefreighter_p1_neo4j526...'
 ```
 
 Validate and plan the selected static job, start monitoring, and then invoke
@@ -100,10 +108,24 @@ committed checkpoint.
 
 ## 7. Verification and reporting
 
-Run built-in report, doctor, optimization advice, count verification, integrity
-verification, and the independent range-digest verifier. Compare the recovery
-root to the clean-run root. Copy raw artifacts into `results/raw/<run-id>/` and
-prepare a redacted summary from `results/summaries/TEMPLATE.md`.
+The measured load interval ends when the load commits. Afterwards, run
+`scripts/post-load-maintenance.sh` to capture optimization advice, refresh
+planner statistics with `ANALYZE`, and capture the advice again. Do not include
+this maintenance time in migration throughput.
+
+Run built-in report, doctor, count verification, integrity verification, and
+the independent verifier:
+
+```sh
+production-simulation/scripts/verify-range-digest.sh \
+  p1 neo4j-4.4.48 /data/fixtures/p1/manifest.json JOB_ID /data/results/RUN/digest
+```
+
+The verifier independently streams the fixture and committed AGE generation,
+canonicalizes every property and relationship endpoint, compares fixed
+100,000-record leaves, and then compares the root. Compare the recovery root to
+the clean-run root. Copy raw artifacts into `results/raw/<run-id>/` and prepare
+a redacted summary from `results/summaries/TEMPLATE.md`.
 
 ## 8. Cleanup
 

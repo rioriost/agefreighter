@@ -12,7 +12,9 @@ post-release qualification of v2.1.0, not a retroactive release gate.
 2. Neo4j 5.26.30 Community -> PostgreSQL 18 / Apache AGE 1.7
 
 Both paths use the same generated logical graph, VM sizes, zone, load settings,
-and target SKU. Each path starts from an empty target graph. The sources remain
+and target SKU. Each path uses a dedicated database on the same Flexible Server
+and starts from an empty target graph. Database isolation prevents identity and
+catalog growth from the first path from biasing the second path. The sources remain
 read-only from the first discovery query through final verification because
 Neo4j mappings do not share one point-in-time transaction.
 
@@ -47,9 +49,10 @@ Initial sizing, to be corrected after P1 and P2:
 | Target storage | 4-8 TiB, provisioned IOPS and throughput |
 
 The two Neo4j sources are run sequentially to prevent target and network
-contention. They use identical VM definitions and separate version-specific
-data disks. Local ephemeral disks may hold regenerable CSV scratch data, but
-never the only copy of a Neo4j store or test result.
+contention. They use identical VM definitions, separate version-specific data
+disks, and `agefreighter_<phase>_neo4j44` / `agefreighter_<phase>_neo4j526`
+target databases. Local ephemeral disks may hold regenerable CSV scratch data,
+but never the only copy of a Neo4j store or test result.
 
 ## Phases
 
