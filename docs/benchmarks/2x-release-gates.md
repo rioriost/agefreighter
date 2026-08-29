@@ -52,9 +52,13 @@ release runs on AMD EPYC 7763 and Intel Xeon Platinum 8573C measured 72,343,
 the slowest observation while still detecting a material end-to-end regression.
 The hardware-normalized staged-binary ratio remains 40% in every environment.
 
-The `Release performance` workflow runs this gate for 2.x tags and on explicit
-dispatch. Performance is intentionally excluded from pull-request CI because
-shared runners are noisy.
+The release workflow is the authoritative performance gate for 2.x tags. The
+`Release performance` workflow is available for explicit diagnostic runs but
+does not duplicate the tag gate. A first failure is confirmed with one clean
+measurement attempt; two consecutive failures are required to reject a
+release. Each attempt is retained as a separate artifact directory. Performance
+is intentionally excluded from pull-request CI because shared runners are
+noisy.
 
 The same gate measures peak client RSS with the operating system's maximum-RSS
 counter. Both the countries end-to-end benchmark and a separate 200,000-row

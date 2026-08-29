@@ -1,8 +1,11 @@
 # agefreighter 2.0 Implementation Plan
 
-**Status:** Reviewed and revised  
-**Branch:** `2.0.0`  
+**Status:** Historical implementation plan; implementation completed
+**Branch at time of planning:** `2.0.0`
 **Architecture:** [agefreighter-2.0-research.md](agefreighter-2.0-research.md)
+
+> This document records the pre-release implementation plan. The current 2.x
+> implementation is maintained on `main`; 1.x maintenance is on `release/1.x`.
 
 ## 1. Delivery principles
 
@@ -56,7 +59,7 @@ After this plan is reviewed:
   Azure deployment-plan skeleton
 - replace the README, Makefile, ignore rules, and CI definitions with 2.x
   equivalents
-- keep 1.x exclusively on `main`
+- preserve 1.x on its maintenance line (now `release/1.x`)
 
 The transition is committed separately before application functionality is
 added. That commit is the rollback point between the 1.x repository shape and

@@ -2,6 +2,7 @@ SHELL := /bin/sh
 
 GO ?= go
 GOVULNCHECK ?= $(shell $(GO) env GOPATH)/bin/govulncheck
+ACTIONLINT ?= $(shell $(GO) env GOPATH)/bin/actionlint
 COVERAGE_DIR ?= .coverage
 COVERAGE_THRESHOLD ?= 80.0
 BENCHTIME ?= 5x
@@ -17,9 +18,9 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 	-X github.com/rioriost/agefreighter/internal/version.BuildDate=$(BUILD_DATE)
 
 .PHONY: bench-csv bench-csv-scale bench-release build check check-full coverage dev-down dev-pull \
-	dev-reset dev-smoke dev-status dev-up fmt fuzz-smoke install-tools test test-compatibility \
-	test-connectors-cosmos test-connectors-local test-diagnostics-race test-race \
-	test-recovery test-release-integration tidy vet vuln
+	dev-reset dev-smoke dev-status dev-up fmt fuzz-smoke install-tools release-check test \
+	test-compatibility test-connectors-cosmos test-connectors-local test-diagnostics-race \
+	test-race test-recovery test-release-integration tidy vet vuln workflow-lint
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter ./cmd/agefreighter
@@ -37,7 +38,7 @@ bench-csv-scale:
 		-benchtime="1x" -benchmem $(BENCHFLAGS) ./internal/app
 
 bench-release:
-	./scripts/bench/release-budget.sh "$(PERFORMANCE_ARTIFACTS)"
+	./scripts/bench/release-gate.sh "$(PERFORMANCE_ARTIFACTS)"
 
 fmt:
 	@files="$$(gofmt -l .)"; \
@@ -79,9 +80,13 @@ fuzz-smoke:
 	$(GO) test -run '^$$' -fuzz '^FuzzEncodeStringProperty$$' -fuzztime="$(FUZZTIME)" ./pkg/model
 
 test-compatibility:
-	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+	@AGEFREIGHTER_NEO4J_TEST_URI="$(AGEFREIGHTER_NEO4J_TEST_URI)" \
+	AGEFREIGHTER_NEO4J_TEST_USERNAME="$(AGEFREIGHTER_NEO4J_TEST_USERNAME)" \
+	AGEFREIGHTER_NEO4J_TEST_PASSWORD="$(AGEFREIGHTER_NEO4J_TEST_PASSWORD)" \
+	AGEFREIGHTER_NEO4J_TEST_DATABASE="$(AGEFREIGHTER_NEO4J_TEST_DATABASE)" \
+	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
 		$(GO) test -count=1 \
-		./internal/age ./internal/meta ./internal/app ./internal/cli
+		./internal/age ./internal/meta ./internal/source/neo4j ./internal/app ./internal/cli
 
 test-connectors-local:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
@@ -142,7 +147,17 @@ coverage:
 		.coverage-exclude
 	./scripts/coverage/check.sh "$(COVERAGE_DIR)/unit.out" "$(COVERAGE_THRESHOLD)"
 
-check: fmt vet vuln test test-race fuzz-smoke
+release-check:
+	./scripts/release/self-check.sh
+
+workflow-lint:
+	@command -v $(ACTIONLINT) >/dev/null 2>&1 || { \
+		printf 'actionlint is required; run make install-tools\n' >&2; \
+		exit 1; \
+	}
+	$(ACTIONLINT) -config-file .github/actionlint.yaml
+
+check: fmt vet vuln workflow-lint test test-race fuzz-smoke release-check
 
 check-full: check coverage
 
@@ -169,3 +184,4 @@ tidy:
 
 install-tools:
 	$(GO) install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+	$(GO) install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12

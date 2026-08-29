@@ -56,7 +56,7 @@ fi
 	for _, expected := range []string{
 		"image pull --platform linux/arm64 apache/age@sha256:fe8b33905a61549a067f8512808b88011bdcaa82ab65d8788f39fb07a04aa5be",
 		"image pull --platform linux/arm64 postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94",
-		"image pull --platform linux/arm64 neo4j@sha256:89d577f2e49606de76441eca8cf7a0fe88e594cbaac4d2a3d86c6e59676e2b1e",
+		"image pull --platform linux/arm64 neo4j@sha256:037cf5756f0135cbfd66b739b6df7c7c4bb100f9ce11602f6f9538e17e02c74d",
 	} {
 		if !strings.Contains(log, expected) {
 			t.Errorf("runtime log does not contain %q:\n%s", expected, log)

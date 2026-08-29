@@ -15,14 +15,14 @@ jobs:
     environment: cosmos-integration
     timeout-minutes: 50
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache: true
-      - uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+          cache: false
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -31,7 +31,7 @@ jobs:
         env:
           DEV_RUNTIME: docker
           DEV_PLATFORM: linux/amd64
-        run: make dev-up
+        run: make dev-reset
       - name: Run Cosmos DB live integration
         env:
           AGEFREIGHTER_COSMOS_TEST_ENDPOINT: ${{ vars.AGEFREIGHTER_COSMOS_TEST_ENDPOINT }}

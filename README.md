@@ -12,13 +12,17 @@ openCypher queries while retaining PostgreSQL's relational capabilities.
 is Microsoft's managed PostgreSQL service and can enable the AGE extension.
 
 This branch does not preserve the Python API, CLI, configuration, or defaults
-from agefreighter 1.x. The 1.x implementation remains on the `main` branch.
+from agefreighter 1.x. The 2.x implementation is maintained on `main`; the 1.x
+maintenance line remains available on [`release/1.x`](https://github.com/rioriost/agefreighter/tree/release/1.x).
+Follow the [1.x to 2.0 migration guide](docs/migration-1.x-to-2.0.md) before
+replacing an existing installation.
 
 ## Installation
 
-Release archives contain both `agefreighter` and `agefreighter-tools`. Verify
-the downloaded archive against `checksums.txt` and the GitHub build-provenance
-attestation before installing it.
+Release archives contain `agefreighter`, `agefreighter-tools`, the project
+`LICENSE`, and `THIRD_PARTY_NOTICES.txt`. Verify the downloaded archive against
+`checksums.txt` and the GitHub build-provenance attestation before installing
+it.
 
 ### macOS
 
@@ -51,19 +55,22 @@ sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 
 Download `agefreighter_v2.1.0_windows_amd64.zip`, extract
 `agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
-`PATH`. Release executables carry a timestamped Windows Authenticode signature
-provided through SignPath Foundation. See the
-[code signing policy](docs/code-signing-policy.md):
+`PATH`.
 
-Prereleases published while SignPath Foundation enrollment is pending may omit
-the Windows archive. Official Windows binaries are never published unsigned;
-check the assets and notes for the release you are installing.
+> **Windows signing status:** The Windows binaries in v2.0.0 are intentionally
+> provided without an Authenticode signature while SignPath Foundation
+> enrollment is pending. Code signing is planned for a later release. Windows
+> may display an unknown-publisher or SmartScreen warning. Verify the archive
+> checksum and GitHub build-provenance attestation before use. See the
+> [code signing policy](docs/code-signing-policy.md).
 
 ```powershell
 Expand-Archive .\agefreighter_v2.1.0_windows_amd64.zip -DestinationPath .\agefreighter
 Get-AuthenticodeSignature .\agefreighter\agefreighter.exe
 .\agefreighter\agefreighter.exe version
 ```
+
+For v2.0.0, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
 
 ### Build from source
 

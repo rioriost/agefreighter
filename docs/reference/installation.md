@@ -2,8 +2,8 @@
 
 ## Supported binaries
 
-Each stable 2.x release contains both `agefreighter` and
-`agefreighter-tools` for:
+Each stable 2.x release contains `agefreighter`, `agefreighter-tools`, the
+project `LICENSE`, and `THIRD_PARTY_NOTICES.txt` for:
 
 | Operating system | Architecture | Archive |
 |---|---|---|
@@ -15,9 +15,10 @@ Each stable 2.x release contains both `agefreighter` and
 
 `vVERSION` includes the leading `v`, for example `v2.1.0`.
 
-Prereleases published while SignPath Foundation enrollment is pending may omit
-the Windows archive. Official Windows binaries are never published unsigned;
-check the assets and notes for the release you are installing.
+The Windows archive is included in v2.0.0, but its executables are intentionally
+unsigned while SignPath Foundation enrollment is pending. Authenticode signing
+is planned for a later release. Windows may display an unknown-publisher or
+SmartScreen warning.
 
 ## Verify a release
 
@@ -44,13 +45,11 @@ The release workflow uses short-lived GitHub OIDC identity for provenance.
 macOS binaries are additionally signed with a Developer ID Application
 certificate, hardened-runtime enabled, securely timestamped, and accepted by
 Apple's notarization service before checksums and attestations are generated.
-Windows executables are signed with a publicly trusted Authenticode certificate
-provided by SignPath Foundation and an RFC 3161 timestamp, then verified with
-Windows Authenticode policy before the ZIP, SBOM, checksums, and attestations
-are generated. See the [code signing policy](../code-signing-policy.md). Apple
-credentials and the SignPath submission token are restricted to the protected
-`release` environment. Verify both the checksum and provenance before
-installation.
+The v2.0.0 Windows executables are unsigned. Verify their ZIP checksum and
+GitHub build-provenance attestation before installation; these authenticate the
+release workflow and archive but do not provide an Authenticode publisher
+identity. See the [code signing policy](../code-signing-policy.md). Apple
+credentials are restricted to the protected `release` environment.
 
 ## Install an archive
 
@@ -64,7 +63,8 @@ agefreighter-tools version
 ```
 
 For Windows, extract the zip and place `agefreighter.exe` and
-`agefreighter-tools.exe` in a directory on `PATH`.
+`agefreighter-tools.exe` in a directory on `PATH`. For v2.0.0,
+`Get-AuthenticodeSignature` reports `NotSigned` by design.
 
 ## Homebrew
 
@@ -93,3 +93,7 @@ make build VERSION=2.1.0
 
 Source builds require the Go version declared in `go.mod`. Database services
 are not required to compile the binaries.
+
+Existing 1.x installations are not upgraded in place. Follow the
+[1.x to 2.0 migration guide](../migration-1.x-to-2.0.md), validate a new v2 job,
+and complete a trial migration before replacing the 1.x command.

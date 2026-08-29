@@ -81,6 +81,9 @@ work="$output/.work-$goos-$goarch"
 stage="$work/$name"
 rm -rf "$work"
 mkdir -p "$stage"
+cp LICENSE "$stage/LICENSE"
+CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
+	scripts/release/notices.sh "$stage/THIRD_PARTY_NOTICES.txt"
 resource_files=
 cleanup() {
 	rm -rf "$work"
@@ -129,7 +132,9 @@ if [ "$goos" = windows ]; then
 	rm -f "$archive.tmp"
 	(
 		cd "$stage"
-		zip -X -q "$archive.tmp" "agefreighter.exe" "agefreighter-tools.exe"
+		zip -X -q "$archive.tmp" \
+			"agefreighter.exe" "agefreighter-tools.exe" \
+			LICENSE THIRD_PARTY_NOTICES.txt
 	)
 	mv "$archive.tmp" "$archive"
 elif tar --version 2>/dev/null | grep -q 'GNU tar'; then
@@ -137,13 +142,15 @@ elif tar --version 2>/dev/null | grep -q 'GNU tar'; then
 	rm -f "$archive.tmp"
 	tar --sort=name --format=ustar --mtime="@$epoch" --owner=0 --group=0 \
 		--numeric-owner -cf - -C "$stage" \
-		agefreighter agefreighter-tools | gzip -n >"$archive.tmp"
+		agefreighter agefreighter-tools LICENSE THIRD_PARTY_NOTICES.txt |
+		gzip -n >"$archive.tmp"
 	mv "$archive.tmp" "$archive"
 else
 	archive="$output/$name.tar.gz"
 	rm -f "$archive.tmp"
 	tar --format ustar --uid 0 --gid 0 --uname root --gname root \
-		-cf - -C "$stage" agefreighter agefreighter-tools |
+		-cf - -C "$stage" \
+		agefreighter agefreighter-tools LICENSE THIRD_PARTY_NOTICES.txt |
 		gzip -n >"$archive.tmp"
 	mv "$archive.tmp" "$archive"
 fi
