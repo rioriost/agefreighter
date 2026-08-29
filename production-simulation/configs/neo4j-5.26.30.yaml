@@ -1,0 +1,42 @@
+apiVersion: agefreighter.io/v2
+kind: LoadJob
+metadata:
+  name: production-sim-neo4j526
+source:
+  type: neo4j
+  namespace: production-simulation
+  neo4j:
+    uri: bolt://neo4j526.afps.internal:7687
+    database: neo4j
+    sourceId: production-simulation-neo4j-5.26.30
+    username: neo4j
+    password:
+      env: AGEFREIGHTER_NEO4J_PASSWORD
+    fetchRows: 5000
+    multiLabelPolicy: configured
+    discovery:
+      enabled: true
+      vertexKeyProperty: source_key
+      vertexIdProperty: external_id
+      edgeKeyProperty: source_key
+      edgeIdProperty: relationship_id
+      maxLabels: 64
+      maxProperties: 64
+target:
+  type: apache-age
+  graph: production_sim_neo4j526
+  mode: create
+  propertyMode: replace
+  connection:
+    env: AGEFREIGHTER_TARGET_DSN
+runtime:
+  memoryLimit: 2GiB
+  batchRows: 10000
+  batchBytes: 64MiB
+  maxSourceConcurrency: 1
+  maxTransformConcurrency: 1
+  maxTargetConnections: 4
+  operationTimeout: 30m
+errors:
+  malformedRecord: fail
+  missingEndpoint: error
