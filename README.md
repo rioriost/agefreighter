@@ -55,19 +55,22 @@ sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 
 Download `agefreighter_v2.0.0_windows_amd64.zip`, extract
 `agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
-`PATH`. Release executables carry a timestamped Windows Authenticode signature
-provided through SignPath Foundation. See the
-[code signing policy](docs/code-signing-policy.md):
+`PATH`.
 
-Prereleases published while SignPath Foundation enrollment is pending may omit
-the Windows archive. Official Windows binaries are never published unsigned;
-check the assets and notes for the release you are installing.
+> **Windows signing status:** The Windows binaries in v2.0.0 are intentionally
+> provided without an Authenticode signature while SignPath Foundation
+> enrollment is pending. Code signing is planned for a later release. Windows
+> may display an unknown-publisher or SmartScreen warning. Verify the archive
+> checksum and GitHub build-provenance attestation before use. See the
+> [code signing policy](docs/code-signing-policy.md).
 
 ```powershell
 Expand-Archive .\agefreighter_v2.0.0_windows_amd64.zip -DestinationPath .\agefreighter
 Get-AuthenticodeSignature .\agefreighter\agefreighter.exe
 .\agefreighter\agefreighter.exe version
 ```
+
+For v2.0.0, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
 
 ### Build from source
 

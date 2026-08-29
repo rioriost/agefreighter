@@ -31,6 +31,8 @@ date.
 
 Release archives include checksums, SPDX SBOMs, third-party license notices,
 and GitHub build-provenance attestations. macOS binaries are Developer ID
-signed and notarized. Windows binaries are published only after Authenticode
-signing succeeds. Follow the [installation verification procedure](docs/reference/installation.md)
-before installing a release.
+signed and notarized. The Windows binaries in v2.0.0 are published unsigned as
+a documented temporary exception while SignPath Foundation enrollment is
+pending; Authenticode signing is planned for a later release. Follow the
+[installation verification procedure](docs/reference/installation.md) before
+installing a release.
