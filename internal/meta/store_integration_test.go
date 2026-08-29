@@ -35,6 +35,70 @@ func TestStoreIntegration(t *testing.T) {
 	if err := store.Migrate(ctx); err != nil {
 		t.Fatalf("idempotent Migrate() error = %v", err)
 	}
+	var telemetryTableExists bool
+	if err := pool.QueryRow(
+		ctx,
+		`SELECT pg_catalog.to_regclass(
+			'agefreighter_meta.connector_telemetry'
+		) IS NOT NULL`,
+	).Scan(&telemetryTableExists); err != nil || !telemetryTableExists {
+		t.Fatalf("v15 telemetry migration = %v, %v", telemetryTableExists, err)
+	}
+	var diagnosticTableExists bool
+	if err := pool.QueryRow(
+		ctx,
+		`SELECT pg_catalog.to_regclass(
+			'agefreighter_meta.diagnostic_history'
+		) IS NOT NULL`,
+	).Scan(&diagnosticTableExists); err != nil || !diagnosticTableExists {
+		t.Fatalf("v16 diagnostic migration = %v, %v", diagnosticTableExists, err)
+	}
+	var verificationTables int
+	if err := pool.QueryRow(ctx, `
+		SELECT COUNT(*)::integer
+		FROM pg_catalog.pg_class relation
+		JOIN pg_catalog.pg_namespace namespace
+		  ON namespace.oid = relation.relnamespace
+		WHERE namespace.nspname = 'agefreighter_meta'
+		  AND relation.relname = ANY(ARRAY[
+			'job_verification', 'job_label_counter',
+			'load_batch_label_counter', 'job_unclassified_counter'
+		  ])`).Scan(&verificationTables); err != nil || verificationTables != 4 {
+		t.Fatalf("v17 verification migrations = %d, %v", verificationTables, err)
+	}
+	const diagnosticGraph = "meta_store_integration"
+	if _, err := pool.Exec(ctx, `
+		DELETE FROM agefreighter_meta.diagnostic_history
+		WHERE target_graph = $1`, diagnosticGraph); err != nil {
+		t.Fatalf("clean diagnostic history: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(
+			context.Background(),
+			5*time.Second,
+		)
+		defer cleanupCancel()
+		_, _ = pool.Exec(cleanupCtx, `
+			DELETE FROM agefreighter_meta.diagnostic_history
+			WHERE target_graph = $1`, diagnosticGraph)
+	})
+	persisted, err := store.PersistDiagnostic(ctx, DiagnosticRecord{
+		Outcome:                 "pass",
+		TargetGraph:             diagnosticGraph,
+		PostgreSQLVersionNumber: 170000,
+		AGEVersion:              "1.6.0",
+		MetadataSchemaVersion:   SupportedSchemaVersion,
+		Report:                  []byte(`{"outcome":"pass"}`),
+	})
+	if err != nil || persisted.ID <= 0 || persisted.RecordedAt.IsZero() {
+		t.Fatalf("PersistDiagnostic() = %#v, %v", persisted, err)
+	}
+	history, err := store.ListDiagnostics(ctx, diagnosticGraph, 1)
+	if err != nil || len(history) != 1 ||
+		history[0].TargetGraph != diagnosticGraph ||
+		len(history[0].Report) != 0 {
+		t.Fatalf("ListDiagnostics() = %#v, %v", history, err)
+	}
 	jobIDs := []string{
 		testJobID,
 		"22222222-3333-4444-8555-666666666666",
@@ -73,6 +137,20 @@ func TestStoreIntegration(t *testing.T) {
 	}
 	if storedJob.Status != JobPending || storedJob.NextBatchID != 1 {
 		t.Fatalf("new job = %#v", storedJob)
+	}
+	telemetry := ConnectorTelemetry{
+		JobID: testJobID, Connector: "csv",
+	}
+	if err := store.PutConnectorTelemetry(ctx, telemetry); err != nil {
+		t.Fatalf("PutConnectorTelemetry() error = %v", err)
+	}
+	if err := store.PutConnectorTelemetry(ctx, telemetry); err != nil {
+		t.Fatalf("idempotent PutConnectorTelemetry() error = %v", err)
+	}
+	storedTelemetry, err := store.GetConnectorTelemetry(ctx, testJobID)
+	if err != nil || storedTelemetry.Connector != "csv" ||
+		storedTelemetry.RecordedAt.IsZero() {
+		t.Fatalf("GetConnectorTelemetry() = %#v, %v", storedTelemetry, err)
 	}
 	if _, err := store.GetJob(ctx, "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing GetJob() error = %v", err)

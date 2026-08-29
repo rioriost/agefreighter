@@ -15,10 +15,11 @@ type DetailedTelemetry struct {
 }
 
 type telemetryState struct {
-	mu       sync.Mutex
-	queries  int64
-	records  int64
-	failures int64
+	mu                sync.Mutex
+	queries           int64
+	records           int64
+	failures          int64
+	decodedInputBytes int64
 }
 
 func (state *telemetryState) query() {
@@ -27,9 +28,12 @@ func (state *telemetryState) query() {
 	state.mu.Unlock()
 }
 
-func (state *telemetryState) record() {
+func (state *telemetryState) record(bytes ...int64) {
 	state.mu.Lock()
 	state.records++
+	if len(bytes) > 0 {
+		state.decodedInputBytes += bytes[0]
+	}
 	state.mu.Unlock()
 }
 
@@ -48,9 +52,11 @@ func (state *telemetryState) detailed() DetailedTelemetry {
 }
 
 func (state *telemetryState) snapshot() Telemetry {
-	detailed := state.detailed()
+	state.mu.Lock()
+	defer state.mu.Unlock()
 	return Telemetry{
-		Connector: "neo4j", Pages: detailed.Queries,
-		FailedRequestAttempts: detailed.Failures,
+		Connector: "neo4j", Pages: state.queries,
+		DecodedInputBytes:     state.decodedInputBytes,
+		FailedRequestAttempts: state.failures,
 	}
 }

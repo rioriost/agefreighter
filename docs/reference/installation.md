@@ -13,7 +13,7 @@ project `LICENSE`, and `THIRD_PARTY_NOTICES.txt` for:
 | Linux | arm64 | `agefreighter_vVERSION_linux_arm64.tar.gz` |
 | Windows | amd64 | `agefreighter_vVERSION_windows_amd64.zip` |
 
-`vVERSION` includes the leading `v`, for example `v2.0.0`.
+`vVERSION` includes the leading `v`, for example `v2.1.0`.
 
 The Windows archive is included in v2.0.0, but its executables are intentionally
 unsigned while SignPath Foundation enrollment is pending. Authenticode signing
@@ -29,7 +29,7 @@ release.
 Verify the archive checksum:
 
 ```sh
-grep 'agefreighter_v2.0.0_darwin_arm64.tar.gz$' checksums.txt |
+grep 'agefreighter_v2.1.0_darwin_arm64.tar.gz$' checksums.txt |
   shasum -a 256 -c -
 ```
 
@@ -37,7 +37,7 @@ On Linux, use `sha256sum -c` instead. Verify GitHub's keyless build-provenance
 attestation with GitHub CLI:
 
 ```sh
-gh attestation verify agefreighter_v2.0.0_darwin_arm64.tar.gz \
+gh attestation verify agefreighter_v2.1.0_darwin_arm64.tar.gz \
   --repo rioriost/agefreighter
 ```
 
@@ -56,7 +56,7 @@ credentials are restricted to the protected `release` environment.
 macOS and Linux:
 
 ```sh
-tar -xzf agefreighter_v2.0.0_darwin_arm64.tar.gz
+tar -xzf agefreighter_v2.1.0_darwin_arm64.tar.gz
 install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 agefreighter version
 agefreighter-tools version
@@ -87,8 +87,8 @@ Formula rather than every package in the third-party tap.
 ```sh
 git clone https://github.com/rioriost/agefreighter.git
 cd agefreighter
-git checkout v2.0.0
-make build VERSION=2.0.0
+git checkout v2.1.0
+make build VERSION=2.1.0
 ```
 
 Source builds require the Go version declared in `go.mod`. Database services

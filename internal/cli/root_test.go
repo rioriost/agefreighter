@@ -14,8 +14,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rioriost/agefreighter/internal/age"
+	"github.com/rioriost/agefreighter/internal/app"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
+	"github.com/rioriost/agefreighter/internal/report"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -96,7 +98,12 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		{"load", "missing.yaml"},
 		{"resume", "--job", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"status", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
+		{"report", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
+		{"doctor", "--target", "missing.yaml"},
+		{"doctor", "history", "--target", "missing.yaml"},
 		{"verify", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
+		{"profile", "missing.yaml"},
+		{"optimize", "--target", "missing.yaml"},
 		{"cleanup", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 	}
 	for _, args := range tests {
@@ -104,6 +111,188 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		if err := Execute(command, args); err == nil {
 			t.Fatalf("Execute(%v) error = nil", args)
 		}
+	}
+}
+
+func TestProfileCommandValidatesFlagsBeforeReadingJob(t *testing.T) {
+	tests := [][]string{
+		{"profile", "--mode", "arbitrary", "missing.yaml"},
+		{"profile", "--sample-size", "0", "missing.yaml"},
+		{
+			"profile", "--sample-size",
+			fmt.Sprint(app.MaxProfileSampleSize + 1), "missing.yaml",
+		},
+		{"profile", "--format", "yaml", "missing.yaml"},
+	}
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) succeeded", args)
+		}
+	}
+}
+
+func TestProfileCommandEmitsSourceOnlyReport(t *testing.T) {
+	directory := t.TempDir()
+	vertices := filepath.Join(directory, "vertices.csv")
+	edges := filepath.Join(directory, "edges.csv")
+	if err := os.WriteFile(vertices, []byte("id,name\np1,Alice\np2,Bob\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(edges, []byte("id,start,end\ne1,p1,p2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	job := cliTestLoadJob("profile_target_not_opened", vertices, edges)
+	job.Target.Connection = config.SecretRef{Env: "PROFILE_CLI_TARGET_MUST_NOT_BE_READ"}
+	data, err := yaml.Marshal(job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(directory, "job.yaml")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	command := NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"profile", "--mode", "exact", "--format", "markdown", path,
+	}); err != nil {
+		t.Fatalf("profile command error = %v", err)
+	}
+	if !strings.Contains(output.String(), "# agefreighter profile report") ||
+		strings.Contains(output.String(), "Alice") ||
+		strings.Contains(output.String(), "p1") {
+		t.Fatalf("profile output = %s", output.String())
+	}
+}
+
+func TestVerifyDeepFlagValidation(t *testing.T) {
+	const jobID = "11111111-2222-4333-8444-555555555555"
+	tests := [][]string{
+		{"verify", "--target", "job.yaml", "--level", "arbitrary", jobID},
+		{
+			"verify", "--target", "job.yaml", "--integrity",
+			"--limit", "1001", jobID,
+		},
+		{"verify", "--target", "job.yaml", "--format", "markdown", jobID},
+	}
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) succeeded", args)
+		}
+	}
+}
+
+func TestDoctorCommandValidatesFlagsBeforeConnecting(t *testing.T) {
+	tests := [][]string{
+		{"doctor", "--target", "missing.yaml", "--format", "yaml"},
+		{"doctor", "--target", "missing.yaml", "--output", ""},
+		{"doctor", "history", "--target", "missing.yaml", "--limit", "0"},
+		{
+			"doctor", "history", "--target", "missing.yaml",
+			"--limit", fmt.Sprint(app.MaxDoctorHistory + 1),
+		},
+		{
+			"doctor", "history", "--target", "missing.yaml",
+			"--format", "yaml",
+		},
+	}
+
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) error = nil", args)
+		}
+	}
+}
+
+func TestOptimizeCommandValidatesFlagsBeforeConnecting(t *testing.T) {
+	tests := [][]string{
+		{"optimize", "--target", "missing.yaml", "--format", "yaml"},
+		{"optimize", "--target", "missing.yaml", "--output", ""},
+		{"optimize", "--target", "missing.yaml", "--apply-analyze"},
+		{"optimize", "--target", "missing.yaml", "--queries", "workload.cypher"},
+	}
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) succeeded", args)
+		}
+	}
+}
+
+func TestDoctorPropagatesCancellation(t *testing.T) {
+	t.Setenv(
+		"AGEFREIGHTER_TARGET_DSN",
+		"postgres://localhost/agefreighter_cancel_test",
+	)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+	err := ExecuteContext(ctx, command, []string{
+		"doctor",
+		"--target",
+		configFixture(t, "valid/csv.yaml"),
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("doctor cancellation error = %v", err)
+	}
+}
+
+func TestReportCommandValidatesFlagsBeforeConnecting(t *testing.T) {
+	const validJobID = "11111111-2222-4333-8444-555555555555"
+	tests := [][]string{
+		{"report", "--target", "missing.yaml", "--format", "yaml", validJobID},
+		{"report", "--target", "missing.yaml", "--limit-batches", "0", validJobID},
+		{"report", "--target", "missing.yaml", "--output", "", validJobID},
+		{
+			"report", "--target", "missing.yaml", "--limit-batches",
+			fmt.Sprint(app.MaxReportBatches + 1), validJobID,
+		},
+	}
+	for _, args := range tests {
+		command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+		if err := Execute(command, args); err == nil {
+			t.Fatalf("Execute(%v) error = nil", args)
+		}
+	}
+	command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+	err := Execute(command, []string{
+		"report", "--target", configFixture(t, "valid/csv.yaml"), "not-a-uuid",
+	})
+	if err == nil || !strings.Contains(err.Error(), "canonical UUID") {
+		t.Fatalf("invalid report UUID error = %v", err)
+	}
+}
+
+func TestWriteExclusiveReport(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "report.json")
+	data := []byte("{\"safe\":true}\n")
+	if err := writeExclusiveReport(path, data); err != nil {
+		t.Fatalf("writeExclusiveReport() error = %v", err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat() error = %v", err)
+	}
+	if !bytes.Equal(got, data) || info.Mode().Perm() != 0o600 {
+		t.Fatalf("report = %q mode=%o", got, info.Mode().Perm())
+	}
+	if err := writeExclusiveReport(path, []byte("overwrite")); err == nil {
+		t.Fatal("writeExclusiveReport() overwrote an existing file")
+	}
+	link := filepath.Join(directory, "report-link")
+	if err := os.Symlink(path, link); err != nil {
+		t.Fatalf("Symlink() error = %v", err)
+	}
+	if err := writeExclusiveReport(link, data); err == nil {
+		t.Fatal("writeExclusiveReport() followed a symlink")
 	}
 }
 
@@ -163,6 +352,95 @@ func TestLifecycleCommandsIntegration(t *testing.T) {
 		if stored.ID != loaded.JobID || stored.Status != meta.JobCommitted {
 			t.Fatalf("%s output = %#v", name, stored)
 		}
+	}
+
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"verify", "--target", jobPath, "--counts", "--integrity",
+		"--limit", "10", loaded.JobID,
+	}); err != nil {
+		t.Fatalf("deep verify error = %v", err)
+	}
+	var verificationReport report.Document
+	if err := json.Unmarshal(output.Bytes(), &verificationReport); err != nil {
+		t.Fatalf("decode deep verify output: %v", err)
+	}
+	if verificationReport.Command != "verify" ||
+		verificationReport.Outcome != report.OutcomePass {
+		t.Fatalf("deep verify output = %#v", verificationReport)
+	}
+
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"report", "--target", jobPath, "--limit-batches", "2",
+		"--include-counts", loaded.JobID,
+	}); err != nil {
+		t.Fatalf("report error = %v", err)
+	}
+	var migrationReport struct {
+		SchemaVersion int              `json:"schemaVersion"`
+		Job           *report.Job      `json:"job"`
+		Sections      []report.Section `json:"sections"`
+	}
+	if err := json.Unmarshal(output.Bytes(), &migrationReport); err != nil {
+		t.Fatalf("decode report output: %v", err)
+	}
+	if migrationReport.SchemaVersion != report.SchemaVersion ||
+		migrationReport.Job == nil ||
+		migrationReport.Job.ID != loaded.JobID ||
+		len(migrationReport.Sections) == 0 {
+		t.Fatalf("report output = %#v", migrationReport)
+	}
+
+	for _, arguments := range [][]string{
+		{"optimize", "--target", jobPath},
+		{"optimize", "--target", jobPath, "--apply-analyze"},
+	} {
+		output.Reset()
+		command = NewAgefreighter(&output, &bytes.Buffer{})
+		if err := Execute(command, arguments); err != nil {
+			t.Fatalf("%v error = %v", arguments, err)
+		}
+		var optimizerReport report.Document
+		if err := json.Unmarshal(output.Bytes(), &optimizerReport); err != nil {
+			t.Fatalf("decode optimizer output: %v", err)
+		}
+		if optimizerReport.Command != "optimize" ||
+			optimizerReport.Target == nil {
+			t.Fatalf("optimizer output = %#v", optimizerReport)
+		}
+	}
+
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"doctor", "--target", jobPath, "--persist",
+	}); err != nil {
+		t.Fatalf("doctor error = %v", err)
+	}
+	var doctorReport report.Document
+	if err := json.Unmarshal(output.Bytes(), &doctorReport); err != nil {
+		t.Fatalf("decode doctor output: %v", err)
+	}
+	if doctorReport.Command != "doctor" || doctorReport.Target == nil {
+		t.Fatalf("doctor output = %#v", doctorReport)
+	}
+
+	output.Reset()
+	command = NewAgefreighter(&output, &bytes.Buffer{})
+	if err := Execute(command, []string{
+		"doctor", "history", "--target", jobPath, "--limit", "1",
+	}); err != nil {
+		t.Fatalf("doctor history error = %v", err)
+	}
+	var historyReport report.Document
+	if err := json.Unmarshal(output.Bytes(), &historyReport); err != nil {
+		t.Fatalf("decode doctor history output: %v", err)
+	}
+	if historyReport.Command != "doctor" || len(historyReport.Sections) == 0 {
+		t.Fatalf("doctor history output = %#v", historyReport)
 	}
 	command = NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
 	if err := Execute(command, []string{
@@ -283,6 +561,9 @@ func registerCLICleanup(t *testing.T, dsn, graph, jobID string) {
 		if pool, err := pgxpool.New(ctx, dsn); err == nil {
 			tx, beginErr := pool.Begin(ctx)
 			if beginErr == nil {
+				_, _ = tx.Exec(ctx, `
+					DELETE FROM agefreighter_meta.diagnostic_history
+					WHERE target_graph = $1`, graph)
 				_, _ = tx.Exec(ctx, `
 					UPDATE agefreighter_meta.load_job
 					SET graph_generation_id = NULL

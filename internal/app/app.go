@@ -11,6 +11,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -61,7 +62,7 @@ func Status(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if err != nil {
 		return meta.Job{}, fmt.Errorf("load target configuration: %w", err)
 	}
-	adapter, store, err := openTarget(ctx, job)
+	adapter, store, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
@@ -74,11 +75,7 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if err != nil {
 		return meta.Job{}, err
 	}
-	job, err = resolveSource(ctx, job)
-	if err != nil {
-		return meta.Job{}, err
-	}
-	adapter, store, err := openTarget(ctx, job)
+	adapter, store, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
@@ -89,13 +86,6 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	}
 	if stored.Status != meta.JobCommitted {
 		return meta.Job{}, fmt.Errorf("load job %q is %s, not committed", jobID, stored.Status)
-	}
-	fingerprint, err := jobFingerprint(job)
-	if err != nil {
-		return meta.Job{}, err
-	}
-	if fingerprint != stored.ConfigFingerprint {
-		return meta.Job{}, errors.New("load job configuration fingerprint changed")
 	}
 	graph, err := store.GraphGenerationForJob(ctx, jobID)
 	if err != nil {
@@ -108,6 +98,71 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 			meta.ErrGenerationMismatch,
 			job.Target.Graph,
 		)
+	}
+	usePersistedVerification := false
+	if inspection, inspectErr := store.InspectSchema(ctx); inspectErr != nil {
+		return meta.Job{}, inspectErr
+	} else if inspection.InstalledVersion >= 17 {
+		_, verificationErr := store.GetJobVerification(ctx, jobID)
+		switch {
+		case verificationErr == nil:
+			usePersistedVerification = true
+		case !errors.Is(verificationErr, meta.ErrNotFound):
+			return meta.Job{}, verificationErr
+		default:
+			counters, counterErr := store.ListLabelCounters(ctx, jobID, 1)
+			if counterErr != nil {
+				return meta.Job{}, counterErr
+			}
+			if len(counters) > 0 {
+				return meta.Job{}, errors.New(
+					"v17 job verification metadata is missing",
+				)
+			}
+		}
+	}
+	if usePersistedVerification {
+		labels, coverage, verificationErr := persistedVerificationLabels(
+			ctx,
+			store,
+			job,
+			stored,
+		)
+		if verificationErr != nil {
+			return meta.Job{}, verificationErr
+		}
+		if err := adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
+			transactionStore, err := transaction.Metadata()
+			if err != nil {
+				return err
+			}
+			return verifyPersistedGenerationTransaction(
+				ctx,
+				transaction,
+				transactionStore,
+				graph,
+				labels,
+				coverage,
+			)
+		}); err != nil {
+			return meta.Job{}, err
+		}
+		return stored, nil
+	}
+
+	// Metadata predating v17 has no resolved-mapping snapshot. Preserve the
+	// 2.0 compatibility fallback, including source discovery where required.
+	sourceAccess := sourceResolutionAccessRequired(job)
+	job, err = resolveSource(ctx, job)
+	if err != nil {
+		return meta.Job{}, err
+	}
+	fingerprint, err := jobFingerprint(job)
+	if err != nil {
+		return meta.Job{}, err
+	}
+	if fingerprint != stored.ConfigFingerprint {
+		return meta.Job{}, errors.New("load job configuration fingerprint changed")
 	}
 	if err := adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
 		transactionStore, err := transaction.Metadata()
@@ -124,7 +179,64 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	}); err != nil {
 		return meta.Job{}, err
 	}
+	if sourceAccess {
+		stored.VerificationSourceAccess = true
+		stored.VerificationEvidence =
+			"source rediscovery was required; evidence is not the original migration snapshot"
+	}
 	return stored, nil
+}
+
+func sourceResolutionAccessRequired(job config.LoadJob) bool {
+	switch job.Source.Type {
+	case config.SourceNeo4j:
+		return job.Source.Neo4j != nil &&
+			job.Source.Neo4j.Discovery != nil &&
+			job.Source.Neo4j.Discovery.Enabled
+	case config.SourceCosmos:
+		return job.Source.Cosmos != nil &&
+			job.Source.Cosmos.Gremlin != nil &&
+			job.Source.Cosmos.Gremlin.Enabled
+	default:
+		return false
+	}
+}
+
+func persistedVerificationLabels(
+	ctx context.Context,
+	store *meta.Store,
+	job config.LoadJob,
+	stored meta.Job,
+) ([]meta.LabelGeneration, map[int64]identityCoverage, error) {
+	fingerprint, err := jobFingerprint(job)
+	if err != nil {
+		return nil, nil, err
+	}
+	verification, err := store.GetJobVerification(ctx, stored.ID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read persisted verification metadata: %w", err)
+	}
+	if verification.SubmittedConfigFingerprint != fingerprint {
+		return nil, nil, errors.New("load job submitted configuration fingerprint changed")
+	}
+	snapshot, labels, coverage, err := parseResolvedMappingSummary(
+		verification.ResolvedMappingSummary,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("validate persisted resolved mapping: %w", err)
+	}
+	canonical, err := json.Marshal(snapshot)
+	if err != nil {
+		return nil, nil, fmt.Errorf("canonicalize persisted resolved mapping: %w", err)
+	}
+	digest := sha256.Sum256(canonical)
+	if hex.EncodeToString(digest[:]) != verification.ResolvedMappingFingerprint {
+		return nil, nil, errors.New("persisted resolved mapping fingerprint changed")
+	}
+	if snapshot.SourceType != stored.SourceType {
+		return nil, nil, errors.New("persisted resolved mapping source type changed")
+	}
+	return labels, coverage, nil
 }
 
 func execute(
@@ -134,6 +246,10 @@ func execute(
 	resume bool,
 ) (result LoadResult, resultErr error) {
 	result.JobID = jobID
+	submittedFingerprint, err := jobFingerprint(job)
+	if err != nil {
+		return result, fmt.Errorf("fingerprint submitted job: %w", err)
+	}
 	tracer := trace.SpanFromContext(ctx).TracerProvider().Tracer(
 		"github.com/rioriost/agefreighter/internal/app",
 	)
@@ -181,7 +297,13 @@ func execute(
 	if _, err := newPipelineRunner(job, 1, 1); err != nil {
 		return result, fmt.Errorf("validate load pipeline: %w", err)
 	}
-	adapter, store, err := openTarget(ctx, job)
+	var adapter *age.Adapter
+	var store *meta.Store
+	if resume {
+		adapter, store, err = openMutatingTarget(ctx, job)
+	} else {
+		adapter, store, err = openAGEStore(ctx, job)
+	}
 	if err != nil {
 		return result, err
 	}
@@ -254,15 +376,28 @@ func execute(
 			return result, recordFailure(latestErr)
 		}
 	} else {
-		if err := store.CreateJob(ctx, meta.Job{
+		newJob := meta.Job{
 			ID: jobID, Name: job.Metadata.Name,
 			SourceType: string(job.Source.Type), LoadMode: string(job.Target.Mode),
 			TargetGraph: job.Target.Graph, ConfigFingerprint: fingerprint,
-		}); err != nil {
-			return result, err
 		}
-		if err := store.StartJob(ctx, jobID); err != nil {
-			return result, err
+		created, createErr := store.CreateRunningJobIfCurrent(ctx, newJob)
+		if createErr != nil {
+			return result, createErr
+		}
+		if !created {
+			migrationCtx, cancel := context.WithTimeout(
+				ctx,
+				time.Duration(job.Runtime.OperationTimeout),
+			)
+			migrateErr := store.Migrate(migrationCtx)
+			cancel()
+			if migrateErr != nil {
+				return result, migrateErr
+			}
+			if err := store.CreateRunningJob(ctx, newJob); err != nil {
+				return result, err
+			}
 		}
 		if incrementalMode(job.Target.Mode) {
 			graph, labels, err = admitIncrementalCatalog(
@@ -277,8 +412,18 @@ func execute(
 		if err != nil {
 			return result, recordFailure(err)
 		}
-		storedJob, err = store.GetJob(ctx, jobID)
-		if err != nil {
+		storedJob.NextBatchID = 1
+	}
+	verification, err := buildJobVerification(
+		job, jobID, submittedFingerprint, labels,
+	)
+	if err != nil {
+		return result, recordFailure(err)
+	}
+	if resume {
+		if err := putJobVerification(
+			ctx, store, verification, job, labels, true,
+		); err != nil {
 			return result, recordFailure(err)
 		}
 	}
@@ -333,6 +478,10 @@ func execute(
 		PropertyMode:     job.Target.PropertyMode,
 		MissingEndpoint:  job.Errors.MissingEndpoint,
 		MaxDeferredEdges: job.Errors.MaxDeferredEdges,
+		CatalogAdmitted:  true,
+	}
+	if !resume {
+		sinkOptions.JobVerification = &verification
 	}
 	if quarantine != nil {
 		sinkOptions.Quarantine = quarantine
@@ -345,17 +494,34 @@ func execute(
 	if err := runner.Run(ctx, iterator, target); err != nil {
 		return result, recordFailure(err)
 	}
+	snapshot := runner.Snapshot()
+	if snapshot.BatchesCommitted == 0 {
+		if !resume {
+			if err := store.PutJobVerification(ctx, verification); err != nil {
+				return result, recordFailure(err)
+			}
+		}
+		counterLabels := make([]meta.LabelGeneration, 0, len(labels))
+		for _, label := range labels {
+			counterLabels = append(counterLabels, label.Generation)
+		}
+		if err := store.EnsureLabelCounters(ctx, jobID, counterLabels); err != nil {
+			return result, recordFailure(err)
+		}
+	}
 	sourceRejected, sourcePosition := sourceRejectionCheckpoint(baseIterator)
-	if err := store.SetSourceRejections(
-		ctx,
-		jobID,
-		sourceRejected,
-		meta.Position{
-			Resource: sourcePosition.Resource, Line: sourcePosition.Line,
-			ByteOffset: sourcePosition.Offset, Token: sourcePosition.Token,
-		},
-	); err != nil {
-		return result, recordFailure(err)
+	if sourceRejected != 0 || snapshot.BatchesCommitted == 0 {
+		if err := store.SetSourceRejections(
+			ctx,
+			jobID,
+			sourceRejected,
+			meta.Position{
+				Resource: sourcePosition.Resource, Line: sourcePosition.Line,
+				ByteOffset: sourcePosition.Offset, Token: sourcePosition.Token,
+			},
+		); err != nil {
+			return result, recordFailure(err)
+		}
 	}
 	if quarantine != nil {
 		if err := quarantine.Close(); err != nil {
@@ -364,12 +530,18 @@ func execute(
 		quarantine = nil
 	}
 	var completeErr error
+	telemetry := completionTelemetry(job.Source.Type, baseIterator)
 	if job.Target.Mode == config.LoadReplace {
-		completeErr = promoteReplace(ctx, adapter, job, jobID, graph)
+		completeErr = promoteReplace(ctx, adapter, job, jobID, graph, telemetry)
 	} else if incrementalMode(job.Target.Mode) {
-		completeErr = completeIncremental(ctx, adapter, jobID, graph)
+		completeErr = completeIncremental(ctx, adapter, jobID, graph, telemetry)
 	} else {
-		completeErr = store.CompleteJobGeneration(ctx, jobID, graph.ID)
+		completeErr = store.CompleteJobGenerationWithTelemetry(
+			ctx,
+			jobID,
+			graph.ID,
+			telemetry,
+		)
 	}
 
 	if completeErr != nil {
@@ -390,6 +562,261 @@ func execute(
 	}
 	setTrialSummary(&result, trialIterator)
 	return result, nil
+}
+
+const (
+	legacyResolvedMappingSummaryVersion = 1
+	resolvedMappingSummaryVersion       = 2
+)
+
+type identityCoverage string
+
+const (
+	identityCoverageUnknown  identityCoverage = ""
+	identityCoverageFull     identityCoverage = "full"
+	identityCoverageOptional identityCoverage = "optional"
+)
+
+type resolvedMappingSnapshot struct {
+	SchemaVersion int                     `json:"schemaVersion"`
+	SourceType    string                  `json:"sourceType"`
+	Labels        []resolvedLabelSnapshot `json:"labels"`
+}
+
+type resolvedLabelSnapshot struct {
+	ID                int64            `json:"labelGenerationId"`
+	GraphGenerationID int64            `json:"graphGenerationId"`
+	Name              string           `json:"name"`
+	Kind              string           `json:"kind"`
+	GraphNamespaceOID uint32           `json:"graphNamespaceOid"`
+	LabelID           uint16           `json:"labelId"`
+	RelationOID       uint32           `json:"relationOid"`
+	SequenceOID       uint32           `json:"sequenceOid"`
+	MappingGeneration uint64           `json:"mappingGeneration"`
+	IdentityCoverage  identityCoverage `json:"identityCoverage,omitempty"`
+}
+
+func buildJobVerification(
+	job config.LoadJob,
+	jobID string,
+	submittedFingerprint string,
+	labels []age.LoadLabel,
+) (meta.JobVerification, error) {
+	summary, err := resolvedMappingSummary(job, labels)
+	if err != nil {
+		return meta.JobVerification{}, err
+	}
+	digest := sha256.Sum256(summary)
+	return meta.JobVerification{
+		JobID:                      jobID,
+		SubmittedConfigFingerprint: submittedFingerprint,
+		ResolvedMappingFingerprint: hex.EncodeToString(digest[:]),
+		ResolvedMappingSummary:     summary,
+	}, nil
+}
+
+func putJobVerification(
+	ctx context.Context,
+	store *meta.Store,
+	value meta.JobVerification,
+	job config.LoadJob,
+	labels []age.LoadLabel,
+	allowLegacy bool,
+) error {
+	err := store.PutJobVerification(ctx, value)
+	if err == nil || !allowLegacy || !errors.Is(err, meta.ErrConflict) {
+		return err
+	}
+	stored, readErr := store.GetJobVerification(ctx, value.JobID)
+	if readErr != nil {
+		return errors.Join(err, readErr)
+	}
+	if legacyErr := validateLegacyJobVerification(
+		stored, job, value.SubmittedConfigFingerprint, labels,
+	); legacyErr != nil {
+		return errors.Join(err, legacyErr)
+	}
+	return nil
+}
+
+func validateLegacyJobVerification(
+	stored meta.JobVerification,
+	job config.LoadJob,
+	submittedFingerprint string,
+	loadLabels []age.LoadLabel,
+) error {
+	if stored.SubmittedConfigFingerprint != submittedFingerprint {
+		return errors.New("legacy submitted configuration fingerprint changed")
+	}
+	snapshot, labels, _, err := parseResolvedMappingSummary(
+		stored.ResolvedMappingSummary,
+	)
+	if err != nil {
+		return fmt.Errorf("validate legacy resolved mapping: %w", err)
+	}
+	if snapshot.SchemaVersion != legacyResolvedMappingSummaryVersion ||
+		snapshot.SourceType != string(job.Source.Type) {
+		return errors.New("stored resolved mapping is not a compatible legacy snapshot")
+	}
+	canonical, err := json.Marshal(snapshot)
+	if err != nil {
+		return fmt.Errorf("canonicalize legacy resolved mapping: %w", err)
+	}
+	digest := sha256.Sum256(canonical)
+	if hex.EncodeToString(digest[:]) != stored.ResolvedMappingFingerprint {
+		return errors.New("legacy resolved mapping fingerprint changed")
+	}
+	if len(labels) != len(loadLabels) {
+		return errors.New("legacy resolved label set changed")
+	}
+	byID := make(map[int64]meta.LabelGeneration, len(labels))
+	for _, label := range labels {
+		byID[label.ID] = label
+	}
+	for _, loadLabel := range loadLabels {
+		storedLabel, ok := byID[loadLabel.Generation.ID]
+		if !ok || !sameResolvedLabel(storedLabel, loadLabel.Generation) {
+			return errors.New("legacy resolved label set changed")
+		}
+	}
+	return nil
+}
+
+func resolvedMappingSummary(
+	job config.LoadJob,
+	loadLabels []age.LoadLabel,
+) (json.RawMessage, error) {
+	kinds, err := configuredLabels(job)
+	if err != nil {
+		return nil, fmt.Errorf("summarize resolved mappings: %w", err)
+	}
+	coverage, err := resolvedIdentityCoverage(job)
+	if err != nil {
+		return nil, fmt.Errorf("summarize resolved identity coverage: %w", err)
+	}
+	labels := make([]resolvedLabelSnapshot, 0, len(loadLabels))
+	seen := make(map[string]age.LabelKind, len(loadLabels))
+	for _, loadLabel := range loadLabels {
+		generation := loadLabel.Generation
+		if err := validateResolvedLabelSnapshot(generation); err != nil {
+			return nil, fmt.Errorf("summarize resolved mapping %q: %w", generation.LabelName, err)
+		}
+		if _, exists := seen[generation.LabelName]; exists {
+			return nil, fmt.Errorf("duplicate resolved label %q", generation.LabelName)
+		}
+		generationKind := age.VertexLabel
+		if generation.Kind == meta.EdgeLabel {
+			generationKind = age.EdgeLabel
+		}
+		seen[generation.LabelName] = generationKind
+		labels = append(labels, resolvedLabelSnapshot{
+			ID:                generation.ID,
+			GraphGenerationID: generation.GraphGenerationID,
+			Name:              generation.LabelName,
+			Kind:              string(byte(generation.Kind)),
+			GraphNamespaceOID: generation.GraphNamespaceOID,
+			LabelID:           generation.LabelID,
+			RelationOID:       generation.RelationOID,
+			SequenceOID:       generation.SequenceOID,
+			MappingGeneration: generation.MappingGeneration,
+			IdentityCoverage:  coverage[generation.LabelName],
+		})
+	}
+
+	if len(seen) != len(kinds) {
+		return nil, errors.New("resolved label set does not match configured mappings")
+	}
+	for name, kind := range kinds {
+		if seen[name] != kind {
+			return nil, fmt.Errorf("resolved label %q kind does not match configured mapping", name)
+		}
+	}
+	slices.SortFunc(labels, func(left, right resolvedLabelSnapshot) int {
+		if left.Name != right.Name {
+			return strings.Compare(left.Name, right.Name)
+		}
+		if left.Kind != right.Kind {
+			return strings.Compare(left.Kind, right.Kind)
+		}
+		if left.ID < right.ID {
+			return -1
+		}
+		if left.ID > right.ID {
+			return 1
+		}
+		return 0
+	})
+	return json.Marshal(resolvedMappingSnapshot{
+		SchemaVersion: resolvedMappingSummaryVersion,
+		SourceType:    string(job.Source.Type),
+		Labels:        labels,
+	})
+}
+
+func resolvedIdentityCoverage(
+	job config.LoadJob,
+) (map[string]identityCoverage, error) {
+	kinds, err := configuredLabels(job)
+	if err != nil {
+		return nil, err
+	}
+	coverage := make(map[string]identityCoverage, len(kinds))
+	for name, kind := range kinds {
+		if kind == age.VertexLabel {
+			coverage[name] = identityCoverageFull
+		}
+	}
+	recordEdge := func(name string, hasExternalIdentity bool) {
+		value := identityCoverageOptional
+		if hasExternalIdentity {
+			value = identityCoverageFull
+		}
+		if coverage[name] == identityCoverageOptional ||
+			value == identityCoverageOptional {
+			coverage[name] = identityCoverageOptional
+			return
+		}
+		coverage[name] = identityCoverageFull
+	}
+	switch job.Source.Type {
+	case config.SourceCSV:
+		for _, edge := range job.Source.CSV.Edges {
+			recordEdge(edge.Label, edge.ExternalIDColumn != "")
+		}
+	case config.SourcePostgreSQL:
+		for _, edge := range job.Source.PostgreSQL.Edges {
+			recordEdge(edge.Label, edge.ExternalIDField != "")
+		}
+	case config.SourceNeo4j:
+		for _, edge := range job.Source.Neo4j.Edges {
+			recordEdge(edge.Label, edge.ExternalIDField != "")
+		}
+	case config.SourceCosmos:
+		for _, edge := range job.Source.Cosmos.Edges {
+			recordEdge(edge.Label, edge.ExternalIDField != "")
+		}
+	default:
+		return nil, fmt.Errorf("source type %q is not implemented", job.Source.Type)
+	}
+	for name := range kinds {
+		if coverage[name] == identityCoverageUnknown {
+			return nil, fmt.Errorf("label %q identity coverage is unresolved", name)
+		}
+	}
+	return coverage, nil
+}
+
+func validateResolvedLabelSnapshot(label meta.LabelGeneration) error {
+	if label.ID <= 0 || label.GraphGenerationID <= 0 ||
+		label.LabelName == "" || label.GraphNamespaceOID == 0 ||
+		label.LabelID == 0 || label.RelationOID == 0 ||
+		label.SequenceOID == 0 || label.MappingGeneration == 0 {
+		return errors.New("resolved label catalog identity is incomplete")
+	}
+	if label.Kind != meta.VertexLabel && label.Kind != meta.EdgeLabel {
+		return errors.New("resolved label kind is invalid")
+	}
+	return nil
 }
 
 func trialLabels(labels []string) []model.Label {
@@ -420,7 +847,11 @@ func completeIncremental(
 	adapter *age.Adapter,
 	jobID string,
 	graph meta.GraphGeneration,
+	telemetry ...meta.ConnectorTelemetry,
 ) error {
+	if len(telemetry) > 1 {
+		return errors.New("at most one connector telemetry summary is allowed")
+	}
 	return adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
 		locked, err := transaction.TryLockGraphLifecycle(ctx, graph.GraphName)
 		if err != nil {
@@ -452,8 +883,31 @@ func completeIncremental(
 				graph.GraphName,
 			)
 		}
+		if len(telemetry) == 1 {
+			return transactionStore.CompleteJobWithTelemetry(
+				ctx,
+				jobID,
+				telemetry[0],
+			)
+		}
 		return transactionStore.CompleteJob(ctx, jobID)
 	})
+}
+
+func completionTelemetry(
+	sourceType config.SourceType,
+	iterator sourcecontract.Iterator,
+) meta.ConnectorTelemetry {
+	value := meta.ConnectorTelemetry{Connector: string(sourceType)}
+	if telemetry := sourceTelemetry(iterator); telemetry != nil {
+		value.Connector = telemetry.Connector
+		value.Pages = telemetry.Pages
+		value.RequestCharge = telemetry.RequestCharge
+		value.FailedRequestAttempts = telemetry.FailedRequestAttempts
+		value.ThrottledRequests = telemetry.ThrottledRequests
+		value.ContinuationDigest = telemetry.ContinuationDigest
+	}
+	return value
 }
 
 func newPipelineRunner(
@@ -470,7 +924,89 @@ func newPipelineRunner(
 	})
 }
 
+func openMutatingTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (*age.Adapter, *meta.Store, error) {
+	adapter, store, err := openAGEStore(ctx, job)
+	if err != nil {
+		return nil, nil, err
+	}
+	migrationCtx, cancel := context.WithTimeout(
+		ctx,
+		time.Duration(job.Runtime.OperationTimeout),
+	)
+	defer cancel()
+	if err := store.MigrateIfNeeded(migrationCtx); err != nil {
+		adapter.Close()
+		return nil, nil, err
+	}
+	return adapter, store, nil
+}
+
+// openTarget retains the 2.0 mutating target-open contract for load/resume and
+// existing internal callers.
 func openTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (*age.Adapter, *meta.Store, error) {
+	return openMutatingTarget(ctx, job)
+}
+
+type readOnlyTarget struct {
+	Adapter  *age.Adapter
+	Store    *meta.Store
+	Metadata meta.SchemaInspection
+}
+
+func openReadOnlyTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (readOnlyTarget, error) {
+	adapter, store, err := openAGEStore(ctx, job)
+	if err != nil {
+		return readOnlyTarget{}, err
+	}
+	inspection, err := store.InspectSchema(ctx)
+	if err != nil {
+		adapter.Close()
+		return readOnlyTarget{}, err
+	}
+	return readOnlyTarget{
+		Adapter: adapter, Store: store, Metadata: inspection,
+	}, nil
+}
+
+func openCurrentTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (*age.Adapter, *meta.Store, error) {
+	target, err := openReadOnlyTarget(ctx, job)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := target.Metadata.RequireReadCompatible(); err != nil {
+		target.Adapter.Close()
+		return nil, nil, err
+	}
+	return target.Adapter, target.Store, nil
+}
+
+func probeTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (age.DegradedProbe, error) {
+	dsn, err := resolveSecret(job.Target.Connection)
+	if err != nil {
+		return age.DegradedProbe{}, fmt.Errorf("resolve target connection: %w", err)
+	}
+	return age.ProbeDegraded(ctx, dsn, age.ProbeOptions{
+		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
+		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
+	})
+}
+
+func openAGEStore(
 	ctx context.Context,
 	job config.LoadJob,
 ) (*age.Adapter, *meta.Store, error) {
@@ -488,10 +1024,6 @@ func openTarget(
 	}
 	store, err := adapter.Metadata()
 	if err != nil {
-		adapter.Close()
-		return nil, nil, err
-	}
-	if err := store.Migrate(ctx); err != nil {
 		adapter.Close()
 		return nil, nil, err
 	}

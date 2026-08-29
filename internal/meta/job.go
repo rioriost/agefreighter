@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func (store *Store) CreateJob(ctx context.Context, job Job) error {
@@ -29,6 +30,73 @@ func (store *Store) CreateJob(ctx context.Context, job Job) error {
 		return fmt.Errorf("create load job %q: %w", job.ID, err)
 	}
 	return nil
+}
+
+func (store *Store) CreateRunningJob(ctx context.Context, job Job) error {
+	if err := validateJob(job); err != nil {
+		return err
+	}
+	_, err := store.database.Exec(
+		ctx,
+		`INSERT INTO agefreighter_meta.load_job (
+			job_id, name, source_type, load_mode, target_graph,
+			config_fingerprint, status, started_at, updated_at
+		) VALUES (
+			$1::uuid, $2, $3, $4, $5, $6, 'running',
+			clock_timestamp(), clock_timestamp()
+		)`,
+		job.ID,
+		job.Name,
+		job.SourceType,
+		job.LoadMode,
+		job.TargetGraph,
+		job.ConfigFingerprint,
+	)
+	if err != nil {
+		return fmt.Errorf("create running load job %q: %w", job.ID, err)
+	}
+	return nil
+}
+
+func (store *Store) CreateRunningJobIfCurrent(
+	ctx context.Context,
+	job Job,
+) (bool, error) {
+	if err := validateJob(job); err != nil {
+		return false, err
+	}
+	tag, err := store.database.Exec(
+		ctx,
+		`INSERT INTO agefreighter_meta.load_job (
+			job_id, name, source_type, load_mode, target_graph,
+			config_fingerprint, status, started_at, updated_at
+		)
+		SELECT
+			$1::uuid, $2, $3, $4, $5, $6, 'running',
+			clock_timestamp(), clock_timestamp()
+		WHERE (
+			SELECT COALESCE(MIN(version), 0) = 1
+			   AND COALESCE(MAX(version), 0) = $7
+			   AND COUNT(*) = $7
+			FROM agefreighter_meta.schema_migration
+		)`,
+		job.ID,
+		job.Name,
+		job.SourceType,
+		job.LoadMode,
+		job.TargetGraph,
+		job.ConfigFingerprint,
+		schemaVersion,
+	)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) &&
+			(pgErr.Code == "42P01" || pgErr.Code == "3F000") {
+			return false, nil
+		}
+		return false, fmt.Errorf("create running load job %q: %w", job.ID, err)
+	}
+	return tag.RowsAffected() == 1, nil
 }
 
 func (store *Store) GetJob(ctx context.Context, jobID string) (Job, error) {
@@ -103,6 +171,26 @@ func (store *Store) StartJob(ctx context.Context, jobID string) error {
 }
 
 func (store *Store) CompleteJob(ctx context.Context, jobID string) error {
+	return store.completeJob(ctx, jobID, nil)
+}
+
+func (store *Store) CompleteJobWithTelemetry(
+	ctx context.Context,
+	jobID string,
+	telemetry ConnectorTelemetry,
+) error {
+	telemetry.JobID = jobID
+	if err := validateConnectorTelemetry(telemetry); err != nil {
+		return err
+	}
+	return store.completeJob(ctx, jobID, &telemetry)
+}
+
+func (store *Store) completeJob(
+	ctx context.Context,
+	jobID string,
+	telemetry *ConnectorTelemetry,
+) error {
 	if err := validateJobID(jobID); err != nil {
 		return err
 	}
@@ -149,6 +237,11 @@ func (store *Store) CompleteJob(ctx context.Context, jobID string) error {
 			nextBatchID,
 		)
 	}
+	if telemetry != nil {
+		if err := (&Store{database: tx}).PutConnectorTelemetry(ctx, *telemetry); err != nil {
+			return err
+		}
+	}
 	tag, err := tx.Exec(
 		ctx,
 		`UPDATE agefreighter_meta.load_job
@@ -176,6 +269,145 @@ func (store *Store) CompleteJobGeneration(
 	ctx context.Context,
 	jobID string,
 	graphGenerationID int64,
+) error {
+	return store.completeJobGeneration(ctx, jobID, graphGenerationID, nil)
+}
+
+func (store *Store) CompleteJobGenerationWithTelemetry(
+	ctx context.Context,
+	jobID string,
+	graphGenerationID int64,
+	telemetry ConnectorTelemetry,
+) error {
+	telemetry.JobID = jobID
+	if err := validateConnectorTelemetry(telemetry); err != nil {
+		return err
+	}
+	return store.completeJobGenerationWithTelemetry(
+		ctx, jobID, graphGenerationID, telemetry,
+	)
+}
+
+func (store *Store) completeJobGenerationWithTelemetry(
+	ctx context.Context,
+	jobID string,
+	graphGenerationID int64,
+	telemetry ConnectorTelemetry,
+) error {
+	if graphGenerationID <= 0 {
+		return errors.New("graph generation ID must be positive")
+	}
+	var (
+		status                                       JobStatus
+		boundGenerationID                            int64
+		unresolved                                   bool
+		telemetryRows, generationRows, completedRows int64
+	)
+	err := store.database.QueryRow(ctx, `
+		WITH
+		current_state AS MATERIALIZED (
+			SELECT job.status, COALESCE(job.graph_generation_id, 0) AS generation_id,
+			       EXISTS (
+			         SELECT 1
+			         FROM agefreighter_meta.load_batch batch
+			         WHERE batch.job_id = job.job_id
+			           AND batch.batch_id = job.next_batch_id
+			           AND batch.status IN ('running', 'failed')
+			       ) AS unresolved
+			FROM agefreighter_meta.load_job job
+			WHERE job.job_id = $1::uuid
+			FOR UPDATE
+		),
+		eligible AS MATERIALIZED (
+			SELECT generation.graph_generation_id
+			FROM current_state state
+			JOIN agefreighter_meta.graph_generation generation
+			  ON generation.graph_generation_id = $2
+			 AND generation.job_id = $1::uuid
+			 AND generation.state = 'loading'
+			WHERE state.status = 'running'
+			  AND state.generation_id = $2
+			  AND NOT state.unresolved
+			FOR UPDATE OF generation
+		),
+		stored_telemetry AS (
+			INSERT INTO agefreighter_meta.connector_telemetry (
+				job_id, connector, pages, request_charge,
+				failed_request_attempts, throttled_requests, continuation_digest
+			)
+			SELECT $1::uuid, $3, $4, $5, $6, $7, $8
+			FROM eligible
+			ON CONFLICT (job_id) DO UPDATE SET
+				connector = EXCLUDED.connector
+			WHERE agefreighter_meta.connector_telemetry.connector = EXCLUDED.connector
+			  AND agefreighter_meta.connector_telemetry.pages = EXCLUDED.pages
+			  AND agefreighter_meta.connector_telemetry.request_charge =
+					EXCLUDED.request_charge
+			  AND agefreighter_meta.connector_telemetry.failed_request_attempts =
+					EXCLUDED.failed_request_attempts
+			  AND agefreighter_meta.connector_telemetry.throttled_requests =
+					EXCLUDED.throttled_requests
+			  AND agefreighter_meta.connector_telemetry.continuation_digest =
+					EXCLUDED.continuation_digest
+			RETURNING job_id
+		),
+		activated AS (
+			UPDATE agefreighter_meta.graph_generation generation
+			SET state = 'active', updated_at = clock_timestamp()
+			FROM eligible, stored_telemetry
+			WHERE generation.graph_generation_id = eligible.graph_generation_id
+			RETURNING generation.graph_generation_id
+		),
+		completed AS (
+			UPDATE agefreighter_meta.load_job job
+			SET status = 'committed', error_message = '',
+			    completed_at = clock_timestamp(), updated_at = clock_timestamp()
+			FROM activated
+			WHERE job.job_id = $1::uuid
+			  AND job.status = 'running'
+			RETURNING job.job_id
+		)
+		SELECT state.status, state.generation_id, state.unresolved,
+		       (SELECT count(*) FROM stored_telemetry),
+		       (SELECT count(*) FROM activated),
+		       (SELECT count(*) FROM completed)
+		FROM current_state state`,
+		pgx.QueryExecModeExec,
+		jobID,
+		graphGenerationID,
+		telemetry.Connector,
+		telemetry.Pages,
+		telemetry.RequestCharge,
+		telemetry.FailedRequestAttempts,
+		telemetry.ThrottledRequests,
+		telemetry.ContinuationDigest,
+	).Scan(
+		&status,
+		&boundGenerationID,
+		&unresolved,
+		&telemetryRows,
+		&generationRows,
+		&completedRows,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("%w: load job %q", ErrNotFound, jobID)
+	}
+	if err != nil {
+		return fmt.Errorf("complete load generation: %w", err)
+	}
+	if status != JobRunning || boundGenerationID != graphGenerationID ||
+		unresolved || telemetryRows != 1 || generationRows != 1 ||
+		completedRows != 1 {
+		return fmt.Errorf("%w: load job generation is not ready to complete", ErrConflict)
+	}
+	return nil
+}
+
+func (store *Store) completeJobGeneration(
+	ctx context.Context,
+	jobID string,
+	graphGenerationID int64,
+	telemetry *ConnectorTelemetry,
 ) error {
 	if err := validateJobID(jobID); err != nil {
 		return err
@@ -221,6 +453,11 @@ func (store *Store) CompleteJobGeneration(
 	}
 	if unresolved != 0 {
 		return fmt.Errorf("%w: load job has unresolved attempts", ErrConflict)
+	}
+	if telemetry != nil {
+		if err := (&Store{database: tx}).PutConnectorTelemetry(ctx, *telemetry); err != nil {
+			return err
+		}
 	}
 	tag, err := tx.Exec(
 		ctx,

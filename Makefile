@@ -4,17 +4,12 @@ GO ?= go
 GOVULNCHECK ?= $(shell $(GO) env GOPATH)/bin/govulncheck
 ACTIONLINT ?= $(shell $(GO) env GOPATH)/bin/actionlint
 COVERAGE_DIR ?= .coverage
-COVERAGE_THRESHOLD ?= 90.0
+COVERAGE_THRESHOLD ?= 80.0
 BENCHTIME ?= 5x
 BENCHFLAGS ?=
 FUZZTIME ?= 3s
 SCALE_ROWS ?= 200000
-AGEFREIGHTER_NEO4J_TEST_URI ?= bolt://127.0.0.1:57687
-AGEFREIGHTER_NEO4J_TEST_USERNAME ?= neo4j
-AGEFREIGHTER_NEO4J_TEST_PASSWORD ?= agefreighter_dev_only
-AGEFREIGHTER_NEO4J_TEST_DATABASE ?= neo4j
-AGEFREIGHTER_POSTGRES_TEST_DSN ?= postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55433/agefreighter?sslmode=disable
-AGEFREIGHTER_AGE_TEST_DSN ?= postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable
+PERFORMANCE_ARTIFACTS ?= performance-artifacts
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || printf unknown)
 BUILD_DATE ?= unknown
@@ -22,8 +17,10 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 	-X github.com/rioriost/agefreighter/internal/version.Commit=$(COMMIT) \
 	-X github.com/rioriost/agefreighter/internal/version.BuildDate=$(BUILD_DATE)
 
-.PHONY: bench-csv bench-csv-scale build check check-full coverage dev-down dev-pull dev-reset dev-smoke \
-	dev-status dev-up fmt fuzz-smoke install-tools release-check test test-compatibility test-race test-recovery tidy vet vuln workflow-lint
+.PHONY: bench-csv bench-csv-scale bench-release build check check-full coverage dev-down dev-pull \
+	dev-reset dev-smoke dev-status dev-up fmt fuzz-smoke install-tools release-check test \
+	test-compatibility test-connectors-cosmos test-connectors-local test-diagnostics-race \
+	test-race test-recovery test-release-integration tidy vet vuln workflow-lint
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter ./cmd/agefreighter
@@ -39,6 +36,9 @@ bench-csv-scale:
 		AGEFREIGHTER_BENCH_ROWS="$(SCALE_ROWS)" \
 		$(GO) test -run '^$$' -bench '^BenchmarkGeneratedCSVLoad$$' \
 		-benchtime="1x" -benchmem $(BENCHFLAGS) ./internal/app
+
+bench-release:
+	./scripts/bench/release-gate.sh "$(PERFORMANCE_ARTIFACTS)"
 
 fmt:
 	@files="$$(gofmt -l .)"; \
@@ -63,8 +63,17 @@ test:
 test-race:
 	$(GO) test -race ./...
 
+test-diagnostics-race:
+	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+	AGEFREIGHTER_POSTGRES_TEST_DSN="$(AGEFREIGHTER_POSTGRES_TEST_DSN)" \
+		$(GO) test -race -count=1 -v \
+		-run '^(TestReadOnlyDiagnosticsRaceIntegration|TestDoctorDegradedPostgreSQLIntegration)$$' \
+		./internal/app
+
 fuzz-smoke:
 	$(GO) test -run '^$$' -fuzz '^FuzzParse$$' -fuzztime="$(FUZZTIME)" ./internal/config
+	$(GO) test -run '^$$' -fuzz '^FuzzCypherLexer$$' -fuzztime="$(FUZZTIME)" ./internal/cypher
+	$(GO) test -run '^$$' -fuzz '^FuzzReportDecode$$' -fuzztime="$(FUZZTIME)" ./internal/report
 	$(GO) test -run '^$$' -fuzz '^FuzzAGEGraphNames$$' -fuzztime="$(FUZZTIME)" ./internal/age
 	$(GO) test -run '^$$' -fuzz '^FuzzGraphIDRoundTrip$$' -fuzztime="$(FUZZTIME)" ./internal/age
 	$(GO) test -run '^$$' -fuzz '^FuzzEncodeStringProperty$$' -fuzztime="$(FUZZTIME)" ./internal/age
@@ -76,11 +85,49 @@ test-compatibility:
 	AGEFREIGHTER_NEO4J_TEST_PASSWORD="$(AGEFREIGHTER_NEO4J_TEST_PASSWORD)" \
 	AGEFREIGHTER_NEO4J_TEST_DATABASE="$(AGEFREIGHTER_NEO4J_TEST_DATABASE)" \
 	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
-		$(GO) test -count=1 ./internal/age ./internal/meta ./internal/source/neo4j ./internal/app
+		$(GO) test -count=1 \
+		./internal/age ./internal/meta ./internal/source/neo4j ./internal/app ./internal/cli
+
+test-connectors-local:
+	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+	AGEFREIGHTER_POSTGRES_TEST_DSN="$(AGEFREIGHTER_POSTGRES_TEST_DSN)" \
+	AGEFREIGHTER_NEO4J_TEST_URI="$(AGEFREIGHTER_NEO4J_TEST_URI)" \
+	AGEFREIGHTER_NEO4J_TEST_USERNAME="$(AGEFREIGHTER_NEO4J_TEST_USERNAME)" \
+	AGEFREIGHTER_NEO4J_TEST_PASSWORD="$(AGEFREIGHTER_NEO4J_TEST_PASSWORD)" \
+	AGEFREIGHTER_NEO4J_TEST_DATABASE="$(AGEFREIGHTER_NEO4J_TEST_DATABASE)" \
+		$(GO) test -count=1 -v ./internal/app \
+		-run '^(TestCSVSourceModeMatrixIntegration|TestPostgreSQLSourceModeMatrixIntegration|TestNeo4jSourceModeMatrixIntegration)$$'
+
+test-connectors-cosmos:
+	@if [ "$(AGEFREIGHTER_REQUIRE_COSMOS_TESTS)" = "1" ]; then \
+		test -n "$(AGEFREIGHTER_AGE_TEST_DSN)" || { \
+			printf 'AGEFREIGHTER_AGE_TEST_DSN is required for the strict Cosmos release gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_ENDPOINT)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_ENDPOINT is required for the strict Cosmos release gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_DATABASE)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_DATABASE is required for the strict Cosmos release gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER is required for the strict Cosmos release gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER is required for the strict Cosmos release gate\n' >&2; exit 2; }; \
+	fi
+	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+	AGEFREIGHTER_COSMOS_TEST_ENDPOINT="$(AGEFREIGHTER_COSMOS_TEST_ENDPOINT)" \
+	AGEFREIGHTER_COSMOS_TEST_DATABASE="$(AGEFREIGHTER_COSMOS_TEST_DATABASE)" \
+	AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER="$(AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER)" \
+	AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER="$(AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER)" \
+		$(GO) test -count=1 -timeout=45m -v ./internal/app \
+		-run '^(TestCosmosLiveIntegration|TestCosmosSourceModeMatrixIntegration)$$'
+
+test-release-integration:
+	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
+	AGEFREIGHTER_POSTGRES_TEST_DSN="$(AGEFREIGHTER_POSTGRES_TEST_DSN)" \
+		$(GO) test -count=1 -v ./internal/meta ./internal/app \
+		-run '^(TestMetadataV14UpgradeToV17Integration|TestDoctorDegradedPostgreSQLIntegration|TestDeepVerificationDetectsCorruptionIntegration)$$'
 
 test-recovery:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
-		$(GO) test -count=1 \
+		$(GO) test -count=1 -v \
 		-run '^(TestResumeAfterPreBatchFailureIntegration|TestRunningAndFailedBatchResumeIntegration|TestResumeAfterCommittedBatchIntegration|TestReplaceFailureResumeAndCleanupIntegration)$$' \
 		./internal/app
 

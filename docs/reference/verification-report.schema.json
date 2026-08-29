@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rioriost/agefreighter/docs/reference/verification-report.schema.json",
+  "title": "agefreighter deep verification report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "command", "agefreighterVersion", "generatedAt",
+    "outcome", "job", "checks", "warnings", "errors",
+    "incompleteChecks", "sections"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "command": { "const": "verify" },
+    "agefreighterVersion": { "type": "string", "minLength": 1, "maxLength": 8192 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "outcome": { "enum": ["pass", "fail", "incomplete"] },
+    "job": { "$ref": "#/$defs/job" },
+    "target": { "type": "object" },
+    "checks": {
+      "type": "array", "maxItems": 256,
+      "items": { "$ref": "#/$defs/check" }
+    },
+    "warnings": {
+      "type": "array", "maxItems": 128,
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "errors": {
+      "type": "array", "maxItems": 128,
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "incompleteChecks": {
+      "type": "array", "maxItems": 256,
+      "items": { "type": "string", "minLength": 1, "maxLength": 8192 }
+    },
+    "sections": {
+      "type": "array", "maxItems": 64,
+      "items": { "$ref": "#/$defs/section" }
+    }
+  },
+  "$defs": {
+    "status": {
+      "enum": ["pass", "fail", "warning", "unknown", "unavailable"]
+    },
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "configFingerprint"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "configFingerprint": {
+          "type": "string", "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "summary"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 8192 },
+        "status": { "$ref": "#/$defs/status" },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 8192 },
+        "detail": { "type": "string", "maxLength": 8192 }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1, "maxLength": 8192 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 8192 }
+      }
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "fields"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 8192 },
+        "fields": {
+          "type": "array", "maxItems": 256,
+          "items": { "$ref": "#/$defs/field" }
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 8192 },
+        "value": { "type": "string", "maxLength": 8192 },
+        "status": { "$ref": "#/$defs/status" }
+      }
+    }
+  }
+}

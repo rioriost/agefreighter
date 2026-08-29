@@ -148,6 +148,119 @@ func TestRunInspect(t *testing.T) {
 	}
 }
 
+func TestRunCheckCypherExitSemantics(t *testing.T) {
+	directory := t.TempDir()
+	compatible := filepath.Join(directory, "compatible.cypher")
+	warning := filepath.Join(directory, "warning.cypher")
+	unsupported := filepath.Join(directory, "unsupported.cypher")
+	malformed := filepath.Join(directory, "malformed.cypher")
+	for path, contents := range map[string]string{
+		compatible:  "MATCH (n:Person) RETURN n",
+		warning:     "MATCH (n:Person) WHERE n.id = $id RETURN n",
+		unsupported: "CALL apoc.create.uuid()",
+		malformed:   "MATCH (n) RETURN 'TOP_SECRET_VALUE",
+	} {
+		if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tests := []struct {
+		name     string
+		args     []string
+		exitCode int
+	}{
+		{name: "compatible", args: []string{
+			"check-cypher", "--format", "json", compatible,
+		}},
+		{name: "unsupported default", args: []string{
+			"check-cypher", unsupported,
+		}},
+		{name: "warning strict", args: []string{
+			"check-cypher", "--strict", warning,
+		}},
+		{name: "unsupported strict", args: []string{
+			"check-cypher", "--strict", unsupported,
+		}, exitCode: 1},
+		{name: "malformed default", args: []string{
+			"check-cypher", malformed,
+		}},
+		{name: "malformed strict", args: []string{
+			"check-cypher", "--strict", malformed,
+		}, exitCode: 1},
+		{name: "I/O failure", args: []string{
+			"check-cypher", filepath.Join(directory, "missing.cypher"),
+		}, exitCode: 1},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			got := run(test.args, &stdout, &stderr)
+			if got != test.exitCode {
+				t.Fatalf(
+					"exit code = %d, want %d; stdout=%q stderr=%q",
+					got, test.exitCode, stdout.String(), stderr.String(),
+				)
+			}
+			if test.name == "compatible" {
+				var report map[string]any
+				if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+					t.Fatalf("JSON report: %v", err)
+				}
+			}
+			if strings.Contains(stdout.String(), "apoc.create.uuid") ||
+				strings.Contains(stdout.String(), "TOP_SECRET_VALUE") {
+				t.Fatalf("query text leaked: %q", stdout.String())
+			}
+		})
+	}
+}
+
+func TestRunCheckCypherRejectsUnknownCatalogAndFormat(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "query.cypher")
+	if err := os.WriteFile(path, []byte("RETURN 1"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"check-cypher", "--target-age", "2.0", path},
+		{"check-cypher", "--dialect", "arbitrary", path},
+		{"check-cypher", "--format", "text", path},
+	} {
+		var stdout, stderr bytes.Buffer
+		exitCode := run(args, &stdout, &stderr)
+		if exitCode != 1 || stdout.Len() != 0 {
+			t.Fatalf(
+				"run(%v) exit=%d stdout=%q stderr=%q",
+				args, exitCode, stdout.String(), stderr.String(),
+			)
+		}
+	}
+}
+
+func TestRunCheckCypherMarkdownAndNoObservability(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "query.cypher")
+	if err := os.WriteFile(path, []byte("RETURN 1"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(observability.SDKDisabledEnvironment, "false")
+	t.Setenv(observability.TracesExporterEnvironment, "not-an-exporter")
+	t.Setenv(observability.OTLPEndpointEnvironment, "http://127.0.0.1:1")
+	var stdout, stderr bytes.Buffer
+	exitCode := run(
+		[]string{"check-cypher", "--format", "markdown", path},
+		&stdout,
+		&stderr,
+	)
+	if exitCode != 0 {
+		t.Fatalf("exit=%d stderr=%q", exitCode, stderr.String())
+	}
+	if !strings.HasPrefix(stdout.String(), "# Cypher Compatibility Report\n") {
+		t.Fatalf("markdown output = %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q", stderr.String())
+	}
+}
+
 func TestRunBenchmarkReportFromStandardInput(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	command := `{"workload":"vertices","strategy":"direct-text","rows":10,` +

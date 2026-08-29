@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+
+	"github.com/jackc/pgx/v5"
 )
 
 const graphLifecycleLockSeed int64 = 0x6167656672
@@ -181,6 +184,56 @@ func (transaction *Transaction) CreateLabel(
 			graphName,
 			err,
 		)
+	}
+	return nil
+}
+
+func (transaction *Transaction) CreateGraphWithLabels(
+	ctx context.Context,
+	graphName string,
+	labels map[string]LabelKind,
+) error {
+	if err := ValidateGraphName(graphName); err != nil {
+		return err
+	}
+	names := make([]string, 0, len(labels))
+	for name := range labels {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	kinds := make([]string, len(names))
+	for index, name := range names {
+		if err := ValidateLabelName(name); err != nil {
+			return err
+		}
+		switch labels[name] {
+		case VertexLabel, EdgeLabel:
+			kinds[index] = string(byte(labels[name]))
+		default:
+			return fmt.Errorf("invalid label kind %d", labels[name])
+		}
+	}
+	if _, err := transaction.tx.Exec(
+		ctx,
+		`WITH created_graph AS MATERIALIZED (
+			SELECT ag_catalog.create_graph($1::name)
+		)
+		SELECT CASE label.kind
+		   WHEN 'v' THEN ag_catalog.create_vlabel(
+		     textout($1::text), textout(label.name)
+		   )
+		   WHEN 'e' THEN ag_catalog.create_elabel(
+		     textout($1::text), textout(label.name)
+		   )
+		 END
+		 FROM unnest($2::text[], $3::text[]) AS label(name, kind)
+		 CROSS JOIN created_graph`,
+		pgx.QueryExecModeExec,
+		graphName,
+		names,
+		kinds,
+	); err != nil {
+		return fmt.Errorf("create graph %q and labels: %w", graphName, err)
 	}
 	return nil
 }

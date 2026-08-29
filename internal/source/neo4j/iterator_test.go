@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rioriost/agefreighter/internal/config"
+	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
 
@@ -98,6 +99,9 @@ func TestIteratorStreamsAndResumes(t *testing.T) {
 	detailed := resumed.DetailedTelemetry()
 	if detailed.Queries != 1 || detailed.Records != 1 || detailed.Failures != 0 {
 		t.Fatalf("telemetry = %#v", detailed)
+	}
+	if resumed.Telemetry().DecodedInputBytes == 0 {
+		t.Fatalf("input byte telemetry = %#v", resumed.Telemetry())
 	}
 }
 
@@ -216,10 +220,16 @@ func TestIteratorRejectsInvalidAndNonMonotonicKeys(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			called := false
+			budget := sourcecontract.NewProfileBudget(
+				sourcecontract.ProfileBudgetLimits{
+					Rows: 10, Pages: 10, DecodedInputBytes: 1 << 20,
+				},
+			)
 			iterator, err := NewIterator(context.Background(), IteratorOptions{
 				Namespace: "people", Source: testSource(),
 				Client:      &fakeClient{streams: []RecordStream{&fakeStream{records: test.records}}},
 				RejectLimit: 5, MaxRecordBytes: 1 << 20, MaxProperties: 20,
+				ProfileBudget: budget,
 				OnMalformed: func(context.Context, MalformedRecord) error {
 					called = true
 					return nil
@@ -241,6 +251,10 @@ func TestIteratorRejectsInvalidAndNonMonotonicKeys(t *testing.T) {
 			}
 			if called {
 				t.Fatal("invalid key was quarantined")
+			}
+			usage, _ := budget.Snapshot()
+			if usage.Rows != int64(len(test.records)) || usage.DecodedInputBytes == 0 {
+				t.Fatalf("invalid-key usage = %#v", usage)
 			}
 		})
 	}

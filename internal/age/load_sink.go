@@ -34,6 +34,8 @@ type LoadSinkOptions struct {
 	MissingEndpoint  config.MissingEndpointPolicy
 	MaxDeferredEdges int
 	Quarantine       reject.Writer
+	JobVerification  *meta.JobVerification
+	CatalogAdmitted  bool
 }
 
 type LoadSink struct {
@@ -52,6 +54,7 @@ type loadTransaction struct {
 	lockKey         string
 	metadata        sinkcontract.BatchMetadata
 	rejected        int64
+	labelCounters   map[int64]meta.BatchLabelCounter
 	finalized       bool
 	wrote           bool
 	incrementalLock bool
@@ -160,15 +163,17 @@ func NewLoadSink(
 	if err != nil {
 		return nil, err
 	}
-	storedGraph, err := diagnostics.AdmitGraphGeneration(
-		ctx,
-		options.JobID,
-		options.Graph,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("admit load graph generation: %w", err)
+	if !options.CatalogAdmitted {
+		storedGraph, err := diagnostics.AdmitGraphGeneration(
+			ctx,
+			options.JobID,
+			options.Graph,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("admit load graph generation: %w", err)
+		}
+		options.Graph = storedGraph
 	}
-	options.Graph = storedGraph
 	labels := make(map[model.Label]LoadLabel, len(options.Labels))
 	for _, binding := range options.Labels {
 		if err := validateLoadLabel(options.Graph, binding); err != nil {
@@ -178,17 +183,19 @@ func NewLoadSink(
 		if _, exists := labels[key]; exists {
 			return nil, fmt.Errorf("duplicate load label %q", key)
 		}
-		current := binding.Generation
-		current.GraphGenerationID = options.Graph.ID
-		storedGeneration, err := diagnostics.AdmitLabelGeneration(
-			ctx,
-			options.Graph.ID,
-			current,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("admit load label %q: %w", key, err)
+		if !options.CatalogAdmitted {
+			current := binding.Generation
+			current.GraphGenerationID = options.Graph.ID
+			storedGeneration, err := diagnostics.AdmitLabelGeneration(
+				ctx,
+				options.Graph.ID,
+				current,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("admit load label %q: %w", key, err)
+			}
+			binding.Generation = storedGeneration
 		}
-		binding.Generation = storedGeneration
 		labels[key] = binding
 	}
 	if len(labels) == 0 {
@@ -383,6 +390,13 @@ func (target *LoadSink) Begin(
 			ownerErr,
 		)
 	}
+	labelCounters := make(map[int64]meta.BatchLabelCounter, len(target.labels))
+	for _, label := range target.labels {
+		labelCounters[label.Generation.ID] = meta.BatchLabelCounter{
+			LabelGenerationID: label.Generation.ID,
+			Kind:              label.Generation.Kind,
+		}
+	}
 	return &loadTransaction{
 		sink:            target,
 		tx:              tx,
@@ -390,6 +404,7 @@ func (target *LoadSink) Begin(
 		lockKey:         lockKey,
 		metadata:        batch,
 		incrementalLock: incrementalLock,
+		labelCounters:   labelCounters,
 	}, nil
 }
 
@@ -508,6 +523,20 @@ func (transaction *loadTransaction) Write(
 		default:
 			return fmt.Errorf("load record %d is invalid", index)
 		}
+	}
+	for labelName, count := range vertexCounts {
+		binding, ok := transaction.sink.labels[labelName]
+		if !ok {
+			return fmt.Errorf("vertex label %q is not registered", labelName)
+		}
+		transaction.addAccepted(binding, int64(count))
+	}
+	for labelName, count := range edgeCounts {
+		binding, ok := transaction.sink.labels[labelName]
+		if !ok {
+			return fmt.Errorf("edge label %q is not registered", labelName)
+		}
+		transaction.addAccepted(binding, int64(count))
 	}
 	vertexGroups := make(map[model.Label][]*model.Vertex, len(vertexCounts))
 	for label, count := range vertexCounts {
@@ -677,6 +706,7 @@ func (transaction *loadTransaction) insertVertexIdentities(
 	if copied != int64(len(rows)) {
 		return fmt.Errorf("COPY wrote %d vertex identities, expected %d", copied, len(rows))
 	}
+	transaction.addCommitted(rows[0].label, int64(len(rows)))
 	return nil
 }
 
@@ -799,6 +829,7 @@ func (transaction *loadTransaction) writeEdges(
 				return err
 			}
 			transaction.rejected += int64(len(missing))
+			transaction.addRejected(binding, int64(len(missing)))
 		case config.MissingEndpointDefer:
 			if err := transaction.deferMissingEdges(ctx, missing); err != nil {
 				return err
@@ -1044,6 +1075,7 @@ func (transaction *loadTransaction) insertEdgeIdentities(
 		}
 	}
 	if identityCount == 0 {
+		transaction.addCommitted(edges[0].label, int64(len(edges)))
 		return nil
 	}
 	if err := transaction.lockIdentityGeneration(ctx, edges[0].label); err != nil {
@@ -1095,7 +1127,57 @@ func (transaction *loadTransaction) insertEdgeIdentities(
 	if copied != int64(identityCount) {
 		return fmt.Errorf("COPY wrote %d edge identities, expected %d", copied, identityCount)
 	}
+	transaction.addCommitted(edges[0].label, int64(len(edges)))
 	return nil
+}
+
+func (transaction *loadTransaction) labelCounter(
+	label LoadLabel,
+) meta.BatchLabelCounter {
+	counter := transaction.labelCounters[label.Generation.ID]
+	counter.LabelGenerationID = label.Generation.ID
+	counter.Kind = label.Generation.Kind
+	return counter
+}
+
+func (transaction *loadTransaction) addAccepted(label LoadLabel, rows int64) {
+	if transaction.labelCounters == nil {
+		transaction.labelCounters = make(map[int64]meta.BatchLabelCounter)
+	}
+	counter := transaction.labelCounter(label)
+	counter.AcceptedRows += rows
+	transaction.labelCounters[label.Generation.ID] = counter
+}
+
+func (transaction *loadTransaction) addCommitted(label LoadLabel, rows int64) {
+	if transaction.labelCounters == nil {
+		transaction.labelCounters = make(map[int64]meta.BatchLabelCounter)
+	}
+	counter := transaction.labelCounter(label)
+	counter.CommittedRows += rows
+	transaction.labelCounters[label.Generation.ID] = counter
+}
+
+func (transaction *loadTransaction) addRejected(label LoadLabel, rows int64) {
+	if transaction.labelCounters == nil {
+		transaction.labelCounters = make(map[int64]meta.BatchLabelCounter)
+	}
+	counter := transaction.labelCounter(label)
+	counter.RejectedRows += rows
+	transaction.labelCounters[label.Generation.ID] = counter
+}
+
+func (transaction *loadTransaction) counters() []meta.BatchLabelCounter {
+	ids := make([]int64, 0, len(transaction.labelCounters))
+	for id := range transaction.labelCounters {
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+	values := make([]meta.BatchLabelCounter, 0, len(ids))
+	for _, id := range ids {
+		values = append(values, transaction.labelCounters[id])
+	}
+	return values
 }
 
 func (transaction *loadTransaction) Commit(
@@ -1118,13 +1200,15 @@ func (transaction *loadTransaction) Commit(
 	if err != nil {
 		return transaction.abortKnown(ctx, err)
 	}
-	if err := store.CommitBatch(
+	if err := store.CommitBatchWithLabelCountersAndVerification(
 		ctx,
 		transaction.sink.options.JobID,
 		transaction.metadata.ID,
 		transaction.metadata.Attempt,
 		metaPosition(state.Position),
 		transaction.rejected,
+		transaction.counters(),
+		transaction.sink.options.JobVerification,
 	); err != nil {
 		return transaction.abortKnown(
 			ctx,
@@ -1140,6 +1224,7 @@ func (transaction *loadTransaction) Commit(
 			ownerErr,
 		)
 	}
+	transaction.sink.options.JobVerification = nil
 	ownerErr := transaction.releaseOwner()
 	transaction.sink.release()
 	return ownerErr

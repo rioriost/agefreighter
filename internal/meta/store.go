@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
 const migrationLockID int64 = 0x6167656672656967
+const defaultMigrationTimeout = 30 * time.Second
 
 type Database interface {
 	Begin(context.Context) (pgx.Tx, error)
@@ -29,27 +31,78 @@ func New(database Database) (*Store, error) {
 }
 
 func (store *Store) Migrate(ctx context.Context) error {
+	return store.migrate(ctx, schemaVersion)
+}
+
+func (store *Store) MigrateIfNeeded(ctx context.Context) error {
 	if store == nil || store.database == nil {
 		return errors.New("metadata store is required")
 	}
-	tx, err := store.database.Begin(ctx)
+	var minimum, maximum, count int
+	err := store.database.QueryRow(ctx, `
+		SELECT
+			COALESCE(MIN(version), 0),
+			COALESCE(MAX(version), 0),
+			COUNT(*)::integer
+		FROM agefreighter_meta.schema_migration`,
+	).Scan(&minimum, &maximum, &count)
+	if err == nil && minimum == 1 && maximum == schemaVersion && count == schemaVersion {
+		return nil
+	}
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if !errors.As(err, &pgErr) ||
+			(pgErr.Code != "42P01" && pgErr.Code != "3F000") {
+			return fmt.Errorf("inspect metadata schema version: %w", err)
+		}
+	}
+	return store.Migrate(ctx)
+}
+
+func (store *Store) migrate(ctx context.Context, supportedVersion int) error {
+	if store == nil || store.database == nil {
+		return errors.New("metadata store is required")
+	}
+	if supportedVersion < 1 || supportedVersion > len(migrations) {
+		return fmt.Errorf("invalid supported metadata schema version %d", supportedVersion)
+	}
+	migrationCtx := ctx
+	cancel := func() {}
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		migrationCtx, cancel = context.WithTimeout(ctx, defaultMigrationTimeout)
+	}
+	defer cancel()
+	timeout := remainingTimeout(migrationCtx, defaultMigrationTimeout)
+	tx, err := store.database.Begin(migrationCtx)
 	if err != nil {
 		return fmt.Errorf("begin metadata migration: %w", err)
 	}
-	defer rollback(ctx, tx)
+	defer rollbackWithTimeout(migrationCtx, tx, timeout)
 
 	if _, err := tx.Exec(
-		ctx,
+		migrationCtx,
+		`SELECT
+			pg_catalog.set_config('lock_timeout', $1, true),
+			pg_catalog.set_config('statement_timeout', $1, true)`,
+		postgresTimeout(timeout),
+	); err != nil {
+		return fmt.Errorf("bound metadata migration transaction: %w", err)
+	}
+	if _, err := tx.Exec(
+		migrationCtx,
 		`SELECT pg_catalog.pg_advisory_xact_lock($1)`,
 		migrationLockID,
 	); err != nil {
 		return fmt.Errorf("lock metadata migration: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `CREATE SCHEMA IF NOT EXISTS agefreighter_meta`); err != nil {
+	if _, err := tx.Exec(
+		migrationCtx,
+		`CREATE SCHEMA IF NOT EXISTS agefreighter_meta`,
+	); err != nil {
 		return fmt.Errorf("create metadata schema: %w", err)
 	}
 	if _, err := tx.Exec(
-		ctx,
+		migrationCtx,
 		`CREATE TABLE IF NOT EXISTS agefreighter_meta.schema_migration (
 			version integer PRIMARY KEY CHECK (version > 0),
 			applied_at timestamp with time zone NOT NULL DEFAULT clock_timestamp()
@@ -60,37 +113,51 @@ func (store *Store) Migrate(ctx context.Context) error {
 
 	var current int
 	if err := tx.QueryRow(
-		ctx,
+		migrationCtx,
 		`SELECT COALESCE(MAX(version), 0)
 		 FROM agefreighter_meta.schema_migration`,
 	).Scan(&current); err != nil {
 		return fmt.Errorf("read metadata schema version: %w", err)
 	}
-	if current > schemaVersion {
+	if current > supportedVersion {
 		return fmt.Errorf(
 			"metadata schema version %d is newer than supported version %d",
 			current,
-			schemaVersion,
+			supportedVersion,
 		)
 	}
-	for version := current + 1; version <= schemaVersion; version++ {
+	for version := current + 1; version <= supportedVersion; version++ {
 		for _, statement := range migrations[version-1] {
-			if _, err := tx.Exec(ctx, statement); err != nil {
+			if _, err := tx.Exec(migrationCtx, statement); err != nil {
 				return fmt.Errorf("apply metadata migration %d: %w", version, err)
 			}
 		}
 		if _, err := tx.Exec(
-			ctx,
+			migrationCtx,
 			`INSERT INTO agefreighter_meta.schema_migration (version) VALUES ($1)`,
 			version,
 		); err != nil {
 			return fmt.Errorf("record metadata migration %d: %w", version, err)
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(migrationCtx); err != nil {
 		return fmt.Errorf("commit metadata migration: %w", err)
 	}
 	return nil
+}
+
+func remainingTimeout(ctx context.Context, fallback time.Duration) time.Duration {
+	if deadline, ok := ctx.Deadline(); ok {
+		if remaining := time.Until(deadline); remaining > 0 {
+			return remaining
+		}
+		return time.Millisecond
+	}
+	return fallback
+}
+
+func postgresTimeout(timeout time.Duration) string {
+	return fmt.Sprintf("%dms", max(timeout.Milliseconds(), 1))
 }
 
 func rollback(ctx context.Context, tx pgx.Tx) {

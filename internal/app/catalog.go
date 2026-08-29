@@ -40,13 +40,8 @@ func createCatalog(
 			}
 			replacesGraphOID = target.GraphOID
 		}
-		if err := transaction.CreateGraph(ctx, graphName); err != nil {
+		if err := transaction.CreateGraphWithLabels(ctx, graphName, kinds); err != nil {
 			return err
-		}
-		for name, kind := range kinds {
-			if err := transaction.CreateLabel(ctx, graphName, name, kind); err != nil {
-				return err
-			}
 		}
 		transactionStore, err := transaction.Metadata()
 		if err != nil {
@@ -58,34 +53,20 @@ func createCatalog(
 				return err
 			}
 		}
-		graphCatalog, err := transaction.LookupGraph(ctx, graphName)
-		if err != nil {
-			return err
-		}
-		graph, err = transactionStore.RegisterGraphGeneration(ctx, meta.GraphGeneration{
-			JobID: jobID, GraphName: graphCatalog.Name,
-			GraphOID: graphCatalog.GraphOID, NamespaceOID: graphCatalog.NamespaceOID,
-			ReplacesGraphOID: replacesGraphOID,
-			Generation:       generation, State: meta.GenerationLoading,
-		})
+		graph, err = transaction.RegisterCreatedGraph(
+			ctx, jobID, graphName, replacesGraphOID, generation,
+		)
 		if err != nil {
 			return err
 		}
 		for name, kind := range kinds {
-			catalog, err := transaction.LookupLabel(ctx, graphName, name)
+			label, err := transaction.RegisterCreatedLabel(
+				ctx, graph.ID, graphName, name, kind,
+			)
 			if err != nil {
 				return err
 			}
-			generation, err := transactionStore.RegisterLabelGeneration(ctx, meta.LabelGeneration{
-				GraphGenerationID: graph.ID, LabelName: name,
-				Kind: meta.LabelKind(kind), GraphNamespaceOID: catalog.NamespaceOID,
-				LabelID: catalog.LabelID, RelationOID: catalog.RelationOID,
-				SequenceOID: catalog.SequenceOID, MappingGeneration: 1,
-			})
-			if err != nil {
-				return err
-			}
-			labels = append(labels, age.LoadLabel{Catalog: catalog, Generation: generation})
+			labels = append(labels, label)
 		}
 		return nil
 	}); err != nil {

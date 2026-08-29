@@ -31,15 +31,27 @@ func (transaction *Transaction) VerifyLabelRows(
 	label LabelCatalog,
 	expectedRows int64,
 ) error {
-	if expectedRows < 0 {
-		return errors.New("expected row count cannot be negative")
+	_, err := transaction.VerifyLabelRowsForIdentityCoverage(
+		ctx, label, expectedRows, true,
+	)
+	return err
+}
+
+func (transaction *Transaction) VerifyLabelRowsForIdentityCoverage(
+	ctx context.Context,
+	label LabelCatalog,
+	identityRows int64,
+	requireFullCoverage bool,
+) (int64, error) {
+	if identityRows < 0 {
+		return 0, errors.New("identity row count cannot be negative")
 	}
 	current, err := transaction.LookupLabel(ctx, label.GraphName, label.LabelName)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if current != label {
-		return fmt.Errorf("label %q catalog changed before verification", label.LabelName)
+		return 0, fmt.Errorf("label %q catalog changed before verification", label.LabelName)
 	}
 	table := pgx.Identifier{label.GraphName, label.LabelName}.Sanitize()
 	var (
@@ -59,22 +71,22 @@ func (transaction *Transaction) VerifyLabelRows(
 		),
 		int32(label.LabelID),
 	).Scan(&actualRows, &wrongLabelIDRows); err != nil {
-		return fmt.Errorf("verify label %s: %w", table, err)
+		return 0, fmt.Errorf("verify label %s: %w", table, err)
 	}
-	if actualRows != expectedRows {
-		return fmt.Errorf(
+	if requireFullCoverage && actualRows != identityRows {
+		return actualRows, fmt.Errorf(
 			"label %s has %d rows, expected %d",
 			table,
 			actualRows,
-			expectedRows,
+			identityRows,
 		)
 	}
 	if wrongLabelIDRows != 0 {
-		return fmt.Errorf(
+		return actualRows, fmt.Errorf(
 			"label %s contains %d rows with the wrong graphid label",
 			table,
 			wrongLabelIDRows,
 		)
 	}
-	return nil
+	return actualRows, nil
 }

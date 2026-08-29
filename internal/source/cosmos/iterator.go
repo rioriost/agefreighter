@@ -52,6 +52,7 @@ type IteratorOptions struct {
 	// PreencodeProperties builds the canonical AGE fast-path encoding
 	// (model.EncodeProperties) instead of populating model.Properties.
 	PreencodeProperties bool
+	ProfileBudget       *sourcecontract.ProfileBudget
 }
 
 // Iterator is a bounded source.Iterator over Cosmos DB for NoSQL vertex and
@@ -71,7 +72,9 @@ type Iterator struct {
 	rejected     int
 	lastPosition model.SourcePosition
 
-	telemetry telemetryState
+	telemetry        telemetryState
+	throttleObserved int64
+	throttled        int64
 
 	closed       bool
 	lastCloseErr error
@@ -150,6 +153,9 @@ func NewIterator(ctx context.Context, options IteratorOptions) (*Iterator, error
 		return nil, err
 	}
 	iterator := &Iterator{options: options, mappings: mappings, fingerprint: fingerprint}
+	if observer, ok := options.Client.(ThrottleObserver); ok {
+		iterator.throttleObserved = observer.ThrottledRequests()
+	}
 	if options.AfterToken != "" {
 		resume, err := parseResumeToken(options.AfterToken)
 		if err != nil {
@@ -211,7 +217,18 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 
 		mapping := iterator.mappings[iterator.mappingIndex]
 		raw := page.items[page.itemIndex]
+		if err := iterator.options.ProfileBudget.CanProcess(); err != nil {
+			return sourcecontract.Item{}, err
+		}
 		page.itemIndex++
+		iterator.telemetry.recordDecoded(int64(len(raw)))
+		if err := iterator.options.ProfileBudget.Charge(
+			sourcecontract.ProfileBudgetUsage{
+				Rows: 1, DecodedInputBytes: int64(len(raw)),
+			},
+		); err != nil {
+			return sourcecontract.Item{}, err
+		}
 
 		record, size, err := iterator.decodeRecord(ctx, mapping, raw)
 		if err != nil {
@@ -243,6 +260,7 @@ func (iterator *Iterator) Close() error {
 	}
 	iterator.closed = true
 	iterator.current = nil
+	iterator.syncThrottled()
 	if closer, ok := iterator.options.Client.(Closer); ok {
 		iterator.lastCloseErr = closer.Close()
 	}
@@ -260,11 +278,25 @@ func (iterator *Iterator) RejectionCheckpoint() (int64, model.SourcePosition) {
 // diagnostics. It never exposes full continuation tokens or document
 // content.
 func (iterator *Iterator) Telemetry() Telemetry {
-	var throttled int64
-	if observer, ok := iterator.options.Client.(ThrottleObserver); ok {
-		throttled = observer.ThrottledRequests()
+	iterator.syncThrottled()
+	return iterator.telemetry.snapshot(iterator.throttled)
+}
+
+func (iterator *Iterator) syncThrottled() {
+	observer, ok := iterator.options.Client.(ThrottleObserver)
+	if !ok {
+		return
 	}
-	return iterator.telemetry.snapshot(throttled)
+	current := observer.ThrottledRequests()
+	if current <= iterator.throttleObserved {
+		return
+	}
+	delta := current - iterator.throttleObserved
+	iterator.throttleObserved = current
+	iterator.throttled += delta
+	_ = iterator.options.ProfileBudget.Charge(
+		sourcecontract.ProfileBudgetUsage{ThrottledRequests: delta},
+	)
 }
 
 // openNextPage opens the first page of the mapping at iterator.mappingIndex,
@@ -332,7 +364,11 @@ func (iterator *Iterator) fetchPage(
 	hasContinuation bool,
 	continuation string,
 ) (Page, error) {
+	defer iterator.syncThrottled()
 	if err := ctx.Err(); err != nil {
+		return Page{}, err
+	}
+	if err := iterator.options.ProfileBudget.Full(); err != nil {
 		return Page{}, err
 	}
 	pager, err := iterator.options.Client.NewQueryPager(
@@ -351,7 +387,29 @@ func (iterator *Iterator) fetchPage(
 	}
 	page, err := pager.NextPage(ctx)
 	if err != nil {
+		if ctx.Err() == nil &&
+			!errors.Is(err, context.Canceled) &&
+			!errors.Is(err, context.DeadlineExceeded) {
+			iterator.telemetry.recordFailedRequestAttempt()
+			_ = iterator.options.ProfileBudget.Charge(
+				sourcecontract.ProfileBudgetUsage{FailedRequestAttempts: 1},
+			)
+		}
 		return Page{}, fmt.Errorf("fetch Cosmos query page: %w", err)
+	}
+	var rawBytes int64
+	for _, item := range page.Items {
+		rawBytes = saturatingAdd(rawBytes, int64(len(item)))
+	}
+	if err := iterator.options.ProfileBudget.Charge(
+		sourcecontract.ProfileBudgetUsage{
+			Pages: 1, RawInputBytes: rawBytes,
+			RequestCharge:         page.RequestCharge,
+			FailedRequestAttempts: int64(page.FailedRequestCount),
+		},
+	); err != nil {
+		iterator.telemetry.recordPage(page)
+		return Page{}, err
 	}
 	return page, nil
 }

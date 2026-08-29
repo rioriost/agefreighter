@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/rioriost/agefreighter/internal/config"
+	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 )
 
 func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
@@ -303,6 +304,71 @@ func TestDiscoverMappingsPropagatesStreamFailures(t *testing.T) {
 			)
 			if err == nil {
 				t.Fatal("DiscoverMappings() error = nil")
+			}
+		})
+	}
+}
+
+func TestDiscoveryDoesNotStartQueryForExhaustedCatalogDimension(t *testing.T) {
+	tests := []struct {
+		name       string
+		usage      sourcecontract.ProfileBudgetUsage
+		exhausted  func(context.Context, Client, *sourcecontract.ProfileBudget) error
+		applicable func(context.Context, Client, *sourcecontract.ProfileBudget) error
+	}{
+		{
+			name:  "labels",
+			usage: sourcecontract.ProfileBudgetUsage{Labels: 1},
+			exhausted: func(ctx context.Context, client Client, budget *sourcecontract.ProfileBudget) error {
+				_, err := discoverStrings(
+					ctx, client, "labels", "label", "", 10, budget,
+					sourcecontract.ProfileBudgetUsage{Labels: 1},
+				)
+				return err
+			},
+			applicable: func(ctx context.Context, client Client, budget *sourcecontract.ProfileBudget) error {
+				_, err := discoverProperties(ctx, client, "properties", 10, budget)
+				return err
+			},
+		},
+		{
+			name:  "properties",
+			usage: sourcecontract.ProfileBudgetUsage{Properties: 1},
+			exhausted: func(ctx context.Context, client Client, budget *sourcecontract.ProfileBudget) error {
+				_, err := discoverProperties(ctx, client, "properties", 10, budget)
+				return err
+			},
+			applicable: func(ctx context.Context, client Client, budget *sourcecontract.ProfileBudget) error {
+				_, err := discoverStrings(
+					ctx, client, "labels", "label", "", 10, budget,
+					sourcecontract.ProfileBudgetUsage{Labels: 1},
+				)
+				return err
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			budget := sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+				Rows: 10, Pages: 10, Labels: 1, Properties: 1,
+			})
+			if err := budget.Charge(test.usage); err != nil {
+				t.Fatal(err)
+			}
+			client := &fakeClient{streams: []RecordStream{discoveryStream()}}
+			if err := test.exhausted(t.Context(), client, budget); !errors.Is(
+				err, sourcecontract.ErrProfileBudget,
+			) {
+				t.Fatalf("exhausted discovery error = %v", err)
+			}
+			if len(client.queries) != 0 {
+				t.Fatalf("exhausted discovery started %d queries", len(client.queries))
+			}
+			if err := test.applicable(t.Context(), client, budget); err != nil {
+				t.Fatalf("other catalog discovery error = %v", err)
+			}
+			if len(client.queries) != 1 {
+				t.Fatalf("other catalog discovery started %d queries, want 1", len(client.queries))
 			}
 		})
 	}

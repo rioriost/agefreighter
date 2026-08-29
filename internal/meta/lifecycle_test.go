@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -22,6 +23,11 @@ func TestLifecycleMetadataValidation(t *testing.T) {
 	}
 	if _, err := store.CountLabelIdentities(t.Context(), 1, 1, LabelKind('x')); err == nil {
 		t.Fatal("CountLabelIdentities() accepted invalid label kind")
+	}
+	if _, err := store.CountLabelIdentitiesWithTimeout(
+		t.Context(), 1, 1, VertexLabel, time.Second,
+	); err == nil {
+		t.Fatal("CountLabelIdentitiesWithTimeout() accepted context without deadline")
 	}
 	if err := store.SetSourceRejections(t.Context(), "bad", 0, Position{}); err == nil {
 		t.Fatal("SetSourceRejections() accepted invalid job ID")
@@ -235,9 +241,11 @@ func (scriptedLifecycleDatabase) QueryRow(context.Context, string, ...any) pgx.R
 
 type scriptedLifecycleTx struct {
 	pgx.Tx
-	rows      []scanLifecycleRow
-	exec      []scriptedLifecycleExec
-	commitErr error
+	rows       []scanLifecycleRow
+	exec       []scriptedLifecycleExec
+	statements []string
+	arguments  [][]any
+	commitErr  error
 }
 
 func (tx *scriptedLifecycleTx) QueryRow(context.Context, string, ...any) pgx.Row {
@@ -247,8 +255,10 @@ func (tx *scriptedLifecycleTx) QueryRow(context.Context, string, ...any) pgx.Row
 }
 
 func (tx *scriptedLifecycleTx) Exec(
-	context.Context, string, ...any,
+	_ context.Context, statement string, arguments ...any,
 ) (pgconn.CommandTag, error) {
+	tx.statements = append(tx.statements, statement)
+	tx.arguments = append(tx.arguments, arguments)
 	result := tx.exec[0]
 	tx.exec = tx.exec[1:]
 	return result.tag, result.err

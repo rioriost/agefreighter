@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "command": "check-cypher",
+  "target": {
+    "age": "1.6"
+  },
+  "limits": {
+    "maxFiles": 64,
+    "maxFileBytes": 1048576,
+    "maxTotalBytes": 8388608,
+    "maxQueries": 1024,
+    "maxTokensPerQuery": 8192,
+    "maxTokenDepth": 128,
+    "maxOutputBytes": 4194304
+  },
+  "files": [
+    {
+      "path": "corpus.cypher",
+      "bytes": 250,
+      "queries": 6
+    }
+  ],
+  "queries": [
+    {
+      "file": "corpus.cypher",
+      "number": 1,
+      "line": 1,
+      "column": 1,
+      "classification": "compatible-with-manual-change",
+      "findings": [
+        {
+          "code": "AGE16-W001",
+          "severity": "warning",
+          "line": 1,
+          "column": 33,
+          "evidence": "$\u003cparameter\u003e",
+          "remediation": "bind parameters through the AGE cypher() parameter map; do not interpolate values"
+        }
+      ],
+      "patterns": [
+        {
+          "kind": "ordering",
+          "label": "Person",
+          "property": "name",
+          "operator": "ORDER BY"
+        },
+        {
+          "kind": "predicate",
+          "label": "Person",
+          "property": "name",
+          "operator": "="
+        },
+        {
+          "kind": "vertex-label",
+          "label": "Person"
+        }
+      ]
+    },
+    {
+      "file": "corpus.cypher",
+      "number": 2,
+      "line": 2,
+      "column": 1,
+      "classification": "compatible",
+      "findings": [
+        {
+          "code": "AGE16-C001",
+          "severity": "info",
+          "line": 2,
+          "column": 1,
+          "evidence": "recognized bounded openCypher structure",
+          "remediation": "test application behavior against the target AGE release before cutover"
+        }
+      ],
+      "patterns": [
+        {
+          "kind": "predicate",
+          "label": "Weird Label",
+          "property": "note",
+          "operator": "="
+        },
+        {
+          "kind": "vertex-label",
+          "label": "Weird Label"
+        }
+      ]
+    },
+    {
+      "file": "corpus.cypher",
+      "number": 3,
+      "line": 3,
+      "column": 1,
+      "classification": "unsupported",
+      "findings": [
+        {
+          "code": "AGE16-U001",
+          "severity": "error",
+          "line": 3,
+          "column": 1,
+          "evidence": "CALL \u003cidentifier\u003e",
+          "remediation": "replace the procedure call with application code or documented AGE/openCypher clauses"
+        },
+        {
+          "code": "AGE16-U001",
+          "severity": "error",
+          "line": 3,
+          "column": 6,
+          "evidence": "\u003cneo4j-namespace\u003e.\u003cfunction\u003e(…)",
+          "remediation": "replace Neo4j extension calls with application code or documented AGE functions"
+        }
+      ],
+      "patterns": []
+    },
+    {
+      "file": "corpus.cypher",
+      "number": 4,
+      "line": 4,
+      "column": 1,
+      "classification": "unknown",
+      "findings": [
+        {
+          "code": "AGE16-X003",
+          "severity": "unknown",
+          "line": 4,
+          "column": 1,
+          "evidence": "unrecognized query entry clause",
+          "remediation": "start with a documented AGE/openCypher clause"
+        },
+        {
+          "code": "AGE16-X003",
+          "severity": "unknown",
+          "line": 4,
+          "column": 1,
+          "evidence": "function compatibility is not in the AGE 1.6 rule catalog",
+          "remediation": "verify the function against AGE 1.6 documentation or replace it with a cataloged function"
+        },
+        {
+          "code": "AGE16-X003",
+          "severity": "unknown",
+          "line": 4,
+          "column": 1,
+          "evidence": "statement is not fully consumed by the bounded structural grammar",
+          "remediation": "correct the clause, expression, operator, or literal structure before rechecking"
+        }
+      ],
+      "patterns": []
+    },
+    {
+      "file": "corpus.cypher",
+      "number": 5,
+      "line": 5,
+      "column": 1,
+      "classification": "unknown",
+      "findings": [
+        {
+          "code": "AGE16-X003",
+          "severity": "unknown",
+          "line": 5,
+          "column": 18,
+          "evidence": "function compatibility is not in the AGE 1.6 rule catalog",
+          "remediation": "verify the function against AGE 1.6 documentation or replace it with a cataloged function"
+        }
+      ],
+      "patterns": []
+    },
+    {
+      "file": "corpus.cypher",
+      "number": 6,
+      "line": 6,
+      "column": 1,
+      "classification": "unknown",
+      "findings": [
+        {
+          "code": "AGE16-X003",
+          "severity": "unknown",
+          "line": 6,
+          "column": 17,
+          "evidence": "statement is not fully consumed by the bounded structural grammar",
+          "remediation": "correct the clause, expression, operator, or literal structure before rechecking"
+        },
+        {
+          "code": "AGE16-X001",
+          "severity": "unknown",
+          "line": 6,
+          "column": 26,
+          "evidence": "unterminated string literal",
+          "remediation": "terminate the string literal before rechecking"
+        }
+      ],
+      "patterns": []
+    }
+  ],
+  "summary": {
+    "files": 1,
+    "queries": 6,
+    "compatible": 1,
+    "compatibleWithManualChange": 1,
+    "unsupported": 1,
+    "unknown": 3,
+    "warnings": 1,
+    "findings": 10,
+    "compatibilityScore": {
+      "knownQueries": 3,
+      "compatibleQueries": 2,
+      "percent": null,
+      "conclusive": false
+    }
+  }
+}

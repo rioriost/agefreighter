@@ -20,6 +20,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func runContext(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "check-cypher" {
+		command := cli.NewTools(stdout, stderr)
+		command.AddCommand(tools.NewCheckCypherCommand())
+		if err := cli.ExecuteContext(ctx, command, args); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 1
+		}
+		return 0
+	}
 	runtime, err := observability.NewFromEnvironment(
 		ctx,
 		"agefreighter-tools",
@@ -41,6 +50,7 @@ func runContext(ctx context.Context, args []string, stdout, stderr io.Writer) in
 			tools.NewBenchmarkReportCommand(),
 			tools.NewInspectCommand(),
 			tools.NewConvertGremlinCommand(),
+			tools.NewCheckCypherCommand(),
 		)
 		return cli.ExecuteContext(commandContext, command, args)
 	})

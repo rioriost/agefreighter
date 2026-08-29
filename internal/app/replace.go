@@ -16,7 +16,11 @@ func promoteReplace(
 	job config.LoadJob,
 	jobID string,
 	graph meta.GraphGeneration,
+	telemetry ...meta.ConnectorTelemetry,
 ) error {
+	if len(telemetry) > 1 {
+		return errors.New("at most one connector telemetry summary is allowed")
+	}
 	backupGraph, err := age.DeriveGraphName(
 		job.Target.Graph,
 		age.BackupName,
@@ -104,6 +108,13 @@ func promoteReplace(
 		); err != nil {
 			return err
 		}
+		if len(telemetry) == 1 {
+			value := telemetry[0]
+			value.JobID = jobID
+			if err := transactionStore.PutConnectorTelemetry(ctx, value); err != nil {
+				return err
+			}
+		}
 		return transactionStore.CompleteReplacePromotion(
 			ctx,
 			promotion,
@@ -126,7 +137,7 @@ func Cleanup(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if job.Target.Mode != config.LoadReplace {
 		return meta.Job{}, errors.New("cleanup requires a replace load job")
 	}
-	adapter, store, err := openTarget(ctx, job)
+	adapter, store, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
@@ -221,6 +232,10 @@ func verifyGenerationTransaction(
 	if err != nil {
 		return err
 	}
+	coverage, err := resolvedIdentityCoverage(job)
+	if err != nil {
+		return err
+	}
 	for name, kind := range kinds {
 		catalog, err := transaction.LookupLabel(ctx, graph.GraphName, name)
 		if err != nil {
@@ -244,7 +259,79 @@ func verifyGenerationTransaction(
 		if err != nil {
 			return err
 		}
-		if err := transaction.VerifyLabelRows(ctx, catalog, expected); err != nil {
+		_, err = transaction.VerifyLabelRowsForIdentityCoverage(
+			ctx,
+			catalog,
+			expected,
+			kind == age.VertexLabel || coverage[name] == identityCoverageFull,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func verifyPersistedGenerationTransaction(
+	ctx context.Context,
+	transaction *age.Transaction,
+	store *meta.Store,
+	graph meta.GraphGeneration,
+	labels []meta.LabelGeneration,
+	coverage map[int64]identityCoverage,
+) error {
+	graphCatalog, err := transaction.LookupGraph(ctx, graph.GraphName)
+	if err != nil {
+		return fmt.Errorf("verify graph catalog: %w", err)
+	}
+	if graphCatalog.GraphOID != graph.GraphOID ||
+		graphCatalog.NamespaceOID != graph.NamespaceOID {
+		return fmt.Errorf(
+			"%w: graph generation catalog identity changed",
+			meta.ErrGenerationMismatch,
+		)
+	}
+	for _, expected := range labels {
+		catalog, err := transaction.LookupLabel(
+			ctx,
+			graph.GraphName,
+			expected.LabelName,
+		)
+		if err != nil {
+			return fmt.Errorf("verify label catalog %q: %w", expected.LabelName, err)
+		}
+		expectedKind := age.VertexLabel
+		if expected.Kind == meta.EdgeLabel {
+			expectedKind = age.EdgeLabel
+		}
+		if catalog.Kind != expectedKind ||
+			catalog.NamespaceOID != expected.GraphNamespaceOID ||
+			catalog.LabelID != expected.LabelID ||
+			catalog.RelationOID != expected.RelationOID ||
+			catalog.SequenceOID != expected.SequenceOID {
+			return fmt.Errorf(
+				"%w: label generation %q catalog changed",
+				meta.ErrGenerationMismatch,
+				expected.LabelName,
+			)
+		}
+		identityRows, err := store.CountLabelIdentities(
+			ctx,
+			graph.ID,
+			expected.ID,
+			expected.Kind,
+		)
+		if err != nil {
+			return err
+		}
+		_, err = transaction.VerifyLabelRowsForIdentityCoverage(
+			ctx,
+			catalog,
+			identityRows,
+			expected.Kind == meta.VertexLabel ||
+				coverage[expected.ID] == identityCoverageFull,
+		)
+		if err != nil {
 			return err
 		}
 	}

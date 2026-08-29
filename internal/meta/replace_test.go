@@ -330,27 +330,33 @@ func TestMigrationFailureBoundaries(t *testing.T) {
 		tx   *scriptedLifecycleTx
 	}{
 		{
-			name: "migration lock",
+			name: "migration bounds",
 			tx: &scriptedLifecycleTx{
 				exec: []scriptedLifecycleExec{{err: injected}},
 			},
 		},
 		{
-			name: "metadata schema",
+			name: "migration lock",
 			tx: &scriptedLifecycleTx{
 				exec: []scriptedLifecycleExec{ok, {err: injected}},
 			},
 		},
 		{
-			name: "migration table",
+			name: "metadata schema",
 			tx: &scriptedLifecycleTx{
 				exec: []scriptedLifecycleExec{ok, ok, {err: injected}},
 			},
 		},
 		{
+			name: "migration table",
+			tx: &scriptedLifecycleTx{
+				exec: []scriptedLifecycleExec{ok, ok, ok, {err: injected}},
+			},
+		},
+		{
 			name: "read current version",
 			tx: &scriptedLifecycleTx{
-				exec: []scriptedLifecycleExec{ok, ok, ok},
+				exec: []scriptedLifecycleExec{ok, ok, ok, ok},
 				rows: []scanLifecycleRow{func(...any) error {
 					return injected
 				}},
@@ -359,14 +365,14 @@ func TestMigrationFailureBoundaries(t *testing.T) {
 		{
 			name: "newer schema",
 			tx: &scriptedLifecycleTx{
-				exec: []scriptedLifecycleExec{ok, ok, ok},
+				exec: []scriptedLifecycleExec{ok, ok, ok, ok},
 				rows: []scanLifecycleRow{currentRow(schemaVersion + 1)},
 			},
 		},
 		{
 			name: "apply version twelve",
 			tx: &scriptedLifecycleTx{
-				exec: []scriptedLifecycleExec{ok, ok, ok, {err: injected}},
+				exec: []scriptedLifecycleExec{ok, ok, ok, ok, {err: injected}},
 				rows: []scanLifecycleRow{currentRow(11)},
 			},
 		},
@@ -374,7 +380,7 @@ func TestMigrationFailureBoundaries(t *testing.T) {
 			name: "record version twelve",
 			tx: &scriptedLifecycleTx{
 				exec: []scriptedLifecycleExec{
-					ok, ok, ok,
+					ok, ok, ok, ok,
 					ok, ok,
 					{err: injected},
 				},
@@ -384,7 +390,7 @@ func TestMigrationFailureBoundaries(t *testing.T) {
 		{
 			name: "commit",
 			tx: &scriptedLifecycleTx{
-				exec:      []scriptedLifecycleExec{ok, ok, ok},
+				exec:      []scriptedLifecycleExec{ok, ok, ok, ok},
 				rows:      []scanLifecycleRow{currentRow(schemaVersion)},
 				commitErr: injected,
 			},
@@ -397,6 +403,54 @@ func TestMigrationFailureBoundaries(t *testing.T) {
 				t.Fatal("Migrate() error = nil")
 			}
 		})
+	}
+}
+
+func TestMigrationBoundsTransactionBeforeLockAndDDL(t *testing.T) {
+	ok := scriptedLifecycleExec{tag: pgconn.NewCommandTag("SELECT 1")}
+	tx := &scriptedLifecycleTx{
+		exec: []scriptedLifecycleExec{ok, ok, ok, ok},
+		rows: []scanLifecycleRow{func(dest ...any) error {
+			*dest[0].(*int) = schemaVersion
+			return nil
+		}},
+	}
+	store := &Store{database: scriptedLifecycleDatabase{tx: tx}}
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	if err := store.Migrate(ctx); err != nil {
+		t.Fatalf("Migrate() error = %v", err)
+	}
+	if len(tx.statements) != 4 ||
+		!strings.Contains(tx.statements[0], "lock_timeout") ||
+		!strings.Contains(tx.statements[0], "statement_timeout") ||
+		!strings.Contains(tx.statements[1], "pg_advisory_xact_lock") ||
+		!strings.Contains(tx.statements[2], "CREATE SCHEMA") {
+		t.Fatalf("migration statement order = %#v", tx.statements)
+	}
+	if len(tx.arguments[0]) != 1 {
+		t.Fatalf("migration timeout arguments = %#v", tx.arguments[0])
+	}
+	if timeout, ok := tx.arguments[0][0].(string); !ok ||
+		!strings.HasSuffix(timeout, "ms") {
+		t.Fatalf("migration timeout = %#v", tx.arguments[0][0])
+	}
+}
+
+func TestOlderWriterRejectsNewerMetadata(t *testing.T) {
+	ok := scriptedLifecycleExec{tag: pgconn.NewCommandTag("SELECT 1")}
+	tx := &scriptedLifecycleTx{
+		exec: []scriptedLifecycleExec{ok, ok, ok, ok},
+		rows: []scanLifecycleRow{func(dest ...any) error {
+			*dest[0].(*int) = schemaVersion
+			return nil
+		}},
+	}
+	store := &Store{database: scriptedLifecycleDatabase{tx: tx}}
+	err := store.migrate(t.Context(), MinimumReadCompatibleSchemaVersion)
+	if err == nil ||
+		!strings.Contains(err.Error(), "newer than supported version 14") {
+		t.Fatalf("2.0-compatible writer rejection error = %v", err)
 	}
 }
 

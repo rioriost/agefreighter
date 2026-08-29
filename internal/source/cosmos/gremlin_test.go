@@ -2,12 +2,193 @@ package cosmos
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/rioriost/agefreighter/internal/config"
+	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
+
+func TestBoundedGremlinDiscoveryUsesOneCumulativeScan(t *testing.T) {
+	source := gremlinSource()
+	client := newFakeClient()
+	items := [][]byte{
+		jsonItem(`{"label":"AppPerson"}`),
+		jsonItem(`{"label":"AppOrganization"}`),
+		jsonItem(`{"isEdge":true,"label":"APP_WORKS_AT","startLabel":"AppPerson","endLabel":"AppOrganization"}`),
+	}
+	client.script(source.Gremlin.Container, gremlinCatalogQuery, fakePage{
+		items: items, requestCharge: 2.5, failedRequestCount: 2,
+	})
+	budget := sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+		Rows: 10, Pages: 1, RawInputBytes: 1 << 20,
+		DecodedInputBytes: 1 << 20, RequestCharge: 10, Labels: 10,
+	})
+	resolved, err := InterpretGremlinDocumentsBounded(
+		context.Background(), source, client, budget,
+	)
+	if err != nil {
+		t.Fatalf("InterpretGremlinDocumentsBounded() error = %v", err)
+	}
+	if client.callCount() != 1 || len(resolved.Vertices) != 2 ||
+		len(resolved.Edges) != 1 {
+		t.Fatalf("calls=%d resolved=%#v", client.callCount(), resolved)
+	}
+	usage, _ := budget.Snapshot()
+	if usage.Pages != 1 || usage.Rows != 3 || usage.RequestCharge != 2.5 ||
+		usage.RawInputBytes == 0 || usage.DecodedInputBytes == 0 ||
+		usage.FailedRequestAttempts != 2 {
+		t.Fatalf("usage = %#v", usage)
+	}
+}
+
+func TestBoundedGremlinDiscoveryEnforcesConfiguredLabelLimits(t *testing.T) {
+	tests := []struct {
+		name  string
+		items [][]byte
+		want  string
+	}{
+		{
+			name: "vertex labels",
+			items: [][]byte{
+				jsonItem(`{"label":"AppPerson"}`),
+				jsonItem(`{"label":"AppOrganization"}`),
+			},
+			want: "more than 1 vertex labels",
+		},
+		{
+			name: "relationship types",
+			items: [][]byte{
+				jsonItem(`{"label":"AppPerson"}`),
+				jsonItem(`{"isEdge":true,"label":"APP_KNOWS","startLabel":"AppPerson","endLabel":"AppPerson"}`),
+				jsonItem(`{"isEdge":true,"label":"APP_REPORTS_TO","startLabel":"AppPerson","endLabel":"AppPerson"}`),
+			},
+			want: "more than 1 relationship types",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			source := gremlinSource()
+			source.Gremlin.MaxLabels = 1
+			client := newFakeClient()
+			client.script(source.Gremlin.Container, gremlinCatalogQuery, fakePage{
+				items: test.items,
+			})
+			budget := sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+				Rows: 100, Pages: 10, RawInputBytes: 1 << 20,
+				DecodedInputBytes: 1 << 20, RequestCharge: 10, Labels: 100,
+			})
+			_, err := InterpretGremlinDocumentsBounded(
+				t.Context(), source, client, budget,
+			)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("InterpretGremlinDocumentsBounded() error = %v, want %q", err, test.want)
+			}
+			if client.callCount() != 1 {
+				t.Fatalf("discovery calls = %d, want 1", client.callCount())
+			}
+		})
+	}
+}
+
+func TestBoundedGremlinDiscoveryStopsBeforeQueryWhenLabelBudgetIsFull(t *testing.T) {
+	source := gremlinSource()
+	client := newFakeClient()
+	client.script(
+		source.Gremlin.Container,
+		gremlinCatalogQuery,
+		fakePage{
+			items:             [][]byte{jsonItem(`{"label":"AppPerson"}`)},
+			hasContinuation:   true,
+			continuationToken: "next",
+		},
+		fakePage{items: [][]byte{jsonItem(`{"label":"AppOrganization"}`)}},
+	)
+	budget := sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+		Rows: 10, Pages: 10, RawInputBytes: 1 << 20,
+		DecodedInputBytes: 1 << 20, RequestCharge: 10, Labels: 1,
+	})
+	_, err := InterpretGremlinDocumentsBounded(
+		t.Context(), source, client, budget,
+	)
+	if !errors.Is(err, sourcecontract.ErrProfileBudget) {
+		t.Fatalf("InterpretGremlinDocumentsBounded() error = %v", err)
+	}
+	if client.callCount() != 1 {
+		t.Fatalf("discovery calls = %d, want 1", client.callCount())
+	}
+}
+
+func TestBoundedGremlinDiscoveryChargesTerminalPageFailure(t *testing.T) {
+	source := gremlinSource()
+	client := newFakeClient()
+	client.script(source.Gremlin.Container, gremlinCatalogQuery, fakePage{
+		nextPageErr: errors.New("terminal request failure"),
+	})
+	budget := sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+		Rows: 10, Pages: 10, Labels: 10,
+	})
+	_, err := InterpretGremlinDocumentsBounded(
+		t.Context(), source, client, budget,
+	)
+	if err == nil || !strings.Contains(err.Error(), "terminal request failure") {
+		t.Fatalf("InterpretGremlinDocumentsBounded() error = %v", err)
+	}
+	usage, _ := budget.Snapshot()
+	if usage.FailedRequestAttempts != 1 || usage.Pages != 0 {
+		t.Fatalf("usage = %#v", usage)
+	}
+}
+
+func TestProfileBudgetAccumulatesDiscoveryAndIterationThrottles(t *testing.T) {
+	source := gremlinSource()
+	discoveryClient := newFakeClient()
+	discoveryClient.script(source.Gremlin.Container, gremlinCatalogQuery, fakePage{
+		items: [][]byte{
+			jsonItem(`{"label":"AppPerson"}`),
+		},
+		throttledCount: 2,
+	})
+	budget := sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+		Rows: 10, Pages: 10, RawInputBytes: 1 << 20,
+		DecodedInputBytes: 1 << 20, RequestCharge: 10, Labels: 10,
+	})
+	resolved, err := InterpretGremlinDocumentsBounded(
+		t.Context(), source, discoveryClient, budget,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	iterationClient := newFakeClient()
+	mapping := resolved.Vertices[0]
+	iterationClient.script(mapping.Container, mapping.Query, fakePage{
+		items: [][]byte{
+			jsonItem(`{"id":"p1","label":"AppPerson","pk":"p1"}`),
+		},
+		throttledCount: 3,
+	})
+	iterator, err := NewIterator(t.Context(), IteratorOptions{
+		Namespace: "ns", Source: resolved, Client: iterationClient,
+		ProfileBudget: budget,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iterator.Next(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if got := iterator.Telemetry().ThrottledRequests; got != 3 {
+		t.Fatalf("iteration throttles = %d, want 3", got)
+	}
+	_ = iterator.Telemetry()
+	usage, _ := budget.Snapshot()
+	if usage.ThrottledRequests != 5 {
+		t.Fatalf("cumulative throttles = %d, want 5", usage.ThrottledRequests)
+	}
+}
 
 func TestInterpretGremlinDocumentsBuildsSortedMappings(t *testing.T) {
 	source := gremlinSource()

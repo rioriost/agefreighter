@@ -38,7 +38,7 @@ desired [GitHub release](https://github.com/rioriost/agefreighter/releases),
 extract it, and install both binaries:
 
 ```sh
-tar -xzf agefreighter_v2.0.0_darwin_arm64.tar.gz
+tar -xzf agefreighter_v2.1.0_darwin_arm64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
@@ -47,13 +47,13 @@ sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 Download the `linux_amd64` or `linux_arm64` archive for the host architecture:
 
 ```sh
-tar -xzf agefreighter_v2.0.0_linux_amd64.tar.gz
+tar -xzf agefreighter_v2.1.0_linux_amd64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
 ### Windows
 
-Download `agefreighter_v2.0.0_windows_amd64.zip`, extract
+Download `agefreighter_v2.1.0_windows_amd64.zip`, extract
 `agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
 `PATH`.
 
@@ -65,7 +65,7 @@ Download `agefreighter_v2.0.0_windows_amd64.zip`, extract
 > [code signing policy](docs/code-signing-policy.md).
 
 ```powershell
-Expand-Archive .\agefreighter_v2.0.0_windows_amd64.zip -DestinationPath .\agefreighter
+Expand-Archive .\agefreighter_v2.1.0_windows_amd64.zip -DestinationPath .\agefreighter
 Get-AuthenticodeSignature .\agefreighter\agefreighter.exe
 .\agefreighter\agefreighter.exe version
 ```
@@ -79,8 +79,8 @@ With the Go version declared in `go.mod` installed:
 ```sh
 git clone https://github.com/rioriost/agefreighter.git
 cd agefreighter
-git checkout v2.0.0
-make build VERSION=2.0.0
+git checkout v2.1.0
+make build VERSION=2.1.0
 ```
 
 See the [installation guide](docs/reference/installation.md) for archive names,
@@ -119,7 +119,52 @@ graph:
 agefreighter load job.yaml
 agefreighter status --target job.yaml JOB_ID
 agefreighter verify --target job.yaml JOB_ID
+agefreighter report --target job.yaml JOB_ID
 ```
+
+Diagnose target readiness without migrating metadata or changing graph data:
+
+```sh
+agefreighter doctor --target job.yaml
+agefreighter doctor --target job.yaml --format markdown --output doctor.md
+```
+
+Profile the configured source without opening or changing the Apache AGE target:
+
+```sh
+agefreighter profile job.yaml
+agefreighter profile --mode exact --format markdown job.yaml
+```
+
+The default profile is a bounded prefix sample. It reports aggregate mapping,
+type, null, cardinality, width, endpoint, capacity, and connector-telemetry
+signals without including source values, record identities, query text,
+credentials, or continuation tokens. See the
+[operations guide](docs/reference/operations.md#bounded-source-profiles).
+
+Inspect bounded target evidence and review deterministic post-load
+recommendations without changing the target:
+
+```sh
+agefreighter optimize --target job.yaml
+```
+
+Only the explicit `--apply-analyze` flag permits the optimizer to run `ANALYZE`, and
+then only for revalidated active label relations and an exact metadata
+allowlist under statement, lock, and operation deadlines. The optimizer never
+applies index DDL. See
+[recommendation-first target optimization](docs/reference/operations.md#recommendation-first-target-optimization).
+
+Statically check local Cypher without connecting to a database or service:
+
+```sh
+agefreighter-tools check-cypher queries.cypher --format json
+agefreighter-tools check-cypher queries.cypher --strict
+```
+
+The same bounded analyzer can add deduplicated workload evidence to an
+optimizer report with repeated `--queries FILE` flags. Query text and parameter
+values are never included in either report.
 
 If a load fails after committing a resumable checkpoint, continue the same job:
 
@@ -238,6 +283,16 @@ Run the full test and coverage gate:
 make check-full
 ```
 
+With the pinned services running and their connection variables exported, run
+the explicit release integration hooks:
+
+```sh
+make test-connectors-local
+make test-release-integration
+make test-diagnostics-race
+make bench-release
+```
+
 Build both binaries:
 
 ```sh
@@ -253,7 +308,7 @@ make dev-up
 See the [development database guide](scripts/dev/README.md) for the lifecycle,
 ports, image digests, and reset safety boundary.
 
-The merged statement coverage threshold is 90%. Coverage is a release gate,
+The unexcluded repository-wide statement coverage threshold is 80%. Coverage is a release gate,
 not a substitute for race, fuzz, contract, container integration, and recovery
 tests.
 

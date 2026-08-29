@@ -15,11 +15,16 @@ func (store *Store) RegisterGraphGeneration(
 	if err := validateGraphGeneration(value); err != nil {
 		return GraphGeneration{}, err
 	}
-	tx, err := store.database.Begin(ctx)
-	if err != nil {
-		return GraphGeneration{}, fmt.Errorf("begin graph generation registration: %w", err)
+	tx, existingTransaction := store.database.(pgx.Tx)
+	ownsTransaction := !existingTransaction
+	var err error
+	if ownsTransaction {
+		tx, err = store.database.Begin(ctx)
+		if err != nil {
+			return GraphGeneration{}, fmt.Errorf("begin graph generation registration: %w", err)
+		}
+		defer rollback(ctx, tx)
 	}
-	defer rollback(ctx, tx)
 
 	err = tx.QueryRow(
 		ctx,
@@ -59,8 +64,10 @@ func (store *Store) RegisterGraphGeneration(
 	if err := rowsAffectedOne(tag, "bind graph generation to job"); err != nil {
 		return GraphGeneration{}, err
 	}
-	if err := tx.Commit(ctx); err != nil {
-		return GraphGeneration{}, fmt.Errorf("commit graph generation registration: %w", err)
+	if ownsTransaction {
+		if err := tx.Commit(ctx); err != nil {
+			return GraphGeneration{}, fmt.Errorf("commit graph generation registration: %w", err)
+		}
 	}
 	return value, nil
 }

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "command": "verify",
+  "agefreighterVersion": "dev",
+  "generatedAt": "2026-08-27T21:00:00Z",
+  "outcome": "pass",
+  "job": {
+    "id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "configFingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "checks": [
+    {
+      "id": "metadata",
+      "status": "pass",
+      "summary": "metadata is current"
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "incompleteChecks": [],
+  "sections": [
+    {
+      "title": "Bounded integrity",
+      "fields": [
+        {
+          "name": "e.KNOWS",
+          "value": "limit=100,identityCoverage=full,identityRowsChecked=1,physicalRowsChecked=1,reversePhysicalCoverage=checked,missingPhysicalRows=0,orphanPhysicalRows=0,missingEndpointRows=0,changedEndpointRows=0,identityTruncated=false,physicalTruncated=false",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Per-label counts",
+      "fields": [
+        {
+          "name": "v.Person",
+          "value": "counterCompleteness=complete,counterProvenance=v17-lifecycle,identityCoverage=full,acceptedRows=2,committedRows=2,livePhysicalRows=2,liveIdentityRows=2,storedPhysicalComparison=verified,physicalIdentityEquality=verified,committedBytes=unavailable,rejectedRows=0",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}
