@@ -88,6 +88,13 @@ neo4j_password=$(curl -fsS -H "Authorization: Bearer $token" \
 	"https://$KEY_VAULT_NAME.vault.azure.net/secrets/neo4j-password?api-version=7.4" |
 	python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
 
+case "$neo4j_password" in
+	''|*/*)
+		printf 'Neo4j password must be non-empty and must not contain a slash\n' >&2
+		exit 5
+		;;
+esac
+
 if docker container inspect "$container_name" >/dev/null 2>&1; then
 	docker start "$container_name" >/dev/null
 else
