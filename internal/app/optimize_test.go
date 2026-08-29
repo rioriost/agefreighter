@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,9 +15,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rioriost/agefreighter/internal/age"
+	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/cypher"
 	"github.com/rioriost/agefreighter/internal/meta"
 	"github.com/rioriost/agefreighter/internal/report"
+	"go.yaml.in/yaml/v3"
 )
 
 func TestDuplicateIndexGroupsAreDeterministic(t *testing.T) {
@@ -67,6 +70,40 @@ func TestAnalyzePreconditionsFailClosed(t *testing.T) {
 	}
 }
 
+func TestAnalyzePreconditionsBranchMatrix(t *testing.T) {
+	tests := []struct {
+		name string
+		edit func(*optimizationSnapshot)
+	}{
+		{"postgres", func(s *optimizationSnapshot) { s.Probe.PostgreSQLStatus = age.ProbeFail }},
+		{"age presence", func(s *optimizationSnapshot) { s.Probe.AGEPresenceStatus = age.ProbeUnavailable }},
+		{"age version", func(s *optimizationSnapshot) { s.Probe.AGEVersionStatus = age.ProbeUnknown }},
+		{"age loadability", func(s *optimizationSnapshot) { s.Probe.AGELoadabilityStatus = age.ProbeFail }},
+		{"graph unavailable", func(s *optimizationSnapshot) { s.GraphAvailable = false }},
+		{"graph unknown", func(s *optimizationSnapshot) { s.GraphStatus = report.CheckUnknown }},
+		{"labels truncated", func(s *optimizationSnapshot) { s.LabelsTruncated = true }},
+		{"metadata index unknown", func(s *optimizationSnapshot) { s.MetadataIndexStatus = report.CheckUnknown }},
+		{"metadata index invalid", func(s *optimizationSnapshot) {
+			s.RequiredMetadataInvalid = []string{"load_job_pkey"}
+		}},
+		{"label relation unknown", func(s *optimizationSnapshot) {
+			s.Relations[0].Status = report.CheckUnknown
+		}},
+		{"metadata relation unknown", func(s *optimizationSnapshot) {
+			s.MetadataRelations[0].Status = report.CheckUnknown
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			snapshot := optimizationGoldenSnapshot()
+			test.edit(&snapshot)
+			if err := validateAnalyzePreconditions(snapshot); err == nil {
+				t.Fatal("unsafe precondition was accepted")
+			}
+		})
+	}
+}
+
 func TestAnalyzeFailureRedaction(t *testing.T) {
 	pgErr := &pgconn.PgError{
 		Code:    "42501",
@@ -82,6 +119,52 @@ func TestAnalyzeFailureRedaction(t *testing.T) {
 	}
 	if got := safeAnalyzeFailure(errors.New("DSN password=secret")); strings.Contains(got, "secret") || strings.Contains(got, "password") {
 		t.Fatalf("failure leaked input: %q", got)
+	}
+}
+
+func TestOptimizerErrorAndTimingHelpers(t *testing.T) {
+	for _, test := range []struct {
+		err  error
+		want string
+	}{
+		{context.DeadlineExceeded, "deadline exceeded"},
+		{context.Canceled, "operation canceled"},
+		{errors.New("catalog identity changed before operation"), "catalog identity changed"},
+		{errors.New("password=secret"), "database operation did not complete"},
+	} {
+		if got := safeAnalyzeFailure(test.err); !strings.Contains(got, test.want) {
+			t.Fatalf("safeAnalyzeFailure(%v) = %q", test.err, got)
+		}
+	}
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := classifyOptimizerFatal(ctx, "inspect", errors.New("boom")); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled fatal = %v", err)
+	}
+	err := classifyOptimizerFatal(t.Context(), "inspect",
+		&pgconn.PgError{Code: "42501", Message: "secret"})
+	if err == nil || !strings.Contains(err.Error(), "permission denied") ||
+		strings.Contains(err.Error(), "secret") {
+		t.Fatalf("classified fatal = %v", err)
+	}
+	if got := optimizerRemaining(t.Context()); got != 30*time.Second {
+		t.Fatalf("remaining without deadline = %s", got)
+	}
+	expired, expiredCancel := context.WithDeadline(t.Context(), time.Now().Add(-time.Second))
+	defer expiredCancel()
+	if got := optimizerRemaining(expired); got != time.Millisecond {
+		t.Fatalf("expired remaining = %s", got)
+	}
+	if postgresDuration(0) != "1ms" ||
+		postgresDuration(1500*time.Millisecond) != "1500ms" {
+		t.Fatal("PostgreSQL duration formatting failed")
+	}
+	tx := &optimizerTestTx{}
+	rollbackOptimizerTx(tx)
+	rollbackAnalyzeTx(tx, time.Second)
+	if tx.rollbacks != 2 {
+		t.Fatalf("helper rollbacks = %d", tx.rollbacks)
 	}
 }
 
@@ -711,6 +794,203 @@ func TestGraphAggregatesUnknownWhenEvidenceIncomplete(t *testing.T) {
 	}
 }
 
+func TestOptimizationReportStateMatrix(t *testing.T) {
+	tests := []struct {
+		name string
+		edit func(*optimizationSnapshot)
+		code string
+	}{
+		{"missing migration", func(s *optimizationSnapshot) {
+			s.JobAvailable = false
+			s.MigrationStatus = report.CheckUnknown
+			s.MigrationDetail = ""
+		}, ""},
+		{"missing graph", func(s *optimizationSnapshot) {
+			s.GraphAvailable = false
+			s.GraphStatus = report.CheckUnavailable
+			s.Relations = nil
+			s.Labels = nil
+		}, ""},
+		{"migration visibility and missing telemetry", func(s *optimizationSnapshot) {
+			s.MigrationStatus = report.CheckUnknown
+			s.MigrationDetail = "permission denied"
+			s.LatestBatchAvailable = false
+			s.TelemetryAvailable = false
+			s.CountersAvailable = false
+		}, ""},
+		{"incomplete counter", func(s *optimizationSnapshot) {
+			s.Counters[0].Completeness = meta.CounterIncomplete
+			s.Counters[0].CommittedRows = nil
+		}, ""},
+		{"missing counter", func(s *optimizationSnapshot) {
+			s.Counters = nil
+		}, ""},
+		{"stale and missing indexes", func(s *optimizationSnapshot) {
+			s.Relations[0].LastAnalyze = nil
+			s.Relations[0].DeadRows = 2000
+			s.Relations[0].RequiredIndexAbsent = []string{"id"}
+			s.Relations[0].Indexes = append(s.Relations[0].Indexes,
+				indexEvidence{Name: "unused", Signature: "unused", Valid: true, Ready: true})
+			s.RequiredMetadataInvalid = []string{"load_job_pkey"}
+		}, ""},
+		{"unknown storage and gin", func(s *optimizationSnapshot) {
+			s.DatabaseSizeStatus = report.CheckUnknown
+			s.WALStatus = report.CheckUnknown
+			s.WALReset = nil
+			s.StatsResetStatus = report.CheckUnknown
+			s.StatsReset = nil
+			s.GINStatus = report.CheckUnknown
+		}, ""},
+		{"gin supported", func(s *optimizationSnapshot) {
+			s.GINSupported = true
+		}, ""},
+		{"labels truncated", func(s *optimizationSnapshot) {
+			s.LabelsTruncated = true
+		}, "OPTIMIZER_LABELS_TRUNCATED"},
+		{"batches truncated", func(s *optimizationSnapshot) {
+			s.BatchAttemptsTruncated = true
+		}, "BATCH_ATTEMPTS_TRUNCATED"},
+		{"index catalog truncated", func(s *optimizationSnapshot) {
+			s.Relations[0].IndexesTruncated = true
+		}, "INDEX_CATALOG_TRUNCATED"},
+		{"index output truncated", func(s *optimizationSnapshot) {
+			s.RequiredMetadataInvalid = make([]string, MaxOptimizeIndexFindings+1)
+			for index := range s.RequiredMetadataInvalid {
+				s.RequiredMetadataInvalid[index] = fmt.Sprintf("index-%d", index)
+			}
+		}, "INDEX_OUTPUT_TRUNCATED"},
+		{"recommendations truncated", func(s *optimizationSnapshot) {
+			s.Relations = make([]relationEvidence, MaxOptimizeRecommendations+1)
+			for index := range s.Relations {
+				s.Relations[index] = relationEvidence{
+					Schema: "g", Name: fmt.Sprintf("L%d", index),
+					Kind: meta.VertexLabel, Status: report.CheckPass,
+					EstimatedRows: 1, RequiredIndexStatus: report.CheckPass,
+				}
+			}
+			s.Labels = nil
+		}, "RECOMMENDATIONS_TRUNCATED"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			snapshot := optimizationGoldenSnapshot()
+			test.edit(&snapshot)
+			document, err := buildOptimizationReport(snapshot, false, time.Unix(1, 0))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.code != "" {
+				found := false
+				for _, warning := range document.Warnings {
+					found = found || warning.Code == test.code
+				}
+				if !found {
+					t.Fatalf("warning %q missing: %#v", test.code, document.Warnings)
+				}
+			}
+		})
+	}
+}
+
+func TestOptimizerFormattingAndEvidenceHelpers(t *testing.T) {
+	if relationKindName(meta.VertexLabel) != "vertex" ||
+		relationKindName(meta.EdgeLabel) != "edge" ||
+		relationKindName(meta.LabelKind('x')) != "relation" {
+		t.Fatal("relation kind names are incorrect")
+	}
+	value := "line\x00one\r\n" + strings.Repeat("界", 100)
+	safe := safeFieldName(value)
+	if len(safe) > 256 || !strings.HasSuffix(safe, "...") ||
+		strings.ContainsAny(safe, "\x00\r\n") {
+		t.Fatalf("safe field = %q (%d bytes)", safe, len(safe))
+	}
+	if optionalVisibilityStatus(report.CheckUnknown, nil) != report.CheckUnknown ||
+		optionalVisibilityStatus(report.CheckPass, nil) != report.CheckUnavailable {
+		t.Fatal("optional visibility status failed")
+	}
+	now := time.Now()
+	if optionalVisibilityStatus(report.CheckPass, &now) != report.CheckPass ||
+		optionalTimestamp(nil) != "unknown" ||
+		estimatedRowsValue(1, false) != "unknown" ||
+		estimatedRowsValue(1.4, true) != "1" {
+		t.Fatal("optional evidence helpers failed")
+	}
+}
+
+func TestOptimizerIdentityValidationBranches(t *testing.T) {
+	graph := optimizationGoldenSnapshot().Graph
+	target := optimizationGoldenSnapshot().Relations[0]
+	tests := []struct {
+		name string
+		call func(*optimizerTestTx) error
+	}{
+		{"active graph no rows", func(tx *optimizerTestTx) error {
+			return validateActiveGraphIdentity(t.Context(), tx, graph)
+		}},
+		{"relation no rows", func(tx *optimizerTestTx) error {
+			return validateRelationIdentity(t.Context(), tx, "g", "t", 1)
+		}},
+		{"label no rows", func(tx *optimizerTestTx) error {
+			return validateAGELabelIdentity(t.Context(), tx, target)
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := test.call(&optimizerTestTx{row: optimizerTestRow{err: pgx.ErrNoRows}}); err == nil {
+				t.Fatal("missing identity was accepted")
+			}
+			queryErr := errors.New("query failed")
+			if err := test.call(&optimizerTestTx{row: optimizerTestRow{err: queryErr}}); !errors.Is(err, queryErr) {
+				t.Fatalf("query error = %v", err)
+			}
+			if err := test.call(&optimizerTestTx{row: optimizerTestRow{value: false}}); err == nil {
+				t.Fatal("false identity was accepted")
+			}
+			if err := test.call(&optimizerTestTx{row: optimizerTestRow{value: true}}); err != nil {
+				t.Fatalf("valid identity rejected: %v", err)
+			}
+		})
+	}
+
+	beginErr := errors.New("begin failed")
+	if err := runOptimizerProbe(t.Context(), &optimizerTestTx{beginErr: beginErr}, func(pgx.Tx) error {
+		return nil
+	}); !errors.Is(err, errOptimizerSavepointControl) {
+		t.Fatalf("begin error = %v", err)
+	}
+}
+
+func TestOptimizationReportPreOpenFailures(t *testing.T) {
+	if _, err := OptimizationReport(
+		t.Context(), "missing.yaml", OptimizeOptions{},
+	); err == nil || !strings.Contains(err.Error(), "load target configuration") {
+		t.Fatalf("missing config error = %v", err)
+	}
+	if _, err := OptimizationReport(
+		t.Context(), "missing.yaml",
+		OptimizeOptions{QueryPaths: []string{"missing.cypher"}},
+	); err == nil || !strings.Contains(err.Error(), "analyze local query evidence") {
+		t.Fatalf("missing query error = %v", err)
+	}
+	job := testLoadJob("graph", "vertices.csv", "edges.csv")
+	job.Target.Connection = config.SecretRef{Env: "AGEFREIGHTER_OPTIMIZE_MISSING_DSN"}
+	t.Setenv("AGEFREIGHTER_OPTIMIZE_MISSING_DSN", "")
+	data, err := yaml.Marshal(job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "job.yaml")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := OptimizationReport(t.Context(), path, OptimizeOptions{Analyze: true}); err == nil {
+		t.Fatal("missing target credential was accepted")
+	}
+	if pool, err := openAnalyzePool(t.Context(), "://bad", time.Second); err == nil || pool != nil {
+		t.Fatalf("openAnalyzePool() = %#v, %v", pool, err)
+	}
+}
+
 func sectionField(t *testing.T, section report.Section, name string) report.Field {
 	t.Helper()
 	for _, field := range section.Fields {
@@ -742,6 +1022,7 @@ type optimizerTestTx struct {
 	rollbackErr error
 	commits     int
 	rollbacks   int
+	row         pgx.Row
 }
 
 func (tx *optimizerTestTx) Begin(context.Context) (pgx.Tx, error) {
@@ -799,14 +1080,30 @@ func (*optimizerTestTx) Query(
 	panic("unexpected Query")
 }
 
-func (*optimizerTestTx) QueryRow(
+func (tx *optimizerTestTx) QueryRow(
 	context.Context,
 	string,
 	...any,
 ) pgx.Row {
-	panic("unexpected QueryRow")
+	if tx.row != nil {
+		return tx.row
+	}
+	return optimizerTestRow{err: errors.New("query row is not configured")}
 }
 
 func (*optimizerTestTx) Conn() *pgx.Conn {
+	return nil
+}
+
+type optimizerTestRow struct {
+	value bool
+	err   error
+}
+
+func (row optimizerTestRow) Scan(dest ...any) error {
+	if row.err != nil {
+		return row.err
+	}
+	*dest[0].(*bool) = row.value
 	return nil
 }

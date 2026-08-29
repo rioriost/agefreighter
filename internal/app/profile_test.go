@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,6 +18,26 @@ import (
 	"github.com/rioriost/agefreighter/pkg/model"
 	"go.yaml.in/yaml/v3"
 )
+
+type scriptedProfileIterator struct {
+	items []sourcecontract.Item
+	err   error
+	next  int
+}
+
+func (iterator *scriptedProfileIterator) Next(context.Context) (sourcecontract.Item, error) {
+	if iterator.next < len(iterator.items) {
+		item := iterator.items[iterator.next]
+		iterator.next++
+		return item, nil
+	}
+	if iterator.err != nil {
+		return sourcecontract.Item{}, iterator.err
+	}
+	return sourcecontract.Item{}, io.EOF
+}
+
+func (*scriptedProfileIterator) Close() error { return nil }
 
 func TestSourceProfileCSVIsBoundedSourceOnlyAndRedacted(t *testing.T) {
 	directory := t.TempDir()
@@ -417,6 +439,492 @@ func TestProfileCapacityRemainsLowerBoundWhenMappingsTruncated(t *testing.T) {
 	}
 	if got := fieldByName(t, section.Fields, "estimatedTargetRows").Value; got != ">=1" {
 		t.Fatalf("estimated target rows = %q", got)
+	}
+}
+
+func TestSourceProfileOptionAndLoadValidation(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		options ProfileOptions
+		path    string
+		want    string
+	}{
+		{"invalid mode", ProfileOptions{Mode: "everything"}, "unused", "mode"},
+		{"negative sample", ProfileOptions{SampleSize: -1}, "unused", "sample size"},
+		{"oversized sample", ProfileOptions{SampleSize: MaxProfileSampleSize + 1}, "unused", "sample size"},
+		{"missing configuration", ProfileOptions{}, "missing-profile.yaml", "load profile configuration"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := SourceProfile(t.Context(), test.path, test.options)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("SourceProfile() error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestConsumeProfileOutcomes(t *testing.T) {
+	record := model.VertexRecord(model.Vertex{Label: "Person"})
+	newRun := func(limit int64) profileRun {
+		limits := profileLimits{rows: limit}
+		return profileRun{
+			budget: sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{
+				Rows: limit,
+			}),
+			accumulator: newProfileAccumulator(limits, nil),
+		}
+	}
+
+	run := newRun(2)
+	err := consumeProfile(t.Context(), &scriptedProfileIterator{
+		items: []sourcecontract.Item{{Record: record}},
+	}, &run)
+	if err != nil || !run.complete || run.accumulator.rows != 1 {
+		t.Fatalf("completed run = %#v, err=%v", run, err)
+	}
+
+	sourceErr := errors.New("source failed")
+	run = newRun(2)
+	err = consumeProfile(t.Context(), &scriptedProfileIterator{err: sourceErr}, &run)
+	if !errors.Is(err, sourceErr) || run.complete {
+		t.Fatalf("source error = %v, complete=%t", err, run.complete)
+	}
+
+	run = newRun(1)
+	if err := run.budget.Charge(sourcecontract.ProfileBudgetUsage{Rows: 1}); err != nil {
+		t.Fatal(err)
+	}
+	err = consumeProfile(t.Context(), &scriptedProfileIterator{}, &run)
+	if !errors.Is(err, sourcecontract.ErrProfileBudget) || run.limitReason != "rows" {
+		t.Fatalf("budget result = %v, reason=%q", err, run.limitReason)
+	}
+
+	ctx, cancel := context.WithCancelCause(t.Context())
+	cancel(errProfileLimit)
+	run = newRun(2)
+	err = consumeProfile(ctx, &scriptedProfileIterator{err: context.Canceled}, &run)
+	if !errors.Is(err, errProfileLimit) || run.limitReason != "rows" {
+		t.Fatalf("row limit result = %v, reason=%q", err, run.limitReason)
+	}
+}
+
+func TestProfileAccumulatorBranchMatrix(t *testing.T) {
+	accumulator := newProfileAccumulator(
+		profileLimits{},
+		[]profileMapping{{
+			kind: model.RecordEdge, label: "KNOWS", start: "Person", end: "Person",
+			properties: []string{"weight"},
+		}},
+	)
+	accumulator.add(model.Record{}, 9)
+	accumulator.add(model.EdgeRecord(model.Edge{
+		Label: "KNOWS",
+		Start: model.Endpoint{Label: "Person"},
+		End:   model.Endpoint{Label: "Person"},
+		Properties: model.Properties{
+			"weight": {Kind: model.ValueFloat, Float: 1.5},
+		},
+	}), 11)
+	if accumulator.otherBad != 1 || accumulator.edges != 1 ||
+		accumulator.rows != 2 || accumulator.bytes != 20 {
+		t.Fatalf("accumulator = %#v", accumulator)
+	}
+	for _, test := range []struct {
+		message string
+		field   *int64
+	}{
+		{"external id missing", &accumulator.missingID},
+		{"idfield missing", &accumulator.missingID},
+		{"id field missing", &accumulator.missingID},
+		{"endpoint missing", &accumulator.missingEnds},
+		{"start field missing", &accumulator.missingEnds},
+		{"end field missing", &accumulator.missingEnds},
+		{"property missing", &accumulator.missingProp},
+		{"field missing", &accumulator.missingProp},
+		{"other malformed input", &accumulator.otherBad},
+	} {
+		before := *test.field
+		accumulator.malformedRow(errors.New(test.message))
+		if *test.field != before+1 {
+			t.Fatalf("%q did not increment expected class", test.message)
+		}
+	}
+}
+
+func TestProfileDynamicCapsAndDistinctLimit(t *testing.T) {
+	accumulator := newProfileAccumulator(
+		profileLimits{},
+		[]profileMapping{{kind: model.RecordVertex, label: "Person", dynamic: true}},
+	)
+	accumulator.budget = sourcecontract.NewProfileBudget(
+		sourcecontract.ProfileBudgetLimits{Properties: 1},
+	)
+	accumulator.add(model.VertexRecord(model.Vertex{
+		Label: "Person",
+		Properties: model.Properties{
+			"a": {Kind: model.ValueInteger, Integer: 1},
+			"b": {Kind: model.ValueInteger, Integer: 2},
+		},
+	}), 1)
+	if !accumulator.propertiesTruncated || len(accumulator.properties) != 1 {
+		t.Fatalf("dynamic cap = %#v", accumulator.properties)
+	}
+
+	distinct := newProfileAccumulator(profileLimits{}, []profileMapping{{
+		kind: model.RecordVertex, label: "Person", properties: []string{"id"},
+	}})
+	for index := 0; index < maxProfileDistinct; index++ {
+		distinct.add(model.VertexRecord(model.Vertex{
+			Label: "Person",
+			Properties: model.Properties{
+				"id": {Kind: model.ValueInteger, Integer: int64(index)},
+			},
+		}), 1)
+	}
+	stats := distinct.properties[profilePropertyKey{
+		kind: model.RecordVertex, label: "Person", property: "id",
+	}]
+	if !stats.distinctLimit || len(stats.distinct) != maxProfileDistinct {
+		t.Fatalf("distinct stats = %#v", stats)
+	}
+}
+
+func TestProfileMappingAndDeterminismMatrices(t *testing.T) {
+	endpoint := config.EndpointMapping{Label: "Person"}
+	jobs := []config.LoadJob{
+		{Source: config.Source{Type: config.SourceNeo4j, Neo4j: &config.Neo4jSource{
+			Vertices: []config.VertexQuery{{Label: "Person", Properties: map[string]string{"name": "name"}}},
+			Edges:    []config.EdgeQuery{{Label: "KNOWS", Start: endpoint, End: endpoint}},
+		}}},
+		{Source: config.Source{Type: config.SourceCosmos, Cosmos: &config.CosmosSource{
+			Vertices: []config.CosmosVertexQuery{{
+				Label: "Person", DocumentFormat: config.CosmosDocumentGremlin,
+				Properties: map[string]string{"name": "/name"},
+			}},
+			Edges: []config.CosmosEdgeQuery{{
+				Label: "KNOWS", Start: endpoint, End: endpoint,
+				DocumentFormat: config.CosmosDocumentGremlin,
+			}},
+		}}},
+	}
+	for _, job := range jobs {
+		mappings, truncated, propertyTruncated := profileMappings(job)
+		if len(mappings) != 2 || truncated || propertyTruncated {
+			t.Fatalf("profileMappings(%s) = %#v, %t, %t",
+				job.Source.Type, mappings, truncated, propertyTruncated)
+		}
+	}
+
+	neo := jobs[0]
+	neo.Source.Neo4j.Vertices[0].KeyField = "id"
+	neo.Source.Neo4j.Vertices[0].Query = "MATCH (n) RETURN n ORDER BY id"
+	neo.Source.Neo4j.Edges[0].KeyField = "id"
+	neo.Source.Neo4j.Edges[0].Query = "MATCH ()-[r]->() RETURN r ORDER BY id"
+	if !profileDeterministic(neo) {
+		t.Fatal("ordered Neo4j mappings were not deterministic")
+	}
+	neo.Source.Neo4j.Edges[0].KeyField = ""
+	if profileDeterministic(neo) {
+		t.Fatal("unordered Neo4j edge was deterministic")
+	}
+	discovered := config.LoadJob{Source: config.Source{
+		Type:  config.SourceNeo4j,
+		Neo4j: &config.Neo4jSource{Discovery: &config.Neo4jDiscovery{Enabled: true}},
+	}}
+	if !profileDeterministic(discovered) {
+		t.Fatal("Neo4j discovery should be deterministic")
+	}
+	if profileConnectorMode(config.LoadJob{}) != "unknown" {
+		t.Fatal("unknown connector mode was not reported")
+	}
+}
+
+func TestBuildSourceProfileStateMatrix(t *testing.T) {
+	base := func() profileRun {
+		limits := profileLimits{rows: 10, bytes: 100, pages: 2, requestCharge: 3}
+		accumulator := newProfileAccumulator(limits, []profileMapping{{
+			kind: model.RecordVertex, label: "Person", properties: []string{"name"},
+		}})
+		accumulator.budget = sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{})
+		accumulator.add(model.VertexRecord(model.Vertex{Label: "Person"}), 5)
+		return profileRun{
+			job: config.LoadJob{
+				Source:  config.Source{Type: config.SourceCSV},
+				Target:  config.Target{Mode: config.LoadCreate},
+				Runtime: config.Runtime{OperationTimeout: config.Duration(time.Second)},
+			},
+			mode: ProfileSample, generatedAt: time.Unix(1, 0), limits: limits,
+			mappings: []profileMapping{{
+				kind: model.RecordVertex, label: "Person", properties: []string{"name"},
+			}},
+			accumulator: accumulator, budget: accumulator.budget,
+			deterministic: true, connectorMode: "delimited",
+		}
+	}
+	tests := []struct {
+		name string
+		edit func(*profileRun)
+		want report.Outcome
+	}{
+		{"complete", func(r *profileRun) { r.complete = true }, report.OutcomeIncomplete},
+		{"source error no rows", func(r *profileRun) {
+			r.sourceError = true
+			r.sourceErrorDetail = "safe"
+			r.accumulator = nil
+		}, report.OutcomeIncomplete},
+		{"truncated nondeterministic", func(r *profileRun) {
+			r.limitReason = "rows"
+			r.deterministic = false
+		}, report.OutcomeIncomplete},
+		{"mapping caps", func(r *profileRun) {
+			r.mappingsTruncated = true
+			r.propertiesTruncated = true
+		}, report.OutcomeIncomplete},
+		{"malformed exact replace", func(r *profileRun) {
+			r.complete = true
+			r.mode = ProfileExact
+			r.job.Target.Mode = config.LoadReplace
+			r.accumulator.malformedRow(errors.New("property missing"))
+		}, report.OutcomeIncomplete},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			run := base()
+			test.edit(&run)
+			document, err := buildSourceProfile(run)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if document.Outcome != test.want || len(document.Sections) != 8 {
+				t.Fatalf("document outcome=%s sections=%d", document.Outcome, len(document.Sections))
+			}
+		})
+	}
+}
+
+func TestProfileValueAndSaturationHelpers(t *testing.T) {
+	values := []struct {
+		value model.Value
+		width int64
+	}{
+		{model.Value{Kind: model.ValueNull}, 0},
+		{model.Value{Kind: model.ValueBoolean, Boolean: true}, 1},
+		{model.Value{Kind: model.ValueInteger, Integer: 1}, 8},
+		{model.Value{Kind: model.ValueFloat, Float: 1.5}, 8},
+		{model.Value{Kind: model.ValueString, String: "abc"}, 3},
+		{model.Value{Kind: model.ValueList, List: []model.Value{{Kind: model.ValueString, String: "x"}}}, 3},
+		{model.Value{Kind: model.ValueObject, Object: map[string]model.Value{
+			"k": {Kind: model.ValueBoolean},
+		}}, 4},
+		{model.Value{Kind: model.ValueKind(99)}, 0},
+	}
+	for _, test := range values {
+		if got := profileValueWidth(test.value); got != test.width {
+			t.Fatalf("profileValueWidth(%d) = %d, want %d", test.value.Kind, got, test.width)
+		}
+		_ = profileValueHash(test.value)
+	}
+	if saturatingProfileAdd(math.MaxInt64, 1) != math.MaxInt64 ||
+		saturatingProfileAdd(2, -1) != 1 ||
+		saturatingProfileMultiply(0, 9) != 0 ||
+		saturatingProfileMultiply(math.MaxInt64, 2) != math.MaxInt64 ||
+		saturatingProfileMultiply(3, 4) != 12 ||
+		profileSum(math.MaxInt64, 1) != math.MaxInt64 {
+		t.Fatal("saturating arithmetic failed")
+	}
+	if profileTypeCounts([7]int64{}) != "none" ||
+		profileTypeCounts([7]int64{1, 2}) != "null:1|boolean:2" ||
+		profileKindName(model.RecordEdge) != "edge" ||
+		profileKindName(model.RecordVertex) != "vertex" {
+		t.Fatal("profile formatting helpers failed")
+	}
+	vertex := model.VertexRecord(model.Vertex{
+		Label: "P", Namespace: "n", ExternalID: "id",
+		Properties: model.Properties{"x": {Kind: model.ValueString, String: "abc"}},
+	})
+	edge := model.EdgeRecord(model.Edge{
+		Label: "E", Namespace: "n", ExternalID: "id",
+		Start:      model.Endpoint{Label: "P", Namespace: "n", ExternalID: "s"},
+		End:        model.Endpoint{Label: "P", Namespace: "n", ExternalID: "e"},
+		Properties: model.Properties{"x": {Kind: model.ValueInteger, Integer: 1}},
+	})
+	if profileRecordWidth(vertex) <= 0 || profileRecordWidth(edge) <= profileRecordWidth(vertex) ||
+		profileRecordWidth(model.Record{}) != 0 {
+		t.Fatal("record width calculation failed")
+	}
+}
+
+func TestBoundedProfileJobConnectorMatrix(t *testing.T) {
+	properties := map[string]string{"b": "b", "a": "a"}
+	endpoint := config.EndpointMapping{Label: "Person"}
+	tests := []struct {
+		name string
+		job  config.LoadJob
+		edit func(*config.LoadJob)
+	}{
+		{
+			name: "csv",
+			job: config.LoadJob{Source: config.Source{
+				Type: config.SourceCSV,
+				CSV: &config.CSVSource{
+					Vertices: []config.CSVVertex{{Label: "Person", Properties: properties}},
+					Edges:    []config.CSVEdge{{Label: "KNOWS", Start: endpoint, End: endpoint, Properties: properties}},
+				},
+			}},
+			edit: func(job *config.LoadJob) { job.Source.CSV.Vertices[0].Properties["a"] = "changed" },
+		},
+		{
+			name: "neo4j",
+			job: config.LoadJob{Source: config.Source{
+				Type: config.SourceNeo4j,
+				Neo4j: &config.Neo4jSource{
+					Vertices: []config.VertexQuery{{Label: "Person", Properties: properties}},
+					Edges:    []config.EdgeQuery{{Label: "KNOWS", Start: endpoint, End: endpoint, Properties: properties}},
+				},
+			}},
+			edit: func(job *config.LoadJob) { job.Source.Neo4j.Vertices[0].Properties["a"] = "changed" },
+		},
+		{
+			name: "cosmos",
+			job: config.LoadJob{Source: config.Source{
+				Type: config.SourceCosmos,
+				Cosmos: &config.CosmosSource{
+					Vertices: []config.CosmosVertexQuery{{Label: "Person", Properties: properties}},
+					Edges:    []config.CosmosEdgeQuery{{Label: "KNOWS", Start: endpoint, End: endpoint, Properties: properties}},
+				},
+			}},
+			edit: func(job *config.LoadJob) { job.Source.Cosmos.Vertices[0].Properties["a"] = "changed" },
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			original := test.job
+			bounded, mappingsTruncated, propertiesTruncated := boundedProfileJob(test.job)
+			if mappingsTruncated || propertiesTruncated {
+				t.Fatal("small definition was truncated")
+			}
+			test.edit(&bounded)
+			switch original.Source.Type {
+			case config.SourceCSV:
+				if original.Source.CSV.Vertices[0].Properties["a"] != "a" {
+					t.Fatal("CSV source was mutated")
+				}
+			case config.SourceNeo4j:
+				if original.Source.Neo4j.Vertices[0].Properties["a"] != "a" {
+					t.Fatal("Neo4j source was mutated")
+				}
+			case config.SourceCosmos:
+				if original.Source.Cosmos.Vertices[0].Properties["a"] != "a" {
+					t.Fatal("Cosmos source was mutated")
+				}
+			}
+		})
+	}
+
+	vertices, edges, truncated := capProfileMappings([]int{1}, []int{2}, 3)
+	if truncated || len(vertices) != 1 || len(edges) != 1 {
+		t.Fatal("small mappings were truncated")
+	}
+	vertices, edges, truncated = capProfileMappings([]int{1, 2, 3}, []int{4}, 2)
+	if !truncated || len(vertices) != 2 || edges != nil {
+		t.Fatal("vertex-heavy mappings were not capped")
+	}
+	vertices, edges, truncated = capProfileMappings([]int{1}, []int{2, 3}, 2)
+	if !truncated || len(vertices) != 1 || len(edges) != 1 {
+		t.Fatal("mixed mappings were not capped")
+	}
+}
+
+func TestProfileMetadataAndUnavailableSections(t *testing.T) {
+	directory := t.TempDir()
+	file := filepath.Join(directory, "input.csv")
+	if err := os.WriteFile(file, []byte("id\n1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	job := config.LoadJob{Source: config.Source{
+		Type: config.SourceCSV,
+		CSV: &config.CSVSource{
+			Vertices: []config.CSVVertex{{Path: file}},
+			Edges:    []config.CSVEdge{{Path: file}},
+		},
+	}}
+	bytes, _, known, timestampKnown := profileCSVMetadata(job)
+	if bytes == 0 || !known || !timestampKnown {
+		t.Fatalf("metadata = %d %t %t", bytes, known, timestampKnown)
+	}
+	job.Source.CSV.Vertices[0].Path = directory
+	if _, _, known, timestampKnown := profileCSVMetadata(job); known || timestampKnown {
+		t.Fatal("directory was accepted as CSV input")
+	}
+	job.Source.CSV.Vertices = nil
+	job.Source.CSV.Edges = nil
+	if bytes, _, known, timestampKnown := profileCSVMetadata(job); bytes != 0 || !known || timestampKnown {
+		t.Fatalf("empty metadata = %d %t %t", bytes, known, timestampKnown)
+	}
+
+	run := profileRun{
+		job: config.LoadJob{
+			Source:  config.Source{Type: config.SourceCSV},
+			Runtime: config.Runtime{OperationTimeout: config.Duration(time.Second)},
+		},
+		mode: ProfileExact, limits: profileLimits{},
+		budget: sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{}),
+	}
+	if fieldByName(t, profileSourceSection(run).Fields, "sourceTimestamp").Status != report.CheckUnavailable {
+		t.Fatal("unknown source timestamp was not unavailable")
+	}
+	if profileLabelSection(run, model.RecordVertex).Fields[0].Status != report.CheckUnavailable ||
+		profilePropertySection(run).Fields[0].Status != report.CheckUnavailable ||
+		profileSignalsSection(run).Fields[0].Status != report.CheckUnavailable ||
+		profileCapacitySection(run).Fields[0].Status != report.CheckUnavailable {
+		t.Fatal("missing profile evidence was not unavailable")
+	}
+}
+
+func TestNewProfileSourceIteratorPreOpenFailures(t *testing.T) {
+	accumulator := newProfileAccumulator(profileLimits{rows: 1}, nil)
+	accumulator.budget = sourcecontract.NewProfileBudget(sourcecontract.ProfileBudgetLimits{})
+	cancel := func(error) {}
+	if _, err := newProfileSourceIterator(t.Context(), config.LoadJob{
+		Source: config.Source{Type: config.SourceType("unknown")},
+	}, accumulator, cancel); err == nil {
+		t.Fatal("unsupported profile connector was accepted")
+	}
+	missingEnv := "AGEFREIGHTER_PROFILE_TEST_MISSING_SECRET"
+	t.Setenv(missingEnv, "")
+	for _, test := range []struct {
+		name string
+		job  config.LoadJob
+		want string
+	}{
+		{
+			name: "postgresql",
+			job: config.LoadJob{Source: config.Source{
+				Type: config.SourcePostgreSQL,
+				PostgreSQL: &config.PostgreSQLSource{
+					Connection: config.SecretRef{Env: missingEnv},
+				},
+			}},
+			want: "resolve PostgreSQL source credential",
+		},
+		{
+			name: "neo4j",
+			job: config.LoadJob{Source: config.Source{
+				Type: config.SourceNeo4j,
+				Neo4j: &config.Neo4jSource{
+					Password: &config.SecretRef{Env: missingEnv},
+				},
+			}},
+			want: "resolve Neo4j source credential",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := newProfileSourceIterator(
+				t.Context(), test.job, accumulator, cancel,
+			); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("newProfileSourceIterator() error = %v", err)
+			}
+		})
 	}
 }
 

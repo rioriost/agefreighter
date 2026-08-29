@@ -501,6 +501,172 @@ func TestRenderedOutputIsBounded(t *testing.T) {
 	}
 }
 
+func TestReportValidationBranchMatrix(t *testing.T) {
+	oversized := strings.Repeat("x", MaxTextBytes+1)
+	invalidUTF8 := string([]byte{0xff})
+	tests := []struct {
+		name   string
+		change func(*Document)
+	}{
+		{"missing version", func(d *Document) { d.AgefreighterVersion = "" }},
+		{"invalid version UTF-8", func(d *Document) { d.AgefreighterVersion = invalidUTF8 }},
+		{"missing generated time", func(d *Document) { d.GeneratedAt = time.Time{} }},
+		{"too many checks", func(d *Document) { d.Checks = make([]Check, MaxChecks+1) }},
+		{"too many warnings", func(d *Document) { d.Warnings = make([]Finding, MaxFindings+1) }},
+		{"too many errors", func(d *Document) { d.Errors = make([]Finding, MaxFindings+1) }},
+		{"too many incomplete checks", func(d *Document) {
+			d.IncompleteChecks = make([]string, MaxChecks+1)
+		}},
+		{"too many sections", func(d *Document) { d.Sections = make([]Section, MaxSections+1) }},
+		{"verify without job", func(d *Document) {
+			d.Command, d.Job, d.Target = "verify", nil, nil
+		}},
+		{"doctor without target", func(d *Document) {
+			d.Command, d.Job, d.Target = "doctor", nil, nil
+		}},
+		{"optimize without target", func(d *Document) {
+			d.Command, d.Job, d.Target = "optimize", nil, nil
+		}},
+		{"invalid job ID", func(d *Document) { d.Job.ID = "not-a-uuid" }},
+		{"uppercase job ID", func(d *Document) {
+			d.Job.ID = "AAAAAAAA-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+		}},
+		{"invalid job fingerprint", func(d *Document) { d.Job.ConfigFingerprint = "bad" }},
+		{"uppercase job fingerprint", func(d *Document) {
+			d.Job.ConfigFingerprint = strings.Repeat("A", 64)
+		}},
+		{"empty check ID", func(d *Document) { d.Checks[0].ID = "" }},
+		{"invalid check status", func(d *Document) { d.Checks[0].Status = "invalid" }},
+		{"empty check summary", func(d *Document) { d.Checks[0].Summary = "" }},
+		{"invalid check detail UTF-8", func(d *Document) { d.Checks[0].Detail = invalidUTF8 }},
+		{"empty warning code", func(d *Document) {
+			d.Warnings = []Finding{{Message: "message"}}
+		}},
+		{"empty warning message", func(d *Document) {
+			d.Warnings = []Finding{{Code: "CODE"}}
+		}},
+		{"empty incomplete check", func(d *Document) { d.IncompleteChecks = []string{""} }},
+		{"invalid PostgreSQL status", func(d *Document) { d.Target.PostgreSQL.Status = "invalid" }},
+		{"invalid AGE value UTF-8", func(d *Document) { d.Target.AGE.Value = invalidUTF8 }},
+		{"missing PostgreSQL value", func(d *Document) { d.Target.PostgreSQL.Value = "" }},
+		{"empty section title", func(d *Document) {
+			d.Sections = []Section{{Fields: []Field{{Name: "field", Status: CheckPass}}}}
+		}},
+		{"duplicate section", func(d *Document) {
+			d.Sections = []Section{{Title: "same"}, {Title: "same"}}
+		}},
+		{"too many fields", func(d *Document) {
+			d.Sections = []Section{{Title: "large", Fields: make([]Field, MaxFieldsPerSection+1)}}
+		}},
+		{"empty field name", func(d *Document) {
+			d.Sections = []Section{{Title: "section", Fields: []Field{{Status: CheckPass}}}}
+		}},
+		{"duplicate field", func(d *Document) {
+			d.Sections = []Section{{
+				Title: "section",
+				Fields: []Field{
+					{Name: "same", Status: CheckPass},
+					{Name: "same", Status: CheckPass},
+				},
+			}}
+		}},
+		{"oversized field value", func(d *Document) {
+			d.Sections = []Section{{
+				Title:  "section",
+				Fields: []Field{{Name: "field", Value: oversized, Status: CheckPass}},
+			}}
+		}},
+		{"invalid field status", func(d *Document) {
+			d.Sections = []Section{{
+				Title:  "section",
+				Fields: []Field{{Name: "field", Status: "invalid"}},
+			}}
+		}},
+		{"passing failed field", func(d *Document) {
+			d.Sections = []Section{{
+				Title:  "section",
+				Fields: []Field{{Name: "field", Status: CheckFail}},
+			}}
+		}},
+		{"passing unknown target", func(d *Document) {
+			d.Target.AGE = VersionValue{Status: CheckUnknown}
+		}},
+		{"failed from error", func(d *Document) {
+			d.Outcome = OutcomeFail
+			d.Errors = []Finding{{Code: "FAILED", Message: "failed"}}
+		}},
+		{"incomplete with failed check", func(d *Document) {
+			d.Outcome = OutcomeIncomplete
+			d.Checks[0].Status = CheckFail
+		}},
+		{"incomplete without evidence", func(d *Document) {
+			d.Outcome = OutcomeIncomplete
+		}},
+		{"unsupported outcome", func(d *Document) { d.Outcome = "future" }},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			document := validDocument()
+			test.change(&document)
+			err := validate(document)
+			if test.name == "failed from error" {
+				if err != nil {
+					t.Fatalf("validate() error = %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatal("validate() accepted invalid document")
+			}
+		})
+	}
+}
+
+func TestReportDecodeAndCanonicalBranches(t *testing.T) {
+	if _, err := Decode(make([]byte, MaxOutputBytes+1)); err == nil {
+		t.Fatal("Decode() accepted oversized input")
+	}
+	if _, err := Decode([]byte("{")); err == nil {
+		t.Fatal("Decode() accepted invalid JSON")
+	}
+	data, err := json.Marshal(validDocument())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Decode(append(data, []byte(` {}`)...)); err == nil {
+		t.Fatal("Decode() accepted a second JSON value")
+	}
+
+	document := validDocument()
+	document.GeneratedAt = document.GeneratedAt.In(time.FixedZone("offset", -5*60*60))
+	document.Checks = nil
+	document.Warnings = nil
+	document.Errors = nil
+	document.IncompleteChecks = nil
+	document.Sections = []Section{{Title: "section"}}
+	canonicalDocument, err := canonical(document)
+	if err != nil {
+		t.Fatalf("canonical() error = %v", err)
+	}
+	if canonicalDocument.GeneratedAt.Location() != time.UTC ||
+		canonicalDocument.Checks == nil ||
+		canonicalDocument.Warnings == nil ||
+		canonicalDocument.Errors == nil ||
+		canonicalDocument.IncompleteChecks == nil ||
+		canonicalDocument.Sections == nil {
+		t.Fatalf("canonical() = %#v", canonicalDocument)
+	}
+
+	findings := []Finding{
+		{Code: "same", Message: "z"},
+		{Code: "same", Message: "a"},
+	}
+	sortFindings(findings)
+	if findings[0].Message != "a" {
+		t.Fatalf("sortFindings() = %#v", findings)
+	}
+}
+
 func TestMarkdownEscapesReportValues(t *testing.T) {
 	document := validDocument()
 	document.Checks[0].Summary = "unsafe | *value* <tag>\nnext ![track](https://example.invalid)\x1b[31mspoof"

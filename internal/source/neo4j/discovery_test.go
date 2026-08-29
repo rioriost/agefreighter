@@ -385,6 +385,267 @@ func TestDiscoveryIdentifierEscaping(t *testing.T) {
 	}
 }
 
+func TestDiscoverMappingsValidationAndOrchestrationFailures(t *testing.T) {
+	source := discoverySource()
+	for _, test := range []struct {
+		name   string
+		ctx    context.Context
+		source config.Neo4jSource
+		client Client
+		want   string
+	}{
+		{"nil context", nil, source, &fakeClient{}, "context is required"},
+		{"nil client", t.Context(), source, nil, "client is required"},
+		{"missing discovery", t.Context(), config.Neo4jSource{}, &fakeClient{}, "configuration is required"},
+		{"disabled discovery", t.Context(), config.Neo4jSource{Discovery: &config.Neo4jDiscovery{}}, &fakeClient{}, "configuration is required"},
+		{"no labels", t.Context(), source, &fakeClient{streams: []RecordStream{
+			discoveryStream(),
+			discoveryStream(record(map[string]any{"count": int64(0)}, "count")),
+		}}, "no matching vertices"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := DiscoverMappingsBounded(test.ctx, test.source, test.client, nil)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("DiscoverMappingsBounded() error = %v, want %q", err, test.want)
+			}
+		})
+	}
+
+	failures := []struct {
+		name    string
+		streams []RecordStream
+		want    string
+	}{
+		{
+			name: "unlabeled count",
+			streams: []RecordStream{
+				discoveryStream(),
+				&fakeStream{nextErr: errors.New("count failed")},
+			},
+			want: "discover unlabeled",
+		},
+		{
+			name: "vertex properties",
+			streams: []RecordStream{
+				discoveryStream(record(map[string]any{"label": "Person"}, "label")),
+				discoveryStream(record(map[string]any{"count": int64(0)}, "count")),
+				&fakeStream{nextErr: errors.New("property failed")},
+			},
+			want: `vertex label "Person"`,
+		},
+		{
+			name: "empty vertex count",
+			streams: []RecordStream{
+				discoveryStream(record(map[string]any{"label": "Person"}, "label")),
+				discoveryStream(record(map[string]any{"count": int64(0)}, "count")),
+				discoveryStream(),
+				&fakeStream{nextErr: errors.New("partition failed")},
+			},
+			want: "count Neo4j vertex",
+		},
+		{
+			name: "relationship catalog",
+			streams: []RecordStream{
+				discoveryStream(record(map[string]any{"label": "Person"}, "label")),
+				discoveryStream(record(map[string]any{"count": int64(0)}, "count")),
+				discoveryStream(
+					record(map[string]any{"property": "seq"}, "property"),
+					record(map[string]any{"property": "vid"}, "property"),
+				),
+				&fakeStream{nextErr: errors.New("relationship failed")},
+			},
+			want: "relationship types",
+		},
+		{
+			name: "relationship endpoints",
+			streams: []RecordStream{
+				discoveryStream(record(map[string]any{"label": "Person"}, "label")),
+				discoveryStream(record(map[string]any{"count": int64(0)}, "count")),
+				discoveryStream(
+					record(map[string]any{"property": "seq"}, "property"),
+					record(map[string]any{"property": "vid"}, "property"),
+				),
+				discoveryStream(record(map[string]any{"relationshipType": "KNOWS"}, "relationshipType")),
+				&fakeStream{nextErr: errors.New("endpoint failed")},
+			},
+			want: "endpoint failed",
+		},
+		{
+			name: "relationship properties",
+			streams: []RecordStream{
+				discoveryStream(record(map[string]any{"label": "Person"}, "label")),
+				discoveryStream(record(map[string]any{"count": int64(0)}, "count")),
+				discoveryStream(
+					record(map[string]any{"property": "seq"}, "property"),
+					record(map[string]any{"property": "vid"}, "property"),
+				),
+				discoveryStream(record(map[string]any{"relationshipType": "KNOWS"}, "relationshipType")),
+				discoveryStream(record(map[string]any{
+					"startLabels": []string{"Person"}, "endLabels": []string{"Person"},
+				}, "startLabels", "endLabels")),
+				&fakeStream{nextErr: errors.New("edge property failed")},
+			},
+			want: `relationship type "KNOWS"`,
+		},
+	}
+	for _, test := range failures {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := DiscoverMappings(t.Context(), source, &fakeClient{streams: test.streams})
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("DiscoverMappings() error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestDiscoverCountRowContracts(t *testing.T) {
+	tests := []struct {
+		name   string
+		client *fakeClient
+		want   int64
+		err    string
+	}{
+		{"valid", &fakeClient{streams: []RecordStream{
+			discoveryStream(record(map[string]any{"count": int64(3)}, "count")),
+		}}, 3, ""},
+		{"query", &fakeClient{queryErr: errors.New("query failed")}, 0, "query failed"},
+		{"no row", &fakeClient{streams: []RecordStream{discoveryStream()}}, 0, "EOF"},
+		{"missing count", &fakeClient{streams: []RecordStream{
+			discoveryStream(record(map[string]any{"other": int64(1)}, "other")),
+		}}, 0, "invalid count"},
+		{"wrong count type", &fakeClient{streams: []RecordStream{
+			discoveryStream(record(map[string]any{"count": 1}, "count")),
+		}}, 0, "invalid count"},
+		{"negative", &fakeClient{streams: []RecordStream{
+			discoveryStream(record(map[string]any{"count": int64(-1)}, "count")),
+		}}, 0, "invalid count"},
+		{"multiple rows", &fakeClient{streams: []RecordStream{
+			discoveryStream(
+				record(map[string]any{"count": int64(1)}, "count"),
+				record(map[string]any{"count": int64(2)}, "count"),
+			),
+		}}, 0, "multiple rows"},
+		{"extra row error", &fakeClient{streams: []RecordStream{
+			&fakeStream{
+				records: []Record{record(map[string]any{"count": int64(1)}, "count")},
+				nextErr: errors.New("extra failed"),
+			},
+		}}, 0, "extra failed"},
+		{"close", &fakeClient{streams: []RecordStream{
+			&fakeStream{
+				records:  []Record{record(map[string]any{"count": int64(1)}, "count")},
+				closeErr: errors.New("close failed"),
+			},
+		}}, 0, "close failed"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := discoverCount(t.Context(), test.client, "count", nil)
+			if test.err == "" {
+				if err != nil || got != test.want {
+					t.Fatalf("discoverCount() = %d, %v, want %d", got, err, test.want)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), test.err) {
+				t.Fatalf("discoverCount() error = %v, want %q", err, test.err)
+			}
+		})
+	}
+}
+
+func TestDiscoverStringsContractsAndEndpointHelpers(t *testing.T) {
+	values, err := discoverStrings(
+		t.Context(),
+		&fakeClient{streams: []RecordStream{discoveryStream(
+			record(map[string]any{"label": "B"}, "label"),
+			record(map[string]any{"label": "skip"}, "label"),
+			record(map[string]any{"label": "A"}, "label"),
+			record(map[string]any{"label": "B"}, "label"),
+		)}},
+		"labels", "label", "", 4, nil,
+		sourcecontract.ProfileBudgetUsage{Labels: 1},
+	)
+	if err != nil || strings.Join(values, ",") != "A,B,skip" {
+		t.Fatalf("discoverStrings() = %v, %v", values, err)
+	}
+	for _, test := range []struct {
+		name   string
+		client *fakeClient
+		max    int
+		want   string
+	}{
+		{"query", &fakeClient{queryErr: errors.New("query failed")}, 1, "query failed"},
+		{"next", &fakeClient{streams: []RecordStream{&fakeStream{nextErr: errors.New("next failed")}}}, 1, "next failed"},
+		{"missing", &fakeClient{streams: []RecordStream{
+			discoveryStream(record(map[string]any{"other": "A"}, "other")),
+		}}, 1, "invalid label"},
+		{"wrong type", &fakeClient{streams: []RecordStream{
+			discoveryStream(record(map[string]any{"label": 1}, "label")),
+		}}, 1, "invalid label"},
+		{"limit", &fakeClient{streams: []RecordStream{discoveryStream(
+			record(map[string]any{"label": "A"}, "label"),
+			record(map[string]any{"label": "B"}, "label"),
+		)}}, 1, "more than 1"},
+		{"close", &fakeClient{streams: []RecordStream{
+			&fakeStream{closeErr: errors.New("close failed")},
+		}}, 1, "close failed"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := discoverStrings(
+				t.Context(), test.client, "labels", "label", "", test.max, nil,
+				sourcecontract.ProfileBudgetUsage{Labels: 1},
+			)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("discoverStrings() error = %v, want %q", err, test.want)
+			}
+		})
+	}
+
+	labels := []discoveredLabel{
+		{source: "A", target: "A"}, {source: "B", target: "B"},
+		{target: unlabeledTargetLabel},
+	}
+	for _, test := range []struct {
+		name     string
+		record   Record
+		field    string
+		want     string
+		selected bool
+		err      string
+	}{
+		{"missing", record(map[string]any{}, "other"), "labels", "", false, "omitted"},
+		{"invalid", record(map[string]any{"labels": "A"}, "labels"), "labels", "", false, "invalid"},
+		{"unlabeled", record(map[string]any{"labels": []string{}}, "labels"), "labels", unlabeledTargetLabel, true, ""},
+		{"outside", record(map[string]any{"labels": []any{"C"}}, "labels"), "labels", "", false, ""},
+		{"primary sorted", record(map[string]any{"labels": []any{"B", "A"}}, "labels"), "labels", "A", true, ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, selected, err := endpointPrimaryLabel(test.record, test.field, labels)
+			if test.err != "" {
+				if err == nil || !strings.Contains(err.Error(), test.err) {
+					t.Fatalf("endpointPrimaryLabel() error = %v", err)
+				}
+				return
+			}
+			if err != nil || got != test.want || selected != test.selected {
+				t.Fatalf("endpointPrimaryLabel() = %q, %t, %v", got, selected, err)
+			}
+		})
+	}
+	for _, value := range []any{[]string{"A"}, []any{"A", "B"}} {
+		if got, err := stringList(value); err != nil || len(got) == 0 {
+			t.Errorf("stringList(%#v) = %#v, %v", value, got, err)
+		}
+	}
+	for _, value := range []any{[]string{"bad\n"}, []any{1}, "A"} {
+		if _, err := stringList(value); err == nil {
+			t.Errorf("stringList(%#v) succeeded", value)
+		}
+	}
+	if got := vertexPartitionCountQuery(discoveredLabel{}, labels); got != discoverUnlabeledQuery {
+		t.Fatalf("unlabeled partition query = %q", got)
+	}
+}
+
 func discoverySource() config.Neo4jSource {
 	return config.Neo4jSource{
 		Discovery: &config.Neo4jDiscovery{

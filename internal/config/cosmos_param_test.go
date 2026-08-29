@@ -210,3 +210,74 @@ func TestCosmosParamValueDepthLimit(t *testing.T) {
 		t.Fatal("yaml.Unmarshal() error = nil, want depth-limit rejection")
 	}
 }
+
+func TestCosmosParamValueRemainingErrorBranches(t *testing.T) {
+	var value CosmosParamValue
+	if err := value.UnmarshalJSON([]byte("{")); err == nil {
+		t.Fatal("UnmarshalJSON() accepted malformed JSON")
+	}
+	value.value = make(chan int)
+	if _, err := value.MarshalJSON(); err == nil {
+		t.Fatal("MarshalJSON() accepted an unsupported value")
+	}
+
+	nodes := []*yaml.Node{
+		nil,
+		{Kind: yaml.DocumentNode},
+		{Kind: yaml.MappingNode, Content: []*yaml.Node{{Kind: yaml.ScalarNode, Tag: "!!str", Value: "key"}}},
+		{Kind: yaml.SequenceNode, Content: []*yaml.Node{{Kind: yaml.MappingNode, Content: []*yaml.Node{{Kind: yaml.ScalarNode}}}}},
+		{Kind: yaml.MappingNode, Content: []*yaml.Node{
+			{Kind: yaml.ScalarNode, Tag: "!!str", Value: "key"},
+			{Kind: yaml.MappingNode, Content: []*yaml.Node{{Kind: yaml.ScalarNode}}},
+		}},
+		{Kind: yaml.MappingNode, Content: []*yaml.Node{
+			{Kind: yaml.ScalarNode, Tag: "!!str", Value: "same"},
+			{Kind: yaml.ScalarNode, Tag: "!!str", Value: "one"},
+			{Kind: yaml.ScalarNode, Tag: "!!str", Value: "same"},
+			{Kind: yaml.ScalarNode, Tag: "!!str", Value: "two"},
+		}},
+		{Kind: yaml.SequenceNode, Content: []*yaml.Node{{
+			Kind: yaml.ScalarNode, Tag: "!!str", Value: "value",
+		}}},
+	}
+	nodes[len(nodes)-1].Kind = yaml.AliasNode
+	nodes[len(nodes)-1].Alias = &yaml.Node{
+		Kind: yaml.ScalarNode, Tag: "!!str", Value: "aliased",
+	}
+	for index, node := range nodes {
+		decoded, err := decodeYAMLParamValue(node, 0)
+		if index == len(nodes)-1 {
+			if err != nil || decoded != "aliased" {
+				t.Fatalf("alias decode = %#v, %v", decoded, err)
+			}
+			continue
+		}
+		if err == nil {
+			t.Fatalf("decodeYAMLParamValue(%d) succeeded", index)
+		}
+	}
+
+	for _, node := range []*yaml.Node{
+		{Kind: yaml.ScalarNode, Tag: "!!bool", Value: "not-bool"},
+		{Kind: yaml.ScalarNode, Tag: "!!int", Value: "999999999999999999999"},
+		{Kind: yaml.ScalarNode, Tag: "!!float", Value: "not-float"},
+		{Kind: yaml.ScalarNode, Tag: "!!float", Value: ".inf"},
+	} {
+		if _, err := decodeYAMLParamScalar(node); err == nil {
+			t.Fatalf("decodeYAMLParamScalar(%#v) succeeded", node)
+		}
+	}
+	if _, err := normalizeJSONParamValue(json.Number("not-a-number"), 0); err == nil {
+		t.Fatal("normalizeJSONParamValue() accepted an invalid float")
+	}
+	if _, err := normalizeJSONParamValue(
+		[]any{make(chan int)}, 0,
+	); err == nil {
+		t.Fatal("normalizeJSONParamValue() accepted an invalid list item")
+	}
+	if _, err := normalizeJSONParamValue(
+		map[string]any{"bad": make(chan int)}, 0,
+	); err == nil {
+		t.Fatal("normalizeJSONParamValue() accepted an invalid object value")
+	}
+}

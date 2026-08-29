@@ -141,6 +141,11 @@ func TestTrialIteratorRejectsInvalidContracts(t *testing.T) {
 	if _, err := NewTrialIterator(&trialSliceIterator{}, invalid); err == nil {
 		t.Fatal("NewTrialIterator() accepted duplicate include label")
 	}
+	invalid = valid
+	invalid.IncludeLabels = []model.Label{""}
+	if _, err := NewTrialIterator(&trialSliceIterator{}, invalid); err == nil {
+		t.Fatal("NewTrialIterator() accepted an empty include label")
+	}
 }
 
 func TestTrialIteratorPropagatesErrorsAndOrderingViolations(t *testing.T) {
@@ -173,6 +178,79 @@ func TestTrialIteratorPropagatesErrorsAndOrderingViolations(t *testing.T) {
 	if _, err := iterator.Next(t.Context()); err == nil ||
 		err.Error() != "trial source returned a vertex after edge iteration started" {
 		t.Fatalf("Next() error = %v", err)
+	}
+}
+
+func TestTrialIteratorRemainingContractBranches(t *testing.T) {
+	options := TrialOptions{
+		MaxVerticesPerLabel: 2,
+		MaxVertices:         2,
+		MaxEdges:            1,
+		MaxBytes:            10,
+	}
+	for _, item := range []Item{
+		{Record: model.VertexRecord(model.Vertex{Label: "Person"}), SizeBytes: -1},
+		{
+			Record:      model.VertexRecord(model.Vertex{Label: "Person"}),
+			SizeBytes:   1,
+			SampleBytes: -1,
+		},
+		{Record: model.Record{}, SizeBytes: 1},
+	} {
+		iterator, err := NewTrialIterator(
+			&trialSliceIterator{items: []Item{item}},
+			options,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := iterator.Next(t.Context()); err == nil {
+			t.Fatalf("Next() accepted invalid item %#v", item)
+		}
+	}
+
+	iterator, err := NewTrialIterator(&trialSliceIterator{items: []Item{
+		trialVertex("Person", "p1", 1),
+		trialVertex("Company", "c1", 1),
+		trialVertex("Other", "o1", 1),
+	}}, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iterator.Next(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iterator.Next(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iterator.Next(t.Context()); !errors.Is(err, io.EOF) {
+		t.Fatalf("vertex limit Next() error = %v", err)
+	}
+
+	iterator, err = NewTrialIterator(&trialSliceIterator{items: []Item{
+		trialVertex("Person", "p1", 4),
+		trialVertex("Person", "p2", 4),
+		trialEdge("KNOWS", "e1", "Person", "p1", "Person", "p2", 3),
+	}}, TrialOptions{
+		MaxVerticesPerLabel: 2,
+		MaxVertices:         2,
+		MaxEdges:            1,
+		MaxBytes:            10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iterator.Next(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iterator.Next(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iterator.Next(t.Context()); !errors.Is(err, io.EOF) {
+		t.Fatalf("edge byte limit Next() error = %v", err)
+	}
+	if _, err := iterator.Next(t.Context()); !errors.Is(err, io.EOF) {
+		t.Fatalf("done Next() error = %v", err)
 	}
 }
 

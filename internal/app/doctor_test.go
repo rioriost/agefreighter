@@ -2,13 +2,18 @@ package app
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rioriost/agefreighter/internal/age"
+	"github.com/rioriost/agefreighter/internal/meta"
 	"github.com/rioriost/agefreighter/internal/report"
 )
 
@@ -197,5 +202,188 @@ func TestSearchPathContains(t *testing.T) {
 	}
 	if searchPathContains(`"$user", public`, "ag_catalog") {
 		t.Fatal("missing AGE search path was recognized")
+	}
+}
+
+func TestDoctorClassificationHelpers(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		got  report.CheckStatus
+		want report.CheckStatus
+	}{
+		{"probe pass", probeCheckStatus(age.ProbePass), report.CheckPass},
+		{"probe fail", probeCheckStatus(age.ProbeFail), report.CheckFail},
+		{"probe unavailable", probeCheckStatus(age.ProbeUnavailable), report.CheckUnavailable},
+		{"probe unknown", probeCheckStatus(age.ProbeUnknown), report.CheckUnknown},
+		{"diagnostic permission", diagnosticErrorStatus(&pgconn.PgError{Code: "42501"}), report.CheckUnknown},
+		{"diagnostic missing table", diagnosticErrorStatus(&pgconn.PgError{Code: "42P01"}), report.CheckUnavailable},
+		{"diagnostic missing schema", diagnosticErrorStatus(&pgconn.PgError{Code: "3F000"}), report.CheckUnavailable},
+		{"diagnostic missing function", diagnosticErrorStatus(&pgconn.PgError{Code: "42883"}), report.CheckUnavailable},
+		{"diagnostic generic", diagnosticErrorStatus(errors.New("boom")), report.CheckUnknown},
+		{"catalog missing", catalogErrorStatus(age.ErrCatalogEntryNotFound), report.CheckFail},
+		{"catalog mismatch", catalogErrorStatus(errors.New("catalog mismatch")), report.CheckFail},
+		{"catalog kind", catalogErrorStatus(errors.New("invalid kind")), report.CheckFail},
+		{"catalog id", catalogErrorStatus(errors.New("invalid ID")), report.CheckFail},
+		{"catalog permission", catalogErrorStatus(&pgconn.PgError{Code: "42501"}), report.CheckUnknown},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if test.got != test.want {
+				t.Fatalf("status = %s, want %s", test.got, test.want)
+			}
+		})
+	}
+}
+
+func TestSafeDatabaseDetailMatrix(t *testing.T) {
+	tests := []struct {
+		err  error
+		want string
+	}{
+		{&pgconn.PgError{Code: "42501", Message: "secret"}, "permission denied"},
+		{&pgconn.PgError{Code: "42P01"}, "required catalog object"},
+		{&pgconn.PgError{Code: "3F000"}, "required catalog object"},
+		{&pgconn.PgError{Code: "42883"}, "required catalog object"},
+		{&pgconn.PgError{Code: "57014"}, "configured deadline"},
+		{&pgconn.PgError{Code: "08006"}, "fallback (SQLSTATE 08006)"},
+		{context.DeadlineExceeded, "configured deadline"},
+		{context.Canceled, "operation was canceled"},
+		{errors.New("sensitive detail"), "fallback"},
+	}
+	for _, test := range tests {
+		if got := safeDatabaseDetail(test.err, "fallback"); !strings.Contains(got, test.want) {
+			t.Fatalf("safeDatabaseDetail(%v) = %q, want %q", test.err, got, test.want)
+		}
+	}
+}
+
+func TestDoctorCheckBuildersAndFinalization(t *testing.T) {
+	document := report.New("doctor", time.Unix(1, 0))
+	addValueCheck(t.Context(), &document, "ok", nil, "value", "detail")
+	addValueCheck(t.Context(), &document, "missing",
+		&pgconn.PgError{Code: "42P01"}, "catalog", "")
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	addClassifiedCheck(ctx, &document, "canceled", "operation", errors.New("hidden"))
+	if len(document.Checks) != 3 ||
+		document.Checks[0].Status != report.CheckPass ||
+		document.Checks[1].Status != report.CheckUnavailable ||
+		document.Checks[2].Status != report.CheckUnknown ||
+		!strings.Contains(document.Checks[2].Detail, "canceled") {
+		t.Fatalf("checks = %#v", document.Checks)
+	}
+
+	long := strings.Repeat("x", 20)
+	if got := boundedTypedValue(long, 5); got != "xxxxx" {
+		t.Fatalf("boundedTypedValue() = %q", got)
+	}
+	if got := boundedTypedValue("short", 10); got != "short" {
+		t.Fatalf("boundedTypedValue(short) = %q", got)
+	}
+
+	for _, test := range []struct {
+		name string
+		edit func(*report.Document)
+		want report.Outcome
+	}{
+		{"pass", func(*report.Document) {}, report.OutcomePass},
+		{"fail check", func(d *report.Document) {
+			addCheck(d, "fail", report.CheckFail, "failed", "")
+		}, report.OutcomeFail},
+		{"error", func(d *report.Document) {
+			d.Errors = append(d.Errors, report.Finding{Code: "E", Message: "failed"})
+		}, report.OutcomeFail},
+		{"unknown", func(d *report.Document) {
+			addCheck(d, "unknown", report.CheckUnknown, "unknown", "")
+		}, report.OutcomeIncomplete},
+		{"unavailable", func(d *report.Document) {
+			addCheck(d, "unavailable", report.CheckUnavailable, "unavailable", "")
+		}, report.OutcomeIncomplete},
+		{"incomplete", func(d *report.Document) {
+			d.IncompleteChecks = append(d.IncompleteChecks, "x")
+		}, report.OutcomeIncomplete},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			value := report.New("doctor", time.Unix(1, 0))
+			test.edit(&value)
+			finalizeDoctor(&value)
+			if value.Outcome != test.want {
+				t.Fatalf("outcome = %s, want %s", value.Outcome, test.want)
+			}
+		})
+	}
+}
+
+func TestDoctorUnavailableAndPreloadBranches(t *testing.T) {
+	document := report.New("doctor", time.Unix(1, 0))
+	addUnavailableMetadataChecks(&document)
+	if len(document.Checks) != 4 {
+		t.Fatalf("metadata unavailable checks = %#v", document.Checks)
+	}
+
+	for _, test := range []struct {
+		name   string
+		status age.PreloadStatus
+		want   report.CheckStatus
+	}{
+		{"not configured", age.PreloadNotConfigured, report.CheckWarning},
+		{"unknown", age.PreloadUnknown, report.CheckUnknown},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			value := newDoctorDocument(age.DegradedProbe{
+				PostgreSQLStatus:     age.ProbePass,
+				AGEPresenceStatus:    age.ProbePass,
+				AGEVersionStatus:     age.ProbePass,
+				AGELoadabilityStatus: age.ProbePass,
+				AGEPreloadStatus:     test.status,
+			}, time.Unix(1, 0))
+			if got := value.Checks[len(value.Checks)-1].Status; got != test.want {
+				t.Fatalf("preload status = %s, want %s", got, test.want)
+			}
+		})
+	}
+
+	for _, state := range []meta.SchemaState{meta.SchemaPending, meta.SchemaUnknown} {
+		document = report.New("doctor", time.Unix(1, 0))
+		addDoctorHistoryStorageCheck(
+			t.Context(), nil,
+			meta.SchemaInspection{
+				State: state, InstalledVersion: 16,
+				SupportedVersion: meta.SupportedSchemaVersion,
+			},
+			time.Second, &document,
+		)
+		if len(document.Checks) != 1 {
+			t.Fatalf("history check for %s = %#v", state, document.Checks)
+		}
+	}
+}
+
+func TestMetadataIndexCheckUnavailableStates(t *testing.T) {
+	for _, test := range []struct {
+		state meta.SchemaState
+		want  report.CheckStatus
+	}{
+		{meta.SchemaAbsent, report.CheckUnavailable},
+		{meta.SchemaUnknown, report.CheckUnknown},
+		{meta.SchemaInvalid, report.CheckUnknown},
+		{meta.SchemaNewer, report.CheckUnknown},
+	} {
+		document := report.New("doctor", time.Unix(1, 0))
+		addMetadataIndexCheck(
+			t.Context(), nil,
+			meta.SchemaInspection{
+				State: test.state, SupportedVersion: meta.SupportedSchemaVersion,
+			},
+			time.Second, &document,
+		)
+		if len(document.Checks) != 1 || document.Checks[0].Status != test.want {
+			t.Fatalf("state %s checks = %#v", test.state, document.Checks)
+		}
+	}
+}
+
+func TestDoctorPoolRejectsInvalidDSN(t *testing.T) {
+	if pool, err := openDoctorPool(t.Context(), "://bad"); err == nil || pool != nil {
+		t.Fatalf("openDoctorPool() = %#v, %v", pool, err)
 	}
 }
