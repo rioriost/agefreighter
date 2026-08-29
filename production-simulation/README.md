@@ -18,6 +18,7 @@ each migration run. The scripts reject live operations unless
 | --- | --- |
 | [`docs/test-plan.md`](docs/test-plan.md) | Scope, phases, topology, and test matrix |
 | [`docs/dataset.md`](docs/dataset.md) | Supply-chain schema and generation rules |
+| [`docs/fixture-calibration.md`](docs/fixture-calibration.md) | Synthetic representativeness decision and limits |
 | [`docs/acceptance.md`](docs/acceptance.md) | Metrics, correctness checks, stop and pass criteria |
 | [`docs/runbook.md`](docs/runbook.md) | Review, deployment, execution, recovery, and cleanup procedure |
 | `cmd/fixturegen` | Deterministic sharded CSV generator and manifest verifier |
