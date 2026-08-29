@@ -104,6 +104,11 @@ func TestValidateImplementedSource(t *testing.T) {
 	if err := validateImplementedSource(job); err == nil {
 		t.Fatal("accepted missing Neo4j configuration")
 	}
+	job.Source.Type = config.SourceType("unknown")
+	if err := validateImplementedSource(job); err == nil ||
+		!strings.Contains(err.Error(), "not implemented") {
+		t.Fatalf("unknown source error = %v", err)
+	}
 }
 
 func TestConfiguredCosmosLabels(t *testing.T) {
@@ -259,5 +264,140 @@ func TestWriteSourceRejectionPreservesCSVFields(t *testing.T) {
 	}
 	if !strings.Contains(string(content), `"fields":["broken","row"]`) {
 		t.Fatalf("quarantine entry lost CSV fields: %s", content)
+	}
+}
+
+func TestSourceResolutionNoopMatrix(t *testing.T) {
+	jobs := []config.LoadJob{
+		{Source: config.Source{Type: config.SourceCSV}},
+		{Source: config.Source{Type: config.SourcePostgreSQL}},
+		{Source: config.Source{Type: config.SourceNeo4j, Neo4j: nil}},
+		{Source: config.Source{Type: config.SourceNeo4j, Neo4j: &config.Neo4jSource{}}},
+		{Source: config.Source{Type: config.SourceCosmos, Cosmos: nil}},
+		{Source: config.Source{Type: config.SourceCosmos, Cosmos: &config.CosmosSource{}}},
+	}
+	for _, job := range jobs {
+		got, err := resolveSourceBounded(t.Context(), job, nil)
+		if err != nil || got.Source.Type != job.Source.Type {
+			t.Fatalf("resolveSourceBounded(%s) = %#v, %v", job.Source.Type, got, err)
+		}
+	}
+}
+
+func TestNeo4jDiscoveryCredentialFailure(t *testing.T) {
+	const missing = "AGEFREIGHTER_DISCOVERY_TEST_MISSING_SECRET"
+	t.Setenv(missing, "")
+	job := config.LoadJob{Source: config.Source{
+		Type: config.SourceNeo4j,
+		Neo4j: &config.Neo4jSource{
+			Discovery: &config.Neo4jDiscovery{Enabled: true},
+			Password:  &config.SecretRef{Env: missing},
+		},
+	}}
+	if _, err := resolveNeo4jDiscovery(t.Context(), job, nil); err == nil || !strings.Contains(err.Error(), "source password for discovery") {
+		t.Fatalf("resolveNeo4jDiscovery() error = %v", err)
+	}
+}
+
+func TestSourceIteratorPreOpenFailures(t *testing.T) {
+	if _, err := newSourceIterator(t.Context(), config.LoadJob{
+		Source: config.Source{Type: config.SourceType("unknown")},
+	}, "", nil); err == nil || !strings.Contains(err.Error(), "not implemented") {
+		t.Fatalf("unknown iterator error = %v", err)
+	}
+
+	missingEnv := "AGEFREIGHTER_SOURCE_TEST_MISSING_SECRET"
+	t.Setenv(missingEnv, "")
+	for _, test := range []struct {
+		name string
+		job  config.LoadJob
+		want string
+	}{
+		{
+			name: "postgresql credential",
+			job: config.LoadJob{Source: config.Source{
+				Type: config.SourcePostgreSQL,
+				PostgreSQL: &config.PostgreSQLSource{
+					Connection: config.SecretRef{Env: missingEnv},
+				},
+			}},
+			want: "resolve PostgreSQL source connection",
+		},
+		{
+			name: "neo4j credential",
+			job: config.LoadJob{Source: config.Source{
+				Type: config.SourceNeo4j,
+				Neo4j: &config.Neo4jSource{
+					Password: &config.SecretRef{Env: missingEnv},
+				},
+			}},
+			want: "resolve Neo4j source password",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := newSourceIterator(t.Context(), test.job, "", nil); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("newSourceIterator() error = %v", err)
+			}
+		})
+	}
+}
+
+func TestSourceIteratorLocalConstruction(t *testing.T) {
+	directory := t.TempDir()
+	vertices := filepath.Join(directory, "vertices.csv")
+	edges := filepath.Join(directory, "edges.csv")
+	if err := os.WriteFile(vertices, []byte("id,name\n1,Alice\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(edges, []byte("id,start,end\n1,1,1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, policy := range []config.MalformedRecordPolicy{
+		config.MalformedFail,
+		config.MalformedQuarantine,
+	} {
+		job := testLoadJob("graph", vertices, edges)
+		job.Errors.MalformedRecord = policy
+		if policy == config.MalformedQuarantine {
+			job.Errors.RejectLimit = 1
+		}
+		iterator, err := newSourceIterator(t.Context(), job, "", nil)
+		if err != nil {
+			t.Fatalf("newSourceIterator(%s) error = %v", policy, err)
+		}
+		if err := iterator.Close(); err != nil {
+			t.Fatalf("Close(%s) error = %v", policy, err)
+		}
+	}
+
+	const dsnEnv = "AGEFREIGHTER_SOURCE_TEST_DSN"
+	t.Setenv(dsnEnv, "postgres://user:pass@localhost/db")
+	job := config.LoadJob{
+		Source: config.Source{
+			Type: config.SourcePostgreSQL,
+			PostgreSQL: &config.PostgreSQLSource{
+				Connection: config.SecretRef{Env: dsnEnv},
+				ReadMode:   config.PostgreSQLReadMode("invalid"),
+				FetchRows:  10,
+			},
+		},
+		Runtime: config.Runtime{MaxSourceConcurrency: 1},
+	}
+	if _, err := newSourceIterator(t.Context(), job, "", nil); err == nil || !strings.Contains(err.Error(), "read mode") {
+		t.Fatalf("invalid PostgreSQL iterator error = %v", err)
+	}
+}
+
+func TestCosmosGremlinInitializationFailure(t *testing.T) {
+	job := config.LoadJob{Source: config.Source{
+		Type: config.SourceCosmos,
+		Cosmos: &config.CosmosSource{
+			Endpoint: "not-a-url",
+			Database: "db",
+			Gremlin:  &config.CosmosGremlin{Enabled: true},
+		},
+	}}
+	if _, err := resolveCosmosGremlin(t.Context(), job, nil); err == nil {
+		t.Fatal("invalid Cosmos endpoint was accepted")
 	}
 }

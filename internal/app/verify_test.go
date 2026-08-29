@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +17,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
 	"github.com/rioriost/agefreighter/internal/report"
+	"go.yaml.in/yaml/v3"
 )
 
 func TestCountVerificationFieldTriState(t *testing.T) {
@@ -434,5 +437,385 @@ func TestVerificationOptionsRequireBounds(t *testing.T) {
 		t.Context(), "unused", "bad", VerifyOptions{Counts: true},
 	); err == nil {
 		t.Fatal("VerificationReport accepted invalid job ID")
+	}
+	if _, err := VerificationReport(
+		t.Context(), "missing.yaml",
+		"11111111-2222-4333-8444-555555555555",
+		VerifyOptions{},
+	); err == nil {
+		t.Fatal("VerificationReport accepted shallow verification")
+	}
+	if _, err := VerificationReport(
+		t.Context(), "missing.yaml",
+		"11111111-2222-4333-8444-555555555555",
+		VerifyOptions{Counts: true, Limit: -1},
+	); err == nil {
+		t.Fatal("VerificationReport accepted negative integrity limit")
+	}
+	if _, err := VerificationReport(
+		t.Context(), "missing.yaml",
+		"11111111-2222-4333-8444-555555555555",
+		VerifyOptions{Counts: true},
+	); err == nil || !strings.Contains(err.Error(), "load target configuration") {
+		t.Fatalf("missing configuration error = %v", err)
+	}
+}
+
+func TestVerificationReportCredentialFailure(t *testing.T) {
+	const missing = "AGEFREIGHTER_VERIFY_MISSING_DSN"
+	t.Setenv(missing, "")
+	job := testLoadJob("graph", "vertices.csv", "edges.csv")
+	job.Target.Connection = config.SecretRef{Env: missing}
+	data, err := yaml.Marshal(job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "job.yaml")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := VerificationReport(
+		t.Context(), path,
+		"11111111-2222-4333-8444-555555555555",
+		VerifyOptions{Counts: true},
+	); err == nil {
+		t.Fatal("missing target credential was accepted")
+	}
+}
+
+func TestParseResolvedMappingSummaryRejections(t *testing.T) {
+	person := resolvedSnapshotLabel(verificationLabel(7, "Person", meta.VertexLabel))
+	person.IdentityCoverage = identityCoverageFull
+	valid := func() resolvedMappingSnapshot {
+		return resolvedMappingSnapshot{
+			SchemaVersion: resolvedMappingSummaryVersion,
+			SourceType:    "csv",
+			Labels:        []resolvedLabelSnapshot{person},
+		}
+	}
+	tests := []struct {
+		name string
+		raw  func() []byte
+	}{
+		{"malformed", func() []byte { return []byte("{") }},
+		{"trailing object", func() []byte {
+			data, _ := json.Marshal(valid())
+			return append(data, []byte(` {}`)...)
+		}},
+		{"unsupported version", func() []byte {
+			value := valid()
+			value.SchemaVersion = 99
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"missing source", func() []byte {
+			value := valid()
+			value.SourceType = " "
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"missing labels", func() []byte {
+			value := valid()
+			value.Labels = nil
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"too many labels", func() []byte {
+			value := valid()
+			value.Labels = make([]resolvedLabelSnapshot, maxResolvedMapLabels+1)
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"invalid kind", func() []byte {
+			value := valid()
+			value.Labels[0].Kind = "x"
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"incomplete identity", func() []byte {
+			value := valid()
+			value.Labels[0].RelationOID = 0
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"duplicate id", func() []byte {
+			value := valid()
+			second := person
+			second.Name = "Other"
+			value.Labels = append(value.Labels, second)
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"duplicate name", func() []byte {
+			value := valid()
+			second := person
+			second.ID++
+			value.Labels = append(value.Labels, second)
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"legacy coverage", func() []byte {
+			value := valid()
+			value.SchemaVersion = legacyResolvedMappingSummaryVersion
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"invalid coverage", func() []byte {
+			value := valid()
+			value.Labels[0].IdentityCoverage = identityCoverage("invalid")
+			data, _ := json.Marshal(value)
+			return data
+		}},
+		{"vertex optional", func() []byte {
+			value := valid()
+			value.Labels[0].IdentityCoverage = identityCoverageOptional
+			data, _ := json.Marshal(value)
+			return data
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, _, _, err := parseResolvedMappingSummary(test.raw()); err == nil {
+				t.Fatal("invalid summary was accepted")
+			}
+		})
+	}
+}
+
+func TestVerificationFieldBranchMatrix(t *testing.T) {
+	label := verificationLabel(7, "Person", meta.VertexLabel)
+	live := liveCountResult{
+		IdentityRows: 2, PhysicalRows: 2, Status: report.CheckPass,
+	}
+	if field := countVerificationField(label, identityCoverageFull,
+		liveCountResult{Status: report.CheckUnknown, Detail: "timeout"}, nil, 17,
+	); field.Status != report.CheckUnknown || field.Value != "timeout" {
+		t.Fatalf("live failure field = %#v", field)
+	}
+	counters := map[int64]meta.LabelCounter{label.ID: {
+		LabelGenerationID: label.ID, Kind: meta.EdgeLabel,
+		Completeness: meta.CounterComplete,
+		Provenance:   meta.CounterProvenanceLifecycle,
+	}}
+	if field := countVerificationField(label, identityCoverageFull, live, counters, 17); field.Status != report.CheckUnavailable {
+		t.Fatalf("wrong kind field = %#v", field)
+	}
+	counters[label.ID] = meta.LabelCounter{
+		LabelGenerationID: label.ID, Kind: label.Kind,
+		Completeness: meta.CounterComplete,
+		Provenance:   meta.CounterProvenanceLifecycle,
+		AcceptedRows: counterValue(2), CommittedRows: counterValue(2),
+	}
+	if field := countVerificationField(label, identityCoverageFull, live, counters, 17); field.Status != report.CheckUnavailable {
+		t.Fatalf("missing value field = %#v", field)
+	}
+	stored := counters[label.ID]
+	stored.RejectedRows = counterValue(0)
+	stored.CommittedBytes = counterValue(12)
+	counters[label.ID] = stored
+	field := countVerificationField(label, identityCoverageFull, live, counters, 17)
+	if field.Status != report.CheckPass || !strings.Contains(field.Value, "committedBytes=12") {
+		t.Fatalf("complete field = %#v", field)
+	}
+
+	for _, test := range []struct {
+		result age.IntegrityResult
+		want   report.CheckStatus
+	}{
+		{age.IntegrityResult{PhysicalCoverageChecked: true}, report.CheckPass},
+		{age.IntegrityResult{PhysicalCoverageChecked: true, MissingEndpointRows: 1}, report.CheckFail},
+		{age.IntegrityResult{PhysicalCoverageChecked: true, ChangedEndpointRows: 1}, report.CheckFail},
+		{age.IntegrityResult{PhysicalCoverageChecked: true, IdentityTruncated: true}, report.CheckUnknown},
+		{age.IntegrityResult{PhysicalCoverageChecked: true, PhysicalTruncated: true}, report.CheckUnknown},
+	} {
+		got, incomplete := integrityResultField("v.Person", identityCoverageFull, 10, test.result)
+		if got.Status != test.want ||
+			incomplete != (test.want == report.CheckUnknown) {
+			t.Fatalf("integrity field = %#v incomplete=%t", got, incomplete)
+		}
+	}
+}
+
+func TestVerificationMappingAndOutcomeHelpers(t *testing.T) {
+	if reportIdentityCoverage(identityCoverageUnknown) != "legacy-unavailable" ||
+		reportIdentityCoverage(identityCoverageFull) != string(identityCoverageFull) {
+		t.Fatal("identity coverage formatting failed")
+	}
+	if physicalIdentityEqualityEvidence(meta.VertexLabel, identityCoverageUnknown) != "verified" ||
+		physicalIdentityEqualityEvidence(meta.EdgeLabel, identityCoverageOptional) != "unavailable" ||
+		!strings.Contains(availabilityEvidence(false), "unavailable") ||
+		availabilityEvidence(true) != "checked" {
+		t.Fatal("availability evidence failed")
+	}
+
+	valid := verificationLabel(1, "Person", meta.VertexLabel)
+	for _, edit := range []func(*meta.LabelGeneration){
+		func(v *meta.LabelGeneration) { v.ID = 0 },
+		func(v *meta.LabelGeneration) { v.GraphGenerationID = 0 },
+		func(v *meta.LabelGeneration) { v.LabelName = "" },
+		func(v *meta.LabelGeneration) { v.GraphNamespaceOID = 0 },
+		func(v *meta.LabelGeneration) { v.LabelID = 0 },
+		func(v *meta.LabelGeneration) { v.RelationOID = 0 },
+		func(v *meta.LabelGeneration) { v.SequenceOID = 0 },
+		func(v *meta.LabelGeneration) { v.MappingGeneration = 0 },
+		func(v *meta.LabelGeneration) { v.Kind = meta.LabelKind('x') },
+	} {
+		value := valid
+		edit(&value)
+		if err := validateResolvedLabelSnapshot(value); err == nil {
+			t.Fatalf("invalid resolved label accepted: %#v", value)
+		}
+	}
+
+	changed := valid
+	changed.RelationOID++
+	matched, mismatches := reconcileExpectedLabels(
+		[]meta.LabelGeneration{valid},
+		[]meta.LabelGeneration{changed},
+	)
+	if len(matched) != 0 || len(mismatches) != 1 ||
+		mismatches[0] != "Person(changed)" {
+		t.Fatalf("reconciliation = %#v %#v", matched, mismatches)
+	}
+
+	for _, test := range []struct {
+		name string
+		edit func(*report.Document)
+		want report.Outcome
+	}{
+		{"pass", func(*report.Document) {}, report.OutcomePass},
+		{"fail", func(d *report.Document) {
+			d.Checks = append(d.Checks, report.Check{
+				ID: "failure", Status: report.CheckFail, Summary: "failed",
+			})
+		}, report.OutcomeFail},
+		{"unknown", func(d *report.Document) {
+			d.Checks = append(d.Checks, report.Check{
+				ID: "unknown", Status: report.CheckUnknown, Summary: "unknown",
+			})
+		}, report.OutcomeIncomplete},
+		{"unavailable", func(d *report.Document) {
+			d.Checks = append(d.Checks, report.Check{
+				ID: "unavailable", Status: report.CheckUnavailable, Summary: "unavailable",
+			})
+		}, report.OutcomeIncomplete},
+		{"incomplete", func(d *report.Document) {
+			d.IncompleteChecks = []string{"x"}
+			d.Checks = append(d.Checks, report.Check{
+				ID: "unknown", Status: report.CheckUnknown, Summary: "unknown",
+			})
+		}, report.OutcomeIncomplete},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			document := report.New("verify", time.Unix(1, 0))
+			document.Job = &report.Job{
+				ID:                "11111111-2222-4333-8444-555555555555",
+				ConfigFingerprint: strings.Repeat("a", 64),
+			}
+			document.Target = &report.Target{
+				PostgreSQL: report.VersionValue{Value: "17", Status: report.CheckPass},
+				AGE:        report.VersionValue{Value: "1.6", Status: report.CheckPass},
+			}
+			document.Checks = append(document.Checks, report.Check{
+				ID: "job-status", Status: report.CheckPass, Summary: "job is committed",
+			})
+			test.edit(&document)
+			document.Outcome = ""
+			got, err := validatedVerificationReport(document)
+			if err != nil || got.Outcome != test.want {
+				t.Fatalf("report = %#v, err=%v", got, err)
+			}
+		})
+	}
+}
+
+func TestResolvedMappingSummaryRejectsMismatches(t *testing.T) {
+	person := verificationLabel(7, "Person", meta.VertexLabel)
+	job := config.LoadJob{Source: config.Source{
+		Type: config.SourceCSV,
+		CSV:  &config.CSVSource{Vertices: []config.CSVVertex{{Label: "Person"}}},
+	}}
+	if _, err := resolvedMappingSummary(job, nil); err == nil {
+		t.Fatal("missing resolved labels were accepted")
+	}
+	if _, err := resolvedMappingSummary(job, []age.LoadLabel{
+		{Generation: person},
+		{Generation: person},
+	}); err == nil {
+		t.Fatal("duplicate resolved labels were accepted")
+	}
+	edge := verificationLabel(8, "Person", meta.EdgeLabel)
+	if _, err := resolvedMappingSummary(job, []age.LoadLabel{{Generation: edge}}); err == nil {
+		t.Fatal("resolved kind mismatch was accepted")
+	}
+	person.RelationOID = 0
+	if _, err := resolvedMappingSummary(job, []age.LoadLabel{{Generation: person}}); err == nil {
+		t.Fatal("incomplete resolved label was accepted")
+	}
+}
+
+func TestValidateLegacyJobVerificationRejections(t *testing.T) {
+	person := verificationLabel(7, "Person", meta.VertexLabel)
+	job := config.LoadJob{Source: config.Source{
+		Type: config.SourceCSV,
+		CSV:  &config.CSVSource{Vertices: []config.CSVVertex{{Label: "Person"}}},
+	}}
+	snapshot := resolvedMappingSnapshot{
+		SchemaVersion: legacyResolvedMappingSummaryVersion,
+		SourceType:    "csv",
+		Labels:        []resolvedLabelSnapshot{resolvedSnapshotLabel(person)},
+	}
+	raw, err := json.Marshal(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(raw)
+	base := meta.JobVerification{
+		SubmittedConfigFingerprint: strings.Repeat("a", 64),
+		ResolvedMappingFingerprint: hex.EncodeToString(digest[:]),
+		ResolvedMappingSummary:     raw,
+	}
+	loadLabels := []age.LoadLabel{{Generation: person}}
+	tests := []struct {
+		name string
+		edit func(*meta.JobVerification, *config.LoadJob, *[]age.LoadLabel)
+	}{
+		{"submitted fingerprint", func(v *meta.JobVerification, _ *config.LoadJob, _ *[]age.LoadLabel) {
+			v.SubmittedConfigFingerprint = strings.Repeat("b", 64)
+		}},
+		{"invalid summary", func(v *meta.JobVerification, _ *config.LoadJob, _ *[]age.LoadLabel) {
+			v.ResolvedMappingSummary = json.RawMessage("{")
+		}},
+		{"current snapshot", func(v *meta.JobVerification, _ *config.LoadJob, _ *[]age.LoadLabel) {
+			current := snapshot
+			current.SchemaVersion = resolvedMappingSummaryVersion
+			current.Labels[0].IdentityCoverage = identityCoverageFull
+			v.ResolvedMappingSummary, _ = json.Marshal(current)
+		}},
+		{"source type", func(_ *meta.JobVerification, job *config.LoadJob, _ *[]age.LoadLabel) {
+			job.Source.Type = config.SourcePostgreSQL
+		}},
+		{"digest", func(v *meta.JobVerification, _ *config.LoadJob, _ *[]age.LoadLabel) {
+			v.ResolvedMappingFingerprint = strings.Repeat("0", 64)
+		}},
+		{"label count", func(_ *meta.JobVerification, _ *config.LoadJob, labels *[]age.LoadLabel) {
+			*labels = nil
+		}},
+		{"label changed", func(_ *meta.JobVerification, _ *config.LoadJob, labels *[]age.LoadLabel) {
+			(*labels)[0].Generation.RelationOID++
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			value := base
+			testJob := job
+			labels := append([]age.LoadLabel(nil), loadLabels...)
+			test.edit(&value, &testJob, &labels)
+			if err := validateLegacyJobVerification(
+				value, testJob, strings.Repeat("a", 64), labels,
+			); err == nil {
+				t.Fatal("invalid legacy verification was accepted")
+			}
+		})
 	}
 }

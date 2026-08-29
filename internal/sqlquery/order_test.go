@@ -111,6 +111,7 @@ func TestHasTopLevelOrderByFieldAllowsSQLPagination(t *testing.T) {
 			t.Fatalf("HasTopLevelOrderByField(%q) rejected stable ordering", query)
 		}
 	}
+
 	for _, query := range []string{
 		"SELECT id FROM people ORDER BY created_at LIMIT $2",
 		"SELECT id FROM people ORDER BY id DESC LIMIT $2",
@@ -120,5 +121,54 @@ func TestHasTopLevelOrderByFieldAllowsSQLPagination(t *testing.T) {
 		if HasTopLevelOrderByField(query, "id") {
 			t.Fatalf("HasTopLevelOrderByField(%q) accepted unsafe ordering", query)
 		}
+	}
+}
+
+func TestOrderScannerRemainingBranches(t *testing.T) {
+	for _, query := range []string{
+		"RETURN 1 // ORDER BY hidden\nRETURN 1",
+		`RETURN "$afterKey"`,
+		"RETURN `$afterKey`",
+	} {
+		_ = HasTopLevelOrderBy(query)
+		_ = HasParameter(query, "afterKey")
+		_ = HasKeyword(query, "return")
+	}
+	if !HasKeyword("$tag$hidden$tag$ RETURN 1", "return") {
+		t.Fatal("HasKeyword() missed keyword after dollar quote")
+	}
+
+	if !HasTopLevelOrderByField("SELECT id FROM people ORDER BY id", "id") ||
+		!HasTopLevelOrderByField("SELECT id FROM people ORDER BY id ASC", "id") {
+		t.Fatal("HasTopLevelOrderByField() rejected terminal ascending order")
+	}
+	if HasTopLevelOrderByField("SELECT id FROM people", "id") {
+		t.Fatal("HasTopLevelOrderByField() accepted missing order")
+	}
+
+	tokens := topLevelTokens(
+		`SELECT "$x", ` + "`$y`" + `, $tag$hidden$tag$, $, (nested) // comment
+			 FROM t ORDER BY id`,
+	)
+	if len(tokens) == 0 {
+		t.Fatal("topLevelTokens() returned no tokens")
+	}
+	if got := skipQuoted(`'a''b' tail`, 1, '\'', true); got != 6 {
+		t.Fatalf("skipQuoted() = %d", got)
+	}
+	if got := skipQuoted(`'unterminated`, 1, '\'', true); got != len(`'unterminated`) {
+		t.Fatalf("skipQuoted(unterminated) = %d", got)
+	}
+	if delimiter, ok := dollarDelimiter("plain"); ok || delimiter != "" {
+		t.Fatalf("dollarDelimiter(plain) = %q, %t", delimiter, ok)
+	}
+	if delimiter, ok := dollarDelimiter("$bad!"); ok || delimiter != "" {
+		t.Fatalf("dollarDelimiter(invalid) = %q, %t", delimiter, ok)
+	}
+	if delimiter, ok := dollarDelimiter("$unterminated"); ok || delimiter != "" {
+		t.Fatalf("dollarDelimiter(unterminated) = %q, %t", delimiter, ok)
+	}
+	if got := skipDollarQuoted("$tag$unterminated", 0, "$tag$"); got != len("$tag$unterminated") {
+		t.Fatalf("skipDollarQuoted() = %d", got)
 	}
 }

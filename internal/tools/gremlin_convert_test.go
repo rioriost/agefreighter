@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -331,6 +333,146 @@ func TestValidateOpenAIConversion(t *testing.T) {
 	}
 }
 
+func TestOpenAIGremlinConverterAdditionalFailures(t *testing.T) {
+	t.Run("invalid endpoint", func(t *testing.T) {
+		converter := &openAIGremlinConverter{
+			client:   http.DefaultClient,
+			endpoint: ":",
+		}
+		if _, err := converter.Convert(t.Context(), "key", "model", "g.V()"); err == nil {
+			t.Fatal("Convert() accepted an invalid endpoint")
+		}
+	})
+	t.Run("transport failure", func(t *testing.T) {
+		converter := &openAIGremlinConverter{
+			client: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return nil, errors.New("secret transport failure")
+			})},
+			endpoint: "https://example.invalid",
+		}
+		_, err := converter.Convert(t.Context(), "key", "model", "g.V()")
+		if err == nil || err.Error() != "OpenAI request failed" {
+			t.Fatalf("Convert() error = %v", err)
+		}
+	})
+	t.Run("canceled request", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		converter := &openAIGremlinConverter{
+			client: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+				return nil, request.Context().Err()
+			})},
+			endpoint: "https://example.invalid",
+		}
+		if _, err := converter.Convert(ctx, "key", "model", "g.V()"); !errors.Is(err, context.Canceled) {
+			t.Fatalf("Convert() error = %v", err)
+		}
+	})
+	t.Run("completed without output", func(t *testing.T) {
+		server := newOpenAIResponseServer(t, http.StatusOK, `{
+			"status":"completed",
+			"output":[{"type":"reasoning"},{"type":"message","content":[{"type":"unknown"}]}]
+		}`)
+		defer server.Close()
+		converter := &openAIGremlinConverter{client: server.Client(), endpoint: server.URL}
+		if _, err := converter.Convert(t.Context(), "key", "model", "g.V()"); err == nil {
+			t.Fatal("Convert() accepted a response without converted output")
+		}
+	})
+	t.Run("unstructured HTTP error", func(t *testing.T) {
+		server := newOpenAIResponseServer(t, http.StatusBadGateway, "not-json")
+		defer server.Close()
+		converter := &openAIGremlinConverter{client: server.Client(), endpoint: server.URL}
+		_, err := converter.Convert(t.Context(), "key", "model", "g.V()")
+		if err == nil || !strings.Contains(err.Error(), "HTTP status 502") {
+			t.Fatalf("Convert() error = %v", err)
+		}
+	})
+}
+
+func TestGremlinConversionValidationBranches(t *testing.T) {
+	valid := openAIConversion{
+		Status: "converted", Cypher: "RETURN 1",
+		Confidence: "high", Warnings: []string{},
+	}
+	tests := []struct {
+		name   string
+		change func(*openAIConversion)
+	}{
+		{"empty converted query", func(c *openAIConversion) { c.Cypher = " " }},
+		{"oversized converted query", func(c *openAIConversion) {
+			c.Cypher = "RETURN " + strings.Repeat("x", maxConvertedCypherBytes)
+		}},
+		{"code fence", func(c *openAIConversion) { c.Cypher = "RETURN ```x```" }},
+		{"invalid status", func(c *openAIConversion) { c.Status = "future" }},
+		{"invalid confidence", func(c *openAIConversion) { c.Confidence = "certain" }},
+		{"nil warnings", func(c *openAIConversion) { c.Warnings = nil }},
+		{"too many warnings", func(c *openAIConversion) { c.Warnings = make([]string, 9) }},
+		{"oversized warning", func(c *openAIConversion) {
+			c.Warnings = []string{strings.Repeat("x", 513)}
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			conversion := valid
+			test.change(&conversion)
+			if err := validateOpenAIConversion(conversion); err == nil {
+				t.Fatal("validateOpenAIConversion() accepted invalid conversion")
+			}
+		})
+	}
+	if err := validateOpenAIConversion(openAIConversion{
+		Status: "unsupported", Confidence: "low", Warnings: []string{},
+	}); err != nil {
+		t.Fatalf("validateOpenAIConversion(unsupported) error = %v", err)
+	}
+	if _, err := buildConversionResult(
+		`{"status":"unsupported","cypher":"","confidence":"low","warnings":[]} {}`,
+		"",
+		"requested",
+	); err == nil {
+		t.Fatal("buildConversionResult() accepted trailing JSON")
+	}
+}
+
+func TestGremlinInputAndHelperBranches(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "query.gremlin")
+	if err := os.WriteFile(path, []byte("  g.V()  "), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := readGremlinInput("", path, nil); err != nil || got != "g.V()" {
+		t.Fatalf("readGremlinInput() = %q, %v", got, err)
+	}
+	if _, err := readGremlinInput("", filepath.Join(t.TempDir(), "missing"), nil); err == nil {
+		t.Fatal("readGremlinInput() accepted a missing file")
+	}
+	if _, err := readBounded(errorGremlinReader{}, 10, "test"); err == nil {
+		t.Fatal("readBounded() ignored a reader error")
+	}
+	if ensureJSONEOF(json.NewDecoder(strings.NewReader(`{}`))) == nil {
+		t.Fatal("ensureJSONEOF() accepted an additional JSON value")
+	}
+	if hasOpenCypherPrefix("") {
+		t.Fatal("hasOpenCypherPrefix() accepted an empty query")
+	}
+	for _, value := range []string{"", strings.Repeat("x", 65)} {
+		if got := safeAPIIdentifier(value); got != "unknown" {
+			t.Fatalf("safeAPIIdentifier(%q) = %q", value, got)
+		}
+	}
+	if got := responseModel("", "requested"); got != "requested" {
+		t.Fatalf("responseModel() = %q", got)
+	}
+
+	converter := &recordingGremlinConverter{err: errors.New("conversion failed")}
+	t.Setenv(OpenAIAPIKeyEnvironment, "key")
+	command := newConvertGremlinCommand(converter)
+	command.SetArgs([]string{"--query", "g.V()"})
+	if err := command.Execute(); err == nil {
+		t.Fatal("command ignored converter failure")
+	}
+}
+
 func newOpenAIResponseServer(
 	t *testing.T,
 	status int,
@@ -380,4 +522,16 @@ type failingGremlinWriter struct{}
 
 func (failingGremlinWriter) Write([]byte) (int, error) {
 	return 0, errors.New("write failed")
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (function roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return function(request)
+}
+
+type errorGremlinReader struct{}
+
+func (errorGremlinReader) Read([]byte) (int, error) {
+	return 0, errors.New("read failed")
 }

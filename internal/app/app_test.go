@@ -18,6 +18,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/report"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	sourcecsv "github.com/rioriost/agefreighter/internal/source/csv"
+	"github.com/rioriost/agefreighter/pkg/model"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.yaml.in/yaml/v3"
@@ -905,6 +906,51 @@ func TestExecuteEmitsSafeOpenTelemetrySpan(t *testing.T) {
 			strings.Contains(value, "secret-job-id") {
 			t.Fatalf("span exposed sensitive identifier: %s=%q", key, value)
 		}
+	}
+}
+
+func TestVerificationAndCompletionHelpers(t *testing.T) {
+	job := testLoadJob("people", "vertices.csv", "edges.csv")
+	labels := []age.LoadLabel{
+		{Generation: verificationLabel(7, "Person", meta.VertexLabel)},
+		{Generation: verificationLabel(8, "KNOWS", meta.EdgeLabel)},
+	}
+	value, err := buildJobVerification(
+		job,
+		"11111111-2222-4333-8444-555555555555",
+		strings.Repeat("a", 64),
+		labels,
+	)
+	if err != nil || len(value.ResolvedMappingFingerprint) != 64 ||
+		len(value.ResolvedMappingSummary) == 0 {
+		t.Fatalf("buildJobVerification() = %#v, %v", value, err)
+	}
+	parsed, parsedLabels, coverage, err := parseResolvedMappingSummary(
+		value.ResolvedMappingSummary,
+	)
+	if err != nil || parsed.SourceType != "csv" || len(parsedLabels) != 2 ||
+		coverage[labels[0].Generation.ID] != identityCoverageFull ||
+		coverage[labels[1].Generation.ID] != identityCoverageFull {
+		t.Fatalf("parsed verification = %#v %#v %#v, %v",
+			parsed, parsedLabels, coverage, err)
+	}
+
+	gotLabels := trialLabels([]string{"Person", "KNOWS"})
+	if len(gotLabels) != 2 || gotLabels[0] != model.Label("Person") {
+		t.Fatalf("trial labels = %#v", gotLabels)
+	}
+	if !incrementalMode(config.LoadAppend) ||
+		!incrementalMode(config.LoadUpsert) ||
+		incrementalMode(config.LoadCreate) {
+		t.Fatal("incremental mode classification failed")
+	}
+	plain := completionTelemetry(config.SourceCSV, &plainIterator{})
+	if plain.Connector != "csv" || plain.Pages != 0 {
+		t.Fatalf("plain telemetry = %#v", plain)
+	}
+	provided := completionTelemetry(config.SourceCSV, &diagnosticIterator{})
+	if provided.Connector != "fake" || provided.Pages != 3 {
+		t.Fatalf("provided telemetry = %#v", provided)
 	}
 }
 
