@@ -36,7 +36,6 @@ func TargetManifest(
 	}
 	defer connection.Close(context.Background())
 	if _, err := connection.Exec(ctx, `
-		LOAD 'age';
 		SET search_path = ag_catalog, "$user", public`); err != nil {
 		return Manifest{}, fmt.Errorf("initialize AGE session: %w", err)
 	}
