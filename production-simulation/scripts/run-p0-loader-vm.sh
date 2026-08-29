@@ -8,6 +8,10 @@ if [ "$(id -u)" -ne 0 ] || [ "$#" -ne 1 ]; then
 fi
 
 source_version=$1
+export HOME=/root
+export GOPATH=/root/go
+export GOMODCACHE=/root/go/pkg/mod
+mkdir -p "$GOMODCACHE"
 case "$source_version" in
 	neo4j-4.4.48|neo4j-5.26.30) ;;
 	*)

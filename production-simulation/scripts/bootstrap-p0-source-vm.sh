@@ -8,6 +8,10 @@ if [ "$(id -u)" -ne 0 ] || [ "$#" -ne 1 ]; then
 fi
 
 version=$1
+export HOME=/root
+export GOPATH=/root/go
+export GOMODCACHE=/root/go/pkg/mod
+mkdir -p "$GOMODCACHE"
 case "$version" in
 	4.4.48)
 		container_name=afps-neo4j44
