@@ -63,6 +63,22 @@ func TestCanonicalJSONPropertiesSortsKeysAndPreservesTypes(t *testing.T) {
 	}
 }
 
+func TestFixtureVertexCanonicalizesEmptyStatusAsNull(t *testing.T) {
+	t.Parallel()
+
+	_, canonical, err := fixtureVertex("Supplier", []string{
+		"1", "supplier-000000000001", "Supplier-1-東京", "JP-13",
+		"2020-01-01T00:00:00Z", "", "1.2500", "true",
+		"tier-1;segment-2", "1;2;3", "description",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(canonical), `"status":null`) {
+		t.Fatalf("canonical vertex does not preserve Neo4j null status: %s", canonical)
+	}
+}
+
 func TestCompareReportsFirstLeafMismatch(t *testing.T) {
 	t.Parallel()
 

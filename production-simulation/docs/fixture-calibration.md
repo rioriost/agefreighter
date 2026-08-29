@@ -26,8 +26,8 @@ migration path:
   ranging from 30 million to 100 million at full scale;
 - deterministic hub skew on suppliers, facilities, products, and carriers;
 - signed 64-bit source keys, stable external identities, booleans, integers,
-  floating-point values, timestamps, arrays, Unicode, and absent optional
-  status properties;
+  floating-point values, timestamps, arrays, Unicode, and nullable status
+  properties;
 - text-width buckets of 32 bytes (90%), 256 bytes (9%), 2 KiB (0.9%), and
   8 KiB (0.1%), exercising both common and long-property rows;
 - five years of event timestamps, six geographic values, and lifecycle/status
