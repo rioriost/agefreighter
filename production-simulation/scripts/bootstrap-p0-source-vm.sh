@@ -19,6 +19,7 @@ case "$version" in
 		heap_initial='NEO4J_dbms_memory_heap_initial__size=4G'
 		heap_max='NEO4J_dbms_memory_heap_max__size=4G'
 		page_cache='NEO4J_dbms_memory_pagecache_size=6G'
+		read_only='NEO4J_dbms_databases_default__to__read__only=true'
 		;;
 	5.26.30)
 		container_name=afps-neo4j526
@@ -26,6 +27,7 @@ case "$version" in
 		heap_initial='NEO4J_server_memory_heap_initial__size=4G'
 		heap_max='NEO4J_server_memory_heap_max__size=4G'
 		page_cache='NEO4J_server_memory_pagecache_size=6G'
+		read_only='NEO4J_server_databases_default__to__read__only=true'
 		;;
 	*)
 		printf 'unsupported Neo4j version: %s\n' "$version" >&2
@@ -95,17 +97,18 @@ case "$neo4j_password" in
 		;;
 esac
 
-if docker container inspect "$container_name" >/dev/null 2>&1; then
-	docker start "$container_name" >/dev/null
-else
-	docker run -d --name "$container_name" --restart unless-stopped \
-		--publish 7687:7687 --publish 7474:7474 \
-		--ulimit nofile=65536:65536 \
-		--volume "$neo4j_data:/data" \
-		--env "NEO4J_AUTH=neo4j/$neo4j_password" \
-		--env "$heap_initial" --env "$heap_max" --env "$page_cache" \
-		"$image" >/dev/null
-fi
+# Bootstrap needs a short writable window to create the reviewed source-key
+# indexes. Always replace only this named container so a prior read-only run is
+# not accidentally reused for that step; the durable database remains on the
+# separately mounted data disk.
+docker rm -f "$container_name" >/dev/null 2>&1 || true
+docker run -d --name "$container_name" --restart unless-stopped \
+	--publish 7687:7687 --publish 7474:7474 \
+	--ulimit nofile=65536:65536 \
+	--volume "$neo4j_data:/data" \
+	--env "NEO4J_AUTH=neo4j/$neo4j_password" \
+	--env "$heap_initial" --env "$heap_max" --env "$page_cache" \
+	"$image" >/dev/null
 
 attempt=0
 until docker exec -e NEO4J_USERNAME=neo4j -e NEO4J_PASSWORD="$neo4j_password" \
@@ -134,6 +137,38 @@ index_file="$mount_root/source-key-indexes.cypher"
 docker exec -i -e NEO4J_USERNAME=neo4j -e NEO4J_PASSWORD="$neo4j_password" \
 	"$container_name" cypher-shell --format plain <"$index_file" >/dev/null
 
+# Recreate the container with the version-specific database read-only setting
+# only after every index is online. A P1+ source must never rely solely on
+# operator convention for immutability.
+docker rm -f "$container_name" >/dev/null
+docker run -d --name "$container_name" --restart unless-stopped \
+	--publish 7687:7687 --publish 7474:7474 \
+	--ulimit nofile=65536:65536 \
+	--volume "$neo4j_data:/data" \
+	--env "NEO4J_AUTH=neo4j/$neo4j_password" \
+	--env "$heap_initial" --env "$heap_max" --env "$page_cache" \
+	--env "$read_only" \
+	"$image" >/dev/null
+
+attempt=0
+until docker exec -e NEO4J_USERNAME=neo4j -e NEO4J_PASSWORD="$neo4j_password" \
+	"$container_name" cypher-shell 'RETURN 1' >/dev/null 2>&1; do
+	attempt=$((attempt + 1))
+	if [ "$attempt" -ge 60 ]; then
+		printf 'Read-only Neo4j did not become ready\n' >&2
+		exit 4
+	fi
+	sleep 5
+done
+
+access=$(docker exec -e NEO4J_USERNAME=neo4j -e NEO4J_PASSWORD="$neo4j_password" \
+	"$container_name" cypher-shell --format plain \
+	'SHOW DATABASE neo4j YIELD access RETURN access;' | tail -n 1 | tr -d '"\r')
+if [ "$access" != 'read-only' ]; then
+	printf 'Neo4j database access is %s, expected read-only\n' "$access" >&2
+	exit 6
+fi
+
 summary="$mount_root/source-summary.txt"
 {
 	printf 'neo4j_version=%s\n' "$version"
@@ -142,6 +177,7 @@ summary="$mount_root/source-summary.txt"
 	docker exec -e NEO4J_USERNAME=neo4j -e NEO4J_PASSWORD="$neo4j_password" \
 		"$container_name" cypher-shell --format plain \
 		'MATCH (n) WITH count(n) AS vertices MATCH ()-[r]->() RETURN vertices, count(r) AS edges;'
+	printf 'database_access=%s\n' "$access"
 } >"$summary"
 cat "$summary"
 
