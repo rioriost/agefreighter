@@ -185,6 +185,31 @@ func (transaction *Transaction) CreateLabel(
 			err,
 		)
 	}
+	if kind == EdgeLabel {
+		if err := transaction.ensureEdgeIDPrimaryKey(ctx, graphName, labelName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (transaction *Transaction) ensureEdgeIDPrimaryKey(
+	ctx context.Context,
+	graphName string,
+	labelName string,
+) error {
+	relation := pgx.Identifier{graphName, labelName}.Sanitize()
+	if _, err := transaction.tx.Exec(
+		ctx,
+		"ALTER TABLE "+relation+" ADD PRIMARY KEY (id)",
+	); err != nil {
+		return fmt.Errorf(
+			"create edge label %q id primary key in graph %q: %w",
+			labelName,
+			graphName,
+			err,
+		)
+	}
 	return nil
 }
 
@@ -234,6 +259,14 @@ func (transaction *Transaction) CreateGraphWithLabels(
 		kinds,
 	); err != nil {
 		return fmt.Errorf("create graph %q and labels: %w", graphName, err)
+	}
+	for index, name := range names {
+		if kinds[index] != string(byte(EdgeLabel)) {
+			continue
+		}
+		if err := transaction.ensureEdgeIDPrimaryKey(ctx, graphName, name); err != nil {
+			return err
+		}
 	}
 	return nil
 }

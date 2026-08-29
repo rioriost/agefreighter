@@ -74,6 +74,8 @@ func TestAdapterIntegration(t *testing.T) {
 		person.SequenceName == "" || knows.SequenceName == "" {
 		t.Fatalf("invalid label catalogs: %#v %#v", person, knows)
 	}
+	assertLabelIDPrimaryKey(t, ctx, adapter, graphName, "Person")
+	assertLabelIDPrimaryKey(t, ctx, adapter, graphName, "KNOWS")
 	if _, err := adapter.LookupGraph(ctx, graphName); err != nil {
 		t.Fatalf("adapter LookupGraph() error = %v", err)
 	}
@@ -163,6 +165,38 @@ func TestAdapterIntegration(t *testing.T) {
 	assertGraphRenameRoundTrip(t, ctx, adapter, graphName)
 	assertRenameFailureRollsBack(t, ctx, adapter, graphName)
 	testRestrictedRole(t, ctx, adapter, dsn)
+}
+
+func assertLabelIDPrimaryKey(
+	t *testing.T,
+	ctx context.Context,
+	adapter *Adapter,
+	graphName string,
+	labelName string,
+) {
+	t.Helper()
+	var exists bool
+	err := adapter.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM pg_catalog.pg_index index_metadata
+			JOIN pg_catalog.pg_attribute attribute
+			  ON attribute.attrelid = index_metadata.indrelid
+			 AND attribute.attnum = ANY(index_metadata.indkey)
+			WHERE index_metadata.indrelid = to_regclass($1)
+			  AND index_metadata.indisprimary
+			  AND index_metadata.indisunique
+			  AND index_metadata.indnkeyatts = 1
+			  AND attribute.attname = 'id'
+		)`,
+		pgx.Identifier{graphName, labelName}.Sanitize(),
+	).Scan(&exists)
+	if err != nil {
+		t.Fatalf("inspect %s.%s primary key: %v", graphName, labelName, err)
+	}
+	if !exists {
+		t.Fatalf("%s.%s has no id primary key", graphName, labelName)
+	}
 }
 
 func assertLabelDropLifecycle(
