@@ -159,12 +159,17 @@ func fixtureVertex(label string, row []string) (int64, []byte, error) {
 		"name":        {Kind: model.ValueString, String: row[2]},
 		"region":      {Kind: model.ValueString, String: row[3]},
 		"created_at":  {Kind: model.ValueString, String: created},
-		"status":      {Kind: model.ValueString, String: row[5]},
 		"score":       {Kind: model.ValueFloat, Float: score},
 		"active":      {Kind: model.ValueBoolean, Boolean: active},
 		"tags":        {Kind: model.ValueList, List: stringList(row[8])},
 		"quantities":  {Kind: model.ValueList, List: quantities},
 		"description": {Kind: model.ValueString, String: row[10]},
+	}
+	// Neo4j's bulk importer treats an empty, unquoted CSV field as null and does
+	// not create that property. Mirror the imported source graph, not the CSV
+	// transport representation, in the independent expected digest.
+	if row[5] != "" {
+		properties["status"] = model.Value{Kind: model.ValueString, String: row[5]}
 	}
 	encoded, err := model.EncodeProperties(properties)
 	if err != nil {

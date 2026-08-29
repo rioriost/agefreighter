@@ -57,7 +57,7 @@ test does not collapse into an unrealistically narrow integer-only graph.
 The fixed seed controls every value and endpoint. Endpoint selection includes
 skew for suppliers, products, facilities, and carriers so a small population
 becomes high degree. The fallback generator supplies deterministic time,
-region, lifecycle, Unicode, empty-property, and value-width distributions
+region, lifecycle, Unicode, absent-property, and value-width distributions
 without using production data. The P1 calibration decision and its limitations
 are recorded in [`fixture-calibration.md`](fixture-calibration.md).
 
