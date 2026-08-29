@@ -167,6 +167,37 @@ func TestAdapterIntegration(t *testing.T) {
 	testRestrictedRole(t, ctx, adapter, dsn)
 }
 
+func TestEdgeIDPrimaryKeyIntegration(t *testing.T) {
+	dsn := os.Getenv(integrationDSNEnvironment)
+	if dsn == "" {
+		t.Skip("set " + integrationDSNEnvironment + " to run Apache AGE integration tests")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	adapter := openIntegrationAdapter(t, ctx, dsn, 1)
+	t.Cleanup(adapter.Close)
+	graphName := "af_it_edge_pk"
+	dropGraphIfPresent(t, ctx, adapter, graphName)
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cleanupCancel()
+		dropGraphIfPresent(t, cleanupCtx, adapter, graphName)
+	})
+
+	err := adapter.InTransaction(ctx, func(transaction *Transaction) error {
+		return transaction.CreateGraphWithLabels(ctx, graphName, map[string]LabelKind{
+			"Person": VertexLabel,
+			"KNOWS":  EdgeLabel,
+		})
+	})
+	if err != nil {
+		t.Fatalf("create graph with edge primary key: %v", err)
+	}
+	assertLabelIDPrimaryKey(t, ctx, adapter, graphName, "Person")
+	assertLabelIDPrimaryKey(t, ctx, adapter, graphName, "KNOWS")
+}
+
 func assertLabelIDPrimaryKey(
 	t *testing.T,
 	ctx context.Context,
