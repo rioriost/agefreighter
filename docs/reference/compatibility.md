@@ -35,7 +35,7 @@ patch using the following official Community image indexes.
 | 15.x | 1.6.x | `apache/age@sha256:bd653255f4b9449c3f52bac3849524069cf83a6d867a25b1fc6d8535171498b7` | PostgreSQL 15.15, AGE 1.6.0 |
 | 16.x | 1.6.x | `apache/age@sha256:16aa423d20a31aed36a3313244bf7aa00731325862f20ed584510e381f2feaed` | PostgreSQL 16.10, AGE 1.6.0 |
 | 17.x | 1.6.x | `apache/age@sha256:fe8b33905a61549a067f8512808b88011bdcaa82ab65d8788f39fb07a04aa5be` | PostgreSQL 17.7, AGE 1.6.0 |
-| 17.x | 1.7.x | AGE commit `e1467f12e0b1d15dd35d3ab93f057a7112d425b8`, built on `postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675` | PostgreSQL 17.11, AGE 1.7.0 |
+| 17.x | 1.7.x | `apache/age@sha256:92a5d223965bc2e436f9eee436e0bd2c0d81f3b59124b3d197ec94706f3450a8` | PostgreSQL 17.11, AGE 1.7.0 |
 | 18.x | 1.7.x | `apache/age@sha256:e7de1717e487dac7c1be93a1cd5360a2cf07ff4170342c2af2ac4713c21baf00` | PostgreSQL 18.1, AGE 1.7.0 |
 | 18.x | 1.8.x | `apache/age@sha256:c7255d32a10de6b5d84daa12346aa545e062b223fa3e574fe96a5c428f249894` | PostgreSQL 18.6, AGE 1.8.0 |
 
@@ -55,15 +55,11 @@ The weekly and manually runnable `AGE compatibility` workflow executes the full
 cross-product of the two Neo4j sources and seven PostgreSQL/AGE targets: fourteen
 migration configurations in total. Each configuration exercises Neo4j streaming,
 explicit mappings, schema discovery, create, replace, append, upsert, metadata,
-and target recovery contracts. Release images are pinned by multi-architecture
-digest. Where Apache AGE does not publish a release image for an official
-pairing, the workflow builds the exact release commit on a pinned PostgreSQL
-image before running the same contracts.
+and target recovery contracts. Official release images are pinned by
+multi-architecture digest.
 
 Compatibility does not imply support for arbitrary Neo4j patches or combinations
 within other PostgreSQL or AGE major/minor lines. Adding a source requires a
-pinned official multi-architecture Neo4j image. Adding a target requires either
-a pinned multi-architecture AGE release image or an exact official AGE release
-commit built on a pinned multi-architecture PostgreSQL image. Both changes
-require a complete cross-product compatibility run and an update to this
-document.
+pinned official multi-architecture Neo4j image. Adding a target requires a
+pinned official multi-architecture AGE release image. Both changes require a
+complete cross-product compatibility run and an update to this document.
