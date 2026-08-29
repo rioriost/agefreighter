@@ -35,6 +35,11 @@ func TargetManifest(
 		return Manifest{}, fmt.Errorf("connect to target: %w", err)
 	}
 	defer connection.Close(context.Background())
+	if _, err := connection.Exec(ctx, `
+		LOAD 'age';
+		SET search_path = ag_catalog, "$user", public`); err != nil {
+		return Manifest{}, fmt.Errorf("initialize AGE session: %w", err)
+	}
 
 	var status, graph string
 	var generationID int64
