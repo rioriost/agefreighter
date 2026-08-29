@@ -40,6 +40,12 @@ require_command "$runtime"
 require_command go
 require_file "$fixture/manifest.json"
 
+# The official image runs neo4j-admin as its unprivileged Neo4j user. Fixtures
+# contain synthetic non-secret data and are mounted read-only, so grant only
+# the traversal/read bits needed by that user without changing file contents.
+find "$fixture" -type d -exec chmod 0755 {} +
+find "$fixture" -type f -exec chmod 0644 {} +
+
 if [ -e "$data_directory" ]; then
 	if [ ! -d "$data_directory" ] || [ -n "$(find "$data_directory" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
 		printf 'Neo4j data path must be a new or empty directory: %s\n' "$data_directory" >&2
