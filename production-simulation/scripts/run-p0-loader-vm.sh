@@ -87,7 +87,7 @@ jq -n \
 	'{source:$source,jobId:$jobId,commit:$commit,load:$load,verification:$verification}' \
 	>"$result_root/summary.json"
 
-jq '{source,jobId,commit,loadStatus:.load.status,verificationStatus:.verification.status}' \
+jq '{source,jobId,commit,loadStatus:.load.status,verificationOutcome:.verification.outcome}' \
 	"$result_root/summary.json"
 
 unset AGEFREIGHTER_NEO4J_PASSWORD AGEFREIGHTER_TARGET_DSN

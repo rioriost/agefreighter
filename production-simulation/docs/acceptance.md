@@ -18,13 +18,30 @@ Every run produces a versioned summary containing:
 Raw logs and metrics may contain hostnames or connection metadata and remain in
 the ignored raw-results location. A redacted summary is reviewed before commit.
 
-## Correctness gates
+## P0 correctness gate
+
+P0 validates the Azure harness and exact-count path. It passes only when:
+
+- exact total and per-label/type counts match;
+- rejected records, failed batches, duplicates, and missing endpoints are zero;
+- every executed built-in count and bounded-integrity field has no failure;
+- any `verify` incomplete result is caused only by the documented 1,000-row
+  integrity bound, and the affected labels are recorded in the summary; and
+- source counts are unchanged after both migrations.
+
+The bounded-integrity exception does not authorize P2. The independent
+canonical range-digest verifier must be implemented and proven during P1, as
+specified in `dataset.md` and `test-plan.md`.
+
+## P1-P4 correctness gates
 
 All are hard requirements:
 
 - exact total and per-label/type counts;
 - zero rejected records, failed batches, duplicates, and missing endpoints;
-- built-in `verify --counts --integrity` passes;
+- built-in count verification passes and bounded integrity reports no failed
+  field; any bound-related incomplete coverage is closed by the independent
+  canonical range-digest verifier;
 - every canonical key-range digest and final Merkle root match;
 - the recovery run produces the same root as the clean run;
 - checkpoints advance monotonically and resume does not skip or duplicate;
