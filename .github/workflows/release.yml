@@ -29,8 +29,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.metadata.outputs.version }}
-      version_number: ${{ steps.metadata.outputs.version_number }}
-      file_version: ${{ steps.metadata.outputs.file_version }}
       commit: ${{ steps.metadata.outputs.commit }}
       build_date: ${{ steps.metadata.outputs.build_date }}
       epoch: ${{ steps.metadata.outputs.epoch }}
@@ -66,13 +64,9 @@ jobs:
           fi
           epoch="$(git show -s --format=%ct "$GITHUB_SHA")"
           build_date="$(date -u -d "@$epoch" '+%Y-%m-%dT%H:%M:%SZ')"
-          version_number="${version#v}"
-          file_version="${version_number%%-*}.0"
           [[ "$build_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]
           {
             printf 'version=%s\n' "$version"
-            printf 'version_number=%s\n' "$version_number"
-            printf 'file_version=%s\n' "$file_version"
             printf 'commit=%s\n' "$GITHUB_SHA"
             printf 'build_date=%s\n' "$build_date"
             printf 'epoch=%s\n' "$epoch"
@@ -228,11 +222,7 @@ jobs:
   build-windows:
     needs: prepare
     runs-on: ubuntu-24.04
-    environment: release
     timeout-minutes: 45
-    permissions:
-      actions: read
-      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -252,52 +242,15 @@ jobs:
         run: |
           scripts/release/build.sh \
             "$VERSION" "$COMMIT" "$BUILD_DATE" windows amd64 "$PWD/dist"
-      - name: Upload raw unsigned archive for trusted-build verification
-        id: unsigned
-        if: >-
-          github.event_name == 'push' &&
-          github.ref_type == 'tag' &&
-          !contains(needs.prepare.outputs.version, '-')
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          path: dist/agefreighter_${{ needs.prepare.outputs.version }}_windows_amd64.zip
-          archive: false
-          if-no-files-found: error
-          retention-days: 14
-      - name: Submit trusted artifact to SignPath Foundation
-        if: >-
-          github.event_name == 'push' &&
-          github.ref_type == 'tag' &&
-          !contains(needs.prepare.outputs.version, '-')
-        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
-        with:
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
-          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
-          wait-for-completion: true
-          wait-for-completion-timeout-in-seconds: 1800
-          output-artifact-directory: dist/signed
-          skip-decompress: true
-          parameters: |
-            version: ${{ toJSON(needs.prepare.outputs.version_number) }}
-            fileVersion: ${{ toJSON(needs.prepare.outputs.file_version) }}
-      - name: Select final Windows archive
+      - name: Stage unsigned Windows archive
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
           unsigned="dist/agefreighter_${VERSION}_windows_amd64.zip"
-          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" && "$VERSION" != *-* ]]; then
-            source="dist/signed/$(basename "$unsigned")"
-          else
-            source="$unsigned"
-          fi
-          [[ -f "$source" && ! -L "$source" ]]
+          [[ -f "$unsigned" && ! -L "$unsigned" ]]
           mkdir -p dist/final
-          cp "$source" "dist/final/$(basename "$unsigned")"
+          cp "$unsigned" "dist/final/$(basename "$unsigned")"
       - name: Install pinned Syft
         id: syft
         uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
@@ -313,7 +266,7 @@ jobs:
           PATH="$(dirname "$SYFT"):$PATH"
           export PATH
           scripts/release/sbom.sh "$archive" "$archive.spdx.json"
-      - name: Upload Windows verification or release package
+      - name: Upload unsigned Windows verification or release package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ contains(needs.prepare.outputs.version, '-') && 'verification-windows-amd64' || 'release-windows-amd64' }}
@@ -431,11 +384,10 @@ jobs:
         with:
           name: ${{ contains(needs.prepare.outputs.version, '-') && 'verification-windows-amd64' || 'release-windows-amd64' }}
           path: dist
-      - name: Extract and execute both native binaries
+      - name: Confirm unsigned status and execute both native binaries
         shell: pwsh
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-          REQUIRE_SIGNATURE: ${{ github.event_name == 'push' && github.ref_type == 'tag' && !contains(needs.prepare.outputs.version, '-') }}
         run: |
           $ErrorActionPreference = "Stop"
           if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64") {
@@ -457,25 +409,11 @@ jobs:
             $entries.Dispose()
           }
           Expand-Archive -LiteralPath $archive -DestinationPath extracted
-          if ($env:REQUIRE_SIGNATURE -eq "true") {
-            $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
-              Sort-Object FullName -Descending |
-              Select-Object -First 1
-            if ($null -eq $signTool) {
-              throw "signtool.exe was not found"
-            }
-          }
           $expected = $env:VERSION.Substring(1)
           foreach ($binary in @("agefreighter.exe", "agefreighter-tools.exe")) {
-            if ($env:REQUIRE_SIGNATURE -eq "true") {
-              & $signTool.FullName verify /pa /all /v "./extracted/$binary"
-              if ($LASTEXITCODE -ne 0) {
-                throw "$binary Authenticode verification failed"
-              }
-              $signature = Get-AuthenticodeSignature -LiteralPath "./extracted/$binary"
-              if ($signature.Status -ne "Valid" -or $null -eq $signature.TimeStamperCertificate) {
-                throw "$binary does not have a valid timestamped Authenticode signature"
-              }
+            $signature = Get-AuthenticodeSignature -LiteralPath "./extracted/$binary"
+            if ($signature.Status -ne "NotSigned") {
+              throw "$binary must be unsigned while Windows signing is deferred"
             }
             $output = & "./extracted/$binary" version
             if ($LASTEXITCODE -ne 0 -or $output -notmatch [regex]::Escape($expected)) {
@@ -596,7 +534,10 @@ jobs:
           draft: false
           prerelease: ${{ contains(needs.prepare.outputs.version, '-') }}
           generate_release_notes: true
-          body: ${{ contains(needs.prepare.outputs.version, '-') && 'Windows binaries are intentionally omitted from this prerelease while SignPath Foundation enrollment is pending. Official Windows binaries will not be published unsigned.' || '' }}
+          body: >-
+            ${{ contains(needs.prepare.outputs.version, '-') &&
+            'Windows binaries are intentionally omitted from this prerelease.' ||
+            format('Windows amd64 binaries are included without Authenticode signing in {0} while SignPath Foundation enrollment is pending. Code signing is planned for a later release. Verify checksums and GitHub build provenance before use; Windows may display an unknown-publisher or SmartScreen warning.', needs.prepare.outputs.version) }}
           fail_on_unmatched_files: true
           overwrite_files: false
           files: dist/*

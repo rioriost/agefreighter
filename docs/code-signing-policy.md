@@ -4,25 +4,39 @@
 
 Official Windows release archives contain `agefreighter.exe` and
 `agefreighter-tools.exe`. Both executables are built from this repository by
-GitHub Actions and submitted to SignPath before checksums, SBOMs, provenance,
-and the GitHub release are created.
+GitHub Actions before checksums, SBOMs, provenance, and the GitHub release are
+created.
 
-Free code signing provided by SignPath.io, certificate by SignPath Foundation.
-The Authenticode publisher shown by Windows is SignPath Foundation.
+The Windows executables in v2.0.0 are intentionally unsigned while SignPath
+Foundation enrollment is pending. Code signing remains planned for a later
+release. Once enabled, signing will be provided by SignPath.io using a
+certificate from SignPath Foundation, and the Authenticode publisher shown by
+Windows will be SignPath Foundation.
 
-## Trusted build and release rules
+## v2.0.0 unsigned-release controls
+
+- The Windows cross-build runs on a GitHub-hosted runner from the tagged
+  repository commit.
+- A separate Windows runner confirms that both executables are unsigned and
+  executes their version commands before publication.
+- The ZIP is covered by the release checksum, SPDX SBOM, and GitHub
+  build-provenance attestation.
+
+## Planned signing rules
 
 - Only version-tag builds from `rioriost/agefreighter` may request a production
   signature.
-- The source checkout, Windows cross-build, and SignPath submission run only on
-  GitHub-hosted runners.
-- The raw unsigned ZIP is uploaded by GitHub Actions and referenced by its
-  immutable artifact ID. Locally supplied binaries are not accepted.
-- Both executables carry the product name `agefreighter`, the release version,
-  their expected original filename, and a command-specific description.
-- Every production signing request requires manual approval in SignPath.
-- The signed ZIP is verified on a separate Windows runner with Authenticode
-  policy before it can reach checksum, SBOM, provenance, or publication jobs.
+- The source checkout, Windows cross-build, and SignPath submission will run
+  only on GitHub-hosted runners.
+- The raw unsigned ZIP will be uploaded by GitHub Actions and referenced by its
+  immutable artifact ID. Locally supplied binaries will not be accepted.
+- Both executables will carry the product name `agefreighter`, the release
+  version, their expected original filename, and a command-specific
+  description.
+- Every production signing request will require manual approval in SignPath.
+- The signed ZIP will be verified on a separate Windows runner with
+  Authenticode policy before it can reach checksum, SBOM, provenance, or
+  publication jobs.
 
 ## Team roles
 
