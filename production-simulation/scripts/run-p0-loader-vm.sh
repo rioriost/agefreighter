@@ -2,17 +2,30 @@
 
 set -eu
 
-if [ "$(id -u)" -ne 0 ] || [ "$#" -ne 1 ]; then
-	printf 'usage as root: %s neo4j-4.4.48|neo4j-5.26.30\n' "$0" >&2
+if [ "$(id -u)" -ne 0 ] || { [ "$#" -ne 1 ] && [ "$#" -ne 2 ]; }; then
+	printf 'usage as root: %s [p0|p1] neo4j-4.4.48|neo4j-5.26.30\n' "$0" >&2
 	exit 2
 fi
 
-source_version=$1
+if [ "$#" -eq 1 ]; then
+	phase=p0
+	source_version=$1
+else
+	phase=$1
+	source_version=$2
+fi
+case "$phase" in
+	p0|p1) ;;
+	*)
+		printf 'unsupported loader phase: %s\n' "$phase" >&2
+		exit 2
+		;;
+esac
 export HOME=/root
 export GOPATH=/root/go
 export GOMODCACHE=/root/go/pkg/mod
 mkdir -p "$GOMODCACHE"
-target_database_prefix=${TARGET_DATABASE_PREFIX:-agefreighter_p0}
+target_database_prefix=${TARGET_DATABASE_PREFIX:-agefreighter_$phase}
 case "$target_database_prefix" in
 	*[!a-z0-9_]*|'')
 		printf 'TARGET_DATABASE_PREFIX must contain only lowercase letters, digits, and underscores\n' >&2
@@ -47,11 +60,14 @@ fi
 git -C "$source_root" fetch -q origin "$PRODUCTION_SIMULATION_GIT_REF"
 git -C "$source_root" checkout -q --detach "$PRODUCTION_SIMULATION_GIT_REF"
 
-mkdir -p /opt/agefreighter/bin /var/lib/agefreighter-p0/results
+state_root="/var/lib/agefreighter-$phase"
+mkdir -p /opt/agefreighter/bin "$state_root/results"
 cd "$source_root"
 go build -trimpath -o /opt/agefreighter/bin/agefreighter ./cmd/agefreighter
 go build -trimpath -o /opt/agefreighter/bin/rangedigest \
 	./production-simulation/cmd/rangedigest
+go build -trimpath -o /opt/agefreighter/bin/fixturegen \
+	./production-simulation/cmd/fixturegen
 
 token=$(curl -fsS -H Metadata:true \
 	'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fvault.azure.net' |
@@ -64,13 +80,13 @@ postgres_password=$(curl -fsS -H "Authorization: Bearer $token" \
 	python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
 
 export AGEFREIGHTER_NEO4J_PASSWORD="$neo4j_password"
-pgpass_file=/run/agefreighter-p0.pgpass
+pgpass_file="/run/agefreighter-$phase.pgpass"
 escaped_postgres_password=$(printf '%s' "$postgres_password" |
 	sed 's/\\/\\\\/g; s/:/\\:/g')
 umask 077
 printf '%s:%s:%s:%s:%s\n' "$POSTGRES_FQDN" 5432 "$target_database" \
 	agefreighter "$escaped_postgres_password" >"$pgpass_file"
-export PGPASSFILE=$pgpass_file
+export PGPASSFILE="$pgpass_file"
 trap 'rm -f "$pgpass_file"' EXIT HUP INT TERM
 target_dsn="host=$POSTGRES_FQDN port=5432 dbname=$target_database user=agefreighter sslmode=require"
 case "$source_version" in
@@ -86,18 +102,31 @@ esac
 export AGEFREIGHTER_LOG_FORMAT=json
 
 config="$source_root/production-simulation/configs/$source_version.yaml"
-result_root="/var/lib/agefreighter-p0/results/$source_version"
+AGEFREIGHTER_TARGET_DSN=$target_dsn \
+	PRODUCTION_SIMULATION_APPROVAL="reviewed-$phase" \
+	"$source_root/production-simulation/scripts/preflight-target.sh" "$phase"
+result_root="$state_root/results/$source_version"
 if [ -e "$result_root" ]; then
 	printf 'result path already exists: %s\n' "$result_root" >&2
 	exit 3
 fi
 mkdir -p "$result_root"
 
+{
+	printf 'started_at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	uname -a
+	lscpu
+	free -b
+	df -B1
+} >"$result_root/host-before.txt"
 /opt/agefreighter/bin/agefreighter validate "$config" >"$result_root/validate.txt"
 /opt/agefreighter/bin/agefreighter plan "$config" >"$result_root/plan.json"
+/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
+	>"$result_root/source-profile-before.json"
 /usr/bin/time -v -o "$result_root/time.txt" \
 	/opt/agefreighter/bin/agefreighter load "$config" \
 	>"$result_root/load.json" 2>"$result_root/load.stderr"
+date -u +%Y-%m-%dT%H:%M:%SZ >"$result_root/completed-at.txt"
 
 job_id=$(jq -er '.jobId' "$result_root/load.json")
 printf '%s\n' "$job_id" >"$result_root/job-id.txt"
@@ -105,10 +134,39 @@ printf '%s\n' "$job_id" >"$result_root/job-id.txt"
 	--format json --output "$result_root/report.json" "$job_id"
 /opt/agefreighter/bin/agefreighter verify --target "$config" --counts --integrity \
 	--limit 1000 --format json --output "$result_root/verify.json" "$job_id"
+/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
+	>"$result_root/source-profile-after.json"
 /opt/agefreighter/bin/agefreighter doctor --target "$config" --format json \
 	--output "$result_root/doctor.json"
 /opt/agefreighter/bin/agefreighter optimize --target "$config" --format json \
 	--output "$result_root/optimize.json"
+
+/opt/agefreighter/bin/agefreighter optimize --target "$config" --format json \
+	--output "$result_root/optimize-before-analyze.json"
+psql "$target_dsn" -X --set ON_ERROR_STOP=1 --command 'ANALYZE' \
+	>"$result_root/analyze.txt"
+/opt/agefreighter/bin/agefreighter optimize --target "$config" --format json \
+	--output "$result_root/optimize-after-analyze.json"
+
+fixture_root="$state_root/fixture-$phase"
+if [ ! -f "$fixture_root/manifest.json" ]; then
+	/opt/agefreighter/bin/fixturegen generate --phase "$phase" \
+		--output "$fixture_root" --shards 64 --workers 8 --seed 20260829
+fi
+/opt/agefreighter/bin/fixturegen verify --manifest "$fixture_root/manifest.json"
+/opt/agefreighter/bin/rangedigest fixture --manifest "$fixture_root/manifest.json" \
+	--range-rows 100000 --output "$result_root/fixture-digest.json"
+case "$source_version" in
+	neo4j-4.4.48) target_environment=AGEFREIGHTER_TARGET_DSN_NEO4J44 ;;
+	neo4j-5.26.30) target_environment=AGEFREIGHTER_TARGET_DSN_NEO4J526 ;;
+esac
+/opt/agefreighter/bin/rangedigest target --manifest "$fixture_root/manifest.json" \
+	--job-id "$job_id" --dsn-env "$target_environment" --range-rows 100000 \
+	--output "$result_root/target-digest.json"
+/opt/agefreighter/bin/rangedigest compare \
+	--expected "$result_root/fixture-digest.json" \
+	--actual "$result_root/target-digest.json" \
+	--output "$result_root/digest-comparison.json"
 
 jq -n \
 	--arg source "$source_version" \
@@ -116,10 +174,11 @@ jq -n \
 	--arg commit "$(git -C "$source_root" rev-parse HEAD)" \
 	--argjson load "$(cat "$result_root/load.json")" \
 	--argjson verification "$(cat "$result_root/verify.json")" \
-	'{source:$source,jobId:$jobId,commit:$commit,load:$load,verification:$verification}' \
+	--argjson digest "$(cat "$result_root/digest-comparison.json")" \
+	'{source:$source,jobId:$jobId,commit:$commit,load:$load,verification:$verification,digest:$digest}' \
 	>"$result_root/summary.json"
 
-jq '{source,jobId,commit,loadStatus:.load.status,verificationOutcome:.verification.outcome}' \
+jq '{source,jobId,commit,loadStatus:.load.status,verificationOutcome:.verification.outcome,digestStatus:.digest.status}' \
 	"$result_root/summary.json"
 
 unset AGEFREIGHTER_NEO4J_PASSWORD AGEFREIGHTER_TARGET_DSN_NEO4J44

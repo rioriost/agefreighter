@@ -2,12 +2,25 @@
 
 set -eu
 
-if [ "$(id -u)" -ne 0 ] || [ "$#" -ne 1 ]; then
-	printf 'usage as root: %s 4.4.48|5.26.30\n' "$0" >&2
+if [ "$(id -u)" -ne 0 ] || { [ "$#" -ne 1 ] && [ "$#" -ne 2 ]; }; then
+	printf 'usage as root: %s [p0|p1|p2|p3] 4.4.48|5.26.30\n' "$0" >&2
 	exit 2
 fi
 
-version=$1
+if [ "$#" -eq 1 ]; then
+	phase=p0
+	version=$1
+else
+	phase=$1
+	version=$2
+fi
+case "$phase" in
+	p0|p1|p2|p3) ;;
+	*)
+		printf 'unsupported phase: %s\n' "$phase" >&2
+		exit 2
+		;;
+esac
 export HOME=/root
 export GOPATH=/root/go
 export GOMODCACHE=/root/go/pkg/mod
@@ -32,6 +45,35 @@ case "$version" in
 	*)
 		printf 'unsupported Neo4j version: %s\n' "$version" >&2
 		exit 2
+		;;
+esac
+
+case "$phase" in
+	p0)
+		heap_size=4G
+		page_cache_size=6G
+		fixture_workers=4
+		;;
+	p1)
+		heap_size=16G
+		page_cache_size=96G
+		fixture_workers=16
+		;;
+	p2|p3)
+		printf '%s source sizing must be frozen after the preceding phase\n' "$phase" >&2
+		exit 3
+		;;
+esac
+case "$version" in
+	4.4.48)
+		heap_initial="NEO4J_dbms_memory_heap_initial__size=$heap_size"
+		heap_max="NEO4J_dbms_memory_heap_max__size=$heap_size"
+		page_cache="NEO4J_dbms_memory_pagecache_size=$page_cache_size"
+		;;
+	5.26.30)
+		heap_initial="NEO4J_server_memory_heap_initial__size=$heap_size"
+		heap_max="NEO4J_server_memory_heap_max__size=$heap_size"
+		page_cache="NEO4J_server_memory_pagecache_size=$page_cache_size"
 		;;
 esac
 
@@ -65,22 +107,22 @@ fi
 git -C "$source_root" fetch -q origin "$PRODUCTION_SIMULATION_GIT_REF"
 git -C "$source_root" checkout -q --detach "$PRODUCTION_SIMULATION_GIT_REF"
 
-fixture_root="$mount_root/fixture-p0"
+fixture_root="$mount_root/fixture-$phase"
 if [ ! -f "$fixture_root/manifest.json" ]; then
-	PRODUCTION_SIMULATION_APPROVAL=reviewed-p0 \
+	PRODUCTION_SIMULATION_APPROVAL="reviewed-$phase" \
 		"$source_root/production-simulation/scripts/generate-fixture.sh" \
-		p0 "$fixture_root" 64 4
+		"$phase" "$fixture_root" 64 "$fixture_workers"
 else
 	cd "$source_root"
 	go run ./production-simulation/cmd/fixturegen verify \
 		--manifest "$fixture_root/manifest.json"
 fi
 
-neo4j_data="$mount_root/neo4j-$version"
+neo4j_data="$mount_root/neo4j-$version-$phase"
 if [ ! -d "$neo4j_data/databases" ]; then
-	PRODUCTION_SIMULATION_APPROVAL=reviewed-p0 CONTAINER_RUNTIME=docker \
+	PRODUCTION_SIMULATION_APPROVAL="reviewed-$phase" CONTAINER_RUNTIME=docker \
 		"$source_root/production-simulation/scripts/import-neo4j.sh" \
-		p0 "$version" "$fixture_root" "$neo4j_data"
+		"$phase" "$version" "$fixture_root" "$neo4j_data"
 fi
 
 token=$(curl -fsS -H Metadata:true \
@@ -169,14 +211,28 @@ if [ "$access" != 'read-only' ]; then
 	exit 6
 fi
 
-summary="$mount_root/source-summary.txt"
+summary="$mount_root/source-summary-$phase.txt"
 {
+	printf 'phase=%s\n' "$phase"
 	printf 'neo4j_version=%s\n' "$version"
+	printf 'heap_size=%s\n' "$heap_size"
+	printf 'page_cache_size=%s\n' "$page_cache_size"
 	python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("fixture_root_sha256="+d["rootSha256"]); print("expected_vertices="+str(d["plan"]["vertexTotal"])); print("expected_edges="+str(d["plan"]["edgeTotal"]))' \
 		"$fixture_root/manifest.json"
 	docker exec -e NEO4J_USERNAME=neo4j -e NEO4J_PASSWORD="$neo4j_password" \
 		"$container_name" cypher-shell --format plain \
 		'MATCH (n) WITH count(n) AS vertices MATCH ()-[r]->() RETURN vertices, count(r) AS edges;'
+	printf 'store_bytes=%s\n' "$(du -sb "$neo4j_data" | awk '{print $1}')"
+	printf 'indexes:\n'
+	docker exec -e NEO4J_USERNAME=neo4j -e NEO4J_PASSWORD="$neo4j_password" \
+		"$container_name" cypher-shell --format plain \
+		'SHOW INDEXES YIELD name, state, type RETURN name, state, type ORDER BY name;'
+	printf 'memory_recommendation:\n'
+	if [ "$version" = '4.4.48' ]; then
+		docker exec "$container_name" neo4j-admin memrec --database=neo4j
+	else
+		docker exec "$container_name" neo4j-admin server memory-recommendation --database=neo4j
+	fi
 	printf 'database_access=%s\n' "$access"
 } >"$summary"
 cat "$summary"
