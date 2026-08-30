@@ -229,9 +229,9 @@ summary="$mount_root/source-summary-$phase.txt"
 		'SHOW INDEXES YIELD name, state, type RETURN name, state, type ORDER BY name;'
 	printf 'memory_recommendation:\n'
 	if [ "$version" = '4.4.48' ]; then
-		docker exec "$container_name" neo4j-admin memrec --database=neo4j
+		docker exec "$container_name" neo4j-admin memrec
 	else
-		docker exec "$container_name" neo4j-admin server memory-recommendation --database=neo4j
+		docker exec "$container_name" neo4j-admin server memory-recommendation
 	fi
 	printf 'database_access=%s\n' "$access"
 } >"$summary"
