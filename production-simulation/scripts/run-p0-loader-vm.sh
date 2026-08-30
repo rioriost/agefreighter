@@ -21,7 +21,6 @@ case "$phase" in
 		exit 2
 		;;
 esac
-export HOME=/root
 export GOPATH=/root/go
 export GOMODCACHE=/root/go/pkg/mod
 mkdir -p "$GOMODCACHE"
