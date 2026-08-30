@@ -181,8 +181,11 @@ docker exec -i -e NEO4J_USERNAME=neo4j -e NEO4J_PASSWORD="$neo4j_password" \
 
 # Recreate the container with the version-specific database read-only setting
 # only after every index is online. A P1+ source must never rely solely on
-# operator convention for immutability.
-docker rm -f "$container_name" >/dev/null
+# operator convention for immutability. Stop cleanly so Neo4j 5.x checkpoints
+# the newly built indexes; a forced removal can leave them needing a rebuild,
+# which is intentionally prohibited after read-only mode is enabled.
+docker stop --time 120 "$container_name" >/dev/null
+docker rm "$container_name" >/dev/null
 docker run -d --name "$container_name" --restart unless-stopped \
 	--publish 7687:7687 --publish 7474:7474 \
 	--ulimit nofile=65536:65536 \
