@@ -42,6 +42,14 @@ The winner must satisfy every correctness and memory gate; elapsed time is the
 tie-breaker. A configuration change is never applied to an existing job, so
 resume fingerprints remain stable.
 
+The baseline receives the full source-before/source-after profile and canonical
+digest. The three one-variable tuning candidates still load all records and run
+report, exact counts, bounded integrity, doctor, and optimizer checks, but do
+not repeat the expensive source profiles or canonical digest. This keeps the
+24-hour envelope available for the required clean, recovery, and replace runs.
+The frozen winner must pass the full digest on both source versions and every
+recovery result must match that clean root.
+
 The first baseline attempt used 8 GiB heap / 40 GiB page cache and stopped at
 5,460,000 committed records when Neo4j 4.4 reported
 `Neo.TransientError.General.OutOfMemoryError`. agefreighter RSS was 102,376 KiB

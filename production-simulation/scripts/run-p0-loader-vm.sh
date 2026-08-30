@@ -133,6 +133,21 @@ if [ -e "$result_root" ]; then
 fi
 mkdir -p "$result_root"
 
+verification_level=${P2_VERIFICATION_LEVEL:-full}
+case "$verification_level" in
+	full) ;;
+	tuning)
+		if [ "$phase" != p2 ]; then
+			printf 'tuning verification is supported only for P2\n' >&2
+			exit 2
+		fi
+		;;
+	*)
+		printf 'P2_VERIFICATION_LEVEL must be full or tuning\n' >&2
+		exit 2
+		;;
+esac
+
 if [ "$phase" = p2 ]; then
 	config="$result_root/job.yaml"
 	cp "$source_root/production-simulation/configs/$source_version.yaml" "$config"
@@ -155,8 +170,10 @@ fi
 } >"$result_root/host-before.txt"
 /opt/agefreighter/bin/agefreighter validate "$config" >"$result_root/validate.txt"
 /opt/agefreighter/bin/agefreighter plan "$config" >"$result_root/plan.json"
-/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
-	>"$result_root/source-profile-before.json"
+if [ "$verification_level" = full ]; then
+	/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
+		>"$result_root/source-profile-before.json"
+fi
 /usr/bin/time -v -o "$result_root/time.txt" \
 	/opt/agefreighter/bin/agefreighter load "$config" \
 	>"$result_root/load.json" 2>"$result_root/load.stderr"
@@ -168,8 +185,10 @@ printf '%s\n' "$job_id" >"$result_root/job-id.txt"
 	--format json --output "$result_root/report.json" "$job_id"
 /opt/agefreighter/bin/agefreighter verify --target "$config" --counts --integrity \
 	--limit 1000 --format json --output "$result_root/verify.json" "$job_id"
-/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
-	>"$result_root/source-profile-after.json"
+if [ "$verification_level" = full ]; then
+	/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
+		>"$result_root/source-profile-after.json"
+fi
 /opt/agefreighter/bin/agefreighter doctor --target "$config" --format json \
 	--output "$result_root/doctor.json"
 /opt/agefreighter/bin/agefreighter optimize --target "$config" --format json \
@@ -182,25 +201,30 @@ psql "$target_dsn" -X --set ON_ERROR_STOP=1 --command 'ANALYZE' \
 /opt/agefreighter/bin/agefreighter optimize --target "$config" --format json \
 	--output "$result_root/optimize-after-analyze.json"
 
-fixture_root="$state_root/fixture-$phase"
-if [ ! -f "$fixture_root/manifest.json" ]; then
-	/opt/agefreighter/bin/fixturegen generate --phase "$phase" \
-		--output "$fixture_root" --shards 64 --workers 8 --seed 20260829
+if [ "$verification_level" = full ]; then
+	fixture_root="$state_root/fixture-$phase"
+	if [ ! -f "$fixture_root/manifest.json" ]; then
+		/opt/agefreighter/bin/fixturegen generate --phase "$phase" \
+			--output "$fixture_root" --shards 64 --workers 8 --seed 20260829
+	fi
+	/opt/agefreighter/bin/fixturegen verify --manifest "$fixture_root/manifest.json"
+	/opt/agefreighter/bin/rangedigest fixture --manifest "$fixture_root/manifest.json" \
+		--range-rows 100000 --output "$result_root/fixture-digest.json"
+	case "$source_version" in
+		neo4j-4.4.48) target_environment=AGEFREIGHTER_TARGET_DSN_NEO4J44 ;;
+		neo4j-5.26.30) target_environment=AGEFREIGHTER_TARGET_DSN_NEO4J526 ;;
+	esac
+	/opt/agefreighter/bin/rangedigest target --manifest "$fixture_root/manifest.json" \
+		--job-id "$job_id" --dsn-env "$target_environment" --range-rows 100000 \
+		--output "$result_root/target-digest.json"
+	/opt/agefreighter/bin/rangedigest compare \
+		--expected "$result_root/fixture-digest.json" \
+		--actual "$result_root/target-digest.json" \
+		--output "$result_root/digest-comparison.json"
+else
+	printf '%s\n' '{"status":"not-run","reason":"P2 tuning candidate; full digest is required for the baseline and frozen configuration"}' \
+		>"$result_root/digest-comparison.json"
 fi
-/opt/agefreighter/bin/fixturegen verify --manifest "$fixture_root/manifest.json"
-/opt/agefreighter/bin/rangedigest fixture --manifest "$fixture_root/manifest.json" \
-	--range-rows 100000 --output "$result_root/fixture-digest.json"
-case "$source_version" in
-	neo4j-4.4.48) target_environment=AGEFREIGHTER_TARGET_DSN_NEO4J44 ;;
-	neo4j-5.26.30) target_environment=AGEFREIGHTER_TARGET_DSN_NEO4J526 ;;
-esac
-/opt/agefreighter/bin/rangedigest target --manifest "$fixture_root/manifest.json" \
-	--job-id "$job_id" --dsn-env "$target_environment" --range-rows 100000 \
-	--output "$result_root/target-digest.json"
-/opt/agefreighter/bin/rangedigest compare \
-	--expected "$result_root/fixture-digest.json" \
-	--actual "$result_root/target-digest.json" \
-	--output "$result_root/digest-comparison.json"
 
 jq -n \
 	--arg source "$source_version" \
