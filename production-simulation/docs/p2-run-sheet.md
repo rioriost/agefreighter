@@ -50,6 +50,18 @@ not repeat the expensive source profiles or canonical digest. This keeps the
 The frozen winner must pass the full digest on both source versions and every
 recovery result must match that clean root.
 
+### Frozen result
+
+The four Neo4j 4.4.48 candidates all committed 56,000,000 records with zero
+failed batches and zero swap. The frozen setting is `fetchRows: 5000`,
+`batchRows: 20000`, and `batchBytes: 64MiB`. It completed in 47:51.61, which is
+187.82 seconds (6.1%) faster than the 50:59.43 baseline. Its maximum RSS was
+179,480 KiB, its committed-batch p99/median latency ratio was 1.338, and the
+last/first throughput ratios measured separately within vertices and edges
+were 92.9% and 98.6%. The unsegmented ratio is not used because it compares
+cheap vertex batches at the beginning with more expensive endpoint-resolving
+edge batches at the end.
+
 The first baseline attempt used 8 GiB heap / 40 GiB page cache and stopped at
 5,460,000 committed records when Neo4j 4.4 reported
 `Neo.TransientError.General.OutOfMemoryError`. agefreighter RSS was 102,376 KiB

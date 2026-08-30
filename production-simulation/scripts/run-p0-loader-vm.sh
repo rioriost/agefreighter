@@ -164,12 +164,12 @@ if [ "$phase" = p2 ]; then
 	config="$result_root/job.yaml"
 	cp "$source_root/production-simulation/configs/$source_version.yaml" "$config"
 	case "${P2_FETCH_ROWS:-5000}" in 5000|10000) ;; *) printf 'unsupported P2_FETCH_ROWS\n' >&2; exit 2 ;; esac
-	case "${P2_BATCH_ROWS:-10000}" in 10000|20000) ;; *) printf 'unsupported P2_BATCH_ROWS\n' >&2; exit 2 ;; esac
+	case "${P2_BATCH_ROWS:-20000}" in 10000|20000) ;; *) printf 'unsupported P2_BATCH_ROWS\n' >&2; exit 2 ;; esac
 	case "${P2_BATCH_BYTES:-64MiB}" in 64MiB|128MiB) ;; *) printf 'unsupported P2_BATCH_BYTES\n' >&2; exit 2 ;; esac
 	case "${P2_TARGET_MODE:-create}" in create|replace) ;; *) printf 'unsupported P2_TARGET_MODE\n' >&2; exit 2 ;; esac
 	sed -i \
 		-e "s/fetchRows: 5000/fetchRows: ${P2_FETCH_ROWS:-5000}/" \
-		-e "s/batchRows: 10000/batchRows: ${P2_BATCH_ROWS:-10000}/" \
+		-e "s/batchRows: 20000/batchRows: ${P2_BATCH_ROWS:-20000}/" \
 		-e "s/batchBytes: 64MiB/batchBytes: ${P2_BATCH_BYTES:-64MiB}/" \
 		-e "s/mode: create/mode: ${P2_TARGET_MODE:-create}/" \
 		"$config"
