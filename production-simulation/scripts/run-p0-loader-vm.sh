@@ -23,7 +23,8 @@ case "$phase" in
 esac
 export GOPATH=/root/go
 export GOMODCACHE=/root/go/pkg/mod
-mkdir -p "$GOMODCACHE"
+export GOCACHE=/root/.cache/agefreighter-go-build
+mkdir -p "$GOMODCACHE" "$GOCACHE"
 target_database_prefix=${TARGET_DATABASE_PREFIX:-agefreighter_$phase}
 case "$target_database_prefix" in
 	*[!a-z0-9_]*|'')

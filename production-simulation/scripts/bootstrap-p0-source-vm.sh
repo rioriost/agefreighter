@@ -23,7 +23,8 @@ case "$phase" in
 esac
 export GOPATH=/root/go
 export GOMODCACHE=/root/go/pkg/mod
-mkdir -p "$GOMODCACHE"
+export GOCACHE=/root/.cache/agefreighter-go-build
+mkdir -p "$GOMODCACHE" "$GOCACHE"
 case "$version" in
 	4.4.48)
 		container_name=afps-neo4j44
