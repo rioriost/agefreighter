@@ -135,8 +135,20 @@ mkdir -p "$result_root"
 
 verification_level=${P2_VERIFICATION_LEVEL:-full}
 resume_job_id=${P2_RESUME_JOB_ID:-}
+run_source_profiles=0
+run_canonical_digest=0
 case "$verification_level" in
-	full) ;;
+	full)
+		run_source_profiles=1
+		run_canonical_digest=1
+		;;
+	digest)
+		if [ "$phase" != p2 ]; then
+			printf 'digest verification is supported only for P2\n' >&2
+			exit 2
+		fi
+		run_canonical_digest=1
+		;;
 	tuning)
 		if [ "$phase" != p2 ]; then
 			printf 'tuning verification is supported only for P2\n' >&2
@@ -144,7 +156,7 @@ case "$verification_level" in
 		fi
 		;;
 	*)
-		printf 'P2_VERIFICATION_LEVEL must be full or tuning\n' >&2
+		printf 'P2_VERIFICATION_LEVEL must be full, digest, or tuning\n' >&2
 		exit 2
 		;;
 esac
@@ -184,7 +196,7 @@ fi
 } >"$result_root/host-before.txt"
 /opt/agefreighter/bin/agefreighter validate "$config" >"$result_root/validate.txt"
 /opt/agefreighter/bin/agefreighter plan "$config" >"$result_root/plan.json"
-if [ "$verification_level" = full ]; then
+if [ "$run_source_profiles" -eq 1 ]; then
 	/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
 		>"$result_root/source-profile-before.json"
 fi
@@ -206,7 +218,7 @@ printf '%s\n' "$job_id" >"$result_root/job-id.txt"
 	--format json --output "$result_root/report.json" "$job_id"
 /opt/agefreighter/bin/agefreighter verify --target "$config" --counts --integrity \
 	--limit 1000 --format json --output "$result_root/verify.json" "$job_id"
-if [ "$verification_level" = full ]; then
+if [ "$run_source_profiles" -eq 1 ]; then
 	/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
 		>"$result_root/source-profile-after.json"
 fi
@@ -222,7 +234,7 @@ psql "$target_dsn" -X --set ON_ERROR_STOP=1 --command 'ANALYZE' \
 /opt/agefreighter/bin/agefreighter optimize --target "$config" --format json \
 	--output "$result_root/optimize-after-analyze.json"
 
-if [ "$verification_level" = full ]; then
+if [ "$run_canonical_digest" -eq 1 ]; then
 	fixture_root="$state_root/fixture-$phase"
 	if [ ! -f "$fixture_root/manifest.json" ]; then
 		/opt/agefreighter/bin/fixturegen generate --phase "$phase" \

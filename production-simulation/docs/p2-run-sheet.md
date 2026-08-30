@@ -94,6 +94,9 @@ target database, and frozen settings, and must not prepare or recreate the
 target database. Preserve both the interrupted and resumed result directories.
 Use `scripts/start-p2-detached-loader-run.sh` to create the detached service;
 its unit name and append-only control log are part of the fault timeline.
+Use `P2_VERIFICATION_LEVEL=digest` for recovery and replace runs: this retains
+the full canonical digest and all target checks but avoids repeating the exact
+before/after source profiles already captured by both frozen clean runs.
 
 ## Replace qualification
 

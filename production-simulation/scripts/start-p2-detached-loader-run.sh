@@ -26,7 +26,7 @@ esac
 : "${PRODUCTION_SIMULATION_GIT_REF:?PRODUCTION_SIMULATION_GIT_REF is required}"
 
 case "${PREPARE_TARGET_DATABASES:-0}" in 0|1) ;; *) printf 'PREPARE_TARGET_DATABASES must be 0 or 1\n' >&2; exit 2 ;; esac
-case "${P2_VERIFICATION_LEVEL:-full}" in full|tuning) ;; *) printf 'invalid P2_VERIFICATION_LEVEL\n' >&2; exit 2 ;; esac
+case "${P2_VERIFICATION_LEVEL:-full}" in full|digest|tuning) ;; *) printf 'invalid P2_VERIFICATION_LEVEL\n' >&2; exit 2 ;; esac
 case "${P2_FETCH_ROWS:-5000}" in 5000|10000) ;; *) printf 'invalid P2_FETCH_ROWS\n' >&2; exit 2 ;; esac
 case "${P2_BATCH_ROWS:-20000}" in 10000|20000) ;; *) printf 'invalid P2_BATCH_ROWS\n' >&2; exit 2 ;; esac
 case "${P2_BATCH_BYTES:-64MiB}" in 64MiB|128MiB) ;; *) printf 'invalid P2_BATCH_BYTES\n' >&2; exit 2 ;; esac
