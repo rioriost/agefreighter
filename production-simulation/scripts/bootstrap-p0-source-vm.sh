@@ -65,8 +65,10 @@ case "$phase" in
 		fixture_workers=8
 		;;
 	p3)
-		printf '%s source sizing must be frozen after P2\n' "$phase" >&2
-		exit 3
+		# P2 froze these source-memory and generator settings for P3.
+		heap_size=24G
+		page_cache_size=28G
+		fixture_workers=8
 		;;
 esac
 case "$version" in

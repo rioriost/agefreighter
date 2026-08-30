@@ -3,7 +3,7 @@
 set -eu
 
 if [ "$(id -u)" -ne 0 ] || { [ "$#" -ne 1 ] && [ "$#" -ne 2 ]; }; then
-	printf 'usage as root: %s [p0|p1|p2] neo4j-4.4.48|neo4j-5.26.30\n' "$0" >&2
+	printf 'usage as root: %s [p0|p1|p2|p3] neo4j-4.4.48|neo4j-5.26.30\n' "$0" >&2
 	exit 2
 fi
 
@@ -15,7 +15,7 @@ else
 	source_version=$2
 fi
 case "$phase" in
-	p0|p1|p2) ;;
+	p0|p1|p2|p3) ;;
 	*)
 		printf 'unsupported loader phase: %s\n' "$phase" >&2
 		exit 2
@@ -133,8 +133,16 @@ if [ -e "$result_root" ]; then
 fi
 mkdir -p "$result_root"
 
-verification_level=${P2_VERIFICATION_LEVEL:-full}
-resume_job_id=${P2_RESUME_JOB_ID:-}
+case "$phase" in
+	p3)
+		verification_level=${P3_VERIFICATION_LEVEL:-full}
+		resume_job_id=${P3_RESUME_JOB_ID:-}
+		;;
+	*)
+		verification_level=${P2_VERIFICATION_LEVEL:-full}
+		resume_job_id=${P2_RESUME_JOB_ID:-}
+		;;
+esac
 run_source_profiles=0
 run_canonical_digest=0
 case "$verification_level" in
@@ -143,8 +151,8 @@ case "$verification_level" in
 		run_canonical_digest=1
 		;;
 	digest)
-		if [ "$phase" != p2 ]; then
-			printf 'digest verification is supported only for P2\n' >&2
+		if [ "$phase" != p2 ] && [ "$phase" != p3 ]; then
+			printf 'digest verification is supported only for P2 or P3\n' >&2
 			exit 2
 		fi
 		run_canonical_digest=1
@@ -162,29 +170,33 @@ case "$verification_level" in
 esac
 
 if [ -n "$resume_job_id" ]; then
-	if [ "$phase" != p2 ]; then
-		printf 'P2_RESUME_JOB_ID is supported only for P2\n' >&2
+	if [ "$phase" != p2 ] && [ "$phase" != p3 ]; then
+		printf 'resume job IDs are supported only for P2 or P3\n' >&2
 		exit 2
 	fi
 	case "$resume_job_id" in
 		????????-????-????-????-????????????) ;;
-		*) printf 'P2_RESUME_JOB_ID must be a UUID\n' >&2; exit 2 ;;
+		*) printf 'resume job ID must be a UUID\n' >&2; exit 2 ;;
 	esac
 fi
 
-if [ "$phase" = p2 ]; then
+if [ "$phase" = p2 ] || [ "$phase" = p3 ]; then
 	config="$result_root/job.yaml"
 	cp "$source_root/production-simulation/configs/$source_version.yaml" "$config"
-	case "${P2_FETCH_ROWS:-5000}" in 5000|10000) ;; *) printf 'unsupported P2_FETCH_ROWS\n' >&2; exit 2 ;; esac
-	case "${P2_BATCH_ROWS:-20000}" in 10000|20000) ;; *) printf 'unsupported P2_BATCH_ROWS\n' >&2; exit 2 ;; esac
-	case "${P2_BATCH_BYTES:-64MiB}" in 64MiB|128MiB) ;; *) printf 'unsupported P2_BATCH_BYTES\n' >&2; exit 2 ;; esac
-	case "${P2_TARGET_MODE:-create}" in create|replace) ;; *) printf 'unsupported P2_TARGET_MODE\n' >&2; exit 2 ;; esac
-	sed -i \
-		-e "s/fetchRows: 5000/fetchRows: ${P2_FETCH_ROWS:-5000}/" \
-		-e "s/batchRows: 20000/batchRows: ${P2_BATCH_ROWS:-20000}/" \
-		-e "s/batchBytes: 64MiB/batchBytes: ${P2_BATCH_BYTES:-64MiB}/" \
-		-e "s/mode: create/mode: ${P2_TARGET_MODE:-create}/" \
-		"$config"
+	# P3 consumes the exact settings frozen in the tracked configuration after
+	# P2. Only P2 tuning and replacement evidence may rewrite them.
+	if [ "$phase" = p2 ]; then
+		case "${P2_FETCH_ROWS:-5000}" in 5000|10000) ;; *) printf 'unsupported P2_FETCH_ROWS\n' >&2; exit 2 ;; esac
+		case "${P2_BATCH_ROWS:-20000}" in 10000|20000) ;; *) printf 'unsupported P2_BATCH_ROWS\n' >&2; exit 2 ;; esac
+		case "${P2_BATCH_BYTES:-64MiB}" in 64MiB|128MiB) ;; *) printf 'unsupported P2_BATCH_BYTES\n' >&2; exit 2 ;; esac
+		case "${P2_TARGET_MODE:-create}" in create|replace) ;; *) printf 'unsupported P2_TARGET_MODE\n' >&2; exit 2 ;; esac
+		sed -i \
+			-e "s/fetchRows: 5000/fetchRows: ${P2_FETCH_ROWS:-5000}/" \
+			-e "s/batchRows: 20000/batchRows: ${P2_BATCH_ROWS:-20000}/" \
+			-e "s/batchBytes: 64MiB/batchBytes: ${P2_BATCH_BYTES:-64MiB}/" \
+			-e "s/mode: create/mode: ${P2_TARGET_MODE:-create}/" \
+			"$config"
+	fi
 fi
 
 {
@@ -261,7 +273,7 @@ if [ "$run_canonical_digest" -eq 1 ]; then
 		--actual "$result_root/target-digest.json" \
 		--output "$result_root/digest-comparison.json"
 else
-	printf '%s\n' '{"status":"not-run","reason":"P2 tuning candidate; full digest is required for the baseline and frozen configuration"}' \
+	printf '%s\n' '{"status":"not-run","reason":"P2 tuning candidate; full digest is required for frozen P2 and all P3 runs"}' \
 		>"$result_root/digest-comparison.json"
 fi
 

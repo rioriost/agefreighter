@@ -61,6 +61,7 @@ Before any Azure resource is deployed, reviewers must approve:
 5. the monitoring, abort, cleanup, and artifact-retention settings;
 6. the absence of production values or credentials in the fixture and results.
 
-P0 and P1 are complete. P2 and P3 require separate approvals based on the
-immediately preceding phase's report. A technical promotion decision never
-substitutes for the next phase's resource, budget, and live-operation review.
+P0, P1, and P2 are complete. P3 was separately authorized on 2026-08-31 under
+the frozen resource, time, cost, and stop envelope in `docs/p3-run-sheet.md`.
+A technical promotion decision never substitutes for the next phase's
+resource, budget, and live-operation review.
