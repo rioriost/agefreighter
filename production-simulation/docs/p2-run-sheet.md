@@ -92,6 +92,8 @@ query the durable job ID from `agefreighter_meta.load_job` and start a new
 evidence run with `P2_RESUME_JOB_ID`. The resume run must use the same source,
 target database, and frozen settings, and must not prepare or recreate the
 target database. Preserve both the interrupted and resumed result directories.
+Use `scripts/start-p2-detached-loader-run.sh` to create the detached service;
+its unit name and append-only control log are part of the fault timeline.
 
 ## Replace qualification
 
