@@ -241,8 +241,14 @@ if [ "$run_canonical_digest" -eq 1 ]; then
 			--output "$fixture_root" --shards 64 --workers 8 --seed 20260829
 	fi
 	/opt/agefreighter/bin/fixturegen verify --manifest "$fixture_root/manifest.json"
-	/opt/agefreighter/bin/rangedigest fixture --manifest "$fixture_root/manifest.json" \
-		--range-rows 100000 --output "$result_root/fixture-digest.json"
+	fixture_digest_cache="$fixture_root/range-digest-100000.json"
+	if [ ! -f "$fixture_digest_cache" ]; then
+		fixture_digest_temporary="$fixture_digest_cache.$$"
+		/opt/agefreighter/bin/rangedigest fixture --manifest "$fixture_root/manifest.json" \
+			--range-rows 100000 --output "$fixture_digest_temporary"
+		mv "$fixture_digest_temporary" "$fixture_digest_cache"
+	fi
+	cp "$fixture_digest_cache" "$result_root/fixture-digest.json"
 	case "$source_version" in
 		neo4j-4.4.48) target_environment=AGEFREIGHTER_TARGET_DSN_NEO4J44 ;;
 		neo4j-5.26.30) target_environment=AGEFREIGHTER_TARGET_DSN_NEO4J526 ;;

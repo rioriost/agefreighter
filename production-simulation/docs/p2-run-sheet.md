@@ -97,6 +97,9 @@ its unit name and append-only control log are part of the fault timeline.
 Use `P2_VERIFICATION_LEVEL=digest` for recovery and replace runs: this retains
 the full canonical digest and all target checks but avoids repeating the exact
 before/after source profiles already captured by both frozen clean runs.
+The immutable fixture digest is verified once and cached beside the manifest;
+each run copies that evidence but always streams and recomputes its own target
+digest before comparison.
 
 ## Replace qualification
 
