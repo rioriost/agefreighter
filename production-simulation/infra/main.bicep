@@ -125,6 +125,9 @@ resource neo4jSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' = {
     }
     privateEndpointNetworkPolicies: 'Enabled'
   }
+  dependsOn: [
+    loaderSubnet
+  ]
 }
 
 resource postgresSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' = {
@@ -142,6 +145,9 @@ resource postgresSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' =
     ]
     privateEndpointNetworkPolicies: 'Enabled'
   }
+  dependsOn: [
+    neo4jSubnet
+  ]
 }
 
 resource neo4jNetworkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2024-07-01' = {
