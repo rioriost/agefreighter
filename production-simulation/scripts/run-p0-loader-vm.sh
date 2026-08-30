@@ -3,7 +3,7 @@
 set -eu
 
 if [ "$(id -u)" -ne 0 ] || { [ "$#" -ne 1 ] && [ "$#" -ne 2 ]; }; then
-	printf 'usage as root: %s [p0|p1] neo4j-4.4.48|neo4j-5.26.30\n' "$0" >&2
+	printf 'usage as root: %s [p0|p1|p2] neo4j-4.4.48|neo4j-5.26.30\n' "$0" >&2
 	exit 2
 fi
 
@@ -15,7 +15,7 @@ else
 	source_version=$2
 fi
 case "$phase" in
-	p0|p1) ;;
+	p0|p1|p2) ;;
 	*)
 		printf 'unsupported loader phase: %s\n' "$phase" >&2
 		exit 2
@@ -105,12 +105,32 @@ config="$source_root/production-simulation/configs/$source_version.yaml"
 AGEFREIGHTER_TARGET_DSN=$target_dsn \
 	PRODUCTION_SIMULATION_APPROVAL="reviewed-$phase" \
 	"$source_root/production-simulation/scripts/preflight-target.sh" "$phase"
-result_root="$state_root/results/$source_version"
+run_id=${PRODUCTION_SIMULATION_RUN_ID:-$source_version}
+case "$run_id" in
+	*[!a-z0-9_.-]*|'')
+		printf 'PRODUCTION_SIMULATION_RUN_ID contains unsupported characters\n' >&2
+		exit 2
+		;;
+esac
+result_root="$state_root/results/$run_id/$source_version"
 if [ -e "$result_root" ]; then
 	printf 'result path already exists: %s\n' "$result_root" >&2
 	exit 3
 fi
 mkdir -p "$result_root"
+
+if [ "$phase" = p2 ]; then
+	config="$result_root/job.yaml"
+	cp "$source_root/production-simulation/configs/$source_version.yaml" "$config"
+	case "${P2_FETCH_ROWS:-5000}" in 5000|10000) ;; *) printf 'unsupported P2_FETCH_ROWS\n' >&2; exit 2 ;; esac
+	case "${P2_BATCH_ROWS:-10000}" in 10000|20000) ;; *) printf 'unsupported P2_BATCH_ROWS\n' >&2; exit 2 ;; esac
+	case "${P2_BATCH_BYTES:-64MiB}" in 64MiB|128MiB) ;; *) printf 'unsupported P2_BATCH_BYTES\n' >&2; exit 2 ;; esac
+	sed -i \
+		-e "s/fetchRows: 5000/fetchRows: ${P2_FETCH_ROWS:-5000}/" \
+		-e "s/batchRows: 10000/batchRows: ${P2_BATCH_ROWS:-10000}/" \
+		-e "s/batchBytes: 64MiB/batchBytes: ${P2_BATCH_BYTES:-64MiB}/" \
+		"$config"
+fi
 
 {
 	printf 'started_at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"

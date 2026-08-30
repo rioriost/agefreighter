@@ -59,8 +59,13 @@ case "$phase" in
 		page_cache_size=96G
 		fixture_workers=16
 		;;
-	p2|p3)
-		printf '%s source sizing must be frozen after the preceding phase\n' "$phase" >&2
+	p2)
+		heap_size=8G
+		page_cache_size=40G
+		fixture_workers=8
+		;;
+	p3)
+		printf '%s source sizing must be frozen after P2\n' "$phase" >&2
 		exit 3
 		;;
 esac

@@ -21,8 +21,15 @@ require_phase_approval "$phase"
 require_command psql
 require_nonempty_environment AGEFREIGHTER_ADMIN_DSN
 
-database44="agefreighter_${phase}_neo4j44"
-database526="agefreighter_${phase}_neo4j526"
+database_prefix=${TARGET_DATABASE_PREFIX:-agefreighter_$phase}
+case "$database_prefix" in
+	*[!a-z0-9_]*|'')
+		printf 'TARGET_DATABASE_PREFIX must contain only lowercase letters, digits, and underscores\n' >&2
+		exit 2
+		;;
+esac
+database44="${database_prefix}_neo4j44"
+database526="${database_prefix}_neo4j526"
 
 for database in "$database44" "$database526"; do
 	exists=$(psql "$AGEFREIGHTER_ADMIN_DSN" -X -A -t \
