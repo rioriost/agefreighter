@@ -84,10 +84,24 @@ pgpass_file="/run/agefreighter-$phase.pgpass"
 escaped_postgres_password=$(printf '%s' "$postgres_password" |
 	sed 's/\\/\\\\/g; s/:/\\:/g')
 umask 077
-printf '%s:%s:%s:%s:%s\n' "$POSTGRES_FQDN" 5432 "$target_database" \
+printf '%s:%s:%s:%s:%s\n' "$POSTGRES_FQDN" 5432 '*' \
 	agefreighter "$escaped_postgres_password" >"$pgpass_file"
 export PGPASSFILE="$pgpass_file"
 trap 'rm -f "$pgpass_file"' EXIT HUP INT TERM
+case "${PREPARE_TARGET_DATABASES:-0}" in
+	0) ;;
+	1)
+		AGEFREIGHTER_ADMIN_DSN="host=$POSTGRES_FQDN port=5432 dbname=postgres user=agefreighter sslmode=require"
+		export AGEFREIGHTER_ADMIN_DSN TARGET_DATABASE_PREFIX
+		PRODUCTION_SIMULATION_APPROVAL="reviewed-$phase" \
+			"$source_root/production-simulation/scripts/prepare-target-databases.sh" "$phase"
+		unset AGEFREIGHTER_ADMIN_DSN
+		;;
+	*)
+		printf 'PREPARE_TARGET_DATABASES must be 0 or 1\n' >&2
+		exit 2
+		;;
+esac
 target_dsn="host=$POSTGRES_FQDN port=5432 dbname=$target_database user=agefreighter sslmode=require"
 case "$source_version" in
 	neo4j-4.4.48)
