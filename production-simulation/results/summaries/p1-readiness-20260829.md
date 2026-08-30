@@ -123,3 +123,10 @@ Comparison artifact SHA-256 for each source is
 No P1 promotion decision is implied by this report. After the cost and approval
 rows close, create the two P1 databases, generate/import the P1 fixture once,
 verify both read-only sources, and begin the first reviewed timed run.
+
+## Subsequent disposition
+
+The user subsequently authorized P1 execution. P1 completed successfully on
+2026-08-30; its results, evidence hashes, capacity coefficients, retained-cost
+status, and P2 gate are recorded in [`p1-20260830.md`](p1-20260830.md). This
+section preserves the original readiness decision while linking its closure.

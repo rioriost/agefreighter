@@ -48,6 +48,13 @@ Initial sizing, to be corrected after P1 and P2:
 | Flexible Server | Memory Optimized, 32-64 vCore |
 | Target storage | 4-8 TiB, provisioned IOPS and throughput |
 
+P1 used the upper/conservative part of this envelope and showed substantial
+headroom: source CPU stayed below 10%, target CPU below 4%, and each 4 TiB
+source disk stayed below 1% used. The measured P1 result and coefficients are
+recorded in [`../results/summaries/p1-20260830.md`](../results/summaries/p1-20260830.md).
+P2 must use a separately reviewed right-sized configuration; the initial P1
+SKUs are not P2 defaults.
+
 The two Neo4j sources are run sequentially to prevent target and network
 contention. They use identical VM definitions, separate version-specific data
 disks, and `agefreighter_<phase>_neo4j44` / `agefreighter_<phase>_neo4j526`

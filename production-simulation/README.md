@@ -29,6 +29,11 @@ each migration run. The scripts reject live operations unless
 | `scripts` | Safe entry points for validation, generation, and live runs |
 | `results/summaries` | Small reviewed result summaries suitable for Git |
 
+Completed live-phase reports:
+
+- [P0 result](results/summaries/p0-20260829.md)
+- [P1 result](results/summaries/p1-20260830.md)
+
 Generated CSV, secrets, database dumps, and raw telemetry must not be committed.
 They belong under `work/` or `results/raw/`, both of which are ignored.
 
@@ -56,5 +61,6 @@ Before any Azure resource is deployed, reviewers must approve:
 5. the monitoring, abort, cleanup, and artifact-retention settings;
 6. the absence of production values or credentials in the fixture and results.
 
-The first permitted live phase after review is P0. P1, P2, and P3 require
-separate approvals based on the immediately preceding phase's report.
+P0 and P1 are complete. P2 and P3 require separate approvals based on the
+immediately preceding phase's report. A technical promotion decision never
+substitutes for the next phase's resource, budget, and live-operation review.
