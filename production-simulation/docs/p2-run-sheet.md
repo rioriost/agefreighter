@@ -74,6 +74,13 @@ Each recovery target must match the clean-run canonical root. Checkpoints must
 advance monotonically, and recovery must begin within 15 minutes after the
 fault clears.
 
+Start each fault run as a detached system service so the operator can inject
+the fault through a separate control session. After the faulted process exits,
+query the durable job ID from `agefreighter_meta.load_job` and start a new
+evidence run with `P2_RESUME_JOB_ID`. The resume run must use the same source,
+target database, and frozen settings, and must not prepare or recreate the
+target database. Preserve both the interrupted and resumed result directories.
+
 ## Replace qualification
 
 After the clean create run, perform a full `replace` against one reviewed P2
@@ -81,3 +88,6 @@ target. Verify that the old graph stays active before promotion, the replacement
 commits atomically, the retained backup is reported, and the replacement root
 matches the clean root. Do not run `cleanup`; backup deletion is outside this
 authorization.
+
+Use `P2_TARGET_MODE=replace` for the replacement evidence run. It must reuse
+the reviewed clean-run database with target preparation disabled.

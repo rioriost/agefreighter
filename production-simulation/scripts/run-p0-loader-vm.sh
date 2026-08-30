@@ -134,6 +134,7 @@ fi
 mkdir -p "$result_root"
 
 verification_level=${P2_VERIFICATION_LEVEL:-full}
+resume_job_id=${P2_RESUME_JOB_ID:-}
 case "$verification_level" in
 	full) ;;
 	tuning)
@@ -148,16 +149,29 @@ case "$verification_level" in
 		;;
 esac
 
+if [ -n "$resume_job_id" ]; then
+	if [ "$phase" != p2 ]; then
+		printf 'P2_RESUME_JOB_ID is supported only for P2\n' >&2
+		exit 2
+	fi
+	case "$resume_job_id" in
+		????????-????-????-????-????????????) ;;
+		*) printf 'P2_RESUME_JOB_ID must be a UUID\n' >&2; exit 2 ;;
+	esac
+fi
+
 if [ "$phase" = p2 ]; then
 	config="$result_root/job.yaml"
 	cp "$source_root/production-simulation/configs/$source_version.yaml" "$config"
 	case "${P2_FETCH_ROWS:-5000}" in 5000|10000) ;; *) printf 'unsupported P2_FETCH_ROWS\n' >&2; exit 2 ;; esac
 	case "${P2_BATCH_ROWS:-10000}" in 10000|20000) ;; *) printf 'unsupported P2_BATCH_ROWS\n' >&2; exit 2 ;; esac
 	case "${P2_BATCH_BYTES:-64MiB}" in 64MiB|128MiB) ;; *) printf 'unsupported P2_BATCH_BYTES\n' >&2; exit 2 ;; esac
+	case "${P2_TARGET_MODE:-create}" in create|replace) ;; *) printf 'unsupported P2_TARGET_MODE\n' >&2; exit 2 ;; esac
 	sed -i \
 		-e "s/fetchRows: 5000/fetchRows: ${P2_FETCH_ROWS:-5000}/" \
 		-e "s/batchRows: 10000/batchRows: ${P2_BATCH_ROWS:-10000}/" \
 		-e "s/batchBytes: 64MiB/batchBytes: ${P2_BATCH_BYTES:-64MiB}/" \
+		-e "s/mode: create/mode: ${P2_TARGET_MODE:-create}/" \
 		"$config"
 fi
 
@@ -174,9 +188,16 @@ if [ "$verification_level" = full ]; then
 	/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
 		>"$result_root/source-profile-before.json"
 fi
-/usr/bin/time -v -o "$result_root/time.txt" \
-	/opt/agefreighter/bin/agefreighter load "$config" \
-	>"$result_root/load.json" 2>"$result_root/load.stderr"
+if [ -n "$resume_job_id" ]; then
+	printf '%s\n' "$resume_job_id" >"$result_root/resumed-job-id.txt"
+	/usr/bin/time -v -o "$result_root/time.txt" \
+		/opt/agefreighter/bin/agefreighter resume --job "$config" "$resume_job_id" \
+		>"$result_root/load.json" 2>"$result_root/load.stderr"
+else
+	/usr/bin/time -v -o "$result_root/time.txt" \
+		/opt/agefreighter/bin/agefreighter load "$config" \
+		>"$result_root/load.json" 2>"$result_root/load.stderr"
+fi
 date -u +%Y-%m-%dT%H:%M:%SZ >"$result_root/completed-at.txt"
 
 job_id=$(jq -er '.jobId' "$result_root/load.json")
@@ -229,11 +250,12 @@ fi
 jq -n \
 	--arg source "$source_version" \
 	--arg jobId "$job_id" \
+	--arg resumedJobId "$resume_job_id" \
 	--arg commit "$(git -C "$source_root" rev-parse HEAD)" \
 	--argjson load "$(cat "$result_root/load.json")" \
 	--argjson verification "$(cat "$result_root/verify.json")" \
 	--argjson digest "$(cat "$result_root/digest-comparison.json")" \
-	'{source:$source,jobId:$jobId,commit:$commit,load:$load,verification:$verification,digest:$digest}' \
+	'{source:$source,jobId:$jobId,resumedJobId:$resumedJobId,commit:$commit,load:$load,verification:$verification,digest:$digest}' \
 	>"$result_root/summary.json"
 
 jq '{source,jobId,commit,loadStatus:.load.status,verificationOutcome:.verification.outcome,digestStatus:.digest.status}' \
