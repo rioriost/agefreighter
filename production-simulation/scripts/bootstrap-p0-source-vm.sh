@@ -60,8 +60,8 @@ case "$phase" in
 		fixture_workers=16
 		;;
 	p2)
-		heap_size=8G
-		page_cache_size=40G
+		heap_size=24G
+		page_cache_size=28G
 		fixture_workers=8
 		;;
 	p3)

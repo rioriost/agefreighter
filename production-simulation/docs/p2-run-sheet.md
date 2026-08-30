@@ -13,7 +13,7 @@ window or any criterion in `acceptance.md` is exceeded.
 
 | Role | P2 reviewed value | P1 basis |
 | --- | --- | --- |
-| Neo4j source, each | `Standard_E8bds_v5`, 8 vCPU / 64 GiB | P1 source CPU <10%; P2 store forecast 27-29 GB |
+| Neo4j source, each | `Standard_E8bds_v5`, 8 vCPU / 64 GiB; 24 GiB heap / 28 GiB page cache | P1 source CPU <10%; P2 store is 22-23 GB; P2 `neo4j-admin` recommendation |
 | Source data disk, each | 512 GiB Premium SSD v2, 10,000 IOPS, 750 MB/s | P1 used <1% of 4 TiB and <=12% of 40,000 IOPS |
 | Loader | `Standard_D8ds_v5`, 8 vCPU / 32 GiB | P1 CPU 11.65% and RSS about 105 MiB |
 | Flexible Server | `Standard_E8ds_v5`, Memory Optimized, SameZone HA | P1 CPU 3.73% and memory 31.88% on E32 |
@@ -41,6 +41,14 @@ database and changes only one setting from baseline:
 The winner must satisfy every correctness and memory gate; elapsed time is the
 tie-breaker. A configuration change is never applied to an existing job, so
 resume fingerprints remain stable.
+
+The first baseline attempt used 8 GiB heap / 40 GiB page cache and stopped at
+5,460,000 committed records when Neo4j 4.4 reported
+`Neo.TransientError.General.OutOfMemoryError`. agefreighter RSS was 102,376 KiB
+and the loader did not swap. The failed database and raw result remain retained
+under run ID `tune-baseline`; the rerun uses a new database and run ID. Source
+memory was corrected to the measured `neo4j-admin` recommendation before any
+further tuning comparison.
 
 ## Recovery schedule
 
