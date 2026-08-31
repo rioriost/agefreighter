@@ -28,8 +28,11 @@ create mode. P3 does not perform tuning or replacement.
 
 The logical fixture contains 160,000,000 vertices and 400,000,000 edges. Both
 sources independently generate and import the same seed-`20260829`, 64-shard
-fixture, create all 18 range indexes, checkpoint cleanly, and restart in
-read-only mode.
+fixture, create all 18 planner-usable source-key indexes (B-tree on Neo4j 4.4,
+range on Neo4j 5.26), checkpoint cleanly, and restart in read-only mode. The
+Neo4j 4.4 correction is required because that release can create range indexes
+for migration preparation but cannot use them in Cypher query plans. Existing
+range indexes and stopped-attempt evidence remain retained.
 
 Run sequentially against four fresh databases:
 

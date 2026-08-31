@@ -33,6 +33,8 @@ case "$version" in
 		heap_max='NEO4J_dbms_memory_heap_max__size=4G'
 		page_cache='NEO4J_dbms_memory_pagecache_size=6G'
 		read_only='NEO4J_dbms_databases_default__to__read__only=true'
+		index_kind=BTREE
+		index_suffix=btree_source_key
 		;;
 	5.26.30)
 		container_name=afps-neo4j526
@@ -41,6 +43,8 @@ case "$version" in
 		heap_max='NEO4J_server_memory_heap_max__size=4G'
 		page_cache='NEO4J_server_memory_pagecache_size=6G'
 		read_only='NEO4J_server_databases_default__to__read__only=true'
+		index_kind=RANGE
+		index_suffix=source_key
 		;;
 	*)
 		printf 'unsupported Neo4j version: %s\n' "$version" >&2
@@ -170,15 +174,17 @@ until docker exec -e NEO4J_USERNAME=neo4j -e NEO4J_PASSWORD="$neo4j_password" \
 	sleep 5
 done
 
-index_file="$mount_root/source-key-indexes.cypher"
+index_file="$mount_root/source-key-indexes-$version.cypher"
 {
 	for label in Supplier Facility Product PurchaseOrder Shipment Lot Location Carrier Customer; do
-		printf 'CREATE RANGE INDEX %s_source_key IF NOT EXISTS FOR (n:%s) ON (n.source_key);\n' \
-			"$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]')" "$label"
+		printf 'CREATE %s INDEX %s_%s IF NOT EXISTS FOR (n:%s) ON (n.source_key);\n' \
+			"$index_kind" "$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]')" \
+			"$index_suffix" "$label"
 	done
 	for relationship in SUPPLIES PRODUCED_AT PLACED_WITH CONTAINS FULFILLS ORIGINATES_AT DESTINED_FOR CARRIED_BY INCLUDED_IN; do
-		printf 'CREATE RANGE INDEX %s_source_key IF NOT EXISTS FOR ()-[r:%s]-() ON (r.source_key);\n' \
-			"$(printf '%s' "$relationship" | tr '[:upper:]' '[:lower:]')" "$relationship"
+		printf 'CREATE %s INDEX %s_%s IF NOT EXISTS FOR ()-[r:%s]-() ON (r.source_key);\n' \
+			"$index_kind" "$(printf '%s' "$relationship" | tr '[:upper:]' '[:lower:]')" \
+			"$index_suffix" "$relationship"
 	done
 	printf 'CALL db.awaitIndexes(3600);\n'
 } >"$index_file"

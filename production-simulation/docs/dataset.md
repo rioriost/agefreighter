@@ -72,7 +72,10 @@ are never overwritten.
   each mapping and fit signed 64-bit integers.
 - `external_id` and `relationship_id` are stable across regeneration and both
   Neo4j versions.
-- Neo4j range indexes are created on `source_key` for every label and type.
+- Planner-usable Neo4j indexes are created on `source_key` for every label and
+  type: B-tree indexes on Neo4j 4.4 and range indexes on Neo4j 5.26. Neo4j
+  4.4 range indexes are migration-preview structures and cannot serve Cypher
+  queries.
 - All indexes must be ONLINE and the migration query plan must show indexed
   keyset access before the timed run.
 - The same manifest root must be imported into both source versions.

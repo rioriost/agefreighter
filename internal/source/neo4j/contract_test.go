@@ -43,6 +43,16 @@ func TestMappingValidationAndOrdering(t *testing.T) {
 	); err != nil {
 		t.Fatalf("rejected bounded keyset query: %v", err)
 	}
+	if err := validateInitialQuery(
+		"RETURN 1 AS k ORDER BY k LIMIT $pageRows", "k", "mapping",
+	); err != nil {
+		t.Fatalf("rejected bounded initial query: %v", err)
+	}
+	if err := validateInitialQuery(
+		"RETURN 1 AS k ORDER BY k LIMIT 1", "k", "mapping",
+	); err == nil {
+		t.Fatal("accepted unbounded initial query")
+	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			if err := validateQuery(test.query, test.key, "mapping"); err == nil {
@@ -104,6 +114,11 @@ func TestFingerprintBindsIdentityAndOrderedConfiguration(t *testing.T) {
 	changedMappings[0].query += " "
 	if fingerprint, _ := bindFingerprint(source, "people", changedMappings); fingerprint == first {
 		t.Fatal("mapping did not affect fingerprint")
+	}
+	changedMappings = append([]compiledMapping(nil), mappings...)
+	changedMappings[0].initialQuery = "RETURN 1"
+	if fingerprint, _ := bindFingerprint(source, "people", changedMappings); fingerprint == first {
+		t.Fatal("initial query did not affect fingerprint")
 	}
 }
 

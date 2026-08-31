@@ -610,11 +610,8 @@ func buildDiscoveredVertex(
 ) config.VertexQuery {
 	propertyMap, propertyReturns := discoveredPropertyMapping("n", properties)
 	match := "MATCH (n:" + quoteCypherIdentifier(label.source) + ")"
-	predicates := []string{
-		"$afterKey IS NULL OR n." +
-			quoteCypherIdentifier(options.VertexKeyProperty) +
-			" > $afterKey",
-	}
+	key := "n." + quoteCypherIdentifier(options.VertexKeyProperty)
+	predicates := []string{}
 	if label.source == "" {
 		match = "MATCH (n)"
 		predicates = append([]string{"size(labels(n)) = 0"}, predicates...)
@@ -624,17 +621,22 @@ func buildDiscoveredVertex(
 			predicates...,
 		)
 	}
+	returns := []string{
+		key + " AS __key",
+		"n." + quoteCypherIdentifier(options.VertexIDProperty) + " AS __id",
+	}
 	return config.VertexQuery{
 		Label: label.target,
 		Query: buildDiscoveryQuery(
 			match,
-			predicates,
-			[]string{
-				"n." + quoteCypherIdentifier(options.VertexKeyProperty) +
-					" AS __key",
-				"n." + quoteCypherIdentifier(options.VertexIDProperty) +
-					" AS __id",
-			},
+			append(slices.Clone(predicates), key+" > $afterKey"),
+			returns,
+			propertyReturns,
+		),
+		InitialQuery: buildDiscoveryQuery(
+			match,
+			append(slices.Clone(predicates), key+" IS NOT NULL"),
+			returns,
 			propertyReturns,
 		),
 		KeyField:   "__key",
@@ -651,27 +653,29 @@ func buildDiscoveredEdge(
 	options config.Neo4jDiscovery,
 ) config.EdgeQuery {
 	propertyMap, propertyReturns := discoveredPropertyMapping("r", properties)
+	key := "r." + quoteCypherIdentifier(options.EdgeKeyProperty)
+	predicates := []string{
+		primaryLabelPredicate("a", pair.start, labels),
+		primaryLabelPredicate("b", pair.end, labels),
+	}
+	returns := []string{
+		key + " AS __key",
+		"r." + quoteCypherIdentifier(options.EdgeIDProperty) + " AS __id",
+		endpointIDExpression("a", options.VertexIDProperty) + " AS __start",
+		endpointIDExpression("b", options.VertexIDProperty) + " AS __end",
+	}
 	return config.EdgeQuery{
 		Label: relationshipType,
 		Query: buildDiscoveryQuery(
 			"MATCH (a)-[r:"+quoteCypherIdentifier(relationshipType)+"]->(b)",
-			[]string{
-				"$afterKey IS NULL OR r." +
-					quoteCypherIdentifier(options.EdgeKeyProperty) +
-					" > $afterKey",
-				primaryLabelPredicate("a", pair.start, labels),
-				primaryLabelPredicate("b", pair.end, labels),
-			},
-			[]string{
-				"r." + quoteCypherIdentifier(options.EdgeKeyProperty) +
-					" AS __key",
-				"r." + quoteCypherIdentifier(options.EdgeIDProperty) +
-					" AS __id",
-				endpointIDExpression("a", options.VertexIDProperty) +
-					" AS __start",
-				endpointIDExpression("b", options.VertexIDProperty) +
-					" AS __end",
-			},
+			append(slices.Clone(predicates), key+" > $afterKey"),
+			returns,
+			propertyReturns,
+		),
+		InitialQuery: buildDiscoveryQuery(
+			"MATCH (a)-[r:"+quoteCypherIdentifier(relationshipType)+"]->(b)",
+			append(slices.Clone(predicates), key+" IS NOT NULL"),
+			returns,
 			propertyReturns,
 		),
 		KeyField:        "__key",

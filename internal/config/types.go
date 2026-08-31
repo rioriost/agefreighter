@@ -210,16 +210,18 @@ type CosmosQueryParameter struct {
 }
 
 type VertexQuery struct {
-	Label      string            `json:"label" yaml:"label"`
-	Query      string            `json:"query" yaml:"query"`
-	IDField    string            `json:"idField" yaml:"idField"`
-	KeyField   string            `json:"keyField,omitempty" yaml:"keyField,omitempty"`
-	Properties map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
+	Label        string            `json:"label" yaml:"label"`
+	Query        string            `json:"query" yaml:"query"`
+	InitialQuery string            `json:"-" yaml:"-"`
+	IDField      string            `json:"idField" yaml:"idField"`
+	KeyField     string            `json:"keyField,omitempty" yaml:"keyField,omitempty"`
+	Properties   map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
 }
 
 type EdgeQuery struct {
 	Label           string            `json:"label" yaml:"label"`
 	Query           string            `json:"query" yaml:"query"`
+	InitialQuery    string            `json:"-" yaml:"-"`
 	ExternalIDField string            `json:"externalIdField,omitempty" yaml:"externalIdField,omitempty"`
 	KeyField        string            `json:"keyField,omitempty" yaml:"keyField,omitempty"`
 	Start           EndpointMapping   `json:"start" yaml:"start"`

@@ -60,7 +60,8 @@ fully resolved mount paths and available disk capacity before invocation.
 
 After import:
 
-1. create range indexes for `source_key` on all labels and relationship types;
+1. create planner-usable indexes for `source_key` on all labels and
+   relationship types (B-tree on Neo4j 4.4, range on Neo4j 5.26);
 2. wait for every index to become ONLINE;
 3. verify exact counts against the manifest;
 4. capture store and index sizes;

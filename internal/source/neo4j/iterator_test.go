@@ -107,7 +107,10 @@ func TestIteratorStreamsAndResumes(t *testing.T) {
 
 func TestIteratorPagesBoundedKeysetQueries(t *testing.T) {
 	source := testSource()
-	source.Vertices[0].Query += " LIMIT $pageRows"
+	source.Vertices[0].Query = "MATCH (n) WHERE n.k > $afterKey " +
+		"RETURN n.k AS k, n.id AS id, n.name AS name ORDER BY k LIMIT $pageRows"
+	source.Vertices[0].InitialQuery = "MATCH (n) WHERE n.k IS NOT NULL " +
+		"RETURN n.k AS k, n.id AS id, n.name AS name ORDER BY k LIMIT $pageRows"
 	client := &fakeClient{streams: []RecordStream{
 		&fakeStream{records: []Record{
 			record(map[string]any{"k": int64(1), "id": "a", "name": "A"}, "k", "id", "name"),
@@ -136,7 +139,9 @@ func TestIteratorPagesBoundedKeysetQueries(t *testing.T) {
 		t.Fatalf("ids = %q", got)
 	}
 	if len(client.parameters) != 2 ||
-		client.parameters[0]["afterKey"] != nil ||
+		client.queries[0] != source.Vertices[0].InitialQuery ||
+		client.queries[1] != source.Vertices[0].Query ||
+		len(client.parameters[0]) != 1 ||
 		client.parameters[0]["pageRows"] != 2 ||
 		client.parameters[1]["afterKey"] != int64(2) ||
 		client.parameters[1]["pageRows"] != 2 {
