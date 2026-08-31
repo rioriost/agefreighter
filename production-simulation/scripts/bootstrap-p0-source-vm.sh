@@ -117,6 +117,12 @@ if [ ! -d "$source_root/.git" ]; then
 fi
 git -C "$source_root" fetch -q origin "$PRODUCTION_SIMULATION_GIT_REF"
 git -C "$source_root" checkout -q --detach "$PRODUCTION_SIMULATION_GIT_REF"
+resolved_bootstrap_ref=$(git -C "$source_root" rev-parse HEAD)
+if [ "${AGEFREIGHTER_SOURCE_BOOTSTRAP_REF:-}" != "$resolved_bootstrap_ref" ]; then
+	export AGEFREIGHTER_SOURCE_BOOTSTRAP_REF="$resolved_bootstrap_ref"
+	exec "$source_root/production-simulation/scripts/bootstrap-p0-source-vm.sh" \
+		"$phase" "$version"
+fi
 
 fixture_root="$mount_root/fixture-$phase"
 if [ ! -f "$fixture_root/manifest.json" ]; then
