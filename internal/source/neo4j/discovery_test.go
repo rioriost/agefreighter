@@ -52,7 +52,7 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 		vertex.KeyField != "__key" ||
 		vertex.Properties["name"] != "__property_0000" ||
 		!strings.Contains(vertex.Query, "MATCH (n:`AppPerson`)") ||
-		!strings.Contains(vertex.Query, "ORDER BY __key") {
+		!strings.Contains(vertex.Query, "ORDER BY __key LIMIT $pageRows") {
 		t.Fatalf("vertex mapping = %#v", vertex)
 	}
 	edge := resolved.Edges[0]

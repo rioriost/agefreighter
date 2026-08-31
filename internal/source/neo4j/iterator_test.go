@@ -105,6 +105,45 @@ func TestIteratorStreamsAndResumes(t *testing.T) {
 	}
 }
 
+func TestIteratorPagesBoundedKeysetQueries(t *testing.T) {
+	source := testSource()
+	source.Vertices[0].Query += " LIMIT $pageRows"
+	client := &fakeClient{streams: []RecordStream{
+		&fakeStream{records: []Record{
+			record(map[string]any{"k": int64(1), "id": "a", "name": "A"}, "k", "id", "name"),
+			record(map[string]any{"k": int64(2), "id": "b", "name": "B"}, "k", "id", "name"),
+		}},
+		&fakeStream{records: []Record{
+			record(map[string]any{"k": int64(3), "id": "c", "name": "C"}, "k", "id", "name"),
+		}},
+	}}
+	iterator := newTestIterator(t, source, client)
+	var ids []model.ExternalID
+	for {
+		item, err := iterator.Next(context.Background())
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, item.Record.Vertex.ExternalID)
+	}
+	if len(ids) != 3 {
+		t.Fatalf("ids = %#v", ids)
+	}
+	if got := strings.Join([]string{string(ids[0]), string(ids[1]), string(ids[2])}, ","); got != "a,b,c" {
+		t.Fatalf("ids = %q", got)
+	}
+	if len(client.parameters) != 2 ||
+		client.parameters[0]["afterKey"] != nil ||
+		client.parameters[0]["pageRows"] != 2 ||
+		client.parameters[1]["afterKey"] != int64(2) ||
+		client.parameters[1]["pageRows"] != 2 {
+		t.Fatalf("parameters = %#v", client.parameters)
+	}
+}
+
 func TestIteratorPreservesVertexThenEdgeOrder(t *testing.T) {
 	source := testSource()
 	source.Vertices = append(source.Vertices, config.VertexQuery{

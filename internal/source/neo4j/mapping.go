@@ -14,6 +14,7 @@ import (
 )
 
 var queryFieldPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+var keysetPageSuffixPattern = regexp.MustCompile(`(?i)\blimit\s+\$pageRows\s*$`)
 
 type mappingKind uint8
 
@@ -45,6 +46,7 @@ type compiledMapping struct {
 	namespace model.Namespace
 	query     string
 	keyField  string
+	paged     bool
 
 	idField         string
 	externalIDField string
@@ -85,6 +87,7 @@ func buildMappings(
 			kind: vertexMapping, kindIndex: index,
 			label: model.Label(vertex.Label), namespace: model.Namespace(namespace),
 			query: strings.TrimSpace(vertex.Query), keyField: vertex.KeyField,
+			paged:   usesKeysetPages(vertex.Query),
 			idField: vertex.IDField, properties: properties,
 		})
 	}
@@ -113,6 +116,7 @@ func buildMappings(
 			kind: edgeMapping, kindIndex: index,
 			label: model.Label(edge.Label), namespace: model.Namespace(namespace),
 			query: strings.TrimSpace(edge.Query), keyField: edge.KeyField,
+			paged:           usesKeysetPages(edge.Query),
 			externalIDField: edge.ExternalIDField, start: edge.Start, end: edge.End,
 			properties: properties,
 		})
@@ -136,7 +140,9 @@ func validateQuery(query, keyField, resource string) error {
 	if !sqlquery.HasParameter(query, "afterKey") {
 		return fmt.Errorf("%s query must use $afterKey", resource)
 	}
-	if !sqlquery.HasFinalTopLevelOrderByField(query, keyField) {
+	paged := usesKeysetPages(query)
+	if (!paged && !sqlquery.HasFinalTopLevelOrderByField(query, keyField)) ||
+		(paged && !sqlquery.HasTopLevelOrderByField(query, keyField)) {
 		return fmt.Errorf("%s query must end with ascending ORDER BY keyField", resource)
 	}
 	if sqlquery.HasKeyword(query, "skip") {
@@ -145,7 +151,7 @@ func validateQuery(query, keyField, resource string) error {
 	if sqlquery.HasKeyword(query, "offset") {
 		return fmt.Errorf("%s query must not use OFFSET", resource)
 	}
-	if sqlquery.HasKeyword(query, "limit") {
+	if sqlquery.HasKeyword(query, "limit") && !paged {
 		return fmt.Errorf("%s query must not use LIMIT", resource)
 	}
 	if sqlquery.HasKeyword(query, "union") {
@@ -158,6 +164,12 @@ func validateQuery(query, keyField, resource string) error {
 		return fmt.Errorf("%s query must be one statement without a semicolon", resource)
 	}
 	return nil
+}
+
+func usesKeysetPages(query string) bool {
+	trimmed := strings.TrimSpace(query)
+	return sqlquery.HasParameter(trimmed, "pageRows") &&
+		keysetPageSuffixPattern.MatchString(trimmed)
 }
 
 func validateEndpoint(endpoint config.EndpointMapping, namespace, resource string) error {

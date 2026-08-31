@@ -33,9 +33,15 @@ func TestMappingValidationAndOrdering(t *testing.T) {
 		{"skip", "RETURN $afterKey AS k ORDER BY k SKIP 1", "k"},
 		{"offset", "RETURN $afterKey AS k ORDER BY k OFFSET 1", "k"},
 		{"limit", "RETURN $afterKey AS k ORDER BY k LIMIT 1", "k"},
+		{"unbound page limit", "RETURN $afterKey AS k ORDER BY k LIMIT $other", "k"},
 		{"union", "RETURN $afterKey AS k UNION RETURN 2 AS k ORDER BY k", "k"},
 		{"collect", "RETURN collect($afterKey) AS k ORDER BY k", "k"},
 		{"semicolon", "RETURN $afterKey AS k ORDER BY k;", "k"},
+	}
+	if err := validateQuery(
+		"RETURN $afterKey AS k ORDER BY k LIMIT $pageRows", "k", "mapping",
+	); err != nil {
+		t.Fatalf("rejected bounded keyset query: %v", err)
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

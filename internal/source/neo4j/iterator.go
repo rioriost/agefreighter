@@ -45,8 +45,7 @@ type Iterator struct {
 	mappingIndex int
 	consumed     int64
 	lastKey      *int64
-	resume       resumeState
-	hasResume    bool
+	pageRows     int
 	rejected     int
 	lastPosition model.SourcePosition
 
@@ -139,8 +138,6 @@ func NewIterator(ctx context.Context, options IteratorOptions) (*Iterator, error
 		iterator.consumed = resume.consumed
 		iterator.lastKey = cloneKey(resume.lastKey)
 		iterator.rejected = resume.rejected
-		iterator.resume = resume
-		iterator.hasResume = true
 		iterator.lastPosition.Token = options.AfterToken
 	}
 	return iterator, nil
@@ -189,6 +186,9 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 		}
 		record, err := iterator.current.Next(ctx)
 		if errors.Is(err, io.EOF) {
+			mapping := iterator.mappings[iterator.mappingIndex]
+			pageFull := mapping.paged &&
+				iterator.pageRows == iterator.options.Source.FetchRows
 			if closeErr := iterator.closeCurrent(ctx); closeErr != nil {
 				iterator.closeErr = errors.Join(iterator.closeErr, closeErr)
 				iterator.mappingIndex++
@@ -196,9 +196,14 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 				iterator.lastKey = nil
 				return sourcecontract.Item{}, iterator.fail(closeErr)
 			}
+			if pageFull {
+				iterator.pageRows = 0
+				continue
+			}
 			iterator.mappingIndex++
 			iterator.consumed = 0
 			iterator.lastKey = nil
+			iterator.pageRows = 0
 			continue
 		}
 		if err != nil {
@@ -210,6 +215,7 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 				safeError(ctx, "read Neo4j query result", err),
 			)
 		}
+		iterator.pageRows++
 		rawSize, err := estimateRecordSize(record, math.MaxInt64)
 		iterator.telemetry.record(rawSize)
 		if budgetErr := iterator.options.ProfileBudget.Charge(
@@ -282,11 +288,15 @@ func (iterator *Iterator) openCurrent(ctx context.Context) error {
 	}
 	mapping := iterator.mappings[iterator.mappingIndex]
 	var afterKey any
-	if iterator.hasResume {
-		afterKey = *iterator.resume.lastKey
+	if iterator.lastKey != nil {
+		afterKey = *iterator.lastKey
+	}
+	parameters := map[string]any{"afterKey": afterKey}
+	if mapping.paged {
+		parameters["pageRows"] = iterator.options.Source.FetchRows
 	}
 	stream, err := iterator.options.Client.Query(
-		ctx, mapping.query, map[string]any{"afterKey": afterKey},
+		ctx, mapping.query, parameters,
 	)
 	if err != nil {
 		iterator.telemetry.failure()
@@ -299,7 +309,7 @@ func (iterator *Iterator) openCurrent(ctx context.Context) error {
 		return errors.Join(err, stream.Close(ctx))
 	}
 	iterator.current = stream
-	iterator.hasResume = false
+	iterator.pageRows = 0
 	return nil
 }
 

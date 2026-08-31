@@ -698,7 +698,7 @@ func buildDiscoveryQuery(
 	return match +
 		" WHERE (" + strings.Join(predicates, ") AND (") + ")" +
 		" RETURN " + strings.Join(allReturns, ", ") +
-		" ORDER BY __key"
+		" ORDER BY __key LIMIT $pageRows"
 }
 
 func discoveredPropertyMapping(
