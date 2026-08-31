@@ -192,6 +192,7 @@ func DiscoverMappingsBounded(
 				labels,
 				properties,
 				options,
+				len(pairs) > 1,
 			))
 			if len(vertices)+len(edges) > maxDiscoveryMappings {
 				return config.Neo4jSource{}, fmt.Errorf(
@@ -651,12 +652,20 @@ func buildDiscoveredEdge(
 	labels []discoveredLabel,
 	properties []string,
 	options config.Neo4jDiscovery,
+	filterEndpoints bool,
 ) config.EdgeQuery {
 	propertyMap, propertyReturns := discoveredPropertyMapping("r", properties)
 	key := "r." + quoteCypherIdentifier(options.EdgeKeyProperty)
-	predicates := []string{
-		primaryLabelPredicate("a", pair.start, labels),
-		primaryLabelPredicate("b", pair.end, labels),
+	match := "MATCH (a)-[r:" + quoteCypherIdentifier(relationshipType) + "]->(b)" +
+		" USING INDEX r:" + quoteCypherIdentifier(relationshipType) +
+		"(" + quoteCypherIdentifier(options.EdgeKeyProperty) + ")"
+	predicates := make([]string, 0, 3)
+	if filterEndpoints {
+		predicates = append(
+			predicates,
+			primaryLabelPredicate("a", pair.start, labels),
+			primaryLabelPredicate("b", pair.end, labels),
+		)
 	}
 	returns := []string{
 		key + " AS __key",
@@ -667,13 +676,13 @@ func buildDiscoveredEdge(
 	return config.EdgeQuery{
 		Label: relationshipType,
 		Query: buildDiscoveryQuery(
-			"MATCH (a)-[r:"+quoteCypherIdentifier(relationshipType)+"]->(b)",
+			match,
 			append(slices.Clone(predicates), key+" > $afterKey"),
 			returns,
 			propertyReturns,
 		),
 		InitialQuery: buildDiscoveryQuery(
-			"MATCH (a)-[r:"+quoteCypherIdentifier(relationshipType)+"]->(b)",
+			match,
 			append(slices.Clone(predicates), key+" IS NOT NULL"),
 			returns,
 			propertyReturns,

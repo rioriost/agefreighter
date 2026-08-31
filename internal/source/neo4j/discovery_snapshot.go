@@ -185,6 +185,10 @@ func ResolveMappingsSnapshot(
 		return strings.Compare(left.EndLabel, right.EndLabel)
 	})
 	edges := make([]config.EdgeQuery, 0, len(relationships))
+	relationshipTypeCounts := make(map[string]int, len(relationships))
+	for _, relationship := range relationships {
+		relationshipTypeCounts[relationship.Type]++
+	}
 	seenRelationships := make(map[string]struct{}, len(relationships))
 	for _, relationship := range relationships {
 		if !validDiscoveredIdentifier(relationship.Type) ||
@@ -242,6 +246,7 @@ func ResolveMappingsSnapshot(
 			labels,
 			properties,
 			options,
+			relationshipTypeCounts[relationship.Type] > 1,
 		))
 		if len(vertices)+len(edges) > maxDiscoveryMappings {
 			return config.Neo4jSource{}, fmt.Errorf(

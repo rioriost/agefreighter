@@ -66,6 +66,7 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 		edge.ExternalIDField != "__id" ||
 		edge.Properties["since"] != "__property_0002" ||
 		!strings.Contains(edge.Query, "[r:`APP_KNOWS`]") ||
+		!strings.Contains(edge.Query, "USING INDEX r:`APP_KNOWS`(`seq`)") ||
 		!strings.Contains(edge.InitialQuery, "`seq` IS NOT NULL") ||
 		!strings.Contains(edge.Query, "ORDER BY __key") ||
 		strings.Contains(edge.Query, "$pageRows") {
@@ -150,7 +151,7 @@ func TestDiscoverMappingsPartitionsMultiLabelVertices(t *testing.T) {
 	if len(resolved.Edges) != 1 ||
 		resolved.Edges[0].Start.Label != "Person" ||
 		resolved.Edges[0].End.Label != "Role" ||
-		!strings.Contains(
+		strings.Contains(
 			resolved.Edges[0].Query,
 			"a:`Person`",
 		) {

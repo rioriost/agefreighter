@@ -8,7 +8,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 )
 
-func TestP3Neo4j44SnapshotMatchesRetainedResolvedJobFingerprint(t *testing.T) {
+func TestP3Neo4j44SnapshotUsesCorrectedResolvedJobFingerprint(t *testing.T) {
 	job, err := config.Load(
 		"../../production-simulation/configs/neo4j-4.4.48.yaml",
 	)
@@ -30,12 +30,16 @@ func TestP3Neo4j44SnapshotMatchesRetainedResolvedJobFingerprint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fingerprint P3 resolved job: %v", err)
 	}
-	const retainedResolvedJobFingerprint = "86648c1e1eff8a1fb8842161122761aad2a05a6c26d6f863b7769e252e665ac0"
-	if fingerprint != retainedResolvedJobFingerprint {
+	const correctedResolvedJobFingerprint = "459d5b0d91c27013a49136828622887cbf7b8aa20a8f197109ab9f16cb391c55"
+	if fingerprint != correctedResolvedJobFingerprint {
 		t.Fatalf(
-			"P3 resolved job fingerprint = %s, retained job = %s",
+			"P3 resolved job fingerprint = %s, corrected job = %s",
 			fingerprint,
-			retainedResolvedJobFingerprint,
+			correctedResolvedJobFingerprint,
 		)
+	}
+	const failedR6ResolvedJobFingerprint = "86648c1e1eff8a1fb8842161122761aad2a05a6c26d6f863b7769e252e665ac0"
+	if fingerprint == failedR6ResolvedJobFingerprint {
+		t.Fatal("corrected P3 job still matches the failed r6 query plan")
 	}
 }

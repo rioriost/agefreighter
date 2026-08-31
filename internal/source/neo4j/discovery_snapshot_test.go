@@ -8,7 +8,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 )
 
-func TestP3Neo4j44DiscoverySnapshotMatchesRetainedCheckpoint(t *testing.T) {
+func TestP3Neo4j44DiscoverySnapshotUsesCorrectedFingerprint(t *testing.T) {
 	job, err := config.Load(
 		"../../../production-simulation/configs/neo4j-4.4.48.yaml",
 	)
@@ -42,13 +42,17 @@ func TestP3Neo4j44DiscoverySnapshotMatchesRetainedCheckpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fingerprint P3 discovery snapshot: %v", err)
 	}
-	const retainedCheckpointFingerprint = "9099a7181a7dccb1f4a381779151cc783d0f9c60edc96e27a66a9476793eb6eb"
-	if fingerprint != retainedCheckpointFingerprint {
+	const correctedFingerprint = "ed4a4f0c8fc85584a5df6ab44cffa2f2c9a048355107e20f11d05a8d416da7c3"
+	if fingerprint != correctedFingerprint {
 		t.Fatalf(
-			"P3 discovery snapshot fingerprint = %s, retained checkpoint = %s",
+			"P3 discovery snapshot fingerprint = %s, corrected = %s",
 			fingerprint,
-			retainedCheckpointFingerprint,
+			correctedFingerprint,
 		)
+	}
+	const failedR6Fingerprint = "9099a7181a7dccb1f4a381779151cc783d0f9c60edc96e27a66a9476793eb6eb"
+	if fingerprint == failedR6Fingerprint {
+		t.Fatal("corrected P3 fingerprint still matches the failed r6 query plan")
 	}
 }
 

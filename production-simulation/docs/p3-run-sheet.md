@@ -85,3 +85,17 @@ For a resumed P3 segment, pass the matching absolute snapshot path through
 duplicate pre-resume full-source profile, and capture the after profile only
 after the load commits. Any snapshot validation or checkpoint fingerprint
 mismatch is an automatic stop with all existing evidence retained.
+
+The retained Neo4j 4.4 r6 job then reached the first relationship mapping but
+went more than 15 minutes without a committed checkpoint. Azure metrics showed
+the source at approximately 99% CPU with effectively no data-disk reads,
+consistent with the planner choosing an in-memory relationship scan/sort. The
+run is retained as failed evidence. Generated relationship mappings must use
+the portable `USING INDEX` hint for their source-key predicate; both Neo4j 4.4
+B-tree and Neo4j 5.26 range indexes satisfy that hint. Because this changes the
+source fingerprint, the corrected clean qualification starts in a fresh
+database with a new durable job rather than weakening checkpoint validation or
+resuming r6. When discovery proves that a relationship type has exactly one
+primary endpoint-label pair, its generated query also omits the redundant
+endpoint-label join. The reviewed Neo4j 4.4 plan is then a single ordered
+`DirectedRelationshipIndexSeekByRange`, with no hash join or sort.
