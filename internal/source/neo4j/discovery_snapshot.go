@@ -141,11 +141,14 @@ func ResolveMappingsSnapshot(
 		if err != nil {
 			return config.Neo4jSource{}, err
 		}
-		if err := requireProperties(
-			properties,
-			options.VertexKeyProperty,
-			options.VertexIDProperty,
-		); err != nil {
+		requiredVertexProperties := []string{options.VertexKeyProperty}
+		if options.VertexIdentity != config.Neo4jVertexIdentityInternalID {
+			requiredVertexProperties = append(
+				requiredVertexProperties,
+				options.VertexIDProperty,
+			)
+		}
+		if err := requireProperties(properties, requiredVertexProperties...); err != nil {
 			return config.Neo4jSource{}, fmt.Errorf(
 				"Neo4j discovery snapshot label %q: %w",
 				label.Name,

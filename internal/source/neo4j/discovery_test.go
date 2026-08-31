@@ -53,6 +53,7 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 		vertex.Properties["name"] != "__property_0000" ||
 		!strings.Contains(vertex.Query, "MATCH (n:`AppPerson`)") ||
 		!strings.Contains(vertex.Query, "`seq` > $afterKey") ||
+		!strings.Contains(vertex.Query, "n.`vid` AS __id") ||
 		strings.Contains(vertex.Query, "$afterKey IS NULL") ||
 		!strings.Contains(vertex.InitialQuery, "`seq` IS NOT NULL") ||
 		!strings.Contains(vertex.Query, "ORDER BY __key") ||
@@ -67,6 +68,8 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 		edge.Properties["since"] != "__property_0002" ||
 		!strings.Contains(edge.Query, "[r:`APP_KNOWS`]") ||
 		!strings.Contains(edge.Query, "USING INDEX r:`APP_KNOWS`(`seq`)") ||
+		!strings.Contains(edge.Query, "a.`vid` AS __start") ||
+		!strings.Contains(edge.Query, "b.`vid` AS __end") ||
 		!strings.Contains(edge.InitialQuery, "`seq` IS NOT NULL") ||
 		!strings.Contains(edge.Query, "ORDER BY __key") ||
 		strings.Contains(edge.Query, "$pageRows") {

@@ -99,3 +99,15 @@ resuming r6. When discovery proves that a relationship type has exactly one
 primary endpoint-label pair, its generated query also omits the redundant
 endpoint-label join. The reviewed Neo4j 4.4 plan is then a single ordered
 `DirectedRelationshipIndexSeekByRange`, with no hash join or sort.
+
+The corrected r7 run proved that large-to-small endpoint types meet the
+throughput gate, but `CONTAINS` exposed a second source-side limit: fetching
+random `external_id` properties from 45-million and 20-million-node endpoint
+sets reduced throughput below the 24-hour projection gate. PostgreSQL used its
+endpoint index (no identity-table sequential reads), while the Neo4j VM showed
+low CPU and single-queue random disk reads. A bounded read-only profile returned
+20,000 `id(a)`/`id(b)` endpoint pairs in 123 ms, approximately 285 times faster
+than the measured property path. P3 sources are immutable and operationally
+read-only, so subsequent fresh jobs explicitly use `vertexIdentity:
+internal-id` for migration-time correlation. The visible `external_id` and all
+other properties remain copied and are covered by the canonical digest.

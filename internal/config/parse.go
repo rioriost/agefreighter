@@ -115,6 +115,9 @@ func (job *LoadJob) applyDefaults() {
 		}
 		if discovery := job.Source.Neo4j.Discovery; discovery != nil &&
 			discovery.Enabled {
+			if discovery.VertexIdentity == "" {
+				discovery.VertexIdentity = Neo4jVertexIdentityProperty
+			}
 			if discovery.VertexIDProperty == "" {
 				discovery.VertexIDProperty = discovery.VertexKeyProperty
 			}

@@ -442,6 +442,10 @@ func validateNeo4jDiscovery(
 	add(source.MultiLabelPolicy == Neo4jMultiLabelConfigured,
 		"source.neo4j.multiLabelPolicy", "policy",
 		"must be configured when discovery is enabled")
+	add(discovery.VertexIdentity == Neo4jVertexIdentityProperty ||
+		discovery.VertexIdentity == Neo4jVertexIdentityInternalID,
+		"source.neo4j.discovery.vertexIdentity", "unsupported",
+		"must be property or internal-id")
 	for path, property := range map[string]string{
 		"source.neo4j.discovery.vertexKeyProperty": discovery.VertexKeyProperty,
 		"source.neo4j.discovery.vertexIdProperty":  discovery.VertexIDProperty,

@@ -24,9 +24,16 @@ const (
 
 type Neo4jMultiLabelPolicy string
 
+type Neo4jVertexIdentity string
+
 const (
 	Neo4jMultiLabelConfigured Neo4jMultiLabelPolicy = "configured"
 	Neo4jMultiLabelReject     Neo4jMultiLabelPolicy = "reject"
+)
+
+const (
+	Neo4jVertexIdentityProperty   Neo4jVertexIdentity = "property"
+	Neo4jVertexIdentityInternalID Neo4jVertexIdentity = "internal-id"
 )
 
 type TargetType string
@@ -166,15 +173,16 @@ type Neo4jSource struct {
 }
 
 type Neo4jDiscovery struct {
-	Enabled                bool   `json:"enabled" yaml:"enabled"`
-	LabelPrefix            string `json:"labelPrefix,omitempty" yaml:"labelPrefix,omitempty"`
-	RelationshipTypePrefix string `json:"relationshipTypePrefix,omitempty" yaml:"relationshipTypePrefix,omitempty"`
-	VertexKeyProperty      string `json:"vertexKeyProperty" yaml:"vertexKeyProperty"`
-	VertexIDProperty       string `json:"vertexIdProperty,omitempty" yaml:"vertexIdProperty,omitempty"`
-	EdgeKeyProperty        string `json:"edgeKeyProperty" yaml:"edgeKeyProperty"`
-	EdgeIDProperty         string `json:"edgeIdProperty,omitempty" yaml:"edgeIdProperty,omitempty"`
-	MaxLabels              int    `json:"maxLabels" yaml:"maxLabels"`
-	MaxProperties          int    `json:"maxProperties" yaml:"maxProperties"`
+	Enabled                bool                `json:"enabled" yaml:"enabled"`
+	LabelPrefix            string              `json:"labelPrefix,omitempty" yaml:"labelPrefix,omitempty"`
+	RelationshipTypePrefix string              `json:"relationshipTypePrefix,omitempty" yaml:"relationshipTypePrefix,omitempty"`
+	VertexKeyProperty      string              `json:"vertexKeyProperty" yaml:"vertexKeyProperty"`
+	VertexIDProperty       string              `json:"vertexIdProperty,omitempty" yaml:"vertexIdProperty,omitempty"`
+	VertexIdentity         Neo4jVertexIdentity `json:"vertexIdentity,omitempty" yaml:"vertexIdentity,omitempty"`
+	EdgeKeyProperty        string              `json:"edgeKeyProperty" yaml:"edgeKeyProperty"`
+	EdgeIDProperty         string              `json:"edgeIdProperty,omitempty" yaml:"edgeIdProperty,omitempty"`
+	MaxLabels              int                 `json:"maxLabels" yaml:"maxLabels"`
+	MaxProperties          int                 `json:"maxProperties" yaml:"maxProperties"`
 }
 
 type CosmosSource struct {

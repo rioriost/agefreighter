@@ -771,6 +771,14 @@
           "minLength": 1,
           "maxLength": 256
         },
+        "vertexIdentity": {
+          "type": "string",
+          "enum": [
+            "property",
+            "internal-id"
+          ],
+          "default": "property"
+        },
         "edgeKeyProperty": {
           "type": "string",
           "minLength": 1,

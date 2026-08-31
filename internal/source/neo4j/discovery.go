@@ -112,11 +112,14 @@ func DiscoverMappingsBounded(
 				continue
 			}
 		}
-		if err := requireProperties(
-			properties,
-			options.VertexKeyProperty,
-			options.VertexIDProperty,
-		); err != nil {
+		requiredVertexProperties := []string{options.VertexKeyProperty}
+		if options.VertexIdentity != config.Neo4jVertexIdentityInternalID {
+			requiredVertexProperties = append(
+				requiredVertexProperties,
+				options.VertexIDProperty,
+			)
+		}
+		if err := requireProperties(properties, requiredVertexProperties...); err != nil {
 			return config.Neo4jSource{}, fmt.Errorf(
 				"Neo4j vertex label %q: %w",
 				label.target,
@@ -624,7 +627,7 @@ func buildDiscoveredVertex(
 	}
 	returns := []string{
 		key + " AS __key",
-		"n." + quoteCypherIdentifier(options.VertexIDProperty) + " AS __id",
+		vertexIdentityExpression("n", options) + " AS __id",
 	}
 	return config.VertexQuery{
 		Label: label.target,
@@ -670,8 +673,8 @@ func buildDiscoveredEdge(
 	returns := []string{
 		key + " AS __key",
 		"r." + quoteCypherIdentifier(options.EdgeIDProperty) + " AS __id",
-		endpointIDExpression("a", options.VertexIDProperty) + " AS __start",
-		endpointIDExpression("b", options.VertexIDProperty) + " AS __end",
+		vertexIdentityExpression("a", options) + " AS __start",
+		vertexIdentityExpression("b", options) + " AS __end",
 	}
 	return config.EdgeQuery{
 		Label: relationshipType,
@@ -756,11 +759,14 @@ func primaryLabelPredicate(
 	return strings.Join(parts, " AND ")
 }
 
-func endpointIDExpression(
+func vertexIdentityExpression(
 	variable string,
-	idProperty string,
+	options config.Neo4jDiscovery,
 ) string {
-	return variable + "." + quoteCypherIdentifier(idProperty)
+	if options.VertexIdentity == config.Neo4jVertexIdentityInternalID {
+		return "id(" + variable + ")"
+	}
+	return variable + "." + quoteCypherIdentifier(options.VertexIDProperty)
 }
 
 func vertexPropertyQuery(

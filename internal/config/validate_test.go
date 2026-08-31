@@ -442,6 +442,7 @@ func TestNeo4jDiscoveryValidation(t *testing.T) {
 	}
 	job.Source.Neo4j.Vertices = []VertexQuery{{Label: "Person"}}
 	job.Source.Neo4j.Discovery.VertexKeyProperty = "bad\nproperty"
+	job.Source.Neo4j.Discovery.VertexIdentity = "bad"
 	job.Source.Neo4j.Discovery.LabelPrefix = "bad\x00prefix"
 	job.Source.Neo4j.Discovery.MaxLabels = 257
 	job.Source.Neo4j.Discovery.MaxProperties = 1_025
@@ -452,6 +453,7 @@ func TestNeo4jDiscoveryValidation(t *testing.T) {
 	for _, want := range []string{
 		"cannot be combined",
 		"vertexKeyProperty",
+		"vertexIdentity",
 		"labelPrefix",
 		"maxLabels",
 		"maxProperties",

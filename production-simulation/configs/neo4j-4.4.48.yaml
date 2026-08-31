@@ -18,6 +18,7 @@ source:
       enabled: true
       vertexKeyProperty: source_key
       vertexIdProperty: external_id
+      vertexIdentity: internal-id
       edgeKeyProperty: source_key
       edgeIdProperty: relationship_id
       maxLabels: 64
