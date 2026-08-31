@@ -424,6 +424,17 @@ func TestNeo4jValidation(t *testing.T) {
 	}
 }
 
+func TestNeo4jValidationAcceptsBoundedKeysetPages(t *testing.T) {
+	job, err := Load("testdata/valid/neo4j.yaml")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	job.Source.Neo4j.Vertices[0].Query += " LIMIT $pageRows"
+	if err := job.Validate(); err != nil {
+		t.Fatalf("Validate() rejected bounded keyset pages: %v", err)
+	}
+}
+
 func TestNeo4jDiscoveryValidation(t *testing.T) {
 	job, err := Load("testdata/valid/neo4j-discovery.yaml")
 	if err != nil {

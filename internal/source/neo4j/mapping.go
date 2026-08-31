@@ -14,7 +14,6 @@ import (
 )
 
 var queryFieldPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
-var keysetPageSuffixPattern = regexp.MustCompile(`(?i)\blimit\s+\$pageRows\s*$`)
 
 type mappingKind uint8
 
@@ -167,9 +166,7 @@ func validateQuery(query, keyField, resource string) error {
 }
 
 func usesKeysetPages(query string) bool {
-	trimmed := strings.TrimSpace(query)
-	return sqlquery.HasParameter(trimmed, "pageRows") &&
-		keysetPageSuffixPattern.MatchString(trimmed)
+	return sqlquery.HasFinalTopLevelLimitParameter(query, "pageRows")
 }
 
 func validateEndpoint(endpoint config.EndpointMapping, namespace, resource string) error {

@@ -482,11 +482,13 @@ func validateNeo4jQuery(
 	errs *ValidationErrors,
 ) {
 	add := validationAdder(errs)
+	paged := sqlquery.HasFinalTopLevelLimitParameter(query, "pageRows")
 	add(keyField != "", path+".keyField", "required",
 		"is required for durable Neo4j resume")
 	add(queryFieldPattern.MatchString(keyField), path+".keyField", "format",
 		"must be an unquoted Cypher result identifier")
-	add(sqlquery.HasFinalTopLevelOrderByField(query, keyField),
+	add((!paged && sqlquery.HasFinalTopLevelOrderByField(query, keyField)) ||
+		(paged && sqlquery.HasTopLevelOrderByField(query, keyField)),
 		path+".query", "ordering",
 		"must end with ascending ORDER BY keyField for deterministic resume")
 	add(sqlquery.HasParameter(query, "afterKey"), path+".query", "parameter",
@@ -495,8 +497,9 @@ func validateNeo4jQuery(
 		"must use keyset resume rather than SKIP")
 	add(!sqlquery.HasKeyword(query, "offset"), path+".query", "unsupported",
 		"must use keyset resume rather than OFFSET")
-	add(!sqlquery.HasKeyword(query, "limit"), path+".query", "unsupported",
-		"must stream the complete mapping rather than use LIMIT")
+	add(!sqlquery.HasKeyword(query, "limit") || paged,
+		path+".query", "unsupported",
+		"must stream the complete mapping or use LIMIT $pageRows")
 	add(!sqlquery.HasKeyword(query, "union"), path+".query", "unsupported",
 		"must not use UNION because it cannot guarantee one total key order")
 	add(!sqlquery.HasKeyword(query, "collect"), path+".query", "unsupported",
