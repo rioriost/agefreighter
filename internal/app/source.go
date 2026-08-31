@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/reject"
@@ -14,6 +15,8 @@ import (
 	sourcepostgres "github.com/rioriost/agefreighter/internal/source/postgres"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
+
+const neo4jDiscoverySnapshotEnvironment = "AGEFREIGHTER_NEO4J_DISCOVERY_SNAPSHOT"
 
 func validateImplementedSource(job config.LoadJob) error {
 	switch job.Source.Type {
@@ -70,6 +73,27 @@ func resolveNeo4jDiscovery(
 	if source == nil ||
 		source.Discovery == nil ||
 		!source.Discovery.Enabled {
+		return job, nil
+	}
+	if snapshotPath := os.Getenv(neo4jDiscoverySnapshotEnvironment); snapshotPath != "" {
+		snapshot, err := sourceneo4j.LoadDiscoverySnapshot(snapshotPath)
+		if err != nil {
+			return config.LoadJob{}, err
+		}
+		resolved, err := sourceneo4j.ResolveMappingsSnapshot(*source, snapshot)
+		if err != nil {
+			return config.LoadJob{}, fmt.Errorf(
+				"resolve Neo4j discovery snapshot: %w",
+				err,
+			)
+		}
+		job.Source.Neo4j = &resolved
+		if err := job.Validate(); err != nil {
+			return config.LoadJob{}, fmt.Errorf(
+				"validate snapshotted Neo4j mappings: %w",
+				err,
+			)
+		}
 		return job, nil
 	}
 	var password string

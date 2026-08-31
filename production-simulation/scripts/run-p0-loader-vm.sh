@@ -116,6 +116,21 @@ esac
 export AGEFREIGHTER_LOG_FORMAT=json
 
 config="$source_root/production-simulation/configs/$source_version.yaml"
+if [ -n "${P3_DISCOVERY_SNAPSHOT:-}" ]; then
+	if [ "$phase" != p3 ]; then
+		printf 'P3_DISCOVERY_SNAPSHOT is supported only for P3\n' >&2
+		exit 2
+	fi
+	case "$P3_DISCOVERY_SNAPSHOT" in
+		/*) ;;
+		*) printf 'P3_DISCOVERY_SNAPSHOT must be an absolute path\n' >&2; exit 2 ;;
+	esac
+	if [ ! -f "$P3_DISCOVERY_SNAPSHOT" ]; then
+		printf 'P3 discovery snapshot does not exist: %s\n' "$P3_DISCOVERY_SNAPSHOT" >&2
+		exit 2
+	fi
+	export AGEFREIGHTER_NEO4J_DISCOVERY_SNAPSHOT="$P3_DISCOVERY_SNAPSHOT"
+fi
 AGEFREIGHTER_TARGET_DSN=$target_dsn \
 	PRODUCTION_SIMULATION_APPROVAL="reviewed-$phase" \
 	"$source_root/production-simulation/scripts/preflight-target.sh" "$phase"
@@ -143,11 +158,13 @@ case "$phase" in
 		resume_job_id=${P2_RESUME_JOB_ID:-}
 		;;
 esac
-run_source_profiles=0
+run_source_profile_before=0
+run_source_profile_after=0
 run_canonical_digest=0
 case "$verification_level" in
 	full)
-		run_source_profiles=1
+		run_source_profile_before=1
+		run_source_profile_after=1
 		run_canonical_digest=1
 		;;
 	digest)
@@ -168,6 +185,13 @@ case "$verification_level" in
 		exit 2
 		;;
 esac
+
+# A resumed segment must reach its retained checkpoint without first scanning
+# the complete source. The original segment already captured the before
+# profile; the final segment captures the after profile once the load commits.
+if [ -n "$resume_job_id" ]; then
+	run_source_profile_before=0
+fi
 
 if [ -n "$resume_job_id" ]; then
 	if [ "$phase" != p2 ] && [ "$phase" != p3 ]; then
@@ -208,7 +232,7 @@ fi
 } >"$result_root/host-before.txt"
 /opt/agefreighter/bin/agefreighter validate "$config" >"$result_root/validate.txt"
 /opt/agefreighter/bin/agefreighter plan "$config" >"$result_root/plan.json"
-if [ "$run_source_profiles" -eq 1 ]; then
+if [ "$run_source_profile_before" -eq 1 ]; then
 	/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
 		>"$result_root/source-profile-before.json"
 fi
@@ -230,7 +254,7 @@ printf '%s\n' "$job_id" >"$result_root/job-id.txt"
 	--format json --output "$result_root/report.json" "$job_id"
 /opt/agefreighter/bin/agefreighter verify --target "$config" --counts --integrity \
 	--limit 1000 --format json --output "$result_root/verify.json" "$job_id"
-if [ "$run_source_profiles" -eq 1 ]; then
+if [ "$run_source_profile_after" -eq 1 ]; then
 	/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
 		>"$result_root/source-profile-after.json"
 fi
@@ -291,7 +315,8 @@ jq -n \
 jq '{source,jobId,commit,loadStatus:.load.status,verificationOutcome:.verification.outcome,digestStatus:.digest.status}' \
 	"$result_root/summary.json"
 
-unset AGEFREIGHTER_NEO4J_PASSWORD AGEFREIGHTER_TARGET_DSN_NEO4J44
+unset AGEFREIGHTER_NEO4J_PASSWORD AGEFREIGHTER_NEO4J_DISCOVERY_SNAPSHOT
+unset AGEFREIGHTER_TARGET_DSN_NEO4J44
 unset AGEFREIGHTER_TARGET_DSN_NEO4J526 target_dsn
 unset neo4j_password postgres_password token
 rm -f "$pgpass_file"

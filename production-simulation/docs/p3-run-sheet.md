@@ -68,3 +68,20 @@ are proven.
 After the final evidence is collected, deallocate all three VMs and stop the
 Flexible Server. Keep every disk, database, Key Vault, fixture, log, and result
 until cleanup receives separate authorization.
+
+## Retained-job discovery recovery
+
+The externally stopped Neo4j 4.4 clean run demonstrated that repeating live
+discovery before every resume can itself exceed the 15-minute checkpoint-age
+limit on a 560-million-element source. A reviewed discovery snapshot may
+therefore replace only that repeated discovery step. It is derived from the
+deterministic fixture headers and endpoint model, is version-bound by
+`sourceId`, and must reproduce the retained iterator fingerprint exactly.
+This does not change the frozen YAML, mapping queries, ordering, fetch size,
+batch settings, source data, target database, graph, or durable job ID.
+
+For a resumed P3 segment, pass the matching absolute snapshot path through
+`P3_DISCOVERY_SNAPSHOT`. Preserve the original before-profile evidence, skip a
+duplicate pre-resume full-source profile, and capture the after profile only
+after the load commits. Any snapshot validation or checkpoint fingerprint
+mismatch is an automatic stop with all existing evidence retained.

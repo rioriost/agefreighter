@@ -24,7 +24,7 @@ each migration run. The scripts reject live operations unless
 | `cmd/fixturegen` | Deterministic sharded CSV generator and manifest verifier |
 | `cmd/rangedigest` | Independent fixture/AGE canonical range-digest verifier |
 | `internal/fixture` | Tested dataset model and streaming generator implementation |
-| `configs` | Static agefreighter jobs for both Neo4j versions |
+| `configs` | Static jobs and reviewed discovery snapshots for both Neo4j versions |
 | `infra` | Review-only Azure deployment contract and parameters |
 | `scripts` | Safe entry points for validation, generation, and live runs |
 | `results/summaries` | Small reviewed result summaries suitable for Git |

@@ -107,6 +107,17 @@ Validate and plan the selected static job, start monitoring, and then invoke
 is performed only according to the approved phase run sheet and only after a
 committed checkpoint.
 
+At P3 scale, a resume must not rescan the complete immutable source merely to
+reconstruct discovery mappings. Set `P3_DISCOVERY_SNAPSHOT` to the absolute
+path of the reviewed, source-version-specific JSON file in `configs` when
+starting a resumed P3 segment. The submitted YAML remains unchanged. The
+snapshot is accepted only when its `sourceId`, identifiers, required key
+properties, limits, and generated iterator fingerprint match the job. A
+fingerprint mismatch stops before another source row is read or target batch
+is written. The first segment retains the exact before-source profile; a
+resumed final segment skips that duplicate scan and captures the after-source
+profile after commit.
+
 ## 7. Verification and reporting
 
 The measured load interval ends when the load commits. Afterwards, run

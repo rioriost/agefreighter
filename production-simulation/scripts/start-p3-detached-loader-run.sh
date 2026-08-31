@@ -56,6 +56,7 @@ systemd-run \
 	--setenv "PRODUCTION_SIMULATION_RUN_ID=$run_id" \
 	--setenv "P3_VERIFICATION_LEVEL=${P3_VERIFICATION_LEVEL:-full}" \
 	--setenv "P3_RESUME_JOB_ID=${P3_RESUME_JOB_ID:-}" \
+	--setenv "P3_DISCOVERY_SNAPSHOT=${P3_DISCOVERY_SNAPSHOT:-}" \
 	"$runner" p3 "$source_version"
 
 printf 'started detached unit %s; evidence log %s\n' "$unit" "$log"
