@@ -49,9 +49,14 @@ func TestMappingValidationAndOrdering(t *testing.T) {
 		t.Fatalf("rejected bounded initial query: %v", err)
 	}
 	if err := validateInitialQuery(
+		"RETURN 1 AS k ORDER BY k", "k", "mapping",
+	); err != nil {
+		t.Fatalf("rejected streaming initial query: %v", err)
+	}
+	if err := validateInitialQuery(
 		"RETURN 1 AS k ORDER BY k LIMIT 1", "k", "mapping",
 	); err == nil {
-		t.Fatal("accepted unbounded initial query")
+		t.Fatal("accepted fixed-limit initial query")
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

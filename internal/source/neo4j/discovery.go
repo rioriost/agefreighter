@@ -699,10 +699,13 @@ func buildDiscoveryQuery(
 	propertyReturns []string,
 ) string {
 	allReturns := append(slices.Clone(returns), propertyReturns...)
+	// FetchRows is already the Bolt driver's fetch size. Keep one ordered stream
+	// open per mapping so large relationship mappings do not pay Cypher planning
+	// and index-seek startup costs again for every fetched page.
 	return match +
 		" WHERE (" + strings.Join(predicates, ") AND (") + ")" +
 		" RETURN " + strings.Join(allReturns, ", ") +
-		" ORDER BY __key LIMIT $pageRows"
+		" ORDER BY __key"
 }
 
 func discoveredPropertyMapping(

@@ -149,6 +149,26 @@ func TestIteratorPagesBoundedKeysetQueries(t *testing.T) {
 	}
 }
 
+func TestIteratorUsesInitialQueryForStreamingMapping(t *testing.T) {
+	source := testSource()
+	source.Vertices[0].Query = "MATCH (n) WHERE n.k > $afterKey " +
+		"RETURN n.k AS k, n.id AS id, n.name AS name ORDER BY k"
+	source.Vertices[0].InitialQuery = "MATCH (n) WHERE n.k IS NOT NULL " +
+		"RETURN n.k AS k, n.id AS id, n.name AS name ORDER BY k"
+	client := &fakeClient{streams: []RecordStream{&fakeStream{records: []Record{
+		record(map[string]any{"k": int64(1), "id": "a", "name": "A"}, "k", "id", "name"),
+	}}}}
+	iterator := newTestIterator(t, source, client)
+	item, err := iterator.Next(context.Background())
+	if err != nil || item.Record.Vertex.ExternalID != "a" {
+		t.Fatalf("Next = %#v, %v", item, err)
+	}
+	if len(client.queries) != 1 || client.queries[0] != source.Vertices[0].InitialQuery ||
+		len(client.parameters[0]) != 0 {
+		t.Fatalf("queries = %#v, parameters = %#v", client.queries, client.parameters)
+	}
+}
+
 func TestIteratorPreservesVertexThenEdgeOrder(t *testing.T) {
 	source := testSource()
 	source.Vertices = append(source.Vertices, config.VertexQuery{

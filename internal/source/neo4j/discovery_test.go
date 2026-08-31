@@ -55,7 +55,8 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 		!strings.Contains(vertex.Query, "`seq` > $afterKey") ||
 		strings.Contains(vertex.Query, "$afterKey IS NULL") ||
 		!strings.Contains(vertex.InitialQuery, "`seq` IS NOT NULL") ||
-		!strings.Contains(vertex.Query, "ORDER BY __key LIMIT $pageRows") {
+		!strings.Contains(vertex.Query, "ORDER BY __key") ||
+		strings.Contains(vertex.Query, "$pageRows") {
 		t.Fatalf("vertex mapping = %#v", vertex)
 	}
 	edge := resolved.Edges[0]
@@ -65,7 +66,9 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 		edge.ExternalIDField != "__id" ||
 		edge.Properties["since"] != "__property_0002" ||
 		!strings.Contains(edge.Query, "[r:`APP_KNOWS`]") ||
-		!strings.Contains(edge.InitialQuery, "`seq` IS NOT NULL") {
+		!strings.Contains(edge.InitialQuery, "`seq` IS NOT NULL") ||
+		!strings.Contains(edge.Query, "ORDER BY __key") ||
+		strings.Contains(edge.Query, "$pageRows") {
 		t.Fatalf("edge mapping = %#v", edge)
 	}
 	if _, err := buildMappings(

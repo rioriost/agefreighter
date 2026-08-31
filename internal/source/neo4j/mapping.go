@@ -182,12 +182,16 @@ func validateInitialQuery(query, keyField, resource string) error {
 	if strings.TrimSpace(query) == "" {
 		return nil
 	}
-	if !usesKeysetPages(query) ||
-		!sqlquery.HasTopLevelOrderByField(query, keyField) {
+	paged := usesKeysetPages(query)
+	if (!paged && !sqlquery.HasFinalTopLevelOrderByField(query, keyField)) ||
+		(paged && !sqlquery.HasTopLevelOrderByField(query, keyField)) {
 		return fmt.Errorf(
-			"%s initial query must end with ascending ORDER BY keyField LIMIT $pageRows",
+			"%s initial query must end with ascending ORDER BY keyField, optionally followed by LIMIT $pageRows",
 			resource,
 		)
+	}
+	if sqlquery.HasKeyword(query, "limit") && !paged {
+		return fmt.Errorf("%s initial query must not use LIMIT except LIMIT $pageRows", resource)
 	}
 	for _, keyword := range []string{"skip", "offset", "union", "collect"} {
 		if sqlquery.HasKeyword(query, keyword) {

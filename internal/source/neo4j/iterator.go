@@ -293,12 +293,12 @@ func (iterator *Iterator) openCurrent(ctx context.Context) error {
 	}
 	parameters := map[string]any{"afterKey": afterKey}
 	query := mapping.query
+	if iterator.lastKey == nil && mapping.initialQuery != "" {
+		query = mapping.initialQuery
+		delete(parameters, "afterKey")
+	}
 	if mapping.paged {
 		parameters["pageRows"] = iterator.options.Source.FetchRows
-		if iterator.lastKey == nil && mapping.initialQuery != "" {
-			query = mapping.initialQuery
-			delete(parameters, "afterKey")
-		}
 	}
 	stream, err := iterator.options.Client.Query(
 		ctx, query, parameters,

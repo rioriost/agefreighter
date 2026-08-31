@@ -9,7 +9,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 )
 
-const fingerprintVersion = 2
+const fingerprintVersion = 3
 
 type fingerprintProperty struct {
 	Name  string `json:"name"`
