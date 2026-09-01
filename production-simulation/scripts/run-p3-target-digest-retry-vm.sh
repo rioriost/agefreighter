@@ -59,6 +59,11 @@ fi
 
 git -C "$source_root" fetch -q origin "$PRODUCTION_SIMULATION_GIT_REF"
 git -C "$source_root" checkout -q --detach "$PRODUCTION_SIMULATION_GIT_REF"
+GOPATH=/root/go
+GOMODCACHE=/root/go/pkg/mod
+GOCACHE=/root/.cache/go-build
+export GOPATH GOMODCACHE GOCACHE
+mkdir -p "$GOMODCACHE" "$GOCACHE"
 go -C "$source_root" build -trimpath -o /opt/agefreighter/bin/rangedigest \
 	./production-simulation/cmd/rangedigest
 

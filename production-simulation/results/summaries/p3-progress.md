@@ -57,6 +57,12 @@ remain unchanged. The correction derives canonical vertex and endpoint
 identities from the referenced AGE properties and retries only the independent
 target digest against the same committed job.
 
+The first detached retry launcher retained an immediate pre-verifier bootstrap
+failure because its transient service did not define the Go module/cache
+environment. No database command ran. The corrected launcher uses explicit
+root-owned build caches and a new evidence directory; the failed retry remains
+retained and is not reused.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
