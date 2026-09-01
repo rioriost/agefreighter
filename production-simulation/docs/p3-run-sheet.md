@@ -140,7 +140,7 @@ approximately 21--30 seconds observed for the r8 target lookup. Qualification
 still requires a fresh database and job plus measured Linux RSS and batch
 throughput; r8 remains failed evidence and is not resumable for this change.
 
-The fresh r9 run reached the cached edge stage and 219,440,000 committed rows
+The fresh r9 run reached the cached edge stage and 221,620,000 committed rows
 with zero rejected rows and a current checkpoint, proving that endpoint lookup
 no longer stalls the batch. Its loader RSS nevertheless reached approximately
 2.61 GiB, above the then-current 2 GiB acceptance gate, so r9 was stopped with
