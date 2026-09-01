@@ -63,14 +63,17 @@ func TargetManifest(
 		if err := builder.begin("v", spec.Label); err != nil {
 			return Manifest{}, err
 		}
+		// P3 may use Neo4j internal IDs for migration-time correlation. Canonical
+		// fixture identity is the visible external_id property, so the independent
+		// digest must not substitute vertex_identity.external_id for graph content.
 		rows, err := connection.Query(ctx, fmt.Sprintf(`
-			SELECT identity.external_id, physical.properties::text
+			SELECT physical.properties::text
 			FROM agefreighter_meta.vertex_identity identity
 			JOIN %s physical
 			  ON physical.id = identity.graph_id::text::ag_catalog.graphid
 			WHERE identity.graph_generation_id = $1
 			  AND identity.label_generation_id = $2
-			ORDER BY identity.external_id`,
+			ORDER BY identity.graph_id`,
 			pgx.Identifier{graph, spec.Label}.Sanitize(),
 		), generationID, labelGeneration)
 		if err != nil {
@@ -96,24 +99,25 @@ func TargetManifest(
 		if err := builder.begin("e", spec.Type); err != nil {
 			return Manifest{}, err
 		}
+		// Read visible endpoint identities from the referenced AGE vertices. The
+		// operational vertex identity can intentionally be a Neo4j internal ID.
 		rows, err := connection.Query(ctx, fmt.Sprintf(`
-			SELECT identity.external_id,
-			       start_identity.external_id,
-			       end_identity.external_id,
-			       physical.properties::text
+			SELECT physical.properties::text,
+			       start_physical.properties::text,
+			       end_physical.properties::text
 			FROM agefreighter_meta.edge_identity identity
 			JOIN %s physical
 			  ON physical.id = identity.graph_id::text::ag_catalog.graphid
-			JOIN agefreighter_meta.vertex_identity start_identity
-			  ON start_identity.graph_generation_id = identity.graph_generation_id
-			 AND start_identity.graph_id = identity.start_graph_id
-			JOIN agefreighter_meta.vertex_identity end_identity
-			  ON end_identity.graph_generation_id = identity.graph_generation_id
-			 AND end_identity.graph_id = identity.end_graph_id
+			JOIN %s start_physical
+			  ON start_physical.id = identity.start_graph_id::text::ag_catalog.graphid
+			JOIN %s end_physical
+			  ON end_physical.id = identity.end_graph_id::text::ag_catalog.graphid
 			WHERE identity.graph_generation_id = $1
 			  AND identity.label_generation_id = $2
-			ORDER BY identity.external_id`,
+			ORDER BY identity.graph_id`,
 			pgx.Identifier{graph, spec.Type}.Sanitize(),
+			pgx.Identifier{graph, spec.Start}.Sanitize(),
+			pgx.Identifier{graph, spec.End}.Sanitize(),
 		), generationID, labelGeneration)
 		if err != nil {
 			return Manifest{}, fmt.Errorf("query target edge %q: %w", spec.Type, err)
@@ -180,26 +184,15 @@ func digestTargetVertices(
 		if err := ctx.Err(); err != nil {
 			return count, err
 		}
-		var identity, rawProperties string
-		if err := rows.Scan(&identity, &rawProperties); err != nil {
+		var rawProperties string
+		if err := rows.Scan(&rawProperties); err != nil {
 			return count, err
 		}
-		properties, encoded, err := canonicalJSONProperties(rawProperties)
+		key, canonical, err := canonicalTargetVertex(label, rawProperties)
 		if err != nil {
 			return count, fmt.Errorf("target vertex %q row %d: %w", label, count+1, err)
 		}
-		key, err := integerProperty(properties, "source_key")
-		if err != nil {
-			return count, err
-		}
-		externalID, err := stringProperty(properties, "external_id")
-		if err != nil {
-			return count, err
-		}
-		if externalID != identity {
-			return count, fmt.Errorf("target vertex %q identity does not match properties", label)
-		}
-		if err := builder.add(key, vertexLine(label, key, identity, encoded)); err != nil {
+		if err := builder.add(key, canonical); err != nil {
 			return count, err
 		}
 		count++
@@ -219,31 +212,75 @@ func digestTargetEdges(
 		if err := ctx.Err(); err != nil {
 			return count, err
 		}
-		var identity, startIdentity, endIdentity, rawProperties string
-		if err := rows.Scan(&identity, &startIdentity, &endIdentity, &rawProperties); err != nil {
+		var rawProperties, startProperties, endProperties string
+		if err := rows.Scan(&rawProperties, &startProperties, &endProperties); err != nil {
 			return count, err
 		}
-		properties, encoded, err := canonicalJSONProperties(rawProperties)
+		key, canonical, err := canonicalTargetEdge(
+			label, rawProperties, startProperties, endProperties,
+		)
 		if err != nil {
 			return count, fmt.Errorf("target edge %q row %d: %w", label, count+1, err)
 		}
-		key, err := integerProperty(properties, "source_key")
-		if err != nil {
-			return count, err
-		}
-		externalID, err := stringProperty(properties, "relationship_id")
-		if err != nil {
-			return count, err
-		}
-		if externalID != identity {
-			return count, fmt.Errorf("target edge %q identity does not match properties", label)
-		}
-		if err := builder.add(key, edgeLine(
-			label, key, identity, startIdentity, endIdentity, encoded,
-		)); err != nil {
+		if err := builder.add(key, canonical); err != nil {
 			return count, err
 		}
 		count++
 	}
 	return count, rows.Err()
+}
+
+func canonicalTargetVertex(label, rawProperties string) (int64, []byte, error) {
+	properties, encoded, err := canonicalJSONProperties(rawProperties)
+	if err != nil {
+		return 0, nil, err
+	}
+	key, err := integerProperty(properties, "source_key")
+	if err != nil {
+		return 0, nil, err
+	}
+	externalID, err := stringProperty(properties, "external_id")
+	if err != nil {
+		return 0, nil, err
+	}
+	return key, vertexLine(label, key, externalID, encoded), nil
+}
+
+func canonicalTargetEdge(
+	label string,
+	rawProperties string,
+	startRawProperties string,
+	endRawProperties string,
+) (int64, []byte, error) {
+	properties, encoded, err := canonicalJSONProperties(rawProperties)
+	if err != nil {
+		return 0, nil, err
+	}
+	key, err := integerProperty(properties, "source_key")
+	if err != nil {
+		return 0, nil, err
+	}
+	externalID, err := stringProperty(properties, "relationship_id")
+	if err != nil {
+		return 0, nil, err
+	}
+	startProperties, _, err := canonicalJSONProperties(startRawProperties)
+	if err != nil {
+		return 0, nil, fmt.Errorf("decode start vertex: %w", err)
+	}
+	startExternalID, err := stringProperty(startProperties, "external_id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("start vertex: %w", err)
+	}
+	endProperties, _, err := canonicalJSONProperties(endRawProperties)
+	if err != nil {
+		return 0, nil, fmt.Errorf("decode end vertex: %w", err)
+	}
+	endExternalID, err := stringProperty(endProperties, "external_id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("end vertex: %w", err)
+	}
+	return key, edgeLine(
+		label, key, externalID, startExternalID, endExternalID, encoded,
+	), nil
 }

@@ -120,3 +120,44 @@ func TestRangeBuilderRejectsOutOfOrderKeys(t *testing.T) {
 		t.Fatal("accepted an out-of-order source key")
 	}
 }
+
+func TestCanonicalTargetVertexUsesVisibleExternalIdentity(t *testing.T) {
+	t.Parallel()
+
+	key, canonical, err := canonicalTargetVertex(
+		"Supplier", `{"source_key":1,"external_id":"supplier-000000000001"}`,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if key != 1 || !strings.Contains(string(canonical), "supplier-000000000001") {
+		t.Fatalf("unexpected target vertex: key=%d canonical=%q", key, canonical)
+	}
+}
+
+func TestCanonicalTargetEdgeUsesVisibleEndpointIdentities(t *testing.T) {
+	t.Parallel()
+
+	key, canonical, err := canonicalTargetEdge(
+		"SUPPLIES",
+		`{"source_key":1,"relationship_id":"supplies-000000000001"}`,
+		`{"source_key":1,"external_id":"supplier-000000000001"}`,
+		`{"source_key":6000001,"external_id":"product-000000000001"}`,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(canonical)
+	for _, expected := range []string{
+		"supplies-000000000001",
+		"supplier-000000000001",
+		"product-000000000001",
+	} {
+		if !strings.Contains(text, expected) {
+			t.Fatalf("target edge %q does not contain %q", text, expected)
+		}
+	}
+	if key != 1 {
+		t.Fatalf("target edge key=%d, want 1", key)
+	}
+}

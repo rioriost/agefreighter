@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T07:17:51Z
-- Overall state: **RUNNING**
-- Current position: **Neo4j 4.4 clean — expected fixture range digest**
-- Next: full target canonical range digest and root comparison for the Neo4j
-  4.4 clean run
+- Updated: 2026-09-01T09:20:52Z
+- Overall state: **CORRECTIVE VERIFICATION RETRY**
+- Current position: **Neo4j 4.4 clean — target digest verifier correction**
+- Next: deploy the corrected verifier and rerun only the full target canonical
+  range digest against the retained committed clean database
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -16,7 +16,7 @@ guest evidence and the final reviewed result remain authoritative.
 
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
-| Neo4j 4.4.48 | Clean | **RUNNING** | Step 8 of 10: expected fixture range digest |
+| Neo4j 4.4.48 | Clean | **CORRECTING** | Step 9 of 10: target digest verifier retry |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
 | Neo4j 5.26.30 | Clean | PENDING | Start after the complete 4.4 clean evidence |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
@@ -34,8 +34,8 @@ guest evidence and the final reviewed result remain authoritative.
 | 5 | Exact source profile after load | DONE | Before/after profiles retained for immutability review |
 | 6 | Doctor and pre-`ANALYZE` optimization review | DONE | Evidence retained |
 | 7 | Target `ANALYZE` and post-`ANALYZE` optimization review | DONE | `ANALYZE` and post-analysis review completed at 2026-09-01T06:50:16Z |
-| 8 | Deterministic fixture manifest and expected range digest | **RUNNING** | Computing the 100,000-record range digest from the verified P3 fixture |
-| 9 | Full target canonical range digest | PENDING | Must cover all 560,000,000 canonical records |
+| 8 | Deterministic fixture manifest and expected range digest | DONE | 5,600 expected leaves and fixture root retained |
+| 9 | Full target canonical range digest | **CORRECTING** | The first verifier treated the operational Neo4j internal ID as the visible `external_id`; the committed target is retained and only the verifier is being corrected and retried |
 | 10 | Range/root comparison and run summary | PENDING | Must match every range and the final Merkle root |
 
 Clean-run identifiers and measured gates:
@@ -46,6 +46,16 @@ Clean-run identifiers and measured gates:
   batches
 - Peak loader RSS: 2,741,392 KiB (2.61 GiB), below the 4 GiB P3 gate
 - Swap/OOM: none
+
+The first target-digest invocation stopped at 2026-09-01T08:20:30Z before
+producing target digest output. Its verifier assumed that the operational
+`vertex_identity.external_id` always equaled the visible `external_id`
+property. P3 intentionally uses Neo4j internal IDs for migration-time endpoint
+correlation while preserving the visible property, so that assumption was not
+valid. The committed graph, expected fixture digest, and all earlier evidence
+remain unchanged. The correction derives canonical vertex and endpoint
+identities from the referenced AGE properties and retries only the independent
+target digest against the same committed job.
 
 ### Recovery qualification
 

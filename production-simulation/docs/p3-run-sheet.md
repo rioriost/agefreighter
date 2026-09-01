@@ -158,3 +158,14 @@ graph ID representation and raised only the P3 loader memory/RSS limit to
 4 GiB; earlier phases and release gates remain at 2 GiB. The configuration and
 job fingerprint therefore change, requiring another fresh database and job;
 r9 must not be resumed.
+
+The r10 Neo4j 4.4 clean load then committed all 560,000,000 records with zero
+rejects in 3:55:27 and a 2.61 GiB peak RSS. Its first target-digest invocation
+stopped before emitting target output because the independent verifier assumed
+that `vertex_identity.external_id` was always the visible `external_id`
+property. P3 deliberately stores the Neo4j internal ID there for migration-time
+correlation while retaining the visible property in AGE. The verifier must
+therefore read canonical vertex and endpoint identities from the referenced AGE
+properties, while retaining metadata only to select and join the committed
+generation. Retry only the digest against the same immutable committed r10 job;
+do not rerun or alter the qualified load.
