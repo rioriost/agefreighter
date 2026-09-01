@@ -131,6 +131,13 @@ times were unchanged, the r8 checkpoint continued advancing, and no swap or
 OOM event occurred. Record this platform action as a governance deviation, but
 not as a restart or qualification fault injection.
 
+Azure repeated the automatic patch action on the loader and Neo4j 4.4 VMs from
+2026-09-01T05:04:40Z through 2026-09-01T05:08:01Z during r10. Guest evidence
+showed package assessment/update activity, including `ubuntu-advantage-tools`,
+but no VM, loader process, or Neo4j container restart. The r10 checkpoint kept
+advancing with zero rejects and no swap or OOM event. Retain this second action
+as another governance deviation, not as a qualification fault injection.
+
 The reviewed target-side correction retains the internal Neo4j identity in a
 bounded, chunked dense cache for create/replace loads. Vertex mappings are made
 visible to the cache only after the same target transaction commits; resume
