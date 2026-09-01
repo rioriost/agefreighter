@@ -206,6 +206,7 @@ func DiscoverMappingsBounded(
 		}
 	}
 	source.Discovery = nil
+	source.ResolvedVertexIdentity = normalizedVertexIdentity(options.VertexIdentity)
 	source.Vertices = vertices
 	source.Edges = edges
 	return source, nil
@@ -763,10 +764,20 @@ func vertexIdentityExpression(
 	variable string,
 	options config.Neo4jDiscovery,
 ) string {
-	if options.VertexIdentity == config.Neo4jVertexIdentityInternalID {
+	if normalizedVertexIdentity(options.VertexIdentity) ==
+		config.Neo4jVertexIdentityInternalID {
 		return "id(" + variable + ")"
 	}
 	return variable + "." + quoteCypherIdentifier(options.VertexIDProperty)
+}
+
+func normalizedVertexIdentity(
+	identity config.Neo4jVertexIdentity,
+) config.Neo4jVertexIdentity {
+	if identity == "" {
+		return config.Neo4jVertexIdentityProperty
+	}
+	return identity
 }
 
 func vertexPropertyQuery(

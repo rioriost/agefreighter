@@ -160,16 +160,17 @@ type PostgreSQLSource struct {
 }
 
 type Neo4jSource struct {
-	URI              string                `json:"uri" yaml:"uri"`
-	Database         string                `json:"database" yaml:"database"`
-	SourceID         string                `json:"sourceId" yaml:"sourceId"`
-	Username         string                `json:"username,omitempty" yaml:"username,omitempty"`
-	Password         *SecretRef            `json:"password,omitempty" yaml:"password,omitempty"`
-	FetchRows        int                   `json:"fetchRows" yaml:"fetchRows"`
-	MultiLabelPolicy Neo4jMultiLabelPolicy `json:"multiLabelPolicy" yaml:"multiLabelPolicy"`
-	Discovery        *Neo4jDiscovery       `json:"discovery,omitempty" yaml:"discovery,omitempty"`
-	Vertices         []VertexQuery         `json:"vertices,omitempty" yaml:"vertices,omitempty"`
-	Edges            []EdgeQuery           `json:"edges,omitempty" yaml:"edges,omitempty"`
+	URI                    string                `json:"uri" yaml:"uri"`
+	Database               string                `json:"database" yaml:"database"`
+	SourceID               string                `json:"sourceId" yaml:"sourceId"`
+	Username               string                `json:"username,omitempty" yaml:"username,omitempty"`
+	Password               *SecretRef            `json:"password,omitempty" yaml:"password,omitempty"`
+	FetchRows              int                   `json:"fetchRows" yaml:"fetchRows"`
+	MultiLabelPolicy       Neo4jMultiLabelPolicy `json:"multiLabelPolicy" yaml:"multiLabelPolicy"`
+	Discovery              *Neo4jDiscovery       `json:"discovery,omitempty" yaml:"discovery,omitempty"`
+	Vertices               []VertexQuery         `json:"vertices,omitempty" yaml:"vertices,omitempty"`
+	Edges                  []EdgeQuery           `json:"edges,omitempty" yaml:"edges,omitempty"`
+	ResolvedVertexIdentity Neo4jVertexIdentity   `json:"-" yaml:"-"`
 }
 
 type Neo4jDiscovery struct {

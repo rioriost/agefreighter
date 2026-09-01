@@ -25,6 +25,9 @@ func TestP3Neo4j44DiscoverySnapshotUsesCorrectedFingerprint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve P3 discovery snapshot: %v", err)
 	}
+	if resolved.ResolvedVertexIdentity != config.Neo4jVertexIdentityInternalID {
+		t.Fatalf("P3 resolved vertex identity = %q", resolved.ResolvedVertexIdentity)
+	}
 	for _, vertex := range resolved.Vertices {
 		if !strings.Contains(vertex.Query, "id(n) AS __id") ||
 			vertex.Properties["external_id"] == "" {

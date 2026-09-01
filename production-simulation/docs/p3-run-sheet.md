@@ -128,3 +128,14 @@ Azure reported automatic OS patch installations on two VMs at
 times were unchanged, the r8 checkpoint continued advancing, and no swap or
 OOM event occurred. Record this platform action as a governance deviation, but
 not as a restart or qualification fault injection.
+
+The reviewed target-side correction retains the internal Neo4j identity in a
+bounded, chunked dense cache for create/replace loads. Vertex mappings are made
+visible to the cache only after the same target transaction commits; resume
+rebuilds it from committed `vertex_identity` metadata. Label mismatches and
+cache misses retain the existing PostgreSQL resolution path. Property identity
+and incremental modes are unchanged. A five-run local benchmark resolved
+20,000 edge endpoint pairs in 0.584--0.590 ms per batch, compared with the
+approximately 21--30 seconds observed for the r8 target lookup. Qualification
+still requires a fresh database and job plus measured Linux RSS and batch
+throughput; r8 remains failed evidence and is not resumable for this change.

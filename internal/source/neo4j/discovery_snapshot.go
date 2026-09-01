@@ -260,6 +260,7 @@ func ResolveMappingsSnapshot(
 	}
 
 	source.Discovery = nil
+	source.ResolvedVertexIdentity = normalizedVertexIdentity(options.VertexIdentity)
 	source.Vertices = vertices
 	source.Edges = edges
 	return source, nil

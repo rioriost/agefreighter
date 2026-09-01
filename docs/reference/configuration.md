@@ -290,6 +290,12 @@ graphs, but must not be used when nodes can be deleted or recreated during a
 load because Neo4j may reuse internal IDs. All discovered properties,
 including `vertexIdProperty`, are still copied to the target.
 
+For non-incremental loads, internal-ID identity also enables a bounded dense
+endpoint cache. The cache is rebuilt from committed target metadata on resume,
+uses only the runtime memory left after reserving batch headroom, and falls back
+to the regular target lookup if an endpoint is not cached. Property identity
+and incremental modes always use the regular target lookup.
+
 A node with multiple selected labels is assigned once, to its lexicographically
 first selected label. Property discovery uses that same partition, and a later
 label with no independently assigned nodes does not generate an empty mapping.

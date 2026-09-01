@@ -18,6 +18,25 @@ import (
 
 const neo4jDiscoverySnapshotEnvironment = "AGEFREIGHTER_NEO4J_DISCOVERY_SNAPSHOT"
 
+const denseEndpointCacheReserve = 384 << 20
+
+func denseEndpointCacheBytes(job config.LoadJob) int64 {
+	if job.Source.Type != config.SourceNeo4j ||
+		job.Source.Neo4j == nil ||
+		job.Source.Neo4j.ResolvedVertexIdentity !=
+			config.Neo4jVertexIdentityInternalID ||
+		(job.Target.Mode != config.LoadCreate &&
+			job.Target.Mode != config.LoadReplace) {
+		return 0
+	}
+	limit := int64(job.Runtime.MemoryLimit)
+	reserve := max(denseEndpointCacheReserve, int64(job.Runtime.BatchBytes)*4)
+	if limit <= reserve {
+		return 0
+	}
+	return limit - reserve
+}
+
 func validateImplementedSource(job config.LoadJob) error {
 	switch job.Source.Type {
 	case config.SourceCSV:

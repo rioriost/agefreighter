@@ -43,6 +43,9 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 	if resolved.Discovery != nil {
 		t.Fatalf("resolved discovery = %#v, want nil", resolved.Discovery)
 	}
+	if resolved.ResolvedVertexIdentity != config.Neo4jVertexIdentityProperty {
+		t.Fatalf("resolved vertex identity = %q", resolved.ResolvedVertexIdentity)
+	}
 	if len(resolved.Vertices) != 1 || len(resolved.Edges) != 1 {
 		t.Fatalf("resolved mappings = %#v, %#v", resolved.Vertices, resolved.Edges)
 	}
