@@ -4,9 +4,10 @@
 
 The user authorized P3 execution and its forecast budget on 2026-08-31. P3
 must complete during the week ending 2026-09-06. The reviewed live-operation
-window is 72 hours. On 2026-09-01 the user raised the cost ceiling to 400 USD
-and made completing all four qualification runs the highest priority. This
-authorization covers deployment, source preparation, four migration runs, the
+window is 72 hours. On 2026-09-01 the user raised the cost ceiling first to
+400 USD and then to 800 USD, and made completing all four qualification runs
+the highest priority. This authorization covers deployment, source
+preparation, four migration runs, the
 controlled faults below, full verification, monitoring, evidence retention,
 and stopping the resources. It does not authorize P4 or deletion of resources
 or evidence.
@@ -63,7 +64,7 @@ or target storage must stay below 80%.
 
 Stop the current run without deleting evidence on any documented automatic
 stop condition, if total live time reaches 72 hours, or if posted/projected
-P3 cost reaches 400 USD. External governance stops are recorded as deviations;
+P3 cost reaches 800 USD. External governance stops are recorded as deviations;
 the affected qualification run is resumed only after state and exclusivity
 are proven.
 
@@ -212,5 +213,13 @@ emitted target output. The loader was deallocated and the Flexible Server was
 stopped; all data and partial evidence remain retained. A fourth Azure
 patch action completed on the restarted loader from 2026-09-01T17:04:40Z to
 17:13:00Z without changing its boot time, and no swap or OOM event occurred.
-P3 remains paused at the cost gate and must not resume without revised budget
-authorization.
+P3 was paused at the cost gate pending revised budget authorization.
+
+Later on 2026-09-01 the user authorized an 800 USD ceiling and requested that
+P3 resume. Azure's posted actual-cost result had also been revised from 396.08
+USD to 253.00 USD. The loader and Flexible Server were restarted while both
+source VMs remained deallocated. After the transient private-network startup
+window cleared, PostgreSQL was `Ready` / HA `Healthy`; the retained job again
+proved `committed` with 560,000,000 rows, zero rejects, and no competing active
+job. Loader disk use was 41%, with no swap or OOM event. Digest retry r6
+started at 2026-09-01T20:32:48Z against the same immutable database and job.
