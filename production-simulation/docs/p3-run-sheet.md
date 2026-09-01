@@ -204,3 +204,13 @@ active P3 unit. PostgreSQL remained `Ready` / HA `Healthy`, and the same target
 job was again proven `committed` with 560,000,000 rows and zero rejects. Retry
 r5 started at 2026-09-01T16:27:24Z; both externally interrupted retries remain
 retained and are not reused.
+
+At 2026-09-01T17:24Z Azure posted P3 cost of 396.08 USD. Continuing the active
+digest through the next observation would project beyond the authorized 400
+USD ceiling, so retry r5 received `SIGTERM` at 2026-09-01T17:25:35Z before it
+emitted target output. The loader was deallocated and the Flexible Server was
+stopped; all data and partial evidence remain retained. A fourth Azure
+patch action completed on the restarted loader from 2026-09-01T17:04:40Z to
+17:13:00Z without changing its boot time, and no swap or OOM event occurred.
+P3 remains paused at the cost gate and must not resume without revised budget
+authorization.

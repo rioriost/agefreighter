@@ -4,11 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T16:28:20Z
-- Overall state: **RUNNING**
-- Current position: **Neo4j 4.4 clean — index-ordered target digest retry r5**
-- Next: compare every target range and the final Merkle root with the retained
-  expected fixture digest
+- Updated: 2026-09-01T17:26:10Z
+- Overall state: **PAUSED — COST CEILING**
+- Current position: **Neo4j 4.4 clean — target digest paused at step 9**
+- Next: resume a fresh digest retry only after revised budget authorization
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -16,7 +15,7 @@ guest evidence and the final reviewed result remain authoritative.
 
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
-| Neo4j 4.4.48 | Clean | **RUNNING** | Step 9 of 10: index-ordered target digest retry r5 |
+| Neo4j 4.4.48 | Clean | **PAUSED** | Step 9 of 10: retry r5 stopped at the projected 400 USD gate |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
 | Neo4j 5.26.30 | Clean | PENDING | Start after the complete 4.4 clean evidence |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
@@ -35,7 +34,7 @@ guest evidence and the final reviewed result remain authoritative.
 | 6 | Doctor and pre-`ANALYZE` optimization review | DONE | Evidence retained |
 | 7 | Target `ANALYZE` and post-`ANALYZE` optimization review | DONE | `ANALYZE` and post-analysis review completed at 2026-09-01T06:50:16Z |
 | 8 | Deterministic fixture manifest and expected range digest | DONE | 5,600 expected leaves and fixture root retained |
-| 9 | Full target canonical range digest | **RUNNING** | Retry r5 uses verifier commit `4a17b0ba4c0612b37bdc117fbca543eb9fc20787`, local endpoint resolution, and the reviewed sort-free nested-loop plan |
+| 9 | Full target canonical range digest | **PAUSED** | Retry r5 was stopped at the projected 400 USD gate; no target digest was emitted |
 | 10 | Range/root comparison and run summary | PENDING | Must match every range and the final Merkle root |
 
 Clean-run identifiers and measured gates:
@@ -94,6 +93,17 @@ and the immutable job was again proven `committed` with 560,000,000 rows and
 zero rejects. Retry r5 started at 2026-09-01T16:27:24Z and is active. The Neo4j
 4.4 VM remains deallocated until its next required qualification step.
 
+Retry r5 ran from 2026-09-01T16:27:24Z until the cost gate at
+2026-09-01T17:25:35Z. At the last live observation its verifier had 2,096,600
+KiB RSS, read approximately 104.5 GB from the loader filesystem, and had no
+swap or OOM event. Azure then posted 396.08 USD. Because continuing through the
+next observation projected beyond the authorized 400 USD ceiling, r5 received
+`SIGTERM` before emitting target output. All three VMs were deallocated and the
+Flexible Server was stopped, with all disks and evidence retained. A
+fourth automatic patch window completed at 2026-09-01T17:13:00Z without
+rebooting the loader. Further P3 execution requires revised budget
+authorization.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -148,12 +158,12 @@ immutability proof, but it must compute a new complete target digest.
 | Gate | Latest observed state |
 | --- | --- |
 | Live window | Within the authorized 72 hours |
-| Cost | Posted value: 217.32 USD; ceiling: 400 USD |
-| Flexible Server storage | 34.20%; limit: 80% |
-| PostgreSQL / HA | Ready / Healthy |
+| Cost | Posted value: 396.08 USD; ceiling: 400 USD; execution paused |
+| Flexible Server storage | 34.08%; limit: 80% |
+| PostgreSQL / HA | Stopped; all three VMs are deallocated |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
 | Swap / OOM | None |
-| External actions | Three patch windows, one PostgreSQL stop, and one loader/source VM deallocation retained; PostgreSQL and the loader recovered, digest retry r5 is active |
+| External actions | Four patch windows, one PostgreSQL stop, and one loader/source VM deallocation retained; no patch reboot occurred |
 
 The complete acceptance and stop criteria are defined in
 [`../../docs/acceptance.md`](../../docs/acceptance.md), and the authorized P3
