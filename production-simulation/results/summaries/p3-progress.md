@@ -4,7 +4,7 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T09:38:48Z
+- Updated: 2026-09-01T11:20:24Z
 - Overall state: **RUNNING**
 - Current position: **Neo4j 4.4 clean — corrected target canonical digest**
 - Next: compare all target ranges and the final Merkle root with the retained
@@ -123,7 +123,7 @@ immutability proof, but it must compute a new complete target digest.
 | PostgreSQL / HA | Ready / Healthy |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
 | Swap / OOM | None |
-| External actions | Two Azure patch actions retained as governance deviations; neither restarted the qualification processes |
+| External actions | Three Azure patch windows retained as governance deviations; none restarted the qualification processes |
 
 The complete acceptance and stop criteria are defined in
 [`../../docs/acceptance.md`](../../docs/acceptance.md), and the authorized P3
