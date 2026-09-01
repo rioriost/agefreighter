@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T14:22:38Z
-- Overall state: **CORRECTIVE VERIFICATION RETRY**
-- Current position: **Neo4j 4.4 clean — target digest query-plan correction**
-- Next: deploy the index-ordered verifier and start target digest retry r3
-  against the retained committed job
+- Updated: 2026-09-01T14:28:17Z
+- Overall state: **RUNNING**
+- Current position: **Neo4j 4.4 clean — index-ordered target digest retry r3**
+- Next: compare every target range and the final Merkle root with the retained
+  expected fixture digest
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -16,7 +16,7 @@ guest evidence and the final reviewed result remain authoritative.
 
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
-| Neo4j 4.4.48 | Clean | **CORRECTING** | Step 9 of 10: index-ordered target digest retry |
+| Neo4j 4.4.48 | Clean | **RUNNING** | Step 9 of 10: index-ordered target digest retry r3 |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
 | Neo4j 5.26.30 | Clean | PENDING | Start after the complete 4.4 clean evidence |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
@@ -35,7 +35,7 @@ guest evidence and the final reviewed result remain authoritative.
 | 6 | Doctor and pre-`ANALYZE` optimization review | DONE | Evidence retained |
 | 7 | Target `ANALYZE` and post-`ANALYZE` optimization review | DONE | `ANALYZE` and post-analysis review completed at 2026-09-01T06:50:16Z |
 | 8 | Deterministic fixture manifest and expected range digest | DONE | 5,600 expected leaves and fixture root retained |
-| 9 | Full target canonical range digest | **CORRECTING** | Retry r2 exhausted PostgreSQL temporary space before output; the r3 plan removes endpoint joins and streams GraphIDs through reviewed indexes without a sort node |
+| 9 | Full target canonical range digest | **RUNNING** | Retry r3 uses verifier commit `022f01998c59e881ef1eb4bb5f0c29fd938392f0`, local endpoint resolution, and the reviewed sort-free nested-loop plan |
 | 10 | Range/root comparison and run summary | PENDING | Must match every range and the final Merkle root |
 
 Clean-run identifiers and measured gates:
@@ -71,6 +71,8 @@ emitted and the committed graph was not changed. Retry r3 builds a bounded,
 chunked 8-byte GraphID-to-source-key index while digesting vertices, resolves
 edge endpoint identities locally, and removes the two per-edge endpoint joins.
 Live `EXPLAIN` evidence shows index-ordered nested loops with no sort node.
+Retry r3 started at 2026-09-01T14:27:39Z against the same immutable committed
+job.
 
 ### Recovery qualification
 
@@ -126,7 +128,7 @@ immutability proof, but it must compute a new complete target digest.
 | Gate | Latest observed state |
 | --- | --- |
 | Live window | Within the authorized 72 hours |
-| Cost | Posted value: 205.33 USD; ceiling: 400 USD |
+| Cost | Posted value: 217.32 USD; ceiling: 400 USD |
 | Flexible Server storage | 34.20%; limit: 80% |
 | PostgreSQL / HA | Ready / Healthy |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
