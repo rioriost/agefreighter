@@ -193,3 +193,14 @@ SameZone HA `Healthy` at 2026-09-01T15:30:59Z, and the retained job was proven
 `committed` with 560,000,000 committed rows, zero rejects, and no other active
 load job. Retry r4 started at 2026-09-01T15:33:21Z against that same immutable
 database and job; r3 remains retained as a governance-deviation failure.
+
+The same external governance principal deallocated the loader and Neo4j 4.4
+VMs at 2026-09-01T15:46Z while retry r4 was running. The abrupt loader stop
+terminated r4 before it emitted a target digest; its partial evidence is
+retained. The attached disks were preserved, and the source data disk still
+reports the frozen 10,000 IOPS / 750 MB/s configuration. After restarting only
+the loader, guest checks showed 41% OS-disk use, no swap or OOM event, and no
+active P3 unit. PostgreSQL remained `Ready` / HA `Healthy`, and the same target
+job was again proven `committed` with 560,000,000 rows and zero rejects. Retry
+r5 started at 2026-09-01T16:27:24Z; both externally interrupted retries remain
+retained and are not reused.

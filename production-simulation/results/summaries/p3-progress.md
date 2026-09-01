@@ -4,9 +4,9 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T15:34:45Z
+- Updated: 2026-09-01T16:28:20Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 4.4 clean — index-ordered target digest retry r4**
+- Current position: **Neo4j 4.4 clean — index-ordered target digest retry r5**
 - Next: compare every target range and the final Merkle root with the retained
   expected fixture digest
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
@@ -16,7 +16,7 @@ guest evidence and the final reviewed result remain authoritative.
 
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
-| Neo4j 4.4.48 | Clean | **RUNNING** | Step 9 of 10: index-ordered target digest retry r4 |
+| Neo4j 4.4.48 | Clean | **RUNNING** | Step 9 of 10: index-ordered target digest retry r5 |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
 | Neo4j 5.26.30 | Clean | PENDING | Start after the complete 4.4 clean evidence |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
@@ -35,7 +35,7 @@ guest evidence and the final reviewed result remain authoritative.
 | 6 | Doctor and pre-`ANALYZE` optimization review | DONE | Evidence retained |
 | 7 | Target `ANALYZE` and post-`ANALYZE` optimization review | DONE | `ANALYZE` and post-analysis review completed at 2026-09-01T06:50:16Z |
 | 8 | Deterministic fixture manifest and expected range digest | DONE | 5,600 expected leaves and fixture root retained |
-| 9 | Full target canonical range digest | **RUNNING** | Retry r4 uses verifier commit `869a09e3d8b4c8f2983e580b2fb3b401c61cc33b`, local endpoint resolution, and the reviewed sort-free nested-loop plan |
+| 9 | Full target canonical range digest | **RUNNING** | Retry r5 uses verifier commit `4a17b0ba4c0612b37bdc117fbca543eb9fc20787`, local endpoint resolution, and the reviewed sort-free nested-loop plan |
 | 10 | Range/root comparison and run summary | PENDING | Must match every range and the final Merkle root |
 
 Clean-run identifiers and measured gates:
@@ -81,8 +81,18 @@ returned to `Ready` / SameZone HA `Healthy` at 2026-09-01T15:30:59Z. Before
 retrying, the retained job was proven `committed` with 560,000,000 committed
 rows, zero rejects, next batch 28,001, and no other active load job. Retry r4
 started at 2026-09-01T15:33:21Z against that unchanged database and job. Its
-verifier process is active with no swap or OOM event; retry r3 remains retained
+verifier process was active with no swap or OOM event; retry r3 remains retained
 as a governance-deviation failure.
+
+At 2026-09-01T15:46Z the same external governance principal deallocated both
+the loader and Neo4j 4.4 VMs. The loader shutdown terminated retry r4 before it
+emitted a target digest. Its evidence is retained, the attached disks remain
+intact, and the source data disk still has the frozen 10,000 IOPS / 750 MB/s
+configuration. The loader was restarted with 41% OS-disk use, no swap or OOM
+event, and no other active P3 unit. PostgreSQL remained `Ready` / HA `Healthy`,
+and the immutable job was again proven `committed` with 560,000,000 rows and
+zero rejects. Retry r5 started at 2026-09-01T16:27:24Z and is active. The Neo4j
+4.4 VM remains deallocated until its next required qualification step.
 
 ### Recovery qualification
 
@@ -143,7 +153,7 @@ immutability proof, but it must compute a new complete target digest.
 | PostgreSQL / HA | Ready / Healthy |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
 | Swap / OOM | None |
-| External actions | Three patch windows plus one governance stop of PostgreSQL retained; the server recovered and digest retry r4 is active |
+| External actions | Three patch windows, one PostgreSQL stop, and one loader/source VM deallocation retained; PostgreSQL and the loader recovered, digest retry r5 is active |
 
 The complete acceptance and stop criteria are defined in
 [`../../docs/acceptance.md`](../../docs/acceptance.md), and the authorized P3
