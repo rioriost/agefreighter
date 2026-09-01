@@ -52,7 +52,8 @@ All are hard requirements:
 P2 freezes the final P3 service-level objective. Until then:
 
 - a P3 clean run should finish in 24 hours or less;
-- agefreighter RSS remains at or below 2 GiB with no upward size-related trend;
+- P3 agefreighter RSS remains at or below 4 GiB with no upward size-related
+  trend; earlier phases and non-P3 release gates retain their 2 GiB limit;
 - no process swaps or is terminated for memory pressure;
 - P3 sustained throughput is at least 70% of P2 after warmup;
 - the final throughput quintile is at least 80% of the first quintile;

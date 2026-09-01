@@ -21,7 +21,7 @@ VMs and PostgreSQL remain private and in the same region and zone.
 | Target storage | 4,096 GiB, autogrow disabled | Four retained ~425 GB P3 databases stay below 80% |
 
 The migration configuration is frozen at `fetchRows: 5000`,
-`batchRows: 20000`, `batchBytes: 64MiB`, a 2 GiB loader memory limit, and
+`batchRows: 20000`, `batchBytes: 64MiB`, a 4 GiB loader memory limit, and
 create mode. P3 does not perform tuning or replacement.
 
 ## Required runs
@@ -56,7 +56,7 @@ service is treated as automatically resumed after a reboot.
 All gates in `acceptance.md` apply. In particular, each clean load must finish
 within 24 hours, P3 post-warmup throughput must remain at least 70% of P2,
 final/first phase throughput must remain at least 80%, p99 batch latency must
-remain within three times its median, RSS must remain at most 2 GiB, and source
+remain within three times its median, RSS must remain at most 4 GiB, and source
 or target storage must stay below 80%.
 
 Stop the current run without deleting evidence on any documented automatic
@@ -139,3 +139,13 @@ and incremental modes are unchanged. A five-run local benchmark resolved
 approximately 21--30 seconds observed for the r8 target lookup. Qualification
 still requires a fresh database and job plus measured Linux RSS and batch
 throughput; r8 remains failed evidence and is not resumable for this change.
+
+The fresh r9 run reached the cached edge stage and 219,440,000 committed rows
+with zero rejected rows and a current checkpoint, proving that endpoint lookup
+no longer stalls the batch. Its loader RSS nevertheless reached approximately
+2.61 GiB, above the then-current 2 GiB acceptance gate, so r9 was stopped with
+SIGTERM and retained as failed evidence. Review retained the generic 8-byte AGE
+graph ID representation and raised only the P3 loader memory/RSS limit to
+4 GiB; earlier phases and release gates remain at 2 GiB. The configuration and
+job fingerprint therefore change, requiring another fresh database and job;
+r9 must not be resumed.

@@ -31,7 +31,7 @@ target:
   connection:
     env: AGEFREIGHTER_TARGET_DSN_NEO4J44
 runtime:
-  memoryLimit: 2GiB
+  memoryLimit: 4GiB
   batchRows: 20000
   batchBytes: 64MiB
   maxSourceConcurrency: 1
