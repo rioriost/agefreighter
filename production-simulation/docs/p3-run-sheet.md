@@ -111,3 +111,20 @@ than the measured property path. P3 sources are immutable and operationally
 read-only, so subsequent fresh jobs explicitly use `vertexIdentity:
 internal-id` for migration-time correlation. The visible `external_id` and all
 other properties remain copied and are covered by the canonical digest.
+
+The fresh r8 run validated the corrected fingerprint and reached 195,100,000
+committed rows with zero rejected rows. It completed all vertices and the
+35-million-edge `CARRIED_BY` mapping, but the first large-to-large `CONTAINS`
+batches sustained only approximately 670--940 rows per second versus the
+approximately 13,600 rows per second required by the 24-hour gate. The run was
+therefore stopped with SIGTERM and retained as failed evidence. The Neo4j
+internal-ID query no longer dominated the batch, but PostgreSQL had performed
+70,203,183 endpoint identity index probes, approximately two per committed
+edge. The next corrective investigation is consequently limited to target-side
+endpoint resolution; r8 must not be resumed.
+
+Azure reported automatic OS patch installations on two VMs at
+2026-08-31T23:04:40Z. Loader and Neo4j boot times and service/container start
+times were unchanged, the r8 checkpoint continued advancing, and no swap or
+OOM event occurred. Record this platform action as a governance deviation, but
+not as a restart or qualification fault injection.
