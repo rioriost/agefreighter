@@ -171,3 +171,15 @@ therefore read canonical vertex and endpoint identities from the referenced AGE
 properties, while retaining metadata only to select and join the committed
 generation. Retry only the digest against the same immutable committed r10 job;
 do not rerun or alter the qualified load.
+
+Digest retry r2 corrected identity semantics but its target query joined both
+endpoint vertex tables and allowed PostgreSQL to sort the expanded relation.
+After 3:44:17 PostgreSQL exhausted its temporary tablespace and aborted before
+emitting target output; the committed graph and expected digest remained
+unchanged, and server storage stayed near 34%. The next verifier retains a
+bounded, chunked 8-byte GraphID-to-source-key index while digesting vertices,
+then resolves edge endpoints locally and removes both endpoint joins. Its
+session disables parallel, hash, merge, and explicit sort plans. Reviewed live
+`EXPLAIN` output uses the generation/label/GraphID identity indexes as the outer
+stream and each AGE label primary key as the inner lookup, with no sort node.
+Retry r3 only against the same immutable committed r10 job.

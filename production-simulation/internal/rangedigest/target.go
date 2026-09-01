@@ -36,7 +36,11 @@ func TargetManifest(
 	}
 	defer connection.Close(context.Background())
 	if _, err := connection.Exec(ctx, `
-		SET search_path = ag_catalog, "$user", public`); err != nil {
+		SET search_path = ag_catalog, "$user", public;
+		SET max_parallel_workers_per_gather = 0;
+		SET enable_hashjoin = off;
+		SET enable_mergejoin = off;
+		SET enable_sort = off`); err != nil {
 		return Manifest{}, fmt.Errorf("initialize AGE session: %w", err)
 	}
 
@@ -55,7 +59,10 @@ func TargetManifest(
 		return Manifest{}, fmt.Errorf("target job status is %q, expected committed", status)
 	}
 
+	endpoints := newTargetEndpointIndex()
+	vertices := make(map[string]fixturemodel.VertexSpec, len(fixtureManifest.Plan.VertexSpecs))
 	for _, spec := range fixtureManifest.Plan.VertexSpecs {
+		vertices[spec.Label] = spec
 		labelGeneration, err := resolveLabelGeneration(ctx, connection, generationID, spec.Label, "v")
 		if err != nil {
 			return Manifest{}, err
@@ -67,7 +74,7 @@ func TargetManifest(
 		// fixture identity is the visible external_id property, so the independent
 		// digest must not substitute vertex_identity.external_id for graph content.
 		rows, err := connection.Query(ctx, fmt.Sprintf(`
-			SELECT physical.properties::text
+			SELECT identity.graph_id, physical.properties::text
 			FROM agefreighter_meta.vertex_identity identity
 			JOIN %s physical
 			  ON physical.id = identity.graph_id::text::ag_catalog.graphid
@@ -79,7 +86,7 @@ func TargetManifest(
 		if err != nil {
 			return Manifest{}, fmt.Errorf("query target vertex %q: %w", spec.Label, err)
 		}
-		count, err := digestTargetVertices(ctx, rows, spec.Label, builder)
+		count, err := digestTargetVertices(ctx, rows, spec.Label, builder, endpoints)
 		if err != nil {
 			return Manifest{}, err
 		}
@@ -99,30 +106,27 @@ func TargetManifest(
 		if err := builder.begin("e", spec.Type); err != nil {
 			return Manifest{}, err
 		}
-		// Read visible endpoint identities from the referenced AGE vertices. The
-		// operational vertex identity can intentionally be a Neo4j internal ID.
+		// Resolve endpoint GraphIDs through the bounded source-key index built while
+		// digesting visible vertices. This avoids trusting operational Neo4j IDs or
+		// issuing two target-side endpoint joins for every relationship.
 		rows, err := connection.Query(ctx, fmt.Sprintf(`
 			SELECT physical.properties::text,
-			       start_physical.properties::text,
-			       end_physical.properties::text
+			       identity.start_graph_id,
+			       identity.end_graph_id
 			FROM agefreighter_meta.edge_identity identity
 			JOIN %s physical
 			  ON physical.id = identity.graph_id::text::ag_catalog.graphid
-			JOIN %s start_physical
-			  ON start_physical.id = identity.start_graph_id::text::ag_catalog.graphid
-			JOIN %s end_physical
-			  ON end_physical.id = identity.end_graph_id::text::ag_catalog.graphid
 			WHERE identity.graph_generation_id = $1
 			  AND identity.label_generation_id = $2
 			ORDER BY identity.graph_id`,
 			pgx.Identifier{graph, spec.Type}.Sanitize(),
-			pgx.Identifier{graph, spec.Start}.Sanitize(),
-			pgx.Identifier{graph, spec.End}.Sanitize(),
 		), generationID, labelGeneration)
 		if err != nil {
 			return Manifest{}, fmt.Errorf("query target edge %q: %w", spec.Type, err)
 		}
-		count, err := digestTargetEdges(ctx, rows, spec.Type, builder)
+		count, err := digestTargetEdges(
+			ctx, rows, spec, vertices, builder, endpoints,
+		)
 		if err != nil {
 			return Manifest{}, err
 		}
@@ -177,6 +181,7 @@ func digestTargetVertices(
 	rows pgx.Rows,
 	label string,
 	builder *rangeBuilder,
+	endpoints *targetEndpointIndex,
 ) (int64, error) {
 	defer rows.Close()
 	var count int64
@@ -184,8 +189,9 @@ func digestTargetVertices(
 		if err := ctx.Err(); err != nil {
 			return count, err
 		}
+		var graphID int64
 		var rawProperties string
-		if err := rows.Scan(&rawProperties); err != nil {
+		if err := rows.Scan(&graphID, &rawProperties); err != nil {
 			return count, err
 		}
 		key, canonical, err := canonicalTargetVertex(label, rawProperties)
@@ -195,6 +201,9 @@ func digestTargetVertices(
 		if err := builder.add(key, canonical); err != nil {
 			return count, err
 		}
+		if err := endpoints.add(label, graphID, key); err != nil {
+			return count, fmt.Errorf("target vertex %q row %d: %w", label, count+1, err)
+		}
 		count++
 	}
 	return count, rows.Err()
@@ -203,8 +212,10 @@ func digestTargetVertices(
 func digestTargetEdges(
 	ctx context.Context,
 	rows pgx.Rows,
-	label string,
+	spec fixturemodel.EdgeSpec,
+	vertices map[string]fixturemodel.VertexSpec,
 	builder *rangeBuilder,
+	endpoints *targetEndpointIndex,
 ) (int64, error) {
 	defer rows.Close()
 	var count int64
@@ -212,15 +223,32 @@ func digestTargetEdges(
 		if err := ctx.Err(); err != nil {
 			return count, err
 		}
-		var rawProperties, startProperties, endProperties string
-		if err := rows.Scan(&rawProperties, &startProperties, &endProperties); err != nil {
+		var rawProperties string
+		var startGraphID, endGraphID int64
+		if err := rows.Scan(&rawProperties, &startGraphID, &endGraphID); err != nil {
 			return count, err
 		}
+		startKey, err := endpoints.lookup(spec.Start, startGraphID)
+		if err != nil {
+			return count, fmt.Errorf("target edge %q row %d start: %w", spec.Type, count+1, err)
+		}
+		endKey, err := endpoints.lookup(spec.End, endGraphID)
+		if err != nil {
+			return count, fmt.Errorf("target edge %q row %d end: %w", spec.Type, count+1, err)
+		}
+		startExternalID, err := fixtureExternalID(vertices[spec.Start], startKey)
+		if err != nil {
+			return count, fmt.Errorf("target edge %q row %d start: %w", spec.Type, count+1, err)
+		}
+		endExternalID, err := fixtureExternalID(vertices[spec.End], endKey)
+		if err != nil {
+			return count, fmt.Errorf("target edge %q row %d end: %w", spec.Type, count+1, err)
+		}
 		key, canonical, err := canonicalTargetEdge(
-			label, rawProperties, startProperties, endProperties,
+			spec.Type, rawProperties, startExternalID, endExternalID,
 		)
 		if err != nil {
-			return count, fmt.Errorf("target edge %q row %d: %w", label, count+1, err)
+			return count, fmt.Errorf("target edge %q row %d: %w", spec.Type, count+1, err)
 		}
 		if err := builder.add(key, canonical); err != nil {
 			return count, err
@@ -249,8 +277,8 @@ func canonicalTargetVertex(label, rawProperties string) (int64, []byte, error) {
 func canonicalTargetEdge(
 	label string,
 	rawProperties string,
-	startRawProperties string,
-	endRawProperties string,
+	startExternalID string,
+	endExternalID string,
 ) (int64, []byte, error) {
 	properties, encoded, err := canonicalJSONProperties(rawProperties)
 	if err != nil {
@@ -263,22 +291,6 @@ func canonicalTargetEdge(
 	externalID, err := stringProperty(properties, "relationship_id")
 	if err != nil {
 		return 0, nil, err
-	}
-	startProperties, _, err := canonicalJSONProperties(startRawProperties)
-	if err != nil {
-		return 0, nil, fmt.Errorf("decode start vertex: %w", err)
-	}
-	startExternalID, err := stringProperty(startProperties, "external_id")
-	if err != nil {
-		return 0, nil, fmt.Errorf("start vertex: %w", err)
-	}
-	endProperties, _, err := canonicalJSONProperties(endRawProperties)
-	if err != nil {
-		return 0, nil, fmt.Errorf("decode end vertex: %w", err)
-	}
-	endExternalID, err := stringProperty(endProperties, "external_id")
-	if err != nil {
-		return 0, nil, fmt.Errorf("end vertex: %w", err)
 	}
 	return key, edgeLine(
 		label, key, externalID, startExternalID, endExternalID, encoded,

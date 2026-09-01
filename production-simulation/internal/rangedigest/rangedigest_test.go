@@ -141,8 +141,8 @@ func TestCanonicalTargetEdgeUsesVisibleEndpointIdentities(t *testing.T) {
 	key, canonical, err := canonicalTargetEdge(
 		"SUPPLIES",
 		`{"source_key":1,"relationship_id":"supplies-000000000001"}`,
-		`{"source_key":1,"external_id":"supplier-000000000001"}`,
-		`{"source_key":6000001,"external_id":"product-000000000001"}`,
+		"supplier-000000000001",
+		"product-000000000001",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -159,5 +159,25 @@ func TestCanonicalTargetEdgeUsesVisibleEndpointIdentities(t *testing.T) {
 	}
 	if key != 1 {
 		t.Fatalf("target edge key=%d, want 1", key)
+	}
+}
+
+func TestTargetEndpointIndexUsesFullGraphID(t *testing.T) {
+	t.Parallel()
+
+	index := newTargetEndpointIndex()
+	graphID := int64(uint64(7)<<48 | 42)
+	if err := index.add("Supplier", graphID, 123); err != nil {
+		t.Fatal(err)
+	}
+	key, err := index.lookup("Supplier", graphID)
+	if err != nil || key != 123 {
+		t.Fatalf("lookup key=%d err=%v", key, err)
+	}
+	if _, err := index.lookup("Product", graphID); err == nil {
+		t.Fatal("accepted endpoint graph ID for the wrong label")
+	}
+	if err := index.add("Supplier", graphID, 124); err == nil {
+		t.Fatal("accepted duplicate endpoint graph ID")
 	}
 }
