@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T09:20:52Z
-- Overall state: **CORRECTIVE VERIFICATION RETRY**
-- Current position: **Neo4j 4.4 clean — target digest verifier correction**
-- Next: deploy the corrected verifier and rerun only the full target canonical
-  range digest against the retained committed clean database
+- Updated: 2026-09-01T09:38:48Z
+- Overall state: **RUNNING**
+- Current position: **Neo4j 4.4 clean — corrected target canonical digest**
+- Next: compare all target ranges and the final Merkle root with the retained
+  expected fixture digest
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -16,7 +16,7 @@ guest evidence and the final reviewed result remain authoritative.
 
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
-| Neo4j 4.4.48 | Clean | **CORRECTING** | Step 9 of 10: target digest verifier retry |
+| Neo4j 4.4.48 | Clean | **RUNNING** | Step 9 of 10: corrected target canonical digest |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
 | Neo4j 5.26.30 | Clean | PENDING | Start after the complete 4.4 clean evidence |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
@@ -35,7 +35,7 @@ guest evidence and the final reviewed result remain authoritative.
 | 6 | Doctor and pre-`ANALYZE` optimization review | DONE | Evidence retained |
 | 7 | Target `ANALYZE` and post-`ANALYZE` optimization review | DONE | `ANALYZE` and post-analysis review completed at 2026-09-01T06:50:16Z |
 | 8 | Deterministic fixture manifest and expected range digest | DONE | 5,600 expected leaves and fixture root retained |
-| 9 | Full target canonical range digest | **CORRECTING** | The first verifier treated the operational Neo4j internal ID as the visible `external_id`; the committed target is retained and only the verifier is being corrected and retried |
+| 9 | Full target canonical range digest | **RUNNING** | Retry r2 is reading visible identities from the committed AGE properties with verifier commit `378dc4e35473d638f528547d9719e6db7efd16cf` |
 | 10 | Range/root comparison and run summary | PENDING | Must match every range and the final Merkle root |
 
 Clean-run identifiers and measured gates:
@@ -61,7 +61,8 @@ The first detached retry launcher retained an immediate pre-verifier bootstrap
 failure because its transient service did not define the Go module/cache
 environment. No database command ran. The corrected launcher uses explicit
 root-owned build caches and a new evidence directory; the failed retry remains
-retained and is not reused.
+retained and is not reused. Retry r2 started the corrected target digest at
+2026-09-01T09:38:19Z against the same immutable committed job.
 
 ### Recovery qualification
 
