@@ -183,3 +183,13 @@ session disables parallel, hash, merge, and explicit sort plans. Reviewed live
 `EXPLAIN` output uses the generation/label/GraphID identity indexes as the outer
 stream and each AGE label primary key as the inner lookup, with no sort node.
 Retry r3 only against the same immutable committed r10 job.
+
+At 2026-09-01T15:10:38Z the external Azure governance principal stopped the
+Flexible Server while retry r3 was reading the committed graph. The verifier
+failed with a target connection timeout at 2026-09-01T15:11:44Z and emitted no
+target digest. This was not an authorized qualification fault and did not
+change the committed job. The server was restarted, returned to `Ready` with
+SameZone HA `Healthy` at 2026-09-01T15:30:59Z, and the retained job was proven
+`committed` with 560,000,000 committed rows, zero rejects, and no other active
+load job. Retry r4 started at 2026-09-01T15:33:21Z against that same immutable
+database and job; r3 remains retained as a governance-deviation failure.
