@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T20:34:01Z
+- Updated: 2026-09-01T23:27:00Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 4.4 clean — index-ordered target digest retry r6**
-- Next: compare every target range and the final Merkle root with the retained
-  expected fixture digest
+- Current position: **Neo4j 5.26 clean — source VM startup and preflight**
+- Next: prove the retained Neo4j 5.26 source version, zone, read-only state,
+  storage, and exclusivity before starting its clean target
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -16,9 +16,9 @@ guest evidence and the final reviewed result remain authoritative.
 
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
-| Neo4j 4.4.48 | Clean | **RUNNING** | Step 9 of 10: index-ordered target digest retry r6 |
+| Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | PENDING | Start after the complete 4.4 clean evidence |
+| Neo4j 5.26.30 | Clean | **RUNNING** | Step 1 of 10: source startup and preflight |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -35,8 +35,8 @@ guest evidence and the final reviewed result remain authoritative.
 | 6 | Doctor and pre-`ANALYZE` optimization review | DONE | Evidence retained |
 | 7 | Target `ANALYZE` and post-`ANALYZE` optimization review | DONE | `ANALYZE` and post-analysis review completed at 2026-09-01T06:50:16Z |
 | 8 | Deterministic fixture manifest and expected range digest | DONE | 5,600 expected leaves and fixture root retained |
-| 9 | Full target canonical range digest | **RUNNING** | Retry r6 uses verifier commit `50bfc88a8af4aa1cd9b077019324de221f5be108`, local endpoint resolution, and the reviewed sort-free nested-loop plan |
-| 10 | Range/root comparison and run summary | PENDING | Must match every range and the final Merkle root |
+| 9 | Full target canonical range digest | DONE | Retry r6 emitted 560,000,000 rows and 5,600 leaves in 2:13:21; maximum RSS 2,633,072 KiB |
+| 10 | Range/root comparison and run summary | DONE | Every range and final root match the retained expected digest |
 
 Clean-run identifiers and measured gates:
 
@@ -114,6 +114,14 @@ rows, zero rejects, next batch 28,001, and no competing active job. The loader
 had 41% disk use, no swap, and no OOM event. Retry r6 started at
 2026-09-01T20:32:48Z and is active against the unchanged database and job.
 
+Retry r6 completed at 2026-09-01T22:46:21Z with exit status 0. The target
+digest covered all 560,000,000 rows in 5,600 leaves. Every range and the final
+root matched the retained expected root
+`0302c456d17c6e9ee64552d68e2bf6a775e63cd3b09120f5bc342d329bddd1ba`.
+Maximum verifier RSS was 2,633,072 KiB with zero swaps. A fifth automatic patch
+window completed at 2026-09-01T23:08:00Z without rebooting the loader or
+altering the completed evidence. The clean qualification is complete.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -135,7 +143,7 @@ immutability proof, but it must compute a new complete target digest.
 
 | Step | Evidence gate | State |
 | ---: | --- | --- |
-| 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | PENDING |
+| 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | **RUNNING** |
 | 2 | Target preflight, plan, and exact source profile before load | PENDING |
 | 3 | Uninterrupted 560-million-record migration | PENDING |
 | 4 | Job report and exact count collection | PENDING |
@@ -173,7 +181,7 @@ immutability proof, but it must compute a new complete target digest.
 | PostgreSQL / HA | Ready / Healthy; loader running; both source VMs deallocated |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
 | Swap / OOM | None |
-| External actions | Four patch windows, one PostgreSQL stop, and one loader/source VM deallocation retained; no patch reboot occurred |
+| External actions | Five patch windows, one PostgreSQL stop, and one loader/source VM deallocation retained; no patch reboot occurred |
 
 The complete acceptance and stop criteria are defined in
 [`../../docs/acceptance.md`](../../docs/acceptance.md), and the authorized P3

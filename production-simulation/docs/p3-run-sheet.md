@@ -223,3 +223,13 @@ window cleared, PostgreSQL was `Ready` / HA `Healthy`; the retained job again
 proved `committed` with 560,000,000 rows, zero rejects, and no competing active
 job. Loader disk use was 41%, with no swap or OOM event. Digest retry r6
 started at 2026-09-01T20:32:48Z against the same immutable database and job.
+
+Retry r6 completed at 2026-09-01T22:46:21Z after 2:13:21. It produced all
+5,600 target leaves for 560,000,000 rows, and every range plus the final root
+matched the retained expected digest
+`0302c456d17c6e9ee64552d68e2bf6a775e63cd3b09120f5bc342d329bddd1ba`.
+Maximum verifier RSS was 2,633,072 KiB, with zero swaps and exit status 0. A
+fifth automatic patch window completed on the loader from
+2026-09-01T23:04:40Z to 23:08:00Z without changing its boot time or disturbing
+the completed evidence. The Neo4j 4.4 clean qualification is complete; advance
+to the Neo4j 5.26 clean source preflight.
