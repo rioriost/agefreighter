@@ -33,6 +33,8 @@ Completed live-phase reports:
 
 - [P0 result](results/summaries/p0-20260829.md)
 - [P1 result](results/summaries/p1-20260830.md)
+- [P2 result](results/summaries/p2-20260830.md)
+- [P3 live progress](results/summaries/p3-progress.md)
 
 Generated CSV, secrets, database dumps, and raw telemetry must not be committed.
 They belong under `work/` or `results/raw/`, both of which are ignored.
