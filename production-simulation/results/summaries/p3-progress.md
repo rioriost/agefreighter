@@ -4,7 +4,7 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T11:20:24Z
+- Updated: 2026-09-01T12:21:55Z
 - Overall state: **RUNNING**
 - Current position: **Neo4j 4.4 clean — corrected target canonical digest**
 - Next: compare all target ranges and the final Merkle root with the retained
@@ -118,7 +118,7 @@ immutability proof, but it must compute a new complete target digest.
 | Gate | Latest observed state |
 | --- | --- |
 | Live window | Within the authorized 72 hours |
-| Cost | Last successfully posted value: 159.32 USD; ceiling: 400 USD |
+| Cost | Posted value: 205.33 USD; ceiling: 400 USD |
 | Flexible Server storage | 34.20%; limit: 80% |
 | PostgreSQL / HA | Ready / Healthy |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
