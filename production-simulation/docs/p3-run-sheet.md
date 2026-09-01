@@ -4,10 +4,12 @@
 
 The user authorized P3 execution and its forecast budget on 2026-08-31. P3
 must complete during the week ending 2026-09-06. The reviewed live-operation
-window is 72 hours and the cost ceiling is 225 USD. This authorization covers
-deployment, source preparation, four migration runs, the controlled faults
-below, full verification, monitoring, evidence retention, and stopping the
-resources. It does not authorize P4 or deletion of resources or evidence.
+window is 72 hours. On 2026-09-01 the user raised the cost ceiling to 400 USD
+and made completing all four qualification runs the highest priority. This
+authorization covers deployment, source preparation, four migration runs, the
+controlled faults below, full verification, monitoring, evidence retention,
+and stopping the resources. It does not authorize P4 or deletion of resources
+or evidence.
 
 P3 uses a new `rg-afps-p3-20260831` resource group in Japan East zone 1. All
 VMs and PostgreSQL remain private and in the same region and zone.
@@ -61,7 +63,7 @@ or target storage must stay below 80%.
 
 Stop the current run without deleting evidence on any documented automatic
 stop condition, if total live time reaches 72 hours, or if posted/projected
-P3 cost reaches 225 USD. External governance stops are recorded as deviations;
+P3 cost reaches 400 USD. External governance stops are recorded as deviations;
 the affected qualification run is resumed only after state and exclusivity
 are proven.
 
