@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T06:46:00Z
+- Updated: 2026-09-01T07:17:51Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 4.4 clean — target `ANALYZE`**
-- Next: post-`ANALYZE` optimization, fixture/target canonical digest, and root
-  comparison for the Neo4j 4.4 clean run
+- Current position: **Neo4j 4.4 clean — expected fixture range digest**
+- Next: full target canonical range digest and root comparison for the Neo4j
+  4.4 clean run
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -16,7 +16,7 @@ guest evidence and the final reviewed result remain authoritative.
 
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
-| Neo4j 4.4.48 | Clean | **RUNNING** | Step 7 of 10: target `ANALYZE` |
+| Neo4j 4.4.48 | Clean | **RUNNING** | Step 8 of 10: expected fixture range digest |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
 | Neo4j 5.26.30 | Clean | PENDING | Start after the complete 4.4 clean evidence |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
@@ -33,8 +33,8 @@ guest evidence and the final reviewed result remain authoritative.
 | 4 | Built-in counts, catalog, generation, and bounded integrity checks | DONE | All executed checks pass; bounded coverage remains `incomplete` until the full digest closes it |
 | 5 | Exact source profile after load | DONE | Before/after profiles retained for immutability review |
 | 6 | Doctor and pre-`ANALYZE` optimization review | DONE | Evidence retained |
-| 7 | Target `ANALYZE` and post-`ANALYZE` optimization review | **RUNNING** | `ANALYZE` started at 2026-09-01T06:43:12Z |
-| 8 | Deterministic fixture manifest and expected range digest | PENDING | Starts after target maintenance |
+| 7 | Target `ANALYZE` and post-`ANALYZE` optimization review | DONE | `ANALYZE` and post-analysis review completed at 2026-09-01T06:50:16Z |
+| 8 | Deterministic fixture manifest and expected range digest | **RUNNING** | Computing the 100,000-record range digest from the verified P3 fixture |
 | 9 | Full target canonical range digest | PENDING | Must cover all 560,000,000 canonical records |
 | 10 | Range/root comparison and run summary | PENDING | Must match every range and the final Merkle root |
 
