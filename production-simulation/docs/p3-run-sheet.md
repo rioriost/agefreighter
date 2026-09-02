@@ -403,3 +403,14 @@ and container restarts remained zero. Flexible Server storage was 39.21%, the
 posted P3 actual cost was 290.22 USD against the 800 USD ceiling, PostgreSQL
 was `Ready` / HA `Healthy`, and no external governance stop occurred. Keep r14
 uninterrupted through completion and then run the full clean verification.
+
+At 2026-09-02T11:50:54Z r14 had committed 299,860,000 of 560,000,000 rows
+(53.5%) with zero rejects and a current checkpoint. Loader RSS was 2,732,008
+KiB, source Java RSS was 80,917,596 KiB, and swap, OOM events, and container
+restarts remained zero. Azure installed OS updates on both active VMs between
+11:04:40Z and 11:08:00Z, but neither guest rebooted, the loader unit and source
+container retained their original start times, and checkpointed progress
+continued. Record this as a non-interrupting external action. Flexible Server
+storage was 42.06%. The cost endpoint was rate-limited, so the latest posted
+actual remains 290.22 USD against the 800 USD ceiling. Continue r14 without
+interruption.
