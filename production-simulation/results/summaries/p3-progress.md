@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-01T23:34:00Z
+- Updated: 2026-09-02T00:28:30Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — exact source profile before load**
-- Next: finish the exact source profile, then begin the uninterrupted
-  560-million-record load
+- Current position: **Neo4j 5.26 clean — uninterrupted 560-million-record load**
+- Next: continue the load while enforcing checkpoint, memory, storage, and
+  throughput gates
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | Step 2 of 10: exact source profile before load |
+| Neo4j 5.26.30 | Clean | **RUNNING** | Step 3 of 10: uninterrupted load |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -144,8 +144,8 @@ immutability proof, but it must compute a new complete target digest.
 | Step | Evidence gate | State |
 | ---: | --- | --- |
 | 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | DONE |
-| 2 | Target preflight, plan, and exact source profile before load | **RUNNING** |
-| 3 | Uninterrupted 560-million-record migration | PENDING |
+| 2 | Target preflight, plan, and exact source profile before load | DONE |
+| 3 | Uninterrupted 560-million-record migration | **RUNNING** |
 | 4 | Job report and exact count collection | PENDING |
 | 5 | Built-in counts, catalog, generation, and bounded integrity checks | PENDING |
 | 6 | Exact source profile after load | PENDING |
@@ -161,7 +161,16 @@ present. The untouched target `agefreighter_p3_clean_r10_neo4j526` contains
 AGE 1.7.0 with no migration schema or graph. Clean run
 `clean-r10-neo4j526` started at 2026-09-01T23:33:16Z using verifier/source
 commit `2bc32cd3366fee39062258de05772945b08c0607`; validation and target preflight
-passed, the plan was retained, and the exact source-before profile is active.
+passed, the plan was retained, and the exact source-before profile began.
+
+The exact source-before profile completed at 2026-09-01T23:53:05Z and the
+uninterrupted load started with durable job
+`3e8f78bb-fea3-4cd6-b726-77652d95d709`. At 2026-09-02T00:27:25Z it had
+committed 26,680,000 rows with zero rejects, next batch 1,335, and a 23-second
+checkpoint age. Loader RSS was approximately 537 MiB. PostgreSQL storage was
+34.50%, source storage was 32%, and swap/OOM remained zero. The automatic patch
+window from 2026-09-01T23:43:40Z to 23:53:00Z did not restart the source VM or
+Neo4j container.
 
 ### Recovery qualification
 
@@ -184,11 +193,11 @@ immutability proof, but it must compute a new complete target digest.
 | --- | --- |
 | Live window | Within the authorized 72 hours |
 | Cost | Posted actual value: 253.00 USD after Azure revision; ceiling: 800 USD |
-| Flexible Server storage | 34.08%; limit: 80% |
+| Flexible Server storage | 34.50%; limit: 80% |
 | PostgreSQL / HA | Ready / Healthy; loader and Neo4j 5.26 source running; Neo4j 4.4 source deallocated |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
 | Swap / OOM | None |
-| External actions | Five patch windows, one PostgreSQL stop, and one loader/source VM deallocation retained; no patch reboot occurred |
+| External actions | Six patch windows, one PostgreSQL stop, and one loader/source VM deallocation retained; no patch reboot occurred |
 
 The complete acceptance and stop criteria are defined in
 [`../../docs/acceptance.md`](../../docs/acceptance.md), and the authorized P3

@@ -233,3 +233,14 @@ fifth automatic patch window completed on the loader from
 2026-09-01T23:04:40Z to 23:08:00Z without changing its boot time or disturbing
 the completed evidence. The Neo4j 4.4 clean qualification is complete; advance
 to the Neo4j 5.26 clean source preflight.
+
+The retained Neo4j 5.26 source then proved Community 5.26.30, zone 1,
+read-only database access, 32% source-disk use, and no competing P3 process.
+The untouched paired r10 target contained AGE 1.7.0 with no migration schema or
+graph. Run `clean-r10-neo4j526` completed its exact source-before profile and
+started the uninterrupted load at 2026-09-01T23:53:05Z with durable job
+`3e8f78bb-fea3-4cd6-b726-77652d95d709`. At the first live checkpoint it had
+committed 26,680,000 rows with zero rejects, a 23-second checkpoint age, and
+approximately 537 MiB RSS. A sixth automatic patch window completed on the
+source VM from 2026-09-01T23:43:40Z to 23:53:00Z without restarting the VM or
+Neo4j container; swap and OOM remained zero.
