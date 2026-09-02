@@ -334,3 +334,15 @@ reprove the new effective heap and read-only database state, and use a fresh
 r13 target database and durable job. R13 must still be uninterrupted and must
 progress beyond the three retained 26.7-million-row failure boundaries before
 the clean qualification can advance.
+
+The stopped r12 container and its logs were retained separately. The
+replacement source container proved the pinned Neo4j 5.26.30 image, 48 GiB
+initial/maximum heap, 28 GiB page cache, online read-only database access, 32%
+source-disk use, and zero swap or kernel OOM events. After authenticated private
+PostgreSQL connectivity returned, fresh run `clean-r13-neo4j526` started at
+2026-09-02T06:10:20Z on commit
+`8d2e61ca43adb12a510ab63707702115be899c0b`. It prepared another fresh target
+and reused the validated source-before profile with SHA-256
+`0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`. Record
+the new durable job ID when created and monitor it uninterrupted past the three
+retained failure boundaries.

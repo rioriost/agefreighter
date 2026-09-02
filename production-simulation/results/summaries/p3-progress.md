@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T05:47:00Z
-- Overall state: **RUNNING — authorized r13 correction preflight**
-- Current position: **Neo4j 5.26 clean — applying the authorized 48 GiB heap correction**
-- Next: reprove the source with a 48 GiB heap and 28 GiB page cache, then start
-  a fresh r13 target and durable job
+- Updated: 2026-09-02T06:12:03Z
+- Overall state: **RUNNING**
+- Current position: **Neo4j 5.26 clean — fresh r13 uninterrupted load is running with a 48 GiB heap**
+- Next: obtain the r13 durable job ID and verify checkpoints beyond the three
+  retained 26.7-million-row failure boundaries
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | 48 GiB heap authorized; r13 preflight in progress |
+| Neo4j 5.26.30 | Clean | **RUNNING** | Fresh r13 load active with a 48 GiB heap; durable job creation is pending |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -145,7 +145,7 @@ immutability proof, but it must compute a new complete target digest.
 | ---: | --- | --- |
 | 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | DONE |
 | 2 | Target preflight, plan, and exact source profile before load | DONE; retained for fresh retry |
-| 3 | Uninterrupted 560-million-record migration | r13 preflight; 48 GiB heap authorized |
+| 3 | Uninterrupted 560-million-record migration | **RUNNING**; fresh r13 load process active |
 | 4 | Job report and exact count collection | PENDING |
 | 5 | Built-in counts, catalog, generation, and bounded integrity checks | PENDING |
 | 6 | Exact source profile after load | PENDING |
@@ -246,6 +246,17 @@ migration configuration, loader, and PostgreSQL target remain unchanged. R13
 will preserve the stopped r12 container evidence, reprove effective memory and
 read-only state, and use another fresh database and durable job.
 
+The stopped r12 container and its logs were retained separately. The new
+source container proved the pinned Neo4j 5.26.30 image, a 48 GiB
+initial/maximum heap, a 28 GiB page cache, online read-only database access,
+32% source-disk use, and zero swap or kernel OOM events. Fresh run
+`clean-r13-neo4j526` started at 2026-09-02T06:10:20Z on commit
+`8d2e61ca43adb12a510ab63707702115be899c0b`, prepared a new PostgreSQL 18 /
+AGE 1.7 target, and reused the retained exact source-before profile with SHA-256
+`0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`.
+The load process is active with no swap/OOM event; its durable job row has not
+yet been created.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -268,10 +279,10 @@ immutability proof, but it must compute a new complete target digest.
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 253.00 USD after Azure revision; ceiling: 800 USD |
 | Flexible Server storage | Azure last reported 34.92%; database footprint 29.26%; limit: 80% |
-| PostgreSQL / HA | Stopped after retaining the failed r12 evidence |
+| PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
-| Swap / OOM | Loader swap/OOM zero; Neo4j Java OOM reproduced without a kernel/cgroup OOM kill |
-| Active resources | All three VMs deallocated; Flexible Server stopped |
+| Swap / OOM | Current r13 loader/source swap and OOM zero; retained r12 Java OOM evidence unchanged |
+| Active resources | Loader and Neo4j 5.26 VM running; Neo4j 4.4 VM deallocated; Flexible Server running |
 | External actions | Six patch windows and the previously recorded governance stops retained; no new external stop caused r12 |
 
 The complete acceptance and stop criteria are defined in
