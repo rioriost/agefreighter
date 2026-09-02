@@ -319,9 +319,9 @@ container did not restart. This third identical boundary proves that host RAM
 alone does not enlarge the fixed JVM heap.
 
 R12 is failed evidence and must not be resumed. Its source container stopped
-cleanly at 2026-09-02T04:55:28Z before the active infrastructure was submitted
-for deallocation/stop. A 48 GiB heap with the page cache held at 28 GiB is the
-minimum recommended correction on the existing 128 GiB source VM, leaving
-substantial memory for the OS and file cache. Because this changes a second
-frozen P3 source value, do not start r13 until the user explicitly authorizes
-that heap correction.
+cleanly at 2026-09-02T04:55:28Z; all three VMs are confirmed deallocated and
+the Flexible Server is confirmed stopped. A 48 GiB heap with the page cache
+held at 28 GiB is the minimum recommended correction on the existing 128 GiB
+source VM, leaving substantial memory for the OS and file cache. Because this
+changes a second frozen P3 source value, do not start r13 until the user
+explicitly authorizes that heap correction.

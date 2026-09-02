@@ -4,7 +4,7 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T04:55:28Z
+- Updated: 2026-09-02T05:46:00Z
 - Overall state: **PAUSED — source JVM configuration authorization required**
 - Current position: **Neo4j 5.26 clean — r12 reproduced the 26.7-million-row JVM-heap failure on the 128 GiB VM**
 - Next: authorize a 48 GiB Neo4j heap while retaining the 28 GiB page cache,
@@ -232,12 +232,12 @@ cgroup-OOM-killed, did not restart, and its data disk remained 32% used. This
 proves that increasing host RAM alone cannot correct the fixed JVM-heap limit.
 
 The failed r12 target and guest evidence are retained and must not be resumed.
-The source container was stopped cleanly at 2026-09-02T04:55:28Z, then the
-loader and Neo4j 5.26 VMs were submitted for deallocation and the Flexible
-Server was submitted for stop. The recommended minimum correction is a 48 GiB
-Neo4j heap with the page cache held at 28 GiB on the existing 128 GiB VM. This
-changes another frozen P3 source value and requires explicit authorization
-before a fresh r13 run.
+The source container was stopped cleanly at 2026-09-02T04:55:28Z. All three
+VMs are now confirmed deallocated and the Flexible Server is confirmed
+stopped. The recommended minimum correction is a 48 GiB Neo4j heap with the
+page cache held at 28 GiB on the existing 128 GiB VM. This changes another
+frozen P3 source value and requires explicit authorization before a fresh r13
+run.
 
 ### Recovery qualification
 
@@ -261,10 +261,10 @@ immutability proof, but it must compute a new complete target digest.
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 253.00 USD after Azure revision; ceiling: 800 USD |
 | Flexible Server storage | Azure last reported 34.92%; database footprint 29.26%; limit: 80% |
-| PostgreSQL / HA | Stop submitted after retaining the failed r12 evidence |
+| PostgreSQL / HA | Stopped after retaining the failed r12 evidence |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
 | Swap / OOM | Loader swap/OOM zero; Neo4j Java OOM reproduced without a kernel/cgroup OOM kill |
-| Active resources | All VMs submitted for deallocation; Flexible Server submitted for stop |
+| Active resources | All three VMs deallocated; Flexible Server stopped |
 | External actions | Six patch windows and the previously recorded governance stops retained; no new external stop caused r12 |
 
 The complete acceptance and stop criteria are defined in
