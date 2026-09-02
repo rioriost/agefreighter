@@ -4,9 +4,9 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T14:51:20Z
+- Updated: 2026-09-02T15:59:40Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — full target canonical digest is running**
+- Current position: **Neo4j 5.26 clean — external-stop digest retry r2 is running**
 - Next: complete and compare all 5,600 target digest ranges, then review the
   final clean-run evidence
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | All post-load checks passed; full target digest running |
+| Neo4j 5.26.30 | Clean | **RUNNING** | All post-load checks passed; retained-job digest retry r2 running |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -348,6 +348,24 @@ Flexible Server storage was 46.35%, within the 80% gate. The cost endpoint was
 still rate-limited, so the latest posted actual remains 290.22 USD against the
 800 USD ceiling. Do not interrupt the target digest.
 
+At 2026-09-02T15:06:49Z the external Azure governance principal stopped the
+Flexible Server while the first r14 target-digest attempt was active. It then
+deallocated the loader and Neo4j 5.26 VMs at 15:47Z. The digest emitted no
+target output; the committed job and all completed clean-run evidence remain
+retained. This was not an authorized qualification fault. The posted P3 actual
+cost was 353.61 USD, within the 800 USD ceiling, and the last storage reading
+was 46.35%, within the 80% gate.
+
+Only the loader and Flexible Server were restarted; the source VMs remain
+deallocated. After the private-network startup window cleared, PostgreSQL was
+`Ready` / HA `Healthy`, the same job again proved `committed` with 560,000,000
+rows and zero rejects, no competing P3 unit existed, loader disk use was 41%,
+and swap/OOM remained zero. Core clean-r14 evidence checksums were recorded and
+the interrupted attempt had produced no partial target digest. Retained-job
+digest retry `clean-r14-digest-r2-neo4j526` started at
+2026-09-02T15:58:49Z against verifier commit
+`9391b23c7527ea35338fa731eb18a88136efaa65`; it was active at 15:59:40Z.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -368,13 +386,13 @@ immutability proof, but it must compute a new complete target digest.
 | Gate | Latest observed state |
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
-| Cost | Posted actual value: 290.22 USD; ceiling: 800 USD |
+| Cost | Posted actual value: 353.61 USD; ceiling: 800 USD |
 | Flexible Server storage | Azure last reported 46.35%; limit: 80% |
 | PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
 | Loader memory | R14 load peak 2.61 GiB; limit: 4 GiB |
 | Swap / OOM | Current r14 loader/source swap and OOM zero; retained r13 Java OOM evidence unchanged |
-| Active resources | Loader and Neo4j 5.26 VM running; Neo4j 4.4 VM deallocated; Flexible Server running |
-| External actions | OS updates completed on both active VMs at 11:08Z without reboot, restart, or load interruption; prior actions retained |
+| Active resources | Loader VM and Flexible Server running; both source VMs deallocated |
+| External actions | Governance principal interrupted the first r14 digest and deallocated active resources; retained-job digest retry r2 is active |
 
 The complete acceptance and stop criteria are defined in
 [`../../docs/acceptance.md`](../../docs/acceptance.md), and the authorized P3

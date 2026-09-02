@@ -435,3 +435,22 @@ zero. Flexible Server storage was 46.35%. The cost endpoint remained
 rate-limited and the latest posted actual remains 290.22 USD against the 800
 USD ceiling. Do not interrupt the target digest; compare its complete output
 with the fixture digest before accepting the clean run.
+
+At 2026-09-02T15:06:49Z the external Azure governance principal stopped the
+Flexible Server while the first r14 target-digest attempt was active, then
+deallocated the loader and Neo4j 5.26 VMs at 15:47Z. The digest emitted no
+target output. This was not an authorized qualification fault and did not
+change the committed job or completed clean-run evidence. The posted P3 actual
+cost was 353.61 USD within the 800 USD ceiling; the last storage reading was
+46.35%, within the 80% gate.
+
+Restart only the loader and Flexible Server and keep both source VMs
+deallocated. After the private-network startup gate cleared, PostgreSQL was
+`Ready` / HA `Healthy`; the retained job again proved `committed` with
+560,000,000 rows and zero rejects, no P3 unit was active, loader disk use was
+41%, and swap/OOM was zero. Checksums for the core r14 evidence were recorded,
+and the interrupted attempt had emitted no partial target digest. Retained-job
+digest retry `clean-r14-digest-r2-neo4j526` started at
+2026-09-02T15:58:49Z against verifier commit
+`9391b23c7527ea35338fa731eb18a88136efaa65` and was active at 15:59:40Z.
+Preserve the interrupted r14 service evidence and let r2 finish uninterrupted.
