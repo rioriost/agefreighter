@@ -4,11 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T11:50:54Z
+- Updated: 2026-09-02T13:53:18Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — r14 is beyond 50% and both retained failure boundaries**
-- Next: allow the corrected uninterrupted load to finish, then execute all
-  clean-run checks and the full canonical digest
+- Current position: **Neo4j 5.26 clean — r14 load committed; exact job report is running**
+- Next: complete all clean-run checks and the full canonical digest
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +17,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | R14 at 299,860,000 of 560,000,000 rows (53.5%) |
+| Neo4j 5.26.30 | Clean | **RUNNING** | R14 load committed all 560,000,000 rows; post-load report running |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -145,8 +144,8 @@ immutability proof, but it must compute a new complete target digest.
 | ---: | --- | --- |
 | 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | DONE |
 | 2 | Target preflight, plan, and exact source profile before load | DONE; retained for fresh retry |
-| 3 | Uninterrupted 560-million-record migration | **RUNNING**; bounded-query r14 active |
-| 4 | Job report and exact count collection | PENDING |
+| 3 | Uninterrupted 560-million-record migration | DONE; r14 committed all rows in 5:37:01 |
+| 4 | Job report and exact count collection | **RUNNING** |
 | 5 | Built-in counts, catalog, generation, and bounded integrity checks | PENDING |
 | 6 | Exact source profile after load | PENDING |
 | 7 | Doctor, optimization review, target `ANALYZE`, and post-`ANALYZE` review | PENDING |
@@ -328,6 +327,16 @@ not interrupt the clean run. Flexible Server storage was 42.06%, below the 80%
 gate. The cost endpoint was rate-limited; the latest posted value remains
 290.22 USD against the 800 USD ceiling.
 
+R14 committed all 560,000,000 rows with zero rejects and 28,000 completed
+batches at 2026-09-02T13:48:53Z. The uninterrupted load completed in 5:37:01
+with exit status zero and maximum loader RSS 2,733,644 KiB, below the 4 GiB
+gate. The source remained online and read-only with no swap, OOM event, or
+container restart. The same service immediately advanced to the exact job
+report and count collection; at 13:53:18Z that report was still running and no
+post-load gate had failed. Flexible Server storage was 46.40%, below the 80%
+limit. Preserve the active service and allow the complete post-load and digest
+sequence to continue.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -349,9 +358,9 @@ immutability proof, but it must compute a new complete target digest.
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 290.22 USD; ceiling: 800 USD |
-| Flexible Server storage | Azure last reported 42.06%; limit: 80% |
+| Flexible Server storage | Azure last reported 46.40%; limit: 80% |
 | PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
-| Loader memory | Current r14 RSS 2.61 GiB; limit: 4 GiB |
+| Loader memory | R14 load peak 2.61 GiB; limit: 4 GiB |
 | Swap / OOM | Current r14 loader/source swap and OOM zero; retained r13 Java OOM evidence unchanged |
 | Active resources | Loader and Neo4j 5.26 VM running; Neo4j 4.4 VM deallocated; Flexible Server running |
 | External actions | OS updates completed on both active VMs at 11:08Z without reboot, restart, or load interruption; prior actions retained |

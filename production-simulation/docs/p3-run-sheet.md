@@ -414,3 +414,13 @@ continued. Record this as a non-interrupting external action. Flexible Server
 storage was 42.06%. The cost endpoint was rate-limited, so the latest posted
 actual remains 290.22 USD against the 800 USD ceiling. Continue r14 without
 interruption.
+
+R14 committed all 560,000,000 rows with zero rejects and 28,000 completed
+batches at 2026-09-02T13:48:53Z. The uninterrupted load completed in 5:37:01
+with exit status zero and maximum loader RSS 2,733,644 KiB, within the 4 GiB
+gate. The source remained online and read-only with no swap, OOM event, or
+container restart. The service then advanced directly to the exact job report
+and count collection, which remained active at 13:53:18Z. Flexible Server
+storage was 46.40%, within the 80% gate. Do not interrupt the post-load
+sequence; complete the remaining checks and full canonical digest before
+qualifying the Neo4j 5.26 clean run.
