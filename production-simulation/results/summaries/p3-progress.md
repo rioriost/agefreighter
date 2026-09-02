@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T00:36:29Z
+- Updated: 2026-09-02T01:39:00Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — uninterrupted 560-million-record load**
-- Next: continue the load while enforcing checkpoint, memory, storage, and
-  throughput gates
+- Current position: **Neo4j 5.26 clean — corrective source restart and fresh retry preflight**
+- Next: restart and reprove the immutable source, then start a fresh clean
+  database and job using the retained source-before profile
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | Step 3 of 10: uninterrupted load |
+| Neo4j 5.26.30 | Clean | **RUNNING** | Fresh retry preflight after retained source-JVM memory failure |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -144,8 +144,8 @@ immutability proof, but it must compute a new complete target digest.
 | Step | Evidence gate | State |
 | ---: | --- | --- |
 | 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | DONE |
-| 2 | Target preflight, plan, and exact source profile before load | DONE |
-| 3 | Uninterrupted 560-million-record migration | **RUNNING** |
+| 2 | Target preflight, plan, and exact source profile before load | DONE; retained for fresh retry |
+| 3 | Uninterrupted 560-million-record migration | RETRY REQUIRED |
 | 4 | Job report and exact count collection | PENDING |
 | 5 | Built-in counts, catalog, generation, and bounded integrity checks | PENDING |
 | 6 | Exact source profile after load | PENDING |
@@ -171,6 +171,17 @@ checkpoint age. Loader RSS was approximately 537 MiB. PostgreSQL storage was
 34.50%, source storage was 32%, and swap/OOM remained zero. The automatic patch
 window from 2026-09-01T23:43:40Z to 23:53:00Z did not restart the source VM or
 Neo4j container.
+
+At 2026-09-02T00:30:00Z the Bolt stream closed after the source JVM reported
+`OutOfMemoryError`. The retained failed job had committed 26,700,000 rows with
+zero rejects and a current checkpoint; loader maximum RSS was 589,840 KiB with
+no swap. The Neo4j container was not kernel-OOM-killed and had not restarted,
+but its Java process remained at approximately 52.5 GiB RSS. The container was
+stopped after evidence collection and the failed clean job will not be
+resumed. The next attempt uses a fresh target database and durable job after a
+source restart. Because the source is read-only and unchanged, the validated
+source-before profile is reused with its original path and SHA-256 recorded;
+the frozen source and migration configuration are unchanged.
 
 ### Recovery qualification
 

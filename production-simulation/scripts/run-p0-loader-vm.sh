@@ -149,15 +149,35 @@ fi
 mkdir -p "$result_root"
 
 case "$phase" in
-	p3)
+p3)
 		verification_level=${P3_VERIFICATION_LEVEL:-full}
+		source_profile_before=${P3_SOURCE_PROFILE_BEFORE:-}
 		resume_job_id=${P3_RESUME_JOB_ID:-}
 		;;
-	*)
+*)
 		verification_level=${P2_VERIFICATION_LEVEL:-full}
+		source_profile_before=
 		resume_job_id=${P2_RESUME_JOB_ID:-}
 		;;
 esac
+
+if [ -n "$source_profile_before" ]; then
+	if [ "$phase" != p3 ] || [ "$verification_level" != full ] || \
+			[ -n "$resume_job_id" ]; then
+		printf 'P3_SOURCE_PROFILE_BEFORE requires a fresh full P3 run\n' >&2
+		exit 2
+	fi
+	case "$source_profile_before" in
+		/*) ;;
+		*) printf 'P3_SOURCE_PROFILE_BEFORE must be an absolute path\n' >&2; exit 2 ;;
+	esac
+	if [ ! -f "$source_profile_before" ] || \
+			! jq -e '.command == "profile" and (.errors | length == 0)' \
+			"$source_profile_before" >/dev/null; then
+		printf 'reused source-before profile is missing or invalid\n' >&2
+		exit 3
+	fi
+fi
 run_source_profile_before=0
 run_source_profile_after=0
 run_canonical_digest=0
@@ -185,6 +205,10 @@ case "$verification_level" in
 		exit 2
 		;;
 esac
+
+if [ -n "$source_profile_before" ]; then
+	run_source_profile_before=0
+fi
 
 # A resumed segment must reach its retained checkpoint without first scanning
 # the complete source. The original segment already captured the before
@@ -235,6 +259,12 @@ fi
 if [ "$run_source_profile_before" -eq 1 ]; then
 	/opt/agefreighter/bin/agefreighter profile --mode exact --format json "$config" \
 		>"$result_root/source-profile-before.json"
+elif [ -n "$source_profile_before" ]; then
+	cp "$source_profile_before" "$result_root/source-profile-before.json"
+	{
+		printf 'source=%s\n' "$source_profile_before"
+		printf 'sha256=%s\n' "$(sha256sum "$source_profile_before" | awk '{print $1}')"
+	} >"$result_root/source-profile-before-reused.txt"
 fi
 if [ -n "$resume_job_id" ]; then
 	printf '%s\n' "$resume_job_id" >"$result_root/resumed-job-id.txt"

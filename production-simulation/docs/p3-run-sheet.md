@@ -246,3 +246,20 @@ committed 26,680,000 rows with zero rejects, a 23-second checkpoint age, and
 approximately 537 MiB RSS. A sixth automatic patch window completed on the
 source VM from 2026-09-01T23:43:40Z to 23:53:00Z without restarting the VM or
 Neo4j container; swap and OOM remained zero.
+
+The first Neo4j 5.26 clean attempt stopped at 2026-09-02T00:30:00Z after the
+source JVM reported `OutOfMemoryError` and the Bolt stream closed. The retained
+job had committed 26,700,000 rows with zero rejects and a current checkpoint;
+the loader used at most 589,840 KiB and did not swap. The Neo4j container was
+not kernel-OOM-killed and did not restart, but its Java process remained at
+approximately 52.5 GiB RSS after the exact source profile and initial load.
+The attempt is failed clean-run evidence and must not be resumed.
+
+The source is operationally read-only, and the failed attempt did not mutate
+it. A fresh full P3 retry may therefore reuse the retained exact source-before
+profile only when its JSON is valid, its hash and original absolute path are
+recorded, the source version/read-only state and disk are reproven after a
+container restart, and a fresh target database and durable job are used. This
+avoids immediately repeating the full source scan that preceded the JVM memory
+failure without changing the frozen Neo4j heap/page-cache settings, migration
+configuration, source data, or post-load source-profile requirement.

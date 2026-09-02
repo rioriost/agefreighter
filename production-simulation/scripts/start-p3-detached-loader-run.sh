@@ -27,6 +27,11 @@ esac
 
 case "${PREPARE_TARGET_DATABASES:-0}" in 0|1) ;; *) printf 'PREPARE_TARGET_DATABASES must be 0 or 1\n' >&2; exit 2 ;; esac
 case "${P3_VERIFICATION_LEVEL:-full}" in full|digest) ;; *) printf 'invalid P3_VERIFICATION_LEVEL\n' >&2; exit 2 ;; esac
+case "${P3_SOURCE_PROFILE_BEFORE:-}" in
+	'') ;;
+	/*) ;;
+	*) printf 'P3_SOURCE_PROFILE_BEFORE must be empty or an absolute path\n' >&2; exit 2 ;;
+esac
 case "${P3_RESUME_JOB_ID:-}" in
 	'') ;;
 	????????-????-????-????-????????????) ;;
@@ -55,6 +60,7 @@ systemd-run \
 	--setenv "TARGET_DATABASE_PREFIX=$target_database_prefix" \
 	--setenv "PRODUCTION_SIMULATION_RUN_ID=$run_id" \
 	--setenv "P3_VERIFICATION_LEVEL=${P3_VERIFICATION_LEVEL:-full}" \
+	--setenv "P3_SOURCE_PROFILE_BEFORE=${P3_SOURCE_PROFILE_BEFORE:-}" \
 	--setenv "P3_RESUME_JOB_ID=${P3_RESUME_JOB_ID:-}" \
 	--setenv "P3_DISCOVERY_SNAPSHOT=${P3_DISCOVERY_SNAPSHOT:-}" \
 	"$runner" p3 "$source_version"
