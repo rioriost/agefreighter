@@ -424,3 +424,14 @@ and count collection, which remained active at 13:53:18Z. Flexible Server
 storage was 46.40%, within the 80% gate. Do not interrupt the post-load
 sequence; complete the remaining checks and full canonical digest before
 qualifying the Neo4j 5.26 clean run.
+
+By 2026-09-02T14:49:21Z the exact job report, built-in verification, exact
+source-after profile, doctor, pre/post-`ANALYZE` optimization reviews, target
+`ANALYZE`, and deterministic fixture digest had all completed successfully.
+The full 5,600-range target canonical digest then started and remained active
+at 14:51:20Z. Source Java RSS was stable at 81,028,300 KiB with approximately
+50.2 GB host memory available; swap, OOM events, and container restarts were
+zero. Flexible Server storage was 46.35%. The cost endpoint remained
+rate-limited and the latest posted actual remains 290.22 USD against the 800
+USD ceiling. Do not interrupt the target digest; compare its complete output
+with the fixture digest before accepting the clean run.

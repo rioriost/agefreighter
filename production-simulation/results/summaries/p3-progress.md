@@ -4,10 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T13:53:18Z
+- Updated: 2026-09-02T14:51:20Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — r14 load committed; exact job report is running**
-- Next: complete all clean-run checks and the full canonical digest
+- Current position: **Neo4j 5.26 clean — full target canonical digest is running**
+- Next: complete and compare all 5,600 target digest ranges, then review the
+  final clean-run evidence
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -17,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | R14 load committed all 560,000,000 rows; post-load report running |
+| Neo4j 5.26.30 | Clean | **RUNNING** | All post-load checks passed; full target digest running |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -145,12 +146,12 @@ immutability proof, but it must compute a new complete target digest.
 | 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | DONE |
 | 2 | Target preflight, plan, and exact source profile before load | DONE; retained for fresh retry |
 | 3 | Uninterrupted 560-million-record migration | DONE; r14 committed all rows in 5:37:01 |
-| 4 | Job report and exact count collection | **RUNNING** |
-| 5 | Built-in counts, catalog, generation, and bounded integrity checks | PENDING |
-| 6 | Exact source profile after load | PENDING |
-| 7 | Doctor, optimization review, target `ANALYZE`, and post-`ANALYZE` review | PENDING |
-| 8 | Deterministic fixture manifest and expected range digest | PENDING |
-| 9 | Full target canonical range digest | PENDING |
+| 4 | Job report and exact count collection | DONE |
+| 5 | Built-in counts, catalog, generation, and bounded integrity checks | DONE |
+| 6 | Exact source profile after load | DONE |
+| 7 | Doctor, optimization review, target `ANALYZE`, and post-`ANALYZE` review | DONE |
+| 8 | Deterministic fixture manifest and expected range digest | DONE |
+| 9 | Full target canonical range digest | **RUNNING** |
 | 10 | Range/root comparison and run summary | PENDING |
 
 The retained source is Neo4j Community 5.26.30 in Japan East zone 1. Its data
@@ -337,6 +338,16 @@ post-load gate had failed. Flexible Server storage was 46.40%, below the 80%
 limit. Preserve the active service and allow the complete post-load and digest
 sequence to continue.
 
+By 2026-09-02T14:49:21Z the exact job report, built-in verification, exact
+source-after profile, doctor, pre/post-`ANALYZE` optimization reviews, target
+`ANALYZE`, and deterministic fixture digest had all completed successfully.
+The full target canonical digest then started and was active at 14:51:20Z.
+Source Java RSS remained stable at 81,028,300 KiB with approximately 50.2 GB
+host memory available; swap, OOM events, and container restarts remained zero.
+Flexible Server storage was 46.35%, within the 80% gate. The cost endpoint was
+still rate-limited, so the latest posted actual remains 290.22 USD against the
+800 USD ceiling. Do not interrupt the target digest.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -358,7 +369,7 @@ immutability proof, but it must compute a new complete target digest.
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 290.22 USD; ceiling: 800 USD |
-| Flexible Server storage | Azure last reported 46.40%; limit: 80% |
+| Flexible Server storage | Azure last reported 46.35%; limit: 80% |
 | PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
 | Loader memory | R14 load peak 2.61 GiB; limit: 4 GiB |
 | Swap / OOM | Current r14 loader/source swap and OOM zero; retained r13 Java OOM evidence unchanged |
