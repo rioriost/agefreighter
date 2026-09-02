@@ -712,13 +712,15 @@ func buildDiscoveryQuery(
 	propertyReturns []string,
 ) string {
 	allReturns := append(slices.Clone(returns), propertyReturns...)
-	// FetchRows is already the Bolt driver's fetch size. Keep one ordered stream
-	// open per mapping so large relationship mappings do not pay Cypher planning
-	// and index-seek startup costs again for every fetched page.
+	// FetchRows bounds the client-side Bolt buffer, but it does not bound the
+	// server-side lifetime or memory of one auto-commit query. Very large Neo4j
+	// 5.x mappings can otherwise retain query state until the JVM heap is
+	// exhausted. Close each ordered stream after one keyset page so both sides
+	// have a hard memory bound and resume from the last unique key.
 	return match +
 		" WHERE (" + strings.Join(predicates, ") AND (") + ")" +
 		" RETURN " + strings.Join(allReturns, ", ") +
-		" ORDER BY __key"
+		" ORDER BY __key LIMIT $pageRows"
 }
 
 func discoveredPropertyMapping(

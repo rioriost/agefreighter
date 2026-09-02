@@ -355,3 +355,23 @@ Java RSS was 80,827,544 KiB with approximately 50.4 GB host memory available.
 Source and loader swap, kernel OOM, Java OOM, and container restarts remained
 zero. Keep r13 uninterrupted and continue monitoring all P3 guardrails through
 the 560-million-row commit and complete verification sequence.
+
+R13 then failed at 2026-09-02T06:56:29Z after 47,540,000 committed rows and
+zero rejects. Its durable resume token records vertex mapping 4 (`Shipment`),
+41,540,000 rows into that mapping. The loader maximum RSS was 907,872 KiB with
+zero swap. Source Java RSS reached approximately 80.9 million KiB and repeated
+full-GC pauses preceded `OutOfMemoryError`; the kernel and container cgroup did
+not OOM-kill the process, and the container did not restart. Increasing the
+heap from 24 GiB to 48 GiB moved the failure from approximately 20.7 million to
+41.54 million rows inside the same generated query. This establishes that one
+long-lived Bolt query retains server-side state proportional to consumed rows.
+
+Retain r13 and never resume it. Its stopped container and logs have a guest-side
+checksum. The corrective query plan keeps the existing unique-key ordering but
+adds `LIMIT $pageRows`; the iterator closes each result and resumes from the
+last unique key. With the frozen `fetchRows: 5000`, this bounds every
+server-side auto-commit query to 5,000 rows instead of one complete mapping.
+The full Go test suite passes. The 48 GiB heap, 28 GiB page cache, source image
+and data, 8-byte internal identity, migration limits, and target settings remain
+unchanged. Use a fresh r14 database and durable job because the generated-query
+fingerprint intentionally changes.

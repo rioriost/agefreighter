@@ -30,7 +30,7 @@ func TestP3Neo4j44SnapshotUsesCorrectedResolvedJobFingerprint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fingerprint P3 resolved job: %v", err)
 	}
-	const correctedResolvedJobFingerprint = "90487d2e8b5989c3ba2a749c2896cddf5dae310ca96dfc5d3fc162bfa4391479"
+	const correctedResolvedJobFingerprint = "7ce3e588f60dae063069347b77fa17fdf0db17981be259df8911454f7a45876b"
 	if fingerprint != correctedResolvedJobFingerprint {
 		t.Fatalf(
 			"P3 resolved job fingerprint = %s, corrected job = %s",

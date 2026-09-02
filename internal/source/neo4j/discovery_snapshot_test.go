@@ -30,13 +30,17 @@ func TestP3Neo4j44DiscoverySnapshotUsesCorrectedFingerprint(t *testing.T) {
 	}
 	for _, vertex := range resolved.Vertices {
 		if !strings.Contains(vertex.Query, "id(n) AS __id") ||
-			vertex.Properties["external_id"] == "" {
+			vertex.Properties["external_id"] == "" ||
+			!strings.HasSuffix(vertex.Query, "LIMIT $pageRows") ||
+			!strings.HasSuffix(vertex.InitialQuery, "LIMIT $pageRows") {
 			t.Fatalf("P3 internal-id vertex mapping = %#v", vertex)
 		}
 	}
 	for _, edge := range resolved.Edges {
 		if !strings.Contains(edge.Query, "id(a) AS __start") ||
-			!strings.Contains(edge.Query, "id(b) AS __end") {
+			!strings.Contains(edge.Query, "id(b) AS __end") ||
+			!strings.HasSuffix(edge.Query, "LIMIT $pageRows") ||
+			!strings.HasSuffix(edge.InitialQuery, "LIMIT $pageRows") {
 			t.Fatalf("P3 internal-id edge mapping = %#v", edge)
 		}
 	}
@@ -57,7 +61,7 @@ func TestP3Neo4j44DiscoverySnapshotUsesCorrectedFingerprint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fingerprint P3 discovery snapshot: %v", err)
 	}
-	const correctedFingerprint = "b81d876a40ec9719560f61088918d7064f71d8d499250bc84b1b9f343964fb07"
+	const correctedFingerprint = "d8127bc192c4e330c91f46fffa05dd9f37d4ebea1192e35202f86b75fcaff7c4"
 	if fingerprint != correctedFingerprint {
 		t.Fatalf(
 			"P3 discovery snapshot fingerprint = %s, corrected = %s",

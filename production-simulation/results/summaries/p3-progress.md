@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T06:48:05Z
-- Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — r13 has passed all three retained 26.7-million-row failure boundaries**
-- Next: continue the uninterrupted r13 load to 560 million committed rows,
-  then execute the complete post-load and canonical digest sequence
+- Updated: 2026-09-02T08:03:00Z
+- Overall state: **RUNNING — bounded-source-query correction in progress**
+- Current position: **Neo4j 5.26 clean — r13 failed at 47.54 million rows; keyset-page fix validated locally**
+- Next: start a fresh r14 target and job with server-side query lifetime bounded
+  to 5,000-row keyset pages
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | R13 at 37.16 million rows with zero rejects; prior failure boundary passed |
+| Neo4j 5.26.30 | Clean | **RUNNING** | R13 retained failed evidence; bounded keyset-query correction preparing r14 |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -145,7 +145,7 @@ immutability proof, but it must compute a new complete target digest.
 | ---: | --- | --- |
 | 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | DONE |
 | 2 | Target preflight, plan, and exact source profile before load | DONE; retained for fresh retry |
-| 3 | Uninterrupted 560-million-record migration | **RUNNING**; fresh r13 load process active |
+| 3 | Uninterrupted 560-million-record migration | r13 failed at 47.54 million; bounded-query r14 pending |
 | 4 | Job report and exact count collection | PENDING |
 | 5 | Built-in counts, catalog, generation, and bounded integrity checks | PENDING |
 | 6 | Exact source profile after load | PENDING |
@@ -266,6 +266,27 @@ KiB, below the 4 GiB gate. Source Java RSS was 80,827,544 KiB with approximately
 and container restarts remained zero. PostgreSQL was `Ready` with SameZone HA
 `Healthy`, and no external stop occurred.
 
+R13 later failed at 2026-09-02T06:56:29Z after 47,540,000 committed rows and
+zero rejects. Its durable resume token locates the failure inside vertex
+mapping 4 (`Shipment`) after 41,540,000 rows in that mapping. The loader maximum
+RSS was 907,872 KiB with zero swap. The source Java process reached
+approximately 80.9 million KiB RSS and again emitted `OutOfMemoryError` after
+progressively longer full-GC pauses, without a kernel/cgroup OOM kill or
+container restart. Doubling the heap moved the failure from approximately
+20.7 million to 41.54 million rows inside the same single mapping, proving that
+the unbounded lifetime of one generated Bolt query—not the loader or target—is
+retaining server-side state proportional to rows consumed.
+
+The stopped r13 container and its logs were retained with a guest-side checksum.
+All three VMs are deallocated and the Flexible Server stop is in progress while
+the correction is validated. Generated discovery queries now end each ordered
+stream after `LIMIT $pageRows`; the iterator closes it and resumes from the
+last unique key, bounding each server-side auto-commit query to the configured
+5,000 rows. The 48 GiB heap, 28 GiB page cache, source data and image, 8-byte
+identity representation, loader limit, and target settings are unchanged. The
+complete Go test suite passes. R13 is never resumed; r14 uses a fresh database,
+job, and query fingerprint.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -288,10 +309,10 @@ immutability proof, but it must compute a new complete target digest.
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 253.00 USD after Azure revision; ceiling: 800 USD |
 | Flexible Server storage | Azure last reported 34.92%; database footprint 29.26%; limit: 80% |
-| PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
+| PostgreSQL / HA | Stop in progress after retaining failed r13 evidence |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
-| Swap / OOM | Current r13 loader/source swap and OOM zero; retained r12 Java OOM evidence unchanged |
-| Active resources | Loader and Neo4j 5.26 VM running; Neo4j 4.4 VM deallocated; Flexible Server running |
+| Swap / OOM | Loader swap/OOM zero; r13 Java OOM retained without kernel/cgroup OOM kill |
+| Active resources | All three VMs deallocated; Flexible Server stopping |
 | External actions | Six patch windows and the previously recorded governance stops retained; no new external stop caused r12 |
 
 The complete acceptance and stop criteria are defined in
