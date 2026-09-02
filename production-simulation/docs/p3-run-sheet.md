@@ -4,7 +4,9 @@
 
 The user authorized P3 execution and its forecast budget on 2026-08-31. P3
 must complete during the week ending 2026-09-06. The reviewed live-operation
-window is 72 hours. On 2026-09-01 the user raised the cost ceiling first to
+window was initially 72 hours and was extended to 96 hours on 2026-09-02 so
+monitoring can continue without requiring the user to check this task at a
+specific time. On 2026-09-01 the user raised the cost ceiling first to
 400 USD and then to 800 USD, and made completing all four qualification runs
 the highest priority. This authorization covers deployment, source
 preparation, four migration runs, the
@@ -63,7 +65,7 @@ remain within three times its median, RSS must remain at most 4 GiB, and source
 or target storage must stay below 80%.
 
 Stop the current run without deleting evidence on any documented automatic
-stop condition, if total live time reaches 72 hours, or if posted/projected
+stop condition, if total live time reaches 96 hours, or if posted/projected
 P3 cost reaches 800 USD. External governance stops are recorded as deviations;
 the affected qualification run is resumed only after state and exclusivity
 are proven.

@@ -4,7 +4,7 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T00:28:30Z
+- Updated: 2026-09-02T00:36:29Z
 - Overall state: **RUNNING**
 - Current position: **Neo4j 5.26 clean — uninterrupted 560-million-record load**
 - Next: continue the load while enforcing checkpoint, memory, storage, and
@@ -191,7 +191,7 @@ immutability proof, but it must compute a new complete target digest.
 
 | Gate | Latest observed state |
 | --- | --- |
-| Live window | Within the authorized 72 hours |
+| Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 253.00 USD after Azure revision; ceiling: 800 USD |
 | Flexible Server storage | 34.50%; limit: 80% |
 | PostgreSQL / HA | Ready / Healthy; loader and Neo4j 5.26 source running; Neo4j 4.4 source deallocated |
