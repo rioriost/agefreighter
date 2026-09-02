@@ -20,7 +20,7 @@ VMs and PostgreSQL remain private and in the same region and zone.
 | Role | Frozen P3 value | P2 basis |
 | --- | --- | --- |
 | Neo4j 4.4 source | `Standard_E8bds_v5`; 24 GiB heap / 28 GiB page cache | Frozen P2 source configuration |
-| Neo4j 5.26 source | `Standard_E16bds_v5`; 24 GiB heap / 28 GiB page cache | User-authorized memory correction after repeatable source OOM |
+| Neo4j 5.26 source | `Standard_E16bds_v5`; 48 GiB heap / 28 GiB page cache | User-authorized host and heap corrections after repeatable source OOM |
 | Source data disk, each | 1,024 GiB Premium SSD v2; 10,000 IOPS / 750 MB/s | 303 GB P3 projection plus import headroom |
 | Loader | `Standard_D8ds_v5`; 256 GiB OS disk | P2 CPU 44.52% max, RSS below 183 MiB |
 | Flexible Server | PostgreSQL 18 / AGE 1.7; `Standard_E8ds_v5`; SameZone HA | P2 CPU 30.27%, memory 33.34% max |
@@ -325,3 +325,12 @@ held at 28 GiB is the minimum recommended correction on the existing 128 GiB
 source VM, leaving substantial memory for the OS and file cache. Because this
 changes a second frozen P3 source value, do not start r13 until the user
 explicitly authorizes that heap correction.
+
+The user explicitly authorized the 48 GiB Neo4j 5.26 heap correction on
+2026-09-02. Keep the page cache at 28 GiB, the source VM at
+`Standard_E16bds_v5`, and all source data, disk, image, migration, loader, and
+target settings unchanged. Preserve r12 and its stopped-container evidence,
+reprove the new effective heap and read-only database state, and use a fresh
+r13 target database and durable job. R13 must still be uninterrupted and must
+progress beyond the three retained 26.7-million-row failure boundaries before
+the clean qualification can advance.

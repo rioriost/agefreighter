@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T05:46:00Z
-- Overall state: **PAUSED — source JVM configuration authorization required**
-- Current position: **Neo4j 5.26 clean — r12 reproduced the 26.7-million-row JVM-heap failure on the 128 GiB VM**
-- Next: authorize a 48 GiB Neo4j heap while retaining the 28 GiB page cache,
-  then start another fresh target and job
+- Updated: 2026-09-02T05:47:00Z
+- Overall state: **RUNNING — authorized r13 correction preflight**
+- Current position: **Neo4j 5.26 clean — applying the authorized 48 GiB heap correction**
+- Next: reprove the source with a 48 GiB heap and 28 GiB page cache, then start
+  a fresh r13 target and durable job
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **BLOCKED** | r12 failed at 26.7 million rows; host expansion alone cannot enlarge the fixed 24 GiB JVM heap |
+| Neo4j 5.26.30 | Clean | **RUNNING** | 48 GiB heap authorized; r13 preflight in progress |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -145,7 +145,7 @@ immutability proof, but it must compute a new complete target digest.
 | ---: | --- | --- |
 | 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | DONE |
 | 2 | Target preflight, plan, and exact source profile before load | DONE; retained for fresh retry |
-| 3 | Uninterrupted 560-million-record migration | BLOCKED; r12 reproduced the source JVM heap failure |
+| 3 | Uninterrupted 560-million-record migration | r13 preflight; 48 GiB heap authorized |
 | 4 | Job report and exact count collection | PENDING |
 | 5 | Built-in counts, catalog, generation, and bounded integrity checks | PENDING |
 | 6 | Exact source profile after load | PENDING |
@@ -238,6 +238,13 @@ stopped. The recommended minimum correction is a 48 GiB Neo4j heap with the
 page cache held at 28 GiB on the existing 128 GiB VM. This changes another
 frozen P3 source value and requires explicit authorization before a fresh r13
 run.
+
+The user explicitly authorized that correction on 2026-09-02. The tracked P3
+Neo4j 5.26 configuration now uses a 48 GiB initial/maximum heap while retaining
+the 28 GiB page cache. The 128 GiB VM, source image and data, disk settings,
+migration configuration, loader, and PostgreSQL target remain unchanged. R13
+will preserve the stopped r12 container evidence, reprove effective memory and
+read-only state, and use another fresh database and durable job.
 
 ### Recovery qualification
 

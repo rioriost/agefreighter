@@ -69,8 +69,14 @@ case "$phase" in
 		fixture_workers=8
 		;;
 	p3)
-		# P2 froze these source-memory and generator settings for P3.
-		heap_size=24G
+		# P2 froze the original source-memory and generator settings for P3.
+		# Neo4j 5.26 reproduced a Java-heap OOM at exactly 26.7 million rows
+		# three times, including after its VM was expanded to 128 GiB. The
+		# user authorized the smallest targeted correction on 2026-09-02.
+		case "$version" in
+			5.26.30) heap_size=48G ;;
+			*) heap_size=24G ;;
+		esac
 		page_cache_size=28G
 		fixture_workers=8
 		;;
