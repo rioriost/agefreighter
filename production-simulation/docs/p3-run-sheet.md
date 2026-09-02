@@ -375,3 +375,13 @@ The full Go test suite passes. The 48 GiB heap, 28 GiB page cache, source image
 and data, 8-byte internal identity, migration limits, and target settings remain
 unchanged. Use a fresh r14 database and durable job because the generated-query
 fingerprint intentionally changes.
+
+Fresh run `clean-r14-neo4j526` started at 2026-09-02T08:11:31Z on commit
+`9391b23c7527ea35338fa731eb18a88136efaa65`. The replacement source proved a
+48 GiB initial/maximum heap, 28 GiB page cache, online read-only database,
+retained r12/r13 containers, and zero swap/OOM events. PostgreSQL 18.6 was
+`Ready` / HA `Healthy`; loader preflight proved 41% disk use, no competing P3
+unit, and the unchanged validated source-before profile. R14 prepared a fresh
+target and began the corrected uninterrupted load. Record its durable job ID
+when created, then compare source heap behavior and checkpoint progress through
+both retained failure boundaries before advancing.
