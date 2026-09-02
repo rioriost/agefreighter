@@ -295,3 +295,15 @@ zone 1. Its 24 GiB heap, 28 GiB page cache, Premium SSD v2 data disk, immutable
 source, and all migration settings remain unchanged. A new clean attempt must
 use another fresh target database and durable job; r10 and r11 remain failed
 evidence and are never resumed.
+
+The resized guest then proved 16 vCPUs and approximately 126 GiB usable
+memory. Neo4j Community 5.26.30 was online and read-only with no swap or kernel
+OOM event. PostgreSQL 18.6 was `Ready` / HA `Healthy` and accepted an
+authenticated private-network connection; the loader had no competing P3
+unit. Fresh run `clean-r12-neo4j526` started at 2026-09-02T03:38:23Z on source
+commit `b64382da9d5545d57edf10f961fe9e035e26347e`, using a fresh target and the
+retained validated source-before profile with SHA-256
+`0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`. Keep
+r12 uninterrupted, record its new durable job ID when created, and confirm it
+progresses beyond both retained 26.7-million-row failure boundaries before
+advancing the qualification state.
