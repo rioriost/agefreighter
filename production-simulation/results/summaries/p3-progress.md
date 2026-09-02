@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T02:35:00Z
-- Overall state: **PAUSED — SOURCE MEMORY BLOCKER**
-- Current position: **Neo4j 5.26 clean — repeatable source-JVM OOM at 26.7 million rows**
-- Next: obtain authorization for a larger Neo4j 5.26 source VM, then start a
-  fresh database and job with all software settings unchanged
+- Updated: 2026-09-02T02:45:00Z
+- Overall state: **RUNNING**
+- Current position: **Neo4j 5.26 clean — 128 GiB source restart and fresh retry preflight**
+- Next: reprove the resized source, then start a fresh database and job with
+  all software and migration settings unchanged
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **PAUSED** | r10 and r11 reproduced the same source-JVM OOM at 26.7 million rows |
+| Neo4j 5.26.30 | Clean | **RUNNING** | User-authorized 128 GiB source correction; fresh retry preflight |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -201,6 +201,12 @@ The failed r11 job will not be resumed. The source container was stopped, all
 VMs were deallocated, and PostgreSQL was stopped with all evidence retained.
 Resizing only the Neo4j 5.26 source VM to a 128 GiB class is the least invasive
 correction, but requires authorization because VM size is a frozen P3 value.
+
+The user authorized resizing only the Neo4j 5.26 source VM. While deallocated,
+it was changed from `Standard_E8bds_v5` to `Standard_E16bds_v5` (128 GiB) in
+zone 1. The 24 GiB heap, 28 GiB page cache, source disk and data, and migration
+configuration remain unchanged. The next clean attempt uses another fresh
+target database and durable job; r10 and r11 remain retained failed evidence.
 
 ### Recovery qualification
 

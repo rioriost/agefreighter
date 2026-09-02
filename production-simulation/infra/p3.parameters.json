@@ -20,6 +20,12 @@
     "neo4jVmSize": {
       "value": "Standard_E8bds_v5"
     },
+    "neo4j44VmSize": {
+      "value": "Standard_E8bds_v5"
+    },
+    "neo4j526VmSize": {
+      "value": "Standard_E16bds_v5"
+    },
     "loaderVmSize": {
       "value": "Standard_D8ds_v5"
     },

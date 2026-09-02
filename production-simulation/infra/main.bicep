@@ -43,6 +43,12 @@ param neo4jPassword string
 @description('Neo4j VM SKU. Availability in the selected zone is a review gate.')
 param neo4jVmSize string = 'Standard_E32bds_v5'
 
+@description('Optional Neo4j 4.4 VM SKU override.')
+param neo4j44VmSize string = neo4jVmSize
+
+@description('Optional Neo4j 5.26 VM SKU override.')
+param neo4j526VmSize string = neo4jVmSize
+
 @description('agefreighter VM SKU. Availability in the selected zone is a review gate.')
 param loaderVmSize string = 'Standard_D16ds_v5'
 
@@ -358,7 +364,7 @@ resource neo4j44VM 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   identity: {
     type: 'SystemAssigned'
   }
-  properties: vmProperties(neo4jVmSize, neo4j44NIC.id, neo4j44DataDisk.id, administratorUsername, sshPublicKey)
+  properties: vmProperties(neo4j44VmSize, neo4j44NIC.id, neo4j44DataDisk.id, administratorUsername, sshPublicKey)
 }
 
 resource neo4j526VM 'Microsoft.Compute/virtualMachines@2024-07-01' = {
@@ -371,7 +377,7 @@ resource neo4j526VM 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   identity: {
     type: 'SystemAssigned'
   }
-  properties: vmProperties(neo4jVmSize, neo4j526NIC.id, neo4j526DataDisk.id, administratorUsername, sshPublicKey)
+  properties: vmProperties(neo4j526VmSize, neo4j526NIC.id, neo4j526DataDisk.id, administratorUsername, sshPublicKey)
 }
 
 resource postgresPrivateDNS 'Microsoft.Network/privateDnsZones@2024-06-01' = {

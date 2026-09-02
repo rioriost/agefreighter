@@ -19,7 +19,8 @@ VMs and PostgreSQL remain private and in the same region and zone.
 
 | Role | Frozen P3 value | P2 basis |
 | --- | --- | --- |
-| Neo4j source, each | `Standard_E8bds_v5`; 24 GiB heap / 28 GiB page cache | Frozen P2 source configuration |
+| Neo4j 4.4 source | `Standard_E8bds_v5`; 24 GiB heap / 28 GiB page cache | Frozen P2 source configuration |
+| Neo4j 5.26 source | `Standard_E16bds_v5`; 24 GiB heap / 28 GiB page cache | User-authorized memory correction after repeatable source OOM |
 | Source data disk, each | 1,024 GiB Premium SSD v2; 10,000 IOPS / 750 MB/s | 303 GB P3 projection plus import headroom |
 | Loader | `Standard_D8ds_v5`; 256 GiB OS disk | P2 CPU 44.52% max, RSS below 183 MiB |
 | Flexible Server | PostgreSQL 18 / AGE 1.7; `Standard_E8ds_v5`; SameZone HA | P2 CPU 30.27%, memory 33.34% max |
@@ -287,3 +288,10 @@ run with the unchanged source host. The least invasive corrective option is to
 resize only the Neo4j 5.26 source VM to a 128 GiB class while keeping its heap,
 page cache, disk, source data, and migration configuration unchanged, but this
 changes a frozen P3 infrastructure value and requires explicit authorization.
+
+The user authorized that correction on 2026-09-02. The deallocated Neo4j 5.26
+VM was resized from `Standard_E8bds_v5` to `Standard_E16bds_v5` (128 GiB) in
+zone 1. Its 24 GiB heap, 28 GiB page cache, Premium SSD v2 data disk, immutable
+source, and all migration settings remain unchanged. A new clean attempt must
+use another fresh target database and durable job; r10 and r11 remain failed
+evidence and are never resumed.
