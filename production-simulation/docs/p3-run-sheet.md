@@ -271,3 +271,19 @@ read-only, 32% source-disk use, no swap, and no kernel OOM. Fresh run
 started at 2026-09-02T01:41:54Z. It retained the source-before profile with
 SHA-256 `0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`
 and began a new uninterrupted load using the unchanged frozen configuration.
+
+Fresh r11 reproduced the same failure at 2026-09-02T02:18:09Z: its source JVM
+reported `OutOfMemoryError` after exactly 26,700,000 committed rows, with zero
+rejects, while the loader remained below 570 MiB RSS and did not swap. The
+source Java process again reached approximately 52.5 GiB RSS on the 64 GiB VM;
+the container was neither restarted nor kernel-OOM-killed. This rules out the
+preceding standalone source profile as the cause and establishes a repeatable
+source-memory limit with the frozen 24 GiB heap / 28 GiB page cache on
+`Standard_E8bds_v5`. The r11 job is retained and must not be resumed.
+
+The source container was stopped after evidence collection, all three VMs were
+deallocated, and the Flexible Server was stopped. Do not attempt another clean
+run with the unchanged source host. The least invasive corrective option is to
+resize only the Neo4j 5.26 source VM to a 128 GiB class while keeping its heap,
+page cache, disk, source data, and migration configuration unchanged, but this
+changes a frozen P3 infrastructure value and requires explicit authorization.

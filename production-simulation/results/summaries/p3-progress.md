@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T01:44:00Z
-- Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — fresh r11 load initialization**
-- Next: establish the new durable job and enforce its checkpoint, memory,
-  storage, and throughput gates
+- Updated: 2026-09-02T02:35:00Z
+- Overall state: **PAUSED — SOURCE MEMORY BLOCKER**
+- Current position: **Neo4j 5.26 clean — repeatable source-JVM OOM at 26.7 million rows**
+- Next: obtain authorization for a larger Neo4j 5.26 source VM, then start a
+  fresh database and job with all software settings unchanged
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | Fresh r11 load initialization after source restart |
+| Neo4j 5.26.30 | Clean | **PAUSED** | r10 and r11 reproduced the same source-JVM OOM at 26.7 million rows |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -145,7 +145,7 @@ immutability proof, but it must compute a new complete target digest.
 | ---: | --- | --- |
 | 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | DONE |
 | 2 | Target preflight, plan, and exact source profile before load | DONE; retained for fresh retry |
-| 3 | Uninterrupted 560-million-record migration | RETRY REQUIRED |
+| 3 | Uninterrupted 560-million-record migration | BLOCKED on source VM memory |
 | 4 | Job report and exact count collection | PENDING |
 | 5 | Built-in counts, catalog, generation, and bounded integrity checks | PENDING |
 | 6 | Exact source profile after load | PENDING |
@@ -190,6 +190,18 @@ started at 2026-09-02T01:41:54Z. It retained the source-before profile with
 SHA-256 `0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`
 and is initializing a new uninterrupted load with the frozen configuration.
 
+Fresh r11 reproduced the same source-JVM `OutOfMemoryError` at
+2026-09-02T02:18:09Z after exactly 26,700,000 committed rows and zero rejects.
+The loader remained below 570 MiB RSS with no swap. The source Java process
+again reached approximately 52.5 GiB RSS; the container was not restarted or
+kernel-OOM-killed. Reproducing the same boundary after a source restart rules
+out the preceding standalone profile as the cause and establishes a source VM
+memory limit for the frozen 24 GiB heap / 28 GiB page cache on the 64 GiB VM.
+The failed r11 job will not be resumed. The source container was stopped, all
+VMs were deallocated, and PostgreSQL was stopped with all evidence retained.
+Resizing only the Neo4j 5.26 source VM to a 128 GiB class is the least invasive
+correction, but requires authorization because VM size is a frozen P3 value.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -211,8 +223,8 @@ immutability proof, but it must compute a new complete target digest.
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 253.00 USD after Azure revision; ceiling: 800 USD |
-| Flexible Server storage | 34.50%; limit: 80% |
-| PostgreSQL / HA | Ready / Healthy; loader and Neo4j 5.26 source running; Neo4j 4.4 source deallocated |
+| Flexible Server storage | 34.92%; limit: 80% |
+| PostgreSQL / HA | Stop requested; all three VMs deallocated |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
 | Swap / OOM | None |
 | External actions | Six patch windows, one PostgreSQL stop, and one loader/source VM deallocation retained; no patch reboot occurred |
