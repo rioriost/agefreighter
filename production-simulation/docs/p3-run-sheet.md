@@ -393,3 +393,13 @@ Loader RSS remained below 1 GiB and the source retained approximately 50.5 GB
 of available host memory. Swap, kernel/Java OOM events, and container restarts
 were zero; loader and source data-disk use remained 41% and 32%. Continue the
 uninterrupted run through r13's 47.54-million-row boundary before advancing.
+
+At 2026-09-02T09:54:13Z r14 had committed 131,940,000 rows with zero rejects,
+next batch 6,598, and a 342-second checkpoint age. It has passed both retained
+failure boundaries and reached almost three times r13's terminal row count.
+Loader RSS was 1,677,352 KiB, source Java RSS was 80,794,316 KiB, and the
+source host retained approximately 50.4 GB available memory. Swap, OOM events,
+and container restarts remained zero. Flexible Server storage was 39.21%, the
+posted P3 actual cost was 290.22 USD against the 800 USD ceiling, PostgreSQL
+was `Ready` / HA `Healthy`, and no external governance stop occurred. Keep r14
+uninterrupted through completion and then run the full clean verification.

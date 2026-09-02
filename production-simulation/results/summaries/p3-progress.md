@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T08:49:23Z
+- Updated: 2026-09-02T09:54:13Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — r14 has passed the 26.7-million retained failure boundary**
-- Next: monitor heap and checkpoints beyond the 47.54-million retained failure
-  boundary, then allow the uninterrupted load to finish
+- Current position: **Neo4j 5.26 clean — r14 has passed both retained failure boundaries**
+- Next: allow the corrected uninterrupted load to finish, then execute all
+  clean-run checks and the full canonical digest
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | R14 at 41,420,000 rows; first retained failure boundary passed |
+| Neo4j 5.26.30 | Clean | **RUNNING** | R14 at 131,940,000 rows; both retained failure boundaries passed |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -305,6 +305,16 @@ r13 boundary at 47.54 million rows. Loader RSS was 830,448 KiB, below the
 memory available; source and loader swap, kernel OOM, Java OOM, and container
 restarts remained zero. Loader and source data-disk use were 41% and 32%.
 
+At 2026-09-02T09:54:13Z r14 had committed 131,940,000 rows with zero rejects,
+next batch 6,598, and a 342-second checkpoint age. It has progressed to almost
+three times r13's 47.54-million-row failure boundary with no Java, kernel, or
+cgroup OOM, no container restart, and no swap. Loader RSS was 1,677,352 KiB,
+below the 4 GiB gate. Source Java RSS was 80,794,316 KiB with approximately
+50.4 GB available on the source host. Azure Flexible Server storage was 39.21%,
+loader/source data-disk use was 41%/32%, and the posted P3 actual cost was
+290.22 USD against the 800 USD ceiling. PostgreSQL remained `Ready` with
+SameZone HA `Healthy`; no external governance stop occurred.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -325,13 +335,13 @@ immutability proof, but it must compute a new complete target digest.
 | Gate | Latest observed state |
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
-| Cost | Posted actual value: 253.00 USD after Azure revision; ceiling: 800 USD |
-| Flexible Server storage | Azure last reported 34.92%; database footprint 29.26%; limit: 80% |
+| Cost | Posted actual value: 290.22 USD; ceiling: 800 USD |
+| Flexible Server storage | Azure last reported 39.21%; limit: 80% |
 | PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
-| Loader memory | 2.61 GiB peak; limit: 4 GiB |
+| Loader memory | Current r14 RSS 1.60 GiB; retained P3 peak 2.61 GiB; limit: 4 GiB |
 | Swap / OOM | Current r14 loader/source swap and OOM zero; retained r13 Java OOM evidence unchanged |
 | Active resources | Loader and Neo4j 5.26 VM running; Neo4j 4.4 VM deallocated; Flexible Server running |
-| External actions | Six patch windows and the previously recorded governance stops retained; no new external stop caused r12 |
+| External actions | Six patch windows and the previously recorded governance stops retained; no new external stop during r14 |
 
 The complete acceptance and stop criteria are defined in
 [`../../docs/acceptance.md`](../../docs/acceptance.md), and the authorized P3
