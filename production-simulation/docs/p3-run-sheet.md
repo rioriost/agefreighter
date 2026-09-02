@@ -454,3 +454,26 @@ digest retry `clean-r14-digest-r2-neo4j526` started at
 2026-09-02T15:58:49Z against verifier commit
 `9391b23c7527ea35338fa731eb18a88136efaa65` and was active at 15:59:40Z.
 Preserve the interrupted r14 service evidence and let r2 finish uninterrupted.
+
+Digest retry r2 completed at 2026-09-02T18:13:03Z with exit status zero after
+2:14:14. It covered all 560,000,000 rows in 5,600 leaves; every leaf and the
+final root matched
+`0302c456d17c6e9ee64552d68e2bf6a775e63cd3b09120f5bc342d329bddd1ba`.
+Maximum verifier RSS was 2,639,072 KiB with zero swap or OOM event. Report and
+doctor are `pass`; bounded verification and optimizer output contain no failed
+or unknown checks beyond documented incomplete coverage, closed by the full
+digest. After excluding timestamps and query-paging execution metadata, source
+before/after profiles share semantic SHA-256
+`3cb344c0da43fe8891261a7eb8ff2f158570d64259bd3179b01b1c687af1d88f`.
+Accept the Neo4j 5.26 clean qualification.
+
+Start the Neo4j 4.4 recovery qualification next. At
+2026-09-02T18:20:07Z the source proved Community 4.4.48, an online read-only
+database, 24 GiB initial/maximum heap, 28 GiB page cache, 38 online indexes,
+32% data-disk use, and zero swap/OOM/container restarts. Fresh segment
+`recovery-r1-segment1-neo4j44` started at 18:22:07Z on commit
+`9391b23c7527ea35338fa731eb18a88136efaa65`, prepared isolated targets, reused
+the accepted clean source-before profile, passed validation and target
+preflight, and entered its initial live discovery/load. The durable job row had
+not yet been created at 18:23:01Z. Record it when created, then send `SIGTERM`
+near 140,000,000 committed rows while its checkpoint is within 15 minutes.

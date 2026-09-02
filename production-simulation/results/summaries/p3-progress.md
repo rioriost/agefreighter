@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T15:59:40Z
+- Updated: 2026-09-02T18:23:01Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — external-stop digest retry r2 is running**
-- Next: complete and compare all 5,600 target digest ranges, then review the
-  final clean-run evidence
+- Current position: **Neo4j 4.4 recovery — fresh segment 1 is initializing**
+- Next: record the durable recovery job ID, then send the planned loader
+  `SIGTERM` near 25%
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -17,8 +17,8 @@ guest evidence and the final reviewed result remain authoritative.
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | All post-load checks passed; retained-job digest retry r2 running |
+| Neo4j 4.4.48 | Recovery | **RUNNING** | Fresh target and segment 1 started; durable job creation pending |
+| Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -126,7 +126,7 @@ altering the completed evidence. The clean qualification is complete.
 
 | Step | Fault/recovery evidence | State |
 | ---: | --- | --- |
-| 1 | Start a fresh target database and durable job | PENDING |
+| 1 | Start a fresh target database and durable job | **RUNNING**; segment 1 initializing |
 | 2 | Send loader `SIGTERM` near 25% and retain the checkpoint | PENDING |
 | 3 | Resume the same database, graph, job, and fingerprint | PENDING |
 | 4 | Restart the Neo4j 4.4 container near 40% | PENDING |
@@ -151,8 +151,8 @@ immutability proof, but it must compute a new complete target digest.
 | 6 | Exact source profile after load | DONE |
 | 7 | Doctor, optimization review, target `ANALYZE`, and post-`ANALYZE` review | DONE |
 | 8 | Deterministic fixture manifest and expected range digest | DONE |
-| 9 | Full target canonical range digest | **RUNNING** |
-| 10 | Range/root comparison and run summary | PENDING |
+| 9 | Full target canonical range digest | DONE; 560,000,000 rows in 5,600 leaves |
+| 10 | Range/root comparison and run summary | DONE; every range and root match |
 
 The retained source is Neo4j Community 5.26.30 in Japan East zone 1. Its data
 disk is 32% used, configured at 10,000 IOPS / 750 MB/s, and the `neo4j`
@@ -366,6 +366,29 @@ digest retry `clean-r14-digest-r2-neo4j526` started at
 2026-09-02T15:58:49Z against verifier commit
 `9391b23c7527ea35338fa731eb18a88136efaa65`; it was active at 15:59:40Z.
 
+Digest retry r2 completed at 2026-09-02T18:13:03Z with exit status zero after
+2:14:14. It covered all 560,000,000 rows in 5,600 leaves; every leaf and the
+final root matched the retained expected root
+`0302c456d17c6e9ee64552d68e2bf6a775e63cd3b09120f5bc342d329bddd1ba`.
+Maximum verifier RSS was 2,639,072 KiB, with zero swap or OOM event. Report and
+doctor outcomes are `pass`; bounded integrity and optimizer reports contain no
+failed or unknown checks beyond their documented incomplete coverage, which
+the full canonical digest closes. After excluding timestamps and query-paging
+execution metadata, the source before/after profiles are identical with
+semantic SHA-256
+`3cb344c0da43fe8891261a7eb8ff2f158570d64259bd3179b01b1c687af1d88f`.
+The Neo4j 5.26 clean qualification is complete.
+
+The Neo4j 4.4 source VM then started for the recovery qualification. At
+2026-09-02T18:20:07Z it proved Neo4j Community 4.4.48, an online read-only
+database, 24 GiB initial/maximum heap, 28 GiB page cache, 38 online indexes,
+32% data-disk use, and zero swap/OOM/container restarts. Fresh recovery segment
+`recovery-r1-segment1-neo4j44` started at 18:22:07Z on commit
+`9391b23c7527ea35338fa731eb18a88136efaa65`, prepared isolated targets, reused
+the accepted clean source-before profile, passed validation and target
+preflight, and entered the initial load. Its durable job row had not yet been
+created at 18:23:01Z.
+
 ### Recovery qualification
 
 | Step | Fault/recovery evidence | State |
@@ -387,12 +410,12 @@ immutability proof, but it must compute a new complete target digest.
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 353.61 USD; ceiling: 800 USD |
-| Flexible Server storage | Azure last reported 46.35%; limit: 80% |
+| Flexible Server storage | Azure last reported 46.34%; limit: 80% |
 | PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
 | Loader memory | R14 load peak 2.61 GiB; limit: 4 GiB |
-| Swap / OOM | Current r14 loader/source swap and OOM zero; retained r13 Java OOM evidence unchanged |
-| Active resources | Loader VM and Flexible Server running; both source VMs deallocated |
-| External actions | Governance principal interrupted the first r14 digest and deallocated active resources; retained-job digest retry r2 is active |
+| Swap / OOM | Current recovery loader/source swap and OOM zero; retained failed-run evidence unchanged |
+| Active resources | Loader, Neo4j 4.4 VM, and Flexible Server running; Neo4j 5.26 VM deallocated |
+| External actions | Governance stop of the first r14 digest retained; later loader OS update completed without interrupting successful retry r2 |
 
 The complete acceptance and stop criteria are defined in
 [`../../docs/acceptance.md`](../../docs/acceptance.md), and the authorized P3
