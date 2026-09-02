@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T06:12:03Z
+- Updated: 2026-09-02T06:48:05Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — fresh r13 uninterrupted load is running with a 48 GiB heap**
-- Next: obtain the r13 durable job ID and verify checkpoints beyond the three
-  retained 26.7-million-row failure boundaries
+- Current position: **Neo4j 5.26 clean — r13 has passed all three retained 26.7-million-row failure boundaries**
+- Next: continue the uninterrupted r13 load to 560 million committed rows,
+  then execute the complete post-load and canonical digest sequence
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | Fresh r13 load active with a 48 GiB heap; durable job creation is pending |
+| Neo4j 5.26.30 | Clean | **RUNNING** | R13 at 37.16 million rows with zero rejects; prior failure boundary passed |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -256,6 +256,15 @@ AGE 1.7 target, and reused the retained exact source-before profile with SHA-256
 `0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`.
 The load process is active with no swap/OOM event; its durable job row has not
 yet been created.
+
+R13 created durable job `0edba78e-6eff-4fd7-9493-f01a3298546d`. At
+2026-09-02T06:48:05Z it had committed 37,160,000 rows with zero rejects, next
+batch 1,859, and a current checkpoint. It has therefore passed the exact
+26.7-million-row boundary shared by r10, r11, and r12. Loader RSS was 729,364
+KiB, below the 4 GiB gate. Source Java RSS was 80,827,544 KiB with approximately
+50.4 GB host memory available; source and loader swap, kernel OOM, Java OOM,
+and container restarts remained zero. PostgreSQL was `Ready` with SameZone HA
+`Healthy`, and no external stop occurred.
 
 ### Recovery qualification
 

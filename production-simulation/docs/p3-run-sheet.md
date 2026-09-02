@@ -346,3 +346,12 @@ and reused the validated source-before profile with SHA-256
 `0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`. Record
 the new durable job ID when created and monitor it uninterrupted past the three
 retained failure boundaries.
+
+R13 created durable job `0edba78e-6eff-4fd7-9493-f01a3298546d`. At
+2026-09-02T06:48:05Z it had committed 37,160,000 rows with zero rejects, next
+batch 1,859, and a current checkpoint. This passes the exact 26.7-million-row
+boundary shared by r10, r11, and r12. Loader RSS was 729,364 KiB, while source
+Java RSS was 80,827,544 KiB with approximately 50.4 GB host memory available.
+Source and loader swap, kernel OOM, Java OOM, and container restarts remained
+zero. Keep r13 uninterrupted and continue monitoring all P3 guardrails through
+the 560-million-row commit and complete verification sequence.
