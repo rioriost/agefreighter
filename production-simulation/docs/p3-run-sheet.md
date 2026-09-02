@@ -307,3 +307,21 @@ retained validated source-before profile with SHA-256
 r12 uninterrupted, record its new durable job ID when created, and confirm it
 progresses beyond both retained 26.7-million-row failure boundaries before
 advancing the qualification state.
+
+R12 created durable job `2044af71-10b7-4a7e-84a3-31f2702ca42b` but failed at
+2026-09-02T04:14:12Z after exactly 26,700,000 committed rows and zero rejects.
+The loader maximum RSS was 587,640 KiB with zero swap. The expanded source host
+had approximately 126 GiB usable memory, while the unchanged Neo4j process
+retained its fixed 24 GiB Java heap and 28 GiB page cache. Repeated full-GC
+pauses preceded JVM `OutOfMemoryError` events. Java RSS was approximately 52.6
+GiB; neither the kernel nor the container cgroup recorded an OOM kill, and the
+container did not restart. This third identical boundary proves that host RAM
+alone does not enlarge the fixed JVM heap.
+
+R12 is failed evidence and must not be resumed. Its source container stopped
+cleanly at 2026-09-02T04:55:28Z before the active infrastructure was submitted
+for deallocation/stop. A 48 GiB heap with the page cache held at 28 GiB is the
+minimum recommended correction on the existing 128 GiB source VM, leaving
+substantial memory for the OS and file cache. Because this changes a second
+frozen P3 source value, do not start r13 until the user explicitly authorizes
+that heap correction.

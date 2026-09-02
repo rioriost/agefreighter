@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T03:40:43Z
-- Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — fresh r12 uninterrupted load is running**
-- Next: obtain the new durable job ID, then monitor checkpoints past the two
-  former 26.7-million-row source-JVM failure boundaries
+- Updated: 2026-09-02T04:55:28Z
+- Overall state: **PAUSED — source JVM configuration authorization required**
+- Current position: **Neo4j 5.26 clean — r12 reproduced the 26.7-million-row JVM-heap failure on the 128 GiB VM**
+- Next: authorize a 48 GiB Neo4j heap while retaining the 28 GiB page cache,
+  then start another fresh target and job
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | Fresh r12 load active on the 128 GiB source VM; durable job creation is pending |
+| Neo4j 5.26.30 | Clean | **BLOCKED** | r12 failed at 26.7 million rows; host expansion alone cannot enlarge the fixed 24 GiB JVM heap |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -145,7 +145,7 @@ immutability proof, but it must compute a new complete target digest.
 | ---: | --- | --- |
 | 1 | Power on the retained source VM and prove version, zone, read-only state, and exclusivity | DONE |
 | 2 | Target preflight, plan, and exact source profile before load | DONE; retained for fresh retry |
-| 3 | Uninterrupted 560-million-record migration | **RUNNING**; fresh r12 load process active |
+| 3 | Uninterrupted 560-million-record migration | BLOCKED; r12 reproduced the source JVM heap failure |
 | 4 | Job report and exact count collection | PENDING |
 | 5 | Built-in counts, catalog, generation, and bounded integrity checks | PENDING |
 | 6 | Exact source profile after load | PENDING |
@@ -217,9 +217,27 @@ P3 unit. Fresh run `clean-r12-neo4j526` started at 2026-09-02T03:38:23Z on
 commit `b64382da9d5545d57edf10f961fe9e035e26347e`, prepared a new PostgreSQL 18 /
 AGE 1.7 target, and reused the retained source-before profile with SHA-256
 `0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`.
-The uninterrupted load process is active; at this phase transition its durable
-job row has not yet been created. The prior r10 and r11 jobs remain retained
-and are not resumed.
+At the startup phase transition the uninterrupted load process was active and
+its durable job row had not yet been created. The prior r10 and r11 jobs remain
+retained and are not resumed.
+
+Fresh r12 created durable job `2044af71-10b7-4a7e-84a3-31f2702ca42b` and then
+failed at 2026-09-02T04:14:12Z after exactly 26,700,000 committed rows and zero
+rejects, reproducing the r10 and r11 boundary. The loader used at most 587,640
+KiB RSS with zero swap. The expanded host had approximately 126 GiB usable
+memory, but the unchanged Neo4j process still had a fixed 24 GiB Java heap and
+reported repeated `OutOfMemoryError` events after sustained full-GC pauses.
+Java RSS was approximately 52.6 GiB. The container was not kernel- or
+cgroup-OOM-killed, did not restart, and its data disk remained 32% used. This
+proves that increasing host RAM alone cannot correct the fixed JVM-heap limit.
+
+The failed r12 target and guest evidence are retained and must not be resumed.
+The source container was stopped cleanly at 2026-09-02T04:55:28Z, then the
+loader and Neo4j 5.26 VMs were submitted for deallocation and the Flexible
+Server was submitted for stop. The recommended minimum correction is a 48 GiB
+Neo4j heap with the page cache held at 28 GiB on the existing 128 GiB VM. This
+changes another frozen P3 source value and requires explicit authorization
+before a fresh r13 run.
 
 ### Recovery qualification
 
@@ -242,12 +260,12 @@ immutability proof, but it must compute a new complete target digest.
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 253.00 USD after Azure revision; ceiling: 800 USD |
-| Flexible Server storage | 34.92%; limit: 80% |
-| PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
+| Flexible Server storage | Azure last reported 34.92%; database footprint 29.26%; limit: 80% |
+| PostgreSQL / HA | Stop submitted after retaining the failed r12 evidence |
 | Loader memory | 2.61 GiB peak; limit: 4 GiB |
-| Swap / OOM | None |
-| Active resources | Loader and Neo4j 5.26 VM running; Neo4j 4.4 VM deallocated |
-| External actions | Six patch windows, one PostgreSQL stop, and one loader/source VM deallocation retained; no new external stop observed during r12 startup |
+| Swap / OOM | Loader swap/OOM zero; Neo4j Java OOM reproduced without a kernel/cgroup OOM kill |
+| Active resources | All VMs submitted for deallocation; Flexible Server submitted for stop |
+| External actions | Six patch windows and the previously recorded governance stops retained; no new external stop caused r12 |
 
 The complete acceptance and stop criteria are defined in
 [`../../docs/acceptance.md`](../../docs/acceptance.md), and the authorized P3
