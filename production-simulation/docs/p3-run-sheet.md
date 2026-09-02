@@ -385,3 +385,11 @@ unit, and the unchanged validated source-before profile. R14 prepared a fresh
 target and began the corrected uninterrupted load. Record its durable job ID
 when created, then compare source heap behavior and checkpoint progress through
 both retained failure boundaries before advancing.
+
+R14 created durable job `01e74add-b171-4cc7-96ad-44a5d1035ffc`. At
+2026-09-02T08:49:23Z it had committed 41,420,000 rows with zero rejects and a
+current checkpoint, passing the 26.7-million-row boundary shared by r10-r12.
+Loader RSS remained below 1 GiB and the source retained approximately 50.5 GB
+of available host memory. Swap, kernel/Java OOM events, and container restarts
+were zero; loader and source data-disk use remained 41% and 32%. Continue the
+uninterrupted run through r13's 47.54-million-row boundary before advancing.

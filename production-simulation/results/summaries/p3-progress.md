@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T08:12:20Z
+- Updated: 2026-09-02T08:49:23Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — fresh bounded-query r14 load is running**
-- Next: obtain the r14 durable job ID, then monitor heap and checkpoints beyond
-  both the 26.7-million and 47.54-million retained failure boundaries
+- Current position: **Neo4j 5.26 clean — r14 has passed the 26.7-million retained failure boundary**
+- Next: monitor heap and checkpoints beyond the 47.54-million retained failure
+  boundary, then allow the uninterrupted load to finish
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | Fresh r14 load active with 5,000-row server-side keyset pages |
+| Neo4j 5.26.30 | Clean | **RUNNING** | R14 at 41,420,000 rows; first retained failure boundary passed |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -295,6 +295,15 @@ PostgreSQL 18.6 was `Ready` with SameZone HA `Healthy`, the loader had 41% disk
 use and no competing P3 unit, and the validated source-before profile was
 reused. R14 prepared a fresh target and is executing the corrected load; its
 durable job row has not yet been created.
+
+R14 created durable job `01e74add-b171-4cc7-96ad-44a5d1035ffc`. At
+2026-09-02T08:49:23Z it had committed 41,420,000 rows with zero rejects, next
+batch 2,072, and a current checkpoint. It has passed the 26.7-million-row
+failure boundary shared by r10, r11, and r12 and is approaching the retained
+r13 boundary at 47.54 million rows. Loader RSS was 830,448 KiB, below the
+4 GiB gate. Source Java RSS was 80,756,788 KiB with approximately 50.5 GB host
+memory available; source and loader swap, kernel OOM, Java OOM, and container
+restarts remained zero. Loader and source data-disk use were 41% and 32%.
 
 ### Recovery qualification
 
