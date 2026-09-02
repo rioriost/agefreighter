@@ -4,11 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T18:23:01Z
+- Updated: 2026-09-02T20:12:49Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 4.4 recovery — fresh segment 1 is initializing**
-- Next: record the durable recovery job ID, then send the planned loader
-  `SIGTERM` near 25%
+- Current position: **Neo4j 4.4 recovery — segment 1 is loading toward the 25% fault**
+- Next: send the planned loader `SIGTERM` near 140,000,000 committed rows
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -17,7 +16,7 @@ guest evidence and the final reviewed result remain authoritative.
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 4.4.48 | Recovery | **RUNNING** | Fresh target and segment 1 started; durable job creation pending |
+| Neo4j 4.4.48 | Recovery | **RUNNING** | Segment 1 at 31,000,000 rows; planned `SIGTERM` at ~140,000,000 |
 | Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
@@ -126,8 +125,8 @@ altering the completed evidence. The clean qualification is complete.
 
 | Step | Fault/recovery evidence | State |
 | ---: | --- | --- |
-| 1 | Start a fresh target database and durable job | **RUNNING**; segment 1 initializing |
-| 2 | Send loader `SIGTERM` near 25% and retain the checkpoint | PENDING |
+| 1 | Start a fresh target database and durable job | DONE; job `d727d9aa-b7e5-4728-9254-90bd0210406d` |
+| 2 | Send loader `SIGTERM` near 25% and retain the checkpoint | **RUNNING**; monitoring toward 140,000,000 rows |
 | 3 | Resume the same database, graph, job, and fingerprint | PENDING |
 | 4 | Restart the Neo4j 4.4 container near 40% | PENDING |
 | 5 | Resume the same durable job again and finish the load | PENDING |
@@ -136,6 +135,17 @@ altering the completed evidence. The clean qualification is complete.
 
 The recovery run reuses the accepted clean source profiles as the source
 immutability proof, but it must compute a new complete target digest.
+
+The cold live-discovery phase completed and created durable job
+`d727d9aa-b7e5-4728-9254-90bd0210406d`. At 2026-09-02T20:12:49Z it had
+committed 31,000,000 rows with zero rejects, next batch 1,551, and a current
+checkpoint. Loader RSS was 659,156 KiB, within the 4 GiB gate. Source Java RSS
+was 55,382,128 KiB with approximately 9.4 GB host memory available; loader and
+source swap/OOM remained zero, the source container had not restarted, and its
+data disk remained 32% used. Flexible Server storage was 46.82%, within the
+80% gate. The cost endpoint was rate-limited; the latest posted actual remains
+353.61 USD against the 800 USD ceiling. Keep segment 1 active until the planned
+`SIGTERM` near 140,000,000 committed rows.
 
 ## Neo4j 5.26.30
 
@@ -410,9 +420,9 @@ immutability proof, but it must compute a new complete target digest.
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 353.61 USD; ceiling: 800 USD |
-| Flexible Server storage | Azure last reported 46.34%; limit: 80% |
+| Flexible Server storage | Azure last reported 46.82%; limit: 80% |
 | PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
-| Loader memory | R14 load peak 2.61 GiB; limit: 4 GiB |
+| Loader memory | Current recovery RSS 0.63 GiB; limit: 4 GiB |
 | Swap / OOM | Current recovery loader/source swap and OOM zero; retained failed-run evidence unchanged |
 | Active resources | Loader, Neo4j 4.4 VM, and Flexible Server running; Neo4j 5.26 VM deallocated |
 | External actions | Governance stop of the first r14 digest retained; later loader OS update completed without interrupting successful retry r2 |

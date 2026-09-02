@@ -477,3 +477,13 @@ the accepted clean source-before profile, passed validation and target
 preflight, and entered its initial live discovery/load. The durable job row had
 not yet been created at 18:23:01Z. Record it when created, then send `SIGTERM`
 near 140,000,000 committed rows while its checkpoint is within 15 minutes.
+
+The cold live-discovery phase completed and created durable job
+`d727d9aa-b7e5-4728-9254-90bd0210406d`. At 2026-09-02T20:12:49Z it had
+committed 31,000,000 rows with zero rejects, next batch 1,551, and a current
+checkpoint. Loader RSS was 659,156 KiB; source Java RSS was 55,382,128 KiB with
+approximately 9.4 GB host memory available. Swap/OOM remained zero, the source
+container had not restarted, and source data-disk use was 32%. Flexible Server
+storage was 46.82%. The cost endpoint was rate-limited, so the latest posted
+actual remains 353.61 USD against the 800 USD ceiling. Continue segment 1 to
+the planned `SIGTERM` near 140,000,000 committed rows.
