@@ -487,3 +487,24 @@ container had not restarted, and source data-disk use was 32%. Flexible Server
 storage was 46.82%. The cost endpoint was rate-limited, so the latest posted
 actual remains 353.61 USD against the 800 USD ceiling. Continue segment 1 to
 the planned `SIGTERM` near 140,000,000 committed rows.
+
+At 2026-09-02T20:56:02Z, after the complete pre-fault guardrail check,
+segment 1 received the planned `SIGTERM` at 140,920,000 committed rows
+(25.16%). The durable job had zero rejects, next batch 7,047, and a current
+checkpoint. Loader RSS was 2,424,200 KiB, loader disk use was 41%, and
+loader/source swap and OOM counts were zero. PostgreSQL was `Ready` / SameZone
+HA `Healthy`, storage was 48.85%, and no unexpected governance action was
+present. The cost endpoint remained rate-limited; the latest posted actual was
+353.61 USD. The terminated segment, job state, action record, and SHA-256
+manifest remain retained under its result directory.
+
+Segment 2 started at 2026-09-02T20:58:45Z with target preparation disabled and
+resumed the same database, graph, generation, job
+`d727d9aa-b7e5-4728-9254-90bd0210406d`, and configuration fingerprint
+`7ce3e588f60dae063069347b77fa17fdf0db17981be259df8911454f7a45876b`.
+It uses the reviewed Neo4j 4.4 discovery snapshot from commit
+`9391b23c7527ea35338fa731eb18a88136efaa65`, whose SHA-256 is
+`1cc823addfe580f3cb9e5a6c2bb315a49568bb966d38bec5aa3497b19d3e4036`.
+The resume process was active at 20:59:31Z with the retained 140,920,000-row
+checkpoint and zero rejects. Continue segment 2 to the planned Neo4j 4.4
+container restart near 224,000,000 committed rows.

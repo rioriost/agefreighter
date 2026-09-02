@@ -4,10 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T20:12:49Z
+- Updated: 2026-09-02T20:59:31Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 4.4 recovery — segment 1 is loading toward the 25% fault**
-- Next: send the planned loader `SIGTERM` near 140,000,000 committed rows
+- Current position: **Neo4j 4.4 recovery — segment 2 resumed after the planned 25% fault**
+- Next: restart the Neo4j 4.4 container near 224,000,000 committed rows
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -16,7 +16,7 @@ guest evidence and the final reviewed result remain authoritative.
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 4.4.48 | Recovery | **RUNNING** | Segment 1 at 31,000,000 rows; planned `SIGTERM` at ~140,000,000 |
+| Neo4j 4.4.48 | Recovery | **RUNNING** | Planned `SIGTERM` retained at 140,920,000 rows; segment 2 resumed toward the ~224,000,000-row source restart |
 | Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
@@ -126,9 +126,9 @@ altering the completed evidence. The clean qualification is complete.
 | Step | Fault/recovery evidence | State |
 | ---: | --- | --- |
 | 1 | Start a fresh target database and durable job | DONE; job `d727d9aa-b7e5-4728-9254-90bd0210406d` |
-| 2 | Send loader `SIGTERM` near 25% and retain the checkpoint | **RUNNING**; monitoring toward 140,000,000 rows |
-| 3 | Resume the same database, graph, job, and fingerprint | PENDING |
-| 4 | Restart the Neo4j 4.4 container near 40% | PENDING |
+| 2 | Send loader `SIGTERM` near 25% and retain the checkpoint | DONE; `SIGTERM` at 140,920,000 rows (25.16%) with a current checkpoint |
+| 3 | Resume the same database, graph, job, and fingerprint | DONE; segment 2 resumed job `d727d9aa-b7e5-4728-9254-90bd0210406d` with the retained fingerprint |
+| 4 | Restart the Neo4j 4.4 container near 40% | **RUNNING**; monitor segment 2 toward 224,000,000 rows |
 | 5 | Resume the same durable job again and finish the load | PENDING |
 | 6 | Run the complete built-in post-load checks | PENDING |
 | 7 | Compute the complete target digest and match fixture and clean roots | PENDING |
@@ -146,6 +146,25 @@ data disk remained 32% used. Flexible Server storage was 46.82%, within the
 80% gate. The cost endpoint was rate-limited; the latest posted actual remains
 353.61 USD against the 800 USD ceiling. Keep segment 1 active until the planned
 `SIGTERM` near 140,000,000 committed rows.
+
+After a final pre-fault guardrail check, segment 1 received `SIGTERM` at
+2026-09-02T20:56:02Z with 140,920,000 committed rows, zero rejects, next batch
+7,047, and a current checkpoint. Loader RSS was 2,424,200 KiB, disk use was
+41%, and swap/OOM were zero. The process exited, the durable job retained its
+checkpoint, and the fault evidence plus SHA-256 manifest is stored under the
+segment 1 result directory. Flexible Server was `Ready` / HA `Healthy` with
+48.85% storage immediately before the fault; the cost endpoint remained
+rate-limited and the latest posted actual was 353.61 USD.
+
+Segment 2 started at 2026-09-02T20:58:45Z against the same database, graph,
+generation, durable job, and configuration fingerprint
+`7ce3e588f60dae063069347b77fa17fdf0db17981be259df8911454f7a45876b`.
+It uses the reviewed Neo4j 4.4 discovery snapshot at verifier commit
+`9391b23c7527ea35338fa731eb18a88136efaa65`; the snapshot SHA-256 is
+`1cc823addfe580f3cb9e5a6c2bb315a49568bb966d38bec5aa3497b19d3e4036`.
+At 20:59:31Z the resume process was active with the same 140,920,000-row
+checkpoint and zero rejects. Continue uninterrupted to the planned Neo4j
+container restart near 224,000,000 committed rows.
 
 ## Neo4j 5.26.30
 
@@ -420,9 +439,9 @@ immutability proof, but it must compute a new complete target digest.
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 353.61 USD; ceiling: 800 USD |
-| Flexible Server storage | Azure last reported 46.82%; limit: 80% |
+| Flexible Server storage | Azure last reported 48.85%; limit: 80% |
 | PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
-| Loader memory | Current recovery RSS 0.63 GiB; limit: 4 GiB |
+| Loader memory | Pre-fault RSS 2.31 GiB; resumed process RSS 0.93 GiB; limit: 4 GiB |
 | Swap / OOM | Current recovery loader/source swap and OOM zero; retained failed-run evidence unchanged |
 | Active resources | Loader, Neo4j 4.4 VM, and Flexible Server running; Neo4j 5.26 VM deallocated |
 | External actions | Governance stop of the first r14 digest retained; later loader OS update completed without interrupting successful retry r2 |
