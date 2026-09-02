@@ -4,11 +4,11 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-02T01:39:00Z
+- Updated: 2026-09-02T01:44:00Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 clean — corrective source restart and fresh retry preflight**
-- Next: restart and reprove the immutable source, then start a fresh clean
-  database and job using the retained source-before profile
+- Current position: **Neo4j 5.26 clean — fresh r11 load initialization**
+- Next: establish the new durable job and enforce its checkpoint, memory,
+  storage, and throughput gates
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | PENDING | Start only after both clean-source qualifications |
-| Neo4j 5.26.30 | Clean | **RUNNING** | Fresh retry preflight after retained source-JVM memory failure |
+| Neo4j 5.26.30 | Clean | **RUNNING** | Fresh r11 load initialization after source restart |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
 ## Neo4j 4.4.48
@@ -182,6 +182,13 @@ resumed. The next attempt uses a fresh target database and durable job after a
 source restart. Because the source is read-only and unchanged, the validated
 source-before profile is reused with its original path and SHA-256 recorded;
 the frozen source and migration configuration are unchanged.
+
+The source container restarted as Neo4j Community 5.26.30 with the database
+online and read-only, 32% source-disk use, no swap, and no kernel OOM. Fresh
+run `clean-r11-neo4j526` created isolated PostgreSQL 18 / AGE 1.7 targets and
+started at 2026-09-02T01:41:54Z. It retained the source-before profile with
+SHA-256 `0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`
+and is initializing a new uninterrupted load with the frozen configuration.
 
 ### Recovery qualification
 

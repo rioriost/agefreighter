@@ -263,3 +263,11 @@ container restart, and a fresh target database and durable job are used. This
 avoids immediately repeating the full source scan that preceded the JVM memory
 failure without changing the frozen Neo4j heap/page-cache settings, migration
 configuration, source data, or post-load source-profile requirement.
+
+After the source container stopped, host available memory returned above 61
+GiB. It restarted as Neo4j Community 5.26.30 with the database online and
+read-only, 32% source-disk use, no swap, and no kernel OOM. Fresh run
+`clean-r11-neo4j526` created isolated PostgreSQL 18 / AGE 1.7 targets and
+started at 2026-09-02T01:41:54Z. It retained the source-before profile with
+SHA-256 `0b7b16a969f17ac5843f93b49999d00cc462985319d7db8c6be3ab30f2b9c900`
+and began a new uninterrupted load using the unchanged frozen configuration.
