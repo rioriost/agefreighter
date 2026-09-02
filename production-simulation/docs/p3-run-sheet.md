@@ -508,3 +508,22 @@ It uses the reviewed Neo4j 4.4 discovery snapshot from commit
 The resume process was active at 20:59:31Z with the retained 140,920,000-row
 checkpoint and zero rejects. Continue segment 2 to the planned Neo4j 4.4
 container restart near 224,000,000 committed rows.
+
+At 2026-09-02T21:35:59Z, after checking the live window, cost, storage,
+checkpoint, loader RSS, swap/OOM, source health, and governance activity, the
+Neo4j 4.4 container received the planned restart. Segment 2 failed as expected
+at 21:36:00Z with 229,300,000 committed rows (40.95%), zero rejects, next
+batch 11,466, graph generation 1, and the unchanged configuration fingerprint.
+The container returned at 21:36:06Z and was proven online and read-only at
+21:38:19Z; its start timestamp changed, it was not OOM-killed, and source disk
+use was 32% with zero swap/OOM. Flexible Server had been `Ready` / SameZone HA
+`Healthy` with 50.55% storage, and the latest posted cost remained 353.61 USD
+because the cost endpoint was rate-limited. Source- and loader-side fault
+records and SHA-256 manifests are retained.
+
+Segment 3 started at 2026-09-02T21:39:58Z with target preparation disabled,
+the reviewed Neo4j 4.4 discovery snapshot, and the same database, graph,
+generation, job `d727d9aa-b7e5-4728-9254-90bd0210406d`, and fingerprint. At
+21:40:44Z the resume process was active with the 229,300,000-row checkpoint and
+zero rejects. Let segment 3 finish the load, post-load checks, source-after
+profile, and full canonical digest without interruption.
