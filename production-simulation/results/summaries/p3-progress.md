@@ -4,10 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-03T07:31:53Z
+- Updated: 2026-09-03T07:58:17Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 recovery — 560,000,000-row load committed; post-load verification is running**
-- Next: finish built-in checks, source immutability proof, and full canonical digest
+- Current position: **Neo4j 5.26 recovery — post-load checks and source proof passed; full canonical digest is running**
+- Next: finish all 5,600 target ranges and compare the canonical root
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | **DONE** | Both planned recoveries completed; all 5,600 ranges and the final root match |
 | Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 5.26.30 | Recovery | **RUNNING** | Both planned faults passed and all 560,000,000 rows committed; post-load verification is active |
+| Neo4j 5.26.30 | Recovery | **RUNNING** | Both planned faults, load, checks, and source proof passed; full target digest is active |
 
 ## Neo4j 4.4.48
 
@@ -469,8 +469,8 @@ created at 18:23:01Z.
 | 3 | Restore connectivity and resume the same durable job | DONE; connectivity restored after one second and segment 2 advanced past the retained checkpoint with the same job/fingerprint |
 | 4 | Reboot the loader VM near 75% | DONE; reboot initiated at 433,740,000 rows (77.45%), with a final retained checkpoint at 435,980,000 rows |
 | 5 | Explicitly resume the same durable job and finish the load | DONE; all 560,000,000 rows committed with zero rejects and no failed batches |
-| 6 | Run the complete built-in post-load checks | **RUNNING**; report passed and bounded verification is active |
-| 7 | Compute the complete target digest and match fixture and clean roots | PENDING |
+| 6 | Run the complete built-in post-load checks | DONE; report and doctor pass, with no failed or unknown bounded checks |
+| 7 | Compute the complete target digest and match fixture and clean roots | **RUNNING**; target `rangedigest` is active |
 
 The recovery run reuses the accepted clean source profiles as the source
 immutability proof, but it must compute a new complete target digest.
@@ -540,6 +540,20 @@ the remaining 124,020,000 rows in 54:24 with zero failed batches, maximum RSS
 with outcome `pass`; bounded verification was active at 07:31:53Z. Continue
 through the remaining built-in checks, source-after profile, optimizer review,
 and full canonical digest.
+
+Bounded verification completed at 2026-09-03T07:39:56Z. Report and doctor are
+`pass`; bounded integrity and optimizer reports contain no failed or unknown
+checks beyond their documented incomplete coverage, which the full digest
+must close. The source-after profile completed at 07:40:25Z. Its exact source
+counts and schema agree with the accepted read-only source; after excluding
+timestamps, paging metadata, and sample-size-derived estimates, the accepted
+before profile and recovery after profile are identical with normalized
+SHA-256 `3ee124f60b0fa531763274def4e66ce35de9d6a5b38086d42fdfb10221153181`.
+The initial bounded sample contained 999,810 rows while the corrected keyset
+snapshot samples 1,000,000, so those execution-dependent estimates are
+explicitly excluded rather than presented as source changes. `ANALYZE` and
+both optimizer reviews completed, and the full target digest was active at
+07:58:17Z with approximately 391 MiB RSS and zero swap/OOM.
 
 ## Live guardrails
 

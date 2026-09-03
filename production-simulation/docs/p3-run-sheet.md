@@ -617,3 +617,15 @@ remaining 124,020,000 rows in 54:24 with zero failed batches, maximum RSS
 outcome `pass`; bounded verification was active at 07:31:53Z. Keep the wrapper
 active through the remaining checks, source-after profile, optimizer review,
 full target digest, and final comparison.
+
+Bounded verification completed at 2026-09-03T07:39:56Z. Report and doctor are
+`pass`, and bounded integrity and optimizer reports have no failed or unknown
+checks beyond their documented incomplete coverage. The source-after profile
+completed at 07:40:25Z. Exact source counts and schema agree; after excluding
+timestamps, paging metadata, and the estimates derived from the corrected
+1,000,000-row bounded sample rather than the accepted profile's 999,810-row
+sample, the before and recovery-after profiles have identical normalized
+SHA-256 `3ee124f60b0fa531763274def4e66ce35de9d6a5b38086d42fdfb10221153181`.
+Retain that sample-size difference as execution evidence, not a source-data
+change. `ANALYZE` and optimizer review completed, and the full target digest
+was active at 07:58:17Z. Let it finish all 5,600 ranges and compare the root.
