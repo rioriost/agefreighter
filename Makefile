@@ -126,7 +126,7 @@ test-release-integration:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
 	AGEFREIGHTER_POSTGRES_TEST_DSN="$(AGEFREIGHTER_POSTGRES_TEST_DSN)" \
 		$(GO) test -count=1 -v ./internal/meta ./internal/app \
-		-run '^(TestMetadataV14AndV17UpgradeToV18Integration|TestDoctorDegradedPostgreSQLIntegration|TestDeepVerificationDetectsCorruptionIntegration)$$'
+		-run '^(TestMetadataV14V17V18UpgradeToV19Integration|TestDoctorDegradedPostgreSQLIntegration|TestDeepVerificationDetectsCorruptionIntegration)$$'
 
 test-recovery:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
@@ -141,6 +141,7 @@ coverage:
 	AGEFREIGHTER_NEO4J_TEST_PASSWORD="$(AGEFREIGHTER_NEO4J_TEST_PASSWORD)" \
 	AGEFREIGHTER_NEO4J_TEST_DATABASE="$(AGEFREIGHTER_NEO4J_TEST_DATABASE)" \
 	AGEFREIGHTER_POSTGRES_TEST_DSN="$(AGEFREIGHTER_POSTGRES_TEST_DSN)" \
+	AGEFREIGHTER_PGGRAPH_TEST_DSN="$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" \
 	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
 		$(GO) test -covermode=atomic -coverpkg=./... \
 		-coverprofile="$(COVERAGE_DIR)/unit.raw.out" ./...

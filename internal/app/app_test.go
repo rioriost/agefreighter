@@ -30,7 +30,7 @@ type limitedIterator struct {
 	remaining int
 }
 
-func TestOpenRuntimeRejectsUnwiredTarget(t *testing.T) {
+func TestOpenRuntimeResolvesPropertyGraphSecret(t *testing.T) {
 	job := testLoadJob("app_test_graph", "vertices.csv", "edges.csv")
 	job.Target.Type = config.TargetPostgreSQLPropertyGraph
 	job.Target.Schema = "public"
@@ -40,7 +40,7 @@ func TestOpenRuntimeRejectsUnwiredTarget(t *testing.T) {
 	if runtime != nil {
 		runtime.Close()
 	}
-	if err == nil || !strings.Contains(err.Error(), "adapter is not implemented") {
+	if err == nil || !strings.Contains(err.Error(), "AGEFREIGHTER_APP_TEST_DSN") {
 		t.Fatalf("openRuntime() error = %v", err)
 	}
 }
@@ -53,7 +53,7 @@ func TestProbeTargetRejectsUnwiredTargetBeforeSecretResolution(t *testing.T) {
 	job.Target.Connection = config.SecretRef{Env: "UNSET_PGGRAPH_PROBE_DSN"}
 
 	_, err := probeTarget(context.Background(), job)
-	if err == nil || !strings.Contains(err.Error(), "adapter is not implemented") ||
+	if err == nil || !strings.Contains(err.Error(), "does not provide Apache AGE diagnostics") ||
 		strings.Contains(err.Error(), "UNSET_PGGRAPH_PROBE_DSN") {
 		t.Fatalf("probeTarget() error = %v", err)
 	}

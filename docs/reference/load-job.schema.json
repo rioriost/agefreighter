@@ -37,6 +37,72 @@
       "$ref": "#/$defs/errors"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "target": {
+            "properties": {
+              "type": {
+                "const": "postgresql-property-graph"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "errors": {
+            "properties": {
+              "missingEndpoint": {
+                "const": "error"
+              }
+            }
+          },
+          "source": {
+            "properties": {
+              "postgresql": {
+                "properties": {
+                  "edges": {
+                    "items": {
+                      "required": [
+                        "externalIdField"
+                      ]
+                    }
+                  }
+                }
+              },
+              "neo4j": {
+                "properties": {
+                  "edges": {
+                    "items": {
+                      "required": [
+                        "externalIdField"
+                      ]
+                    }
+                  }
+                }
+              },
+              "cosmos": {
+                "properties": {
+                  "edges": {
+                    "items": {
+                      "required": [
+                        "externalIdField"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "metadata": {
       "type": "object",

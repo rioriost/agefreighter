@@ -277,6 +277,57 @@ func TestPostgreSQLPropertyGraphAcceptsQuotedIdentifiers(t *testing.T) {
 	}
 }
 
+func TestPostgreSQLPropertyGraphRequiresMissingEndpointError(t *testing.T) {
+	job := validCSVJob(t)
+	job.Target = Target{
+		Type:         TargetPostgreSQLPropertyGraph,
+		Graph:        "supply_graph",
+		Schema:       "graph_data",
+		Mode:         LoadCreate,
+		Connection:   job.Target.Connection,
+		PropertyMode: PropertiesReplace,
+	}
+	job.Errors.MissingEndpoint = MissingEndpointQuarantine
+
+	err := job.Validate()
+	if err == nil || !strings.Contains(err.Error(),
+		"errors.missingEndpoint [unsupported]") {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
+func TestPostgreSQLPropertyGraphRequiresConfiguredEdgeIdentity(t *testing.T) {
+	job := validCSVJob(t)
+	job.Target = Target{
+		Type:         TargetPostgreSQLPropertyGraph,
+		Graph:        "supply_graph",
+		Schema:       "graph_data",
+		Mode:         LoadCreate,
+		Connection:   job.Target.Connection,
+		PropertyMode: PropertiesReplace,
+	}
+	job.Source = Source{
+		Type: SourcePostgreSQL, Namespace: "source",
+		PostgreSQL: &PostgreSQLSource{
+			Connection: job.Target.Connection,
+			Vertices: []VertexQuery{{
+				Label: "Person", Query: "SELECT 1 AS id", IDField: "id",
+			}},
+			Edges: []EdgeQuery{{
+				Label: "KNOWS", Query: "SELECT 1 AS id, 1 AS start, 1 AS finish",
+				Start: EndpointMapping{Label: "Person", Field: "start"},
+				End:   EndpointMapping{Label: "Person", Field: "finish"},
+			}},
+		},
+	}
+
+	err := job.Validate()
+	if err == nil || !strings.Contains(err.Error(),
+		"source.postgresql.edges[0].externalIdField [required]") {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
 func TestUpsertRequiresEdgeIdentity(t *testing.T) {
 	job := validCSVJob(t)
 	job.Target.Mode = LoadUpsert

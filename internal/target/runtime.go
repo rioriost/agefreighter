@@ -11,9 +11,8 @@ import (
 	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
+	"github.com/rioriost/agefreighter/internal/pggraph"
 )
-
-var ErrAdapterNotImplemented = errors.New("target adapter is not implemented")
 
 type Options struct {
 	MaxConnections   int32
@@ -37,6 +36,11 @@ type AGERuntime interface {
 	AGEAdapter() *age.Adapter
 }
 
+type PGGraphRuntime interface {
+	Runtime
+	PGGraphAdapter() *pggraph.Adapter
+}
+
 func RequireAGE(runtime Runtime) (AGERuntime, error) {
 	if runtime == nil {
 		return nil, errors.New("target runtime is nil")
@@ -51,6 +55,20 @@ func RequireAGE(runtime Runtime) (AGERuntime, error) {
 	return ageRuntime, nil
 }
 
+func RequirePGGraph(runtime Runtime) (PGGraphRuntime, error) {
+	if runtime == nil {
+		return nil, errors.New("target runtime is nil")
+	}
+	pgRuntime, ok := runtime.(PGGraphRuntime)
+	if !ok {
+		return nil, fmt.Errorf(
+			"target backend %q does not provide PostgreSQL property graph operations",
+			runtime.Backend(),
+		)
+	}
+	return pgRuntime, nil
+}
+
 func Open(
 	ctx context.Context,
 	backend config.TargetType,
@@ -62,7 +80,17 @@ func Open(
 	}
 	switch backend {
 	case config.TargetApacheAGE:
-		return openAGE(ctx, dsn, options)
+		runtime, err := openAGE(ctx, dsn, options)
+		if err != nil {
+			return nil, err
+		}
+		return runtime, nil
+	case config.TargetPostgreSQLPropertyGraph:
+		runtime, err := openPGGraph(ctx, dsn, options)
+		if err != nil {
+			return nil, err
+		}
+		return runtime, nil
 	}
 	return nil, fmt.Errorf("unsupported target backend %q", backend)
 }
@@ -72,9 +100,54 @@ func RequireImplemented(backend config.TargetType) error {
 	case config.TargetApacheAGE:
 		return nil
 	case config.TargetPostgreSQLPropertyGraph:
-		return fmt.Errorf("%w: %s", ErrAdapterNotImplemented, backend)
+		return nil
 	default:
 		return fmt.Errorf("unsupported target backend %q", backend)
+	}
+}
+
+type pgGraphRuntime struct {
+	adapter *pggraph.Adapter
+	store   *meta.Store
+}
+
+var _ Runtime = (*pgGraphRuntime)(nil)
+var _ PGGraphRuntime = (*pgGraphRuntime)(nil)
+
+func openPGGraph(
+	ctx context.Context,
+	dsn string,
+	options Options,
+) (*pgGraphRuntime, error) {
+	adapter, err := pggraph.Open(ctx, dsn, pggraph.PoolOptions{
+		MinConnections: 1, MaxConnections: options.MaxConnections,
+		ConnectTimeout: options.ConnectTimeout, OperationTimeout: options.OperationTimeout,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &pgGraphRuntime{adapter: adapter, store: adapter.Metadata()}, nil
+}
+
+func (*pgGraphRuntime) Backend() config.TargetType {
+	return config.TargetPostgreSQLPropertyGraph
+}
+
+func (runtime *pgGraphRuntime) Metadata() *meta.Store { return runtime.store }
+
+func (runtime *pgGraphRuntime) InspectMetadata(ctx context.Context) (meta.SchemaInspection, error) {
+	return runtime.store.InspectSchema(ctx)
+}
+
+func (runtime *pgGraphRuntime) MigrateMetadata(ctx context.Context) error {
+	return runtime.store.MigrateIfNeeded(ctx)
+}
+
+func (runtime *pgGraphRuntime) PGGraphAdapter() *pggraph.Adapter { return runtime.adapter }
+
+func (runtime *pgGraphRuntime) Close() {
+	if runtime != nil && runtime.adapter != nil {
+		runtime.adapter.Close()
 	}
 }
 

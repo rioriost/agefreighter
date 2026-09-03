@@ -1,6 +1,6 @@
 # AGEFreighter 2.2.0 PostgreSQL property graph target plan
 
-**Status:** Reviewed; Phases A and B complete on branch `2.2.0`
+**Status:** Reviewed; Phases A-C complete on branch `2.2.0`
 **Target release:** AGEFreighter 2.2.0
 **Feature maturity:** Experimental while PostgreSQL 19 is pre-release
 **Reviewed:** 2026-09-03
@@ -93,8 +93,10 @@ The pair `(source_namespace, external_id)` is unique.
 
 Edge tables contain their own stable identity, `start_id` and `end_id` foreign
 keys, and `properties jsonb`. Mappings must identify the endpoint vertex labels
-before DDL is created. Tables and graph objects are owned by the migration
-role; AGE catalogs and AGE graph IDs are never used.
+before DDL is created. Configured mappings must also provide a stable edge ID;
+the pair `(source_namespace, external_id)` is unique for edges as well as
+vertices. Tables and graph objects are owned by the migration role; AGE
+catalogs and AGE graph IDs are never used.
 
 ### 4.2 Property exposure
 
@@ -288,30 +290,53 @@ inspection, and metadata migration now enter through `internal/target`;
 Apache AGE construction is behind that boundary. AGE-only operations are
 requested through an explicit capability check, so an implemented non-AGE
 runtime cannot accidentally be treated as AGE. Degraded diagnostics validate
-the target backend before resolving or opening its connection. PostgreSQL
-property-graph operations remain fail-closed with an explicit
-unsupported-adapter error until Phase C installs its runtime.
+the target backend before resolving or opening its connection.
 
 Metadata schema v18 records the target backend and schema on every job. Reads
 remain compatible with v14-v17 metadata by interpreting missing target
 identity as Apache AGE, while the v18 migration permanently backfills that
-identity and removes insertion defaults. Status, report, verification, resume,
-and replacement cleanup reject a job whose stored target identity differs from
-the supplied configuration. The v14-v17-v18 integration fixture proves an
+identity and removes insertion defaults. Metadata schema v19 adds dedicated
+PostgreSQL property-graph generation and label/table mappings without writing
+synthetic AGE catalog identifiers. Status, report, verification, resume, and
+replacement cleanup reject a job whose stored target identity differs from the
+supplied configuration. The v14-v17-v18-v19 integration fixture proves an
 existing failed AGE job can be read before migration, upgraded, and returned
-to running state unchanged, and that a PostgreSQL property-graph job
-round-trips its explicit backend identity.
+to running state unchanged, and that a PostgreSQL property-graph job and its
+mapping round-trip their explicit identity.
+
+Phase C completed on 2026-09-03. `create` loads now create the schema, vertex
+and edge tables, uniqueness and endpoint foreign-key constraints, and the
+SQL/PGQ property graph in one transaction. Vertex groups are written before
+edge groups in deterministic label order. Each edge group uses a per-batch
+temporary table and server-side indexed joins, so endpoint resolution is
+bounded by the configured batch size and never builds a process-wide endpoint
+cache. Target rows and the durable checkpoint commit in the same transaction.
+
+Explicit resume reuses the stored database, graph definition fingerprint,
+batch ID, and attempt, and refuses a changed mapping or target object. Final
+activation is atomic with job completion and occurs only after the total table
+count equals committed rows and a `GRAPH_TABLE` vertex count equals its backing
+table. The error policy is deliberately restricted to
+`missingEndpoint: error` for this first slice; a missing endpoint rolls back
+the entire edge batch rather than committing the resolvable subset.
+
+The connector-neutral mapping matrix covers CSV, PostgreSQL, Neo4j, and Cosmos
+source configurations and proves identical mappings produce the same
+definition fingerprint. Their existing iterators feed the common ordered
+record contract into the new sink. On the pinned PostgreSQL 19 Beta 3 image,
+the end-to-end suite proves a clean create load, deterministic mapping and
+checkpoint persistence, SQL/PGQ traversal, interrupted-batch resume, and
+all-or-nothing missing-endpoint handling.
 
 The full unit and race suites, release self-check, live AGE adapter/app suites,
 and the complete AGE recovery matrix pass through the new boundary. The
-PostgreSQL 19 Beta 3 container also passes the v14-v17-v18 metadata-upgrade
-fixture. The PostgreSQL property-graph package is protected by an architecture
-test that rejects any dependency on `internal/age`. Transactional PostgreSQL
-property-graph create operations are intentionally not part of Phase B; Phase
-C will add them behind the completed runtime boundary.
+PostgreSQL 19 Beta 3 container also passes the v14-v17-v18-v19 metadata-upgrade
+fixture and the Phase C integration suite. The PostgreSQL property-graph
+package remains protected by an architecture test that rejects any dependency
+on `internal/age`. Verification, diagnostics, and corruption detection beyond
+the Phase C activation gates remain Phase D work.
 
-The repository-wide coverage gate is 88.8% with the AGE integration DSN,
-against a required 90.0%. Phase A measured 88.9%, so this is a pre-existing
-release-gate deficit rather than a Phase B regression. The threshold has not
-been weakened and must be restored before the 2.2.0 release criteria are
-declared complete.
+The repository-wide coverage gate is 88.1% with both the live AGE and
+PostgreSQL 19 integration DSNs, against a required 90.0%. The pre-Phase C
+baseline was already below the gate. The threshold has not been weakened and
+must be restored before the 2.2.0 release criteria are declared complete.

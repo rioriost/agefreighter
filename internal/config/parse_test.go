@@ -573,6 +573,13 @@ func TestJSONSchemaPostgreSQLPropertyGraphTarget(t *testing.T) {
 	if err := schema.Validate(schemaDocument(t, job)); err == nil {
 		t.Fatal("schema accepted unimplemented PostgreSQL property graph replace mode")
 	}
+
+	job.Target.Mode = LoadCreate
+	job.Errors.MissingEndpoint = MissingEndpointQuarantine
+	job.Errors.QuarantinePath = "rejects.jsonl"
+	if err := schema.Validate(schemaDocument(t, job)); err == nil {
+		t.Fatal("schema accepted PostgreSQL property graph missing-endpoint quarantine")
+	}
 }
 
 func schemaDocument(t *testing.T, value any) any {

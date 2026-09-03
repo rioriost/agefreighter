@@ -91,8 +91,13 @@ test_target() {
 	up
 	address=$(container inspect "$container_name" |
 		jq -er '.[0].status.networks[0].ipv4Address' | cut -d/ -f1)
-	AGEFREIGHTER_PGGRAPH_TEST_DSN="postgres://postgres:$password@$address:5432/$database?sslmode=disable" \
-		go test -count=1 -v ./internal/pggraph
+	dsn="postgres://postgres:$password@$address:5432/$database?sslmode=disable"
+	AGEFREIGHTER_PGGRAPH_TEST_DSN="$dsn" \
+		go test -count=1 -v ./internal/pggraph ./internal/app \
+		-run '^(TestPropertyGraphIntegration|TestPostgreSQLPropertyGraphCreateAndResumeIntegration)$$'
+	AGEFREIGHTER_AGE_TEST_DSN="$dsn" \
+		go test -count=1 -v ./internal/meta \
+		-run '^TestMetadataV14V17V18UpgradeToV19Integration$$'
 }
 
 down() {

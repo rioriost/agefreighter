@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 18
+const schemaVersion = 19
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -783,6 +783,52 @@ var migrationV18 = []string{
 		ALTER COLUMN target_schema DROP DEFAULT`,
 }
 
+var migrationV19 = []string{
+	`CREATE TABLE agefreighter_meta.property_graph_generation (
+		job_id uuid PRIMARY KEY
+			REFERENCES agefreighter_meta.load_job(job_id)
+			ON DELETE CASCADE,
+		target_schema text NOT NULL CHECK (
+			target_schema <> '' AND octet_length(target_schema) <= 63
+		),
+		graph_name text NOT NULL CHECK (
+			graph_name <> '' AND octet_length(graph_name) <= 63
+		),
+		definition_fingerprint character(64) NOT NULL CHECK (
+			definition_fingerprint ~ '^[0-9a-f]{64}$'
+		),
+		state text NOT NULL CHECK (state IN ('loading', 'active')),
+		created_at timestamp with time zone NOT NULL DEFAULT clock_timestamp(),
+		updated_at timestamp with time zone NOT NULL DEFAULT clock_timestamp(),
+		UNIQUE (target_schema, graph_name)
+	)`,
+	`CREATE TABLE agefreighter_meta.property_graph_label (
+		job_id uuid NOT NULL
+			REFERENCES agefreighter_meta.property_graph_generation(job_id)
+			ON DELETE CASCADE,
+		label_name text NOT NULL CHECK (
+			label_name <> '' AND octet_length(label_name) <= 63
+		),
+		kind character(1) NOT NULL CHECK (kind IN ('v', 'e')),
+		table_name text NOT NULL CHECK (
+			table_name <> '' AND octet_length(table_name) <= 63
+		),
+		start_label text,
+		end_label text,
+		PRIMARY KEY (job_id, label_name),
+		UNIQUE (job_id, table_name),
+		CHECK (
+			(kind = 'v' AND start_label IS NULL AND end_label IS NULL)
+			OR
+			(kind = 'e' AND start_label IS NOT NULL AND end_label IS NOT NULL)
+		)
+	)`,
+	`CREATE INDEX property_graph_generation_state_idx
+		ON agefreighter_meta.property_graph_generation (
+			state, target_schema, graph_name
+		)`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -802,4 +848,5 @@ var migrations = [][]string{
 	migrationV16,
 	migrationV17,
 	migrationV18,
+	migrationV19,
 }

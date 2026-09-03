@@ -315,6 +315,11 @@ func execute(
 	if _, err := newPipelineRunner(job, 1, 1); err != nil {
 		return result, fmt.Errorf("validate load pipeline: %w", err)
 	}
+	if job.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return executePostgreSQLPropertyGraph(
+			ctx, job, jobID, resume, submittedFingerprint,
+		)
+	}
 	var runtime targetruntime.Runtime
 	if resume {
 		runtime, err = openMutatingTarget(ctx, job)
@@ -1045,14 +1050,18 @@ func probeTarget(
 	if err := targetruntime.RequireImplemented(job.Target.Type); err != nil {
 		return age.DegradedProbe{}, err
 	}
+	options := targetruntime.Options{
+		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
+		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
+	}
+	if job.Target.Type != config.TargetApacheAGE {
+		return targetruntime.ProbeAGE(ctx, job.Target.Type, "", options)
+	}
 	dsn, err := resolveSecret(job.Target.Connection)
 	if err != nil {
 		return age.DegradedProbe{}, fmt.Errorf("resolve target connection: %w", err)
 	}
-	return targetruntime.ProbeAGE(ctx, job.Target.Type, dsn, targetruntime.Options{
-		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
-		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
-	})
+	return targetruntime.ProbeAGE(ctx, job.Target.Type, dsn, options)
 }
 
 func openRuntime(

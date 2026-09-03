@@ -12,7 +12,7 @@ import (
 )
 
 func TestDiagnosticMigrationIsCurrentVersion(t *testing.T) {
-	if schemaVersion != 18 || len(migrations) != schemaVersion {
+	if schemaVersion != 19 || len(migrations) != schemaVersion {
 		t.Fatalf("schema version=%d migrations=%d", schemaVersion, len(migrations))
 	}
 	if len(migrationV16) != 2 ||
@@ -45,6 +45,12 @@ func TestDiagnosticMigrationIsCurrentVersion(t *testing.T) {
 		!strings.Contains(migrationV18[1], "load_job_target_identity_ck") ||
 		!strings.Contains(migrationV18[2], "DROP DEFAULT") {
 		t.Fatalf("migrationV18 = %#v", migrationV18)
+	}
+	if len(migrationV19) != 3 ||
+		!strings.Contains(migrationV19[0], "property_graph_generation") ||
+		!strings.Contains(migrationV19[1], "property_graph_label") ||
+		!strings.Contains(migrationV19[2], "property_graph_generation_state_idx") {
+		t.Fatalf("migrationV19 = %#v", migrationV19)
 	}
 }
 

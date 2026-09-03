@@ -60,6 +60,15 @@ func (job LoadJob) Validate() error {
 	validateRuntime(job.Runtime, &errs)
 	validateTrial(job.Trial, job.Source, job.Target, job.Runtime, &errs)
 	validateErrorPolicies(job.Errors, &errs)
+	if job.Target.Type == TargetPostgreSQLPropertyGraph {
+		add(
+			job.Errors.MissingEndpoint == MissingEndpointError,
+			"errors.missingEndpoint",
+			"unsupported",
+			"postgresql-property-graph create loads currently support only error",
+		)
+		validatePropertyGraphEdgeIdentity(job.Source, &errs)
+	}
 	if job.Errors.MissingEndpoint == MissingEndpointDefer {
 		add(
 			job.Target.Mode == LoadAppend || job.Target.Mode == LoadUpsert,
@@ -82,6 +91,38 @@ func (job LoadJob) Validate() error {
 		return errs
 	}
 	return nil
+}
+
+func validatePropertyGraphEdgeIdentity(source Source, errs *ValidationErrors) {
+	add := validationAdder(errs)
+	switch source.Type {
+	case SourcePostgreSQL:
+		if source.PostgreSQL != nil {
+			for index, edge := range source.PostgreSQL.Edges {
+				add(edge.ExternalIDField != "",
+					fmt.Sprintf("source.postgresql.edges[%d].externalIdField", index),
+					"required", "is required for PostgreSQL property graph edge identity")
+			}
+		}
+	case SourceNeo4j:
+		if source.Neo4j != nil &&
+			(source.Neo4j.Discovery == nil || !source.Neo4j.Discovery.Enabled) {
+			for index, edge := range source.Neo4j.Edges {
+				add(edge.ExternalIDField != "",
+					fmt.Sprintf("source.neo4j.edges[%d].externalIdField", index),
+					"required", "is required for PostgreSQL property graph edge identity")
+			}
+		}
+	case SourceCosmos:
+		if source.Cosmos != nil &&
+			(source.Cosmos.Gremlin == nil || !source.Cosmos.Gremlin.Enabled) {
+			for index, edge := range source.Cosmos.Edges {
+				add(edge.ExternalIDField != "",
+					fmt.Sprintf("source.cosmos.edges[%d].externalIdField", index),
+					"required", "is required for PostgreSQL property graph edge identity")
+			}
+		}
+	}
 }
 
 func validateTrial(

@@ -2,8 +2,9 @@ package target
 
 import (
 	"context"
-	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
@@ -26,21 +27,25 @@ type fakeAGERuntime struct{ fakeRuntime }
 
 func (fakeAGERuntime) AGEAdapter() *age.Adapter { return nil }
 
-func TestOpenRejectsUnimplementedPropertyGraphTarget(t *testing.T) {
+func TestOpenPropertyGraphRequiresConnectionAndOptions(t *testing.T) {
 	runtime, err := Open(
 		context.Background(),
 		config.TargetPostgreSQLPropertyGraph,
-		"not-used",
-		Options{},
+		"",
+		Options{
+			MaxConnections: 1, ConnectTimeout: time.Second,
+			OperationTimeout: time.Second,
+		},
 	)
-	if runtime != nil || !errors.Is(err, ErrAdapterNotImplemented) {
+	if runtime != nil || err == nil ||
+		!strings.Contains(err.Error(), "connection string is required") {
 		t.Fatalf("Open() = %#v, %v", runtime, err)
 	}
 }
 
 func TestOpenRejectsUnknownTarget(t *testing.T) {
 	runtime, err := Open(context.Background(), "unknown", "not-used", Options{})
-	if runtime != nil || err == nil || errors.Is(err, ErrAdapterNotImplemented) {
+	if runtime != nil || err == nil {
 		t.Fatalf("Open() = %#v, %v", runtime, err)
 	}
 }
@@ -52,7 +57,7 @@ func TestProbeAGERejectsNonAGEBackendBeforeUsingDSN(t *testing.T) {
 		"not-used",
 		Options{},
 	)
-	if !errors.Is(err, ErrAdapterNotImplemented) {
+	if err == nil || !strings.Contains(err.Error(), "does not provide Apache AGE diagnostics") {
 		t.Fatalf("ProbeAGE(property graph) error = %v", err)
 	}
 }
@@ -64,6 +69,9 @@ func TestRequireAGECapability(t *testing.T) {
 	postgresRuntime := fakeRuntime{backend: config.TargetPostgreSQLPropertyGraph}
 	if _, err := RequireAGE(postgresRuntime); err == nil {
 		t.Fatal("RequireAGE(property graph) succeeded")
+	}
+	if _, err := RequirePGGraph(postgresRuntime); err == nil {
+		t.Fatal("RequirePGGraph(runtime without capability) succeeded")
 	}
 	ageRuntime := fakeAGERuntime{fakeRuntime{backend: config.TargetApacheAGE}}
 	got, err := RequireAGE(ageRuntime)

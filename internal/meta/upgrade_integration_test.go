@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func TestMetadataV14AndV17UpgradeToV18Integration(t *testing.T) {
+func TestMetadataV14V17V18UpgradeToV19Integration(t *testing.T) {
 	dsn := strings.TrimSpace(os.Getenv(metadataTestDSNEnvironment))
 	if dsn == "" {
 		t.Skip("set " + metadataTestDSNEnvironment + " to run metadata upgrade integration tests")
@@ -107,7 +107,7 @@ func TestMetadataV14AndV17UpgradeToV18Integration(t *testing.T) {
 		t.Fatalf("read-only inspection changed metadata: before=%#v after=%#v error=%v", before, again, err)
 	}
 
-	if err := store.migrate(ctx, schemaVersion-1); err != nil {
+	if err := store.migrate(ctx, 17); err != nil {
 		t.Fatalf("upgrade v14 to v17 fixture: %v", err)
 	}
 	v17, err := store.InspectSchema(ctx)
@@ -132,16 +132,15 @@ func TestMetadataV14AndV17UpgradeToV18Integration(t *testing.T) {
 		t.Fatalf("read-compatible v17 target identity = %#v, %v", legacyBeforeMigration, err)
 	}
 
-	if err := store.Migrate(ctx); err != nil {
+	if err := store.migrate(ctx, 18); err != nil {
 		t.Fatalf("upgrade v17 to v18: %v", err)
 	}
-	after, err := store.InspectSchema(ctx)
+	v18, err := store.InspectSchema(ctx)
 	if err != nil {
 		t.Fatalf("InspectSchema(v18) error = %v", err)
 	}
-	if after.State != SchemaCurrent ||
-		after.InstalledVersion != SupportedSchemaVersion {
-		t.Fatalf("upgraded inspection = %#v", after)
+	if v18.State != SchemaPending || v18.InstalledVersion != 18 {
+		t.Fatalf("v18 inspection = %#v", v18)
 	}
 	legacy, err := store.GetJob(ctx, legacyJobID)
 	if err != nil {
@@ -177,8 +176,40 @@ func TestMetadataV14AndV17UpgradeToV18Integration(t *testing.T) {
 		storedPropertyGraph.TargetSchema != propertyGraphJob.TargetSchema {
 		t.Fatalf("v18 property-graph target identity = %#v, %v", storedPropertyGraph, err)
 	}
+	if err := store.Migrate(ctx); err != nil {
+		t.Fatalf("upgrade v18 to v19: %v", err)
+	}
+	after, err := store.InspectSchema(ctx)
+	if err != nil {
+		t.Fatalf("InspectSchema(v19) error = %v", err)
+	}
+	if after.State != SchemaCurrent || after.InstalledVersion != SupportedSchemaVersion {
+		t.Fatalf("upgraded inspection = %#v", after)
+	}
+	mapping := PropertyGraphGeneration{
+		JobID: propertyGraphJob.ID, Schema: propertyGraphJob.TargetSchema,
+		Graph:                 propertyGraphJob.TargetGraph,
+		DefinitionFingerprint: strings.Repeat("c", 64),
+		State:                 PropertyGraphLoading,
+		Labels: []PropertyGraphLabel{
+			{Name: "Person", Kind: VertexLabel, Table: "v_person"},
+			{
+				Name: "KNOWS", Kind: EdgeLabel, Table: "e_knows",
+				StartLabel: "Person", EndLabel: "Person",
+			},
+		},
+	}
+	if err := store.RegisterPropertyGraph(ctx, mapping); err != nil {
+		t.Fatalf("register v19 property graph mapping: %v", err)
+	}
+	storedMapping, err := store.GetPropertyGraph(ctx, propertyGraphJob.ID)
+	if err != nil || storedMapping.JobID != mapping.JobID ||
+		storedMapping.DefinitionFingerprint != mapping.DefinitionFingerprint ||
+		len(storedMapping.Labels) != len(mapping.Labels) {
+		t.Fatalf("v19 property graph mapping = %#v, %v", storedMapping, err)
+	}
 	if err := store.migrate(ctx, MinimumReadCompatibleSchemaVersion); err == nil ||
 		!strings.Contains(err.Error(), "newer than supported version 14") {
-		t.Fatalf("2.0-compatible writer accepted v18 metadata: %v", err)
+		t.Fatalf("2.0-compatible writer accepted v19 metadata: %v", err)
 	}
 }

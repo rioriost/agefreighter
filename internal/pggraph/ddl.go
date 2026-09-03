@@ -1,8 +1,12 @@
 package pggraph
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -33,6 +37,7 @@ func (definition Definition) DDL() ([]string, error) {
 	if err := definition.validate(); err != nil {
 		return nil, err
 	}
+	definition = definition.normalized()
 
 	statements := []string{
 		fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", QuoteIdentifier(definition.Schema)),
@@ -49,6 +54,37 @@ func (definition Definition) DDL() ([]string, error) {
 		propertyGraphDDL(definition),
 	)
 	return statements, nil
+}
+
+func (definition Definition) Fingerprint() (string, error) {
+	if err := definition.validate(); err != nil {
+		return "", err
+	}
+	encoded, err := json.Marshal(definition.normalized())
+	if err != nil {
+		return "", fmt.Errorf("encode property graph definition: %w", err)
+	}
+	digest := sha256.Sum256(encoded)
+	return hex.EncodeToString(digest[:]), nil
+}
+
+func (definition Definition) normalized() Definition {
+	result := definition
+	result.Vertices = slices.Clone(definition.Vertices)
+	result.Edges = slices.Clone(definition.Edges)
+	slices.SortFunc(result.Vertices, func(left, right VertexDefinition) int {
+		if left.Label != right.Label {
+			return strings.Compare(left.Label, right.Label)
+		}
+		return strings.Compare(left.Table, right.Table)
+	})
+	slices.SortFunc(result.Edges, func(left, right EdgeDefinition) int {
+		if left.Label != right.Label {
+			return strings.Compare(left.Label, right.Label)
+		}
+		return strings.Compare(left.Table, right.Table)
+	})
+	return result
 }
 
 func (definition Definition) validate() error {
@@ -131,7 +167,8 @@ func edgeTableDDL(schema string, edge EdgeDefinition) string {
     external_id text NOT NULL,
     start_id bigint NOT NULL REFERENCES %s (id),
     end_id bigint NOT NULL REFERENCES %s (id),
-    properties jsonb NOT NULL DEFAULT '{}'::jsonb
+    properties jsonb NOT NULL DEFAULT '{}'::jsonb,
+    UNIQUE (source_namespace, external_id)
 )`, qualifiedName(schema, edge.Table),
 		qualifiedName(schema, edge.SourceTable),
 		qualifiedName(schema, edge.DestinationTable))

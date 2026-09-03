@@ -93,3 +93,51 @@ func TestDefinitionRejectsInvalidOrAmbiguousElements(t *testing.T) {
 		})
 	}
 }
+
+func TestDefinitionFingerprintIsOrderIndependent(t *testing.T) {
+	left := Definition{
+		Schema: "graph_data", Graph: "supply_graph",
+		Vertices: []VertexDefinition{
+			{Table: "v_supplier", Label: "Supplier"},
+			{Table: "v_part", Label: "Part"},
+		},
+		Edges: []EdgeDefinition{
+			{
+				Table: "e_supplies", Label: "SUPPLIES",
+				SourceTable: "v_supplier", DestinationTable: "v_part",
+			},
+			{
+				Table: "e_replaces", Label: "REPLACES",
+				SourceTable: "v_part", DestinationTable: "v_part",
+			},
+		},
+	}
+	right := Definition{
+		Schema: "graph_data", Graph: "supply_graph",
+		Vertices: []VertexDefinition{left.Vertices[1], left.Vertices[0]},
+		Edges:    []EdgeDefinition{left.Edges[1], left.Edges[0]},
+	}
+
+	leftFingerprint, err := left.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rightFingerprint, err := right.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if leftFingerprint != rightFingerprint {
+		t.Fatalf("fingerprints differ: %s != %s", leftFingerprint, rightFingerprint)
+	}
+	leftDDL, err := left.DDL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rightDDL, err := right.DDL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(leftDDL, "\n") != strings.Join(rightDDL, "\n") {
+		t.Fatal("normalized DDL depends on source mapping order")
+	}
+}
