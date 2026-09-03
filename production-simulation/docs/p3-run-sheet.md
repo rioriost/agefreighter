@@ -608,3 +608,12 @@ graph, generation, durable job, and fingerprint. At 06:26:07Z the resume had
 advanced past the retained checkpoint to 436,820,000 committed rows with zero
 rejects and a current checkpoint. Let it finish the load, post-load checks,
 source-after profile, and full canonical digest without interruption.
+
+The final recovery segment committed at 2026-09-03T07:18:35Z. The durable job
+has all 560,000,000 committed rows, zero rejects, next batch 28,001, and the
+same database, graph, generation, and fingerprint. Segment 3 loaded its
+remaining 124,020,000 rows in 54:24 with zero failed batches, maximum RSS
+2,746,460 KiB, and zero swaps. The job report completed at 07:25:22Z with
+outcome `pass`; bounded verification was active at 07:31:53Z. Keep the wrapper
+active through the remaining checks, source-after profile, optimizer review,
+full target digest, and final comparison.

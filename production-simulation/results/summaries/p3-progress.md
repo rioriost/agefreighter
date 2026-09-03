@@ -4,10 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-03T06:26:07Z
+- Updated: 2026-09-03T07:31:53Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 recovery — both planned faults are retained and final segment 3 is running**
-- Next: finish the load, post-load checks, source immutability proof, and full canonical digest
+- Current position: **Neo4j 5.26 recovery — 560,000,000-row load committed; post-load verification is running**
+- Next: finish built-in checks, source immutability proof, and full canonical digest
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | **DONE** | Both planned recoveries completed; all 5,600 ranges and the final root match |
 | Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 5.26.30 | Recovery | **RUNNING** | Both planned faults passed; final segment 3 explicitly resumed the same durable job |
+| Neo4j 5.26.30 | Recovery | **RUNNING** | Both planned faults passed and all 560,000,000 rows committed; post-load verification is active |
 
 ## Neo4j 4.4.48
 
@@ -468,8 +468,8 @@ created at 18:23:01Z.
 | 2 | Block PostgreSQL connectivity near 60% and retain the checkpoint | DONE; fault applied at 344,700,000 rows (61.55%) with zero rejects and a current checkpoint |
 | 3 | Restore connectivity and resume the same durable job | DONE; connectivity restored after one second and segment 2 advanced past the retained checkpoint with the same job/fingerprint |
 | 4 | Reboot the loader VM near 75% | DONE; reboot initiated at 433,740,000 rows (77.45%), with a final retained checkpoint at 435,980,000 rows |
-| 5 | Explicitly resume the same durable job and finish the load | **RUNNING**; segment 3 uses the same job, graph, generation, fingerprint, and reviewed snapshot |
-| 6 | Run the complete built-in post-load checks | PENDING |
+| 5 | Explicitly resume the same durable job and finish the load | DONE; all 560,000,000 rows committed with zero rejects and no failed batches |
+| 6 | Run the complete built-in post-load checks | **RUNNING**; report passed and bounded verification is active |
 | 7 | Compute the complete target digest and match fixture and clean roots | PENDING |
 
 The recovery run reuses the accepted clean source profiles as the source
@@ -532,15 +532,24 @@ committed rows with zero rejects and a current checkpoint. Let segment 3
 finish the load, built-in checks, source-after profile, and full canonical
 digest without interruption.
 
+The final recovery segment committed at 2026-09-03T07:18:35Z. The durable job
+contains all 560,000,000 rows, zero rejects, next batch 28,001, and the same
+database, graph, generation, and configuration fingerprint. Segment 3 loaded
+the remaining 124,020,000 rows in 54:24 with zero failed batches, maximum RSS
+2,746,460 KiB, and zero swaps. The complete job report finished at 07:25:22Z
+with outcome `pass`; bounded verification was active at 07:31:53Z. Continue
+through the remaining built-in checks, source-after profile, optimizer review,
+and full canonical digest.
+
 ## Live guardrails
 
 | Gate | Latest observed state |
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 437.39 USD; ceiling: 800 USD |
-| Flexible Server storage | Azure last reported 62.43%; limit: 80% |
+| Flexible Server storage | Azure last reported 66.12%; limit: 80% |
 | PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
-| Loader memory | Neo4j 5.26 recovery segment 1 observed 2.61 GiB before the fault; segment 2 remains below the 4 GiB limit |
+| Loader memory | Neo4j 5.26 recovery final segment peaked at 2,746,460 KiB (2.62 GiB), below the 4 GiB limit |
 | Swap / OOM | Current recovery loader/source swap and OOM zero; retained failed-run evidence unchanged |
 | Active resources | Loader, Neo4j 5.26 VM, and Flexible Server running; Neo4j 4.4 VM deallocated |
 | External actions | Governance stop of the first r14 digest retained; later loader OS update completed without interrupting successful retry r2 |
