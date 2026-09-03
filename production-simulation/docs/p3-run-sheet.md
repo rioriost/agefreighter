@@ -572,3 +572,21 @@ At 2026-09-03T03:07:14Z it was running with 1,160,000 committed rows, zero
 rejects, next batch 59, and a current checkpoint. Loader RSS was 164,032 KiB,
 disk use was 42%, and swap/OOM were zero. Continue segment 1 to the planned
 PostgreSQL-connectivity fault near 336,000,000 committed rows.
+
+At 2026-09-03T05:40:11Z, after all live gates passed, block PostgreSQL
+connectivity at 344,700,000 committed rows (61.55%). The job had zero rejects,
+a current checkpoint, loader RSS of 2,733,568 KiB, 42% loader-disk use, and
+zero loader/source swap or OOM. PostgreSQL was `Ready` / SameZone HA
+`Healthy`, storage was below 63%, and posted actual cost was 437.39 USD. The
+loader stopped within one second with an expected connection-reset error and
+the rule was removed immediately. Retain the before/during/after firewall
+state, job rows, loader error, action record, and verified SHA-256 manifest.
+
+Segment 2 started at 2026-09-03T05:42:38Z with target preparation disabled,
+the reviewed Neo4j 5.26 discovery snapshot (SHA-256
+`366cb6fdf615faeb4667a029de66f67584d0a56273504111c6cb651855e9a8b6`),
+and the same target database, graph, generation, durable job
+`99e3f624-22e3-497d-a6dd-7a1b08addf23`, and configuration fingerprint. The
+explicit resume had advanced past the retained checkpoint at 05:45:29Z to
+347,300,000 committed rows with zero rejects and a current checkpoint.
+Continue to the planned loader-VM reboot near 420,000,000 committed rows.

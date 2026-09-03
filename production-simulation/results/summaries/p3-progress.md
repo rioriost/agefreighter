@@ -4,10 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-03T03:07:14Z
+- Updated: 2026-09-03T05:45:29Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 recovery — segment 1 is loading toward the 60% fault**
-- Next: block PostgreSQL connectivity near 336,000,000 committed rows
+- Current position: **Neo4j 5.26 recovery — PostgreSQL-connectivity recovery is complete and segment 2 is running**
+- Next: reboot the loader near 420,000,000 committed rows, then explicitly resume the same durable job
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | **DONE** | Both planned recoveries completed; all 5,600 ranges and the final root match |
 | Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 5.26.30 | Recovery | **RUNNING** | Segment 1 active; planned PostgreSQL-connectivity fault at ~336,000,000 rows |
+| Neo4j 5.26.30 | Recovery | **RUNNING** | PostgreSQL-connectivity fault retained; segment 2 resumed the same job and is loading toward the ~420,000,000-row reboot |
 
 ## Neo4j 4.4.48
 
@@ -465,9 +465,9 @@ created at 18:23:01Z.
 | Step | Fault/recovery evidence | State |
 | ---: | --- | --- |
 | 1 | Start a fresh target database and durable job | DONE; job `99e3f624-22e3-497d-a6dd-7a1b08addf23` |
-| 2 | Block PostgreSQL connectivity near 60% and retain the checkpoint | **RUNNING**; monitoring toward 336,000,000 rows |
-| 3 | Restore connectivity and resume the same durable job | PENDING |
-| 4 | Reboot the loader VM near 75% | PENDING |
+| 2 | Block PostgreSQL connectivity near 60% and retain the checkpoint | DONE; fault applied at 344,700,000 rows (61.55%) with zero rejects and a current checkpoint |
+| 3 | Restore connectivity and resume the same durable job | DONE; connectivity restored after one second and segment 2 advanced past the retained checkpoint with the same job/fingerprint |
+| 4 | Reboot the loader VM near 75% | **RUNNING**; monitoring segment 2 toward 420,000,000 rows |
 | 5 | Explicitly resume the same durable job and finish the load | PENDING |
 | 6 | Run the complete built-in post-load checks | PENDING |
 | 7 | Compute the complete target digest and match fixture and clean roots | PENDING |
@@ -492,15 +492,36 @@ rejects, next batch 59, and a current checkpoint. Loader RSS was 164,032 KiB,
 disk use was 42%, and swap/OOM were zero. Continue segment 1 to the planned
 PostgreSQL-connectivity fault near 336,000,000 committed rows.
 
+At 2026-09-03T05:40:11Z, after the complete pre-fault guardrail check,
+PostgreSQL connectivity was blocked at 344,700,000 committed rows (61.55%).
+The durable job had zero rejects, next batch 17,236, and a current checkpoint;
+loader RSS was 2,733,568 KiB, loader disk use was 42%, and loader/source
+swap/OOM counts were zero. PostgreSQL was `Ready` / SameZone HA `Healthy`,
+storage was below 63%, and posted actual cost was 437.39 USD. The connection
+reset stopped the loader within one second at the last committed checkpoint of
+344,720,000 rows. Connectivity was restored immediately; the job, graph,
+generation, and configuration fingerprint were unchanged. The blocked and
+restored firewall states, process failure, database rows, error output, and
+SHA-256 manifest are retained under the segment 1 result directory.
+
+Segment 2 started at 2026-09-03T05:42:38Z with target preparation disabled,
+the reviewed Neo4j 5.26 discovery snapshot (SHA-256
+`366cb6fdf615faeb4667a029de66f67584d0a56273504111c6cb651855e9a8b6`),
+and the same database, graph, generation, durable job, and configuration
+fingerprint. At 05:45:29Z the explicit resume had advanced past the retained
+checkpoint to 347,300,000 committed rows with zero rejects and a current
+checkpoint. Continue segment 2 to the planned loader-VM reboot near
+420,000,000 committed rows.
+
 ## Live guardrails
 
 | Gate | Latest observed state |
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
-| Cost | Posted actual value: 353.61 USD; ceiling: 800 USD |
-| Flexible Server storage | Azure last reported 56.19%; limit: 80% |
+| Cost | Posted actual value: 437.39 USD; ceiling: 800 USD |
+| Flexible Server storage | Azure last reported 62.43%; limit: 80% |
 | PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
-| Loader memory | Neo4j 4.4 recovery digest peak observed at 2.52 GiB; current loader remains below the 4 GiB limit |
+| Loader memory | Neo4j 5.26 recovery segment 1 observed 2.61 GiB before the fault; segment 2 remains below the 4 GiB limit |
 | Swap / OOM | Current recovery loader/source swap and OOM zero; retained failed-run evidence unchanged |
 | Active resources | Loader, Neo4j 5.26 VM, and Flexible Server running; Neo4j 4.4 VM deallocated |
 | External actions | Governance stop of the first r14 digest retained; later loader OS update completed without interrupting successful retry r2 |
