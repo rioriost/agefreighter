@@ -4,10 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-03T05:45:29Z
+- Updated: 2026-09-03T06:26:07Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 recovery — PostgreSQL-connectivity recovery is complete and segment 2 is running**
-- Next: reboot the loader near 420,000,000 committed rows, then explicitly resume the same durable job
+- Current position: **Neo4j 5.26 recovery — both planned faults are retained and final segment 3 is running**
+- Next: finish the load, post-load checks, source immutability proof, and full canonical digest
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | **DONE** | Both planned recoveries completed; all 5,600 ranges and the final root match |
 | Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 5.26.30 | Recovery | **RUNNING** | PostgreSQL-connectivity fault retained; segment 2 resumed the same job and is loading toward the ~420,000,000-row reboot |
+| Neo4j 5.26.30 | Recovery | **RUNNING** | Both planned faults passed; final segment 3 explicitly resumed the same durable job |
 
 ## Neo4j 4.4.48
 
@@ -467,8 +467,8 @@ created at 18:23:01Z.
 | 1 | Start a fresh target database and durable job | DONE; job `99e3f624-22e3-497d-a6dd-7a1b08addf23` |
 | 2 | Block PostgreSQL connectivity near 60% and retain the checkpoint | DONE; fault applied at 344,700,000 rows (61.55%) with zero rejects and a current checkpoint |
 | 3 | Restore connectivity and resume the same durable job | DONE; connectivity restored after one second and segment 2 advanced past the retained checkpoint with the same job/fingerprint |
-| 4 | Reboot the loader VM near 75% | **RUNNING**; monitoring segment 2 toward 420,000,000 rows |
-| 5 | Explicitly resume the same durable job and finish the load | PENDING |
+| 4 | Reboot the loader VM near 75% | DONE; reboot initiated at 433,740,000 rows (77.45%), with a final retained checkpoint at 435,980,000 rows |
+| 5 | Explicitly resume the same durable job and finish the load | **RUNNING**; segment 3 uses the same job, graph, generation, fingerprint, and reviewed snapshot |
 | 6 | Run the complete built-in post-load checks | PENDING |
 | 7 | Compute the complete target digest and match fixture and clean roots | PENDING |
 
@@ -512,6 +512,25 @@ fingerprint. At 05:45:29Z the explicit resume had advanced past the retained
 checkpoint to 347,300,000 committed rows with zero rejects and a current
 checkpoint. Continue segment 2 to the planned loader-VM reboot near
 420,000,000 committed rows.
+
+At 2026-09-03T06:21:51Z, after the full pre-reboot gate passed, reboot
+evidence was sealed at 433,740,000 committed rows (77.45%), zero rejects, a
+current checkpoint, loader RSS 2,747,456 KiB, 42% loader-disk use, and zero
+swap/OOM. The Azure VM restart ran from 06:22:22Z through 06:22:56Z; the final
+database checkpoint before process loss was 435,980,000 rows. The boot ID
+changed, the prior transient unit was inactive, and no load or resume process
+automatically restarted. PostgreSQL remained `Ready` / SameZone HA `Healthy`
+with storage below 64%; the cost endpoint was rate-limited, so the latest
+posted actual remains 437.39 USD. The before/after boot state, job rows,
+no-auto-resume proof, and SHA-256 manifests are retained.
+
+Segment 3 explicitly started at 2026-09-03T06:24:05Z with target preparation
+disabled and the reviewed Neo4j 5.26 discovery snapshot. It retained the same
+database, graph, generation, durable job, and configuration fingerprint. At
+06:26:07Z the resume had advanced past the retained checkpoint to 436,820,000
+committed rows with zero rejects and a current checkpoint. Let segment 3
+finish the load, built-in checks, source-after profile, and full canonical
+digest without interruption.
 
 ## Live guardrails
 

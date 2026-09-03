@@ -590,3 +590,21 @@ and the same target database, graph, generation, durable job
 explicit resume had advanced past the retained checkpoint at 05:45:29Z to
 347,300,000 committed rows with zero rejects and a current checkpoint.
 Continue to the planned loader-VM reboot near 420,000,000 committed rows.
+
+At 2026-09-03T06:21:51Z, after the complete pre-reboot guardrail check, seal
+the before evidence at 433,740,000 committed rows (77.45%), zero rejects, a
+current checkpoint, loader RSS 2,747,456 KiB, 42% loader-disk use, and zero
+swap/OOM. Azure restarted the loader VM from 06:22:22Z through 06:22:56Z; the
+last durable checkpoint before process loss was 435,980,000 rows. The new boot
+ID differs from the retained old boot ID, the previous transient service was
+inactive, and no load or resume process automatically restarted. PostgreSQL
+remained `Ready` / SameZone HA `Healthy` with storage below 64%. Retain the
+checksummed before/after state, both job rows, and explicit no-auto-resume
+proof.
+
+Segment 3 explicitly started at 2026-09-03T06:24:05Z with target preparation
+disabled, the reviewed Neo4j 5.26 discovery snapshot, and the same database,
+graph, generation, durable job, and fingerprint. At 06:26:07Z the resume had
+advanced past the retained checkpoint to 436,820,000 committed rows with zero
+rejects and a current checkpoint. Let it finish the load, post-load checks,
+source-after profile, and full canonical digest without interruption.
