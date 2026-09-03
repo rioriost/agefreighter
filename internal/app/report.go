@@ -50,6 +50,9 @@ func MigrationReport(
 	if err != nil {
 		return report.Document{}, fmt.Errorf("load target configuration: %w", err)
 	}
+	if jobConfig.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return propertyGraphMigrationReport(ctx, jobConfig, jobID, options)
+	}
 	timeout := time.Duration(jobConfig.Runtime.OperationTimeout)
 	openCtx, cancel := context.WithTimeout(ctx, timeout)
 	probe, err := probeTarget(openCtx, jobConfig)

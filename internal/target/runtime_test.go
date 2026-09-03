@@ -60,6 +60,9 @@ func TestProbeAGERejectsNonAGEBackendBeforeUsingDSN(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "does not provide Apache AGE diagnostics") {
 		t.Fatalf("ProbeAGE(property graph) error = %v", err)
 	}
+	if _, err := ProbeAGE(context.Background(), "unknown", "not-used", Options{}); err == nil {
+		t.Fatal("ProbeAGE(unknown) succeeded")
+	}
 }
 
 func TestRequireAGECapability(t *testing.T) {
@@ -72,6 +75,9 @@ func TestRequireAGECapability(t *testing.T) {
 	}
 	if _, err := RequirePGGraph(postgresRuntime); err == nil {
 		t.Fatal("RequirePGGraph(runtime without capability) succeeded")
+	}
+	if _, err := RequirePGGraph(nil); err == nil {
+		t.Fatal("RequirePGGraph(nil) succeeded")
 	}
 	ageRuntime := fakeAGERuntime{fakeRuntime{backend: config.TargetApacheAGE}}
 	got, err := RequireAGE(ageRuntime)
@@ -89,5 +95,17 @@ func TestAGERuntimeLifecycleAccessors(t *testing.T) {
 	}
 	runtime.Close()
 	var nilRuntime *ageRuntime
+	nilRuntime.Close()
+}
+
+func TestPGGraphRuntimeLifecycleAccessors(t *testing.T) {
+	store := &meta.Store{}
+	runtime := &pgGraphRuntime{store: store}
+	if runtime.Backend() != config.TargetPostgreSQLPropertyGraph ||
+		runtime.Metadata() != store || runtime.PGGraphAdapter() != nil {
+		t.Fatalf("property graph runtime accessors = %#v", runtime)
+	}
+	runtime.Close()
+	var nilRuntime *pgGraphRuntime
 	nilRuntime.Close()
 }

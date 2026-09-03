@@ -38,6 +38,9 @@ func Doctor(
 	if err != nil {
 		return report.Document{}, fmt.Errorf("load target configuration: %w", err)
 	}
+	if job.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return propertyGraphDoctor(ctx, job, options)
+	}
 	timeout := time.Duration(job.Runtime.OperationTimeout)
 	probeCtx, cancel := context.WithTimeout(ctx, timeout)
 	probe, err := probeTarget(probeCtx, job)
@@ -160,6 +163,9 @@ func DoctorHistory(
 	job, err := config.Load(path)
 	if err != nil {
 		return report.Document{}, fmt.Errorf("load target configuration: %w", err)
+	}
+	if job.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return propertyGraphDoctorHistory(ctx, job, limit, generatedAt)
 	}
 	timeout := time.Duration(job.Runtime.OperationTimeout)
 	probeCtx, cancel := context.WithTimeout(ctx, timeout)

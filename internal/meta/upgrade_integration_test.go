@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func TestMetadataV14V17V18UpgradeToV19Integration(t *testing.T) {
+func TestMetadataV14V17V18V19UpgradeToV20Integration(t *testing.T) {
 	dsn := strings.TrimSpace(os.Getenv(metadataTestDSNEnvironment))
 	if dsn == "" {
 		t.Skip("set " + metadataTestDSNEnvironment + " to run metadata upgrade integration tests")
@@ -176,15 +176,15 @@ func TestMetadataV14V17V18UpgradeToV19Integration(t *testing.T) {
 		storedPropertyGraph.TargetSchema != propertyGraphJob.TargetSchema {
 		t.Fatalf("v18 property-graph target identity = %#v, %v", storedPropertyGraph, err)
 	}
-	if err := store.Migrate(ctx); err != nil {
+	if err := store.migrate(ctx, 19); err != nil {
 		t.Fatalf("upgrade v18 to v19: %v", err)
 	}
-	after, err := store.InspectSchema(ctx)
+	v19, err := store.InspectSchema(ctx)
 	if err != nil {
 		t.Fatalf("InspectSchema(v19) error = %v", err)
 	}
-	if after.State != SchemaCurrent || after.InstalledVersion != SupportedSchemaVersion {
-		t.Fatalf("upgraded inspection = %#v", after)
+	if v19.State != SchemaPending || v19.InstalledVersion != 19 {
+		t.Fatalf("v19 inspection = %#v", v19)
 	}
 	mapping := PropertyGraphGeneration{
 		JobID: propertyGraphJob.ID, Schema: propertyGraphJob.TargetSchema,
@@ -208,8 +208,35 @@ func TestMetadataV14V17V18UpgradeToV19Integration(t *testing.T) {
 		len(storedMapping.Labels) != len(mapping.Labels) {
 		t.Fatalf("v19 property graph mapping = %#v, %v", storedMapping, err)
 	}
+	if err := store.Migrate(ctx); err != nil {
+		t.Fatalf("upgrade v19 to v20: %v", err)
+	}
+	after, err := store.InspectSchema(ctx)
+	if err != nil {
+		t.Fatalf("InspectSchema(v20) error = %v", err)
+	}
+	if after.State != SchemaCurrent || after.InstalledVersion != SupportedSchemaVersion {
+		t.Fatalf("upgraded inspection = %#v", after)
+	}
+	ranges := []PropertyGraphDigestRange{{
+		JobID: propertyGraphJob.ID, LabelName: "Person", Kind: VertexLabel,
+		RangeID: 7, Rows: 2, Digest: strings.Repeat("d", 64),
+	}}
+	if err := store.ReplacePropertyGraphDigests(ctx, propertyGraphJob.ID, ranges,
+		strings.Repeat("e", 64), 2, 256); err != nil {
+		t.Fatalf("store v20 property graph digests: %v", err)
+	}
+	storedMapping, err = store.GetPropertyGraph(ctx, propertyGraphJob.ID)
+	if err != nil || storedMapping.DigestRoot != strings.Repeat("e", 64) ||
+		storedMapping.DigestRows != 2 || storedMapping.DigestRangeCount != 256 {
+		t.Fatalf("v20 property graph digest mapping = %#v, %v", storedMapping, err)
+	}
+	storedRanges, err := store.ListPropertyGraphDigests(ctx, propertyGraphJob.ID)
+	if err != nil || len(storedRanges) != 1 || storedRanges[0] != ranges[0] {
+		t.Fatalf("v20 property graph ranges = %#v, %v", storedRanges, err)
+	}
 	if err := store.migrate(ctx, MinimumReadCompatibleSchemaVersion); err == nil ||
 		!strings.Contains(err.Error(), "newer than supported version 14") {
-		t.Fatalf("2.0-compatible writer accepted v19 metadata: %v", err)
+		t.Fatalf("2.0-compatible writer accepted v20 metadata: %v", err)
 	}
 }

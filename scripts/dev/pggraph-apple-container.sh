@@ -94,10 +94,10 @@ test_target() {
 	dsn="postgres://postgres:$password@$address:5432/$database?sslmode=disable"
 	AGEFREIGHTER_PGGRAPH_TEST_DSN="$dsn" \
 		go test -count=1 -v ./internal/pggraph ./internal/app \
-		-run '^(TestPropertyGraphIntegration|TestPostgreSQLPropertyGraphCreateAndResumeIntegration)$$'
+		-run '^(TestPropertyGraphIntegration|TestPropertyGraphSinkReplayAndAbortIntegration|TestPropertyGraphSinkFailureIntegration|TestPostgreSQLPropertyGraphCreateAndResumeIntegration|TestPostgreSQLPropertyGraphCorruptionDetectionIntegration)$$'
 	AGEFREIGHTER_AGE_TEST_DSN="$dsn" \
 		go test -count=1 -v ./internal/meta \
-		-run '^TestMetadataV14V17V18UpgradeToV19Integration$$'
+		-run '^TestMetadataV14V17V18V19UpgradeToV20Integration$$'
 }
 
 down() {

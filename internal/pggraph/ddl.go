@@ -60,7 +60,10 @@ func (definition Definition) Fingerprint() (string, error) {
 	if err := definition.validate(); err != nil {
 		return "", err
 	}
-	encoded, err := json.Marshal(definition.normalized())
+	encoded, err := json.Marshal(struct {
+		StorageVersion int `json:"storageVersion"`
+		Definition
+	}{StorageVersion: 2, Definition: definition.normalized()})
 	if err != nil {
 		return "", fmt.Errorf("encode property graph definition: %w", err)
 	}
@@ -156,6 +159,8 @@ func vertexTableDDL(schema, table string) string {
     source_namespace text NOT NULL,
     external_id text NOT NULL,
     properties jsonb NOT NULL DEFAULT '{}'::jsonb,
+    digest_range smallint NOT NULL CHECK (digest_range BETWEEN 0 AND 255),
+    source_digest character(64) NOT NULL CHECK (source_digest ~ '^[0-9a-f]{64}$'),
     UNIQUE (source_namespace, external_id)
 )`, qualifiedName(schema, table))
 }
@@ -168,6 +173,8 @@ func edgeTableDDL(schema string, edge EdgeDefinition) string {
     start_id bigint NOT NULL REFERENCES %s (id),
     end_id bigint NOT NULL REFERENCES %s (id),
     properties jsonb NOT NULL DEFAULT '{}'::jsonb,
+    digest_range smallint NOT NULL CHECK (digest_range BETWEEN 0 AND 255),
+    source_digest character(64) NOT NULL CHECK (source_digest ~ '^[0-9a-f]{64}$'),
     UNIQUE (source_namespace, external_id)
 )`, qualifiedName(schema, edge.Table),
 		qualifiedName(schema, edge.SourceTable),

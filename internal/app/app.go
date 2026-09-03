@@ -84,6 +84,9 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if err != nil {
 		return meta.Job{}, err
 	}
+	if job.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return verifyPostgreSQLPropertyGraph(ctx, job, jobID)
+	}
 	runtime, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err

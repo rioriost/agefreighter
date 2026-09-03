@@ -78,6 +78,40 @@ func (adapter *Adapter) Metadata() *meta.Store { return adapter.store }
 
 func (adapter *Adapter) Capabilities() Capabilities { return adapter.capabilities }
 
+func (adapter *Adapter) GraphExists(
+	ctx context.Context,
+	schema string,
+	graph string,
+) (bool, error) {
+	if !validIdentifier(schema) || !validIdentifier(graph) {
+		return false, errors.New("property graph schema and name are invalid")
+	}
+	var exists bool
+	if err := adapter.pool.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1
+		FROM pg_catalog.pg_class c
+		JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+		WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'g'
+	)`, schema, graph).Scan(&exists); err != nil {
+		return false, fmt.Errorf("inspect PostgreSQL property graph: %w", err)
+	}
+	return exists, nil
+}
+
+func (adapter *Adapter) ComputeDigests(
+	ctx context.Context,
+	jobID string,
+	definition Definition,
+) (DigestSet, error) {
+	if err := meta.ValidateJobID(jobID); err != nil {
+		return DigestSet{}, err
+	}
+	if _, err := definition.Fingerprint(); err != nil {
+		return DigestSet{}, err
+	}
+	return computeDigests(ctx, adapter.pool, jobID, definition)
+}
+
 func (adapter *Adapter) Prepare(
 	ctx context.Context,
 	jobID string,
@@ -275,6 +309,19 @@ func (adapter *Adapter) Finalize(
 	}
 	if graphCount != tableCount {
 		return fmt.Errorf("SQL/PGQ vertex count is %d, expected %d", graphCount, tableCount)
+	}
+	digests, err := computeDigests(ctx, tx, jobID, definition)
+	if err != nil {
+		return fmt.Errorf("compute final PostgreSQL property graph digests: %w", err)
+	}
+	if digests.Rows != job.CommittedRows {
+		return fmt.Errorf("PostgreSQL property graph digest covered %d rows, expected %d",
+			digests.Rows, job.CommittedRows)
+	}
+	if err := store.ReplacePropertyGraphDigests(
+		ctx, jobID, digests.Ranges, digests.Root, digests.Rows, DigestRangeCount,
+	); err != nil {
+		return err
 	}
 	if err := store.ActivatePropertyGraph(ctx, jobID); err != nil {
 		return err

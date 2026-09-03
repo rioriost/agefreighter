@@ -242,12 +242,21 @@ func (transaction *loadTransaction) writeVertices(
 		if err != nil {
 			return fmt.Errorf("encode vertex %q properties: %w", vertex.ExternalID, err)
 		}
-		rows[index] = []any{string(vertex.Namespace), string(vertex.ExternalID), string(properties)}
+		rangeID, digest, err := vertexRecordDigest(
+			string(label), string(vertex.Namespace), string(vertex.ExternalID), properties,
+		)
+		if err != nil {
+			return fmt.Errorf("digest vertex %q: %w", vertex.ExternalID, err)
+		}
+		rows[index] = []any{
+			string(vertex.Namespace), string(vertex.ExternalID), string(properties),
+			int16(rangeID), digest,
+		}
 	}
 	_, err := transaction.tx.CopyFrom(
 		ctx,
 		pgx.Identifier{transaction.sink.options.Definition.Schema, binding.table},
-		[]string{"source_namespace", "external_id", "properties"},
+		[]string{"source_namespace", "external_id", "properties", "digest_range", "source_digest"},
 		pgx.CopyFromRows(rows),
 	)
 	if err != nil {
@@ -278,7 +287,9 @@ func (transaction *loadTransaction) writeEdges(
 		start_external_id text NOT NULL,
 		end_namespace text NOT NULL,
 		end_external_id text NOT NULL,
-		properties jsonb NOT NULL
+		properties jsonb NOT NULL,
+		digest_range smallint NOT NULL,
+		source_digest character(64) NOT NULL
 	) ON COMMIT DROP`, QuoteIdentifier(tempName))); err != nil {
 		return fmt.Errorf("create bounded edge stage for %q: %w", label, err)
 	}
@@ -296,24 +307,37 @@ func (transaction *loadTransaction) writeEdges(
 		if err != nil {
 			return fmt.Errorf("encode edge %d properties: %w", index, err)
 		}
+		rangeID, digest, err := edgeRecordDigest(
+			string(label), string(edge.Namespace), string(edge.ExternalID),
+			string(binding.startLabel), string(edge.Start.Namespace), string(edge.Start.ExternalID),
+			string(binding.endLabel), string(edge.End.Namespace), string(edge.End.ExternalID),
+			properties,
+		)
+		if err != nil {
+			return fmt.Errorf("digest edge %q: %w", edge.ExternalID, err)
+		}
 		rows[index] = []any{
 			int64(index), string(edge.Namespace), string(edge.ExternalID),
 			string(edge.Start.Namespace), string(edge.Start.ExternalID),
 			string(edge.End.Namespace), string(edge.End.ExternalID), string(properties),
+			int16(rangeID), digest,
 		}
 	}
 	if _, err := transaction.tx.CopyFrom(ctx, pgx.Identifier{tempName}, []string{
 		"ordinal", "source_namespace", "external_id", "start_namespace",
 		"start_external_id", "end_namespace", "end_external_id", "properties",
+		"digest_range", "source_digest",
 	}, pgx.CopyFromRows(rows)); err != nil {
 		return fmt.Errorf("stage PostgreSQL property graph edges for %q: %w", label, err)
 	}
 	schema := transaction.sink.options.Definition.Schema
 	statement := fmt.Sprintf(`INSERT INTO %s (
-		source_namespace, external_id, start_id, end_id, properties
+		source_namespace, external_id, start_id, end_id, properties,
+		digest_range, source_digest
 	)
 	SELECT staged.source_namespace, staged.external_id,
-	       source_vertex.id, destination_vertex.id, staged.properties
+	       source_vertex.id, destination_vertex.id, staged.properties,
+	       staged.digest_range, staged.source_digest
 	FROM %s staged
 	JOIN %s source_vertex
 	  ON source_vertex.source_namespace = staged.start_namespace

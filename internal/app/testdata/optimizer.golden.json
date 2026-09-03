@@ -60,7 +60,7 @@
       "id": "required-metadata-indexes",
       "status": "pass",
       "summary": "version-compatible agefreighter metadata indexes were inspected",
-      "detail": "invalid_or_missing_indexes=0 missing_relations=0 schema_version=19"
+      "detail": "invalid_or_missing_indexes=0 missing_relations=0 schema_version=20"
     },
     {
       "id": "statistics-freshness",
@@ -309,12 +309,12 @@
         },
         {
           "name": "metadataInstalledVersion",
-          "value": "19",
+          "value": "20",
           "status": "pass"
         },
         {
           "name": "metadataSupportedVersion",
-          "value": "19",
+          "value": "20",
           "status": "pass"
         },
         {

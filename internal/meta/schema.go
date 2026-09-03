@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 19
+const schemaVersion = 20
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -829,6 +829,33 @@ var migrationV19 = []string{
 		)`,
 }
 
+var migrationV20 = []string{
+	`ALTER TABLE agefreighter_meta.property_graph_generation
+		ADD COLUMN digest_root character(64) CHECK (
+			digest_root IS NULL OR digest_root ~ '^[0-9a-f]{64}$'
+		),
+		ADD COLUMN digest_rows bigint CHECK (
+			digest_rows IS NULL OR digest_rows >= 0
+		),
+		ADD COLUMN digest_range_count integer CHECK (
+			digest_range_count IS NULL OR digest_range_count > 0
+		)`,
+	`CREATE TABLE agefreighter_meta.property_graph_digest_range (
+		job_id uuid NOT NULL,
+		label_name text NOT NULL,
+		kind character(1) NOT NULL CHECK (kind IN ('v', 'e')),
+		range_id integer NOT NULL CHECK (range_id BETWEEN 0 AND 255),
+		row_count bigint NOT NULL CHECK (row_count > 0),
+		digest character(64) NOT NULL CHECK (
+			digest ~ '^[0-9a-f]{64}$'
+		),
+		PRIMARY KEY (job_id, label_name, range_id),
+		FOREIGN KEY (job_id, label_name)
+			REFERENCES agefreighter_meta.property_graph_label(job_id, label_name)
+			ON DELETE CASCADE
+	)`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -849,4 +876,5 @@ var migrations = [][]string{
 	migrationV17,
 	migrationV18,
 	migrationV19,
+	migrationV20,
 }

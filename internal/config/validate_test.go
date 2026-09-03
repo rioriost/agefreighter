@@ -328,6 +328,67 @@ func TestPostgreSQLPropertyGraphRequiresConfiguredEdgeIdentity(t *testing.T) {
 	}
 }
 
+func TestPropertyGraphEdgeIdentityForNeo4jAndCosmos(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		source Source
+		path   string
+	}{
+		{
+			name: "neo4j explicit mapping",
+			source: Source{Type: SourceNeo4j, Neo4j: &Neo4jSource{
+				Edges: []EdgeQuery{{Label: "KNOWS"}},
+			}},
+			path: "source.neo4j.edges[0].externalIdField",
+		},
+		{
+			name: "cosmos explicit mapping",
+			source: Source{Type: SourceCosmos, Cosmos: &CosmosSource{
+				Edges: []CosmosEdgeQuery{{Label: "KNOWS"}},
+			}},
+			path: "source.cosmos.edges[0].externalIdField",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var errs ValidationErrors
+			validatePropertyGraphEdgeIdentity(test.source, &errs)
+			if !strings.Contains(errs.Error(), test.path) {
+				t.Fatalf("validation errors = %v, want %q", errs, test.path)
+			}
+		})
+	}
+	for _, source := range []Source{
+		{Type: SourceNeo4j, Neo4j: &Neo4jSource{
+			Discovery: &Neo4jDiscovery{Enabled: true},
+			Edges:     []EdgeQuery{{Label: "KNOWS"}},
+		}},
+		{Type: SourceCosmos, Cosmos: &CosmosSource{
+			Gremlin: &CosmosGremlin{Enabled: true},
+			Edges:   []CosmosEdgeQuery{{Label: "KNOWS"}},
+		}},
+	} {
+		var errs ValidationErrors
+		validatePropertyGraphEdgeIdentity(source, &errs)
+		if len(errs) != 0 {
+			t.Fatalf("discovery edge identity rejected: %v", errs)
+		}
+	}
+}
+
+func TestValidateCosmosDocumentFormat(t *testing.T) {
+	var errs ValidationErrors
+	validateCosmosDocumentFormat(CosmosDocumentGremlin, "partition", 100, nil,
+		"source.cosmos.vertices[0]", &errs)
+	if len(errs) != 0 {
+		t.Fatalf("valid document format rejected: %v", errs)
+	}
+	validateCosmosDocumentFormat("future", "", 0, map[string]string{"name": "/name"},
+		"source.cosmos.vertices[0]", &errs)
+	if len(errs) != 4 {
+		t.Fatalf("invalid document format errors = %v", errs)
+	}
+}
+
 func TestUpsertRequiresEdgeIdentity(t *testing.T) {
 	job := validCSVJob(t)
 	job.Target.Mode = LoadUpsert

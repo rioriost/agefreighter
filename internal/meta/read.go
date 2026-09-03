@@ -523,6 +523,19 @@ func (store *Store) ListRejectSummaries(
 	}, nil
 }
 
+func (store *Store) CountRejectRecords(ctx context.Context, jobID string) (int64, error) {
+	if err := validateJobID(jobID); err != nil {
+		return 0, err
+	}
+	var count int64
+	if err := store.database.QueryRow(ctx, `
+		SELECT count(*) FROM agefreighter_meta.reject_record
+		WHERE job_id = $1::uuid`, jobID).Scan(&count); err != nil {
+		return 0, fmt.Errorf("count rejected records: %w", err)
+	}
+	return count, nil
+}
+
 func (store *Store) ListRetainedBackups(
 	ctx context.Context,
 	limit int,

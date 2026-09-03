@@ -1,6 +1,6 @@
 # AGEFreighter 2.2.0 PostgreSQL property graph target plan
 
-**Status:** Reviewed; Phases A-C complete on branch `2.2.0`
+**Status:** Reviewed; Phases A-D complete on branch `2.2.0`
 **Target release:** AGEFreighter 2.2.0
 **Feature maturity:** Experimental while PostgreSQL 19 is pre-release
 **Reviewed:** 2026-09-03
@@ -88,6 +88,8 @@ Vertex tables contain:
 | `source_namespace` | `text` | source identity namespace |
 | `external_id` | `text` | stable source identity |
 | `properties` | `jsonb` | lossless dynamic property bag |
+| `digest_range` | `smallint` | bounded canonical-digest partition |
+| `source_digest` | `character(64)` | source-derived logical-record digest |
 
 The pair `(source_namespace, external_id)` is unique.
 
@@ -328,15 +330,35 @@ the end-to-end suite proves a clean create load, deterministic mapping and
 checkpoint persistence, SQL/PGQ traversal, interrupted-batch resume, and
 all-or-nothing missing-endpoint handling.
 
-The full unit and race suites, release self-check, live AGE adapter/app suites,
-and the complete AGE recovery matrix pass through the new boundary. The
-PostgreSQL 19 Beta 3 container also passes the v14-v17-v18-v19 metadata-upgrade
-fixture and the Phase C integration suite. The PostgreSQL property-graph
-package remains protected by an architecture test that rejects any dependency
-on `internal/age`. Verification, diagnostics, and corruption detection beyond
-the Phase C activation gates remain Phase D work.
+Phase D completed on 2026-09-03. Metadata schema v20 stores a 256-way ranged
+digest baseline, its canonical root, covered row count, and range count for
+each committed PostgreSQL property-graph generation. Every target row retains
+the source-derived logical-record digest and range. Verification recomputes
+the logical record from the target identity, properties, and edge endpoints,
+then compares every non-empty range and the canonical root with the persisted
+committed baseline. This detects changed properties, identities, endpoint
+bindings, inserted or deleted records, altered digest metadata, changed row
+counts, and unexpected reject records. Numeric canonicalization mirrors JSONB
+for exponent notation, scale, and negative zero so equivalent PostgreSQL
+values do not produce false integrity failures.
 
-The repository-wide coverage gate is 88.1% with both the live AGE and
-PostgreSQL 19 integration DSNs, against a required 90.0%. The pre-Phase C
-baseline was already below the gate. The threshold has not been weakened and
-must be restored before the 2.2.0 release criteria are declared complete.
+`verify`, `report`, `doctor`, and `doctor history` now dispatch through the
+PostgreSQL property-graph backend. Deep verification checks per-label counts,
+primary/unique/foreign-key constraints, missing endpoints, directed and
+undirected `GRAPH_TABLE` patterns, rejects, and all digest ranges. Reports
+identify SQL/PGQ as the target capability and mark Apache AGE as not
+applicable rather than pretending that a Cypher runtime exists.
+
+The pinned PostgreSQL 19 Beta 3 suite now covers clean loads, empty graphs,
+quarantine, missing-endpoint rollback, committed replay, resume after an
+interrupted batch, schema and checkpoint guards, invalid edge input, physical
+constraint damage, and sixteen independent corruption cases. A clean reference
+run and the resumed run produce the same canonical root; the directed fixture
+returns two matches and the undirected form returns four. The v14-v17-v18-v19
+fixture upgrades to v20 and round-trips the new digest records.
+
+The full repository coverage gate is restored to 90.0% with PostgreSQL,
+Apache AGE, Neo4j, and PostgreSQL 19 integration services enabled. The
+threshold remains 90.0%; it was not weakened. Phase E remains responsible for
+additional load modes, production-scale benchmarks, PostgreSQL 19 GA
+qualification, and release documentation.
