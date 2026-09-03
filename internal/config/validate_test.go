@@ -209,6 +209,74 @@ func TestValidationErrors(t *testing.T) {
 	}
 }
 
+func TestPostgreSQLPropertyGraphTargetValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		edit func(*Target)
+		path string
+	}{
+		{
+			name: "missing schema",
+			edit: func(target *Target) { target.Schema = "" },
+			path: "target.schema [format]",
+		},
+		{
+			name: "identifier too long",
+			edit: func(target *Target) { target.Graph = strings.Repeat("g", 64) },
+			path: "target.graph [format]",
+		},
+		{
+			name: "replace mode not yet enabled",
+			edit: func(target *Target) { target.Mode = LoadReplace },
+			path: "target.mode [unsupported]",
+		},
+		{
+			name: "merge properties not yet enabled",
+			edit: func(target *Target) { target.PropertyMode = PropertiesMerge },
+			path: "target.propertyMode [unsupported]",
+		},
+		{
+			name: "append policy not applicable",
+			edit: func(target *Target) { target.AppendDuplicate = AppendDuplicateError },
+			path: "target.appendDuplicate [unsupported]",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			job := validCSVJob(t)
+			job.Target = Target{
+				Type:         TargetPostgreSQLPropertyGraph,
+				Graph:        "supply graph",
+				Schema:       "graph data",
+				Mode:         LoadCreate,
+				Connection:   job.Target.Connection,
+				PropertyMode: PropertiesReplace,
+			}
+			test.edit(&job.Target)
+			err := job.Validate()
+			if err == nil || !strings.Contains(err.Error(), test.path) {
+				t.Fatalf("Validate() error = %v, want %q", err, test.path)
+			}
+		})
+	}
+}
+
+func TestPostgreSQLPropertyGraphAcceptsQuotedIdentifiers(t *testing.T) {
+	job := validCSVJob(t)
+	job.Target = Target{
+		Type:         TargetPostgreSQLPropertyGraph,
+		Graph:        "供給 グラフ",
+		Schema:       "Graph Data",
+		Mode:         LoadCreate,
+		Connection:   job.Target.Connection,
+		PropertyMode: PropertiesReplace,
+	}
+	if err := job.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
 func TestUpsertRequiresEdgeIdentity(t *testing.T) {
 	job := validCSVJob(t)
 	job.Target.Mode = LoadUpsert

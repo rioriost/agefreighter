@@ -35,6 +35,7 @@ type PlanSource struct {
 type PlanTarget struct {
 	Type            TargetType            `json:"type"`
 	Graph           string                `json:"graph"`
+	Schema          string                `json:"schema,omitempty"`
 	Mode            LoadMode              `json:"mode"`
 	PropertyMode    PropertyMode          `json:"propertyMode"`
 	AppendDuplicate AppendDuplicatePolicy `json:"appendDuplicate,omitempty"`
@@ -68,6 +69,7 @@ func BuildStaticPlan(job LoadJob) StaticPlan {
 		Target: PlanTarget{
 			Type:            job.Target.Type,
 			Graph:           job.Target.Graph,
+			Schema:          job.Target.Schema,
 			Mode:            job.Target.Mode,
 			PropertyMode:    job.Target.PropertyMode,
 			AppendDuplicate: job.Target.AppendDuplicate,

@@ -1011,6 +1011,12 @@ func openAGEStore(
 	ctx context.Context,
 	job config.LoadJob,
 ) (*age.Adapter, *meta.Store, error) {
+	if job.Target.Type != config.TargetApacheAGE {
+		return nil, nil, fmt.Errorf(
+			"target adapter %q is not yet wired into load execution",
+			job.Target.Type,
+		)
+	}
 	dsn, err := resolveSecret(job.Target.Connection)
 	if err != nil {
 		return nil, nil, fmt.Errorf("resolve target connection: %w", err)

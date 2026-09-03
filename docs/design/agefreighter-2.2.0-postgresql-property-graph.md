@@ -24,9 +24,9 @@ The initial implementation is qualified locally with Apple Container 1.0.0 on
 Apple Silicon and the official multi-platform PostgreSQL image:
 
 ```text
-docker.io/library/postgres:19beta1@sha256:d53e88982cb971bc2586fb37d9c9f7b3c707ae8fa6bc35dd1fb94bf2eda453f3
-arm64 manifest: sha256:7d7e17259fd3ab7432f9970c07aa0dd08d196145849288e93686dca96c14f1eb
-server: PostgreSQL 19beta1 (Debian 19~beta1-1.pgdg13+1)
+docker.io/library/postgres:19beta3@sha256:a48b19841e04b35b72a25e9a94314ac80546d32b5e2e3cd9279390cbd8a99572
+arm64 manifest: sha256:d2803db84af749f279166b231e05a92c7d5ef991540cb292a76fb41af997ebd4
+server: PostgreSQL 19beta3 (Debian 19~beta3-1.pgdg13+1)
 server_version_num: 190000
 ```
 
@@ -272,3 +272,16 @@ metadata boundaries. The following changes were made during review:
 No unresolved design blocker prevents Phase A from starting. Phase B remains
 the first point where metadata migration risk must receive a dedicated review.
 
+## 9. Current implementation status
+
+Phase A started on 2026-09-03. The target discriminator and schema contract,
+target-specific validation, static-plan output, safe naming and quoting, pure
+relational/property-graph DDL generation, server/feature probe, and the pinned
+Apple Container integration harness are implemented. The Beta 3 integration
+test creates a directed graph, round-trips a JSONB property through
+`GRAPH_TABLE`, and confirms property-graph `relkind = 'g'`.
+
+Load execution is intentionally not wired to the new adapter yet. Until Phase
+B establishes the backend-neutral orchestration and metadata boundary, load
+and diagnostic operations return an explicit unsupported-adapter error instead
+of accidentally opening the target as Apache AGE.

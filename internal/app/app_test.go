@@ -29,6 +29,18 @@ type limitedIterator struct {
 	remaining int
 }
 
+func TestOpenAGEStoreRejectsUnwiredTarget(t *testing.T) {
+	job := testLoadJob("app_test_graph", "vertices.csv", "edges.csv")
+	job.Target.Type = config.TargetPostgreSQLPropertyGraph
+	job.Target.Schema = "public"
+	job.Target.AppendDuplicate = ""
+
+	_, _, err := openAGEStore(context.Background(), job)
+	if err == nil || !strings.Contains(err.Error(), "not yet wired") {
+		t.Fatalf("openAGEStore() error = %v", err)
+	}
+}
+
 func (iterator *limitedIterator) Next(
 	ctx context.Context,
 ) (sourcecontract.Item, error) {

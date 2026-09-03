@@ -20,7 +20,7 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 .PHONY: bench-csv bench-csv-scale bench-release build check check-full coverage dev-down dev-pull \
 	dev-reset dev-smoke dev-status dev-up fmt fuzz-smoke install-tools release-check test \
 	test-compatibility test-connectors-cosmos test-connectors-local test-diagnostics-race \
-	test-race test-recovery test-release-integration tidy vet vuln workflow-lint
+	test-pggraph-apple test-race test-recovery test-release-integration tidy vet vuln workflow-lint
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter ./cmd/agefreighter
@@ -118,6 +118,9 @@ test-connectors-cosmos:
 	AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER="$(AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER)" \
 		$(GO) test -count=1 -timeout=45m -v ./internal/app \
 		-run '^(TestCosmosLiveIntegration|TestCosmosSourceModeMatrixIntegration)$$'
+
+test-pggraph-apple:
+	./scripts/dev/pggraph-apple-container.sh test
 
 test-release-integration:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \

@@ -715,9 +715,27 @@ func validatePropertyMapping(properties map[string]string, path string, errs *Va
 
 func validateTarget(target Target, errs *ValidationErrors) {
 	add := validationAdder(errs)
-	add(target.Type == TargetApacheAGE, "target.type", "unsupported", "must be apache-age")
-	add(len(target.Graph) >= 3 && len(target.Graph) <= 63 && graphNamePattern.MatchString(target.Graph),
-		"target.graph", "format", "must satisfy the Apache AGE 3-63 byte graph-name rules")
+	switch target.Type {
+	case TargetApacheAGE:
+		add(len(target.Graph) >= 3 && len(target.Graph) <= 63 && graphNamePattern.MatchString(target.Graph),
+			"target.graph", "format", "must satisfy the Apache AGE 3-63 byte graph-name rules")
+		add(target.Schema == "", "target.schema", "unsupported",
+			"is supported only for postgresql-property-graph targets")
+	case TargetPostgreSQLPropertyGraph:
+		add(validPostgreSQLIdentifier(target.Graph), "target.graph", "format",
+			"must be a valid PostgreSQL identifier of at most 63 bytes")
+		add(validPostgreSQLIdentifier(target.Schema), "target.schema", "format",
+			"must be a valid PostgreSQL identifier of at most 63 bytes")
+		add(target.Mode == LoadCreate, "target.mode", "unsupported",
+			"postgresql-property-graph currently supports only create")
+		add(target.PropertyMode == PropertiesReplace, "target.propertyMode", "unsupported",
+			"postgresql-property-graph currently supports only replace")
+		add(target.AppendDuplicate == "", "target.appendDuplicate", "unsupported",
+			"is not supported for postgresql-property-graph create loads")
+	default:
+		add(false, "target.type", "unsupported",
+			"must be apache-age or postgresql-property-graph")
+	}
 	switch target.Mode {
 	case LoadCreate, LoadReplace, LoadAppend, LoadUpsert:
 	default:
@@ -749,6 +767,11 @@ func validateTarget(target Target, errs *ValidationErrors) {
 	validateSecret(target.Connection, "target.connection", errs)
 }
 
+func validPostgreSQLIdentifier(identifier string) bool {
+	return identifier != "" && len(identifier) <= 63 &&
+		utf8.ValidString(identifier) && !strings.ContainsRune(identifier, '\x00')
+}
+
 func validateSecret(secret SecretRef, path string, errs *ValidationErrors) {
 	add := validationAdder(errs)
 	add((secret.Env == "") != (secret.File == ""), path, "secret-reference",
@@ -774,7 +797,7 @@ func validateRuntime(runtime Runtime, errs *ValidationErrors) {
 		"must be 1; connector transforms are ordered and execute within source iteration")
 	validateConcurrency(runtime.MaxTargetConnections, "runtime.maxTargetConnections", errs)
 	add(runtime.MaxTargetConnections >= 2, "runtime.maxTargetConnections", "range",
-		"must be at least 2 for AGE loading")
+		"must be at least 2 for target loading")
 	add(runtime.OperationTimeout > 0, "runtime.operationTimeout", "range", "must be positive")
 }
 

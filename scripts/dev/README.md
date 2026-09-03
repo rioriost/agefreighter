@@ -88,3 +88,21 @@ The output path must not exist. Supported strategies are `direct-text`,
 development container before each trial so kernel `memory.peak` starts from a
 comparable cold baseline; its named volume is preserved. Reported target
 memory is total cgroup memory, while client memory is peak process RSS.
+
+## PostgreSQL 19 property graph development target
+
+The experimental 2.2.0 target has a separate Apple Container harness. It pins
+the official PostgreSQL 19 Beta 3 image index digest, verifies the resolved
+digest before starting, and manages only `agefreighter-pg19-sqlpgq`:
+
+```sh
+./scripts/dev/pggraph-apple-container.sh up
+./scripts/dev/pggraph-apple-container.sh status
+make test-pggraph-apple
+./scripts/dev/pggraph-apple-container.sh down
+```
+
+`down` preserves the dedicated container and database. The harness does not
+delete images, volumes, or unrelated Apple Container resources. A newer beta
+or release candidate intentionally fails the digest check until its SQL/PGQ
+behavior is reviewed and the recorded digest is updated.

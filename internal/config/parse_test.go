@@ -118,6 +118,27 @@ func TestInactiveIncrementalDefaultsAreOmitted(t *testing.T) {
 	}
 }
 
+func TestPostgreSQLPropertyGraphDefaultsAndStaticPlan(t *testing.T) {
+	job := validCSVJob(t)
+	job.Target.Type = TargetPostgreSQLPropertyGraph
+	job.Target.Graph = "supply graph"
+	job.Target.Schema = ""
+	job.applyDefaults()
+
+	if job.Target.Schema != "public" {
+		t.Fatalf("Target.Schema = %q, want public", job.Target.Schema)
+	}
+	if err := job.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+	plan := BuildStaticPlan(job)
+	if plan.Target.Type != TargetPostgreSQLPropertyGraph ||
+		plan.Target.Schema != "public" ||
+		plan.Target.Graph != "supply graph" {
+		t.Fatalf("BuildStaticPlan() target = %#v", plan.Target)
+	}
+}
+
 func TestParseReportsSemanticValidation(t *testing.T) {
 	if _, err := Parse([]byte(`
 apiVersion: agefreighter.io/v2
@@ -525,6 +546,32 @@ func TestJSONSchemaAGEGraphAndSecretPatterns(t *testing.T) {
 	document = schemaDocument(t, job)
 	if err := schema.Validate(document); err == nil {
 		t.Fatal("schema accepted invalid environment variable name")
+	}
+}
+
+func TestJSONSchemaPostgreSQLPropertyGraphTarget(t *testing.T) {
+	root := moduleRoot(t)
+	compiler := jsonschema.NewCompiler()
+	schema, err := compiler.Compile(filepath.Join(root, "docs/reference/load-job.schema.json"))
+	if err != nil {
+		t.Fatalf("Compile() schema error = %v", err)
+	}
+	job := validCSVJob(t)
+	job.Target = Target{
+		Type:         TargetPostgreSQLPropertyGraph,
+		Graph:        "Supply Graph",
+		Schema:       "Graph Data",
+		Mode:         LoadCreate,
+		Connection:   job.Target.Connection,
+		PropertyMode: PropertiesReplace,
+	}
+	if err := schema.Validate(schemaDocument(t, job)); err != nil {
+		t.Fatalf("schema rejected PostgreSQL property graph target: %v", err)
+	}
+
+	job.Target.Mode = LoadReplace
+	if err := schema.Validate(schemaDocument(t, job)); err == nil {
+		t.Fatal("schema accepted unimplemented PostgreSQL property graph replace mode")
 	}
 }
 

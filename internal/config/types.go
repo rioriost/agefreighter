@@ -38,7 +38,10 @@ const (
 
 type TargetType string
 
-const TargetApacheAGE TargetType = "apache-age"
+const (
+	TargetApacheAGE               TargetType = "apache-age"
+	TargetPostgreSQLPropertyGraph TargetType = "postgresql-property-graph"
+)
 
 type LoadMode string
 
@@ -273,6 +276,7 @@ type CosmosEdgeQuery struct {
 type Target struct {
 	Type            TargetType            `json:"type" yaml:"type"`
 	Graph           string                `json:"graph" yaml:"graph"`
+	Schema          string                `json:"schema,omitempty" yaml:"schema,omitempty"`
 	Mode            LoadMode              `json:"mode" yaml:"mode"`
 	Connection      SecretRef             `json:"connection" yaml:"connection"`
 	PropertyMode    PropertyMode          `json:"propertyMode" yaml:"propertyMode"`
