@@ -537,3 +537,13 @@ RSS 2,751,428 KiB, and zero swaps. The complete job report finished at
 SameZone HA `Healthy` with 56.27% storage. Keep the wrapper active through
 source-after profiling, optimization review, the full target digest, and final
 comparison.
+
+The post-load checks completed without errors. Report and doctor are `pass`;
+bounded verification and both optimizer reviews have no failed or unknown
+checks beyond documented incomplete coverage that the complete digest closes.
+After removing timestamps and query-paging execution metadata, the accepted
+source-before and recovery source-after profiles share semantic SHA-256
+`0a51c311042a00d84ee108296ac870e73f45947f9f5dbbc007e0647b0d9f795a`.
+At 2026-09-03T00:47:57Z the full target `rangedigest` was active with
+approximately 540 MiB RSS and zero swap/OOM. Let it complete all 5,600 ranges
+and compare its root with both the fixture and accepted clean qualification.

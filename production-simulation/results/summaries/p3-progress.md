@@ -4,10 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-03T00:12:15Z
+- Updated: 2026-09-03T00:47:57Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 4.4 recovery — load committed; post-load verification is running**
-- Next: finish post-load checks, source immutability proof, and canonical digest
+- Current position: **Neo4j 4.4 recovery — full canonical target digest is running**
+- Next: match all 5,600 ranges and the final root, then start Neo4j 5.26 recovery
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -16,7 +16,7 @@ guest evidence and the final reviewed result remain authoritative.
 | Source | Qualification run | State | Current or next step |
 | --- | --- | --- | --- |
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 4.4.48 | Recovery | **RUNNING** | 560,000,000 rows committed with both planned recoveries; post-load verification is running |
+| Neo4j 4.4.48 | Recovery | **RUNNING** | Load and post-load checks complete; full target digest is running |
 | Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 5.26.30 | Recovery | PENDING | Start after both clean-source qualifications |
 
@@ -130,8 +130,8 @@ altering the completed evidence. The clean qualification is complete.
 | 3 | Resume the same database, graph, job, and fingerprint | DONE; segment 2 resumed job `d727d9aa-b7e5-4728-9254-90bd0210406d` with the retained fingerprint |
 | 4 | Restart the Neo4j 4.4 container near 40% | DONE; restart at the 229,300,000-row checkpoint (40.95%) |
 | 5 | Resume the same durable job again and finish the load | DONE; all 560,000,000 rows committed with zero rejects |
-| 6 | Run the complete built-in post-load checks | **RUNNING**; report complete and bounded verification active |
-| 7 | Compute the complete target digest and match fixture and clean roots | PENDING |
+| 6 | Run the complete built-in post-load checks | DONE; no failed or unknown checks; source semantic profiles match |
+| 7 | Compute the complete target digest and match fixture and clean roots | **RUNNING**; target `rangedigest` active |
 
 The recovery run reuses the accepted clean source profiles as the source
 immutability proof, but it must compute a new complete target digest.
@@ -190,6 +190,16 @@ generation, and fingerprint. The complete job report finished at 00:12:15Z,
 and bounded verification then started. Flexible Server remained `Ready` / HA
 `Healthy` with 56.27% storage. Let the wrapper complete the remaining checks,
 source immutability proof, optimization review, and full canonical digest.
+
+The built-in post-load sequence completed without errors. Report and doctor
+are `pass`; bounded verification and both optimizer reviews contain no failed
+or unknown checks beyond the documented incomplete coverage that the full
+digest closes. After excluding timestamps and query-paging execution metadata,
+the accepted source-before profile and recovery source-after profile have the
+same semantic SHA-256
+`0a51c311042a00d84ee108296ac870e73f45947f9f5dbbc007e0647b0d9f795a`.
+The 560-million-row target digest was active at 2026-09-03T00:47:57Z with
+approximately 540 MiB RSS and zero swap/OOM. Let it finish uninterrupted.
 
 ## Neo4j 5.26.30
 
