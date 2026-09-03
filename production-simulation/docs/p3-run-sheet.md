@@ -547,3 +547,20 @@ source-before and recovery source-after profiles share semantic SHA-256
 At 2026-09-03T00:47:57Z the full target `rangedigest` was active with
 approximately 540 MiB RSS and zero swap/OOM. Let it complete all 5,600 ranges
 and compare its root with both the fixture and accepted clean qualification.
+
+The full target digest completed at 2026-09-03T02:35:08Z with exit status
+zero after 1:58:09. It covered all 560,000,000 rows in 5,600 leaves, and every
+range and the final root matched both the fixture and accepted clean root
+`0302c456d17c6e9ee64552d68e2bf6a775e63cd3b09120f5bc342d329bddd1ba`.
+Maximum observed digest RSS was 2,637,820 KiB with zero swap/OOM. Accept the
+Neo4j 4.4 recovery qualification.
+
+The Neo4j 4.4 VM was deallocated and the Neo4j 5.26 VM started for the final
+qualification. At 2026-09-03T02:47:37Z the source proved Community 5.26.30,
+an online read-only database, 48 GiB initial/maximum heap, 28 GiB page cache,
+20 online indexes, 32% source-disk use, and zero swap/OOM. Fresh segment
+`recovery-r2-segment1-neo4j526` started at 02:49:22Z on commit
+`9391b23c7527ea35338fa731eb18a88136efaa65`, created isolated targets, reused
+the accepted clean source-before profile, and passed validation and target
+preflight. Record its durable job ID after live discovery, then apply the
+planned PostgreSQL-connectivity fault near 336,000,000 committed rows.
