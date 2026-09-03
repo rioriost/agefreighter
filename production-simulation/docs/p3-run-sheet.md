@@ -564,3 +564,11 @@ an online read-only database, 48 GiB initial/maximum heap, 28 GiB page cache,
 the accepted clean source-before profile, and passed validation and target
 preflight. Record its durable job ID after live discovery, then apply the
 planned PostgreSQL-connectivity fault near 336,000,000 committed rows.
+
+Live discovery completed and created durable job
+`99e3f624-22e3-497d-a6dd-7a1b08addf23` with configuration fingerprint
+`7953ccd4340d3b4084d8833925c153919306b2ba5c547cff084bd5cfdba4123f`.
+At 2026-09-03T03:07:14Z it was running with 1,160,000 committed rows, zero
+rejects, next batch 59, and a current checkpoint. Loader RSS was 164,032 KiB,
+disk use was 42%, and swap/OOM were zero. Continue segment 1 to the planned
+PostgreSQL-connectivity fault near 336,000,000 committed rows.

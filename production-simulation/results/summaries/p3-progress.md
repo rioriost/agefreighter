@@ -4,10 +4,10 @@ This is the redacted live progress report for the P3 qualification in
 `rg-afps-p3-20260831`. It is updated at material phase transitions; retained
 guest evidence and the final reviewed result remain authoritative.
 
-- Updated: 2026-09-03T02:50:05Z
+- Updated: 2026-09-03T03:07:14Z
 - Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 recovery — fresh segment 1 is in live discovery**
-- Next: record its durable job ID, then block PostgreSQL connectivity near 336,000,000 rows
+- Current position: **Neo4j 5.26 recovery — segment 1 is loading toward the 60% fault**
+- Next: block PostgreSQL connectivity near 336,000,000 committed rows
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +18,7 @@ guest evidence and the final reviewed result remain authoritative.
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | **DONE** | Both planned recoveries completed; all 5,600 ranges and the final root match |
 | Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 5.26.30 | Recovery | **RUNNING** | Fresh target and segment 1 started; durable job creation pending |
+| Neo4j 5.26.30 | Recovery | **RUNNING** | Segment 1 active; planned PostgreSQL-connectivity fault at ~336,000,000 rows |
 
 ## Neo4j 4.4.48
 
@@ -464,8 +464,8 @@ created at 18:23:01Z.
 
 | Step | Fault/recovery evidence | State |
 | ---: | --- | --- |
-| 1 | Start a fresh target database and durable job | **RUNNING**; fresh target created and live discovery active |
-| 2 | Block PostgreSQL connectivity near 60% and retain the checkpoint | PENDING |
+| 1 | Start a fresh target database and durable job | DONE; job `99e3f624-22e3-497d-a6dd-7a1b08addf23` |
+| 2 | Block PostgreSQL connectivity near 60% and retain the checkpoint | **RUNNING**; monitoring toward 336,000,000 rows |
 | 3 | Restore connectivity and resume the same durable job | PENDING |
 | 4 | Reboot the loader VM near 75% | PENDING |
 | 5 | Explicitly resume the same durable job and finish the load | PENDING |
@@ -483,6 +483,14 @@ database, 48 GiB initial/maximum heap, 28 GiB page cache, 20 online indexes,
 `9391b23c7527ea35338fa731eb18a88136efaa65`, prepared isolated targets, reused
 the accepted clean source-before profile, and passed validation and target
 preflight. Live discovery is active; record the durable job when created.
+
+Live discovery completed and created durable job
+`99e3f624-22e3-497d-a6dd-7a1b08addf23` with configuration fingerprint
+`7953ccd4340d3b4084d8833925c153919306b2ba5c547cff084bd5cfdba4123f`.
+At 2026-09-03T03:07:14Z it was running with 1,160,000 committed rows, zero
+rejects, next batch 59, and a current checkpoint. Loader RSS was 164,032 KiB,
+disk use was 42%, and swap/OOM were zero. Continue segment 1 to the planned
+PostgreSQL-connectivity fault near 336,000,000 committed rows.
 
 ## Live guardrails
 
