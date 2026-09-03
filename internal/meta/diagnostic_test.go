@@ -12,7 +12,7 @@ import (
 )
 
 func TestDiagnosticMigrationIsCurrentVersion(t *testing.T) {
-	if schemaVersion != 17 || len(migrations) != schemaVersion {
+	if schemaVersion != 18 || len(migrations) != schemaVersion {
 		t.Fatalf("schema version=%d migrations=%d", schemaVersion, len(migrations))
 	}
 	if len(migrationV16) != 2 ||
@@ -39,6 +39,12 @@ func TestDiagnosticMigrationIsCurrentVersion(t *testing.T) {
 			strings.HasPrefix(normalized, "DELETE ") {
 			t.Fatalf("migrationV17 destructively rewrites existing rows: %q", statement)
 		}
+	}
+	if len(migrationV18) != 3 ||
+		!strings.Contains(migrationV18[0], "target_backend") ||
+		!strings.Contains(migrationV18[1], "load_job_target_identity_ck") ||
+		!strings.Contains(migrationV18[2], "DROP DEFAULT") {
+		t.Fatalf("migrationV18 = %#v", migrationV18)
 	}
 }
 

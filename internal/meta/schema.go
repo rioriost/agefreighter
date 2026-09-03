@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 17
+const schemaVersion = 18
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -762,6 +762,27 @@ var migrationV17 = []string{
 	)`,
 }
 
+var migrationV18 = []string{
+	`ALTER TABLE agefreighter_meta.load_job
+		ADD COLUMN target_backend text NOT NULL DEFAULT 'apache-age',
+		ADD COLUMN target_schema text NOT NULL DEFAULT ''`,
+	`ALTER TABLE agefreighter_meta.load_job
+		ADD CONSTRAINT load_job_target_backend_ck CHECK (
+			target_backend IN ('apache-age', 'postgresql-property-graph')
+		),
+		ADD CONSTRAINT load_job_target_schema_ck CHECK (
+			octet_length(target_schema) <= 63
+		),
+		ADD CONSTRAINT load_job_target_identity_ck CHECK (
+			(target_backend = 'apache-age' AND target_schema = '')
+			OR
+			(target_backend = 'postgresql-property-graph' AND target_schema <> '')
+		)`,
+	`ALTER TABLE agefreighter_meta.load_job
+		ALTER COLUMN target_backend DROP DEFAULT,
+		ALTER COLUMN target_schema DROP DEFAULT`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -780,4 +801,5 @@ var migrations = [][]string{
 	migrationV15,
 	migrationV16,
 	migrationV17,
+	migrationV18,
 }

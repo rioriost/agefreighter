@@ -8,6 +8,7 @@ import (
 	"math"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 var (
@@ -21,6 +22,16 @@ var (
 
 type JobStatus string
 
+// TargetBackend identifies the physical target represented by a metadata job.
+// The empty Go value is accepted as Apache AGE when creating jobs so callers
+// compiled against the pre-v18 API retain their existing behavior.
+type TargetBackend string
+
+const (
+	TargetBackendApacheAGE               TargetBackend = "apache-age"
+	TargetBackendPostgreSQLPropertyGraph TargetBackend = "postgresql-property-graph"
+)
+
 const (
 	JobPending   JobStatus = "pending"
 	JobRunning   JobStatus = "running"
@@ -33,6 +44,8 @@ type Job struct {
 	Name                     string
 	SourceType               string
 	LoadMode                 string
+	TargetBackend            TargetBackend
+	TargetSchema             string
 	TargetGraph              string
 	BackupGraphName          string
 	ConfigFingerprint        string
@@ -216,6 +229,18 @@ func validateJob(job Job) error {
 	default:
 		return fmt.Errorf("unsupported load mode %q", job.LoadMode)
 	}
+	switch resolvedTargetBackend(job) {
+	case TargetBackendApacheAGE:
+		if job.TargetSchema != "" {
+			return errors.New("target schema is unsupported for Apache AGE")
+		}
+	case TargetBackendPostgreSQLPropertyGraph:
+		if !validTargetIdentifier(job.TargetSchema) {
+			return errors.New("target schema must be a valid PostgreSQL identifier of at most 63 bytes")
+		}
+	default:
+		return fmt.Errorf("unsupported target backend %q", job.TargetBackend)
+	}
 	if strings.TrimSpace(job.TargetGraph) == "" {
 		return errors.New("target graph is required")
 	}
@@ -226,6 +251,18 @@ func validateJob(job Job) error {
 		return errors.New("new job status must be pending")
 	}
 	return nil
+}
+
+func resolvedTargetBackend(job Job) TargetBackend {
+	if job.TargetBackend == "" {
+		return TargetBackendApacheAGE
+	}
+	return job.TargetBackend
+}
+
+func validTargetIdentifier(value string) bool {
+	return value != "" && len(value) <= 63 && utf8.ValidString(value) &&
+		!strings.ContainsRune(value, '\x00')
 }
 
 func validateJobID(value string) error {

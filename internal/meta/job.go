@@ -16,13 +16,16 @@ func (store *Store) CreateJob(ctx context.Context, job Job) error {
 	_, err := store.database.Exec(
 		ctx,
 		`INSERT INTO agefreighter_meta.load_job (
-			job_id, name, source_type, load_mode, target_graph,
+			job_id, name, source_type, load_mode, target_backend,
+			target_schema, target_graph,
 			config_fingerprint, status
-		) VALUES ($1::uuid, $2, $3, $4, $5, $6, 'pending')`,
+		) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, 'pending')`,
 		job.ID,
 		job.Name,
 		job.SourceType,
 		job.LoadMode,
+		resolvedTargetBackend(job),
+		job.TargetSchema,
 		job.TargetGraph,
 		job.ConfigFingerprint,
 	)
@@ -39,16 +42,19 @@ func (store *Store) CreateRunningJob(ctx context.Context, job Job) error {
 	_, err := store.database.Exec(
 		ctx,
 		`INSERT INTO agefreighter_meta.load_job (
-			job_id, name, source_type, load_mode, target_graph,
+			job_id, name, source_type, load_mode, target_backend,
+			target_schema, target_graph,
 			config_fingerprint, status, started_at, updated_at
 		) VALUES (
-			$1::uuid, $2, $3, $4, $5, $6, 'running',
+			$1::uuid, $2, $3, $4, $5, $6, $7, $8, 'running',
 			clock_timestamp(), clock_timestamp()
 		)`,
 		job.ID,
 		job.Name,
 		job.SourceType,
 		job.LoadMode,
+		resolvedTargetBackend(job),
+		job.TargetSchema,
 		job.TargetGraph,
 		job.ConfigFingerprint,
 	)
@@ -68,22 +74,25 @@ func (store *Store) CreateRunningJobIfCurrent(
 	tag, err := store.database.Exec(
 		ctx,
 		`INSERT INTO agefreighter_meta.load_job (
-			job_id, name, source_type, load_mode, target_graph,
+			job_id, name, source_type, load_mode, target_backend,
+			target_schema, target_graph,
 			config_fingerprint, status, started_at, updated_at
 		)
 		SELECT
-			$1::uuid, $2, $3, $4, $5, $6, 'running',
+			$1::uuid, $2, $3, $4, $5, $6, $7, $8, 'running',
 			clock_timestamp(), clock_timestamp()
 		WHERE (
 			SELECT COALESCE(MIN(version), 0) = 1
-			   AND COALESCE(MAX(version), 0) = $7
-			   AND COUNT(*) = $7
+			   AND COALESCE(MAX(version), 0) = $9
+			   AND COUNT(*) = $9
 			FROM agefreighter_meta.schema_migration
 		)`,
 		job.ID,
 		job.Name,
 		job.SourceType,
 		job.LoadMode,
+		resolvedTargetBackend(job),
+		job.TargetSchema,
 		job.TargetGraph,
 		job.ConfigFingerprint,
 		schemaVersion,
@@ -107,20 +116,24 @@ func (store *Store) GetJob(ctx context.Context, jobID string) (Job, error) {
 	err := store.database.QueryRow(
 		ctx,
 		`SELECT
-			job_id::text, name, source_type, load_mode, target_graph,
+			job_id::text, name, source_type, load_mode,
+			COALESCE(to_jsonb(job)->>'target_backend', 'apache-age'),
+			COALESCE(to_jsonb(job)->>'target_schema', ''), target_graph,
 			backup_graph_name, config_fingerprint::text, status,
 			COALESCE(graph_generation_id, 0),
 			next_batch_id, resume_token, committed_rows, committed_bytes,
 			rejected_rows, source_rejected_rows, error_message, created_at, started_at, updated_at,
 			completed_at, backup_cleaned_at
-		 FROM agefreighter_meta.load_job
-		 WHERE job_id = $1::uuid`,
+		 FROM agefreighter_meta.load_job AS job
+		 WHERE job.job_id = $1::uuid`,
 		jobID,
 	).Scan(
 		&job.ID,
 		&job.Name,
 		&job.SourceType,
 		&job.LoadMode,
+		&job.TargetBackend,
+		&job.TargetSchema,
 		&job.TargetGraph,
 		&job.BackupGraphName,
 		&job.ConfigFingerprint,

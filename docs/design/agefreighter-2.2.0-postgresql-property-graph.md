@@ -274,14 +274,28 @@ the first point where metadata migration risk must receive a dedicated review.
 
 ## 9. Current implementation status
 
-Phase A started on 2026-09-03. The target discriminator and schema contract,
+Phase A completed on 2026-09-03. The target discriminator and schema contract,
 target-specific validation, static-plan output, safe naming and quoting, pure
 relational/property-graph DDL generation, server/feature probe, and the pinned
 Apple Container integration harness are implemented. The Beta 3 integration
 test creates a directed graph, round-trips a JSONB property through
 `GRAPH_TABLE`, and confirms property-graph `relkind = 'g'`.
 
-Load execution is intentionally not wired to the new adapter yet. Until Phase
-B establishes the backend-neutral orchestration and metadata boundary, load
-and diagnostic operations return an explicit unsupported-adapter error instead
-of accidentally opening the target as Apache AGE.
+Phase B started on 2026-09-03. Target selection, connection ownership, and
+metadata access now enter through `internal/target`; Apache AGE construction is
+behind that boundary. Metadata schema v18 records the target backend and schema
+on every job. Reads remain compatible with v14-v17 metadata by interpreting
+missing target identity as Apache AGE, while the v18 migration permanently
+backfills that identity and removes insertion defaults. Status, verification,
+and resume reject a job whose stored target identity differs from the supplied
+configuration. The v14-v17-v18 integration fixture proves an existing failed
+AGE job can be upgraded and returned to running state unchanged, and that a
+PostgreSQL property-graph job round-trips its explicit backend identity.
+
+The full unit suite and the AGE adapter/app integration suites pass through the
+new boundary. The PostgreSQL property-graph package is protected by an
+architecture test that rejects any dependency on `internal/age`. Load and
+diagnostic dispatch for PostgreSQL property graphs remains deliberately
+unwired until the remaining Phase B backend-neutral operation interfaces are
+in place; those operations continue to return an explicit unsupported-adapter
+error rather than opening the target as Apache AGE.

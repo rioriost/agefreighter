@@ -21,6 +21,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/pipeline"
 	"github.com/rioriost/agefreighter/internal/reject"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
+	"github.com/rioriost/agefreighter/internal/target"
 	"github.com/rioriost/agefreighter/pkg/model"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -67,7 +68,14 @@ func Status(ctx context.Context, path, jobID string) (meta.Job, error) {
 		return meta.Job{}, err
 	}
 	defer adapter.Close()
-	return store.GetJob(ctx, jobID)
+	stored, err := store.GetJob(ctx, jobID)
+	if err != nil {
+		return meta.Job{}, err
+	}
+	if err := validateStoredTargetIdentity(job, stored); err != nil {
+		return meta.Job{}, err
+	}
+	return stored, nil
 }
 
 func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
@@ -82,6 +90,9 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	defer adapter.Close()
 	stored, err := store.GetJob(ctx, jobID)
 	if err != nil {
+		return meta.Job{}, err
+	}
+	if err := validateStoredTargetIdentity(job, stored); err != nil {
 		return meta.Job{}, err
 	}
 	if stored.Status != meta.JobCommitted {
@@ -329,6 +340,9 @@ func execute(
 		if err != nil {
 			return result, err
 		}
+		if err := validateStoredTargetIdentity(job, storedJob); err != nil {
+			return result, err
+		}
 		preserveRunningJob = storedJob.Status == meta.JobRunning
 		if storedJob.ConfigFingerprint != fingerprint {
 			return result, errors.New("load job configuration fingerprint changed")
@@ -379,7 +393,9 @@ func execute(
 		newJob := meta.Job{
 			ID: jobID, Name: job.Metadata.Name,
 			SourceType: string(job.Source.Type), LoadMode: string(job.Target.Mode),
-			TargetGraph: job.Target.Graph, ConfigFingerprint: fingerprint,
+			TargetBackend: meta.TargetBackend(job.Target.Type),
+			TargetSchema:  job.Target.Schema,
+			TargetGraph:   job.Target.Graph, ConfigFingerprint: fingerprint,
 		}
 		created, createErr := store.CreateRunningJobIfCurrent(ctx, newJob)
 		if createErr != nil {
@@ -563,6 +579,24 @@ func execute(
 	}
 	setTrialSummary(&result, trialIterator)
 	return result, nil
+}
+
+func validateStoredTargetIdentity(job config.LoadJob, stored meta.Job) error {
+	wantBackend := meta.TargetBackend(job.Target.Type)
+	if stored.TargetBackend != wantBackend ||
+		stored.TargetSchema != job.Target.Schema ||
+		stored.TargetGraph != job.Target.Graph {
+		return fmt.Errorf(
+			"load job target identity changed: stored backend=%q schema=%q graph=%q, configured backend=%q schema=%q graph=%q",
+			stored.TargetBackend,
+			stored.TargetSchema,
+			stored.TargetGraph,
+			wantBackend,
+			job.Target.Schema,
+			job.Target.Graph,
+		)
+	}
+	return nil
 }
 
 const (
@@ -1011,30 +1045,30 @@ func openAGEStore(
 	ctx context.Context,
 	job config.LoadJob,
 ) (*age.Adapter, *meta.Store, error) {
-	if job.Target.Type != config.TargetApacheAGE {
-		return nil, nil, fmt.Errorf(
-			"target adapter %q is not yet wired into load execution",
-			job.Target.Type,
-		)
+	if err := target.RequireImplemented(job.Target.Type); err != nil {
+		return nil, nil, err
 	}
 	dsn, err := resolveSecret(job.Target.Connection)
 	if err != nil {
 		return nil, nil, fmt.Errorf("resolve target connection: %w", err)
 	}
-	adapter, err := age.Open(ctx, dsn, age.PoolOptions{
-		MinConnections: 1, MaxConnections: int32(job.Runtime.MaxTargetConnections),
+	runtime, err := target.Open(ctx, job.Target.Type, dsn, target.Options{
+		MaxConnections:   int32(job.Runtime.MaxTargetConnections),
 		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
 		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
 	})
 	if err != nil {
 		return nil, nil, err
 	}
-	store, err := adapter.Metadata()
-	if err != nil {
-		adapter.Close()
-		return nil, nil, err
+	ageRuntime, ok := runtime.(target.AGERuntime)
+	if !ok {
+		runtime.Close()
+		return nil, nil, fmt.Errorf(
+			"target backend %q does not provide Apache AGE operations",
+			job.Target.Type,
+		)
 	}
-	return adapter, store, nil
+	return ageRuntime.AGEAdapter(), runtime.Metadata(), nil
 }
 
 func resolveSecret(reference config.SecretRef) (string, error) {

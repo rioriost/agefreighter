@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func TestMetadataV14UpgradeToV17Integration(t *testing.T) {
+func TestMetadataV14AndV17UpgradeToV18Integration(t *testing.T) {
 	dsn := strings.TrimSpace(os.Getenv(metadataTestDSNEnvironment))
 	if dsn == "" {
 		t.Skip("set " + metadataTestDSNEnvironment + " to run metadata upgrade integration tests")
@@ -107,19 +107,73 @@ func TestMetadataV14UpgradeToV17Integration(t *testing.T) {
 		t.Fatalf("read-only inspection changed metadata: before=%#v after=%#v error=%v", before, again, err)
 	}
 
+	if err := store.migrate(ctx, schemaVersion-1); err != nil {
+		t.Fatalf("upgrade v14 to v17 fixture: %v", err)
+	}
+	v17, err := store.InspectSchema(ctx)
+	if err != nil {
+		t.Fatalf("InspectSchema(v17) error = %v", err)
+	}
+	if v17.State != SchemaPending || v17.InstalledVersion != 17 {
+		t.Fatalf("v17 inspection = %#v", v17)
+	}
+	const legacyJobID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+	if _, err := connection.Exec(ctx, `
+		INSERT INTO agefreighter_meta.load_job (
+			job_id, name, source_type, load_mode, target_graph,
+			config_fingerprint, status
+		) VALUES ($1::uuid, 'legacy-age', 'neo4j', 'create', 'supply_graph',
+			$2, 'failed')`, legacyJobID, strings.Repeat("a", 64)); err != nil {
+		t.Fatalf("insert v17 AGE job: %v", err)
+	}
+
 	if err := store.Migrate(ctx); err != nil {
-		t.Fatalf("upgrade v14 to v17: %v", err)
+		t.Fatalf("upgrade v17 to v18: %v", err)
 	}
 	after, err := store.InspectSchema(ctx)
 	if err != nil {
-		t.Fatalf("InspectSchema(v17) error = %v", err)
+		t.Fatalf("InspectSchema(v18) error = %v", err)
 	}
 	if after.State != SchemaCurrent ||
 		after.InstalledVersion != SupportedSchemaVersion {
 		t.Fatalf("upgraded inspection = %#v", after)
 	}
+	legacy, err := store.GetJob(ctx, legacyJobID)
+	if err != nil {
+		t.Fatalf("GetJob(v17 legacy) error = %v", err)
+	}
+	if legacy.TargetBackend != TargetBackendApacheAGE || legacy.TargetSchema != "" {
+		t.Fatalf("v17 target identity backfill = %#v", legacy)
+	}
+	if err := store.StartJob(ctx, legacyJobID); err != nil {
+		t.Fatalf("resume upgraded v17 AGE job: %v", err)
+	}
+	legacy, err = store.GetJob(ctx, legacyJobID)
+	if err != nil || legacy.Status != JobRunning ||
+		legacy.ConfigFingerprint != strings.Repeat("a", 64) {
+		t.Fatalf("resumed v17 AGE job = %#v, %v", legacy, err)
+	}
+	propertyGraphJob := Job{
+		ID:                "bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		Name:              "pg19-property-graph",
+		SourceType:        "neo4j",
+		LoadMode:          "create",
+		TargetBackend:     TargetBackendPostgreSQLPropertyGraph,
+		TargetSchema:      "Graph Data",
+		TargetGraph:       "supply_graph",
+		ConfigFingerprint: strings.Repeat("b", 64),
+	}
+	if err := store.CreateJob(ctx, propertyGraphJob); err != nil {
+		t.Fatalf("create v18 property-graph job: %v", err)
+	}
+	storedPropertyGraph, err := store.GetJob(ctx, propertyGraphJob.ID)
+	if err != nil ||
+		storedPropertyGraph.TargetBackend != propertyGraphJob.TargetBackend ||
+		storedPropertyGraph.TargetSchema != propertyGraphJob.TargetSchema {
+		t.Fatalf("v18 property-graph target identity = %#v, %v", storedPropertyGraph, err)
+	}
 	if err := store.migrate(ctx, MinimumReadCompatibleSchemaVersion); err == nil ||
 		!strings.Contains(err.Error(), "newer than supported version 14") {
-		t.Fatalf("2.0-compatible writer accepted v17 metadata: %v", err)
+		t.Fatalf("2.0-compatible writer accepted v18 metadata: %v", err)
 	}
 }
