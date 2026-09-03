@@ -1,6 +1,6 @@
 # AGEFreighter 2.2.0 PostgreSQL property graph target plan
 
-**Status:** Reviewed; implementation started on branch `2.2.0`
+**Status:** Reviewed; Phases A and B complete on branch `2.2.0`
 **Target release:** AGEFreighter 2.2.0
 **Feature maturity:** Experimental while PostgreSQL 19 is pre-release
 **Reviewed:** 2026-09-03
@@ -265,12 +265,14 @@ metadata boundaries. The following changes were made during review:
    an untrusted caller search path.
 7. **Digest pinning required.** A moving development tag is useful for update
    discovery but cannot be the qualification identity.
-8. **AGE regression is a release blocker.** The app currently constructs AGE
-   components directly, so the target abstraction must preserve existing AGE
-   behavior before PostgreSQL property-graph loads are wired into it.
+8. **AGE regression is a release blocker.** Target construction and lifecycle
+   must remain behind the backend boundary, and that boundary must preserve
+   existing AGE behavior before PostgreSQL property-graph loads are wired into
+   it.
 
-No unresolved design blocker prevents Phase A from starting. Phase B remains
-the first point where metadata migration risk must receive a dedicated review.
+No unresolved design blocker prevents Phase C from starting. PostgreSQL
+property-graph transaction and lifecycle semantics remain the next dedicated
+review point before its load path is enabled.
 
 ## 9. Current implementation status
 
@@ -281,21 +283,35 @@ Apple Container integration harness are implemented. The Beta 3 integration
 test creates a directed graph, round-trips a JSONB property through
 `GRAPH_TABLE`, and confirms property-graph `relkind = 'g'`.
 
-Phase B started on 2026-09-03. Target selection, connection ownership, and
-metadata access now enter through `internal/target`; Apache AGE construction is
-behind that boundary. Metadata schema v18 records the target backend and schema
-on every job. Reads remain compatible with v14-v17 metadata by interpreting
-missing target identity as Apache AGE, while the v18 migration permanently
-backfills that identity and removes insertion defaults. Status, verification,
-and resume reject a job whose stored target identity differs from the supplied
-configuration. The v14-v17-v18 integration fixture proves an existing failed
-AGE job can be upgraded and returned to running state unchanged, and that a
-PostgreSQL property-graph job round-trips its explicit backend identity.
+Phase B completed on 2026-09-03. Target selection, session lifecycle, metadata
+inspection, and metadata migration now enter through `internal/target`;
+Apache AGE construction is behind that boundary. AGE-only operations are
+requested through an explicit capability check, so an implemented non-AGE
+runtime cannot accidentally be treated as AGE. Degraded diagnostics validate
+the target backend before resolving or opening its connection. PostgreSQL
+property-graph operations remain fail-closed with an explicit
+unsupported-adapter error until Phase C installs its runtime.
 
-The full unit suite and the AGE adapter/app integration suites pass through the
-new boundary. The PostgreSQL property-graph package is protected by an
-architecture test that rejects any dependency on `internal/age`. Load and
-diagnostic dispatch for PostgreSQL property graphs remains deliberately
-unwired until the remaining Phase B backend-neutral operation interfaces are
-in place; those operations continue to return an explicit unsupported-adapter
-error rather than opening the target as Apache AGE.
+Metadata schema v18 records the target backend and schema on every job. Reads
+remain compatible with v14-v17 metadata by interpreting missing target
+identity as Apache AGE, while the v18 migration permanently backfills that
+identity and removes insertion defaults. Status, report, verification, resume,
+and replacement cleanup reject a job whose stored target identity differs from
+the supplied configuration. The v14-v17-v18 integration fixture proves an
+existing failed AGE job can be read before migration, upgraded, and returned
+to running state unchanged, and that a PostgreSQL property-graph job
+round-trips its explicit backend identity.
+
+The full unit and race suites, release self-check, live AGE adapter/app suites,
+and the complete AGE recovery matrix pass through the new boundary. The
+PostgreSQL 19 Beta 3 container also passes the v14-v17-v18 metadata-upgrade
+fixture. The PostgreSQL property-graph package is protected by an architecture
+test that rejects any dependency on `internal/age`. Transactional PostgreSQL
+property-graph create operations are intentionally not part of Phase B; Phase
+C will add them behind the completed runtime boundary.
+
+The repository-wide coverage gate is 88.8% with the AGE integration DSN,
+against a required 90.0%. Phase A measured 88.9%, so this is a pre-existing
+release-gate deficit rather than a Phase B regression. The threshold has not
+been weakened and must be restored before the 2.2.0 release criteria are
+declared complete.

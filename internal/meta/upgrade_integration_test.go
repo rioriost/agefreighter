@@ -126,6 +126,11 @@ func TestMetadataV14AndV17UpgradeToV18Integration(t *testing.T) {
 			$2, 'failed')`, legacyJobID, strings.Repeat("a", 64)); err != nil {
 		t.Fatalf("insert v17 AGE job: %v", err)
 	}
+	legacyBeforeMigration, err := store.GetJob(ctx, legacyJobID)
+	if err != nil || legacyBeforeMigration.TargetBackend != TargetBackendApacheAGE ||
+		legacyBeforeMigration.TargetSchema != "" {
+		t.Fatalf("read-compatible v17 target identity = %#v, %v", legacyBeforeMigration, err)
+	}
 
 	if err := store.Migrate(ctx); err != nil {
 		t.Fatalf("upgrade v17 to v18: %v", err)

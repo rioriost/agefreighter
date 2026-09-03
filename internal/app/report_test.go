@@ -367,7 +367,8 @@ func testMigrationReportSnapshot(schemaVersion int) migrationReportSnapshot {
 		},
 		Job: meta.Job{
 			ID: jobID, Name: "people", SourceType: "csv", LoadMode: "create",
-			TargetGraph: "people", ConfigFingerprint: strings.Repeat("a", 64),
+			TargetBackend: meta.TargetBackendApacheAGE,
+			TargetGraph:   "people", ConfigFingerprint: strings.Repeat("a", 64),
 			Status: meta.JobCommitted, GraphGenerationID: 1, NextBatchID: 2,
 			CommittedRows: 2, CommittedBytes: 100, CreatedAt: created,
 			StartedAt: &created, UpdatedAt: completed, CompletedAt: &completed,

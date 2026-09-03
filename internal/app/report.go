@@ -63,7 +63,7 @@ func MigrationReport(
 	if err != nil {
 		return report.Document{}, err
 	}
-	defer target.Adapter.Close()
+	defer target.Runtime.Close()
 	if err := target.Metadata.RequireReadCompatible(); err != nil {
 		return report.Document{}, err
 	}
@@ -72,6 +72,9 @@ func MigrationReport(
 	storedJob, err := target.Store.GetJob(readCtx, jobID)
 	cancel()
 	if err != nil {
+		return report.Document{}, err
+	}
+	if err := validateStoredTargetIdentity(jobConfig, storedJob); err != nil {
 		return report.Document{}, err
 	}
 
@@ -375,7 +378,9 @@ func jobSection(job meta.Job) report.Section {
 		passField("sourceRejectedRows", strconv.FormatInt(job.SourceRejectedRows, 10)),
 		passField("sourceType", job.SourceType),
 		passField("status", string(job.Status)),
+		passField("targetBackend", string(job.TargetBackend)),
 		passField("targetGraph", job.TargetGraph),
+		passField("targetSchema", valueOrNone(job.TargetSchema)),
 		passField("updatedAt", formatTime(job.UpdatedAt)),
 	}
 	fields = append(fields, optionalTimeField("startedAt", job.StartedAt))

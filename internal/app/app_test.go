@@ -18,6 +18,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/report"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	sourcecsv "github.com/rioriost/agefreighter/internal/source/csv"
+	targetruntime "github.com/rioriost/agefreighter/internal/target"
 	"github.com/rioriost/agefreighter/pkg/model"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -29,16 +30,49 @@ type limitedIterator struct {
 	remaining int
 }
 
-func TestOpenAGEStoreRejectsUnwiredTarget(t *testing.T) {
+func TestOpenRuntimeRejectsUnwiredTarget(t *testing.T) {
 	job := testLoadJob("app_test_graph", "vertices.csv", "edges.csv")
 	job.Target.Type = config.TargetPostgreSQLPropertyGraph
 	job.Target.Schema = "public"
 	job.Target.AppendDuplicate = ""
 
-	_, _, err := openAGEStore(context.Background(), job)
-	if err == nil || !strings.Contains(err.Error(), "adapter is not implemented") {
-		t.Fatalf("openAGEStore() error = %v", err)
+	runtime, err := openRuntime(context.Background(), job)
+	if runtime != nil {
+		runtime.Close()
 	}
+	if err == nil || !strings.Contains(err.Error(), "adapter is not implemented") {
+		t.Fatalf("openRuntime() error = %v", err)
+	}
+}
+
+func TestProbeTargetRejectsUnwiredTargetBeforeSecretResolution(t *testing.T) {
+	job := testLoadJob("app_test_graph", "vertices.csv", "edges.csv")
+	job.Target.Type = config.TargetPostgreSQLPropertyGraph
+	job.Target.Schema = "public"
+	job.Target.AppendDuplicate = ""
+	job.Target.Connection = config.SecretRef{Env: "UNSET_PGGRAPH_PROBE_DSN"}
+
+	_, err := probeTarget(context.Background(), job)
+	if err == nil || !strings.Contains(err.Error(), "adapter is not implemented") ||
+		strings.Contains(err.Error(), "UNSET_PGGRAPH_PROBE_DSN") {
+		t.Fatalf("probeTarget() error = %v", err)
+	}
+}
+
+func openTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (*age.Adapter, *meta.Store, error) {
+	runtime, err := openMutatingTarget(ctx, job)
+	if err != nil {
+		return nil, nil, err
+	}
+	ageRuntime, err := targetruntime.RequireAGE(runtime)
+	if err != nil {
+		runtime.Close()
+		return nil, nil, err
+	}
+	return ageRuntime.AGEAdapter(), runtime.Metadata(), nil
 }
 
 func TestValidateStoredTargetIdentity(t *testing.T) {

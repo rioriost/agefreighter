@@ -8,6 +8,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
+	targetruntime "github.com/rioriost/agefreighter/internal/target"
 )
 
 func promoteReplace(
@@ -137,11 +138,24 @@ func Cleanup(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if job.Target.Mode != config.LoadReplace {
 		return meta.Job{}, errors.New("cleanup requires a replace load job")
 	}
-	adapter, store, err := openCurrentTarget(ctx, job)
+	runtime, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
-	defer adapter.Close()
+	defer runtime.Close()
+	ageRuntime, err := targetruntime.RequireAGE(runtime)
+	if err != nil {
+		return meta.Job{}, err
+	}
+	adapter := ageRuntime.AGEAdapter()
+	store := runtime.Metadata()
+	stored, err := store.GetJob(ctx, jobID)
+	if err != nil {
+		return meta.Job{}, err
+	}
+	if err := validateStoredTargetIdentity(job, stored); err != nil {
+		return meta.Job{}, err
+	}
 
 	err = adapter.InTransaction(ctx, func(transaction *age.Transaction) error {
 		if err := transaction.LockGraphLifecycle(ctx, job.Target.Graph); err != nil {

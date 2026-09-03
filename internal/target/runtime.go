@@ -27,12 +27,28 @@ type Options struct {
 type Runtime interface {
 	Backend() config.TargetType
 	Metadata() *meta.Store
+	InspectMetadata(context.Context) (meta.SchemaInspection, error)
+	MigrateMetadata(context.Context) error
 	Close()
 }
 
 type AGERuntime interface {
 	Runtime
 	AGEAdapter() *age.Adapter
+}
+
+func RequireAGE(runtime Runtime) (AGERuntime, error) {
+	if runtime == nil {
+		return nil, errors.New("target runtime is nil")
+	}
+	ageRuntime, ok := runtime.(AGERuntime)
+	if !ok {
+		return nil, fmt.Errorf(
+			"target backend %q does not provide Apache AGE operations",
+			runtime.Backend(),
+		)
+	}
+	return ageRuntime, nil
 }
 
 func Open(
@@ -62,10 +78,37 @@ func RequireImplemented(backend config.TargetType) error {
 	}
 }
 
+// ProbeAGE performs the degraded, read-only capability probe for an AGE
+// backend. Keeping dispatch here prevents diagnostic commands from treating a
+// different PostgreSQL target as AGE merely because both use a PostgreSQL DSN.
+func ProbeAGE(
+	ctx context.Context,
+	backend config.TargetType,
+	dsn string,
+	options Options,
+) (age.DegradedProbe, error) {
+	if err := RequireImplemented(backend); err != nil {
+		return age.DegradedProbe{}, err
+	}
+	if backend != config.TargetApacheAGE {
+		return age.DegradedProbe{}, fmt.Errorf(
+			"target backend %q does not provide Apache AGE diagnostics",
+			backend,
+		)
+	}
+	return age.ProbeDegraded(ctx, dsn, age.ProbeOptions{
+		ConnectTimeout:   options.ConnectTimeout,
+		OperationTimeout: options.OperationTimeout,
+	})
+}
+
 type ageRuntime struct {
 	adapter *age.Adapter
 	store   *meta.Store
 }
+
+var _ Runtime = (*ageRuntime)(nil)
+var _ AGERuntime = (*ageRuntime)(nil)
 
 func openAGE(
 	ctx context.Context,
@@ -95,6 +138,16 @@ func (runtime *ageRuntime) Backend() config.TargetType {
 
 func (runtime *ageRuntime) Metadata() *meta.Store {
 	return runtime.store
+}
+
+func (runtime *ageRuntime) InspectMetadata(
+	ctx context.Context,
+) (meta.SchemaInspection, error) {
+	return runtime.store.InspectSchema(ctx)
+}
+
+func (runtime *ageRuntime) MigrateMetadata(ctx context.Context) error {
+	return runtime.store.MigrateIfNeeded(ctx)
 }
 
 func (runtime *ageRuntime) AGEAdapter() *age.Adapter {
