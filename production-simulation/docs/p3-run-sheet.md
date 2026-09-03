@@ -527,3 +527,13 @@ generation, job `d727d9aa-b7e5-4728-9254-90bd0210406d`, and fingerprint. At
 21:40:44Z the resume process was active with the 229,300,000-row checkpoint and
 zero rejects. Let segment 3 finish the load, post-load checks, source-after
 profile, and full canonical digest without interruption.
+
+The final recovery segment committed at 2026-09-03T00:04:34Z. The durable job
+contains all 560,000,000 rows, zero rejects, next batch 28,001, and the same
+database, graph, generation, and configuration fingerprint. Segment 3 loaded
+its remaining 330,700,000 rows in 2:24:31 with zero failed batches, maximum
+RSS 2,751,428 KiB, and zero swaps. The complete job report finished at
+00:12:15Z and bounded verification started. PostgreSQL remained `Ready` /
+SameZone HA `Healthy` with 56.27% storage. Keep the wrapper active through
+source-after profiling, optimization review, the full target digest, and final
+comparison.
