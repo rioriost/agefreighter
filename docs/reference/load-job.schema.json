@@ -1143,18 +1143,21 @@
             "properties": {
               "type": {
                 "const": "postgresql-property-graph"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "mode": {
-                "const": "create"
               },
-              "propertyMode": {
-                "const": "replace"
+              "mode": {
+                "enum": [
+                  "create",
+                  "replace",
+                  "upsert"
+                ]
               }
             },
+            "required": [
+              "type",
+              "mode"
+            ]
+          },
+          "then": {
             "not": {
               "required": [
                 "appendDuplicate"

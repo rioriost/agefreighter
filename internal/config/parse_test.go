@@ -570,9 +570,14 @@ func TestJSONSchemaPostgreSQLPropertyGraphTarget(t *testing.T) {
 	}
 
 	job.Target.Mode = LoadReplace
-	if err := schema.Validate(schemaDocument(t, job)); err == nil {
-		t.Fatal("schema accepted unimplemented PostgreSQL property graph replace mode")
+	if err := schema.Validate(schemaDocument(t, job)); err != nil {
+		t.Fatalf("schema rejected PostgreSQL property graph replace mode: %v", err)
 	}
+	job.Target.AppendDuplicate = AppendDuplicateError
+	if err := schema.Validate(schemaDocument(t, job)); err == nil {
+		t.Fatal("schema accepted append duplicate policy outside append mode")
+	}
+	job.Target.AppendDuplicate = ""
 
 	job.Target.Mode = LoadCreate
 	job.Errors.MissingEndpoint = MissingEndpointQuarantine

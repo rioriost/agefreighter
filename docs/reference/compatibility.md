@@ -1,14 +1,15 @@
 # Compatibility matrix
 
 agefreighter 2.x deliberately has a narrow target compatibility boundary.
-Unsupported versions fail during the Apache AGE capability probe before any
-graph is changed.
+Unsupported versions fail during the selected Apache AGE or native SQL/PGQ
+capability probe before any graph is changed.
 
 | Component | Supported | Release qualification |
 |---|---|---|
 | Go | 1.27.x | Linux and macOS CI |
-| PostgreSQL target | 14.x through 18.x, in the exact pairings below | Weekly and manually runnable target matrix |
+| PostgreSQL for Apache AGE | 14.x through 18.x, in the exact pairings below | Weekly and manually runnable target matrix |
 | Apache AGE target | 1.6.x through 1.8.x, in the exact pairings below | Weekly and manually runnable target matrix |
+| Native PostgreSQL property-graph target | 19 Beta 3, experimental and digest-pinned | Apple Container SQL/PGQ release suite |
 | PostgreSQL source | 17.x | PostgreSQL 17.6 pinned image |
 | Neo4j source | 4.4.48 and 5.26.30 | Fourteen-pair migration matrix using pinned official Community images |
 | Cosmos DB for NoSQL | Current Azure service API supported by Azure SDK v1.5 | Controlled Azure integration environment |
@@ -58,12 +59,28 @@ explicit mappings, schema discovery, create, replace, append, upsert, metadata,
 and target recovery contracts. Official release images are pinned by
 multi-architecture digest.
 
-The 2.1 metadata schema is v17. Read-only lifecycle and report commands accept
-compatible v14 through v16 metadata without migration; `load` and `resume`
-upgrade it through v17. Version 15 stores one bounded, non-secret connector
+The experimental native target was qualified on Apple Container 1.0.0 with
+`postgres:19beta3@sha256:a48b19841e04b35b72a25e9a94314ac80546d32b5e2e3cd9279390cbd8a99572`
+(`linux/arm64` manifest
+`sha256:d2803db84af749f279166b231e05a92c7d5ef991540cb292a76fb41af997ebd4`),
+PostgreSQL `server_version_num` 190000. The suite covers create, replace,
+append (`error` and `ignore-identical`), all three upsert property modes,
+concurrent-writer exclusion, interrupted replacement and same-job resume,
+relational constraints, directed and undirected `GRAPH_TABLE`, metadata
+v14-to-v21 upgrade, and sixteen target-corruption cases. It is not a supported
+production target while PostgreSQL 19 is pre-release, and PostgreSQL 19 GA
+requires a fresh digest-pinned qualification before this status can change.
+
+The 2.2 metadata schema is v21. Read-only lifecycle and report commands accept
+compatible v14 through v21 metadata without migration; `load` and `resume`
+upgrade it through v21. Version 15 stores one bounded, non-secret connector
 telemetry summary per completed job. Version 16 adds bounded diagnostic history,
 written only by explicit `doctor --persist`. Version 17 adds migration-snapshot
 fingerprints and aggregate per-batch/per-label verification counters.
+Version 18 records the target backend and schema, version 19 adds native
+property-graph generation and label mappings, version 20 stores ranged digest
+baselines, and version 21 adds active, loading, superseded, and retained-backup
+lifecycle states with a single-active-generation constraint.
 Resolved-mapping snapshot version 2 adds per-label external-identity coverage;
 version 1 snapshots remain readable, with edge reverse-coverage checks reported
 as unavailable rather than inferred.
@@ -72,9 +89,9 @@ does not synthesize missing historical counters.
 `doctor history` marks v14/v15 history
 unavailable rather than migrating. Newer-than-supported metadata fails closed.
 Only `load` and `resume` invoke metadata migration. Diagnostic and lifecycle
-read paths inspect v14-v17 without changing it. Once either writer upgrades a
-target to v17, an unmodified 2.0 binary (whose maximum is v14) rejects that
-target as newer than supported; upgrade every writer before the first 2.1
+read paths inspect v14-v21 without changing it. Once a 2.2 writer upgrades a
+target to v21, older binaries whose maximum metadata version is lower reject
+that target as newer than supported; upgrade every writer before the first 2.2
 `load` or `resume`.
 
 Compatibility does not imply support for arbitrary Neo4j patches or combinations

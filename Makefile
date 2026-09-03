@@ -10,6 +10,9 @@ BENCHFLAGS ?=
 FUZZTIME ?= 3s
 SCALE_ROWS ?= 200000
 PERFORMANCE_ARTIFACTS ?= performance-artifacts
+PGGRAPH_BENCH_PROFILE ?= small
+PGGRAPH_BENCH_TRIALS ?= 1
+PGGRAPH_BENCH_OUTPUT ?= performance-artifacts/pggraph-$(PGGRAPH_BENCH_PROFILE).txt
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || printf unknown)
 BUILD_DATE ?= unknown
@@ -17,7 +20,7 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 	-X github.com/rioriost/agefreighter/internal/version.Commit=$(COMMIT) \
 	-X github.com/rioriost/agefreighter/internal/version.BuildDate=$(BUILD_DATE)
 
-.PHONY: bench-csv bench-csv-scale bench-release build check check-full coverage dev-down dev-pull \
+.PHONY: bench-csv bench-csv-scale bench-pggraph bench-release build check check-full coverage dev-down dev-pull \
 	dev-reset dev-smoke dev-status dev-up fmt fuzz-smoke install-tools release-check test \
 	test-compatibility test-connectors-cosmos test-connectors-local test-diagnostics-race \
 	test-pggraph-apple test-race test-recovery test-release-integration tidy vet vuln workflow-lint
@@ -39,6 +42,10 @@ bench-csv-scale:
 
 bench-release:
 	./scripts/bench/release-gate.sh "$(PERFORMANCE_ARTIFACTS)"
+
+bench-pggraph:
+	./scripts/bench/pggraph-load.sh "$(PGGRAPH_BENCH_PROFILE)" \
+		"$(PGGRAPH_BENCH_TRIALS)" "$(PGGRAPH_BENCH_OUTPUT)"
 
 fmt:
 	@files="$$(gofmt -l .)"; \
@@ -126,7 +133,7 @@ test-release-integration:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
 	AGEFREIGHTER_POSTGRES_TEST_DSN="$(AGEFREIGHTER_POSTGRES_TEST_DSN)" \
 		$(GO) test -count=1 -v ./internal/meta ./internal/app \
-		-run '^(TestMetadataV14V17V18V19UpgradeToV20Integration|TestDoctorDegradedPostgreSQLIntegration|TestDeepVerificationDetectsCorruptionIntegration)$$'
+		-run '^(TestMetadataV14V17V18V19V20UpgradeToV21Integration|TestDoctorDegradedPostgreSQLIntegration|TestDeepVerificationDetectsCorruptionIntegration)$$'
 
 test-recovery:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \

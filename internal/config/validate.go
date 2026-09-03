@@ -65,7 +65,7 @@ func (job LoadJob) Validate() error {
 			job.Errors.MissingEndpoint == MissingEndpointError,
 			"errors.missingEndpoint",
 			"unsupported",
-			"postgresql-property-graph create loads currently support only error",
+			"postgresql-property-graph loads currently support only error",
 		)
 		validatePropertyGraphEdgeIdentity(job.Source, &errs)
 	}
@@ -767,12 +767,13 @@ func validateTarget(target Target, errs *ValidationErrors) {
 			"must be a valid PostgreSQL identifier of at most 63 bytes")
 		add(validPostgreSQLIdentifier(target.Schema), "target.schema", "format",
 			"must be a valid PostgreSQL identifier of at most 63 bytes")
-		add(target.Mode == LoadCreate, "target.mode", "unsupported",
-			"postgresql-property-graph currently supports only create")
-		add(target.PropertyMode == PropertiesReplace, "target.propertyMode", "unsupported",
-			"postgresql-property-graph currently supports only replace")
-		add(target.AppendDuplicate == "", "target.appendDuplicate", "unsupported",
-			"is not supported for postgresql-property-graph create loads")
+		add(target.Mode == LoadCreate || target.Mode == LoadReplace ||
+			target.Mode == LoadAppend || target.Mode == LoadUpsert,
+			"target.mode", "unsupported",
+			"must be create, replace, append, or upsert")
+		add(target.Mode == LoadAppend || target.AppendDuplicate == "",
+			"target.appendDuplicate", "unsupported",
+			"is supported only for append loads")
 	default:
 		add(false, "target.type", "unsupported",
 			"must be apache-age or postgresql-property-graph")

@@ -1,6 +1,6 @@
 # AGEFreighter 2.2.0 PostgreSQL property graph target plan
 
-**Status:** Reviewed; Phases A-D complete on branch `2.2.0`
+**Status:** Reviewed; Phases A-E engineering complete on branch `2.2.0`
 **Target release:** AGEFreighter 2.2.0
 **Feature maturity:** Experimental while PostgreSQL 19 is pre-release
 **Reviewed:** 2026-09-03
@@ -66,8 +66,9 @@ Rules for the first complete slice:
 - PostgreSQL 19 or newer and working SQL/PGQ DDL are mandatory.
 - `schema` defaults to `public` and is emitted in static plans.
 - `graph` and `schema` are PostgreSQL identifiers, not AGE graph names.
-- `create` is the first supported mode. `replace`, `append`, and `upsert` are
-  enabled only after their lifecycle and recovery suites pass.
+- `create`, atomic `replace`, `append`, and `upsert` are implemented. Append
+  supports `error` and `ignore-identical`; upsert supports `replace`, `merge`,
+  and `merge-delete-null` properties.
 - Existing `apache-age` configurations and outputs remain byte-compatible
   except where a schema field is intentionally added to the target plan.
 - The feature is documented as experimental until PostgreSQL 19 GA is tested.
@@ -179,7 +180,9 @@ bindings; full digest roots match after clean and recovered runs.
 - update compatibility, configuration, installation, operations, and roadmap
 
 Exit gate: release checks, mode matrix, recovery suite, security review, and
-documentation are complete. Unsupported modes continue to fail validation.
+documentation are complete. Invalid modes continue to fail validation. GA and
+production-scale qualification remain promotion gates for experimental status,
+not missing implementation.
 
 ## 6. Test plan
 
@@ -256,8 +259,9 @@ metadata boundaries. The following changes were made during review:
 2. **Lossless JSONB first.** Automatic typed property promotion was removed
    from the initial scope because SQL/PGQ property names are static while
    source property bags are dynamic and may contain conflicting types.
-3. **Create mode first.** Advertising all existing modes before lifecycle and
-   recovery tests was rejected. Each mode is enabled only with evidence.
+3. **Modes gated by evidence.** Advertising all existing modes before lifecycle
+   and recovery tests was rejected. Phase E enabled each mode only after the
+   relevant conflict, digest, cleanup, and interrupted-promotion tests passed.
 4. **Feature probe added.** A version-number check alone is insufficient for a
    development build; the adapter must also prove property-graph DDL support.
 5. **Catalog coupling minimized.** Beta catalogs may change before GA. Public
@@ -274,9 +278,9 @@ metadata boundaries. The following changes were made during review:
    existing AGE behavior before PostgreSQL property-graph loads are wired into
    it.
 
-No unresolved design blocker prevents Phase C from starting. PostgreSQL
-property-graph transaction and lifecycle semantics remain the next dedicated
-review point before its load path is enabled.
+No unresolved implementation blocker remains. PostgreSQL 19 GA and a separately
+budgeted production-scale run remain required before removing the experimental
+label.
 
 ## 9. Current implementation status
 
@@ -355,10 +359,42 @@ interrupted batch, schema and checkpoint guards, invalid edge input, physical
 constraint damage, and sixteen independent corruption cases. A clean reference
 run and the resumed run produce the same canonical root; the directed fixture
 returns two matches and the undirected form returns four. The v14-v17-v18-v19
-fixture upgrades to v20 and round-trips the new digest records.
+fixture upgrades through v20 and v21 and round-trips the new digest records and
+lifecycle states.
+
+Phase E completed its engineering and release-hardening scope on 2026-09-03.
+Metadata schema v21 permits multiple historical PostgreSQL property-graph
+generations while enforcing exactly one active mapping per schema and graph.
+Each writer holds a non-waiting session advisory lock on a dedicated connection,
+so competing jobs fail before mutation without consuming the two batch-pool
+connections.
+
+Append accepts either strict duplicate failure or digest-proven identical
+replay. Upsert implements complete replacement, JSONB merge, and merge with
+incoming-null deletion for vertices and edges, then recomputes the affected
+logical digests. Every successful incremental job replaces the active metadata
+generation and stores a full-target 256-range digest baseline.
+
+Replace loads deterministic job-specific shadow tables and graph. Promotion
+drops only the graph declarations, renames old and shadow tables, recreates
+public and retained-backup declarations, relocates their metadata mappings,
+stores the new digest, and commits the job in one PostgreSQL transaction. An
+injected external-name collision proves rollback leaves the public graph
+queryable; removing that collision and explicitly resuming the same job
+completes successfully. Backup cleanup is validated and idempotent.
+
+The pinned PostgreSQL 19 Beta 3 release suite passes the complete mode matrix,
+concurrent-writer exclusion, replacement recovery, metadata v14-to-v21 upgrade,
+and all sixteen corruption cases. The complete CSV-to-SQL/PGQ path measured
+71,350 rows/s for 35,000 rows and 81,029 rows/s for 350,000 rows across three
+trials on Apple M4 Max; fixture generation was not timed. The reproducible
+benchmark harness also defines an acknowledgement-gated 160-million-vertex,
+400-million-edge profile.
 
 The full repository coverage gate is restored to 90.0% with PostgreSQL,
 Apache AGE, Neo4j, and PostgreSQL 19 integration services enabled. The
-threshold remains 90.0%; it was not weakened. Phase E remains responsible for
-additional load modes, production-scale benchmarks, PostgreSQL 19 GA
-qualification, and release documentation.
+threshold remains 90.0%; it was not weakened. PostgreSQL 19 Beta 3 remains an
+experimental target: the production-scale profile has not been executed and
+PostgreSQL 19 GA does not yet exist. Those two retained promotion gates prevent
+a production support or throughput claim without blocking completion of the
+2.2 implementation.

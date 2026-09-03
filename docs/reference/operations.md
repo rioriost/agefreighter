@@ -5,8 +5,9 @@
 1. Keep the load-job file and referenced secret files readable only by the
    service account.
 2. Run `agefreighter validate JOB` and review `agefreighter plan JOB`.
-3. Confirm the target reports an exact PostgreSQL and Apache AGE pairing listed
-   in the [compatibility matrix](compatibility.md).
+3. Confirm the target reports either an exact PostgreSQL/Apache AGE pairing or
+   the exact pinned PostgreSQL 19 SQL/PGQ build listed in the
+   [compatibility matrix](compatibility.md).
 4. Confirm that the configured memory, batch, concurrency, and timeout limits
    fit the host and database capacity.
 5. For `replace`, verify that enough database storage exists for the active,
@@ -140,7 +141,7 @@ savepoints inside the shared repeatable-read snapshot.
 agefreighter optimize --target job.yaml --apply-analyze
 ```
 
-It requires a qualified PostgreSQL/AGE target pairing, a current v17 metadata schema, a complete
+It requires a qualified PostgreSQL/AGE target pairing, a current v21 metadata schema, a complete
 allowlisted metadata catalog, and a non-truncated active graph label catalog.
 Each operation revalidates relation ownership and catalog identity, quotes the
 identifier, and runs in its own transaction with the configured command
@@ -220,7 +221,17 @@ Resume rejects a changed configuration fingerprint, incompatible graph
 generation, or committed job. It resumes from the last committed batch and
 does not infer success from process exit alone.
 
+PostgreSQL property-graph writers take a non-waiting, schema-and-graph-scoped
+session lock before target admission. The lock uses a dedicated connection, so
+the configured batch pool remains available even while a failure is being
+recorded. A competing writer fails without changing either graph and can be
+retried after the owner exits.
+
 An interrupted `replace` leaves the prior graph active until atomic promotion.
+For a PostgreSQL property graph, promotion and every table/graph rename run in
+one transaction. An external name collision therefore leaves the public graph
+and shadow intact; remove only the independently verified collision and resume
+the same job. Do not manually rename `afs_` shadow or `afb_` backup objects.
 After a committed replacement has been verified and its rollback retention
 window has elapsed, remove only that job's retained backup:
 
@@ -294,21 +305,21 @@ checks only those exact label generations and ignores unrelated labels already
 present in an append/upsert target. More than 128 expected labels yields an
 explicit incomplete result without scanning a truncated subset.
 
-For v17 jobs, both default catalog verification and deep verification use this
+For v17 and newer jobs, both default catalog verification and deep verification use this
 persisted resolved-mapping snapshot and never reconnect to Neo4j or Cosmos for
 discovery. The v14-v16 compatibility path has no such snapshot and may perform
 source discovery; that fallback sets `VerificationSourceAccess` and
 `VerificationEvidence` in the legacy verify output to state that the evidence
 is not an original migration snapshot.
 
-Metadata schemas v14 through v16 remain readable by `report`, `status`,
+Metadata schemas v14 through v21 remain readable by `report`, `status`,
 `verify`, and `cleanup`. Reports mark v15 connector telemetry and unstored
 per-label counters as unavailable where appropriate. These read-only commands
-do not upgrade metadata. The next 2.1 `load` or `resume` applies the
-non-destructive migrations through v17; older writers must be upgraded first.
-Schemas newer than the binary supports are rejected. In particular, a 2.0
-binary supports metadata only through v14 and rejects a target after a 2.1
-writer upgrades it to v17.
+do not upgrade metadata. The next 2.2 `load` or `resume` applies the
+non-destructive migrations through v21; older writers must be upgraded first.
+Schemas newer than the binary supports are rejected. In particular, a 2.1
+binary supports metadata only through v17, and a 2.0 binary only through v14;
+both reject a target after a 2.2 writer upgrades it to v21.
 
 Per-label counters carry explicit completeness and provenance. A v14-v16 job
 resumed after migration keeps incomplete, null aggregate values because its
@@ -321,8 +332,8 @@ counter records remain atomic and idempotent.
 ## Target doctor
 
 `doctor` starts with a plain PostgreSQL degraded probe, then progressively
-checks AGE, metadata, the configured graph and bounded catalog/operational
-state:
+checks the selected AGE or SQL/PGQ capability, metadata, the configured graph,
+and bounded catalog/operational state:
 
 ```sh
 agefreighter doctor --target job.yaml
@@ -344,10 +355,9 @@ use the same exclusive mode-`0600` writer as migration reports. The contract is
 
 `--persist` is the only doctor write path. It stores the final bounded JSON
 report and a small set of typed summary fields. It requires load or resume to
-have already upgraded metadata to current v17 and requires a compatible,
-loadable AGE target. Persistence takes the metadata migration lock and
-revalidates exact v17 while holding it; doctor never migrates or repairs
-metadata.
+have already upgraded metadata to current v21 and requires a compatible target.
+Persistence takes the metadata migration lock and revalidates exact v21 while
+holding it; doctor never migrates or repairs metadata.
 
 Persisted summaries are read newest first:
 
@@ -359,6 +369,14 @@ agefreighter doctor history --target job.yaml --limit 100 --format markdown
 History defaults to 20 records and is capped at 100. On v14/v15 it reports
 history as unavailable without migrating. Newer-than-supported schemas fail
 closed.
+
+For PostgreSQL property graphs, deep verification always uses the stored
+definition and active generation. It checks exact per-label row counts,
+identity and endpoint constraints, missing endpoints, representative directed
+and undirected `GRAPH_TABLE` matches, every non-empty one of the 256 digest
+ranges, and the canonical root. A prior generation is deliberately no longer
+verifiable as active after append, upsert, or replace; verify the newly
+committed job ID instead.
 
 ## Operational checks
 

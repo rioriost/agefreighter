@@ -47,6 +47,9 @@ func executePostgreSQLPropertyGraph(
 	}
 	adapter := pgRuntime.PGGraphAdapter()
 	store := runtime.Metadata()
+	if err := adapter.LockTarget(ctx, job.Target.Schema, job.Target.Graph); err != nil {
+		return result, err
+	}
 	jobCreated := false
 	preserveRunningJob := false
 	recordFailure := func(cause error) error {
@@ -128,8 +131,21 @@ func executePostgreSQLPropertyGraph(
 	if err != nil {
 		return result, recordFailure(err)
 	}
-	if _, err := adapter.Prepare(ctx, jobID, definition); err != nil {
-		return result, recordFailure(err)
+	loadDefinition := definition
+	switch job.Target.Mode {
+	case config.LoadAppend, config.LoadUpsert:
+		if _, err := adapter.PrepareExisting(ctx, jobID, definition); err != nil {
+			return result, recordFailure(err)
+		}
+	case config.LoadReplace:
+		loadDefinition, err = adapter.PrepareReplace(ctx, jobID, definition)
+		if err != nil {
+			return result, recordFailure(err)
+		}
+	default:
+		if _, err := adapter.Prepare(ctx, jobID, definition); err != nil {
+			return result, recordFailure(err)
+		}
 	}
 	verification, err := propertyGraphJobVerification(
 		jobID, submittedFingerprint, definition,
@@ -175,7 +191,9 @@ func executePostgreSQLPropertyGraph(
 		return result, recordFailure(err)
 	}
 	sinkOptions := pggraph.LoadSinkOptions{
-		JobID: jobID, Definition: definition,
+		JobID: jobID, Definition: loadDefinition,
+		Mode: job.Target.Mode, AppendDuplicate: job.Target.AppendDuplicate,
+		PropertyMode: job.Target.PropertyMode,
 	}
 	if !resume {
 		sinkOptions.JobVerification = &verification
@@ -211,7 +229,14 @@ func executePostgreSQLPropertyGraph(
 	}
 	telemetry := completionTelemetry(job.Source.Type, baseIterator)
 	telemetry.JobID = jobID
-	if err := adapter.Finalize(ctx, jobID, definition, telemetry); err != nil {
+	var finalizeErr error
+	if job.Target.Mode == config.LoadReplace {
+		finalizeErr = adapter.PromoteReplace(
+			ctx, jobID, definition, loadDefinition, telemetry)
+	} else {
+		finalizeErr = adapter.Finalize(ctx, jobID, definition, telemetry)
+	}
+	if finalizeErr != nil {
 		current, currentErr := store.GetJob(ctx, jobID)
 		if currentErr == nil && current.Status == meta.JobCommitted {
 			result = LoadResult{JobID: jobID, Status: meta.JobCommitted,
@@ -219,7 +244,7 @@ func executePostgreSQLPropertyGraph(
 			setTrialSummary(&result, trialIterator)
 			return result, nil
 		}
-		return result, recordFailure(err)
+		return result, recordFailure(finalizeErr)
 	}
 	result = LoadResult{JobID: jobID, Status: meta.JobCommitted,
 		Metrics: snapshot, SourceTelemetry: sourceTelemetry(baseIterator)}

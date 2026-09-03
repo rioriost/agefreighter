@@ -15,8 +15,10 @@ import (
 type PropertyGraphState string
 
 const (
-	PropertyGraphLoading PropertyGraphState = "loading"
-	PropertyGraphActive  PropertyGraphState = "active"
+	PropertyGraphLoading        PropertyGraphState = "loading"
+	PropertyGraphActive         PropertyGraphState = "active"
+	PropertyGraphSuperseded     PropertyGraphState = "superseded"
+	PropertyGraphRetainedBackup PropertyGraphState = "retained-backup"
 )
 
 type PropertyGraphLabel struct {
@@ -323,6 +325,127 @@ func (store *Store) ActivatePropertyGraph(ctx context.Context, jobID string) err
 	return rowsAffectedOne(tag, "activate property graph")
 }
 
+func (store *Store) ActivePropertyGraph(
+	ctx context.Context,
+	schema string,
+	graph string,
+) (PropertyGraphGeneration, error) {
+	if !validTargetIdentifier(schema) || !validTargetIdentifier(graph) {
+		return PropertyGraphGeneration{}, errors.New("property graph schema and graph are invalid")
+	}
+	var jobID string
+	err := store.database.QueryRow(ctx, `
+		SELECT job_id::text
+		FROM agefreighter_meta.property_graph_generation
+		WHERE target_schema = $1 AND graph_name = $2 AND state = 'active'`,
+		schema, graph).Scan(&jobID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return PropertyGraphGeneration{}, fmt.Errorf("%w: active property graph %q.%q", ErrNotFound, schema, graph)
+	}
+	if err != nil {
+		return PropertyGraphGeneration{}, fmt.Errorf("read active property graph: %w", err)
+	}
+	return store.GetPropertyGraph(ctx, jobID)
+}
+
+func (store *Store) PropertyGraphByTargetState(
+	ctx context.Context,
+	schema string,
+	graph string,
+	state PropertyGraphState,
+) (PropertyGraphGeneration, error) {
+	if !validTargetIdentifier(schema) || !validTargetIdentifier(graph) {
+		return PropertyGraphGeneration{}, errors.New("property graph schema and graph are invalid")
+	}
+	if state != PropertyGraphLoading && state != PropertyGraphActive &&
+		state != PropertyGraphSuperseded && state != PropertyGraphRetainedBackup {
+		return PropertyGraphGeneration{}, errors.New("property graph state is invalid")
+	}
+	var jobID string
+	err := store.database.QueryRow(ctx, `
+		SELECT job_id::text
+		FROM agefreighter_meta.property_graph_generation
+		WHERE target_schema = $1 AND graph_name = $2 AND state = $3
+		ORDER BY updated_at DESC LIMIT 1`, schema, graph, string(state)).Scan(&jobID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return PropertyGraphGeneration{}, fmt.Errorf(
+			"%w: property graph %q.%q in state %q", ErrNotFound, schema, graph, state)
+	}
+	if err != nil {
+		return PropertyGraphGeneration{}, fmt.Errorf("read property graph by target and state: %w", err)
+	}
+	return store.GetPropertyGraph(ctx, jobID)
+}
+
+func (store *Store) ActivatePropertyGraphReplacing(
+	ctx context.Context,
+	jobID string,
+	schema string,
+	graph string,
+) error {
+	if err := validateJobID(jobID); err != nil {
+		return err
+	}
+	if !validTargetIdentifier(schema) || !validTargetIdentifier(graph) {
+		return errors.New("property graph schema and graph are invalid")
+	}
+	if _, err := store.database.Exec(ctx, `
+		UPDATE agefreighter_meta.property_graph_generation
+		SET state = 'superseded', updated_at = clock_timestamp()
+		WHERE target_schema = $1 AND graph_name = $2 AND state = 'active'
+		  AND job_id <> $3::uuid`, schema, graph, jobID); err != nil {
+		return fmt.Errorf("supersede active property graph: %w", err)
+	}
+	tag, err := store.database.Exec(ctx, `
+		UPDATE agefreighter_meta.property_graph_generation
+		SET state = 'active', updated_at = clock_timestamp()
+		WHERE job_id = $1::uuid AND target_schema = $2 AND graph_name = $3
+		  AND state = 'loading'`, jobID, schema, graph)
+	if err != nil {
+		return fmt.Errorf("activate replacing property graph: %w", err)
+	}
+	return rowsAffectedOne(tag, "activate replacing property graph")
+}
+
+func (store *Store) RelocatePropertyGraph(
+	ctx context.Context,
+	value PropertyGraphGeneration,
+) error {
+	if err := validatePropertyGraph(value); err != nil {
+		return err
+	}
+	tag, err := store.database.Exec(ctx, `
+		UPDATE agefreighter_meta.property_graph_generation
+		SET target_schema = $2, graph_name = $3, definition_fingerprint = $4,
+		    state = $5, updated_at = clock_timestamp()
+		WHERE job_id = $1::uuid`, value.JobID, value.Schema, value.Graph,
+		value.DefinitionFingerprint, value.State)
+	if err != nil {
+		return fmt.Errorf("relocate property graph generation: %w", err)
+	}
+	if err := rowsAffectedOne(tag, "relocate property graph generation"); err != nil {
+		return err
+	}
+	for _, label := range value.Labels {
+		var start, end any
+		if label.Kind == EdgeLabel {
+			start, end = label.StartLabel, label.EndLabel
+		}
+		tag, err := store.database.Exec(ctx, `
+			UPDATE agefreighter_meta.property_graph_label
+			SET table_name = $3, start_label = $4, end_label = $5
+			WHERE job_id = $1::uuid AND label_name = $2`,
+			value.JobID, label.Name, label.Table, start, end)
+		if err != nil {
+			return fmt.Errorf("relocate property graph label %q: %w", label.Name, err)
+		}
+		if err := rowsAffectedOne(tag, "relocate property graph label"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func validatePropertyGraph(value PropertyGraphGeneration) error {
 	if err := validateJobID(value.JobID); err != nil {
 		return err
@@ -333,7 +456,8 @@ func validatePropertyGraph(value PropertyGraphGeneration) error {
 	if err := validateFingerprint(value.DefinitionFingerprint); err != nil {
 		return fmt.Errorf("property graph definition fingerprint: %w", err)
 	}
-	if value.State != PropertyGraphLoading && value.State != PropertyGraphActive {
+	if value.State != PropertyGraphLoading && value.State != PropertyGraphActive &&
+		value.State != PropertyGraphSuperseded && value.State != PropertyGraphRetainedBackup {
 		return fmt.Errorf("unsupported property graph state %q", value.State)
 	}
 	if len(value.Labels) == 0 {

@@ -143,6 +143,38 @@ func Cleanup(ctx context.Context, path, jobID string) (meta.Job, error) {
 		return meta.Job{}, err
 	}
 	defer runtime.Close()
+	if job.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		pgRuntime, err := targetruntime.RequirePGGraph(runtime)
+		if err != nil {
+			return meta.Job{}, err
+		}
+		adapter := pgRuntime.PGGraphAdapter()
+		if err := adapter.LockTarget(ctx, job.Target.Schema, job.Target.Graph); err != nil {
+			return meta.Job{}, err
+		}
+		store := runtime.Metadata()
+		stored, err := store.GetJob(ctx, jobID)
+		if err != nil {
+			return meta.Job{}, err
+		}
+		if err := validateStoredTargetIdentity(job, stored); err != nil {
+			return meta.Job{}, err
+		}
+		if stored.LoadMode != string(config.LoadReplace) {
+			return meta.Job{}, errors.New("cleanup requires a stored replace load job")
+		}
+		if stored.Status != meta.JobCommitted {
+			return meta.Job{}, errors.New("cleanup requires a committed replace load job")
+		}
+		definition, err := propertyGraphDefinition(job)
+		if err != nil {
+			return meta.Job{}, err
+		}
+		if err := adapter.CleanupReplace(ctx, jobID, definition); err != nil {
+			return meta.Job{}, err
+		}
+		return store.GetJob(ctx, jobID)
+	}
 	ageRuntime, err := targetruntime.RequireAGE(runtime)
 	if err != nil {
 		return meta.Job{}, err

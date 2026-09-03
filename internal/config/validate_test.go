@@ -226,17 +226,7 @@ func TestPostgreSQLPropertyGraphTargetValidation(t *testing.T) {
 			path: "target.graph [format]",
 		},
 		{
-			name: "replace mode not yet enabled",
-			edit: func(target *Target) { target.Mode = LoadReplace },
-			path: "target.mode [unsupported]",
-		},
-		{
-			name: "merge properties not yet enabled",
-			edit: func(target *Target) { target.PropertyMode = PropertiesMerge },
-			path: "target.propertyMode [unsupported]",
-		},
-		{
-			name: "append policy not applicable",
+			name: "append policy outside append",
 			edit: func(target *Target) { target.AppendDuplicate = AppendDuplicateError },
 			path: "target.appendDuplicate [unsupported]",
 		},
@@ -259,6 +249,30 @@ func TestPostgreSQLPropertyGraphTargetValidation(t *testing.T) {
 				t.Fatalf("Validate() error = %v, want %q", err, test.path)
 			}
 		})
+	}
+}
+
+func TestPostgreSQLPropertyGraphAcceptsPhaseEModes(t *testing.T) {
+	for _, mode := range []LoadMode{LoadCreate, LoadReplace, LoadAppend, LoadUpsert} {
+		for _, propertyMode := range []PropertyMode{
+			PropertiesReplace, PropertiesMerge, PropertiesMergeDeleteNull,
+		} {
+			job := validCSVJob(t)
+			job.Target = Target{
+				Type: TargetPostgreSQLPropertyGraph, Graph: "supply_graph",
+				Schema: "graph_data", Mode: mode, Connection: job.Target.Connection,
+				PropertyMode: propertyMode,
+			}
+			if mode == LoadAppend {
+				job.Target.AppendDuplicate = AppendDuplicateIgnoreIdentical
+			}
+			if mode == LoadUpsert {
+				job.Errors.MaxDeferredEdges = 1
+			}
+			if err := job.Validate(); err != nil {
+				t.Fatalf("Validate(%s, %s) error = %v", mode, propertyMode, err)
+			}
+		}
 	}
 }
 

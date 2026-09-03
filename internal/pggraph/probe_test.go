@@ -29,6 +29,9 @@ func TestValidateServerVersion(t *testing.T) {
 }
 
 func TestOpenValidation(t *testing.T) {
+	var nilAdapter *Adapter
+	nilAdapter.Close()
+	(&Adapter{}).Close()
 	valid := PoolOptions{MinConnections: 0, MaxConnections: 1,
 		ConnectTimeout: time.Second, OperationTimeout: time.Second}
 	for _, test := range []struct {
@@ -73,6 +76,105 @@ func TestOpenValidation(t *testing.T) {
 		}},
 	}, strings.Repeat("a", 64)); err == nil {
 		t.Fatal("definitionMapping() accepted an unknown endpoint table")
+	}
+}
+
+func TestPropertyGraphOperationGuardsIntegration(t *testing.T) {
+	dsn := strings.TrimSpace(os.Getenv(integrationDSNEnvironment))
+	if dsn == "" {
+		t.Skip("set " + integrationDSNEnvironment + " to run PostgreSQL property graph integration tests")
+	}
+	adapter, err := Open(t.Context(), dsn, PoolOptions{
+		MinConnections: 0, MaxConnections: 2,
+		ConnectTimeout: 5 * time.Second, OperationTimeout: 5 * time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	jobID := "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+	definition := Definition{
+		Schema: "guard_schema", Graph: "guard_graph",
+		Vertices: []VertexDefinition{{Table: "person", Label: "Person"}},
+	}
+	if err := adapter.LockTarget(t.Context(), "", "guard_graph"); err == nil {
+		t.Fatal("LockTarget accepted an invalid schema")
+	}
+	if _, err := adapter.GraphExists(t.Context(), "", "guard_graph"); err == nil {
+		t.Fatal("GraphExists accepted an invalid schema")
+	}
+	if _, err := adapter.ComputeDigests(t.Context(), "bad", definition); err == nil {
+		t.Fatal("ComputeDigests accepted an invalid job ID")
+	}
+	if _, err := adapter.ComputeDigests(t.Context(), jobID, Definition{}); err == nil {
+		t.Fatal("ComputeDigests accepted an invalid definition")
+	}
+	if _, err := adapter.PrepareExisting(t.Context(), jobID, Definition{}); err == nil {
+		t.Fatal("PrepareExisting accepted an invalid definition")
+	}
+	if _, err := adapter.PrepareReplace(t.Context(), jobID, Definition{}); err == nil {
+		t.Fatal("PrepareReplace accepted an invalid definition")
+	}
+	if err := adapter.PromoteReplace(t.Context(), jobID, Definition{}, definition,
+		meta.ConnectorTelemetry{}); err == nil {
+		t.Fatal("PromoteReplace accepted an invalid canonical definition")
+	}
+	if err := adapter.PromoteReplace(t.Context(), jobID, definition, Definition{},
+		meta.ConnectorTelemetry{}); err == nil {
+		t.Fatal("PromoteReplace accepted an invalid shadow definition")
+	}
+	if err := adapter.Finalize(t.Context(), jobID, Definition{}, meta.ConnectorTelemetry{}); err == nil {
+		t.Fatal("Finalize accepted an invalid definition")
+	}
+	cancelled, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := adapter.LockTarget(cancelled, definition.Schema, definition.Graph); err == nil {
+		t.Fatal("LockTarget ignored context cancellation")
+	}
+	missingSink, err := NewLoadSink(adapter, LoadSinkOptions{JobID: jobID, Definition: definition})
+	if err != nil {
+		t.Fatal(err)
+	}
+	batch := sinkcontract.BatchMetadata{
+		ID: 1, Attempt: 1, Rows: 1, Bytes: 1,
+		LastPosition: model.SourcePosition{Token: "last"},
+	}
+	if _, err := missingSink.Begin(t.Context(), batch); err == nil {
+		t.Fatal("Begin accepted a missing load job")
+	}
+	if err := adapter.Finalize(t.Context(), jobID, definition,
+		meta.ConnectorTelemetry{}); err == nil {
+		t.Fatal("Finalize accepted a missing load job")
+	}
+
+	adapter.Close()
+	if _, err := missingSink.Begin(t.Context(), batch); err == nil {
+		t.Fatal("Begin succeeded on a closed adapter")
+	}
+	if _, err := adapter.GraphExists(t.Context(), definition.Schema, definition.Graph); err == nil {
+		t.Fatal("GraphExists succeeded on a closed adapter")
+	}
+	if _, err := adapter.Prepare(t.Context(), jobID, definition); err == nil {
+		t.Fatal("Prepare succeeded on a closed adapter")
+	}
+	if _, err := adapter.PrepareExisting(t.Context(), jobID, definition); err == nil {
+		t.Fatal("PrepareExisting succeeded on a closed adapter")
+	}
+	if _, err := adapter.PrepareReplace(t.Context(), jobID, definition); err == nil {
+		t.Fatal("PrepareReplace succeeded on a closed adapter")
+	}
+	shadow, _, err := ReplacementDefinitions(definition, jobID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := adapter.PromoteReplace(t.Context(), jobID, definition, shadow,
+		meta.ConnectorTelemetry{}); err == nil {
+		t.Fatal("PromoteReplace succeeded on a closed adapter")
+	}
+	if err := adapter.CleanupReplace(t.Context(), jobID, definition); err == nil {
+		t.Fatal("CleanupReplace succeeded on a closed adapter")
+	}
+	if err := adapter.Finalize(t.Context(), jobID, definition, meta.ConnectorTelemetry{}); err == nil {
+		t.Fatal("Finalize succeeded on a closed adapter")
 	}
 }
 
@@ -195,6 +297,39 @@ func TestPropertyGraphSinkReplayAndAbortIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
+}
+
+func TestPropertyGraphMutationLockIntegration(t *testing.T) {
+	dsn := strings.TrimSpace(os.Getenv(integrationDSNEnvironment))
+	if dsn == "" {
+		t.Skip("set " + integrationDSNEnvironment + " to run PostgreSQL property graph integration tests")
+	}
+	options := PoolOptions{MinConnections: 0, MaxConnections: 2,
+		ConnectTimeout: 5 * time.Second, OperationTimeout: 5 * time.Second}
+	first, err := Open(t.Context(), dsn, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Close()
+	second, err := Open(t.Context(), dsn, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Close()
+	schema := fmt.Sprintf("af_lock_%d", time.Now().UnixNano())
+	if err := first.LockTarget(t.Context(), schema, "graph"); err != nil {
+		t.Fatal(err)
+	}
+	if err := first.LockTarget(t.Context(), schema, "graph"); err == nil {
+		t.Fatal("one adapter acquired a second mutation lock")
+	}
+	if err := second.LockTarget(t.Context(), schema, "graph"); err == nil || !errors.Is(err, meta.ErrConflict) {
+		t.Fatalf("concurrent mutation lock error = %v", err)
+	}
+	first.Close()
+	if err := second.LockTarget(t.Context(), schema, "graph"); err != nil {
+		t.Fatalf("mutation lock after owner close: %v", err)
+	}
 }
 
 func TestPropertyGraphSinkFailureIntegration(t *testing.T) {

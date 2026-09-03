@@ -1,6 +1,7 @@
 package pggraph
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -51,6 +52,7 @@ func TestCanonicalJSONRejectsInvalidProperties(t *testing.T) {
 func TestCanonicalJSONMatchesPostgreSQLNumericRendering(t *testing.T) {
 	for input, want := range map[string]string{
 		`{"v":1e0}`:            `{"v":1}`,
+		`{"v":-1.25e1}`:        `{"v":-12.5}`,
 		`{"v":-0.0}`:           `{"v":0.0}`,
 		`{"v":1.2300e2}`:       `{"v":123.00}`,
 		`{"v":1.2300e-2}`:      `{"v":0.012300}`,
@@ -66,6 +68,20 @@ func TestCanonicalJSONMatchesPostgreSQLNumericRendering(t *testing.T) {
 		if _, err := normalizePostgreSQLNumeric(value); err == nil {
 			t.Fatalf("normalizePostgreSQLNumeric(%q) succeeded", value)
 		}
+	}
+}
+
+func TestNormalizeJSONValuePropagatesInvalidNestedNumbers(t *testing.T) {
+	for name, value := range map[string]any{
+		"number": json.Number("1e"),
+		"array":  []any{json.Number("1e")},
+		"object": map[string]any{"value": json.Number("1e")},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := normalizeJSONValue(value); err == nil {
+				t.Fatal("normalizeJSONValue() accepted an invalid PostgreSQL numeric")
+			}
+		})
 	}
 }
 
@@ -122,5 +138,22 @@ func TestCompareDigestRangesByLabel(t *testing.T) {
 	right := meta.PropertyGraphDigestRange{Kind: meta.VertexLabel, LabelName: "B"}
 	if compareDigestRanges(left, right) >= 0 {
 		t.Fatal("compareDigestRanges() did not order labels")
+	}
+}
+
+func TestCompareDigestRangesByKindAndRange(t *testing.T) {
+	vertex := meta.PropertyGraphDigestRange{
+		Kind: meta.VertexLabel, LabelName: "Person", RangeID: 2,
+	}
+	edge := meta.PropertyGraphDigestRange{
+		Kind: meta.EdgeLabel, LabelName: "Person", RangeID: 1,
+	}
+	if compareDigestRanges(vertex, edge) >= 0 {
+		t.Fatal("compareDigestRanges() did not order kinds")
+	}
+	if compareDigestRanges(vertex, meta.PropertyGraphDigestRange{
+		Kind: meta.VertexLabel, LabelName: "Person", RangeID: 3,
+	}) >= 0 {
+		t.Fatal("compareDigestRanges() did not order ranges")
 	}
 }

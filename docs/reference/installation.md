@@ -97,3 +97,13 @@ are not required to compile the binaries.
 Existing 1.x installations are not upgraded in place. Follow the
 [1.x to 2.0 migration guide](../migration-1.x-to-2.0.md), validate a new v2 job,
 and complete a trial migration before replacing the 1.x command.
+
+## Native PostgreSQL property-graph target
+
+The `postgresql-property-graph` target does not require a separate extension,
+but it does require the exact PostgreSQL 19 SQL/PGQ build listed in the
+[compatibility matrix](compatibility.md). The binary probes the server version
+and property-graph DDL before creating metadata or graph objects. PostgreSQL 19
+Beta 3 is for evaluation only; installing an agefreighter binary does not make
+that pre-release database suitable for production. Requalify against the
+published PostgreSQL 19 GA image digest before production use.

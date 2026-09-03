@@ -2,7 +2,8 @@
 
 agefreighter 2.x is a Go command-line tool for validated, resumable graph
 migration from CSV and other delimited files, PostgreSQL, Neo4j, and Azure
-Cosmos DB into [Apache AGE](https://age.apache.org/). Property graphs represent
+Cosmos DB into [Apache AGE](https://age.apache.org/) or PostgreSQL 19's native
+SQL/PGQ property graphs. Property graphs represent
 entities as vertices, relationships as edges, and their attributes as
 properties.
 
@@ -10,6 +11,10 @@ Apache AGE is an open-source PostgreSQL extension that adds graph storage and
 openCypher queries while retaining PostgreSQL's relational capabilities.
 [Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/azure-ai/generative-ai-age-overview)
 is Microsoft's managed PostgreSQL service and can enable the AGE extension.
+The PostgreSQL 19 target stores lossless properties in relational `jsonb`
+columns and exposes them through `GRAPH_TABLE`; it does not install AGE and it
+does not provide Cypher. This target remains experimental while PostgreSQL 19
+is pre-release.
 
 This branch does not preserve the Python API, CLI, configuration, or defaults
 from agefreighter 1.x. The 2.x implementation is maintained on `main`; the 1.x
@@ -92,8 +97,7 @@ checksum and provenance verification, and source-build details.
 - `agefreighter-tools`: fixtures, diagnostics, AI-assisted conversion, and benchmarks
 
 Start with the validated example for the source being migrated, copy it to
-`job.yaml`, and replace its source mappings, credential references, and Apache
-AGE target:
+`job.yaml`, and replace its source mappings, credential references, and target:
 
 | Source | Start from | Usage notes |
 |---|---|---|
@@ -121,6 +125,15 @@ agefreighter status --target job.yaml JOB_ID
 agefreighter verify --target job.yaml JOB_ID
 agefreighter report --target job.yaml JOB_ID
 ```
+
+For PostgreSQL 19 SQL/PGQ, select `target.type:
+postgresql-property-graph`, set `target.schema`, and use a PostgreSQL 19 target
+qualified in the [compatibility matrix](docs/reference/compatibility.md).
+All four load modes use the same checkpoint and digest contracts as above;
+verification additionally checks relational constraints and directed and
+undirected `GRAPH_TABLE` traversal. Start from the validated
+[`postgresql-property-graph.yaml`](internal/config/testdata/valid/postgresql-property-graph.yaml)
+example.
 
 Diagnose target readiness without migrating metadata or changing graph data:
 

@@ -9,6 +9,8 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/rioriost/agefreighter/internal/meta"
 )
 
 type VertexDefinition struct {
@@ -69,6 +71,46 @@ func (definition Definition) Fingerprint() (string, error) {
 	}
 	digest := sha256.Sum256(encoded)
 	return hex.EncodeToString(digest[:]), nil
+}
+
+func ReplacementDefinitions(
+	canonical Definition,
+	jobID string,
+) (Definition, Definition, error) {
+	if err := canonical.validate(); err != nil {
+		return Definition{}, Definition{}, err
+	}
+	if err := meta.ValidateJobID(jobID); err != nil {
+		return Definition{}, Definition{}, err
+	}
+	build := func(prefix string) Definition {
+		result := canonical
+		result.Graph = PhysicalName(prefix+"g_", canonical.Graph+"_"+jobID)
+		result.Vertices = make([]VertexDefinition, len(canonical.Vertices))
+		tableNames := make(map[string]string, len(canonical.Vertices))
+		for index, vertex := range canonical.Vertices {
+			table := PhysicalName(prefix+"v_", vertex.Table+"_"+jobID)
+			tableNames[vertex.Table] = table
+			result.Vertices[index] = VertexDefinition{Table: table, Label: vertex.Label}
+		}
+		result.Edges = make([]EdgeDefinition, len(canonical.Edges))
+		for index, edge := range canonical.Edges {
+			result.Edges[index] = EdgeDefinition{
+				Table: PhysicalName(prefix+"e_", edge.Table+"_"+jobID), Label: edge.Label,
+				SourceTable:      tableNames[edge.SourceTable],
+				DestinationTable: tableNames[edge.DestinationTable],
+			}
+		}
+		return result
+	}
+	shadow, backup := build("afs_"), build("afb_")
+	if err := shadow.validate(); err != nil {
+		return Definition{}, Definition{}, err
+	}
+	if err := backup.validate(); err != nil {
+		return Definition{}, Definition{}, err
+	}
+	return shadow, backup, nil
 }
 
 func (definition Definition) normalized() Definition {

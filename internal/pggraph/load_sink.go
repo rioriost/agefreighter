@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rioriost/agefreighter/internal/checkpoint"
+	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
 	sinkcontract "github.com/rioriost/agefreighter/internal/sink"
 	"github.com/rioriost/agefreighter/pkg/model"
@@ -21,6 +22,9 @@ type LoadSinkOptions struct {
 	JobID           string
 	Definition      Definition
 	JobVerification *meta.JobVerification
+	Mode            config.LoadMode
+	AppendDuplicate config.AppendDuplicatePolicy
+	PropertyMode    config.PropertyMode
 }
 
 type loadBinding struct {
@@ -64,6 +68,31 @@ func NewLoadSink(adapter *Adapter, options LoadSinkOptions) (*LoadSink, error) {
 	}
 	if _, err := options.Definition.Fingerprint(); err != nil {
 		return nil, err
+	}
+	if options.Mode == "" {
+		options.Mode = config.LoadCreate
+	}
+	if options.PropertyMode == "" {
+		options.PropertyMode = config.PropertiesReplace
+	}
+	if options.Mode == config.LoadAppend && options.AppendDuplicate == "" {
+		options.AppendDuplicate = config.AppendDuplicateError
+	}
+	if options.Mode != config.LoadCreate && options.Mode != config.LoadReplace &&
+		options.Mode != config.LoadAppend && options.Mode != config.LoadUpsert {
+		return nil, fmt.Errorf("unsupported PostgreSQL property graph load mode %q", options.Mode)
+	}
+	if options.PropertyMode != config.PropertiesReplace &&
+		options.PropertyMode != config.PropertiesMerge &&
+		options.PropertyMode != config.PropertiesMergeDeleteNull {
+		return nil, fmt.Errorf("unsupported PostgreSQL property graph property mode %q", options.PropertyMode)
+	}
+	if options.Mode == config.LoadAppend && options.AppendDuplicate != config.AppendDuplicateError &&
+		options.AppendDuplicate != config.AppendDuplicateIgnoreIdentical {
+		return nil, fmt.Errorf("unsupported PostgreSQL property graph append duplicate policy %q", options.AppendDuplicate)
+	}
+	if options.Mode != config.LoadAppend && options.AppendDuplicate != "" {
+		return nil, errors.New("PostgreSQL property graph append duplicate policy requires append mode")
 	}
 	bindings := make(map[model.Label]loadBinding,
 		len(options.Definition.Vertices)+len(options.Definition.Edges))
@@ -196,13 +225,13 @@ func (transaction *loadTransaction) Write(
 			return fmt.Errorf("load record %d is invalid", index)
 		}
 	}
-	for _, label := range sortedRecordLabels(vertices) {
-		if err := transaction.writeVertices(ctx, label, vertices[label]); err != nil {
+	for index, label := range sortedRecordLabels(vertices) {
+		if err := transaction.writeVertices(ctx, label, vertices[label], index); err != nil {
 			return err
 		}
 	}
 	for index, label := range sortedRecordLabels(edges) {
-		if err := transaction.writeEdges(ctx, label, edges[label], index); err != nil {
+		if err := transaction.writeEdges(ctx, label, edges[label], len(vertices)+index); err != nil {
 			return err
 		}
 	}
@@ -222,6 +251,7 @@ func (transaction *loadTransaction) writeVertices(
 	ctx context.Context,
 	label model.Label,
 	vertices []*model.Vertex,
+	group int,
 ) error {
 	binding, ok := transaction.sink.bindings[label]
 	if !ok || binding.kind != meta.VertexLabel {
@@ -253,6 +283,10 @@ func (transaction *loadTransaction) writeVertices(
 			int16(rangeID), digest,
 		}
 	}
+	if transaction.sink.options.Mode == config.LoadAppend ||
+		transaction.sink.options.Mode == config.LoadUpsert {
+		return transaction.writeIncrementalVertices(ctx, label, binding, rows, group)
+	}
 	_, err := transaction.tx.CopyFrom(
 		ctx,
 		pgx.Identifier{transaction.sink.options.Definition.Schema, binding.table},
@@ -263,6 +297,129 @@ func (transaction *loadTransaction) writeVertices(
 		return fmt.Errorf("copy PostgreSQL property graph vertices for %q: %w", label, err)
 	}
 	return nil
+}
+
+func (transaction *loadTransaction) writeIncrementalVertices(
+	ctx context.Context,
+	label model.Label,
+	binding loadBinding,
+	rows [][]any,
+	group int,
+) error {
+	tempName := fmt.Sprintf("af_pgv_%d_%d_%d", transaction.metadata.ID,
+		transaction.metadata.Attempt, group)
+	if _, err := transaction.tx.Exec(ctx, fmt.Sprintf(`CREATE TEMP TABLE %s (
+		ordinal bigint NOT NULL,
+		source_namespace text NOT NULL,
+		external_id text NOT NULL,
+		properties jsonb NOT NULL,
+		digest_range smallint NOT NULL,
+		source_digest character(64) NOT NULL
+	) ON COMMIT DROP`, QuoteIdentifier(tempName))); err != nil {
+		return fmt.Errorf("create bounded vertex stage for %q: %w", label, err)
+	}
+	staged := make([][]any, len(rows))
+	for index, row := range rows {
+		staged[index] = append([]any{int64(index)}, row...)
+	}
+	if _, err := transaction.tx.CopyFrom(ctx, pgx.Identifier{tempName}, []string{
+		"ordinal", "source_namespace", "external_id", "properties",
+		"digest_range", "source_digest",
+	}, pgx.CopyFromRows(staged)); err != nil {
+		return fmt.Errorf("stage PostgreSQL property graph vertices for %q: %w", label, err)
+	}
+	table := qualifiedName(transaction.sink.options.Definition.Schema, binding.table)
+	if transaction.sink.options.Mode == config.LoadAppend &&
+		transaction.sink.options.AppendDuplicate == config.AppendDuplicateIgnoreIdentical {
+		var conflicts int64
+		if err := transaction.tx.QueryRow(ctx, fmt.Sprintf(`SELECT count(*)
+			FROM %s staged JOIN %s target USING (source_namespace, external_id)
+			WHERE staged.source_digest <> target.source_digest`,
+			QuoteIdentifier(tempName), table)).Scan(&conflicts); err != nil {
+			return fmt.Errorf("inspect append vertex duplicates for %q: %w", label, err)
+		}
+		if conflicts != 0 {
+			return fmt.Errorf("append vertex label %q has %d conflicting duplicate identities", label, conflicts)
+		}
+	}
+	statement := fmt.Sprintf(`INSERT INTO %s AS current (
+		source_namespace, external_id, properties, digest_range, source_digest
+	) SELECT source_namespace, external_id, properties, digest_range, source_digest
+	  FROM %s ORDER BY ordinal`, table, QuoteIdentifier(tempName))
+	switch transaction.sink.options.Mode {
+	case config.LoadAppend:
+		if transaction.sink.options.AppendDuplicate == config.AppendDuplicateIgnoreIdentical {
+			statement += " ON CONFLICT (source_namespace, external_id) DO NOTHING"
+		}
+	case config.LoadUpsert:
+		statement += fmt.Sprintf(` ON CONFLICT (source_namespace, external_id) DO UPDATE SET
+			properties = %s,
+			digest_range = EXCLUDED.digest_range,
+			source_digest = EXCLUDED.source_digest`,
+			propertyUpdateExpression("current", transaction.sink.options.PropertyMode))
+	}
+	if _, err := transaction.tx.Exec(ctx, statement); err != nil {
+		return fmt.Errorf("write incremental PostgreSQL property graph vertices for %q: %w", label, err)
+	}
+	if transaction.sink.options.Mode == config.LoadUpsert &&
+		transaction.sink.options.PropertyMode != config.PropertiesReplace {
+		return transaction.refreshVertexDigests(ctx, label, binding, tempName)
+	}
+	return nil
+}
+
+func propertyUpdateExpression(table string, mode config.PropertyMode) string {
+	switch mode {
+	case config.PropertiesMerge:
+		return table + ".properties || EXCLUDED.properties"
+	case config.PropertiesMergeDeleteNull:
+		return "jsonb_strip_nulls(" + table + ".properties || EXCLUDED.properties)"
+	default:
+		return "EXCLUDED.properties"
+	}
+}
+
+func (transaction *loadTransaction) refreshVertexDigests(
+	ctx context.Context,
+	label model.Label,
+	binding loadBinding,
+	tempName string,
+) error {
+	table := qualifiedName(transaction.sink.options.Definition.Schema, binding.table)
+	rows, err := transaction.tx.Query(ctx, fmt.Sprintf(`SELECT target.source_namespace,
+		target.external_id, target.properties
+		FROM %s target JOIN %s staged USING (source_namespace, external_id)
+		ORDER BY staged.ordinal`, table, QuoteIdentifier(tempName)))
+	if err != nil {
+		return fmt.Errorf("read merged vertex properties for %q: %w", label, err)
+	}
+	defer rows.Close()
+	batch := &pgx.Batch{}
+	for rows.Next() {
+		var namespace, externalID string
+		var properties []byte
+		if err := rows.Scan(&namespace, &externalID, &properties); err != nil {
+			return err
+		}
+		rangeID, digest, err := vertexRecordDigest(string(label), namespace, externalID, properties)
+		if err != nil {
+			return err
+		}
+		batch.Queue(fmt.Sprintf(`UPDATE %s SET digest_range = $3, source_digest = $4
+			WHERE source_namespace = $1 AND external_id = $2`, table),
+			namespace, externalID, int16(rangeID), digest)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	results := transaction.tx.SendBatch(ctx, batch)
+	defer results.Close()
+	for range batch.Len() {
+		if _, err := results.Exec(); err != nil {
+			return fmt.Errorf("refresh merged vertex digest for %q: %w", label, err)
+		}
+	}
+	return results.Close()
 }
 
 func (transaction *loadTransaction) writeEdges(
@@ -279,21 +436,8 @@ func (transaction *loadTransaction) writeEdges(
 	end := transaction.sink.bindings[binding.endLabel]
 	tempName := fmt.Sprintf("af_pgq_%d_%d_%d", transaction.metadata.ID,
 		transaction.metadata.Attempt, group)
-	if _, err := transaction.tx.Exec(ctx, fmt.Sprintf(`CREATE TEMP TABLE %s (
-		ordinal bigint NOT NULL,
-		source_namespace text NOT NULL,
-		external_id text NOT NULL,
-		start_namespace text NOT NULL,
-		start_external_id text NOT NULL,
-		end_namespace text NOT NULL,
-		end_external_id text NOT NULL,
-		properties jsonb NOT NULL,
-		digest_range smallint NOT NULL,
-		source_digest character(64) NOT NULL
-	) ON COMMIT DROP`, QuoteIdentifier(tempName))); err != nil {
-		return fmt.Errorf("create bounded edge stage for %q: %w", label, err)
-	}
 	rows := make([][]any, len(edges))
+	seen := make(map[string]struct{}, len(edges))
 	for index, edge := range edges {
 		if edge.Namespace == "" || edge.ExternalID == "" || edge.Start.Namespace == "" ||
 			edge.Start.ExternalID == "" || edge.End.Namespace == "" ||
@@ -303,6 +447,11 @@ func (transaction *loadTransaction) writeEdges(
 		if edge.Start.Label != binding.startLabel || edge.End.Label != binding.endLabel {
 			return fmt.Errorf("edge %d endpoint labels do not match mapping for %q", index, label)
 		}
+		key := string(edge.Namespace) + "\x00" + string(edge.ExternalID)
+		if _, exists := seen[key]; exists {
+			return fmt.Errorf("edge %d duplicates external identity in batch", index)
+		}
+		seen[key] = struct{}{}
 		properties, err := recordProperties(edge.Properties, edge.EncodedProperties)
 		if err != nil {
 			return fmt.Errorf("encode edge %d properties: %w", index, err)
@@ -323,6 +472,20 @@ func (transaction *loadTransaction) writeEdges(
 			int16(rangeID), digest,
 		}
 	}
+	if _, err := transaction.tx.Exec(ctx, fmt.Sprintf(`CREATE TEMP TABLE %s (
+		ordinal bigint NOT NULL,
+		source_namespace text NOT NULL,
+		external_id text NOT NULL,
+		start_namespace text NOT NULL,
+		start_external_id text NOT NULL,
+		end_namespace text NOT NULL,
+		end_external_id text NOT NULL,
+		properties jsonb NOT NULL,
+		digest_range smallint NOT NULL,
+		source_digest character(64) NOT NULL
+	) ON COMMIT DROP`, QuoteIdentifier(tempName))); err != nil {
+		return fmt.Errorf("create bounded edge stage for %q: %w", label, err)
+	}
 	if _, err := transaction.tx.CopyFrom(ctx, pgx.Identifier{tempName}, []string{
 		"ordinal", "source_namespace", "external_id", "start_namespace",
 		"start_external_id", "end_namespace", "end_external_id", "properties",
@@ -331,8 +494,9 @@ func (transaction *loadTransaction) writeEdges(
 		return fmt.Errorf("stage PostgreSQL property graph edges for %q: %w", label, err)
 	}
 	schema := transaction.sink.options.Definition.Schema
-	statement := fmt.Sprintf(`INSERT INTO %s (
-		source_namespace, external_id, start_id, end_id, properties,
+	targetTable := qualifiedName(schema, binding.table)
+	statement := fmt.Sprintf(`INSERT INTO %s AS current (
+			source_namespace, external_id, start_id, end_id, properties,
 		digest_range, source_digest
 	)
 	SELECT staged.source_namespace, staged.external_id,
@@ -346,17 +510,103 @@ func (transaction *loadTransaction) writeEdges(
 	  ON destination_vertex.source_namespace = staged.end_namespace
 	 AND destination_vertex.external_id = staged.end_external_id
 	ORDER BY staged.ordinal`,
-		qualifiedName(schema, binding.table), QuoteIdentifier(tempName),
+		targetTable, QuoteIdentifier(tempName),
 		qualifiedName(schema, start.table), qualifiedName(schema, end.table))
+	if transaction.sink.options.Mode == config.LoadAppend &&
+		transaction.sink.options.AppendDuplicate == config.AppendDuplicateIgnoreIdentical {
+		var conflicts int64
+		if err := transaction.tx.QueryRow(ctx, fmt.Sprintf(`SELECT count(*)
+			FROM %s staged JOIN %s target USING (source_namespace, external_id)
+			WHERE staged.source_digest <> target.source_digest`,
+			QuoteIdentifier(tempName), targetTable)).Scan(&conflicts); err != nil {
+			return fmt.Errorf("inspect append edge duplicates for %q: %w", label, err)
+		}
+		if conflicts != 0 {
+			return fmt.Errorf("append edge label %q has %d conflicting duplicate identities", label, conflicts)
+		}
+		statement += " ON CONFLICT (source_namespace, external_id) DO NOTHING"
+	}
+	if transaction.sink.options.Mode == config.LoadUpsert {
+		statement += fmt.Sprintf(` ON CONFLICT (source_namespace, external_id) DO UPDATE SET
+			start_id = EXCLUDED.start_id,
+			end_id = EXCLUDED.end_id,
+			properties = %s,
+			digest_range = EXCLUDED.digest_range,
+			source_digest = EXCLUDED.source_digest`,
+			propertyUpdateExpression("current", transaction.sink.options.PropertyMode))
+	}
 	tag, err := transaction.tx.Exec(ctx, statement)
 	if err != nil {
 		return fmt.Errorf("insert PostgreSQL property graph edges for %q: %w", label, err)
 	}
-	if tag.RowsAffected() != int64(len(edges)) {
-		return fmt.Errorf("edge label %q resolved %d of %d endpoints",
-			label, tag.RowsAffected(), len(edges))
+	if transaction.sink.options.Mode != config.LoadAppend ||
+		transaction.sink.options.AppendDuplicate != config.AppendDuplicateIgnoreIdentical {
+		if tag.RowsAffected() != int64(len(edges)) {
+			return fmt.Errorf("edge label %q resolved %d of %d endpoints",
+				label, tag.RowsAffected(), len(edges))
+		}
+	} else if tag.RowsAffected() > int64(len(edges)) {
+		return fmt.Errorf("edge label %q wrote an invalid row count %d", label, tag.RowsAffected())
+	}
+	if transaction.sink.options.Mode == config.LoadUpsert &&
+		transaction.sink.options.PropertyMode != config.PropertiesReplace {
+		return transaction.refreshEdgeDigests(ctx, label, binding, start, end, tempName)
 	}
 	return nil
+}
+
+func (transaction *loadTransaction) refreshEdgeDigests(
+	ctx context.Context,
+	label model.Label,
+	binding loadBinding,
+	start loadBinding,
+	end loadBinding,
+	tempName string,
+) error {
+	schema := transaction.sink.options.Definition.Schema
+	table := qualifiedName(schema, binding.table)
+	rows, err := transaction.tx.Query(ctx, fmt.Sprintf(`SELECT target.source_namespace,
+		target.external_id, source.source_namespace, source.external_id,
+		destination.source_namespace, destination.external_id, target.properties
+		FROM %s target
+		JOIN %s staged USING (source_namespace, external_id)
+		JOIN %s source ON source.id = target.start_id
+		JOIN %s destination ON destination.id = target.end_id
+		ORDER BY staged.ordinal`, table, QuoteIdentifier(tempName),
+		qualifiedName(schema, start.table), qualifiedName(schema, end.table)))
+	if err != nil {
+		return fmt.Errorf("read merged edge properties for %q: %w", label, err)
+	}
+	defer rows.Close()
+	batch := &pgx.Batch{}
+	for rows.Next() {
+		var namespace, externalID, startNamespace, startID, endNamespace, endID string
+		var properties []byte
+		if err := rows.Scan(&namespace, &externalID, &startNamespace, &startID,
+			&endNamespace, &endID, &properties); err != nil {
+			return err
+		}
+		rangeID, digest, err := edgeRecordDigest(string(label), namespace, externalID,
+			string(binding.startLabel), startNamespace, startID,
+			string(binding.endLabel), endNamespace, endID, properties)
+		if err != nil {
+			return err
+		}
+		batch.Queue(fmt.Sprintf(`UPDATE %s SET digest_range = $3, source_digest = $4
+			WHERE source_namespace = $1 AND external_id = $2`, table),
+			namespace, externalID, int16(rangeID), digest)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	results := transaction.tx.SendBatch(ctx, batch)
+	defer results.Close()
+	for range batch.Len() {
+		if _, err := results.Exec(); err != nil {
+			return fmt.Errorf("refresh merged edge digest for %q: %w", label, err)
+		}
+	}
+	return results.Close()
 }
 
 func recordProperties(properties model.Properties, encoded []byte) ([]byte, error) {

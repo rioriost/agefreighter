@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rioriost/agefreighter/internal/checkpoint"
+	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
 	sinkcontract "github.com/rioriost/agefreighter/internal/sink"
 	"github.com/rioriost/agefreighter/pkg/model"
@@ -26,6 +27,18 @@ func TestRecordProperties(t *testing.T) {
 	for _, value := range [][]byte{[]byte(`no`), []byte(`null`), []byte(`[]`)} {
 		if _, err := recordProperties(nil, value); err == nil {
 			t.Fatalf("recordProperties(%q) succeeded", value)
+		}
+	}
+}
+
+func TestPropertyUpdateExpression(t *testing.T) {
+	for mode, want := range map[config.PropertyMode]string{
+		config.PropertiesReplace:         "EXCLUDED.properties",
+		config.PropertiesMerge:           "current.properties || EXCLUDED.properties",
+		config.PropertiesMergeDeleteNull: "jsonb_strip_nulls(current.properties || EXCLUDED.properties)",
+	} {
+		if got := propertyUpdateExpression("current", mode); got != want {
+			t.Fatalf("propertyUpdateExpression(%q) = %q, want %q", mode, got, want)
 		}
 	}
 }
@@ -97,6 +110,13 @@ func TestLoadTransactionWriteValidation(t *testing.T) {
 	edge := func(label string) model.Record {
 		return model.Record{Edge: &model.Edge{Label: model.Label(label)}}
 	}
+	validEdge := func() model.Record {
+		return model.Record{Edge: &model.Edge{
+			Label: "KNOWS", Namespace: "crm", ExternalID: "e1",
+			Start: model.Endpoint{Label: "Person", Namespace: "crm", ExternalID: "p1"},
+			End:   model.Endpoint{Label: "Person", Namespace: "crm", ExternalID: "p2"},
+		}}
+	}
 	tests := []struct {
 		name    string
 		prepare func(*loadTransaction)
@@ -116,6 +136,18 @@ func TestLoadTransactionWriteValidation(t *testing.T) {
 		}, "duplicates external identity"},
 		{"bad vertex properties", nil, []model.Record{vertex("Person", "crm", "p1", []byte(`no`))}, "encode vertex"},
 		{"unknown edge", nil, []model.Record{edge("Missing")}, "not registered"},
+		{"empty edge identity", nil, []model.Record{edge("KNOWS")}, "identity or endpoint is empty"},
+		{"wrong edge endpoint label", nil, []model.Record{func() model.Record {
+			record := validEdge()
+			record.Edge.Start.Label = "Other"
+			return record
+		}()}, "endpoint labels do not match"},
+		{"duplicate edge", nil, []model.Record{validEdge(), validEdge()}, "duplicates external identity"},
+		{"bad edge properties", nil, []model.Record{func() model.Record {
+			record := validEdge()
+			record.Edge.EncodedProperties = []byte(`no`)
+			return record
+		}()}, "encode edge"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -159,6 +191,41 @@ func TestNewLoadSinkValidation(t *testing.T) {
 		JobID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
 	}); err == nil {
 		t.Fatal("NewLoadSink(invalid definition) succeeded")
+	}
+	definition := Definition{
+		Schema: "public", Graph: "people",
+		Vertices: []VertexDefinition{{Table: "person", Label: "Person"}},
+	}
+	for name, options := range map[string]LoadSinkOptions{
+		"load mode": {
+			JobID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", Definition: definition,
+			Mode: "future",
+		},
+		"property mode": {
+			JobID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", Definition: definition,
+			Mode: config.LoadUpsert, PropertyMode: "future",
+		},
+		"append policy": {
+			JobID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", Definition: definition,
+			Mode: config.LoadAppend, AppendDuplicate: "future",
+		},
+		"append policy without append": {
+			JobID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", Definition: definition,
+			Mode: config.LoadCreate, AppendDuplicate: config.AppendDuplicateError,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := NewLoadSink(adapter, options); err == nil {
+				t.Fatal("NewLoadSink(invalid options) succeeded")
+			}
+		})
+	}
+	appendSink, err := NewLoadSink(adapter, LoadSinkOptions{
+		JobID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", Definition: definition,
+		Mode: config.LoadAppend,
+	})
+	if err != nil || appendSink.options.AppendDuplicate != config.AppendDuplicateError {
+		t.Fatalf("NewLoadSink append defaults = %#v, %v", appendSink, err)
 	}
 	target := &LoadSink{}
 	if _, err := target.Begin(t.Context(), sinkcontract.BatchMetadata{}); err == nil {

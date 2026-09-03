@@ -106,3 +106,18 @@ make test-pggraph-apple
 delete images, volumes, or unrelated Apple Container resources. A newer beta
 or release candidate intentionally fails the digest check until its SQL/PGQ
 behavior is reviewed and the recorded digest is updated.
+
+Run the complete-path property-graph benchmark against the same pinned target:
+
+```sh
+AGEFREIGHTER_PGGRAPH_TEST_DSN='postgres://...' \
+  make bench-pggraph PGGRAPH_BENCH_PROFILE=small \
+  PGGRAPH_BENCH_TRIALS=3 \
+  PGGRAPH_BENCH_OUTPUT=.local/pggraph-small.txt
+```
+
+`small` loads 10,000 vertices and 25,000 edges; `medium` loads 100,000 and
+250,000. The explicit `production` profile is 160,000,000 and 400,000,000 and
+also requires `PGGRAPH_BENCHMARK_PRODUCTION_ACK=160000000-400000000`. This
+guard prevents an accidental multi-hundred-million-row local run. Benchmark
+outputs are local evidence and are never overwritten.

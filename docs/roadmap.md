@@ -1,4 +1,4 @@
-# agefreighter 2.1 implementation plan
+# agefreighter roadmap
 
 - Status: implemented; Cosmos runner qualification pending
 - Baseline: agefreighter 2.0.0
@@ -555,6 +555,31 @@ These are release executions, not missing implementations. They intentionally
 remain unchecked until the corresponding service credentials and calibrated
 runner are present.
 
+## 2.2 PostgreSQL 19 SQL/PGQ target
+
+The 2.2 branch adds a separate `postgresql-property-graph` target for native
+PostgreSQL 19 property graphs. Phases A-E of the implementation plan are
+complete for the experimental pre-release target:
+
+- [x] target contract, feature probe, identifier-safe DDL, and pinned Apple
+  Container environment
+- [x] backend-neutral runtime boundary and metadata target identity
+- [x] resumable transactional create loading with bounded endpoint joins
+- [x] count, constraint, SQL/PGQ traversal, corruption, and ranged-digest
+  verification
+- [x] create, atomic replace, append duplicate policies, and all upsert property
+  modes
+- [x] single-writer exclusion, interrupted-promotion recovery, retained-backup
+  cleanup, release documentation, and reproducible benchmark harness
+- [x] small and medium complete-path Apple M4 Max benchmark calibration
+- [ ] PostgreSQL 19 GA digest qualification and production-scale execution
+
+The unchecked items are external qualification gates, not missing product
+code. Until both are complete, the target is explicitly experimental and no
+production-scale support or throughput claim is made. See the
+[2.2 design and evidence](design/agefreighter-2.2.0-postgresql-property-graph.md)
+and [benchmark record](benchmarks/2.2-postgresql-property-graph.md).
+
 ### Validation snapshot (2026-08-28)
 
 - Database-independent `go test ./...`, full `go test -race ./...`, `go vet
@@ -584,7 +609,7 @@ runner are present.
 
 ## Deferred roadmap
 
-### 2.2 candidates
+### Beyond 2.2 candidates
 
 - Neo4j index and constraint inventory with AGE translation reports
 - deterministic digest-based property sample verification for replace-mode

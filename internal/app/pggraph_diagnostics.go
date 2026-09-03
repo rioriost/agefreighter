@@ -126,10 +126,14 @@ func inspectPropertyGraphJob(
 	if err := inspection.Validate(); err != nil {
 		return stored, mapping, inspection, err
 	}
-	if inspection.Rows != stored.CommittedRows {
+	expectedRows := mapping.DigestRows
+	if stored.LoadMode == string(config.LoadCreate) || stored.LoadMode == string(config.LoadReplace) {
+		expectedRows = stored.CommittedRows
+	}
+	if inspection.Rows != expectedRows {
 		return stored, mapping, inspection, fmt.Errorf(
 			"%w: property graph contains %d rows, expected %d",
-			pggraph.ErrIntegrity, inspection.Rows, stored.CommittedRows)
+			pggraph.ErrIntegrity, inspection.Rows, expectedRows)
 	}
 	rejects, err := target.Store.CountRejectRecords(ctx, jobID)
 	if err != nil {

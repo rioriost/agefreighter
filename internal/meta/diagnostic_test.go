@@ -12,7 +12,7 @@ import (
 )
 
 func TestDiagnosticMigrationIsCurrentVersion(t *testing.T) {
-	if schemaVersion != 20 || len(migrations) != schemaVersion {
+	if schemaVersion != 21 || len(migrations) != schemaVersion {
 		t.Fatalf("schema version=%d migrations=%d", schemaVersion, len(migrations))
 	}
 	if len(migrationV16) != 2 ||
@@ -56,6 +56,11 @@ func TestDiagnosticMigrationIsCurrentVersion(t *testing.T) {
 		!strings.Contains(migrationV20[0], "digest_root") ||
 		!strings.Contains(migrationV20[1], "property_graph_digest_range") {
 		t.Fatalf("migrationV20 = %#v", migrationV20)
+	}
+	if len(migrationV21) != 2 ||
+		!strings.Contains(migrationV21[0], "retained-backup") ||
+		!strings.Contains(migrationV21[1], "WHERE state = 'active'") {
+		t.Fatalf("migrationV21 = %#v", migrationV21)
 	}
 }
 

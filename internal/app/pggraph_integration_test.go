@@ -434,6 +434,551 @@ func TestPostgreSQLPropertyGraphCreateAndResumeIntegration(t *testing.T) {
 	})
 }
 
+func TestPostgreSQLPropertyGraphModeMatrixIntegration(t *testing.T) {
+	dsn := strings.TrimSpace(os.Getenv("AGEFREIGHTER_PGGRAPH_TEST_DSN"))
+	if dsn == "" {
+		t.Skip("set AGEFREIGHTER_PGGRAPH_TEST_DSN to run property graph mode tests")
+	}
+	t.Setenv("AGEFREIGHTER_PGGRAPH_APP_TEST_DSN", dsn)
+	job, cleanup := propertyGraphCSVJob(t, dsn, "modes")
+	defer cleanup()
+	var jobIDs []string
+	run := func(name string, current config.LoadJob) (string, LoadResult, error) {
+		t.Helper()
+		jobID, err := newJobID()
+		if err != nil {
+			t.Fatal(err)
+		}
+		jobIDs = append(jobIDs, jobID)
+		result, runErr := execute(t.Context(), current, jobID, false)
+		return jobID, result, runErr
+	}
+	defer func() {
+		for _, jobID := range jobIDs {
+			cleanupPropertyGraphJob(t, dsn, jobID)
+		}
+	}()
+
+	createID, created, err := run("create", job)
+	if err != nil || created.Status != meta.JobCommitted {
+		t.Fatalf("create = %#v, %v", created, err)
+	}
+
+	if err := os.WriteFile(job.Source.CSV.Vertices[0].Path,
+		[]byte("id,name\np4,Dorothy\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(job.Source.CSV.Edges[0].Path,
+		[]byte("id,start,end\ne3,p3,p4\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	appendJob := job
+	appendJob.Target.Mode = config.LoadAppend
+	appendJob.Target.AppendDuplicate = config.AppendDuplicateError
+	appendID, appended, err := run("append", appendJob)
+	if err != nil || appended.Status != meta.JobCommitted || appended.Metrics.RecordsCommitted != 2 {
+		t.Fatalf("append = %#v, %v", appended, err)
+	}
+	assertPropertyGraphLoad(t, dsn, appendJob, appendID, 4, 3)
+	path := writeLoadJob(t, t.TempDir(), "append.yaml", appendJob)
+	if _, err := Verify(t.Context(), path, appendID); err != nil {
+		t.Fatalf("verify append: %v", err)
+	}
+	if _, _, err := run("append-strict-replay", appendJob); err == nil {
+		t.Fatal("strict append accepted duplicate identities")
+	}
+	wrongCleanup := appendJob
+	wrongCleanup.Target.Mode = config.LoadReplace
+	wrongCleanup.Target.AppendDuplicate = ""
+	wrongCleanupPath := writeLoadJob(t, t.TempDir(), "wrong-cleanup.yaml", wrongCleanup)
+	if _, err := Cleanup(t.Context(), wrongCleanupPath, appendID); err == nil ||
+		!strings.Contains(err.Error(), "stored replace") {
+		t.Fatalf("cleanup accepted append job: %v", err)
+	}
+	createPath := writeLoadJob(t, t.TempDir(), "create.yaml", job)
+	if _, err := Verify(t.Context(), createPath, createID); err == nil ||
+		!strings.Contains(err.Error(), "not active") {
+		t.Fatalf("superseded create verification error = %v", err)
+	}
+
+	identical := appendJob
+	identical.Target.AppendDuplicate = config.AppendDuplicateIgnoreIdentical
+	identicalID, identicalResult, err := run("append-identical", identical)
+	if err != nil || identicalResult.Status != meta.JobCommitted {
+		t.Fatalf("append identical = %#v, %v", identicalResult, err)
+	}
+	assertPropertyGraphLoad(t, dsn, identical, identicalID, 4, 3)
+
+	if err := os.WriteFile(job.Source.CSV.Vertices[0].Path,
+		[]byte("id,name\np4,Changed\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = run("append-conflict", identical)
+	if err == nil || !strings.Contains(err.Error(), "conflicting duplicate") {
+		t.Fatalf("append conflicting duplicate error = %v", err)
+	}
+	if err := os.WriteFile(job.Source.CSV.Vertices[0].Path,
+		[]byte("id,name\np4,Dorothy\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(job.Source.CSV.Edges[0].Path,
+		[]byte("id,start,end\ne3,p4,p1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = run("append-edge-conflict", identical)
+	if err == nil || !strings.Contains(err.Error(), "append edge label") {
+		t.Fatalf("append conflicting edge error = %v", err)
+	}
+
+	if err := os.WriteFile(job.Source.CSV.Vertices[0].Path,
+		[]byte("id,name,city\np1,Alicia,London\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(job.Source.CSV.Edges[0].Path,
+		[]byte("id,start,end\ne1,p1,p3\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	upsert := job
+	upsert.Source.CSV.Vertices[0].Properties = map[string]string{"name": "name", "city": "city"}
+	upsert.Target.Mode = config.LoadUpsert
+	upsert.Target.AppendDuplicate = ""
+	upsert.Target.PropertyMode = config.PropertiesReplace
+	upsertID, upserted, err := run("upsert-replace", upsert)
+	if err != nil || upserted.Status != meta.JobCommitted {
+		t.Fatalf("upsert replace = %#v, %v", upserted, err)
+	}
+	assertPropertyGraphLoad(t, dsn, upsert, upsertID, 4, 3)
+
+	if err := os.WriteFile(job.Source.CSV.Vertices[0].Path,
+		[]byte("id,nickname\np1,Countess\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(job.Source.CSV.Edges[0].Path,
+		[]byte("id,start,end,weight\ne1,p1,p3,7\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	upsert.Source.CSV.Vertices[0].Properties = map[string]string{"nickname": "nickname"}
+	upsert.Source.CSV.Edges[0].Properties = map[string]string{"weight": "weight"}
+	upsert.Target.PropertyMode = config.PropertiesMerge
+	mergeID, merged, err := run("upsert-merge", upsert)
+	if err != nil || merged.Status != meta.JobCommitted {
+		t.Fatalf("upsert merge = %#v, %v", merged, err)
+	}
+	assertPropertyGraphLoad(t, dsn, upsert, mergeID, 4, 3)
+
+	if err := os.WriteFile(job.Source.CSV.Vertices[0].Path,
+		[]byte("id,name,city,nickname\np1,,Paris,\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(job.Source.CSV.Edges[0].Path,
+		[]byte("id,start,end\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	upsert.Source.CSV.Vertices[0].Properties = map[string]string{
+		"name": "name", "city": "city", "nickname": "nickname",
+	}
+	upsert.Source.CSV.Edges[0].Properties = nil
+	upsert.Target.PropertyMode = config.PropertiesMergeDeleteNull
+	deleteID, deleted, err := run("upsert-delete-null", upsert)
+	if err != nil || deleted.Status != meta.JobCommitted {
+		t.Fatalf("upsert merge-delete-null = %#v, %v", deleted, err)
+	}
+	assertPropertyGraphLoad(t, dsn, upsert, deleteID, 4, 3)
+	pool, err := pgxpool.New(t.Context(), dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	definition, _ := propertyGraphDefinition(job)
+	var properties string
+	if err := pool.QueryRow(t.Context(), fmt.Sprintf(
+		`SELECT properties::text FROM %s WHERE external_id = 'p1'`,
+		propertyGraphTable(job, definition.Vertices[0].Table))).Scan(&properties); err != nil {
+		t.Fatal(err)
+	}
+	if properties != `{"city": "Paris"}` {
+		t.Fatalf("merge-delete-null properties = %s", properties)
+	}
+
+	if err := os.WriteFile(job.Source.CSV.Vertices[0].Path,
+		[]byte("id,name,city,nickname\np10,New One,Tokyo,One\np11,New Two,Osaka,Two\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(job.Source.CSV.Edges[0].Path,
+		[]byte("id,start,end\ne10,p10,p11\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	replace := job
+	replace.Target.Mode = config.LoadReplace
+	replace.Target.AppendDuplicate = ""
+	replaceID, replaced, err := run("replace", replace)
+	if err != nil || replaced.Status != meta.JobCommitted {
+		t.Fatalf("replace = %#v, %v", replaced, err)
+	}
+	assertPropertyGraphLoad(t, dsn, replace, replaceID, 2, 1)
+	replacePath := writeLoadJob(t, t.TempDir(), "replace.yaml", replace)
+	if _, err := Verify(t.Context(), replacePath, replaceID); err != nil {
+		t.Fatalf("verify replace: %v", err)
+	}
+	_, backup, err := pggraph.ReplacementDefinitions(definition, replaceID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var backupExists bool
+	if err := pool.QueryRow(t.Context(), `SELECT EXISTS (
+		SELECT 1 FROM pg_catalog.pg_class c
+		JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+		WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'g'
+	)`, backup.Schema, backup.Graph).Scan(&backupExists); err != nil || !backupExists {
+		t.Fatalf("retained backup exists = %t, %v", backupExists, err)
+	}
+	canonicalFingerprint, err := definition.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(t.Context(), `UPDATE agefreighter_meta.property_graph_generation
+		SET definition_fingerprint = repeat('0', 64) WHERE job_id = $1::uuid`, replaceID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Cleanup(t.Context(), replacePath, replaceID); err == nil ||
+		!strings.Contains(err.Error(), "active replacement mapping") {
+		t.Fatalf("cleanup accepted changed active mapping: %v", err)
+	}
+	if _, err := pool.Exec(t.Context(), `UPDATE agefreighter_meta.property_graph_generation
+		SET definition_fingerprint = $2 WHERE job_id = $1::uuid`,
+		replaceID, canonicalFingerprint); err != nil {
+		t.Fatal(err)
+	}
+	backupFingerprint, err := backup.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(t.Context(), `UPDATE agefreighter_meta.property_graph_generation
+		SET definition_fingerprint = repeat('0', 64)
+		WHERE target_schema = $1 AND graph_name = $2 AND state = 'retained-backup'`,
+		backup.Schema, backup.Graph); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Cleanup(t.Context(), replacePath, replaceID); err == nil ||
+		!strings.Contains(err.Error(), "retained replacement backup mapping") {
+		t.Fatalf("cleanup accepted changed backup mapping: %v", err)
+	}
+	if _, err := pool.Exec(t.Context(), `UPDATE agefreighter_meta.property_graph_generation
+		SET definition_fingerprint = $3
+		WHERE target_schema = $1 AND graph_name = $2 AND state = 'retained-backup'`,
+		backup.Schema, backup.Graph, backupFingerprint); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Cleanup(t.Context(), replacePath, replaceID); err != nil {
+		t.Fatalf("cleanup replace: %v", err)
+	}
+	if _, err := Cleanup(t.Context(), replacePath, replaceID); err != nil {
+		t.Fatalf("idempotent cleanup replace: %v", err)
+	}
+	if err := pool.QueryRow(t.Context(), `SELECT EXISTS (
+		SELECT 1 FROM pg_catalog.pg_class c
+		JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+		WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'g'
+	)`, backup.Schema, backup.Graph).Scan(&backupExists); err != nil || backupExists {
+		t.Fatalf("retained backup after cleanup exists = %t, %v", backupExists, err)
+	}
+}
+
+func TestPostgreSQLPropertyGraphIncrementalResumeIntegration(t *testing.T) {
+	dsn := strings.TrimSpace(os.Getenv("AGEFREIGHTER_PGGRAPH_TEST_DSN"))
+	if dsn == "" {
+		t.Skip("set AGEFREIGHTER_PGGRAPH_TEST_DSN to run incremental recovery tests")
+	}
+	t.Setenv("AGEFREIGHTER_PGGRAPH_APP_TEST_DSN", dsn)
+
+	for _, mode := range []config.LoadMode{config.LoadAppend, config.LoadUpsert} {
+		t.Run(string(mode), func(t *testing.T) {
+			job, cleanup := propertyGraphCSVJob(t, dsn, "resume-"+string(mode))
+			defer cleanup()
+			seedID, err := newJobID()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer cleanupPropertyGraphJob(t, dsn, seedID)
+			if result, err := execute(t.Context(), job, seedID, false); err != nil ||
+				result.Status != meta.JobCommitted {
+				t.Fatalf("seed create = %#v, %v", result, err)
+			}
+
+			var vertices, edges strings.Builder
+			vertices.WriteString("id,name\n")
+			edges.WriteString("id,start,end\n")
+			for index := 100; index < 300; index++ {
+				fmt.Fprintf(&vertices, "p%d,Incremental %d\n", index, index)
+				if index < 299 {
+					fmt.Fprintf(&edges, "e%d,p%d,p%d\n", index, index, index+1)
+				}
+			}
+			if err := os.WriteFile(job.Source.CSV.Vertices[0].Path,
+				[]byte(vertices.String()), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(job.Source.CSV.Edges[0].Path,
+				[]byte(edges.String()), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			job.Target.Mode = mode
+			job.Target.AppendDuplicate = ""
+			if mode == config.LoadAppend {
+				job.Target.AppendDuplicate = config.AppendDuplicateError
+			}
+			job.Runtime.BatchRows = 1
+			jobID, err := newJobID()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer cleanupPropertyGraphJob(t, dsn, jobID)
+
+			runCtx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			resultChannel := make(chan error, 1)
+			go func() {
+				_, runErr := execute(runCtx, job, jobID, false)
+				resultChannel <- runErr
+			}()
+			pool, err := pgxpool.New(t.Context(), dsn)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cancelled := false
+			deadline := time.Now().Add(10 * time.Second)
+			for time.Now().Before(deadline) {
+				var committed int64
+				err := pool.QueryRow(t.Context(), `SELECT committed_rows
+					FROM agefreighter_meta.load_job WHERE job_id = $1::uuid`, jobID).
+					Scan(&committed)
+				if err == nil && committed >= 5 {
+					cancel()
+					cancelled = true
+					break
+				}
+				time.Sleep(time.Millisecond)
+			}
+			if !cancelled {
+				cancel()
+				pool.Close()
+				<-resultChannel
+				t.Fatal("incremental load did not reach the cancellation checkpoint")
+			}
+			if runErr := <-resultChannel; runErr == nil {
+				pool.Close()
+				t.Fatal("cancelled incremental load succeeded")
+			}
+
+			var fingerprint string
+			if err := pool.QueryRow(t.Context(), `SELECT definition_fingerprint
+				FROM agefreighter_meta.property_graph_generation
+				WHERE job_id = $1::uuid`, jobID).Scan(&fingerprint); err != nil {
+				pool.Close()
+				t.Fatal(err)
+			}
+			if _, err := pool.Exec(t.Context(), `UPDATE agefreighter_meta.property_graph_generation
+				SET definition_fingerprint = repeat('0', 64) WHERE job_id = $1::uuid`, jobID); err != nil {
+				pool.Close()
+				t.Fatal(err)
+			}
+			path := writeLoadJob(t, t.TempDir(), "incremental-resume.yaml", job)
+			if _, err := Resume(t.Context(), path, jobID); err == nil ||
+				!errors.Is(err, meta.ErrGenerationMismatch) {
+				pool.Close()
+				t.Fatalf("resume accepted changed incremental mapping: %v", err)
+			}
+			if _, err := pool.Exec(t.Context(), `UPDATE agefreighter_meta.property_graph_generation
+				SET definition_fingerprint = $2 WHERE job_id = $1::uuid`, jobID, fingerprint); err != nil {
+				pool.Close()
+				t.Fatal(err)
+			}
+			pool.Close()
+
+			resumed, err := Resume(t.Context(), path, jobID)
+			if err != nil || resumed.Status != meta.JobCommitted {
+				t.Fatalf("resume %s = %#v, %v", mode, resumed, err)
+			}
+			assertPropertyGraphLoad(t, dsn, job, jobID, 203, 201)
+			if _, err := Verify(t.Context(), path, jobID); err != nil {
+				t.Fatalf("verify resumed %s: %v", mode, err)
+			}
+		})
+	}
+}
+
+func TestPostgreSQLPropertyGraphReplaceRecoveryIntegration(t *testing.T) {
+	dsn := strings.TrimSpace(os.Getenv("AGEFREIGHTER_PGGRAPH_TEST_DSN"))
+	if dsn == "" {
+		t.Skip("set AGEFREIGHTER_PGGRAPH_TEST_DSN to run property graph replace recovery")
+	}
+	t.Setenv("AGEFREIGHTER_PGGRAPH_APP_TEST_DSN", dsn)
+	job, cleanup := propertyGraphCSVJob(t, dsn, "replace-recovery")
+	defer cleanup()
+	createID, err := newJobID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanupPropertyGraphJob(t, dsn, createID)
+	if result, err := execute(t.Context(), job, createID, false); err != nil ||
+		result.Status != meta.JobCommitted {
+		t.Fatalf("seed create = %#v, %v", result, err)
+	}
+	if err := os.WriteFile(job.Source.CSV.Vertices[0].Path,
+		[]byte("id,name\np10,Replacement\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(job.Source.CSV.Edges[0].Path,
+		[]byte("id,start,end\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	replace := job
+	replace.Target.Mode = config.LoadReplace
+	replace.Target.AppendDuplicate = ""
+	replaceID, err := newJobID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanupPropertyGraphJob(t, dsn, replaceID)
+	canonical, err := propertyGraphDefinition(replace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, backup, err := pggraph.ReplacementDefinitions(canonical, replaceID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool, err := pgxpool.New(t.Context(), dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	if _, err := pool.Exec(t.Context(), "CREATE TABLE "+
+		propertyGraphTable(job, backup.Vertices[0].Table)+" (id integer)"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := execute(t.Context(), replace, replaceID, false); err == nil ||
+		!strings.Contains(err.Error(), "rename replacement vertex") {
+		t.Fatalf("interrupted replacement error = %v", err)
+	}
+	assertPropertyGraphLoad(t, dsn, job, createID, 3, 2)
+	if _, err := pool.Exec(t.Context(), "DROP TABLE "+
+		propertyGraphTable(job, backup.Vertices[0].Table)); err != nil {
+		t.Fatal(err)
+	}
+	path := writeLoadJob(t, t.TempDir(), "replace-recovery.yaml", replace)
+	resumed, err := Resume(t.Context(), path, replaceID)
+	if err != nil || resumed.Status != meta.JobCommitted {
+		t.Fatalf("resume replacement = %#v, %v", resumed, err)
+	}
+	assertPropertyGraphLoad(t, dsn, replace, replaceID, 1, 0)
+	if _, err := Verify(t.Context(), path, replaceID); err != nil {
+		t.Fatalf("verify recovered replacement: %v", err)
+	}
+}
+
+func TestPostgreSQLPropertyGraphIncrementalAdmissionIntegration(t *testing.T) {
+	dsn := strings.TrimSpace(os.Getenv("AGEFREIGHTER_PGGRAPH_TEST_DSN"))
+	if dsn == "" {
+		t.Skip("set AGEFREIGHTER_PGGRAPH_TEST_DSN to run property graph admission tests")
+	}
+	t.Setenv("AGEFREIGHTER_PGGRAPH_APP_TEST_DSN", dsn)
+
+	t.Run("append requires active target", func(t *testing.T) {
+		job, cleanup := propertyGraphCSVJob(t, dsn, "append-without-active")
+		defer cleanup()
+		job.Target.Mode = config.LoadAppend
+		job.Target.AppendDuplicate = config.AppendDuplicateError
+		jobID, err := newJobID()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer cleanupPropertyGraphJob(t, dsn, jobID)
+		if _, err := execute(t.Context(), job, jobID, false); err == nil ||
+			!strings.Contains(err.Error(), "active property graph") {
+			t.Fatalf("append without active target error = %v", err)
+		}
+	})
+
+	t.Run("replace requires active target", func(t *testing.T) {
+		job, cleanup := propertyGraphCSVJob(t, dsn, "replace-without-active")
+		defer cleanup()
+		job.Target.Mode = config.LoadReplace
+		jobID, err := newJobID()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer cleanupPropertyGraphJob(t, dsn, jobID)
+		if _, err := execute(t.Context(), job, jobID, false); err == nil ||
+			!strings.Contains(err.Error(), "active property graph") {
+			t.Fatalf("replace without active target error = %v", err)
+		}
+	})
+
+	for _, test := range []struct {
+		name   string
+		mutate func(*testing.T, *pgxpool.Pool, config.LoadJob, string)
+		want   string
+	}{
+		{
+			name: "digest baseline is mandatory",
+			mutate: func(t *testing.T, pool *pgxpool.Pool, _ config.LoadJob, jobID string) {
+				if _, err := pool.Exec(t.Context(), `UPDATE agefreighter_meta.property_graph_generation
+					SET digest_root = NULL WHERE job_id = $1::uuid`, jobID); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: "digest baseline changed",
+		},
+		{
+			name: "physical graph is admitted",
+			mutate: func(t *testing.T, pool *pgxpool.Pool, job config.LoadJob, _ string) {
+				if _, err := pool.Exec(t.Context(), "SET search_path TO "+
+					pggraph.QuoteIdentifier(job.Target.Schema)+", pg_catalog"); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := pool.Exec(t.Context(), "DROP PROPERTY GRAPH "+
+					pggraph.QuoteIdentifier(job.Target.Graph)); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: "property graph object",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			job, cleanup := propertyGraphCSVJob(t, dsn,
+				strings.ReplaceAll(test.name, " ", "-"))
+			defer cleanup()
+			seedID, err := newJobID()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer cleanupPropertyGraphJob(t, dsn, seedID)
+			if _, err := execute(t.Context(), job, seedID, false); err != nil {
+				t.Fatalf("seed target: %v", err)
+			}
+			pool, err := pgxpool.New(t.Context(), dsn)
+			if err != nil {
+				t.Fatal(err)
+			}
+			test.mutate(t, pool, job, seedID)
+			pool.Close()
+
+			job.Target.Mode = config.LoadAppend
+			job.Target.AppendDuplicate = config.AppendDuplicateIgnoreIdentical
+			appendID, err := newJobID()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer cleanupPropertyGraphJob(t, dsn, appendID)
+			if _, err := execute(t.Context(), job, appendID, false); err == nil ||
+				!strings.Contains(err.Error(), test.want) {
+				t.Fatalf("incremental admission error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
 func TestPostgreSQLPropertyGraphCorruptionDetectionIntegration(t *testing.T) {
 	dsn := strings.TrimSpace(os.Getenv("AGEFREIGHTER_PGGRAPH_TEST_DSN"))
 	if dsn == "" {

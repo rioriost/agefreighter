@@ -6,6 +6,7 @@
 .venv/
 bin/
 dist/
+.local/
 tab_replaced_*
 
 # Large production-simulation fixtures and raw telemetry stay local. Reviewed

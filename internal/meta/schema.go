@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 20
+const schemaVersion = 21
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -856,6 +856,18 @@ var migrationV20 = []string{
 	)`,
 }
 
+var migrationV21 = []string{
+	`ALTER TABLE agefreighter_meta.property_graph_generation
+		DROP CONSTRAINT property_graph_generation_target_schema_graph_name_key,
+		DROP CONSTRAINT property_graph_generation_state_check,
+		ADD CONSTRAINT property_graph_generation_state_check CHECK (
+			state IN ('loading', 'active', 'superseded', 'retained-backup')
+		)`,
+	`CREATE UNIQUE INDEX property_graph_generation_active_target_idx
+		ON agefreighter_meta.property_graph_generation (target_schema, graph_name)
+		WHERE state = 'active'`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -877,4 +889,5 @@ var migrations = [][]string{
 	migrationV18,
 	migrationV19,
 	migrationV20,
+	migrationV21,
 }

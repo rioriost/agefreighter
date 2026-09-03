@@ -141,6 +141,19 @@ func TestPropertyGraphStoreDatabaseErrors(t *testing.T) {
 	if err := store.ActivatePropertyGraph(t.Context(), jobID); !errors.Is(err, injected) {
 		t.Fatalf("ActivatePropertyGraph() error = %v", err)
 	}
+	if _, err := store.ActivePropertyGraph(t.Context(), "graph_data", "supply_graph"); !errors.Is(err, injected) {
+		t.Fatalf("ActivePropertyGraph() error = %v", err)
+	}
+	if _, err := store.PropertyGraphByTargetState(t.Context(), "graph_data", "supply_graph",
+		PropertyGraphRetainedBackup); !errors.Is(err, injected) {
+		t.Fatalf("PropertyGraphByTargetState() error = %v", err)
+	}
+	if err := store.ActivatePropertyGraphReplacing(t.Context(), jobID, "graph_data", "supply_graph"); !errors.Is(err, injected) {
+		t.Fatalf("ActivatePropertyGraphReplacing() error = %v", err)
+	}
+	if err := store.RelocatePropertyGraph(t.Context(), generation); !errors.Is(err, injected) {
+		t.Fatalf("RelocatePropertyGraph() error = %v", err)
+	}
 	if err := store.RegisterPropertyGraph(t.Context(), PropertyGraphGeneration{}); err == nil {
 		t.Fatal("RegisterPropertyGraph() accepted invalid input")
 	}
@@ -152,6 +165,23 @@ func TestPropertyGraphStoreDatabaseErrors(t *testing.T) {
 	}
 	if err := store.ActivatePropertyGraph(t.Context(), "bad"); err == nil {
 		t.Fatal("ActivatePropertyGraph() accepted invalid job ID")
+	}
+	if _, err := store.ActivePropertyGraph(t.Context(), "", "supply_graph"); err == nil {
+		t.Fatal("ActivePropertyGraph() accepted an invalid schema")
+	}
+	if _, err := store.PropertyGraphByTargetState(t.Context(), "graph_data", "supply_graph",
+		"future"); err == nil {
+		t.Fatal("PropertyGraphByTargetState() accepted an invalid state")
+	}
+	if err := store.ActivatePropertyGraphReplacing(t.Context(), "bad", "graph_data",
+		"supply_graph"); err == nil {
+		t.Fatal("ActivatePropertyGraphReplacing() accepted an invalid job ID")
+	}
+	if err := store.ActivatePropertyGraphReplacing(t.Context(), jobID, "", "supply_graph"); err == nil {
+		t.Fatal("ActivatePropertyGraphReplacing() accepted an invalid schema")
+	}
+	if err := store.RelocatePropertyGraph(t.Context(), PropertyGraphGeneration{}); err == nil {
+		t.Fatal("RelocatePropertyGraph() accepted invalid input")
 	}
 }
 
@@ -228,6 +258,19 @@ func TestPropertyGraphTransactionFailures(t *testing.T) {
 			}
 		})
 	}
+	t.Run("registration commit", func(t *testing.T) {
+		tx := &scriptedLifecycleTx{
+			exec: []scriptedLifecycleExec{
+				{tag: pgconn.NewCommandTag("INSERT 0 1")},
+				{tag: pgconn.NewCommandTag("INSERT 0 1")},
+			},
+			commitErr: injected,
+		}
+		store := &Store{database: scriptedLifecycleDatabase{tx: tx}}
+		if err := store.RegisterPropertyGraph(t.Context(), generation); !errors.Is(err, injected) {
+			t.Fatalf("RegisterPropertyGraph() commit error = %v", err)
+		}
+	})
 	rangeValue := PropertyGraphDigestRange{
 		JobID: jobID, LabelName: "Person", Kind: VertexLabel,
 		RangeID: 1, Rows: 1, Digest: strings.Repeat("c", 64),
@@ -251,6 +294,131 @@ func TestPropertyGraphTransactionFailures(t *testing.T) {
 			}
 		})
 	}
+	for name, tx := range map[string]*scriptedLifecycleTx{
+		"missing root row": {
+			exec: []scriptedLifecycleExec{
+				{tag: pgconn.NewCommandTag("DELETE 1")},
+				{tag: pgconn.NewCommandTag("INSERT 0 1")},
+				{tag: pgconn.NewCommandTag("UPDATE 0")},
+			},
+		},
+		"commit": {
+			exec: []scriptedLifecycleExec{
+				{tag: pgconn.NewCommandTag("DELETE 1")},
+				{tag: pgconn.NewCommandTag("INSERT 0 1")},
+				{tag: pgconn.NewCommandTag("UPDATE 1")},
+			},
+			commitErr: injected,
+		},
+	} {
+		t.Run("digest "+name, func(t *testing.T) {
+			store := &Store{database: scriptedLifecycleDatabase{tx: tx}}
+			if err := store.ReplacePropertyGraphDigests(t.Context(), jobID,
+				[]PropertyGraphDigestRange{rangeValue}, strings.Repeat("d", 64), 1, 256,
+			); err == nil {
+				t.Fatal("ReplacePropertyGraphDigests() succeeded")
+			}
+		})
+	}
+}
+
+func TestPropertyGraphLifecycleQueriesAndTransitions(t *testing.T) {
+	jobID := "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+	generation := PropertyGraphGeneration{
+		JobID: jobID, Schema: "graph_data", Graph: "supply_graph",
+		DefinitionFingerprint: strings.Repeat("a", 64), State: PropertyGraphLoading,
+		Labels: []PropertyGraphLabel{{Name: "Person", Kind: VertexLabel, Table: "person"}},
+	}
+
+	for name, call := range map[string]func(*Store) error{
+		"active missing": func(store *Store) error {
+			_, err := store.ActivePropertyGraph(t.Context(), generation.Schema, generation.Graph)
+			return err
+		},
+		"state missing": func(store *Store) error {
+			_, err := store.PropertyGraphByTargetState(t.Context(), generation.Schema,
+				generation.Graph, PropertyGraphRetainedBackup)
+			return err
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			store := &Store{database: propertyGraphRowDatabase{
+				row: lifecycleErrorRow{err: pgx.ErrNoRows},
+			}}
+			if err := call(store); !errors.Is(err, ErrNotFound) {
+				t.Fatalf("missing lifecycle query error = %v", err)
+			}
+		})
+	}
+	store := &Store{database: errorDatabase{}}
+	if _, err := store.PropertyGraphByTargetState(t.Context(), "", generation.Graph,
+		PropertyGraphActive); err == nil {
+		t.Fatal("PropertyGraphByTargetState accepted an invalid schema")
+	}
+	if comparePropertyGraphDigestRanges(
+		PropertyGraphDigestRange{Kind: VertexLabel, LabelName: "A"},
+		PropertyGraphDigestRange{Kind: VertexLabel, LabelName: "B"},
+	) >= 0 {
+		t.Fatal("property graph digest labels are not ordered")
+	}
+	if comparePropertyGraphDigestRanges(
+		PropertyGraphDigestRange{Kind: VertexLabel, LabelName: "A", RangeID: 1},
+		PropertyGraphDigestRange{Kind: VertexLabel, LabelName: "A", RangeID: 2},
+	) >= 0 {
+		t.Fatal("property graph digest ranges are not ordered")
+	}
+
+	injected := errors.New("injected transition failure")
+	for name, tx := range map[string]*scriptedLifecycleTx{
+		"activate second update": {
+			exec: []scriptedLifecycleExec{
+				{tag: pgconn.NewCommandTag("UPDATE 1")}, {err: injected},
+			},
+		},
+		"activate missing loading row": {
+			exec: []scriptedLifecycleExec{
+				{tag: pgconn.NewCommandTag("UPDATE 1")},
+				{tag: pgconn.NewCommandTag("UPDATE 0")},
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			store := &Store{database: tx}
+			if err := store.ActivatePropertyGraphReplacing(t.Context(), jobID,
+				generation.Schema, generation.Graph); err == nil {
+				t.Fatal("ActivatePropertyGraphReplacing succeeded")
+			}
+		})
+	}
+
+	for name, tx := range map[string]*scriptedLifecycleTx{
+		"label update": {
+			exec: []scriptedLifecycleExec{
+				{tag: pgconn.NewCommandTag("UPDATE 1")}, {err: injected},
+			},
+		},
+		"missing label": {
+			exec: []scriptedLifecycleExec{
+				{tag: pgconn.NewCommandTag("UPDATE 1")},
+				{tag: pgconn.NewCommandTag("UPDATE 0")},
+			},
+		},
+	} {
+		t.Run("relocate "+name, func(t *testing.T) {
+			store := &Store{database: tx}
+			if err := store.RelocatePropertyGraph(t.Context(), generation); err == nil {
+				t.Fatal("RelocatePropertyGraph succeeded")
+			}
+		})
+	}
+	t.Run("relocate missing generation", func(t *testing.T) {
+		store := &Store{database: &scriptedLifecycleTx{exec: []scriptedLifecycleExec{{
+			tag: pgconn.NewCommandTag("UPDATE 0"),
+		}}}}
+		if err := store.RelocatePropertyGraph(t.Context(), generation); err == nil {
+			t.Fatal("RelocatePropertyGraph accepted a missing generation")
+		}
+	})
 }
 
 type propertyGraphRowDatabase struct{ row pgx.Row }
