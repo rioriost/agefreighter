@@ -629,3 +629,14 @@ SHA-256 `3ee124f60b0fa531763274def4e66ce35de9d6a5b38086d42fdfb10221153181`.
 Retain that sample-size difference as execution evidence, not a source-data
 change. `ANALYZE` and optimizer review completed, and the full target digest
 was active at 07:58:17Z. Let it finish all 5,600 ranges and compare the root.
+
+The target digest completed at 2026-09-03T09:47:18Z in 2:00:14 and emitted
+560,000,000 rows in 5,600 leaves. Every leaf and the final root matched the
+fixture and accepted clean result:
+`0302c456d17c6e9ee64552d68e2bf6a775e63cd3b09120f5bc342d329bddd1ba`.
+The wrapper exited successfully after writing the final summary. Both fault
+manifests were reverified and all four passing qualification comparisons were
+enumerated with the same root. P3 is accepted as **PASS**. All three VMs were
+deallocated and the Flexible Server was manually stopped after evidence
+collection; retain every resource and artifact until separately authorized
+cleanup.

@@ -1,13 +1,14 @@
 # P3 production-simulation progress
 
-This is the redacted live progress report for the P3 qualification in
-`rg-afps-p3-20260831`. It is updated at material phase transitions; retained
-guest evidence and the final reviewed result remain authoritative.
+This is the completed chronological progress record for the P3 qualification
+in `rg-afps-p3-20260831`. See the reviewed final result in
+[`p3-20260831.md`](p3-20260831.md). Retained guest evidence remains
+authoritative.
 
-- Updated: 2026-09-03T07:58:17Z
-- Overall state: **RUNNING**
-- Current position: **Neo4j 5.26 recovery — post-load checks and source proof passed; full canonical digest is running**
-- Next: finish all 5,600 target ranges and compare the canonical root
+- Updated: 2026-09-03T10:01:43Z
+- Overall state: **PASS**
+- Current position: **All four qualifications and canonical comparisons are complete**
+- Next: none; compute resources are deallocated/stopped and evidence is retained
 - Target: PostgreSQL 18 / Apache AGE 1.7 on Azure Database for PostgreSQL
   Flexible Server
 
@@ -18,7 +19,7 @@ guest evidence and the final reviewed result remain authoritative.
 | Neo4j 4.4.48 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
 | Neo4j 4.4.48 | Recovery | **DONE** | Both planned recoveries completed; all 5,600 ranges and the final root match |
 | Neo4j 5.26.30 | Clean | **DONE** | All 560,000,000 rows and 5,600 digest ranges match |
-| Neo4j 5.26.30 | Recovery | **RUNNING** | Both planned faults, load, checks, and source proof passed; full target digest is active |
+| Neo4j 5.26.30 | Recovery | **DONE** | Both planned faults passed; all 560,000,000 rows and 5,600 digest ranges match |
 
 ## Neo4j 4.4.48
 
@@ -133,8 +134,8 @@ altering the completed evidence. The clean qualification is complete.
 | 6 | Run the complete built-in post-load checks | DONE; no failed or unknown checks; source semantic profiles match |
 | 7 | Compute the complete target digest and match fixture and clean roots | DONE; all 560,000,000 rows, 5,600 ranges, and the root match |
 
-The recovery run reuses the accepted clean source profiles as the source
-immutability proof, but it must compute a new complete target digest.
+The recovery run reused the accepted clean source profiles as its baseline
+immutability proof and computed a new complete target digest.
 
 The cold live-discovery phase completed and created durable job
 `d727d9aa-b7e5-4728-9254-90bd0210406d`. At 2026-09-02T20:12:49Z it had
@@ -470,7 +471,7 @@ created at 18:23:01Z.
 | 4 | Reboot the loader VM near 75% | DONE; reboot initiated at 433,740,000 rows (77.45%), with a final retained checkpoint at 435,980,000 rows |
 | 5 | Explicitly resume the same durable job and finish the load | DONE; all 560,000,000 rows committed with zero rejects and no failed batches |
 | 6 | Run the complete built-in post-load checks | DONE; report and doctor pass, with no failed or unknown bounded checks |
-| 7 | Compute the complete target digest and match fixture and clean roots | **RUNNING**; target `rangedigest` is active |
+| 7 | Compute the complete target digest and match fixture and clean roots | DONE; 5,600/5,600 ranges and the final root match |
 
 The recovery run reuses the accepted clean source profiles as the source
 immutability proof, but it must compute a new complete target digest.
@@ -555,17 +556,26 @@ explicitly excluded rather than presented as source changes. `ANALYZE` and
 both optimizer reviews completed, and the full target digest was active at
 07:58:17Z with approximately 391 MiB RSS and zero swap/OOM.
 
+The full target digest completed at 2026-09-03T09:47:18Z in 2:00:14. It
+covered all 560,000,000 rows in 5,600 leaves; every range and the final root
+matched both the fixture and accepted clean root
+`0302c456d17c6e9ee64552d68e2bf6a775e63cd3b09120f5bc342d329bddd1ba`.
+The final summary was written one second later, the wrapper exited with status
+zero, fault manifests were reverified, and all four passing qualification
+digests were enumerated with the same root. P3 is complete with outcome
+**PASS**.
+
 ## Live guardrails
 
 | Gate | Latest observed state |
 | --- | --- |
 | Live window | Within the authorized 96 hours; extended from 72 hours on 2026-09-02 |
 | Cost | Posted actual value: 437.39 USD; ceiling: 800 USD |
-| Flexible Server storage | Azure last reported 66.12%; limit: 80% |
-| PostgreSQL / HA | PostgreSQL 18.6 `Ready`; SameZone HA `Healthy`; private authentication passed |
+| Flexible Server storage | Final Azure observation: 66.04%; limit: 80% |
+| PostgreSQL / HA | PostgreSQL 18.6 and SameZone HA remained healthy through final evidence; server manually stopped afterward |
 | Loader memory | Neo4j 5.26 recovery final segment peaked at 2,746,460 KiB (2.62 GiB), below the 4 GiB limit |
 | Swap / OOM | Current recovery loader/source swap and OOM zero; retained failed-run evidence unchanged |
-| Active resources | Loader, Neo4j 5.26 VM, and Flexible Server running; Neo4j 4.4 VM deallocated |
+| Active resources | All three VMs deallocated; Flexible Server manually stopped; evidence retained |
 | External actions | Governance stop of the first r14 digest retained; later loader OS update completed without interrupting successful retry r2 |
 
 The complete acceptance and stop criteria are defined in
