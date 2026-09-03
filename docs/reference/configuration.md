@@ -263,6 +263,7 @@ source:
       relationshipTypePrefix: APP_
       vertexKeyProperty: source_key
       vertexIdProperty: person_id
+      vertexIdentity: property
       edgeKeyProperty: source_key
       edgeIdProperty: relationship_id
       maxLabels: 256
@@ -276,13 +277,24 @@ target label `NO_LABEL`; a source label named `NO_LABEL` conflicts with that
 mapping. Relationships whose endpoints are outside the selected labels are
 omitted.
 
-Every selected node must contain `vertexKeyProperty` and `vertexIdProperty`;
+Every selected node must contain `vertexKeyProperty` and, when
+`vertexIdentity: property` is used, `vertexIdProperty`;
 every selected relationship must contain `edgeKeyProperty` and
 `edgeIdProperty`. Identity properties default to their corresponding key
 properties when omitted. Key values must satisfy the same unique, strictly
 increasing signed 64-bit integer contract as explicit mappings. Discovery
-never uses Neo4j internal IDs or `elementId()`. All discovered properties are
-copied.
+uses property identity by default. An operationally read-only source may set
+`vertexIdentity: internal-id` to use `id(n)` only for migration-time vertex and
+edge endpoint correlation. This avoids random property reads on very large
+graphs, but must not be used when nodes can be deleted or recreated during a
+load because Neo4j may reuse internal IDs. All discovered properties,
+including `vertexIdProperty`, are still copied to the target.
+
+For non-incremental loads, internal-ID identity also enables a bounded dense
+endpoint cache. The cache is rebuilt from committed target metadata on resume,
+uses only the runtime memory left after reserving batch headroom, and falls back
+to the regular target lookup if an endpoint is not cached. Property identity
+and incremental modes always use the regular target lookup.
 
 A node with multiple selected labels is assigned once, to its lexicographically
 first selected label. Property discovery uses that same partition, and a later

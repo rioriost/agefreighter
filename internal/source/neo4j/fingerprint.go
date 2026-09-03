@@ -9,7 +9,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 )
 
-const fingerprintVersion = 1
+const fingerprintVersion = 3
 
 type fingerprintProperty struct {
 	Name  string `json:"name"`
@@ -23,6 +23,7 @@ type fingerprintMapping struct {
 	Label           string                 `json:"label"`
 	Namespace       string                 `json:"namespace"`
 	Query           string                 `json:"query"`
+	InitialQuery    string                 `json:"initialQuery,omitempty"`
 	KeyField        string                 `json:"keyField"`
 	IDField         string                 `json:"idField,omitempty"`
 	ExternalIDField string                 `json:"externalIdField,omitempty"`
@@ -58,7 +59,8 @@ func bindFingerprint(
 		entry := fingerprintMapping{
 			Index: index, Kind: mapping.kind.String(), KindIndex: mapping.kindIndex,
 			Label: string(mapping.label), Namespace: string(mapping.namespace),
-			Query: mapping.query, KeyField: mapping.keyField, IDField: mapping.idField,
+			Query: mapping.query, InitialQuery: mapping.initialQuery,
+			KeyField: mapping.keyField, IDField: mapping.idField,
 			ExternalIDField: mapping.externalIDField, Start: mapping.start, End: mapping.end,
 			Properties: make([]fingerprintProperty, len(mapping.properties)),
 		}

@@ -39,12 +39,14 @@ type compiledProperty struct {
 }
 
 type compiledMapping struct {
-	kind      mappingKind
-	kindIndex int
-	label     model.Label
-	namespace model.Namespace
-	query     string
-	keyField  string
+	kind         mappingKind
+	kindIndex    int
+	label        model.Label
+	namespace    model.Namespace
+	query        string
+	initialQuery string
+	keyField     string
+	paged        bool
 
 	idField         string
 	externalIDField string
@@ -77,6 +79,9 @@ func buildMappings(
 		if err := validateQuery(vertex.Query, vertex.KeyField, resource); err != nil {
 			return nil, err
 		}
+		if err := validateInitialQuery(vertex.InitialQuery, vertex.KeyField, resource); err != nil {
+			return nil, err
+		}
 		properties, err := compileProperties(vertex.Properties, maxProperties)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", resource, err)
@@ -85,7 +90,9 @@ func buildMappings(
 			kind: vertexMapping, kindIndex: index,
 			label: model.Label(vertex.Label), namespace: model.Namespace(namespace),
 			query: strings.TrimSpace(vertex.Query), keyField: vertex.KeyField,
-			idField: vertex.IDField, properties: properties,
+			initialQuery: strings.TrimSpace(vertex.InitialQuery),
+			paged:        usesKeysetPages(vertex.Query),
+			idField:      vertex.IDField, properties: properties,
 		})
 	}
 	for index, edge := range source.Edges {
@@ -105,6 +112,9 @@ func buildMappings(
 		if err := validateQuery(edge.Query, edge.KeyField, resource); err != nil {
 			return nil, err
 		}
+		if err := validateInitialQuery(edge.InitialQuery, edge.KeyField, resource); err != nil {
+			return nil, err
+		}
 		properties, err := compileProperties(edge.Properties, maxProperties)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", resource, err)
@@ -113,6 +123,8 @@ func buildMappings(
 			kind: edgeMapping, kindIndex: index,
 			label: model.Label(edge.Label), namespace: model.Namespace(namespace),
 			query: strings.TrimSpace(edge.Query), keyField: edge.KeyField,
+			initialQuery:    strings.TrimSpace(edge.InitialQuery),
+			paged:           usesKeysetPages(edge.Query),
 			externalIDField: edge.ExternalIDField, start: edge.Start, end: edge.End,
 			properties: properties,
 		})
@@ -136,7 +148,9 @@ func validateQuery(query, keyField, resource string) error {
 	if !sqlquery.HasParameter(query, "afterKey") {
 		return fmt.Errorf("%s query must use $afterKey", resource)
 	}
-	if !sqlquery.HasFinalTopLevelOrderByField(query, keyField) {
+	paged := usesKeysetPages(query)
+	if (!paged && !sqlquery.HasFinalTopLevelOrderByField(query, keyField)) ||
+		(paged && !sqlquery.HasTopLevelOrderByField(query, keyField)) {
 		return fmt.Errorf("%s query must end with ascending ORDER BY keyField", resource)
 	}
 	if sqlquery.HasKeyword(query, "skip") {
@@ -145,7 +159,7 @@ func validateQuery(query, keyField, resource string) error {
 	if sqlquery.HasKeyword(query, "offset") {
 		return fmt.Errorf("%s query must not use OFFSET", resource)
 	}
-	if sqlquery.HasKeyword(query, "limit") {
+	if sqlquery.HasKeyword(query, "limit") && !paged {
 		return fmt.Errorf("%s query must not use LIMIT", resource)
 	}
 	if sqlquery.HasKeyword(query, "union") {
@@ -156,6 +170,36 @@ func validateQuery(query, keyField, resource string) error {
 	}
 	if strings.Contains(query, ";") {
 		return fmt.Errorf("%s query must be one statement without a semicolon", resource)
+	}
+	return nil
+}
+
+func usesKeysetPages(query string) bool {
+	return sqlquery.HasFinalTopLevelLimitParameter(query, "pageRows")
+}
+
+func validateInitialQuery(query, keyField, resource string) error {
+	if strings.TrimSpace(query) == "" {
+		return nil
+	}
+	paged := usesKeysetPages(query)
+	if (!paged && !sqlquery.HasFinalTopLevelOrderByField(query, keyField)) ||
+		(paged && !sqlquery.HasTopLevelOrderByField(query, keyField)) {
+		return fmt.Errorf(
+			"%s initial query must end with ascending ORDER BY keyField, optionally followed by LIMIT $pageRows",
+			resource,
+		)
+	}
+	if sqlquery.HasKeyword(query, "limit") && !paged {
+		return fmt.Errorf("%s initial query must not use LIMIT except LIMIT $pageRows", resource)
+	}
+	for _, keyword := range []string{"skip", "offset", "union", "collect"} {
+		if sqlquery.HasKeyword(query, keyword) {
+			return fmt.Errorf("%s initial query must not use %s", resource, keyword)
+		}
+	}
+	if strings.Contains(query, ";") {
+		return fmt.Errorf("%s initial query must be one statement without a semicolon", resource)
 	}
 	return nil
 }

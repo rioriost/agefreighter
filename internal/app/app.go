@@ -473,12 +473,13 @@ func execute(
 	}
 	sinkOptions := age.LoadSinkOptions{
 		JobID: jobID, Graph: graph, Labels: labels,
-		Mode:             job.Target.Mode,
-		AppendDuplicate:  job.Target.AppendDuplicate,
-		PropertyMode:     job.Target.PropertyMode,
-		MissingEndpoint:  job.Errors.MissingEndpoint,
-		MaxDeferredEdges: job.Errors.MaxDeferredEdges,
-		CatalogAdmitted:  true,
+		Mode:                    job.Target.Mode,
+		AppendDuplicate:         job.Target.AppendDuplicate,
+		PropertyMode:            job.Target.PropertyMode,
+		MissingEndpoint:         job.Errors.MissingEndpoint,
+		MaxDeferredEdges:        job.Errors.MaxDeferredEdges,
+		CatalogAdmitted:         true,
+		DenseEndpointCacheBytes: denseEndpointCacheBytes(job),
 	}
 	if !resume {
 		sinkOptions.JobVerification = &verification

@@ -8,6 +8,11 @@ bin/
 dist/
 tab_replaced_*
 
+# Large production-simulation fixtures and raw telemetry stay local. Reviewed
+# summaries are tracked separately.
+production-simulation/work/
+production-simulation/results/raw/
+
 *.coverprofile
 *.out
 *.test

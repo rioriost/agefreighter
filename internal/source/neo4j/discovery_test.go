@@ -43,6 +43,9 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 	if resolved.Discovery != nil {
 		t.Fatalf("resolved discovery = %#v, want nil", resolved.Discovery)
 	}
+	if resolved.ResolvedVertexIdentity != config.Neo4jVertexIdentityProperty {
+		t.Fatalf("resolved vertex identity = %q", resolved.ResolvedVertexIdentity)
+	}
 	if len(resolved.Vertices) != 1 || len(resolved.Edges) != 1 {
 		t.Fatalf("resolved mappings = %#v, %#v", resolved.Vertices, resolved.Edges)
 	}
@@ -52,7 +55,13 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 		vertex.KeyField != "__key" ||
 		vertex.Properties["name"] != "__property_0000" ||
 		!strings.Contains(vertex.Query, "MATCH (n:`AppPerson`)") ||
-		!strings.Contains(vertex.Query, "ORDER BY __key") {
+		!strings.Contains(vertex.Query, "`seq` > $afterKey") ||
+		!strings.Contains(vertex.Query, "n.`vid` AS __id") ||
+		strings.Contains(vertex.Query, "$afterKey IS NULL") ||
+		!strings.Contains(vertex.InitialQuery, "`seq` IS NOT NULL") ||
+		!strings.Contains(vertex.Query, "ORDER BY __key") ||
+		!strings.HasSuffix(vertex.Query, "LIMIT $pageRows") ||
+		!strings.HasSuffix(vertex.InitialQuery, "LIMIT $pageRows") {
 		t.Fatalf("vertex mapping = %#v", vertex)
 	}
 	edge := resolved.Edges[0]
@@ -61,7 +70,14 @@ func TestDiscoverMappingsBuildsDeterministicMappings(t *testing.T) {
 		edge.End.Label != "AppPerson" ||
 		edge.ExternalIDField != "__id" ||
 		edge.Properties["since"] != "__property_0002" ||
-		!strings.Contains(edge.Query, "[r:`APP_KNOWS`]") {
+		!strings.Contains(edge.Query, "[r:`APP_KNOWS`]") ||
+		!strings.Contains(edge.Query, "USING INDEX r:`APP_KNOWS`(`seq`)") ||
+		!strings.Contains(edge.Query, "a.`vid` AS __start") ||
+		!strings.Contains(edge.Query, "b.`vid` AS __end") ||
+		!strings.Contains(edge.InitialQuery, "`seq` IS NOT NULL") ||
+		!strings.Contains(edge.Query, "ORDER BY __key") ||
+		!strings.HasSuffix(edge.Query, "LIMIT $pageRows") ||
+		!strings.HasSuffix(edge.InitialQuery, "LIMIT $pageRows") {
 		t.Fatalf("edge mapping = %#v", edge)
 	}
 	if _, err := buildMappings(
@@ -143,7 +159,7 @@ func TestDiscoverMappingsPartitionsMultiLabelVertices(t *testing.T) {
 	if len(resolved.Edges) != 1 ||
 		resolved.Edges[0].Start.Label != "Person" ||
 		resolved.Edges[0].End.Label != "Role" ||
-		!strings.Contains(
+		strings.Contains(
 			resolved.Edges[0].Query,
 			"a:`Person`",
 		) {

@@ -124,6 +124,28 @@ func TestHasTopLevelOrderByFieldAllowsSQLPagination(t *testing.T) {
 	}
 }
 
+func TestHasFinalTopLevelLimitParameter(t *testing.T) {
+	t.Parallel()
+	for _, query := range []string{
+		"RETURN 1 AS key ORDER BY key LIMIT $pageRows",
+		"RETURN 1 AS key ORDER BY key LIMIT /* bounded */ $pageRows // tail",
+	} {
+		if !HasFinalTopLevelLimitParameter(query, "pageRows") {
+			t.Fatalf("HasFinalTopLevelLimitParameter(%q) = false", query)
+		}
+	}
+	for _, query := range []string{
+		"RETURN 1 AS key ORDER BY key LIMIT 10",
+		"RETURN 1 AS key ORDER BY key LIMIT $other",
+		"CALL { RETURN 1 AS key LIMIT $pageRows } RETURN key",
+		"RETURN 'LIMIT $pageRows' AS key ORDER BY key",
+	} {
+		if HasFinalTopLevelLimitParameter(query, "pageRows") {
+			t.Fatalf("HasFinalTopLevelLimitParameter(%q) = true", query)
+		}
+	}
+}
+
 func TestOrderScannerRemainingBranches(t *testing.T) {
 	for _, query := range []string{
 		"RETURN 1 // ORDER BY hidden\nRETURN 1",

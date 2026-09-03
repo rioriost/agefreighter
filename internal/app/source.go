@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/reject"
@@ -14,6 +15,27 @@ import (
 	sourcepostgres "github.com/rioriost/agefreighter/internal/source/postgres"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
+
+const neo4jDiscoverySnapshotEnvironment = "AGEFREIGHTER_NEO4J_DISCOVERY_SNAPSHOT"
+
+const denseEndpointCacheReserve = 384 << 20
+
+func denseEndpointCacheBytes(job config.LoadJob) int64 {
+	if job.Source.Type != config.SourceNeo4j ||
+		job.Source.Neo4j == nil ||
+		job.Source.Neo4j.ResolvedVertexIdentity !=
+			config.Neo4jVertexIdentityInternalID ||
+		(job.Target.Mode != config.LoadCreate &&
+			job.Target.Mode != config.LoadReplace) {
+		return 0
+	}
+	limit := int64(job.Runtime.MemoryLimit)
+	reserve := max(denseEndpointCacheReserve, int64(job.Runtime.BatchBytes)*4)
+	if limit <= reserve {
+		return 0
+	}
+	return limit - reserve
+}
 
 func validateImplementedSource(job config.LoadJob) error {
 	switch job.Source.Type {
@@ -70,6 +92,27 @@ func resolveNeo4jDiscovery(
 	if source == nil ||
 		source.Discovery == nil ||
 		!source.Discovery.Enabled {
+		return job, nil
+	}
+	if snapshotPath := os.Getenv(neo4jDiscoverySnapshotEnvironment); snapshotPath != "" {
+		snapshot, err := sourceneo4j.LoadDiscoverySnapshot(snapshotPath)
+		if err != nil {
+			return config.LoadJob{}, err
+		}
+		resolved, err := sourceneo4j.ResolveMappingsSnapshot(*source, snapshot)
+		if err != nil {
+			return config.LoadJob{}, fmt.Errorf(
+				"resolve Neo4j discovery snapshot: %w",
+				err,
+			)
+		}
+		job.Source.Neo4j = &resolved
+		if err := job.Validate(); err != nil {
+			return config.LoadJob{}, fmt.Errorf(
+				"validate snapshotted Neo4j mappings: %w",
+				err,
+			)
+		}
 		return job, nil
 	}
 	var password string

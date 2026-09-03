@@ -112,11 +112,14 @@ func DiscoverMappingsBounded(
 				continue
 			}
 		}
-		if err := requireProperties(
-			properties,
-			options.VertexKeyProperty,
-			options.VertexIDProperty,
-		); err != nil {
+		requiredVertexProperties := []string{options.VertexKeyProperty}
+		if options.VertexIdentity != config.Neo4jVertexIdentityInternalID {
+			requiredVertexProperties = append(
+				requiredVertexProperties,
+				options.VertexIDProperty,
+			)
+		}
+		if err := requireProperties(properties, requiredVertexProperties...); err != nil {
 			return config.Neo4jSource{}, fmt.Errorf(
 				"Neo4j vertex label %q: %w",
 				label.target,
@@ -192,6 +195,7 @@ func DiscoverMappingsBounded(
 				labels,
 				properties,
 				options,
+				len(pairs) > 1,
 			))
 			if len(vertices)+len(edges) > maxDiscoveryMappings {
 				return config.Neo4jSource{}, fmt.Errorf(
@@ -202,6 +206,7 @@ func DiscoverMappingsBounded(
 		}
 	}
 	source.Discovery = nil
+	source.ResolvedVertexIdentity = normalizedVertexIdentity(options.VertexIdentity)
 	source.Vertices = vertices
 	source.Edges = edges
 	return source, nil
@@ -610,11 +615,8 @@ func buildDiscoveredVertex(
 ) config.VertexQuery {
 	propertyMap, propertyReturns := discoveredPropertyMapping("n", properties)
 	match := "MATCH (n:" + quoteCypherIdentifier(label.source) + ")"
-	predicates := []string{
-		"$afterKey IS NULL OR n." +
-			quoteCypherIdentifier(options.VertexKeyProperty) +
-			" > $afterKey",
-	}
+	key := "n." + quoteCypherIdentifier(options.VertexKeyProperty)
+	predicates := []string{}
 	if label.source == "" {
 		match = "MATCH (n)"
 		predicates = append([]string{"size(labels(n)) = 0"}, predicates...)
@@ -624,17 +626,22 @@ func buildDiscoveredVertex(
 			predicates...,
 		)
 	}
+	returns := []string{
+		key + " AS __key",
+		vertexIdentityExpression("n", options) + " AS __id",
+	}
 	return config.VertexQuery{
 		Label: label.target,
 		Query: buildDiscoveryQuery(
 			match,
-			predicates,
-			[]string{
-				"n." + quoteCypherIdentifier(options.VertexKeyProperty) +
-					" AS __key",
-				"n." + quoteCypherIdentifier(options.VertexIDProperty) +
-					" AS __id",
-			},
+			append(slices.Clone(predicates), key+" > $afterKey"),
+			returns,
+			propertyReturns,
+		),
+		InitialQuery: buildDiscoveryQuery(
+			match,
+			append(slices.Clone(predicates), key+" IS NOT NULL"),
+			returns,
 			propertyReturns,
 		),
 		KeyField:   "__key",
@@ -649,29 +656,39 @@ func buildDiscoveredEdge(
 	labels []discoveredLabel,
 	properties []string,
 	options config.Neo4jDiscovery,
+	filterEndpoints bool,
 ) config.EdgeQuery {
 	propertyMap, propertyReturns := discoveredPropertyMapping("r", properties)
+	key := "r." + quoteCypherIdentifier(options.EdgeKeyProperty)
+	match := "MATCH (a)-[r:" + quoteCypherIdentifier(relationshipType) + "]->(b)" +
+		" USING INDEX r:" + quoteCypherIdentifier(relationshipType) +
+		"(" + quoteCypherIdentifier(options.EdgeKeyProperty) + ")"
+	predicates := make([]string, 0, 3)
+	if filterEndpoints {
+		predicates = append(
+			predicates,
+			primaryLabelPredicate("a", pair.start, labels),
+			primaryLabelPredicate("b", pair.end, labels),
+		)
+	}
+	returns := []string{
+		key + " AS __key",
+		"r." + quoteCypherIdentifier(options.EdgeIDProperty) + " AS __id",
+		vertexIdentityExpression("a", options) + " AS __start",
+		vertexIdentityExpression("b", options) + " AS __end",
+	}
 	return config.EdgeQuery{
 		Label: relationshipType,
 		Query: buildDiscoveryQuery(
-			"MATCH (a)-[r:"+quoteCypherIdentifier(relationshipType)+"]->(b)",
-			[]string{
-				"$afterKey IS NULL OR r." +
-					quoteCypherIdentifier(options.EdgeKeyProperty) +
-					" > $afterKey",
-				primaryLabelPredicate("a", pair.start, labels),
-				primaryLabelPredicate("b", pair.end, labels),
-			},
-			[]string{
-				"r." + quoteCypherIdentifier(options.EdgeKeyProperty) +
-					" AS __key",
-				"r." + quoteCypherIdentifier(options.EdgeIDProperty) +
-					" AS __id",
-				endpointIDExpression("a", options.VertexIDProperty) +
-					" AS __start",
-				endpointIDExpression("b", options.VertexIDProperty) +
-					" AS __end",
-			},
+			match,
+			append(slices.Clone(predicates), key+" > $afterKey"),
+			returns,
+			propertyReturns,
+		),
+		InitialQuery: buildDiscoveryQuery(
+			match,
+			append(slices.Clone(predicates), key+" IS NOT NULL"),
+			returns,
 			propertyReturns,
 		),
 		KeyField:        "__key",
@@ -695,10 +712,15 @@ func buildDiscoveryQuery(
 	propertyReturns []string,
 ) string {
 	allReturns := append(slices.Clone(returns), propertyReturns...)
+	// FetchRows bounds the client-side Bolt buffer, but it does not bound the
+	// server-side lifetime or memory of one auto-commit query. Very large Neo4j
+	// 5.x mappings can otherwise retain query state until the JVM heap is
+	// exhausted. Close each ordered stream after one keyset page so both sides
+	// have a hard memory bound and resume from the last unique key.
 	return match +
 		" WHERE (" + strings.Join(predicates, ") AND (") + ")" +
 		" RETURN " + strings.Join(allReturns, ", ") +
-		" ORDER BY __key"
+		" ORDER BY __key LIMIT $pageRows"
 }
 
 func discoveredPropertyMapping(
@@ -740,11 +762,24 @@ func primaryLabelPredicate(
 	return strings.Join(parts, " AND ")
 }
 
-func endpointIDExpression(
+func vertexIdentityExpression(
 	variable string,
-	idProperty string,
+	options config.Neo4jDiscovery,
 ) string {
-	return variable + "." + quoteCypherIdentifier(idProperty)
+	if normalizedVertexIdentity(options.VertexIdentity) ==
+		config.Neo4jVertexIdentityInternalID {
+		return "id(" + variable + ")"
+	}
+	return variable + "." + quoteCypherIdentifier(options.VertexIDProperty)
+}
+
+func normalizedVertexIdentity(
+	identity config.Neo4jVertexIdentity,
+) config.Neo4jVertexIdentity {
+	if identity == "" {
+		return config.Neo4jVertexIdentityProperty
+	}
+	return identity
 }
 
 func vertexPropertyQuery(

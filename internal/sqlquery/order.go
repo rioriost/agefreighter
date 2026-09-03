@@ -214,6 +214,19 @@ func HasTopLevelOrderByField(query, field string) bool {
 		strings.EqualFold(tokens[next], "fetch")
 }
 
+// HasFinalTopLevelLimitParameter reports whether the final top-level clause is
+// LIMIT followed by the named parameter. Quoted text, comments, and nested
+// subqueries are ignored in the same way as the ordering helpers.
+func HasFinalTopLevelLimitParameter(query, name string) bool {
+	tokens := topLevelTokens(query)
+	if len(tokens) < 3 {
+		return false
+	}
+	last := len(tokens) - 1
+	return strings.EqualFold(tokens[last-2], "limit") &&
+		tokens[last-1] == "$" && tokens[last] == name
+}
+
 func topLevelTokens(query string) []string {
 	var tokens []string
 	depth := 0

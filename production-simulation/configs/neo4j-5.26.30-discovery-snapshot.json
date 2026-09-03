@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "production-simulation-neo4j-5.26.30",
+  "labels": [
+    {"name":"Supplier","properties":["source_key","external_id","name","region","created_at","status","score","active","tags","quantities","description"]},
+    {"name":"Facility","properties":["source_key","external_id","name","region","created_at","status","score","active","tags","quantities","description"]},
+    {"name":"Product","properties":["source_key","external_id","name","region","created_at","status","score","active","tags","quantities","description"]},
+    {"name":"PurchaseOrder","properties":["source_key","external_id","name","region","created_at","status","score","active","tags","quantities","description"]},
+    {"name":"Shipment","properties":["source_key","external_id","name","region","created_at","status","score","active","tags","quantities","description"]},
+    {"name":"Lot","properties":["source_key","external_id","name","region","created_at","status","score","active","tags","quantities","description"]},
+    {"name":"Location","properties":["source_key","external_id","name","region","created_at","status","score","active","tags","quantities","description"]},
+    {"name":"Carrier","properties":["source_key","external_id","name","region","created_at","status","score","active","tags","quantities","description"]},
+    {"name":"Customer","properties":["source_key","external_id","name","region","created_at","status","score","active","tags","quantities","description"]}
+  ],
+  "relationships": [
+    {"type":"SUPPLIES","startLabel":"Supplier","endLabel":"Product","properties":["source_key","relationship_id","occurred_at","quantity","status","distance_km","notes"]},
+    {"type":"PRODUCED_AT","startLabel":"Product","endLabel":"Facility","properties":["source_key","relationship_id","occurred_at","quantity","status","distance_km","notes"]},
+    {"type":"PLACED_WITH","startLabel":"PurchaseOrder","endLabel":"Supplier","properties":["source_key","relationship_id","occurred_at","quantity","status","distance_km","notes"]},
+    {"type":"CONTAINS","startLabel":"PurchaseOrder","endLabel":"Product","properties":["source_key","relationship_id","occurred_at","quantity","status","distance_km","notes"]},
+    {"type":"FULFILLS","startLabel":"Shipment","endLabel":"PurchaseOrder","properties":["source_key","relationship_id","occurred_at","quantity","status","distance_km","notes"]},
+    {"type":"ORIGINATES_AT","startLabel":"Shipment","endLabel":"Facility","properties":["source_key","relationship_id","occurred_at","quantity","status","distance_km","notes"]},
+    {"type":"DESTINED_FOR","startLabel":"Shipment","endLabel":"Location","properties":["source_key","relationship_id","occurred_at","quantity","status","distance_km","notes"]},
+    {"type":"CARRIED_BY","startLabel":"Shipment","endLabel":"Carrier","properties":["source_key","relationship_id","occurred_at","quantity","status","distance_km","notes"]},
+    {"type":"INCLUDED_IN","startLabel":"Lot","endLabel":"Shipment","properties":["source_key","relationship_id","occurred_at","quantity","status","distance_km","notes"]}
+  ]
+}

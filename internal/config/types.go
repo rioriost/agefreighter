@@ -24,9 +24,16 @@ const (
 
 type Neo4jMultiLabelPolicy string
 
+type Neo4jVertexIdentity string
+
 const (
 	Neo4jMultiLabelConfigured Neo4jMultiLabelPolicy = "configured"
 	Neo4jMultiLabelReject     Neo4jMultiLabelPolicy = "reject"
+)
+
+const (
+	Neo4jVertexIdentityProperty   Neo4jVertexIdentity = "property"
+	Neo4jVertexIdentityInternalID Neo4jVertexIdentity = "internal-id"
 )
 
 type TargetType string
@@ -153,28 +160,30 @@ type PostgreSQLSource struct {
 }
 
 type Neo4jSource struct {
-	URI              string                `json:"uri" yaml:"uri"`
-	Database         string                `json:"database" yaml:"database"`
-	SourceID         string                `json:"sourceId" yaml:"sourceId"`
-	Username         string                `json:"username,omitempty" yaml:"username,omitempty"`
-	Password         *SecretRef            `json:"password,omitempty" yaml:"password,omitempty"`
-	FetchRows        int                   `json:"fetchRows" yaml:"fetchRows"`
-	MultiLabelPolicy Neo4jMultiLabelPolicy `json:"multiLabelPolicy" yaml:"multiLabelPolicy"`
-	Discovery        *Neo4jDiscovery       `json:"discovery,omitempty" yaml:"discovery,omitempty"`
-	Vertices         []VertexQuery         `json:"vertices,omitempty" yaml:"vertices,omitempty"`
-	Edges            []EdgeQuery           `json:"edges,omitempty" yaml:"edges,omitempty"`
+	URI                    string                `json:"uri" yaml:"uri"`
+	Database               string                `json:"database" yaml:"database"`
+	SourceID               string                `json:"sourceId" yaml:"sourceId"`
+	Username               string                `json:"username,omitempty" yaml:"username,omitempty"`
+	Password               *SecretRef            `json:"password,omitempty" yaml:"password,omitempty"`
+	FetchRows              int                   `json:"fetchRows" yaml:"fetchRows"`
+	MultiLabelPolicy       Neo4jMultiLabelPolicy `json:"multiLabelPolicy" yaml:"multiLabelPolicy"`
+	Discovery              *Neo4jDiscovery       `json:"discovery,omitempty" yaml:"discovery,omitempty"`
+	Vertices               []VertexQuery         `json:"vertices,omitempty" yaml:"vertices,omitempty"`
+	Edges                  []EdgeQuery           `json:"edges,omitempty" yaml:"edges,omitempty"`
+	ResolvedVertexIdentity Neo4jVertexIdentity   `json:"-" yaml:"-"`
 }
 
 type Neo4jDiscovery struct {
-	Enabled                bool   `json:"enabled" yaml:"enabled"`
-	LabelPrefix            string `json:"labelPrefix,omitempty" yaml:"labelPrefix,omitempty"`
-	RelationshipTypePrefix string `json:"relationshipTypePrefix,omitempty" yaml:"relationshipTypePrefix,omitempty"`
-	VertexKeyProperty      string `json:"vertexKeyProperty" yaml:"vertexKeyProperty"`
-	VertexIDProperty       string `json:"vertexIdProperty,omitempty" yaml:"vertexIdProperty,omitempty"`
-	EdgeKeyProperty        string `json:"edgeKeyProperty" yaml:"edgeKeyProperty"`
-	EdgeIDProperty         string `json:"edgeIdProperty,omitempty" yaml:"edgeIdProperty,omitempty"`
-	MaxLabels              int    `json:"maxLabels" yaml:"maxLabels"`
-	MaxProperties          int    `json:"maxProperties" yaml:"maxProperties"`
+	Enabled                bool                `json:"enabled" yaml:"enabled"`
+	LabelPrefix            string              `json:"labelPrefix,omitempty" yaml:"labelPrefix,omitempty"`
+	RelationshipTypePrefix string              `json:"relationshipTypePrefix,omitempty" yaml:"relationshipTypePrefix,omitempty"`
+	VertexKeyProperty      string              `json:"vertexKeyProperty" yaml:"vertexKeyProperty"`
+	VertexIDProperty       string              `json:"vertexIdProperty,omitempty" yaml:"vertexIdProperty,omitempty"`
+	VertexIdentity         Neo4jVertexIdentity `json:"vertexIdentity,omitempty" yaml:"vertexIdentity,omitempty"`
+	EdgeKeyProperty        string              `json:"edgeKeyProperty" yaml:"edgeKeyProperty"`
+	EdgeIDProperty         string              `json:"edgeIdProperty,omitempty" yaml:"edgeIdProperty,omitempty"`
+	MaxLabels              int                 `json:"maxLabels" yaml:"maxLabels"`
+	MaxProperties          int                 `json:"maxProperties" yaml:"maxProperties"`
 }
 
 type CosmosSource struct {
@@ -210,16 +219,18 @@ type CosmosQueryParameter struct {
 }
 
 type VertexQuery struct {
-	Label      string            `json:"label" yaml:"label"`
-	Query      string            `json:"query" yaml:"query"`
-	IDField    string            `json:"idField" yaml:"idField"`
-	KeyField   string            `json:"keyField,omitempty" yaml:"keyField,omitempty"`
-	Properties map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
+	Label        string            `json:"label" yaml:"label"`
+	Query        string            `json:"query" yaml:"query"`
+	InitialQuery string            `json:"-" yaml:"-"`
+	IDField      string            `json:"idField" yaml:"idField"`
+	KeyField     string            `json:"keyField,omitempty" yaml:"keyField,omitempty"`
+	Properties   map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
 }
 
 type EdgeQuery struct {
 	Label           string            `json:"label" yaml:"label"`
 	Query           string            `json:"query" yaml:"query"`
+	InitialQuery    string            `json:"-" yaml:"-"`
 	ExternalIDField string            `json:"externalIdField,omitempty" yaml:"externalIdField,omitempty"`
 	KeyField        string            `json:"keyField,omitempty" yaml:"keyField,omitempty"`
 	Start           EndpointMapping   `json:"start" yaml:"start"`

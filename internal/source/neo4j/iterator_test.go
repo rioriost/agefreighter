@@ -105,6 +105,70 @@ func TestIteratorStreamsAndResumes(t *testing.T) {
 	}
 }
 
+func TestIteratorPagesBoundedKeysetQueries(t *testing.T) {
+	source := testSource()
+	source.Vertices[0].Query = "MATCH (n) WHERE n.k > $afterKey " +
+		"RETURN n.k AS k, n.id AS id, n.name AS name ORDER BY k LIMIT $pageRows"
+	source.Vertices[0].InitialQuery = "MATCH (n) WHERE n.k IS NOT NULL " +
+		"RETURN n.k AS k, n.id AS id, n.name AS name ORDER BY k LIMIT $pageRows"
+	client := &fakeClient{streams: []RecordStream{
+		&fakeStream{records: []Record{
+			record(map[string]any{"k": int64(1), "id": "a", "name": "A"}, "k", "id", "name"),
+			record(map[string]any{"k": int64(2), "id": "b", "name": "B"}, "k", "id", "name"),
+		}},
+		&fakeStream{records: []Record{
+			record(map[string]any{"k": int64(3), "id": "c", "name": "C"}, "k", "id", "name"),
+		}},
+	}}
+	iterator := newTestIterator(t, source, client)
+	var ids []model.ExternalID
+	for {
+		item, err := iterator.Next(context.Background())
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, item.Record.Vertex.ExternalID)
+	}
+	if len(ids) != 3 {
+		t.Fatalf("ids = %#v", ids)
+	}
+	if got := strings.Join([]string{string(ids[0]), string(ids[1]), string(ids[2])}, ","); got != "a,b,c" {
+		t.Fatalf("ids = %q", got)
+	}
+	if len(client.parameters) != 2 ||
+		client.queries[0] != source.Vertices[0].InitialQuery ||
+		client.queries[1] != source.Vertices[0].Query ||
+		len(client.parameters[0]) != 1 ||
+		client.parameters[0]["pageRows"] != 2 ||
+		client.parameters[1]["afterKey"] != int64(2) ||
+		client.parameters[1]["pageRows"] != 2 {
+		t.Fatalf("parameters = %#v", client.parameters)
+	}
+}
+
+func TestIteratorUsesInitialQueryForStreamingMapping(t *testing.T) {
+	source := testSource()
+	source.Vertices[0].Query = "MATCH (n) WHERE n.k > $afterKey " +
+		"RETURN n.k AS k, n.id AS id, n.name AS name ORDER BY k"
+	source.Vertices[0].InitialQuery = "MATCH (n) WHERE n.k IS NOT NULL " +
+		"RETURN n.k AS k, n.id AS id, n.name AS name ORDER BY k"
+	client := &fakeClient{streams: []RecordStream{&fakeStream{records: []Record{
+		record(map[string]any{"k": int64(1), "id": "a", "name": "A"}, "k", "id", "name"),
+	}}}}
+	iterator := newTestIterator(t, source, client)
+	item, err := iterator.Next(context.Background())
+	if err != nil || item.Record.Vertex.ExternalID != "a" {
+		t.Fatalf("Next = %#v, %v", item, err)
+	}
+	if len(client.queries) != 1 || client.queries[0] != source.Vertices[0].InitialQuery ||
+		len(client.parameters[0]) != 0 {
+		t.Fatalf("queries = %#v, parameters = %#v", client.queries, client.parameters)
+	}
+}
+
 func TestIteratorPreservesVertexThenEdgeOrder(t *testing.T) {
 	source := testSource()
 	source.Vertices = append(source.Vertices, config.VertexQuery{

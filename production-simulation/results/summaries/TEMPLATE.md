@@ -1,0 +1,29 @@
+# Production simulation result
+
+- Run ID:
+- Phase:
+- Result: PASS / FAIL / STOPPED
+- Git commit:
+- agefreighter version and checksum:
+- Fixture manifest root:
+- Source: Neo4j 4.4.48 / 5.26.30
+- Target: PostgreSQL 18 / Apache AGE 1.7
+- Azure region and zone:
+- Source VM SKU:
+- Loader VM SKU:
+- Flexible Server SKU, storage, HA:
+- Started/finished UTC:
+- Elapsed:
+- Vertices/edges committed:
+- Rejects/failed batches/missing endpoints:
+- Average and final-quintile throughput:
+- Loader peak RSS:
+- Source/target peak IOPS and throughput:
+- Final storage and WAL sizes:
+- Faults and recovery time:
+- Built-in verification:
+- Canonical digest verification:
+- Forecast or actual cost:
+- Deviations:
+- Artifact location:
+- Reviewer:

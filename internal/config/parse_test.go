@@ -71,6 +71,7 @@ func TestNeo4jDiscoveryDefaultsAndStaticPlan(t *testing.T) {
 	}
 	discovery := job.Source.Neo4j.Discovery
 	if discovery == nil ||
+		discovery.VertexIdentity != Neo4jVertexIdentityProperty ||
 		discovery.VertexIDProperty != "sequence" ||
 		discovery.EdgeIDProperty != "sequence" ||
 		discovery.MaxLabels != 256 ||

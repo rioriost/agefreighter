@@ -246,6 +246,11 @@ the delivery sequence.
 
 ## Performance
 
+The review-gated [production simulation](production-simulation/README.md)
+qualifies Neo4j 4.4.48 and 5.26.30 migrations at up to 160 million vertices
+and 400 million edges against PostgreSQL 18 with Apache AGE 1.7 on Azure.
+Large runs are manual and are never part of ordinary pull-request CI.
+
 The release benchmark compares end-to-end CSV `create` throughput using the
 same 20,200-row countries corpus, Apple M4 Max host, and pinned PostgreSQL 17 /
 Apache AGE 1.6 environment. Throughput is the number of rows verified in AGE

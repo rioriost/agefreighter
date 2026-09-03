@@ -25,26 +25,28 @@ type LoadLabel struct {
 }
 
 type LoadSinkOptions struct {
-	JobID            string
-	Graph            meta.GraphGeneration
-	Labels           []LoadLabel
-	Mode             config.LoadMode
-	AppendDuplicate  config.AppendDuplicatePolicy
-	PropertyMode     config.PropertyMode
-	MissingEndpoint  config.MissingEndpointPolicy
-	MaxDeferredEdges int
-	Quarantine       reject.Writer
-	JobVerification  *meta.JobVerification
-	CatalogAdmitted  bool
+	JobID                   string
+	Graph                   meta.GraphGeneration
+	Labels                  []LoadLabel
+	Mode                    config.LoadMode
+	AppendDuplicate         config.AppendDuplicatePolicy
+	PropertyMode            config.PropertyMode
+	MissingEndpoint         config.MissingEndpointPolicy
+	MaxDeferredEdges        int
+	Quarantine              reject.Writer
+	JobVerification         *meta.JobVerification
+	CatalogAdmitted         bool
+	DenseEndpointCacheBytes int64
 }
 
 type LoadSink struct {
-	adapter     *Adapter
-	diagnostics *meta.Store
-	options     LoadSinkOptions
-	labels      map[model.Label]LoadLabel
-	mu          sync.Mutex
-	active      bool
+	adapter       *Adapter
+	diagnostics   *meta.Store
+	options       LoadSinkOptions
+	labels        map[model.Label]LoadLabel
+	mu            sync.Mutex
+	active        bool
+	endpointCache *denseEndpointCache
 }
 
 type loadTransaction struct {
@@ -59,6 +61,7 @@ type loadTransaction struct {
 	wrote           bool
 	incrementalLock bool
 	stageSequence   uint64
+	denseIdentities []pendingDenseIdentity
 }
 
 type committedReplayTransaction struct {
@@ -201,11 +204,27 @@ func NewLoadSink(
 	if len(labels) == 0 {
 		return nil, errors.New("load sink requires at least one label")
 	}
+	var endpointCache *denseEndpointCache
+	if options.DenseEndpointCacheBytes > 0 {
+		if incrementalMode(options.Mode) {
+			return nil, errors.New(
+				"dense endpoint cache is supported only for create and replace modes",
+			)
+		}
+		endpointCache, err = newDenseEndpointCache(options.DenseEndpointCacheBytes)
+		if err != nil {
+			return nil, err
+		}
+		if err := endpointCache.load(ctx, adapter.pool, options.Graph.ID); err != nil {
+			return nil, err
+		}
+	}
 	return &LoadSink{
-		adapter:     adapter,
-		diagnostics: diagnostics,
-		options:     options,
-		labels:      labels,
+		adapter:       adapter,
+		diagnostics:   diagnostics,
+		options:       options,
+		labels:        labels,
+		endpointCache: endpointCache,
 	}, nil
 }
 
@@ -654,6 +673,13 @@ func (transaction *loadTransaction) writeVertices(
 			graphID:    id,
 		}
 	}
+	if transaction.sink.endpointCache != nil {
+		pending, err := transaction.sink.endpointCache.prepare(identities)
+		if err != nil {
+			return err
+		}
+		transaction.denseIdentities = append(transaction.denseIdentities, pending...)
+	}
 	if _, err := (&Transaction{tx: transaction.tx}).CopyVertices(
 		ctx,
 		binding.Catalog,
@@ -880,6 +906,12 @@ func (transaction *loadTransaction) resolveEdges(
 	ctx context.Context,
 	edges []stagedEdge,
 ) ([]resolvedEdge, []stagedEdge, error) {
+	if transaction.sink.endpointCache != nil {
+		resolved, complete := transaction.resolveEdgesDense(edges)
+		if complete {
+			return resolved, nil, nil
+		}
+	}
 	stage := fmt.Sprintf(
 		"agefreighter_edge_reference_stage_%d",
 		edges[0].label.Generation.ID,
@@ -1223,6 +1255,9 @@ func (transaction *loadTransaction) Commit(
 			fmt.Errorf("commit AGE load transaction: %w", err),
 			ownerErr,
 		)
+	}
+	if transaction.sink.endpointCache != nil {
+		transaction.sink.endpointCache.apply(transaction.denseIdentities)
 	}
 	transaction.sink.options.JobVerification = nil
 	ownerErr := transaction.releaseOwner()

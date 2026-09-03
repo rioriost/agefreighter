@@ -33,9 +33,30 @@ func TestMappingValidationAndOrdering(t *testing.T) {
 		{"skip", "RETURN $afterKey AS k ORDER BY k SKIP 1", "k"},
 		{"offset", "RETURN $afterKey AS k ORDER BY k OFFSET 1", "k"},
 		{"limit", "RETURN $afterKey AS k ORDER BY k LIMIT 1", "k"},
+		{"unbound page limit", "RETURN $afterKey AS k ORDER BY k LIMIT $other", "k"},
 		{"union", "RETURN $afterKey AS k UNION RETURN 2 AS k ORDER BY k", "k"},
 		{"collect", "RETURN collect($afterKey) AS k ORDER BY k", "k"},
 		{"semicolon", "RETURN $afterKey AS k ORDER BY k;", "k"},
+	}
+	if err := validateQuery(
+		"RETURN $afterKey AS k ORDER BY k LIMIT $pageRows", "k", "mapping",
+	); err != nil {
+		t.Fatalf("rejected bounded keyset query: %v", err)
+	}
+	if err := validateInitialQuery(
+		"RETURN 1 AS k ORDER BY k LIMIT $pageRows", "k", "mapping",
+	); err != nil {
+		t.Fatalf("rejected bounded initial query: %v", err)
+	}
+	if err := validateInitialQuery(
+		"RETURN 1 AS k ORDER BY k", "k", "mapping",
+	); err != nil {
+		t.Fatalf("rejected streaming initial query: %v", err)
+	}
+	if err := validateInitialQuery(
+		"RETURN 1 AS k ORDER BY k LIMIT 1", "k", "mapping",
+	); err == nil {
+		t.Fatal("accepted fixed-limit initial query")
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -98,6 +119,11 @@ func TestFingerprintBindsIdentityAndOrderedConfiguration(t *testing.T) {
 	changedMappings[0].query += " "
 	if fingerprint, _ := bindFingerprint(source, "people", changedMappings); fingerprint == first {
 		t.Fatal("mapping did not affect fingerprint")
+	}
+	changedMappings = append([]compiledMapping(nil), mappings...)
+	changedMappings[0].initialQuery = "RETURN 1"
+	if fingerprint, _ := bindFingerprint(source, "people", changedMappings); fingerprint == first {
+		t.Fatal("initial query did not affect fingerprint")
 	}
 }
 
