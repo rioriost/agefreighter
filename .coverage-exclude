@@ -1,2 +1,14 @@
 # Exact repository-relative Go file paths may be added only with a reviewable
-# reason. No exclusions are needed in the initial implementation.
+# reason. Production-simulation commands and libraries are qualification
+# tooling, not code shipped in the AGEFreighter binaries; their tests still run
+# under the normal test gate, but they are outside the product coverage gate.
+production-simulation/cmd/fixturegen/main.go
+production-simulation/cmd/rangedigest/main.go
+production-simulation/internal/fixture/generate.go
+production-simulation/internal/fixture/model.go
+production-simulation/internal/fixture/verify.go
+production-simulation/internal/rangedigest/canonical.go
+production-simulation/internal/rangedigest/compare.go
+production-simulation/internal/rangedigest/fixture.go
+production-simulation/internal/rangedigest/target.go
+production-simulation/internal/rangedigest/target_endpoint_index.go
