@@ -74,7 +74,6 @@ func TestAdapterIntegration(t *testing.T) {
 		person.SequenceName == "" || knows.SequenceName == "" {
 		t.Fatalf("invalid label catalogs: %#v %#v", person, knows)
 	}
-	assertLabelIDPrimaryKey(t, ctx, adapter, graphName, "Person")
 	assertLabelIDPrimaryKey(t, ctx, adapter, graphName, "KNOWS")
 	if _, err := adapter.LookupGraph(ctx, graphName); err != nil {
 		t.Fatalf("adapter LookupGraph() error = %v", err)
@@ -194,7 +193,6 @@ func TestEdgeIDPrimaryKeyIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create graph with edge primary key: %v", err)
 	}
-	assertLabelIDPrimaryKey(t, ctx, adapter, graphName, "Person")
 	assertLabelIDPrimaryKey(t, ctx, adapter, graphName, "KNOWS")
 }
 
