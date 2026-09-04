@@ -2,6 +2,16 @@
 
 ## 2.4.0
 
+- Replace the local Neo4j wizard with a runner-first preview: choose one of four
+  sources, defer workspace selection, discover ARM source candidates and review
+  a private Linux discovery/migration VM. No desktop CLI is used by this path.
+- Add approval-gated runner deployment with pinned release checksums, quota and
+  zone checks, create-only what-if, atomic workflow records, cross-window locks,
+  and status reconciliation after ambiguous responses. Remote assessment,
+  target deployment, same-VM resize and migration remain disabled pending R3–R5.
+- The earlier local profiling milestones below are retained as implementation
+  history, not the current wizard flow.
+
 - Update chat help, AI workflow guidance, the welcome view, and the installed
   guide to start with the source form. Clearly show that this development build
   ends at the Azure proposal; documentation opens the bundled version's guide.

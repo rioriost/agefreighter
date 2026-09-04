@@ -54,7 +54,7 @@
           "type": "string",
           "default": "agefreighter",
           "scope": "resource",
-          "description": "Path to the AGEFreighter CLI. New Guided Migration requires 2.4.0; existing LoadJob commands support 2.3.0 or newer."
+          "description": "Local CLI path for existing LoadJob commands (2.3.0 or newer). The runner-first guided workflow does not use a desktop CLI."
         },
         "agefreighter.readTimeoutSeconds": {
           "type": "number",
@@ -178,7 +178,7 @@
     "viewsWelcome": [
       {
         "view": "agefreighter.jobs",
-        "contents": "Start with your Neo4j connection details. Sign in to Azure in VS Code and select the 2.4.0 CLI first.\n[New guided migration](command:agefreighter.newGuidedMigration)\nThis development build provides source sizing and an Azure proposal. Automated deployment and migration are still being implemented.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
+        "contents": "Select a source, then review a private Linux discovery/migration VM. Use your existing Azure login; no desktop CLI or project folder is required to open the wizard.\n[New guided migration](command:agefreighter.newGuidedMigration)\nThis preview supports runner planning and approval-gated provisioning. Remote assessment and migration are not enabled yet.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
       }
     ],
     "menus": {

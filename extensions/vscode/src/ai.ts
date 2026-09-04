@@ -154,14 +154,14 @@ async function explainWithModel(
 
 function helpText(): string {
   return [
-    "Start a new Neo4j migration with **AGEFreighter: New Guided Migration** from the Command Palette or the **+** button in the AGEFreighter view.",
+    "Start with **AGEFreighter: New Guided Migration** from the Command Palette or the **+** button in the AGEFreighter view.",
     "",
-    "1. Open a trusted workspace, sign in to Azure in VS Code, and select the AGEFreighter 2.4.0 CLI.",
-    "2. Enter the source host, port, database, credentials, and identity properties in the form. Enter passwords only in the form, never in chat.",
-    "3. Select the Azure subscription and source location. For an Azure source, supply its ARM resource ID; for on-premises, enter the physical location and confirm the suggested region.",
-    "4. Choose **Connect and profile source**. Review exact node/relationship totals, estimated storage, and the proposed Flexible Server and loader VM region, zone, capacity, quota, and compute cost.",
+    "1. Use your existing Azure login in VS Code. No project folder or local AGEFreighter installation is needed to open the guided workflow.",
+    "2. Select Neo4j, PostgreSQL, Cosmos DB for NoSQL, or local CSV files. For Azure sources, select the subscription, resource group and candidate. A VM candidate is not a verified database.",
+    "3. Review a Linux discovery VM in an existing source-reachable subnet. Check region, zone, SKU, quota, release checksum and costs, then explicitly approve deployment. No source firewall or public access is added.",
+    "4. The intended next steps are remote assessment, target sizing, output-folder/LoadJob selection, approved same-VM resize and target deployment, migration, then evidence-backed verification.",
     "",
-    "The extension saves the draft LoadJob and proposal automatically. This 2.4.0 development build currently ends at the Azure proposal. Guided deployment, automatic migration, and final verification are still being implemented; no Azure resources or migration jobs are started by the wizard yet.",
+    "This preview implements source selection and approval-gated runner provisioning only. Remote source assessment, CSV upload, target deployment, resizing, migration and verification are not enabled yet. The matching 2.4.x Linux release must exist before runner deployment. No source password is collected and no LoadJob is generated yet. Never put credentials in chat.",
     "",
     "For an **existing LoadJob**, `/validate`, `/plan`, `/profile`, and `/doctor` remain available. `/status` and `/report` require the durable job UUID. Guided drafts are not listed as executable jobs.",
     "",

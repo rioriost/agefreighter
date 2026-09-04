@@ -5,19 +5,21 @@ migration logic or credentials into an AI model.
 
 AGEFreighter migrates CSV, PostgreSQL, Neo4j, and Azure Cosmos DB graph data to
 Apache AGE or PostgreSQL 19 SQL/PGQ property graphs. This extension is a guided
-interface for the separately installed AGEFreighter CLI; the Go CLI
-remains the deterministic migration engine and owner of durable checkpoints.
+interface to the deterministic Go engine and its durable checkpoints. The new
+guided path is being moved to a dedicated Linux Azure VM; advanced existing
+LoadJob commands continue to use a separately installed local CLI.
 
 ## Highlights
 
-- Start a guided Neo4j migration by entering the source connection in VS Code;
-  no hand-written LoadJob is required for source profiling.
+- Select Neo4j, PostgreSQL, Cosmos DB for NoSQL or CSV in the runner-first wizard;
+  no desktop CLI or project-folder selection is required to open it.
 - Reuse the Azure account already signed into VS Code, select a subscription,
   and verify an Azure source's region and logical zone from its ARM resource.
-- Check current PostgreSQL 18 capabilities, zonal VM SKU availability, service
-  quotas, and bounded USD retail rates before saving an Azure proposal.
-- Keep passwords in VS Code SecretStorage and owner-only extension storage;
-  generated jobs contain secret references, not secret values.
+- Preview a private Linux discovery/migration VM in an existing compute subnet;
+  check zonal SKU availability, quotas, pinned release checksums and compute cost.
+- Require a modal approval and fresh ARM what-if before runner creation. Retain
+  deployment IDs and reconcile unknown status without replaying a create.
+- Collect no source credentials in this preview; remote assessment is not enabled.
 - Discover AGEFreighter `LoadJob` YAML and JSON files in the workspace.
 - Validate configuration and inspect static plans without connecting to a
   source or target.
@@ -32,20 +34,27 @@ remains the deterministic migration engine and owner of durable checkpoints.
 
 ## Prerequisites
 
-Use VS Code 1.105 or newer, open a trusted workspace folder, and sign in to
-Azure in VS Code. Azure Resources and AGEFreighter have separate account-access
+Use VS Code 1.105 or newer and sign in to Azure in VS Code.
+Azure Resources and AGEFreighter have separate account-access
 permissions: on first use, open VS Code's **Accounts** menu (profile icon) and
 approve the AGEFreighter request to use the existing Azure account, then click
-**Refresh Azure access** in the wizard. This does not automatically start another
+**Refresh Azure account** in the wizard. This does not automatically start another
 Azure login. After signing in or changing account/subscription filters, use the
 same refresh button; subscription lookup failures are not treated as sign-out.
-Select an AGEFreighter 2.4.0 CLI using **AGEFreighter: Select
-CLI Binary**, or put it on `PATH`. The guided form uses its new `inventory`
-command. A released 2.3.0 CLI supports the existing LoadJob commands only.
+The guided path does not invoke a desktop CLI. Runner deployment requires a
+published matching 2.4.x Linux release with its checksum; an unpublished release
+blocks deployment instead of falling back to an incompatible older binary.
+Azure subscription permissions must allow the reviewed VM/NIC/NSG deployment.
+Use an existing non-delegated compute subnet with source connectivity, private
+DNS and outbound access for Azure VM agent services and release installation.
+The wizard adds no public IP, SSH ingress, source firewall rule or peering.
+VS Code workspace trust is required for deployment, but opening the wizard does
+not require an output folder. The final flow will choose that folder only after
+target review. CSV files can be selected earlier without upload.
 
-This is a 2.4.0 development package. Use the CLI built from the matching
-development branch until 2.4.0 is released. Installing the extension does not
-install or upgrade the CLI.
+**Advanced local LoadJob commands only:** select a CLI 2.3.0 or newer with
+**AGEFreighter: Select CLI Binary**, or put it on `PATH`. Installing the extension
+does not install or upgrade the desktop CLI.
 
 For the latest released CLI on macOS, the Homebrew installation is:
 
@@ -63,28 +72,37 @@ verify their checksum and GitHub build-provenance attestation before use.
 1. Open the AGEFreighter view and choose **+ / New Guided Migration**, or run
    **AGEFreighter: New Guided Migration** from the Command Palette. You can
    start with an empty workspace; no LoadJob file is needed.
-2. Enter the Neo4j host, port, database, username, password, and the properties
-   that identify nodes and relationships. Select the target Azure subscription.
-3. For an Azure source, provide its ARM resource ID to verify its region and
-   logical availability zone. For on-premises or another cloud, enter its
-   physical location and confirm or change the proposed Azure region.
-4. Select **Connect and profile source**. AGEFreighter validates the generated
-   draft, reads exact node and relationship totals, and estimates storage from
-   a bounded profile.
-5. Review the proposed PostgreSQL 18 Flexible Server and AGEFreighter VM,
-   including region, common zone, capacity, quota availability, and the retail
-   compute estimate. Resolve any reported blockers before proceeding.
+2. Select the source type first. Neo4j/PostgreSQL support Azure, on-premises or
+   another cloud; Cosmos uses Azure; CSV uses local files. For Azure, select the
+   source subscription/RG and discover candidates. A VM is only a candidate,
+   not proof of an installed database. No desktop database probe is performed.
+3. Review the runner subscription, existing RG/subnet, region, zone and small
+   Burstable SKU (or the listed non-Burstable alternatives). Source region/zone
+   equality is checked when available; cross-subscription physical-zone mapping
+   is not implemented and blocks deployment. Cosmos uses actual data regions,
+   not the account metadata location. On-premises region choice is manual.
+4. Select **Check prerequisites & preview runner**. Review the immutable resource
+   identities, version/checksum, compute cost and additional charges. Approve the
+   network prerequisites and costs, then confirm **Approve & deploy discovery VM**.
+   The 15-minute preview must still match and a fresh what-if must show only new,
+   expected resources. No existing resource is overwritten.
+5. **Refresh deployment status** or **Reconnect to a saved workflow** after a
+   reload. Closing VS Code does not cancel Azure deployment or stop charges.
+   Unknown results are reconciled by ID; they are not resubmitted automatically.
 
-The guided path reads the selected subscription's current region, zone, SKU,
-and quota metadata, writes an Azure proposal that expires after 24 hours, and
-shows a bounded retail compute estimate when available. Drafts and evidence
-are saved under `.agefreighter/guided/`; passwords are stored separately.
+Workflow metadata is held in extension global storage, without source passwords,
+before output-folder selection. The VM uses persistent managed OS storage and
+has no public IP. Evidence/disks are retained; this preview has no automatic
+cleanup, stop or delete action. Operators remain responsible for resource costs.
 
-**Current development-build limit:** the wizard ends at the Azure proposal.
-The planned next steps—review and deploy Azure resources, start the migration
-after readiness checks, and verify the completed migration—are not implemented
-in this build. The wizard does not create Azure resources or start a migration.
-Its generated draft is not yet an executable migration job.
+**Current development-build limit:** source selection and runner provisioning
+are implemented, but not yet live-Azure qualified. ARM success is not guest
+readiness. Remote assessment, protected credential dispatch, CSV upload, mapping,
+target sizing/deployment, same-VM resize, LoadJob export, remote migration and
+verification are not enabled. No source passwords or migration jobs are created
+by this preview. Do not publish it as a complete guided migration workflow.
+The [runner-first plan](https://github.com/rioriost/agefreighter/blob/codex/2.4.0-guided-migration/docs/design/agefreighter-2.4.0-runner-first.md)
+tracks the remaining gates.
 
 ## Existing LoadJob workflow (advanced)
 

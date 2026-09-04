@@ -1,5 +1,9 @@
 # VS Code guided migration contract
 
+> Historical version-1 local profiling contract. The active wizard now uses the
+> [version-2 runner-first contract](vscode-runner-contract.md). Existing v1 drafts
+> are retained, not reinterpreted as deployable runner state.
+
 This contract supplements the [VS Code CLI contract](vscode-extension-cli-contract.md)
 for the 2.4.0 guided migration workspace.
 

@@ -104,6 +104,37 @@ export class AzureSession implements vscode.Disposable {
     return parseLocations(payload);
   }
 
+  /** Control-plane requests only. Never accepts an arbitrary host or forwards redirects. */
+  public async runnerRequest(subscriptionID: string, path: string, method: "GET" | "POST" | "PUT" = "GET", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }> {
+    const subscription = await this.subscription(subscriptionID);
+    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
+    const url = new URL(path, endpoint);
+    if (url.protocol !== "https:" || url.origin !== new URL(endpoint).origin ||
+        !url.pathname.toLowerCase().startsWith(`/subscriptions/${subscriptionID.toLowerCase()}/`)) {
+      throw new Error("The runner operation is outside the selected subscription.");
+    }
+    const token = await subscription.credential.getToken(`${endpoint}/.default`);
+    if (!token?.token) throw new Error("VS Code could not obtain an Azure token.");
+    const response = await fetch(url, {
+      method, redirect: "error", signal: AbortSignal.timeout(30_000),
+      headers: { authorization: `Bearer ${token.token}`, "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    if (!response.ok && response.status !== 404) throw new Error(`Azure runner operation returned HTTP ${response.status}. Refresh status before retrying.`);
+    const payload = await response.text();
+    if (payload.length > 8 * 1024 * 1024) throw new Error("Azure runner response exceeded the safety limit.");
+    return { status: response.status, value: payload ? JSON.parse(payload) as unknown : {},
+      poll: response.headers.get("location") ?? response.headers.get("azure-asyncoperation") ?? undefined };
+  }
+
+  public async runnerList(subscriptionID: string, path: string): Promise<unknown[]> {
+    const subscription = await this.subscription(subscriptionID);
+    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
+    const url = new URL(path, endpoint);
+    if (url.origin !== new URL(endpoint).origin || !url.pathname.toLowerCase().startsWith(`/subscriptions/${subscriptionID.toLowerCase()}/`)) throw new Error("Invalid inventory scope.");
+    return (await this.armValuePages(subscription, url)).value;
+  }
+
   public async recommendationData(subscriptionID: string, location: string): Promise<AzureRecommendationData> {
     if (!/^[a-z0-9-]{1,64}$/i.test(location)) {
       throw new Error("The Azure region name is invalid.");
@@ -219,6 +250,7 @@ export class AzureSession implements vscode.Disposable {
         throw new Error("Azure Resource Manager returned an unsafe continuation link.");
       }
       const response = await fetch(nextURL, {
+        redirect: "error",
         headers: { authorization: `Bearer ${token.token}` },
         signal: AbortSignal.timeout(30_000)
       });

@@ -6,9 +6,27 @@ The AGEFreighter VS Code extension has no publisher-operated service and emits
 no telemetry. It does not upload migration configurations, database data,
 credentials, logs, reports, or usage events to the AGEFreighter maintainers.
 
-The extension starts the locally installed AGEFreighter CLI. That CLI connects
+The advanced existing-LoadJob workflow starts the locally installed AGEFreighter CLI. That CLI connects
 only to sources and targets configured by the user's selected LoadJob and uses
 the existing environment/file secret-reference mechanism.
+
+The runner-first guided preview does not invoke a desktop CLI. It uses the
+operator's existing VS Code Azure account to read ARM resource inventory, query
+official Azure retail prices and submit an explicitly approved VM deployment.
+ARM receives the selected placement and a generated VM/NIC/NSG template. GitHub
+serves the matching public release checksum; the VM downloads and checks that
+release. Those services see normal request metadata under their respective terms.
+The preview adds no public IP or source firewall rule and collects no source
+credentials. Source file selection does not upload CSV contents.
+
+Version-2 runner records (resource IDs, source type/location, template, pinned
+artifact checksum, costs and deployment phase) are saved in owner-only files
+under extension global storage. No ARM token or source password is saved in
+those records. Azure retains submitted templates and operation records; the VM
+retains bootstrap evidence on its managed disk. Closing VS Code does not stop
+the VM or its charges. This preview does not automatically delete evidence or
+resources. Remote source assessment, CSV transfer and remote migration are not
+yet enabled; they require a separate reviewed credential/transfer implementation.
 
 ## Optional VS Code language model use
 

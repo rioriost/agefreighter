@@ -1,6 +1,16 @@
 # AGEFreighter 2.4.0 guided migration workspace
 
+Current architecture: [runner-first redesign](agefreighter-2.4.0-runner-first.md).
+The Linux discovery VM becomes the migration VM after sizing. The local-CLI
+reference implementation described below is historical, not the new guided path.
+
 Status: reviewed and approved for implementation on `codex/2.4.0-guided-migration`
+
+2026-09-05 revision: the [source-first discovery and networking design](agefreighter-2.4.0-source-discovery-networking.md)
+supersedes the initial Neo4j-first scope, early workspace requirement, and
+discovery-network sequence below. It adds guided CSV, separate source/target
+subscriptions, late folder selection and a separately approved private discovery
+runner. That revision is a reviewed design, not completed runtime functionality.
 
 ## Outcome
 

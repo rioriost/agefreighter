@@ -1,0 +1,138 @@
+# Runner-first guided migrations (2.4.0)
+
+Date: 2026-09-05. This design supersedes the local-CLI reference path and the
+optional-runner policy in the earlier guided migration plans.
+
+## Roles and complete workflow
+
+The macOS/Windows extension is the control plane. A dedicated Linux x64 VM is
+the execution plane for discovery, profiling, migration, recovery and validation.
+The operator never needs to install AGEFreighter or Azure CLI on the desktop
+for this guided path. Existing LoadJob commands remain a separate local-CLI path.
+
+1. Open the wizard without selecting a workspace. Choose Neo4j, PostgreSQL,
+   Cosmos DB, or CSV. Choose Azure/on-premises/other-cloud for the first two,
+   Azure only for Cosmos, and local files only for CSV.
+2. Select the source subscription/RG/resource or enter the endpoint. ARM finds
+   candidates, not database identities: VM names and open ports are not proof.
+   CSV selection opens a local file picker only after selecting CSV; it does
+   not imply permission to upload file contents.
+3. Choose an existing, source-reachable compute subnet, region and zone for the
+   runner. Do not alter the source firewall or create peering/VPN. Private DNS,
+   source data-plane access and outbound access to Azure VM agent services and
+   the pinned software distribution must be available. No public IP or inbound
+   SSH is added. A new isolated VNet cannot solve source reachability.
+4. Preview a small Burstable Linux VM and persistent disk configuration. Show
+   resource changes, software version/checksum, estimated costs, uncertainty,
+   quota/zone restrictions and retained-disk charges. Obtain separate approval
+   for this early deployment; do not ask for source passwords before this gate.
+5. Create VM/NIC/NSG in a selected existing resource group using a stable workflow
+   identifier. Install a pinned release and verify its SHA-256; use the same
+   version through migration. Verify guest readiness, not merely ARM success.
+6. Collect credentials through protected channels, or use the runner's managed
+   identity with explicitly approved source data-plane RBAC. VM identity alone
+   grants no Cosmos read access. For CSV, preview upload size, then transfer to
+   persistent storage with resume and checksum verification before profiling.
+7. Run connector-aware read-only discovery/profile as a durable guest job with
+   CPU/memory/time/RU limits. Review PostgreSQL/CSV graph mappings and identities.
+   Retain evidence on managed storage; return bounded, redacted summaries only.
+8. Propose target Flexible Server and final runner size/disk/IOPS. Do not infer
+   loader memory from the source Neo4j heap. P3's 128 GiB source VM and roughly
+   2.62 GiB loader peak RSS are different observations. B-series profile speed
+   is not a migration-throughput benchmark.
+9. After reviewing target settings, select an output folder and save configuration
+   and redacted evidence. Cancel preserves the workflow without deployment.
+   VM jobs reference Linux paths/secret handles, not desktop password files.
+10. Approve resize and target deployment. Seal evidence, ensure no active guest
+    job, deallocate the runner, resize the same VM within a compatible x64/SCSI
+    size family, restart, and verify actual guest resources/network/identity.
+    Check zonal capacity and both regional and VM-family quota at execution time.
+    Failure preserves the VM/disks and blocks migration; replacement is a new
+    explicit approval, not an automatic fallback. Never resize the source VM.
+11. Prepare/verify AGE and target readiness, finalize and validate LoadJob, and
+    explicitly start migration on the runner. VS Code closing must not stop it.
+12. Reconnect to durable workflow/job IDs for status or explicit recovery; run
+    counts/integrity/digest verification. Missing evidence is incomplete, not
+    pass. Stop/deallocate and delete are separate approved lifecycle operations.
+
+## Control and durability
+
+ARM deployment and managed Run Command are the control transport, not SSH or a
+public runner web server. Managed Run Command launches short allowlisted control
+operations; long jobs must live in persistent systemd units on the guest, not
+inside an interactive request or a transient unit that disappears on reboot.
+Source credentials cannot appear in templates, customData, command text, URLs,
+logs or public parameters. Use protected transport or a scoped secret store;
+never relay an ARM token as a Cosmos data token. The AI receives no secrets.
+
+Version-2 local workflow metadata lives in extension global storage before any
+project selection. It stores source type/location, reviewed deployment, operation
+IDs and phase, but no source passwords. Record operation intent before PUT;
+after errors/reload query that exact ID instead of submitting a new deployment.
+Use a fresh preview hash with expiry and single-flight mutation locks. Ignore
+stale UI selection responses. Treat already-existing resource names as collisions.
+
+Do not keep artifacts on ephemeral disks. Keep VM identity/NIC and managed
+disks through a size change. Explicitly account for temporary interruption,
+dynamic IP changes, egress policy, source allowlists and zone equivalence when
+subscriptions differ. A successful control-plane update does not prove that
+the guest is running the requested size or that bootstrap succeeded.
+
+## Implementation and review gates
+
+- R1: replace the local-CLI wizard with source selection, late workspace binding,
+  resource inventory and persistent runner planning. No local AGEFreighter calls.
+- R2: reviewed ARM template, quota/SKU/subnet checks, fresh what-if, bounded cost
+  evidence, explicit create approval, durable deployment ID and status refresh.
+- R3: guest readiness and protected remote dispatch, connector discovery and
+  mapping editors, CSV resumable upload, full retained-artifact retrieval.
+- R4: sizing, same-VM resize, target deployment, LoadJob export/finalization.
+- R5: durable remote load/resume/verification, reconnect and lifecycle controls.
+
+R1/R2 can be packaged for review while R3-R5 remain visibly disabled. A runner
+deployment is not a completed assessment or a migration. Release must wait for
+the four source integration paths, Linux guest tests, controlled private-network
+deployment and failure-injection evidence. No production-scale rerun is implied.
+
+Review: this removes desktop binary/version drift and reuses private connectivity.
+The main risks are private-subnet egress, source credential delegation, Burstable
+throttling, zonal resize capacity, and interrupted control requests. Fail closed
+on each; do not silently expose databases or claim a provisioned VM is ready.
+
+## Implementation checkpoint — 2026-09-05
+
+R1/R2 control-plane implementation is present on `codex/2.4.0-guided-migration`.
+The old local-CLI wizard is no longer registered; advanced existing LoadJob
+commands remain unchanged. Source selectors/candidate inventory, late workspace
+binding, reviewed private-VM templates, checksum bootstrap, approval, atomic
+record storage, cross-window locks and no-replay status refresh are implemented.
+R2 is **not live-Azure qualified**. The matching 2.4.0 Linux release is not yet
+published, so its release gate intentionally blocks provisioning.
+
+Review findings and dispositions:
+
+- Critical: a desktop CLI in the discovery path defeats private-network access.
+  Removed from the active wizard; no temporary public-access workaround added.
+- Critical: lost PUT responses and simultaneous extension windows can duplicate
+  deployment. Persist intent before PUT, re-read under an exclusive lock, and
+  reconcile by exact ID. Crash locks stay retained; status remains readable.
+- High: ARM success cannot prove package installation or source reachability.
+  `provisioned` is separate from guest readiness; assessment stays disabled.
+- High: source and loader sizing were easy to conflate. Preserve separate roles;
+  burstable discovery performance must not become a throughput promise.
+- High: remote credentials, connector mapping, CSV uploads, resize and durable
+  guest jobs need their own integration/failure tests. R3–R5 remain release gates,
+  not assumed functionality. No source password or live load is accepted now.
+- Medium: manual subnet selection and on-premises region review remain necessary.
+  Do not infer a private route or geographic location from a hostname.
+
+Validation: TypeScript/unit tests and packaging; VS Code Extension Host smoke
+tests on macOS arm64 at minimum version 1.105.0 and installed version 1.136.1.
+The smoke test opens the wizard without a workspace or local CLI chooser.
+No live Azure resource was created or changed during this implementation check.
+Controlled integration with a published pinned Linux artifact and R3–R5 work
+are required before release; this is not an end-to-end completion claim.
+
+References: [Azure resizing](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/resize-vm),
+[managed Linux Run Command](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/run-command-managed),
+[Bsv2 CPU credits](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/general-purpose/bsv2-series).
