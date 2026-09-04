@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { AzureAccessError } from "./core/azureAccess";
 import * as vscode from "vscode";
 import {
   buildNeo4jDraftYAML,
@@ -75,6 +76,7 @@ function openGuidedPanel(
     try {
       switch (message.type) {
         case "ready":
+        case "refreshAzure":
           await sendSubscriptions(panel, azure);
           break;
         case "listRegions":
@@ -253,7 +255,8 @@ async function sendSubscriptions(panel: vscode.WebviewPanel, azure: AzureSession
     await panel.webview.postMessage({ type: "subscriptions", subscriptions });
   } catch (error) {
     await panel.webview.postMessage({
-      type: "azureSignedOut",
+      type: "azureAccessError",
+      state: error instanceof AzureAccessError ? error.state : "error",
       message: safeError(error)
     });
   }
@@ -447,7 +450,8 @@ function guidedHTML(webview: vscode.Webview): string {
   <section class="card">
     <h2>Azure account</h2>
     <div id="azureStatus" class="status">Checking the Azure account signed into VS Code…</div>
-    <p class="muted">Prerequisite: sign in to Azure through VS Code before opening this workflow. AGEFreighter does not start a second sign-in session.</p>
+    <p class="muted">Uses the Microsoft account already signed into VS Code / Azure Resources. On first use, approve AGEFreighter's separate access request in the VS Code Accounts menu. No second login is started automatically.</p>
+    <button id="refreshAzure" type="button">Refresh Azure access</button>
   </section>
 
   <form id="sourceForm">
@@ -511,6 +515,12 @@ function guidedHTML(webview: vscode.Webview): string {
     const subscription = byId('subscription');
     const preferredRegion = byId('preferredRegion');
     let azureLocations = [];
+    byId('refreshAzure').addEventListener('click', () => {
+      azureStatus.textContent = 'Checking existing Azure account access…';
+      azureStatus.className = 'status';
+      byId('refreshAzure').disabled = true;
+      vscode.postMessage({ type: 'refreshAzure' });
+    });
 
     function selectedPlacement() {
       return document.querySelector('input[name="placement"]:checked').value;
@@ -556,6 +566,8 @@ function guidedHTML(webview: vscode.Webview): string {
       const message = event.data;
       if (!message || typeof message.type !== 'string') return;
       if (message.type === 'subscriptions') {
+        byId('refreshAzure').disabled = false;
+        const previousSubscription = subscription.value;
         subscription.replaceChildren();
         for (const item of message.subscriptions) {
           const option = document.createElement('option');
@@ -563,6 +575,7 @@ function guidedHTML(webview: vscode.Webview): string {
           option.textContent = item.name + ' — ' + item.accountLabel;
           subscription.appendChild(option);
         }
+        if (message.subscriptions.some((item) => item.id === previousSubscription)) subscription.value = previousSubscription;
         azureStatus.textContent = message.subscriptions.length
           ? 'Signed in. Select the Azure subscription that will own the migration resources.'
           : 'Signed in, but no selected Azure subscriptions are available.';
@@ -570,7 +583,15 @@ function guidedHTML(webview: vscode.Webview): string {
         if (message.subscriptions.length) {
           vscode.postMessage({ type: 'listRegions', subscriptionId: subscription.value });
         }
-      } else if (message.type === 'azureSignedOut') {
+      } else if (message.type === 'azureAccessError') {
+        byId('refreshAzure').disabled = false;
+        subscription.replaceChildren();
+        const unavailable = document.createElement('option');
+        unavailable.value = '';
+        unavailable.textContent = message.state === 'accessRequired' ? 'Approve AGEFreighter account access, then refresh' : 'Azure subscriptions unavailable — refresh to retry';
+        subscription.appendChild(unavailable);
+        azureLocations = [];
+        preferredRegion.replaceChildren();
         azureStatus.textContent = message.message;
         azureStatus.className = 'status error';
       } else if (message.type === 'locations') {
@@ -587,6 +608,7 @@ function guidedHTML(webview: vscode.Webview): string {
         }
         recommendNearestRegion();
       } else if (message.type === 'busy') {
+        byId('refreshAzure').disabled = message.value;
         profileButton.disabled = message.value;
         working.textContent = message.value ? message.message : '';
       } else if (message.type === 'error') {

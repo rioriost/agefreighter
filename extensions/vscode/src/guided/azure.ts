@@ -1,8 +1,11 @@
 import {
   AzureSubscription,
+  getConfiguredAuthProviderId,
+  getSessionFromVSCode,
   VSCodeAzureSubscriptionProvider
 } from "@microsoft/vscode-azext-azureauth";
 import * as vscode from "vscode";
+import { AzureAccessError, existingAzureAccess } from "../core/azureAccess";
 import {
   AzureLocationSummary,
   parseAzureResourceID,
@@ -51,8 +54,13 @@ export class AzureSession implements vscode.Disposable {
   }
 
   public async subscriptions(): Promise<AzureSubscriptionSummary[]> {
-    if (!await this.provider.isSignedIn()) {
-      throw new Error("Sign in to Azure in VS Code before starting a guided migration.");
+    this.subscriptionsByID.clear();
+    const access = await existingAzureAccess({
+      accounts: async () => vscode.authentication.getAccounts(getConfiguredAuthProviderId()),
+      session: async (account, options) => !!await getSessionFromVSCode([], undefined, { ...options, account })
+    });
+    if (access !== "ready") {
+      throw new AzureAccessError(access);
     }
     const subscriptions = await this.provider.getSubscriptions(true);
     this.subscriptionsByID = new Map(subscriptions.map((subscription) => [subscription.subscriptionId, subscription]));

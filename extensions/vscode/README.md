@@ -33,7 +33,13 @@ remains the deterministic migration engine and owner of durable checkpoints.
 ## Prerequisites
 
 Use VS Code 1.105 or newer, open a trusted workspace folder, and sign in to
-Azure in VS Code. Select an AGEFreighter 2.4.0 CLI using **AGEFreighter: Select
+Azure in VS Code. Azure Resources and AGEFreighter have separate account-access
+permissions: on first use, open VS Code's **Accounts** menu (profile icon) and
+approve the AGEFreighter request to use the existing Azure account, then click
+**Refresh Azure access** in the wizard. This does not automatically start another
+Azure login. After signing in or changing account/subscription filters, use the
+same refresh button; subscription lookup failures are not treated as sign-out.
+Select an AGEFreighter 2.4.0 CLI using **AGEFreighter: Select
 CLI Binary**, or put it on `PATH`. The guided form uses its new `inventory`
 command. A released 2.3.0 CLI supports the existing LoadJob commands only.
 
