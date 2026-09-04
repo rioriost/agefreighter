@@ -24,11 +24,22 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 	dev-reset dev-smoke dev-status dev-up fmt fuzz-smoke install-tools release-check test \
 	test-compatibility test-connectors-cosmos test-connectors-cosmos-pggraph \
 	test-connectors-local test-diagnostics-race test-pggraph test-pggraph-apple \
-	test-race test-recovery test-release-integration tidy vet vuln workflow-lint
+	test-race test-recovery test-release-integration tidy vet vscode-check vscode-package \
+	vscode-test-host vuln workflow-lint
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter ./cmd/agefreighter
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter-tools ./cmd/agefreighter-tools
+
+vscode-check:
+	npm --prefix extensions/vscode ci
+	npm --prefix extensions/vscode run check
+
+vscode-test-host:
+	npm --prefix extensions/vscode run test:host
+
+vscode-package:
+	npm --prefix extensions/vscode run package
 
 bench-csv:
 	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \

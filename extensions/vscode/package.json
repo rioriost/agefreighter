@@ -1,0 +1,200 @@
+{
+  "name": "agefreighter",
+  "displayName": "AGEFreighter",
+  "description": "Plan, run, recover, and review validated graph migrations with the AGEFreighter CLI.",
+  "version": "2.3.0",
+  "publisher": "rioriost",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "homepage": "https://github.com/rioriost/agefreighter#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rioriost/agefreighter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rioriost/agefreighter/issues"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Data Science",
+    "Other"
+  ],
+  "keywords": [
+    "apache-age",
+    "postgresql",
+    "neo4j",
+    "cosmos-db",
+    "graph",
+    "migration",
+    "sql-pgq"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onView:agefreighter.jobs",
+    "onChatParticipant:agefreighter.chat"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Job discovery is available, but AGEFreighter processes cannot run until the workspace is trusted."
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "configuration": {
+      "title": "AGEFreighter",
+      "properties": {
+        "agefreighter.binaryPath": {
+          "type": "string",
+          "default": "agefreighter",
+          "scope": "resource",
+          "description": "Path to the separately installed AGEFreighter 2.3.0 or newer CLI."
+        },
+        "agefreighter.readTimeoutSeconds": {
+          "type": "number",
+          "default": 120,
+          "minimum": 5,
+          "maximum": 1800,
+          "scope": "resource",
+          "description": "Timeout for captured read-only CLI commands. Long-running commands use a terminal instead."
+        },
+        "agefreighter.maxOutputBytes": {
+          "type": "number",
+          "default": 4194304,
+          "minimum": 65536,
+          "maximum": 16777216,
+          "scope": "resource",
+          "description": "Maximum captured stdout and stderr bytes per read-only CLI command."
+        }
+      }
+    },
+    "commands": [
+      { "command": "agefreighter.refreshJobs", "title": "Refresh Jobs", "category": "AGEFreighter", "icon": "$(refresh)" },
+      { "command": "agefreighter.selectBinary", "title": "Select CLI Binary", "category": "AGEFreighter" },
+      { "command": "agefreighter.checkVersion", "title": "Check CLI Version", "category": "AGEFreighter" },
+      { "command": "agefreighter.validate", "title": "Validate Job", "category": "AGEFreighter" },
+      { "command": "agefreighter.plan", "title": "Show Static Plan", "category": "AGEFreighter" },
+      { "command": "agefreighter.profile", "title": "Profile Source", "category": "AGEFreighter" },
+      { "command": "agefreighter.doctor", "title": "Diagnose Target", "category": "AGEFreighter" },
+      { "command": "agefreighter.load", "title": "Start Migration", "category": "AGEFreighter" },
+      { "command": "agefreighter.resume", "title": "Resume Migration", "category": "AGEFreighter" },
+      { "command": "agefreighter.status", "title": "Show Job Status", "category": "AGEFreighter" },
+      { "command": "agefreighter.verify", "title": "Verify Migration", "category": "AGEFreighter" },
+      { "command": "agefreighter.report", "title": "Show Migration Report", "category": "AGEFreighter" },
+      { "command": "agefreighter.optimize", "title": "Show Optimization Advice", "category": "AGEFreighter" },
+      { "command": "agefreighter.cleanup", "title": "Remove Replacement Backup", "category": "AGEFreighter" },
+      { "command": "agefreighter.openDocumentation", "title": "Open Documentation", "category": "AGEFreighter" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "agefreighter",
+          "title": "AGEFreighter",
+          "icon": "resources/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "agefreighter": [
+        {
+          "id": "agefreighter.jobs",
+          "name": "Migration Jobs"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "agefreighter.refreshJobs",
+          "when": "view == agefreighter.jobs",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        { "command": "agefreighter.validate", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "1_read@1" },
+        { "command": "agefreighter.plan", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "1_read@2" },
+        { "command": "agefreighter.profile", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "1_read@3" },
+        { "command": "agefreighter.doctor", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "1_read@4" },
+        { "command": "agefreighter.load", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "2_write@1" },
+        { "command": "agefreighter.resume", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "2_write@2" },
+        { "command": "agefreighter.status", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "3_job@1" },
+        { "command": "agefreighter.verify", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "3_job@2" },
+        { "command": "agefreighter.report", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "3_job@3" },
+        { "command": "agefreighter.optimize", "when": "view == agefreighter.jobs && viewItem == agefreighter.job", "group": "3_job@4" }
+      ]
+    },
+    "chatParticipants": [
+      {
+        "id": "agefreighter.chat",
+        "name": "agefreighter",
+        "fullName": "AGEFreighter",
+        "description": "Explain migration plans and bounded AGEFreighter evidence.",
+        "isSticky": true,
+        "commands": [
+          { "name": "help", "description": "Show safe migration workflow and available commands" },
+          { "name": "validate", "description": "Validate a selected migration job" },
+          { "name": "plan", "description": "Explain a selected migration plan" },
+          { "name": "profile", "description": "Explain a bounded source profile" },
+          { "name": "doctor", "description": "Explain target readiness diagnostics" },
+          { "name": "status", "description": "Explain durable migration status" },
+          { "name": "report", "description": "Explain a bounded migration report" }
+        ]
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "agefreighter_read",
+        "displayName": "Read AGEFreighter Evidence",
+        "modelDescription": "Run a bounded, read-only AGEFreighter command for a trusted workspace job. Never starts, resumes, cleans up, or mutates a migration.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "operation": {
+              "type": "string",
+              "enum": ["validate", "plan", "profile", "doctor", "status", "report", "optimize"],
+              "description": "Read-only AGEFreighter operation."
+            },
+            "job": {
+              "type": "string",
+              "description": "Absolute path to a discovered AGEFreighter LoadJob YAML or JSON file inside the trusted workspace."
+            },
+            "jobId": {
+              "type": "string",
+              "description": "Durable UUID required by status and report."
+            }
+          },
+          "required": ["operation", "job"],
+          "additionalProperties": false
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "tsx --test src/test/unit/*.test.ts",
+    "test:host:compile": "tsc -p tsconfig.test.json",
+    "test:host": "npm run compile && npm run test:host:compile && node out-test/test/runTest.js",
+    "test": "npm run typecheck && npm run test:unit",
+    "check": "npm run test && npm run compile",
+    "vscode:prepublish": "npm run check",
+    "package": "vsce package --out dist/agefreighter-2.3.0.vsix"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.10.1",
+    "@types/vscode": "^1.100.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.2",
+    "mocha": "^11.7.5",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}

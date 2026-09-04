@@ -9,7 +9,7 @@ on:
       version:
         description: "Semantic v2 version to package (dispatch never publishes)"
         required: true
-        default: "v2.2.0"
+        default: "v2.3.0"
         type: string
       dry_run:
         description: "Required safety acknowledgement"
@@ -337,6 +337,64 @@ jobs:
           retention-days: 14
           compression-level: 0
 
+  build-vscode-extension:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: extensions/vscode
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: extensions/vscode/package-lock.json
+      - name: Validate version and install locked dependencies
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          test "v$(node -p 'require("./package.json").version')" = "$VERSION"
+          npm ci
+      - name: Test and package VS Code extension
+        env:
+          VSCODE_TEST_VERSION: "1.100.0"
+        run: |
+          set -euo pipefail
+          npm run check
+          for attempt in 1 2 3; do
+            if xvfb-run -a npm run test:host; then
+              break
+            fi
+            [[ "$attempt" -lt 3 ]] || exit 1
+            sleep $((attempt * 10))
+          done
+          npm run package
+          vsix=dist/agefreighter-2.3.0.vsix
+          unzip -l "$vsix" >dist/vsix-contents.txt
+          grep -F 'extension/dist/extension.js' dist/vsix-contents.txt
+          if grep -E 'node_modules|\.env|out-test|src/test|\.vscode-test' dist/vsix-contents.txt; then
+            printf 'VSIX contains excluded development or secret material\n' >&2
+            exit 1
+          fi
+          npm audit --omit=dev --audit-level=high
+          npm sbom --omit=dev --sbom-format spdx >"$vsix.spdx.json"
+      - name: Upload VS Code package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-vscode-extension
+          path: |
+            extensions/vscode/dist/agefreighter-2.3.0.vsix
+            extensions/vscode/dist/agefreighter-2.3.0.vsix.spdx.json
+            extensions/vscode/dist/vsix-contents.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
   build-macos:
     needs: prepare
     environment: release
@@ -482,7 +540,7 @@ jobs:
           }
 
   assemble:
-    needs: [prepare, verify-unix, verify-windows]
+    needs: [prepare, verify-unix, verify-windows, build-vscode-extension]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -500,9 +558,9 @@ jobs:
         run: |
           set -euo pipefail
           mapfile -t archives < <(find dist -maxdepth 1 -type f \
-            \( -name '*.tar.gz' -o -name '*.zip' \) -print | LC_ALL=C sort)
-          expected=5
-          [[ "$VERSION" == *-* ]] && expected=4
+            \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.vsix' \) -print | LC_ALL=C sort)
+          expected=6
+          [[ "$VERSION" == *-* ]] && expected=5
           [[ "${#archives[@]}" -eq "$expected" ]]
           scripts/release/checksum.sh dist/checksums.txt "${archives[@]}"
           scripts/release/generate-formula.sh \
