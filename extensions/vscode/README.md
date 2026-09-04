@@ -24,7 +24,8 @@ remains the deterministic migration engine and owner of durable checkpoints.
 
 ## Prerequisites
 
-Install the AGEFreighter 2.3.0 CLI and ensure `agefreighter` is on `PATH`.
+Install [AGEFreighter from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rioriost.agefreighter),
+then install the AGEFreighter 2.3.0 CLI and ensure `agefreighter` is on `PATH`.
 Alternatively, run **AGEFreighter: Select CLI Binary** and select the executable.
 
 On macOS, the Homebrew installation is:

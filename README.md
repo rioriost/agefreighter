@@ -101,8 +101,8 @@ renders bounded reports, and optionally lets the user's selected VS Code chat
 model explain redacted evidence. Migration execution, checkpoints, and every
 target mutation remain in the separately installed Go CLI.
 
-Install it from the Visual Studio Marketplace after installing the CLI, then
-open the AGEFreighter activity-bar view. See the
+Install [AGEFreighter from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rioriost.agefreighter)
+after installing the CLI, then open the AGEFreighter activity-bar view. See the
 [VS Code extension guide](docs/reference/vscode-extension.md) for workspace
 trust, remote environments, AI privacy boundaries, and local VSIX installation.
 

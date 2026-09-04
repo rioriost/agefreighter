@@ -171,29 +171,32 @@ Acceptance:
 - The extension workflow and existing repository checks pass on the pushed
   branch.
 
-### M6 — Marketplace registration and public release
+### M6 — Marketplace registration and publication readiness
 
 Create or select the `rioriost` publisher, accept the Publisher Agreement,
-publish the reviewed VSIX, and verify the public listing. If the exact publisher
-ID is unavailable, update the manifest and links in one reviewed commit rather
-than impersonating or approximating the identity.
+verify the reviewed VSIX and listing metadata, and prepare publication. If the
+exact publisher ID is unavailable, update the manifest and links in one reviewed
+commit rather than impersonating or approximating the identity. Publish only
+after M7 has produced the final GitHub release, so the listing never points at
+unreleased CLI prerequisites or provisional documentation.
 
 Acceptance:
 
 - `publisher.extension` matches the public listing exactly.
-- The Marketplace page is public, the version is 2.3.0, and installation from
-  the Marketplace succeeds.
+- Publisher ownership and agreement status are confirmed.
+- The exact VSIX selected for publication is recorded and checksummed.
 - Listing links resolve to the repository, issues, license, privacy/security
   documentation, and release notes.
 - The published VSIX checksum and public URL are recorded in the release notes.
 
-### M7 — repository release
+### M7 — repository and Marketplace release
 
 Update the root documentation and version references, merge the reviewed branch
 through the repository's normal protected-branch path, tag `v2.3.0`, create the
 GitHub release, and verify its existing signed/notarized platform artifacts.
-The Marketplace listing must reference the final documentation and must not
-claim Windows Authenticode signing.
+After the GitHub release succeeds, publish its reviewed VSIX to the Marketplace
+and verify the public listing. The Marketplace listing must reference the final
+documentation and must not claim Windows Authenticode signing.
 
 Acceptance:
 
@@ -201,6 +204,9 @@ Acceptance:
   protection.
 - `v2.3.0` release artifacts, checksums, provenance, macOS notarization, and
   Homebrew update complete under the existing release workflow.
+- The Marketplace page is public, the version is 2.3.0, and installation from
+  the Marketplace succeeds.
+- The published VSIX checksum and public URL are recorded in the release notes.
 - Windows binaries remain available and are explicitly documented as unsigned.
 
 ## Test matrix
