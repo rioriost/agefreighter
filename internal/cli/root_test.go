@@ -644,6 +644,43 @@ func TestValidateCommand(t *testing.T) {
 	}
 }
 
+func TestValidateCommandJSON(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	command := NewAgefreighter(&stdout, &stderr)
+
+	err := Execute(command, []string{
+		"validate", "--format", "json", configFixture(t, "valid/csv.yaml"),
+	})
+
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	var got validationResult
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v; output = %q", err, stdout.String())
+	}
+	if got.SchemaVersion != 1 || !got.Valid || got.APIVersion != config.APIVersion ||
+		got.Kind != config.KindLoadJob || got.Job != "csv-people" ||
+		got.Source.Type != config.SourceCSV ||
+		got.Target.Type != config.TargetApacheAGE ||
+		got.Target.Mode != config.LoadCreate {
+		t.Fatalf("validate JSON = %#v", got)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("validate stderr = %q, want empty", stderr.String())
+	}
+}
+
+func TestValidateCommandRejectsUnknownFormatBeforeReadingJob(t *testing.T) {
+	command := NewAgefreighter(&bytes.Buffer{}, &bytes.Buffer{})
+	err := Execute(command, []string{
+		"validate", "--format", "yaml", "missing.yaml",
+	})
+	if err == nil || !strings.Contains(err.Error(), "unsupported validation format") {
+		t.Fatalf("Execute() error = %v", err)
+	}
+}
+
 func TestPlanCommand(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	command := NewAgefreighter(&stdout, &stderr)
