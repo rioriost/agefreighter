@@ -23,7 +23,7 @@
 | metadata-schema | pass | metadata schema is current |  |
 | property-statistics | unavailable | live AGE property statistics and index recommendations were not produced | Apache AGE cannot pre-bound agtype serialization before detoast; live property parsing, cardinality inspection, and property-index recommendations are disabled |
 | required-age-indexes | pass | required AGE label indexes were inspected | missing\_or\_invalid\_required\_indexes=0 unknown\_relations=0 |
-| required-metadata-indexes | pass | version-compatible agefreighter metadata indexes were inspected | invalid\_or\_missing\_indexes=0 missing\_relations=0 schema\_version=17 |
+| required-metadata-indexes | pass | version-compatible agefreighter metadata indexes were inspected | invalid\_or\_missing\_indexes=0 missing\_relations=0 schema\_version=21 |
 | statistics-freshness | pass | bounded analyze and dead-tuple evidence was inspected | never\_analyzed=0 stale\_indicators=0 unknown=0 |
 | storage-wal-visibility | pass | database storage and WAL counters were inspected | filesystem free capacity is not exposed by portable PostgreSQL catalogs |
 
@@ -100,8 +100,8 @@
 | evidencePhase | captured before any explicitly requested ANALYZE | pass |
 | filesystemFreeBytes | unknown; use platform storage monitoring | unavailable |
 | ginAgtypeOperatorClass | no supported allowlisted AGE operator class detected | pass |
-| metadataInstalledVersion | 17 | pass |
-| metadataSupportedVersion | 17 | pass |
+| metadataInstalledVersion | 21 | pass |
+| metadataSupportedVersion | 21 | pass |
 | mode | recommendation-only | pass |
 | walBytesSinceReset | 4096 | pass |
 | walStatisticsReset | 2026-08-27T00:00:00Z | pass |

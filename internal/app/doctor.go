@@ -15,6 +15,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
 	"github.com/rioriost/agefreighter/internal/report"
+	targetruntime "github.com/rioriost/agefreighter/internal/target"
 )
 
 const (
@@ -36,6 +37,9 @@ func Doctor(
 	job, err := config.Load(path)
 	if err != nil {
 		return report.Document{}, fmt.Errorf("load target configuration: %w", err)
+	}
+	if job.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return propertyGraphDoctor(ctx, job, options)
 	}
 	timeout := time.Duration(job.Runtime.OperationTimeout)
 	probeCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -159,6 +163,9 @@ func DoctorHistory(
 	job, err := config.Load(path)
 	if err != nil {
 		return report.Document{}, fmt.Errorf("load target configuration: %w", err)
+	}
+	if job.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return propertyGraphDoctorHistory(ctx, job, limit, generatedAt)
 	}
 	timeout := time.Duration(job.Runtime.OperationTimeout)
 	probeCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -449,7 +456,7 @@ func addAGEDoctorChecks(
 	document *report.Document,
 ) error {
 	openCtx, cancel := context.WithTimeout(ctx, timeout)
-	adapter, store, err := openAGEStore(openCtx, job)
+	runtime, err := openRuntime(openCtx, job)
 	cancel()
 	if err != nil {
 		if canceledErr := canceled(ctx, err); canceledErr != nil {
@@ -468,7 +475,13 @@ func addAGEDoctorChecks(
 		}
 		return nil
 	}
-	defer adapter.Close()
+	defer runtime.Close()
+	ageRuntime, err := targetruntime.RequireAGE(runtime)
+	if err != nil {
+		return err
+	}
+	adapter := ageRuntime.AGEAdapter()
+	store := runtime.Metadata()
 	readCtx, readCancel := context.WithTimeout(ctx, timeout)
 	searchPath, err := adapter.CurrentSearchPath(readCtx)
 	readCancel()
@@ -1244,12 +1257,13 @@ func persistDoctor(
 		return fmt.Errorf("render diagnostic report for persistence: %w", err)
 	}
 	openCtx, cancel := context.WithTimeout(ctx, timeout)
-	adapter, store, err := openAGEStore(openCtx, job)
+	runtime, err := openRuntime(openCtx, job)
 	cancel()
 	if err != nil {
 		return fmt.Errorf("persist doctor report: open current target: %w", err)
 	}
-	defer adapter.Close()
+	defer runtime.Close()
+	store := runtime.Metadata()
 	checkCtx, checkCancel := context.WithTimeout(ctx, timeout)
 	current, err := store.InspectSchema(checkCtx)
 	checkCancel()

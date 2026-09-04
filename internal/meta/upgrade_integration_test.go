@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func TestMetadataV14UpgradeToV17Integration(t *testing.T) {
+func TestMetadataV14V17V18V19V20UpgradeToV21Integration(t *testing.T) {
 	dsn := strings.TrimSpace(os.Getenv(metadataTestDSNEnvironment))
 	if dsn == "" {
 		t.Skip("set " + metadataTestDSNEnvironment + " to run metadata upgrade integration tests")
@@ -107,19 +107,146 @@ func TestMetadataV14UpgradeToV17Integration(t *testing.T) {
 		t.Fatalf("read-only inspection changed metadata: before=%#v after=%#v error=%v", before, again, err)
 	}
 
-	if err := store.Migrate(ctx); err != nil {
-		t.Fatalf("upgrade v14 to v17: %v", err)
+	if err := store.migrate(ctx, 17); err != nil {
+		t.Fatalf("upgrade v14 to v17 fixture: %v", err)
 	}
-	after, err := store.InspectSchema(ctx)
+	v17, err := store.InspectSchema(ctx)
 	if err != nil {
 		t.Fatalf("InspectSchema(v17) error = %v", err)
 	}
-	if after.State != SchemaCurrent ||
-		after.InstalledVersion != SupportedSchemaVersion {
+	if v17.State != SchemaPending || v17.InstalledVersion != 17 {
+		t.Fatalf("v17 inspection = %#v", v17)
+	}
+	const legacyJobID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+	if _, err := connection.Exec(ctx, `
+		INSERT INTO agefreighter_meta.load_job (
+			job_id, name, source_type, load_mode, target_graph,
+			config_fingerprint, status
+		) VALUES ($1::uuid, 'legacy-age', 'neo4j', 'create', 'supply_graph',
+			$2, 'failed')`, legacyJobID, strings.Repeat("a", 64)); err != nil {
+		t.Fatalf("insert v17 AGE job: %v", err)
+	}
+	legacyBeforeMigration, err := store.GetJob(ctx, legacyJobID)
+	if err != nil || legacyBeforeMigration.TargetBackend != TargetBackendApacheAGE ||
+		legacyBeforeMigration.TargetSchema != "" {
+		t.Fatalf("read-compatible v17 target identity = %#v, %v", legacyBeforeMigration, err)
+	}
+
+	if err := store.migrate(ctx, 18); err != nil {
+		t.Fatalf("upgrade v17 to v18: %v", err)
+	}
+	v18, err := store.InspectSchema(ctx)
+	if err != nil {
+		t.Fatalf("InspectSchema(v18) error = %v", err)
+	}
+	if v18.State != SchemaPending || v18.InstalledVersion != 18 {
+		t.Fatalf("v18 inspection = %#v", v18)
+	}
+	legacy, err := store.GetJob(ctx, legacyJobID)
+	if err != nil {
+		t.Fatalf("GetJob(v17 legacy) error = %v", err)
+	}
+	if legacy.TargetBackend != TargetBackendApacheAGE || legacy.TargetSchema != "" {
+		t.Fatalf("v17 target identity backfill = %#v", legacy)
+	}
+	if err := store.StartJob(ctx, legacyJobID); err != nil {
+		t.Fatalf("resume upgraded v17 AGE job: %v", err)
+	}
+	legacy, err = store.GetJob(ctx, legacyJobID)
+	if err != nil || legacy.Status != JobRunning ||
+		legacy.ConfigFingerprint != strings.Repeat("a", 64) {
+		t.Fatalf("resumed v17 AGE job = %#v, %v", legacy, err)
+	}
+	propertyGraphJob := Job{
+		ID:                "bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		Name:              "pg19-property-graph",
+		SourceType:        "neo4j",
+		LoadMode:          "create",
+		TargetBackend:     TargetBackendPostgreSQLPropertyGraph,
+		TargetSchema:      "Graph Data",
+		TargetGraph:       "supply_graph",
+		ConfigFingerprint: strings.Repeat("b", 64),
+	}
+	if err := store.CreateJob(ctx, propertyGraphJob); err != nil {
+		t.Fatalf("create v18 property-graph job: %v", err)
+	}
+	storedPropertyGraph, err := store.GetJob(ctx, propertyGraphJob.ID)
+	if err != nil ||
+		storedPropertyGraph.TargetBackend != propertyGraphJob.TargetBackend ||
+		storedPropertyGraph.TargetSchema != propertyGraphJob.TargetSchema {
+		t.Fatalf("v18 property-graph target identity = %#v, %v", storedPropertyGraph, err)
+	}
+	if err := store.migrate(ctx, 19); err != nil {
+		t.Fatalf("upgrade v18 to v19: %v", err)
+	}
+	v19, err := store.InspectSchema(ctx)
+	if err != nil {
+		t.Fatalf("InspectSchema(v19) error = %v", err)
+	}
+	if v19.State != SchemaPending || v19.InstalledVersion != 19 {
+		t.Fatalf("v19 inspection = %#v", v19)
+	}
+	mapping := PropertyGraphGeneration{
+		JobID: propertyGraphJob.ID, Schema: propertyGraphJob.TargetSchema,
+		Graph:                 propertyGraphJob.TargetGraph,
+		DefinitionFingerprint: strings.Repeat("c", 64),
+		State:                 PropertyGraphLoading,
+		Labels: []PropertyGraphLabel{
+			{Name: "Person", Kind: VertexLabel, Table: "v_person"},
+			{
+				Name: "KNOWS", Kind: EdgeLabel, Table: "e_knows",
+				StartLabel: "Person", EndLabel: "Person",
+			},
+		},
+	}
+	if err := store.RegisterPropertyGraph(ctx, mapping); err != nil {
+		t.Fatalf("register v19 property graph mapping: %v", err)
+	}
+	storedMapping, err := store.GetPropertyGraph(ctx, propertyGraphJob.ID)
+	if err != nil || storedMapping.JobID != mapping.JobID ||
+		storedMapping.DefinitionFingerprint != mapping.DefinitionFingerprint ||
+		len(storedMapping.Labels) != len(mapping.Labels) {
+		t.Fatalf("v19 property graph mapping = %#v, %v", storedMapping, err)
+	}
+	if err := store.migrate(ctx, 20); err != nil {
+		t.Fatalf("upgrade v19 to v20: %v", err)
+	}
+	v20, err := store.InspectSchema(ctx)
+	if err != nil {
+		t.Fatalf("InspectSchema(v20) error = %v", err)
+	}
+	if v20.State != SchemaPending || v20.InstalledVersion != 20 {
+		t.Fatalf("v20 inspection = %#v", v20)
+	}
+	if err := store.Migrate(ctx); err != nil {
+		t.Fatalf("upgrade v20 to v21: %v", err)
+	}
+	after, err := store.InspectSchema(ctx)
+	if err != nil {
+		t.Fatalf("InspectSchema(v21) error = %v", err)
+	}
+	if after.State != SchemaCurrent || after.InstalledVersion != SupportedSchemaVersion {
 		t.Fatalf("upgraded inspection = %#v", after)
+	}
+	ranges := []PropertyGraphDigestRange{{
+		JobID: propertyGraphJob.ID, LabelName: "Person", Kind: VertexLabel,
+		RangeID: 7, Rows: 2, Digest: strings.Repeat("d", 64),
+	}}
+	if err := store.ReplacePropertyGraphDigests(ctx, propertyGraphJob.ID, ranges,
+		strings.Repeat("e", 64), 2, 256); err != nil {
+		t.Fatalf("store v21 property graph digests: %v", err)
+	}
+	storedMapping, err = store.GetPropertyGraph(ctx, propertyGraphJob.ID)
+	if err != nil || storedMapping.DigestRoot != strings.Repeat("e", 64) ||
+		storedMapping.DigestRows != 2 || storedMapping.DigestRangeCount != 256 {
+		t.Fatalf("v21 property graph digest mapping = %#v, %v", storedMapping, err)
+	}
+	storedRanges, err := store.ListPropertyGraphDigests(ctx, propertyGraphJob.ID)
+	if err != nil || len(storedRanges) != 1 || storedRanges[0] != ranges[0] {
+		t.Fatalf("v21 property graph ranges = %#v, %v", storedRanges, err)
 	}
 	if err := store.migrate(ctx, MinimumReadCompatibleSchemaVersion); err == nil ||
 		!strings.Contains(err.Error(), "newer than supported version 14") {
-		t.Fatalf("2.0-compatible writer accepted v17 metadata: %v", err)
+		t.Fatalf("2.0-compatible writer accepted v21 metadata: %v", err)
 	}
 }

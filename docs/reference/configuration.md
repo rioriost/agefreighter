@@ -513,12 +513,15 @@ connector page buffers; the vertex identity index is additionally bounded by
 ## Load modes
 
 The target modes are `create`, `replace`, `append`, and `upsert`. CSV,
-PostgreSQL, Neo4j, and Cosmos DB for NoSQL support all four modes. Every edge mapping
-in an `upsert` job must provide an external edge identity field or column.
-Graph names must follow the supported Apache AGE naming subset: 3–63 UTF-8
-bytes, starting with a letter or underscore, ending with a letter, digit, or
+PostgreSQL, Neo4j, and Cosmos DB for NoSQL support all four modes for both
+target backends. Every edge mapping in an `upsert` job must provide an external
+edge identity field or column.
+
+Apache AGE graph names use its supported naming subset: 3–63 UTF-8 bytes,
+starting with a letter or underscore, ending with a letter, digit, or
 underscore, and containing only letters, digits, underscores, dots, and
-hyphens.
+hyphens. A `postgresql-property-graph` target instead requires separately
+quoted PostgreSQL `schema` and `graph` identifiers of 1–63 UTF-8 bytes.
 
 The connector integration contract runs the same ordered mode matrix for every
 source: `create` establishes vertices, edges, endpoints, and properties;
@@ -535,15 +538,21 @@ always rejected. `propertyMode` controls vertex and edge upserts: `replace`
 replaces the complete property object, `merge` retains keys omitted by the
 source, and `merge-delete-null` also removes keys whose incoming value is null.
 Incremental jobs require an active graph generation previously created or
-replaced by agefreighter. Admission compares the graph OID, namespace OID, and
-every configured label's kind, label ID, relation OID, sequence OID, and
-mapping generation with the stored catalog before any data write.
+replaced by agefreighter. For Apache AGE, admission compares the graph OID,
+namespace OID, and every configured label's kind, label ID, relation OID,
+sequence OID, and mapping generation with the stored catalog before any data
+write. For PostgreSQL property graphs, admission compares the schema, graph,
+definition fingerprint, label/table mapping, relational constraints, and the
+existing canonical-digest baseline.
 
 Only one incremental batch may write a graph at a time. A competing job is
 rejected without waiting with the stable error code
 `AF_INCREMENTAL_CONFLICT`; the failed job can be resumed after the other writer
-releases the graph lock. Batch ownership and label ID allocation use separate
-job- and label-scoped locks.
+releases the graph lock. PostgreSQL property-graph loads hold a dedicated
+session advisory lock for the target schema and graph, leaving all configured
+pool connections available to batch and failure-recording transactions. AGE
+batch ownership and label ID allocation use separate job- and label-scoped
+locks.
 
 When `errors.missingEndpoint` is `defer`, unresolved edges are persisted in a
 bounded target-side store rather than Go memory. Upserts are also queued when
@@ -555,6 +564,14 @@ transactionally by later incremental batches.
 Reaching the limit rolls back the batch deterministically; deferred edges are
 never silently discarded.
 
+PostgreSQL property-graph targets currently require
+`errors.missingEndpoint: error`; their bounded temporary edge stage resolves
+the whole batch with indexed server-side joins and rolls the whole batch back
+if any endpoint is missing. `defer` and `quarantine` remain unsupported for
+this target. After every successful append or upsert, the completed job becomes
+the sole active generation and stores a fresh 256-range digest baseline over
+the complete target, not just the incoming rows.
+
 `replace` requires the public target graph to exist. It loads into a
 deterministic job-specific shadow graph, so a failed or interrupted job leaves
 the public target unchanged and can resume the admitted shadow. Promotion
@@ -562,7 +579,11 @@ verifies the shadow, renames the old target to a job-specific backup, renames
 the shadow to the public target, and updates job and generation metadata in one
 PostgreSQL transaction. AGE graph and schema OIDs are retained by rename: the
 new active generation keeps the former shadow OID and the backup keeps the old
-target OID.
+target OID. PostgreSQL property-graph promotion transactionally drops only the
+two graph declarations, renames the mapped relational tables, recreates both
+declarations, relocates the two stored mappings, records the new digest, and
+commits the job. A DDL collision or interruption rolls the complete promotion
+back, keeping the public graph queryable.
 
 The backup is retained after a successful replacement. Remove it explicitly:
 
@@ -570,8 +591,9 @@ The backup is retained after a successful replacement. Remove it explicitly:
 agefreighter cleanup --target job.yaml JOB_ID
 ```
 
-Cleanup is idempotent after success. It validates the committed replace job,
-active-generation OID, backup name, and backup OID before dropping the backup;
-it does not require the original full configuration fingerprint to remain
-unchanged. The metadata generation is retained for audit after the physical
-backup is removed.
+Cleanup is idempotent after success. For AGE it validates the committed replace
+job, active-generation OID, backup name, and backup OID. For PostgreSQL
+property graphs it validates the active and retained schema/graph definition
+fingerprints and mapped table names. It does not require the original full
+configuration fingerprint to remain unchanged. The metadata generation is
+retained for audit after the physical backup is removed.

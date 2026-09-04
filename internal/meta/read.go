@@ -158,14 +158,16 @@ func (store *Store) ListJobs(ctx context.Context, limit int) ([]Job, error) {
 	rows, err := store.queryBounded(
 		ctx,
 		`SELECT
-			job_id::text, name, source_type, load_mode, target_graph,
+			job_id::text, name, source_type, load_mode,
+			COALESCE(to_jsonb(job)->>'target_backend', 'apache-age'),
+			COALESCE(to_jsonb(job)->>'target_schema', ''), target_graph,
 			backup_graph_name, config_fingerprint::text, status,
 			COALESCE(graph_generation_id, 0),
 			next_batch_id, resume_token, committed_rows, committed_bytes,
 			rejected_rows, source_rejected_rows, error_message,
 			created_at, started_at, updated_at, completed_at, backup_cleaned_at
-		 FROM agefreighter_meta.load_job
-		 ORDER BY created_at DESC, job_id
+		 FROM agefreighter_meta.load_job AS job
+		 ORDER BY job.created_at DESC, job.job_id
 		 LIMIT $1`,
 		limit,
 	)
@@ -521,6 +523,19 @@ func (store *Store) ListRejectSummaries(
 	}, nil
 }
 
+func (store *Store) CountRejectRecords(ctx context.Context, jobID string) (int64, error) {
+	if err := validateJobID(jobID); err != nil {
+		return 0, err
+	}
+	var count int64
+	if err := store.database.QueryRow(ctx, `
+		SELECT count(*) FROM agefreighter_meta.reject_record
+		WHERE job_id = $1::uuid`, jobID).Scan(&count); err != nil {
+		return 0, fmt.Errorf("count rejected records: %w", err)
+	}
+	return count, nil
+}
+
 func (store *Store) ListRetainedBackups(
 	ctx context.Context,
 	limit int,
@@ -596,6 +611,8 @@ func scanJob(row rowScanner) (Job, error) {
 		&job.Name,
 		&job.SourceType,
 		&job.LoadMode,
+		&job.TargetBackend,
+		&job.TargetSchema,
 		&job.TargetGraph,
 		&job.BackupGraphName,
 		&job.ConfigFingerprint,

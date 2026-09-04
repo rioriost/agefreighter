@@ -59,6 +59,9 @@ func VerificationReport(
 	if err != nil {
 		return report.Document{}, fmt.Errorf("load target configuration: %w", err)
 	}
+	if jobConfig.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return propertyGraphVerificationReport(ctx, jobConfig, jobID, options)
+	}
 	timeout := time.Duration(jobConfig.Runtime.OperationTimeout)
 	openCtx, cancel := context.WithTimeout(ctx, timeout)
 	target, err := openReadOnlyTarget(openCtx, jobConfig)
@@ -66,7 +69,11 @@ func VerificationReport(
 	if err != nil {
 		return report.Document{}, err
 	}
-	defer target.Adapter.Close()
+	defer target.Runtime.Close()
+	adapter, err := target.AGEAdapter()
+	if err != nil {
+		return report.Document{}, err
+	}
 	if err := target.Metadata.RequireReadCompatible(); err != nil {
 		return report.Document{}, err
 	}
@@ -74,6 +81,9 @@ func VerificationReport(
 	stored, err := target.Store.GetJob(readCtx, jobID)
 	readCancel()
 	if err != nil {
+		return report.Document{}, err
+	}
+	if err := validateStoredTargetIdentity(jobConfig, stored); err != nil {
 		return report.Document{}, err
 	}
 	at := options.GeneratedAt
@@ -222,7 +232,7 @@ func VerificationReport(
 		var countResult liveCountResult
 		if options.Counts {
 			catalogResult, liveResult := verifyLiveLabel(
-				ctx, target, graph, label, coverage, timeout,
+				ctx, target.Store, adapter, graph, label, coverage, timeout,
 			)
 			document.Checks = append(document.Checks, catalogResult)
 			countResult = liveResult
@@ -247,7 +257,7 @@ func VerificationReport(
 		}
 		if options.Integrity {
 			field, truncated := integrityVerificationField(
-				ctx, target.Adapter, graph, label, coverage,
+				ctx, adapter, graph, label, coverage,
 				options.Limit, timeout,
 			)
 			if err := ctx.Err(); err != nil {
@@ -295,14 +305,15 @@ type liveCountResult struct {
 
 func verifyLiveLabel(
 	ctx context.Context,
-	target readOnlyTarget,
+	store *meta.Store,
+	adapter *age.Adapter,
 	graph meta.GraphGeneration,
 	label meta.LabelGeneration,
 	coverage identityCoverage,
 	timeout time.Duration,
 ) (report.Check, liveCountResult) {
 	countCtx, cancel := context.WithTimeout(ctx, timeout)
-	count, countErr := target.Store.CountLabelIdentitiesWithTimeout(
+	count, countErr := store.CountLabelIdentitiesWithTimeout(
 		countCtx, graph.ID, label.ID, label.Kind, timeout,
 	)
 	cancel()
@@ -315,7 +326,7 @@ func verifyLiveLabel(
 	}
 	live := liveCountResult{IdentityRows: count}
 	checkCtx, checkCancel := context.WithTimeout(ctx, timeout)
-	err := target.Adapter.InTransaction(checkCtx, func(transaction *age.Transaction) error {
+	err := adapter.InTransaction(checkCtx, func(transaction *age.Transaction) error {
 		if err := transaction.SetStatementTimeout(checkCtx, timeout); err != nil {
 			return err
 		}

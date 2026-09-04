@@ -10,6 +10,9 @@ BENCHFLAGS ?=
 FUZZTIME ?= 3s
 SCALE_ROWS ?= 200000
 PERFORMANCE_ARTIFACTS ?= performance-artifacts
+PGGRAPH_BENCH_PROFILE ?= small
+PGGRAPH_BENCH_TRIALS ?= 1
+PGGRAPH_BENCH_OUTPUT ?= performance-artifacts/pggraph-$(PGGRAPH_BENCH_PROFILE).txt
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || printf unknown)
 BUILD_DATE ?= unknown
@@ -17,9 +20,10 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 	-X github.com/rioriost/agefreighter/internal/version.Commit=$(COMMIT) \
 	-X github.com/rioriost/agefreighter/internal/version.BuildDate=$(BUILD_DATE)
 
-.PHONY: bench-csv bench-csv-scale bench-release build check check-full coverage dev-down dev-pull \
+.PHONY: bench-csv bench-csv-scale bench-pggraph bench-release build check check-full coverage dev-down dev-pull \
 	dev-reset dev-smoke dev-status dev-up fmt fuzz-smoke install-tools release-check test \
-	test-compatibility test-connectors-cosmos test-connectors-local test-diagnostics-race \
+	test-compatibility test-connectors-cosmos test-connectors-cosmos-pggraph \
+	test-connectors-local test-diagnostics-race test-pggraph test-pggraph-apple \
 	test-race test-recovery test-release-integration tidy vet vuln workflow-lint
 
 build:
@@ -39,6 +43,10 @@ bench-csv-scale:
 
 bench-release:
 	./scripts/bench/release-gate.sh "$(PERFORMANCE_ARTIFACTS)"
+
+bench-pggraph:
+	./scripts/bench/pggraph-load.sh "$(PGGRAPH_BENCH_PROFILE)" \
+		"$(PGGRAPH_BENCH_TRIALS)" "$(PGGRAPH_BENCH_OUTPUT)"
 
 fmt:
 	@files="$$(gofmt -l .)"; \
@@ -119,11 +127,46 @@ test-connectors-cosmos:
 		$(GO) test -count=1 -timeout=45m -v ./internal/app \
 		-run '^(TestCosmosLiveIntegration|TestCosmosSourceModeMatrixIntegration)$$'
 
+test-connectors-cosmos-pggraph:
+	@if [ "$(AGEFREIGHTER_REQUIRE_COSMOS_TESTS)" = "1" ]; then \
+		test -n "$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" || { \
+			printf 'AGEFREIGHTER_PGGRAPH_TEST_DSN is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_ENDPOINT)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_ENDPOINT is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_DATABASE)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_DATABASE is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+	fi
+	@AGEFREIGHTER_PGGRAPH_TEST_DSN="$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" \
+	AGEFREIGHTER_COSMOS_TEST_ENDPOINT="$(AGEFREIGHTER_COSMOS_TEST_ENDPOINT)" \
+	AGEFREIGHTER_COSMOS_TEST_DATABASE="$(AGEFREIGHTER_COSMOS_TEST_DATABASE)" \
+	AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER="$(AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER)" \
+	AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER="$(AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER)" \
+		$(GO) test -count=1 -timeout=45m -v ./internal/app \
+		-run '^TestCosmosPostgreSQLPropertyGraphIntegration$$'
+
+test-pggraph:
+	@test -n "$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" || { \
+		printf 'AGEFREIGHTER_PGGRAPH_TEST_DSN is required\n' >&2; exit 2; \
+	}
+	@AGEFREIGHTER_PGGRAPH_TEST_DSN="$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" \
+		$(GO) test -count=1 -v ./internal/pggraph ./internal/app \
+		-run '^(TestPropertyGraphIntegration|TestPropertyGraphOperationGuardsIntegration|TestPropertyGraphMutationLockIntegration|TestPropertyGraphSinkReplayAndAbortIntegration|TestPropertyGraphSinkFailureIntegration|TestPostgreSQLPropertyGraphCreateAndResumeIntegration|TestPostgreSQLPropertyGraphModeMatrixIntegration|TestPostgreSQLPropertyGraphIncrementalResumeIntegration|TestPostgreSQLPropertyGraphReplaceRecoveryIntegration|TestPostgreSQLPropertyGraphIncrementalAdmissionIntegration|TestPostgreSQLPropertyGraphCorruptionDetectionIntegration)$$'
+	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" \
+		$(GO) test -count=1 -v ./internal/meta \
+		-run '^TestMetadataV14V17V18V19V20UpgradeToV21Integration$$'
+
+test-pggraph-apple:
+	./scripts/dev/pggraph-apple-container.sh test
+
 test-release-integration:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
 	AGEFREIGHTER_POSTGRES_TEST_DSN="$(AGEFREIGHTER_POSTGRES_TEST_DSN)" \
 		$(GO) test -count=1 -v ./internal/meta ./internal/app \
-		-run '^(TestMetadataV14UpgradeToV17Integration|TestDoctorDegradedPostgreSQLIntegration|TestDeepVerificationDetectsCorruptionIntegration)$$'
+		-run '^(TestMetadataV14V17V18V19V20UpgradeToV21Integration|TestDoctorDegradedPostgreSQLIntegration|TestDeepVerificationDetectsCorruptionIntegration)$$'
 
 test-recovery:
 	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
@@ -138,6 +181,7 @@ coverage:
 	AGEFREIGHTER_NEO4J_TEST_PASSWORD="$(AGEFREIGHTER_NEO4J_TEST_PASSWORD)" \
 	AGEFREIGHTER_NEO4J_TEST_DATABASE="$(AGEFREIGHTER_NEO4J_TEST_DATABASE)" \
 	AGEFREIGHTER_POSTGRES_TEST_DSN="$(AGEFREIGHTER_POSTGRES_TEST_DSN)" \
+	AGEFREIGHTER_PGGRAPH_TEST_DSN="$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" \
 	AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_AGE_TEST_DSN)" \
 		$(GO) test -covermode=atomic -coverpkg=./... \
 		-coverprofile="$(COVERAGE_DIR)/unit.raw.out" ./...

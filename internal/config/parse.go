@@ -135,6 +135,9 @@ func (job *LoadJob) applyDefaults() {
 	if job.Target.Mode == "" {
 		job.Target.Mode = LoadCreate
 	}
+	if job.Target.Type == TargetPostgreSQLPropertyGraph && job.Target.Schema == "" {
+		job.Target.Schema = "public"
+	}
 	if job.Target.PropertyMode == "" {
 		job.Target.PropertyMode = PropertiesReplace
 	}

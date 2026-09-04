@@ -209,6 +209,200 @@ func TestValidationErrors(t *testing.T) {
 	}
 }
 
+func TestPostgreSQLPropertyGraphTargetValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		edit func(*Target)
+		path string
+	}{
+		{
+			name: "missing schema",
+			edit: func(target *Target) { target.Schema = "" },
+			path: "target.schema [format]",
+		},
+		{
+			name: "identifier too long",
+			edit: func(target *Target) { target.Graph = strings.Repeat("g", 64) },
+			path: "target.graph [format]",
+		},
+		{
+			name: "append policy outside append",
+			edit: func(target *Target) { target.AppendDuplicate = AppendDuplicateError },
+			path: "target.appendDuplicate [unsupported]",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			job := validCSVJob(t)
+			job.Target = Target{
+				Type:         TargetPostgreSQLPropertyGraph,
+				Graph:        "supply graph",
+				Schema:       "graph data",
+				Mode:         LoadCreate,
+				Connection:   job.Target.Connection,
+				PropertyMode: PropertiesReplace,
+			}
+			test.edit(&job.Target)
+			err := job.Validate()
+			if err == nil || !strings.Contains(err.Error(), test.path) {
+				t.Fatalf("Validate() error = %v, want %q", err, test.path)
+			}
+		})
+	}
+}
+
+func TestPostgreSQLPropertyGraphAcceptsPhaseEModes(t *testing.T) {
+	for _, mode := range []LoadMode{LoadCreate, LoadReplace, LoadAppend, LoadUpsert} {
+		for _, propertyMode := range []PropertyMode{
+			PropertiesReplace, PropertiesMerge, PropertiesMergeDeleteNull,
+		} {
+			job := validCSVJob(t)
+			job.Target = Target{
+				Type: TargetPostgreSQLPropertyGraph, Graph: "supply_graph",
+				Schema: "graph_data", Mode: mode, Connection: job.Target.Connection,
+				PropertyMode: propertyMode,
+			}
+			if mode == LoadAppend {
+				job.Target.AppendDuplicate = AppendDuplicateIgnoreIdentical
+			}
+			if mode == LoadUpsert {
+				job.Errors.MaxDeferredEdges = 1
+			}
+			if err := job.Validate(); err != nil {
+				t.Fatalf("Validate(%s, %s) error = %v", mode, propertyMode, err)
+			}
+		}
+	}
+}
+
+func TestPostgreSQLPropertyGraphAcceptsQuotedIdentifiers(t *testing.T) {
+	job := validCSVJob(t)
+	job.Target = Target{
+		Type:         TargetPostgreSQLPropertyGraph,
+		Graph:        "供給 グラフ",
+		Schema:       "Graph Data",
+		Mode:         LoadCreate,
+		Connection:   job.Target.Connection,
+		PropertyMode: PropertiesReplace,
+	}
+	if err := job.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
+func TestPostgreSQLPropertyGraphRequiresMissingEndpointError(t *testing.T) {
+	job := validCSVJob(t)
+	job.Target = Target{
+		Type:         TargetPostgreSQLPropertyGraph,
+		Graph:        "supply_graph",
+		Schema:       "graph_data",
+		Mode:         LoadCreate,
+		Connection:   job.Target.Connection,
+		PropertyMode: PropertiesReplace,
+	}
+	job.Errors.MissingEndpoint = MissingEndpointQuarantine
+
+	err := job.Validate()
+	if err == nil || !strings.Contains(err.Error(),
+		"errors.missingEndpoint [unsupported]") {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
+func TestPostgreSQLPropertyGraphRequiresConfiguredEdgeIdentity(t *testing.T) {
+	job := validCSVJob(t)
+	job.Target = Target{
+		Type:         TargetPostgreSQLPropertyGraph,
+		Graph:        "supply_graph",
+		Schema:       "graph_data",
+		Mode:         LoadCreate,
+		Connection:   job.Target.Connection,
+		PropertyMode: PropertiesReplace,
+	}
+	job.Source = Source{
+		Type: SourcePostgreSQL, Namespace: "source",
+		PostgreSQL: &PostgreSQLSource{
+			Connection: job.Target.Connection,
+			Vertices: []VertexQuery{{
+				Label: "Person", Query: "SELECT 1 AS id", IDField: "id",
+			}},
+			Edges: []EdgeQuery{{
+				Label: "KNOWS", Query: "SELECT 1 AS id, 1 AS start, 1 AS finish",
+				Start: EndpointMapping{Label: "Person", Field: "start"},
+				End:   EndpointMapping{Label: "Person", Field: "finish"},
+			}},
+		},
+	}
+
+	err := job.Validate()
+	if err == nil || !strings.Contains(err.Error(),
+		"source.postgresql.edges[0].externalIdField [required]") {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
+func TestPropertyGraphEdgeIdentityForNeo4jAndCosmos(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		source Source
+		path   string
+	}{
+		{
+			name: "neo4j explicit mapping",
+			source: Source{Type: SourceNeo4j, Neo4j: &Neo4jSource{
+				Edges: []EdgeQuery{{Label: "KNOWS"}},
+			}},
+			path: "source.neo4j.edges[0].externalIdField",
+		},
+		{
+			name: "cosmos explicit mapping",
+			source: Source{Type: SourceCosmos, Cosmos: &CosmosSource{
+				Edges: []CosmosEdgeQuery{{Label: "KNOWS"}},
+			}},
+			path: "source.cosmos.edges[0].externalIdField",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var errs ValidationErrors
+			validatePropertyGraphEdgeIdentity(test.source, &errs)
+			if !strings.Contains(errs.Error(), test.path) {
+				t.Fatalf("validation errors = %v, want %q", errs, test.path)
+			}
+		})
+	}
+	for _, source := range []Source{
+		{Type: SourceNeo4j, Neo4j: &Neo4jSource{
+			Discovery: &Neo4jDiscovery{Enabled: true},
+			Edges:     []EdgeQuery{{Label: "KNOWS"}},
+		}},
+		{Type: SourceCosmos, Cosmos: &CosmosSource{
+			Gremlin: &CosmosGremlin{Enabled: true},
+			Edges:   []CosmosEdgeQuery{{Label: "KNOWS"}},
+		}},
+	} {
+		var errs ValidationErrors
+		validatePropertyGraphEdgeIdentity(source, &errs)
+		if len(errs) != 0 {
+			t.Fatalf("discovery edge identity rejected: %v", errs)
+		}
+	}
+}
+
+func TestValidateCosmosDocumentFormat(t *testing.T) {
+	var errs ValidationErrors
+	validateCosmosDocumentFormat(CosmosDocumentGremlin, "partition", 100, nil,
+		"source.cosmos.vertices[0]", &errs)
+	if len(errs) != 0 {
+		t.Fatalf("valid document format rejected: %v", errs)
+	}
+	validateCosmosDocumentFormat("future", "", 0, map[string]string{"name": "/name"},
+		"source.cosmos.vertices[0]", &errs)
+	if len(errs) != 4 {
+		t.Fatalf("invalid document format errors = %v", errs)
+	}
+}
+
 func TestUpsertRequiresEdgeIdentity(t *testing.T) {
 	job := validCSVJob(t)
 	job.Target.Mode = LoadUpsert

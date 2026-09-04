@@ -60,6 +60,15 @@ func (job LoadJob) Validate() error {
 	validateRuntime(job.Runtime, &errs)
 	validateTrial(job.Trial, job.Source, job.Target, job.Runtime, &errs)
 	validateErrorPolicies(job.Errors, &errs)
+	if job.Target.Type == TargetPostgreSQLPropertyGraph {
+		add(
+			job.Errors.MissingEndpoint == MissingEndpointError,
+			"errors.missingEndpoint",
+			"unsupported",
+			"postgresql-property-graph loads currently support only error",
+		)
+		validatePropertyGraphEdgeIdentity(job.Source, &errs)
+	}
 	if job.Errors.MissingEndpoint == MissingEndpointDefer {
 		add(
 			job.Target.Mode == LoadAppend || job.Target.Mode == LoadUpsert,
@@ -82,6 +91,38 @@ func (job LoadJob) Validate() error {
 		return errs
 	}
 	return nil
+}
+
+func validatePropertyGraphEdgeIdentity(source Source, errs *ValidationErrors) {
+	add := validationAdder(errs)
+	switch source.Type {
+	case SourcePostgreSQL:
+		if source.PostgreSQL != nil {
+			for index, edge := range source.PostgreSQL.Edges {
+				add(edge.ExternalIDField != "",
+					fmt.Sprintf("source.postgresql.edges[%d].externalIdField", index),
+					"required", "is required for PostgreSQL property graph edge identity")
+			}
+		}
+	case SourceNeo4j:
+		if source.Neo4j != nil &&
+			(source.Neo4j.Discovery == nil || !source.Neo4j.Discovery.Enabled) {
+			for index, edge := range source.Neo4j.Edges {
+				add(edge.ExternalIDField != "",
+					fmt.Sprintf("source.neo4j.edges[%d].externalIdField", index),
+					"required", "is required for PostgreSQL property graph edge identity")
+			}
+		}
+	case SourceCosmos:
+		if source.Cosmos != nil &&
+			(source.Cosmos.Gremlin == nil || !source.Cosmos.Gremlin.Enabled) {
+			for index, edge := range source.Cosmos.Edges {
+				add(edge.ExternalIDField != "",
+					fmt.Sprintf("source.cosmos.edges[%d].externalIdField", index),
+					"required", "is required for PostgreSQL property graph edge identity")
+			}
+		}
+	}
 }
 
 func validateTrial(
@@ -715,9 +756,28 @@ func validatePropertyMapping(properties map[string]string, path string, errs *Va
 
 func validateTarget(target Target, errs *ValidationErrors) {
 	add := validationAdder(errs)
-	add(target.Type == TargetApacheAGE, "target.type", "unsupported", "must be apache-age")
-	add(len(target.Graph) >= 3 && len(target.Graph) <= 63 && graphNamePattern.MatchString(target.Graph),
-		"target.graph", "format", "must satisfy the Apache AGE 3-63 byte graph-name rules")
+	switch target.Type {
+	case TargetApacheAGE:
+		add(len(target.Graph) >= 3 && len(target.Graph) <= 63 && graphNamePattern.MatchString(target.Graph),
+			"target.graph", "format", "must satisfy the Apache AGE 3-63 byte graph-name rules")
+		add(target.Schema == "", "target.schema", "unsupported",
+			"is supported only for postgresql-property-graph targets")
+	case TargetPostgreSQLPropertyGraph:
+		add(validPostgreSQLIdentifier(target.Graph), "target.graph", "format",
+			"must be a valid PostgreSQL identifier of at most 63 bytes")
+		add(validPostgreSQLIdentifier(target.Schema), "target.schema", "format",
+			"must be a valid PostgreSQL identifier of at most 63 bytes")
+		add(target.Mode == LoadCreate || target.Mode == LoadReplace ||
+			target.Mode == LoadAppend || target.Mode == LoadUpsert,
+			"target.mode", "unsupported",
+			"must be create, replace, append, or upsert")
+		add(target.Mode == LoadAppend || target.AppendDuplicate == "",
+			"target.appendDuplicate", "unsupported",
+			"is supported only for append loads")
+	default:
+		add(false, "target.type", "unsupported",
+			"must be apache-age or postgresql-property-graph")
+	}
 	switch target.Mode {
 	case LoadCreate, LoadReplace, LoadAppend, LoadUpsert:
 	default:
@@ -749,6 +809,11 @@ func validateTarget(target Target, errs *ValidationErrors) {
 	validateSecret(target.Connection, "target.connection", errs)
 }
 
+func validPostgreSQLIdentifier(identifier string) bool {
+	return identifier != "" && len(identifier) <= 63 &&
+		utf8.ValidString(identifier) && !strings.ContainsRune(identifier, '\x00')
+}
+
 func validateSecret(secret SecretRef, path string, errs *ValidationErrors) {
 	add := validationAdder(errs)
 	add((secret.Env == "") != (secret.File == ""), path, "secret-reference",
@@ -774,7 +839,7 @@ func validateRuntime(runtime Runtime, errs *ValidationErrors) {
 		"must be 1; connector transforms are ordered and execute within source iteration")
 	validateConcurrency(runtime.MaxTargetConnections, "runtime.maxTargetConnections", errs)
 	add(runtime.MaxTargetConnections >= 2, "runtime.maxTargetConnections", "range",
-		"must be at least 2 for AGE loading")
+		"must be at least 2 for target loading")
 	add(runtime.OperationTimeout > 0, "runtime.operationTimeout", "range", "must be positive")
 }
 

@@ -21,6 +21,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/pipeline"
 	"github.com/rioriost/agefreighter/internal/reject"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
+	targetruntime "github.com/rioriost/agefreighter/internal/target"
 	"github.com/rioriost/agefreighter/pkg/model"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -62,12 +63,20 @@ func Status(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if err != nil {
 		return meta.Job{}, fmt.Errorf("load target configuration: %w", err)
 	}
-	adapter, store, err := openCurrentTarget(ctx, job)
+	runtime, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
-	defer adapter.Close()
-	return store.GetJob(ctx, jobID)
+	defer runtime.Close()
+	store := runtime.Metadata()
+	stored, err := store.GetJob(ctx, jobID)
+	if err != nil {
+		return meta.Job{}, err
+	}
+	if err := validateStoredTargetIdentity(job, stored); err != nil {
+		return meta.Job{}, err
+	}
+	return stored, nil
 }
 
 func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
@@ -75,13 +84,25 @@ func Verify(ctx context.Context, path, jobID string) (meta.Job, error) {
 	if err != nil {
 		return meta.Job{}, err
 	}
-	adapter, store, err := openCurrentTarget(ctx, job)
+	if job.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return verifyPostgreSQLPropertyGraph(ctx, job, jobID)
+	}
+	runtime, err := openCurrentTarget(ctx, job)
 	if err != nil {
 		return meta.Job{}, err
 	}
-	defer adapter.Close()
+	defer runtime.Close()
+	ageRuntime, err := targetruntime.RequireAGE(runtime)
+	if err != nil {
+		return meta.Job{}, err
+	}
+	adapter := ageRuntime.AGEAdapter()
+	store := runtime.Metadata()
 	stored, err := store.GetJob(ctx, jobID)
 	if err != nil {
+		return meta.Job{}, err
+	}
+	if err := validateStoredTargetIdentity(job, stored); err != nil {
 		return meta.Job{}, err
 	}
 	if stored.Status != meta.JobCommitted {
@@ -297,17 +318,27 @@ func execute(
 	if _, err := newPipelineRunner(job, 1, 1); err != nil {
 		return result, fmt.Errorf("validate load pipeline: %w", err)
 	}
-	var adapter *age.Adapter
-	var store *meta.Store
+	if job.Target.Type == config.TargetPostgreSQLPropertyGraph {
+		return executePostgreSQLPropertyGraph(
+			ctx, job, jobID, resume, submittedFingerprint,
+		)
+	}
+	var runtime targetruntime.Runtime
 	if resume {
-		adapter, store, err = openMutatingTarget(ctx, job)
+		runtime, err = openMutatingTarget(ctx, job)
 	} else {
-		adapter, store, err = openAGEStore(ctx, job)
+		runtime, err = openRuntime(ctx, job)
 	}
 	if err != nil {
 		return result, err
 	}
-	defer adapter.Close()
+	defer runtime.Close()
+	ageRuntime, err := targetruntime.RequireAGE(runtime)
+	if err != nil {
+		return result, err
+	}
+	adapter := ageRuntime.AGEAdapter()
+	store := runtime.Metadata()
 	preserveRunningJob := false
 	recordFailure := func(cause error) error {
 		if resume && (preserveRunningJob || errors.Is(cause, meta.ErrConflict)) {
@@ -327,6 +358,9 @@ func execute(
 	if resume {
 		storedJob, err = store.GetJob(ctx, jobID)
 		if err != nil {
+			return result, err
+		}
+		if err := validateStoredTargetIdentity(job, storedJob); err != nil {
 			return result, err
 		}
 		preserveRunningJob = storedJob.Status == meta.JobRunning
@@ -379,7 +413,9 @@ func execute(
 		newJob := meta.Job{
 			ID: jobID, Name: job.Metadata.Name,
 			SourceType: string(job.Source.Type), LoadMode: string(job.Target.Mode),
-			TargetGraph: job.Target.Graph, ConfigFingerprint: fingerprint,
+			TargetBackend: meta.TargetBackend(job.Target.Type),
+			TargetSchema:  job.Target.Schema,
+			TargetGraph:   job.Target.Graph, ConfigFingerprint: fingerprint,
 		}
 		created, createErr := store.CreateRunningJobIfCurrent(ctx, newJob)
 		if createErr != nil {
@@ -563,6 +599,24 @@ func execute(
 	}
 	setTrialSummary(&result, trialIterator)
 	return result, nil
+}
+
+func validateStoredTargetIdentity(job config.LoadJob, stored meta.Job) error {
+	wantBackend := meta.TargetBackend(job.Target.Type)
+	if stored.TargetBackend != wantBackend ||
+		stored.TargetSchema != job.Target.Schema ||
+		stored.TargetGraph != job.Target.Graph {
+		return fmt.Errorf(
+			"load job target identity changed: stored backend=%q schema=%q graph=%q, configured backend=%q schema=%q graph=%q",
+			stored.TargetBackend,
+			stored.TargetSchema,
+			stored.TargetGraph,
+			wantBackend,
+			job.Target.Schema,
+			job.Target.Graph,
+		)
+	}
+	return nil
 }
 
 const (
@@ -928,107 +982,111 @@ func newPipelineRunner(
 func openMutatingTarget(
 	ctx context.Context,
 	job config.LoadJob,
-) (*age.Adapter, *meta.Store, error) {
-	adapter, store, err := openAGEStore(ctx, job)
+) (targetruntime.Runtime, error) {
+	runtime, err := openRuntime(ctx, job)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	migrationCtx, cancel := context.WithTimeout(
 		ctx,
 		time.Duration(job.Runtime.OperationTimeout),
 	)
 	defer cancel()
-	if err := store.MigrateIfNeeded(migrationCtx); err != nil {
-		adapter.Close()
-		return nil, nil, err
+	if err := runtime.MigrateMetadata(migrationCtx); err != nil {
+		runtime.Close()
+		return nil, err
 	}
-	return adapter, store, nil
-}
-
-// openTarget retains the 2.0 mutating target-open contract for load/resume and
-// existing internal callers.
-func openTarget(
-	ctx context.Context,
-	job config.LoadJob,
-) (*age.Adapter, *meta.Store, error) {
-	return openMutatingTarget(ctx, job)
+	return runtime, nil
 }
 
 type readOnlyTarget struct {
-	Adapter  *age.Adapter
+	Runtime  targetruntime.Runtime
 	Store    *meta.Store
 	Metadata meta.SchemaInspection
+}
+
+func (target readOnlyTarget) AGEAdapter() (*age.Adapter, error) {
+	runtime, err := targetruntime.RequireAGE(target.Runtime)
+	if err != nil {
+		return nil, err
+	}
+	return runtime.AGEAdapter(), nil
 }
 
 func openReadOnlyTarget(
 	ctx context.Context,
 	job config.LoadJob,
 ) (readOnlyTarget, error) {
-	adapter, store, err := openAGEStore(ctx, job)
+	runtime, err := openRuntime(ctx, job)
 	if err != nil {
 		return readOnlyTarget{}, err
 	}
-	inspection, err := store.InspectSchema(ctx)
+	inspection, err := runtime.InspectMetadata(ctx)
 	if err != nil {
-		adapter.Close()
+		runtime.Close()
 		return readOnlyTarget{}, err
 	}
 	return readOnlyTarget{
-		Adapter: adapter, Store: store, Metadata: inspection,
+		Runtime: runtime, Store: runtime.Metadata(), Metadata: inspection,
 	}, nil
 }
 
 func openCurrentTarget(
 	ctx context.Context,
 	job config.LoadJob,
-) (*age.Adapter, *meta.Store, error) {
+) (targetruntime.Runtime, error) {
 	target, err := openReadOnlyTarget(ctx, job)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := target.Metadata.RequireReadCompatible(); err != nil {
-		target.Adapter.Close()
-		return nil, nil, err
+		target.Runtime.Close()
+		return nil, err
 	}
-	return target.Adapter, target.Store, nil
+	return target.Runtime, nil
 }
 
 func probeTarget(
 	ctx context.Context,
 	job config.LoadJob,
 ) (age.DegradedProbe, error) {
+	if err := targetruntime.RequireImplemented(job.Target.Type); err != nil {
+		return age.DegradedProbe{}, err
+	}
+	options := targetruntime.Options{
+		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
+		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
+	}
+	if job.Target.Type != config.TargetApacheAGE {
+		return targetruntime.ProbeAGE(ctx, job.Target.Type, "", options)
+	}
 	dsn, err := resolveSecret(job.Target.Connection)
 	if err != nil {
 		return age.DegradedProbe{}, fmt.Errorf("resolve target connection: %w", err)
 	}
-	return age.ProbeDegraded(ctx, dsn, age.ProbeOptions{
-		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
-		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
-	})
+	return targetruntime.ProbeAGE(ctx, job.Target.Type, dsn, options)
 }
 
-func openAGEStore(
+func openRuntime(
 	ctx context.Context,
 	job config.LoadJob,
-) (*age.Adapter, *meta.Store, error) {
+) (targetruntime.Runtime, error) {
+	if err := targetruntime.RequireImplemented(job.Target.Type); err != nil {
+		return nil, err
+	}
 	dsn, err := resolveSecret(job.Target.Connection)
 	if err != nil {
-		return nil, nil, fmt.Errorf("resolve target connection: %w", err)
+		return nil, fmt.Errorf("resolve target connection: %w", err)
 	}
-	adapter, err := age.Open(ctx, dsn, age.PoolOptions{
-		MinConnections: 1, MaxConnections: int32(job.Runtime.MaxTargetConnections),
+	runtime, err := targetruntime.Open(ctx, job.Target.Type, dsn, targetruntime.Options{
+		MaxConnections:   int32(job.Runtime.MaxTargetConnections),
 		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
 		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	store, err := adapter.Metadata()
-	if err != nil {
-		adapter.Close()
-		return nil, nil, err
-	}
-	return adapter, store, nil
+	return runtime, nil
 }
 
 func resolveSecret(reference config.SecretRef) (string, error) {

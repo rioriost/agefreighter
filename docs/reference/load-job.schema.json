@@ -37,6 +37,72 @@
       "$ref": "#/$defs/errors"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "target": {
+            "properties": {
+              "type": {
+                "const": "postgresql-property-graph"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "errors": {
+            "properties": {
+              "missingEndpoint": {
+                "const": "error"
+              }
+            }
+          },
+          "source": {
+            "properties": {
+              "postgresql": {
+                "properties": {
+                  "edges": {
+                    "items": {
+                      "required": [
+                        "externalIdField"
+                      ]
+                    }
+                  }
+                }
+              },
+              "neo4j": {
+                "properties": {
+                  "edges": {
+                    "items": {
+                      "required": [
+                        "externalIdField"
+                      ]
+                    }
+                  }
+                }
+              },
+              "cosmos": {
+                "properties": {
+                  "edges": {
+                    "items": {
+                      "required": [
+                        "externalIdField"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "metadata": {
       "type": "object",
@@ -1009,13 +1075,20 @@
       ],
       "properties": {
         "type": {
-          "const": "apache-age"
+          "enum": [
+            "apache-age",
+            "postgresql-property-graph"
+          ]
         },
         "graph": {
           "type": "string",
-          "minLength": 3,
-          "maxLength": 63,
-          "pattern": "^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_]$"
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63
         },
         "mode": {
           "enum": [
@@ -1041,7 +1114,58 @@
             "ignore-identical"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "apache-age"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "graph": {
+                "minLength": 3,
+                "pattern": "^[A-Za-z_][A-Za-z0-9_.-]*[A-Za-z0-9_]$"
+              }
+            },
+            "not": {
+              "required": [
+                "schema"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "postgresql-property-graph"
+              },
+              "mode": {
+                "enum": [
+                  "create",
+                  "replace",
+                  "upsert"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "mode"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "appendDuplicate"
+              ]
+            }
+          }
+        }
+      ]
     },
     "runtime": {
       "type": "object",

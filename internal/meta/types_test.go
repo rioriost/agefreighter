@@ -80,6 +80,12 @@ func TestMetadataValidation(t *testing.T) {
 	if err := validateJob(validJob); err != nil {
 		t.Fatalf("validateJob() error = %v", err)
 	}
+	propertyGraphJob := validJob
+	propertyGraphJob.TargetBackend = TargetBackendPostgreSQLPropertyGraph
+	propertyGraphJob.TargetSchema = "Graph Data"
+	if err := validateJob(propertyGraphJob); err != nil {
+		t.Fatalf("validateJob(property graph) error = %v", err)
+	}
 	jobTests := []Job{
 		{},
 		withJob(validJob, func(job *Job) {
@@ -92,6 +98,10 @@ func TestMetadataValidation(t *testing.T) {
 		withJob(validJob, func(job *Job) { job.SourceType = "unknown" }),
 		withJob(validJob, func(job *Job) { job.LoadMode = "unknown" }),
 		withJob(validJob, func(job *Job) { job.TargetGraph = "" }),
+		withJob(validJob, func(job *Job) { job.TargetBackend = "unknown" }),
+		withJob(validJob, func(job *Job) { job.TargetSchema = "unexpected" }),
+		withJob(propertyGraphJob, func(job *Job) { job.TargetSchema = "" }),
+		withJob(propertyGraphJob, func(job *Job) { job.TargetSchema = strings.Repeat("s", 64) }),
 		withJob(validJob, func(job *Job) { job.ConfigFingerprint = "A" + strings.Repeat("a", 63) }),
 		withJob(validJob, func(job *Job) { job.ConfigFingerprint = strings.Repeat("z", 64) }),
 		withJob(validJob, func(job *Job) { job.Status = JobRunning }),

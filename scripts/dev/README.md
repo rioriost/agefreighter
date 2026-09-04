@@ -88,3 +88,36 @@ The output path must not exist. Supported strategies are `direct-text`,
 development container before each trial so kernel `memory.peak` starts from a
 comparable cold baseline; its named volume is preserved. Reported target
 memory is total cgroup memory, while client memory is peak process RSS.
+
+## PostgreSQL 19 property graph development target
+
+The experimental 2.2.0 target has a separate Apple Container harness. It pins
+the official PostgreSQL 19 Beta 3 image index digest, verifies the resolved
+digest before starting, and manages only `agefreighter-pg19-sqlpgq`:
+
+```sh
+./scripts/dev/pggraph-apple-container.sh up
+./scripts/dev/pggraph-apple-container.sh status
+make test-pggraph-apple
+./scripts/dev/pggraph-apple-container.sh down
+```
+
+`down` preserves the dedicated container and database. The harness does not
+delete images, volumes, or unrelated Apple Container resources. A newer beta
+or release candidate intentionally fails the digest check until its SQL/PGQ
+behavior is reviewed and the recorded digest is updated.
+
+Run the complete-path property-graph benchmark against the same pinned target:
+
+```sh
+AGEFREIGHTER_PGGRAPH_TEST_DSN='postgres://...' \
+  make bench-pggraph PGGRAPH_BENCH_PROFILE=small \
+  PGGRAPH_BENCH_TRIALS=3 \
+  PGGRAPH_BENCH_OUTPUT=.local/pggraph-small.txt
+```
+
+`small` loads 10,000 vertices and 25,000 edges; `medium` loads 100,000 and
+250,000. The explicit `production` profile is 160,000,000 and 400,000,000 and
+also requires `PGGRAPH_BENCHMARK_PRODUCTION_ACK=160000000-400000000`. This
+guard prevents an accidental multi-hundred-million-row local run. Benchmark
+outputs are local evidence and are never overwritten.

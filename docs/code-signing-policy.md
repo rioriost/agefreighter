@@ -7,13 +7,14 @@ Official Windows release archives contain `agefreighter.exe` and
 GitHub Actions before checksums, SBOMs, provenance, and the GitHub release are
 created.
 
-The Windows executables in v2.0.0 are intentionally unsigned while SignPath
-Foundation enrollment is pending. Code signing remains planned for a later
-release. Once enabled, signing will be provided by SignPath.io using a
-certificate from SignPath Foundation, and the Authenticode publisher shown by
-Windows will be SignPath Foundation.
+The Windows executables through v2.2.0 are intentionally unsigned. The SignPath
+Foundation application was not approved because the project does not yet meet
+the program's public visibility requirements. Code signing remains planned for
+a later release, either after a successful future application or through
+another signing arrangement. The selected provider and Authenticode publisher
+will be documented before signed binaries are shipped.
 
-## v2.0.0 unsigned-release controls
+## Unsigned-release controls
 
 - The Windows cross-build runs on a GitHub-hosted runner from the tagged
   repository commit.
@@ -24,16 +25,17 @@ Windows will be SignPath Foundation.
 
 ## Planned signing rules
 
-- Only version-tag builds from `rioriost/agefreighter` may request a production
-  signature.
-- The source checkout, Windows cross-build, and SignPath submission will run
+- Only version-tag builds from `rioriost/agefreighter` may request a future
+  production signature.
+- The source checkout, Windows cross-build, and signing submission will run
   only on GitHub-hosted runners.
 - The raw unsigned ZIP will be uploaded by GitHub Actions and referenced by its
   immutable artifact ID. Locally supplied binaries will not be accepted.
 - Both executables will carry the product name `agefreighter`, the release
   version, their expected original filename, and a command-specific
   description.
-- Every production signing request will require manual approval in SignPath.
+- Every production signing request will require manual approval in the selected
+  signing service.
 - The signed ZIP will be verified on a separate Windows runner with
   Authenticode policy before it can reach checksum, SBOM, provenance, or
   publication jobs.
@@ -43,9 +45,9 @@ Windows will be SignPath Foundation.
 - Committer and reviewer: [Rio Fujita (`rioriost`)](https://github.com/rioriost)
 - Signing approver: [Rio Fujita (`rioriost`)](https://github.com/rioriost)
 
-Multi-factor authentication is required for GitHub and SignPath access. Changes
-to the release workflow or this policy are reviewed as security-sensitive
-release changes.
+Multi-factor authentication is required for GitHub and signing-service access.
+Changes to the release workflow or this policy are reviewed as
+security-sensitive release changes.
 
 ## Privacy
 

@@ -1,0 +1,260 @@
+package pggraph
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"slices"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/rioriost/agefreighter/internal/meta"
+)
+
+type VertexDefinition struct {
+	Table string
+	Label string
+}
+
+type EdgeDefinition struct {
+	Table            string
+	Label            string
+	SourceTable      string
+	DestinationTable string
+}
+
+type Definition struct {
+	Schema   string
+	Graph    string
+	Vertices []VertexDefinition
+	Edges    []EdgeDefinition
+}
+
+// DDL returns ordered statements that create the relational storage and then
+// its SQL/PGQ property graph declaration. Callers execute them in one
+// transaction.
+func (definition Definition) DDL() ([]string, error) {
+	if err := definition.validate(); err != nil {
+		return nil, err
+	}
+	definition = definition.normalized()
+
+	statements := []string{
+		fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", QuoteIdentifier(definition.Schema)),
+	}
+	for _, vertex := range definition.Vertices {
+		statements = append(statements, vertexTableDDL(definition.Schema, vertex.Table))
+	}
+	for _, edge := range definition.Edges {
+		statements = append(statements, edgeTableDDL(definition.Schema, edge))
+	}
+	statements = append(
+		statements,
+		"SET LOCAL search_path TO "+QuoteIdentifier(definition.Schema)+", pg_catalog",
+		propertyGraphDDL(definition),
+	)
+	return statements, nil
+}
+
+func (definition Definition) Fingerprint() (string, error) {
+	if err := definition.validate(); err != nil {
+		return "", err
+	}
+	encoded, err := json.Marshal(struct {
+		StorageVersion int `json:"storageVersion"`
+		Definition
+	}{StorageVersion: 2, Definition: definition.normalized()})
+	if err != nil {
+		return "", fmt.Errorf("encode property graph definition: %w", err)
+	}
+	digest := sha256.Sum256(encoded)
+	return hex.EncodeToString(digest[:]), nil
+}
+
+func ReplacementDefinitions(
+	canonical Definition,
+	jobID string,
+) (Definition, Definition, error) {
+	if err := canonical.validate(); err != nil {
+		return Definition{}, Definition{}, err
+	}
+	if err := meta.ValidateJobID(jobID); err != nil {
+		return Definition{}, Definition{}, err
+	}
+	build := func(prefix string) Definition {
+		result := canonical
+		result.Graph = PhysicalName(prefix+"g_", canonical.Graph+"_"+jobID)
+		result.Vertices = make([]VertexDefinition, len(canonical.Vertices))
+		tableNames := make(map[string]string, len(canonical.Vertices))
+		for index, vertex := range canonical.Vertices {
+			table := PhysicalName(prefix+"v_", vertex.Table+"_"+jobID)
+			tableNames[vertex.Table] = table
+			result.Vertices[index] = VertexDefinition{Table: table, Label: vertex.Label}
+		}
+		result.Edges = make([]EdgeDefinition, len(canonical.Edges))
+		for index, edge := range canonical.Edges {
+			result.Edges[index] = EdgeDefinition{
+				Table: PhysicalName(prefix+"e_", edge.Table+"_"+jobID), Label: edge.Label,
+				SourceTable:      tableNames[edge.SourceTable],
+				DestinationTable: tableNames[edge.DestinationTable],
+			}
+		}
+		return result
+	}
+	shadow, backup := build("afs_"), build("afb_")
+	if err := shadow.validate(); err != nil {
+		return Definition{}, Definition{}, err
+	}
+	if err := backup.validate(); err != nil {
+		return Definition{}, Definition{}, err
+	}
+	return shadow, backup, nil
+}
+
+func (definition Definition) normalized() Definition {
+	result := definition
+	result.Vertices = slices.Clone(definition.Vertices)
+	result.Edges = slices.Clone(definition.Edges)
+	slices.SortFunc(result.Vertices, func(left, right VertexDefinition) int {
+		if left.Label != right.Label {
+			return strings.Compare(left.Label, right.Label)
+		}
+		return strings.Compare(left.Table, right.Table)
+	})
+	slices.SortFunc(result.Edges, func(left, right EdgeDefinition) int {
+		if left.Label != right.Label {
+			return strings.Compare(left.Label, right.Label)
+		}
+		return strings.Compare(left.Table, right.Table)
+	})
+	return result
+}
+
+func (definition Definition) validate() error {
+	for field, value := range map[string]string{
+		"schema": definition.Schema,
+		"graph":  definition.Graph,
+	} {
+		if !validIdentifier(value) {
+			return fmt.Errorf("%s must be a valid PostgreSQL identifier of at most 63 bytes", field)
+		}
+	}
+	if len(definition.Vertices) == 0 {
+		return errors.New("at least one vertex definition is required")
+	}
+	tables := make(map[string]struct{}, len(definition.Vertices)+len(definition.Edges))
+	labels := make(map[string]struct{}, len(definition.Vertices)+len(definition.Edges))
+	vertexTables := make(map[string]struct{}, len(definition.Vertices))
+	for index, vertex := range definition.Vertices {
+		if err := validateElement(vertex.Table, vertex.Label, tables, labels); err != nil {
+			return fmt.Errorf("vertex %d: %w", index, err)
+		}
+		vertexTables[vertex.Table] = struct{}{}
+	}
+	for index, edge := range definition.Edges {
+		if err := validateElement(edge.Table, edge.Label, tables, labels); err != nil {
+			return fmt.Errorf("edge %d: %w", index, err)
+		}
+		if _, ok := vertexTables[edge.SourceTable]; !ok {
+			return fmt.Errorf("edge %d: source table %q is not a vertex table", index, edge.SourceTable)
+		}
+		if _, ok := vertexTables[edge.DestinationTable]; !ok {
+			return fmt.Errorf("edge %d: destination table %q is not a vertex table", index, edge.DestinationTable)
+		}
+	}
+	return nil
+}
+
+func validateElement(
+	table string,
+	label string,
+	tables map[string]struct{},
+	labels map[string]struct{},
+) error {
+	if !validIdentifier(table) {
+		return errors.New("table must be a valid PostgreSQL identifier of at most 63 bytes")
+	}
+	if !validIdentifier(label) {
+		return errors.New("label must be a valid PostgreSQL identifier of at most 63 bytes")
+	}
+	if _, exists := tables[table]; exists {
+		return fmt.Errorf("duplicate table %q", table)
+	}
+	if _, exists := labels[label]; exists {
+		return fmt.Errorf("duplicate label %q", label)
+	}
+	tables[table] = struct{}{}
+	labels[label] = struct{}{}
+	return nil
+}
+
+func validIdentifier(identifier string) bool {
+	return identifier != "" && len(identifier) <= maxIdentifierBytes &&
+		utf8.ValidString(identifier) && !strings.ContainsRune(identifier, '\x00')
+}
+
+func vertexTableDDL(schema, table string) string {
+	return fmt.Sprintf(`CREATE TABLE %s (
+    id bigint GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    source_namespace text NOT NULL,
+    external_id text NOT NULL,
+    properties jsonb NOT NULL DEFAULT '{}'::jsonb,
+    digest_range smallint NOT NULL CHECK (digest_range BETWEEN 0 AND 255),
+    source_digest character(64) NOT NULL CHECK (source_digest ~ '^[0-9a-f]{64}$'),
+    UNIQUE (source_namespace, external_id)
+)`, qualifiedName(schema, table))
+}
+
+func edgeTableDDL(schema string, edge EdgeDefinition) string {
+	return fmt.Sprintf(`CREATE TABLE %s (
+    id bigint GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    source_namespace text NOT NULL,
+    external_id text NOT NULL,
+    start_id bigint NOT NULL REFERENCES %s (id),
+    end_id bigint NOT NULL REFERENCES %s (id),
+    properties jsonb NOT NULL DEFAULT '{}'::jsonb,
+    digest_range smallint NOT NULL CHECK (digest_range BETWEEN 0 AND 255),
+    source_digest character(64) NOT NULL CHECK (source_digest ~ '^[0-9a-f]{64}$'),
+    UNIQUE (source_namespace, external_id)
+)`, qualifiedName(schema, edge.Table),
+		qualifiedName(schema, edge.SourceTable),
+		qualifiedName(schema, edge.DestinationTable))
+}
+
+func propertyGraphDDL(definition Definition) string {
+	vertices := make([]string, 0, len(definition.Vertices))
+	for _, vertex := range definition.Vertices {
+		vertices = append(vertices, fmt.Sprintf(
+			"%s LABEL %s PROPERTIES (source_namespace, external_id, properties)",
+			QuoteIdentifier(vertex.Table), QuoteIdentifier(vertex.Label),
+		))
+	}
+	edges := make([]string, 0, len(definition.Edges))
+	for _, edge := range definition.Edges {
+		edges = append(edges, fmt.Sprintf(
+			"%s SOURCE KEY (start_id) REFERENCES %s (id) "+
+				"DESTINATION KEY (end_id) REFERENCES %s (id) "+
+				"LABEL %s PROPERTIES (source_namespace, external_id, properties)",
+			QuoteIdentifier(edge.Table),
+			QuoteIdentifier(edge.SourceTable),
+			QuoteIdentifier(edge.DestinationTable),
+			QuoteIdentifier(edge.Label),
+		))
+	}
+
+	statement := fmt.Sprintf(
+		"CREATE PROPERTY GRAPH %s VERTEX TABLES (%s)",
+		QuoteIdentifier(definition.Graph),
+		strings.Join(vertices, ", "),
+	)
+	if len(edges) > 0 {
+		statement += " EDGE TABLES (" + strings.Join(edges, ", ") + ")"
+	}
+	return statement
+}
+
+func qualifiedName(schema, name string) string {
+	return QuoteIdentifier(schema) + "." + QuoteIdentifier(name)
+}

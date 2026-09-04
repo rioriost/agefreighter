@@ -18,6 +18,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/report"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	sourcecsv "github.com/rioriost/agefreighter/internal/source/csv"
+	targetruntime "github.com/rioriost/agefreighter/internal/target"
 	"github.com/rioriost/agefreighter/pkg/model"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -27,6 +28,73 @@ import (
 type limitedIterator struct {
 	sourcecontract.Iterator
 	remaining int
+}
+
+func TestOpenRuntimeResolvesPropertyGraphSecret(t *testing.T) {
+	job := testLoadJob("app_test_graph", "vertices.csv", "edges.csv")
+	job.Target.Type = config.TargetPostgreSQLPropertyGraph
+	job.Target.Schema = "public"
+	job.Target.AppendDuplicate = ""
+
+	runtime, err := openRuntime(context.Background(), job)
+	if runtime != nil {
+		runtime.Close()
+	}
+	if err == nil || !strings.Contains(err.Error(), "AGEFREIGHTER_APP_TEST_DSN") {
+		t.Fatalf("openRuntime() error = %v", err)
+	}
+}
+
+func TestProbeTargetRejectsUnwiredTargetBeforeSecretResolution(t *testing.T) {
+	job := testLoadJob("app_test_graph", "vertices.csv", "edges.csv")
+	job.Target.Type = config.TargetPostgreSQLPropertyGraph
+	job.Target.Schema = "public"
+	job.Target.AppendDuplicate = ""
+	job.Target.Connection = config.SecretRef{Env: "UNSET_PGGRAPH_PROBE_DSN"}
+
+	_, err := probeTarget(context.Background(), job)
+	if err == nil || !strings.Contains(err.Error(), "does not provide Apache AGE diagnostics") ||
+		strings.Contains(err.Error(), "UNSET_PGGRAPH_PROBE_DSN") {
+		t.Fatalf("probeTarget() error = %v", err)
+	}
+}
+
+func openTarget(
+	ctx context.Context,
+	job config.LoadJob,
+) (*age.Adapter, *meta.Store, error) {
+	runtime, err := openMutatingTarget(ctx, job)
+	if err != nil {
+		return nil, nil, err
+	}
+	ageRuntime, err := targetruntime.RequireAGE(runtime)
+	if err != nil {
+		runtime.Close()
+		return nil, nil, err
+	}
+	return ageRuntime.AGEAdapter(), runtime.Metadata(), nil
+}
+
+func TestValidateStoredTargetIdentity(t *testing.T) {
+	job := testLoadJob("app_test_graph", "vertices.csv", "edges.csv")
+	stored := meta.Job{
+		TargetBackend: meta.TargetBackendApacheAGE,
+		TargetGraph:   job.Target.Graph,
+	}
+	if err := validateStoredTargetIdentity(job, stored); err != nil {
+		t.Fatalf("validateStoredTargetIdentity() error = %v", err)
+	}
+	for _, mutate := range []func(*meta.Job){
+		func(value *meta.Job) { value.TargetBackend = meta.TargetBackendPostgreSQLPropertyGraph },
+		func(value *meta.Job) { value.TargetSchema = "other" },
+		func(value *meta.Job) { value.TargetGraph = "other" },
+	} {
+		changed := stored
+		mutate(&changed)
+		if err := validateStoredTargetIdentity(job, changed); err == nil {
+			t.Fatalf("changed target accepted: %#v", changed)
+		}
+	}
 }
 
 func (iterator *limitedIterator) Next(

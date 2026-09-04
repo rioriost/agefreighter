@@ -71,6 +71,10 @@ func assertPackageBoundaries(t *testing.T, pkg goPackage) {
 		containsPackageOrChild(pkg.Deps, module+"/internal/age") {
 		t.Errorf("%s depends on internal/age", pkg.ImportPath)
 	}
+	if isPackageOrChild(pkg.ImportPath, module+"/internal/pggraph") &&
+		containsPackageOrChild(pkg.Deps, module+"/internal/age") {
+		t.Errorf("%s depends on internal/age", pkg.ImportPath)
+	}
 	if !isPackageOrChild(pkg.ImportPath, module+"/cmd/agefreighter-tools") &&
 		!isPackageOrChild(pkg.ImportPath, module+"/internal/tools") &&
 		containsPackageOrChild(pkg.Deps, module+"/internal/tools") {

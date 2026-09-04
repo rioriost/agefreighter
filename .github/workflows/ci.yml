@@ -58,9 +58,32 @@ jobs:
           DEV_RUNTIME: docker
           DEV_PLATFORM: linux/amd64
         run: make dev-reset
+      - name: Start pinned PostgreSQL 19 beta target
+        env:
+          PGGRAPH_CONTAINER: agefreighter-pg19-beta3
+          PGGRAPH_IMAGE: docker.io/library/postgres@sha256:a48b19841e04b35b72a25e9a94314ac80546d32b5e2e3cd9279390cbd8a99572
+          PGGRAPH_PASSWORD: agefreighter_pg19_dev_only
+        run: |
+          docker pull "$PGGRAPH_IMAGE"
+          docker rm --force "$PGGRAPH_CONTAINER" >/dev/null 2>&1 || true
+          docker run --detach --name "$PGGRAPH_CONTAINER" \
+            --publish 55434:5432 \
+            --env POSTGRES_PASSWORD="$PGGRAPH_PASSWORD" \
+            --env POSTGRES_DB=agefreighter \
+            "$PGGRAPH_IMAGE" >/dev/null
+          for _ in $(seq 1 60); do
+            if docker exec "$PGGRAPH_CONTAINER" \
+              pg_isready -U postgres -d agefreighter >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs "$PGGRAPH_CONTAINER"
+          exit 1
       - name: Run AGE integration and coverage gate
         env:
           AGEFREIGHTER_AGE_TEST_DSN: postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55432/agefreighter?sslmode=disable
+          AGEFREIGHTER_PGGRAPH_TEST_DSN: postgres://postgres:agefreighter_pg19_dev_only@127.0.0.1:55434/agefreighter?sslmode=disable
         run: |
           export AGEFREIGHTER_POSTGRES_TEST_DSN='postgres://agefreighter:agefreighter_dev_only@127.0.0.1:55433/agefreighter?sslmode=disable'
           export AGEFREIGHTER_NEO4J_TEST_URI='bolt://127.0.0.1:57687'
@@ -73,6 +96,9 @@ jobs:
           make test-release-integration
           make test-diagnostics-race
           make test-recovery
+      - name: Stop PostgreSQL 19 beta target
+        if: always()
+        run: docker rm --force agefreighter-pg19-beta3 >/dev/null 2>&1 || true
       - name: Stop databases
         if: always()
         env:

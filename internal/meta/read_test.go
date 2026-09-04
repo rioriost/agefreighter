@@ -431,20 +431,22 @@ func scanTestJob(dest []any, now time.Time) error {
 	*dest[1].(*string) = "job"
 	*dest[2].(*string) = "csv"
 	*dest[3].(*string) = "create"
-	*dest[4].(*string) = "graph"
+	*dest[4].(*TargetBackend) = TargetBackendApacheAGE
 	*dest[5].(*string) = ""
-	*dest[6].(*string) = strings.Repeat("a", 64)
-	*dest[7].(*JobStatus) = JobRunning
-	*dest[8].(*int64) = 1
-	*dest[9].(*uint64) = 1
-	*dest[10].(*string) = "token"
-	*dest[11].(*int64) = 2
-	*dest[12].(*int64) = 3
-	*dest[13].(*int64) = 4
-	*dest[14].(*int64) = 5
-	*dest[15].(*string) = ""
-	*dest[16].(*time.Time) = now
+	*dest[6].(*string) = "graph"
+	*dest[7].(*string) = ""
+	*dest[8].(*string) = strings.Repeat("a", 64)
+	*dest[9].(*JobStatus) = JobRunning
+	*dest[10].(*int64) = 1
+	*dest[11].(*uint64) = 1
+	*dest[12].(*string) = "token"
+	*dest[13].(*int64) = 2
+	*dest[14].(*int64) = 3
+	*dest[15].(*int64) = 4
+	*dest[16].(*int64) = 5
+	*dest[17].(*string) = ""
 	*dest[18].(*time.Time) = now
+	*dest[20].(*time.Time) = now
 	return nil
 }
 

@@ -1,6 +1,6 @@
 package meta
 
-const schemaVersion = 17
+const schemaVersion = 21
 
 var migrationV1 = []string{
 	`CREATE TABLE agefreighter_meta.load_job (
@@ -762,6 +762,112 @@ var migrationV17 = []string{
 	)`,
 }
 
+var migrationV18 = []string{
+	`ALTER TABLE agefreighter_meta.load_job
+		ADD COLUMN target_backend text NOT NULL DEFAULT 'apache-age',
+		ADD COLUMN target_schema text NOT NULL DEFAULT ''`,
+	`ALTER TABLE agefreighter_meta.load_job
+		ADD CONSTRAINT load_job_target_backend_ck CHECK (
+			target_backend IN ('apache-age', 'postgresql-property-graph')
+		),
+		ADD CONSTRAINT load_job_target_schema_ck CHECK (
+			octet_length(target_schema) <= 63
+		),
+		ADD CONSTRAINT load_job_target_identity_ck CHECK (
+			(target_backend = 'apache-age' AND target_schema = '')
+			OR
+			(target_backend = 'postgresql-property-graph' AND target_schema <> '')
+		)`,
+	`ALTER TABLE agefreighter_meta.load_job
+		ALTER COLUMN target_backend DROP DEFAULT,
+		ALTER COLUMN target_schema DROP DEFAULT`,
+}
+
+var migrationV19 = []string{
+	`CREATE TABLE agefreighter_meta.property_graph_generation (
+		job_id uuid PRIMARY KEY
+			REFERENCES agefreighter_meta.load_job(job_id)
+			ON DELETE CASCADE,
+		target_schema text NOT NULL CHECK (
+			target_schema <> '' AND octet_length(target_schema) <= 63
+		),
+		graph_name text NOT NULL CHECK (
+			graph_name <> '' AND octet_length(graph_name) <= 63
+		),
+		definition_fingerprint character(64) NOT NULL CHECK (
+			definition_fingerprint ~ '^[0-9a-f]{64}$'
+		),
+		state text NOT NULL CHECK (state IN ('loading', 'active')),
+		created_at timestamp with time zone NOT NULL DEFAULT clock_timestamp(),
+		updated_at timestamp with time zone NOT NULL DEFAULT clock_timestamp(),
+		UNIQUE (target_schema, graph_name)
+	)`,
+	`CREATE TABLE agefreighter_meta.property_graph_label (
+		job_id uuid NOT NULL
+			REFERENCES agefreighter_meta.property_graph_generation(job_id)
+			ON DELETE CASCADE,
+		label_name text NOT NULL CHECK (
+			label_name <> '' AND octet_length(label_name) <= 63
+		),
+		kind character(1) NOT NULL CHECK (kind IN ('v', 'e')),
+		table_name text NOT NULL CHECK (
+			table_name <> '' AND octet_length(table_name) <= 63
+		),
+		start_label text,
+		end_label text,
+		PRIMARY KEY (job_id, label_name),
+		UNIQUE (job_id, table_name),
+		CHECK (
+			(kind = 'v' AND start_label IS NULL AND end_label IS NULL)
+			OR
+			(kind = 'e' AND start_label IS NOT NULL AND end_label IS NOT NULL)
+		)
+	)`,
+	`CREATE INDEX property_graph_generation_state_idx
+		ON agefreighter_meta.property_graph_generation (
+			state, target_schema, graph_name
+		)`,
+}
+
+var migrationV20 = []string{
+	`ALTER TABLE agefreighter_meta.property_graph_generation
+		ADD COLUMN digest_root character(64) CHECK (
+			digest_root IS NULL OR digest_root ~ '^[0-9a-f]{64}$'
+		),
+		ADD COLUMN digest_rows bigint CHECK (
+			digest_rows IS NULL OR digest_rows >= 0
+		),
+		ADD COLUMN digest_range_count integer CHECK (
+			digest_range_count IS NULL OR digest_range_count > 0
+		)`,
+	`CREATE TABLE agefreighter_meta.property_graph_digest_range (
+		job_id uuid NOT NULL,
+		label_name text NOT NULL,
+		kind character(1) NOT NULL CHECK (kind IN ('v', 'e')),
+		range_id integer NOT NULL CHECK (range_id BETWEEN 0 AND 255),
+		row_count bigint NOT NULL CHECK (row_count > 0),
+		digest character(64) NOT NULL CHECK (
+			digest ~ '^[0-9a-f]{64}$'
+		),
+		PRIMARY KEY (job_id, label_name, range_id),
+		FOREIGN KEY (job_id, label_name)
+			REFERENCES agefreighter_meta.property_graph_label(job_id, label_name)
+			ON DELETE CASCADE
+	)`,
+}
+
+var migrationV21 = []string{
+	`ALTER TABLE agefreighter_meta.property_graph_generation
+		DROP CONSTRAINT property_graph_generation_target_schema_graph_name_key,
+		DROP CONSTRAINT property_graph_generation_state_check,
+		ADD CONSTRAINT property_graph_generation_state_check CHECK (
+			state IN ('loading', 'active', 'superseded', 'retained-backup')
+		)`,
+	`CREATE UNIQUE INDEX property_graph_generation_active_target_idx
+		ON agefreighter_meta.property_graph_generation (target_schema, graph_name)
+		WHERE state = 'active'`,
+}
+
 var migrations = [][]string{
 	migrationV1,
 	migrationV2,
@@ -780,4 +886,8 @@ var migrations = [][]string{
 	migrationV15,
 	migrationV16,
 	migrationV17,
+	migrationV18,
+	migrationV19,
+	migrationV20,
+	migrationV21,
 }
