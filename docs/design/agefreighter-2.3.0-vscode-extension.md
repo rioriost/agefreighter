@@ -1,8 +1,10 @@
 # AGEFreighter 2.3.0 VS Code extension delivery plan
 
-Status: reviewed and approved for implementation on the `2.3.0` branch  
-Target: Visual Studio Marketplace public listing  
-Extension source: `extensions/vscode`  
+Status: reviewed and approved for implementation on the `2.3.0` branch
+
+Target: Visual Studio Marketplace public listing
+
+Extension source: `extensions/vscode`
 Extension identifier: `rioriost.agefreighter`
 
 ## Outcome
