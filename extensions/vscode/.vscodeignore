@@ -1,3 +1,4 @@
+.gitignore
 .github/**
 .vscode/**
 node_modules/**
@@ -8,4 +9,6 @@ tsconfig*.json
 *.vsix
 images/icon-source.png
 dist/*.vsix
+dist/*.json
+dist/*.txt
 dist/*.map
