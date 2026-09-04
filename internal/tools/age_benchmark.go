@@ -315,31 +315,7 @@ func benchmarkRelational(
 	table := pgx.Identifier{"public", tableName}.Sanitize()
 	vertexTableName := tableName + "_vertices"
 	vertexTable := pgx.Identifier{"public", vertexTableName}.Sanitize()
-	var create string
-	if options.Workload == BenchmarkVertices {
-		create = fmt.Sprintf(
-			`CREATE TABLE %s (
-				id bigint NOT NULL,
-				properties jsonb NOT NULL
-			)`,
-			table,
-		)
-	} else {
-		create = fmt.Sprintf(
-			`CREATE TABLE %s (
-				id bigint NOT NULL,
-				properties jsonb NOT NULL
-			);
-			CREATE TABLE %s (
-				id bigint NOT NULL,
-				start_id bigint NOT NULL,
-				end_id bigint NOT NULL,
-				properties jsonb NOT NULL
-			)`,
-			vertexTable,
-			table,
-		)
-	}
+	create := relationalBenchmarkDDL(options.Workload, table, vertexTable)
 	defer func() {
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), options.OperationTimeout)
 		defer cancel()
@@ -475,6 +451,36 @@ func benchmarkRelational(
 	elapsed = time.Since(started)
 	walBytes, err = walBytesSince(ctx, pool, beforeLSN)
 	return elapsed, walBytes, err
+}
+
+func relationalBenchmarkDDL(
+	workload BenchmarkWorkload,
+	table string,
+	vertexTable string,
+) string {
+	if workload == BenchmarkVertices {
+		return fmt.Sprintf(
+			`CREATE TABLE %s (
+				id bigint PRIMARY KEY,
+				properties jsonb NOT NULL
+			)`,
+			table,
+		)
+	}
+	return fmt.Sprintf(
+		`CREATE TABLE %s (
+			id bigint PRIMARY KEY,
+			properties jsonb NOT NULL
+		);
+		CREATE TABLE %s (
+			id bigint PRIMARY KEY,
+			start_id bigint NOT NULL,
+			end_id bigint NOT NULL,
+			properties jsonb NOT NULL
+		)`,
+		vertexTable,
+		table,
+	)
 }
 
 func currentWALLSN(ctx context.Context, pool *pgxpool.Pool) (string, error) {
