@@ -13,7 +13,7 @@
 - Working tree: `/Users/rifujita/Git_Managed/agefreighter-horizondb-p2`
 - Resource group: `rg-afps-hdbp2-20260904`
 - Region: Australia East
-- Current state: live deployment gate in progress; no timed load has started
+- Current state: blocked at HorizonDB cluster provisioning; no timed load started
 
 The separate `/Users/rifujita/Git_Managed/agefreighter` worktree remains on
 `2.2.0`. Its pre-existing uncommitted Go changes were not modified by this
@@ -86,18 +86,33 @@ The HorizonDB failure tracking ID is
 is `8c87bcab-09ec-4f7f-bf60-f4f57fa8e6e2`. Neither error reported an invalid
 request or template property.
 
-One controlled HorizonDB retry is in progress. The HorizonDB CLI extension
-updated from `1.0.0b3` to `1.0.0b7`; the retry creates the PostgreSQL 18 /
-8-vCore base cluster first and attaches the AGE parameter group only after base
-creation succeeds.
+The HorizonDB CLI extension updated from `1.0.0b3` to `1.0.0b7`. A single
+controlled retry then created the PostgreSQL 18 / 8-vCore / two-replica base
+cluster without attaching the AGE parameter group. It failed after prolonged
+provisioning with another Azure `InternalServerError`; the retry tracking ID is
+`dc63fa4c-86f6-448d-930c-368476299342`. No HorizonDB cluster remains in the
+resource group. Because the retry failed before AGE attachment, this is a
+HorizonDB base-cluster provisioning blocker rather than an observed AGE
+compatibility failure. No lower replica count, `BestEffort` placement, or
+smaller compute was attempted because that would violate the reviewed primary
+comparison.
 
-An attempted incremental control deployment did not reach Flexible Server: it
-correctly rejected changing the immutable SSH public keys on the three retained
+The Flexible Server operation initially returned an internal error but later
+converged to `Ready` with PostgreSQL 18, `Standard_E8ds_v5`, and SameZone HA.
+An attempted incremental control deployment did not update the server because
+it correctly rejected changing immutable SSH public keys on the three retained
 VMs. The original ephemeral SSH key remains available for a future idempotent
-deployment if HorizonDB succeeds. All three VMs have been sent a deallocation
-request to limit cost while the database gate is blocked. The retained disks,
-network, DNS, Key Vault, and deployment evidence were not deleted.
+deployment if HorizonDB provisioning is unblocked.
 
-No P2 single-source preparation or timed load is permitted until HorizonDB and
-the Flexible Server control succeed, Private Link is deployed after a separate
-`what-if`, and the SQL version/AGE privilege gate passes.
+To limit cost while the study is blocked, the Flexible Server is `Stopped` and
+all three VMs are `VM deallocated`. Azure will automatically start a manually
+stopped Flexible Server after seven days, so it must be deleted with separate
+authorization or stopped again before that deadline. The retained Flexible
+Server storage, VM disks, network, DNS, Key Vault, parameter group, and
+deployment evidence were not deleted.
+
+No P2 source preparation or timed load is permitted until Microsoft resolves
+the HorizonDB provisioning failure, a reviewed cluster deployment succeeds,
+Private Link is deployed after a separate `what-if`, and the SQL version/AGE
+privilege gate passes. The tracking IDs above and the resource-group deployment
+history are the escalation evidence.
