@@ -1,6 +1,6 @@
 # AGEFreighter 2.2.0 PostgreSQL property graph target plan
 
-**Status:** Reviewed; Phases A-E engineering complete on branch `2.2.0`
+**Status:** Reviewed; Phases A-E engineering complete and Phase F protected-runner replay pending on branch `2.2.0`
 **Target release:** AGEFreighter 2.2.0
 **Feature maturity:** Experimental while PostgreSQL 19 is pre-release
 **Reviewed:** 2026-09-03
@@ -183,6 +183,25 @@ Exit gate: release checks, mode matrix, recovery suite, security review, and
 documentation are complete. Invalid modes continue to fail validation. GA and
 production-scale qualification remain promotion gates for experimental status,
 not missing implementation.
+
+### Phase F: PostgreSQL 19 beta regression and Cosmos qualification
+
+- pin the newest official PostgreSQL 19 beta multi-architecture image digest
+- run the existing repository quality and PostgreSQL property-graph suites on
+  Apple Container arm64
+- repeat the property-graph regression on the protected Linux amd64 Azure runner
+- preserve the existing Cosmos-to-AGE live tests as a regression control
+- migrate Cosmos DB for NoSQL fixtures through create, replace, append, and
+  upsert into the PostgreSQL 19 property-graph target
+- migrate Cosmos DB for Apache Gremlin backing documents through the NoSQL API
+  into the same target and verify the resulting directed graph
+- retain server, image, architecture, workflow, and test-result evidence
+
+Exit gate: all database-independent checks, the existing AGE regression, the
+complete PostgreSQL property-graph suite, and both Cosmos source formats pass
+against the pinned beta without skipped strict tests. This is deliberately a
+bounded qualification; it does not execute or imply the production-scale
+160-million-vertex and 400-million-edge profile.
 
 ## 6. Test plan
 
@@ -398,3 +417,20 @@ experimental target: the production-scale profile has not been executed and
 PostgreSQL 19 GA does not yet exist. Those two retained promotion gates prevent
 a production support or throughput claim without blocking completion of the
 2.2 implementation.
+
+Phase F uses the official PostgreSQL 19 Beta 3 image announced on 2026-08-13,
+pinned by the multi-architecture digest
+`sha256:a48b19841e04b35b72a25e9a94314ac80546d32b5e2e3cd9279390cbd8a99572`.
+The local and protected-runner qualification must use that exact digest rather
+than the moving `postgres:19beta3` tag.
+
+On 2026-09-04, the Apple Container arm64 run passed the complete SQL/PGQ suite,
+metadata v14-to-v21 upgrade, and nineteen corruption cases. The repository-wide
+quality gate also passed with the PG 19 target enabled and statement coverage at
+the unchanged 90.0% threshold. An authenticated Azure data-plane run passed the
+Cosmos DB for NoSQL create, replace, append, and upsert matrix, JSONB property
+checks, digest verification, and the Cosmos Gremlin backing-document path (two
+vertices and one directed edge). The existing Cosmos-to-AGE tests passed as the
+control. This qualification is bounded and does not include production-scale
+data. Phase F remains incomplete only until the same pinned image and strict
+Cosmos matrix pass on the protected Linux amd64 runner.

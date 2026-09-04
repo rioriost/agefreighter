@@ -1,6 +1,6 @@
 # agefreighter roadmap
 
-- Status: implemented; Cosmos runner qualification pending
+- Status: 2.1 implemented; PostgreSQL 19 Beta 3 Phase F protected-runner replay pending
 - Baseline: agefreighter 2.0.0
 - Target compatibility: the exact PostgreSQL 14–18 and Apache AGE 1.6–1.8
   pairings listed in `docs/reference/compatibility.md`
@@ -559,7 +559,8 @@ runner are present.
 
 The 2.2 branch adds a separate `postgresql-property-graph` target for native
 PostgreSQL 19 property graphs. Phases A-E of the implementation plan are
-complete for the experimental pre-release target:
+complete for the experimental pre-release target; Phase F runs the bounded
+Beta 3 and Cosmos qualification:
 
 - [x] target contract, feature probe, identifier-safe DDL, and pinned Apple
   Container environment
@@ -572,6 +573,12 @@ complete for the experimental pre-release target:
 - [x] single-writer exclusion, interrupted-promotion recovery, retained-backup
   cleanup, release documentation, and reproducible benchmark harness
 - [x] small and medium complete-path Apple M4 Max benchmark calibration
+- [x] complete repository and PostgreSQL property-graph regression on the
+  pinned PostgreSQL 19 Beta 3 digest
+- [x] Cosmos DB for NoSQL create/replace/append/upsert migration into
+  PostgreSQL 19 with digest verification
+- [x] Cosmos DB for Apache Gremlin backing-document migration into PostgreSQL
+  19 with directed `GRAPH_TABLE` verification
 - [ ] PostgreSQL 19 GA digest qualification and production-scale execution
 
 The unchecked items are external qualification gates, not missing product

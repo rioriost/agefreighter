@@ -9,7 +9,7 @@ capability probe before any graph is changed.
 | Go | 1.27.x | Linux and macOS CI |
 | PostgreSQL for Apache AGE | 14.x through 18.x, in the exact pairings below | Weekly and manually runnable target matrix |
 | Apache AGE target | 1.6.x through 1.8.x, in the exact pairings below | Weekly and manually runnable target matrix |
-| Native PostgreSQL property-graph target | 19 Beta 3, experimental and digest-pinned | Apple Container SQL/PGQ release suite |
+| Native PostgreSQL property-graph target | 19 Beta 3, experimental and digest-pinned | Apple Container arm64 and protected Linux amd64 SQL/PGQ suites |
 | PostgreSQL source | 17.x | PostgreSQL 17.6 pinned image |
 | Neo4j source | 4.4.48 and 5.26.30 | Fourteen-pair migration matrix using pinned official Community images |
 | Cosmos DB for NoSQL | Current Azure service API supported by Azure SDK v1.5 | Controlled Azure integration environment |
@@ -67,7 +67,10 @@ PostgreSQL `server_version_num` 190000. The suite covers create, replace,
 append (`error` and `ignore-identical`), all three upsert property modes,
 concurrent-writer exclusion, interrupted replacement and same-job resume,
 relational constraints, directed and undirected `GRAPH_TABLE`, metadata
-v14-to-v21 upgrade, and sixteen target-corruption cases. It is not a supported
+v14-to-v21 upgrade, and nineteen target-corruption cases. The authenticated
+Cosmos qualification additionally covers NoSQL create, replace, append, and
+upsert plus Gremlin backing documents, with the existing Cosmos-to-AGE path as
+a control. It is not a supported
 production target while PostgreSQL 19 is pre-release, and PostgreSQL 19 GA
 requires a fresh digest-pinned qualification before this status can change.
 

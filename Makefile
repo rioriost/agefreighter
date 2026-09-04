@@ -22,8 +22,9 @@ LDFLAGS := -X github.com/rioriost/agefreighter/internal/version.Version=$(VERSIO
 
 .PHONY: bench-csv bench-csv-scale bench-pggraph bench-release build check check-full coverage dev-down dev-pull \
 	dev-reset dev-smoke dev-status dev-up fmt fuzz-smoke install-tools release-check test \
-	test-compatibility test-connectors-cosmos test-connectors-local test-diagnostics-race \
-	test-pggraph-apple test-race test-recovery test-release-integration tidy vet vuln workflow-lint
+	test-compatibility test-connectors-cosmos test-connectors-cosmos-pggraph \
+	test-connectors-local test-diagnostics-race test-pggraph test-pggraph-apple \
+	test-race test-recovery test-release-integration tidy vet vuln workflow-lint
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/agefreighter ./cmd/agefreighter
@@ -125,6 +126,38 @@ test-connectors-cosmos:
 	AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER="$(AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER)" \
 		$(GO) test -count=1 -timeout=45m -v ./internal/app \
 		-run '^(TestCosmosLiveIntegration|TestCosmosSourceModeMatrixIntegration)$$'
+
+test-connectors-cosmos-pggraph:
+	@if [ "$(AGEFREIGHTER_REQUIRE_COSMOS_TESTS)" = "1" ]; then \
+		test -n "$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" || { \
+			printf 'AGEFREIGHTER_PGGRAPH_TEST_DSN is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_ENDPOINT)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_ENDPOINT is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_DATABASE)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_DATABASE is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+		test -n "$(AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER)" || { \
+			printf 'AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER is required for the strict Cosmos PostgreSQL property-graph gate\n' >&2; exit 2; }; \
+	fi
+	@AGEFREIGHTER_PGGRAPH_TEST_DSN="$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" \
+	AGEFREIGHTER_COSMOS_TEST_ENDPOINT="$(AGEFREIGHTER_COSMOS_TEST_ENDPOINT)" \
+	AGEFREIGHTER_COSMOS_TEST_DATABASE="$(AGEFREIGHTER_COSMOS_TEST_DATABASE)" \
+	AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER="$(AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER)" \
+	AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER="$(AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER)" \
+		$(GO) test -count=1 -timeout=45m -v ./internal/app \
+		-run '^TestCosmosPostgreSQLPropertyGraphIntegration$$'
+
+test-pggraph:
+	@test -n "$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" || { \
+		printf 'AGEFREIGHTER_PGGRAPH_TEST_DSN is required\n' >&2; exit 2; \
+	}
+	@AGEFREIGHTER_PGGRAPH_TEST_DSN="$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" \
+		$(GO) test -count=1 -v ./internal/pggraph ./internal/app \
+		-run '^(TestPropertyGraphIntegration|TestPropertyGraphOperationGuardsIntegration|TestPropertyGraphMutationLockIntegration|TestPropertyGraphSinkReplayAndAbortIntegration|TestPropertyGraphSinkFailureIntegration|TestPostgreSQLPropertyGraphCreateAndResumeIntegration|TestPostgreSQLPropertyGraphModeMatrixIntegration|TestPostgreSQLPropertyGraphIncrementalResumeIntegration|TestPostgreSQLPropertyGraphReplaceRecoveryIntegration|TestPostgreSQLPropertyGraphIncrementalAdmissionIntegration|TestPostgreSQLPropertyGraphCorruptionDetectionIntegration)$$'
+	@AGEFREIGHTER_AGE_TEST_DSN="$(AGEFREIGHTER_PGGRAPH_TEST_DSN)" \
+		$(GO) test -count=1 -v ./internal/meta \
+		-run '^TestMetadataV14V17V18V19V20UpgradeToV21Integration$$'
 
 test-pggraph-apple:
 	./scripts/dev/pggraph-apple-container.sh test

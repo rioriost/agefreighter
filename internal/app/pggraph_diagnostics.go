@@ -114,7 +114,7 @@ func inspectPropertyGraphJob(
 		return stored, meta.PropertyGraphGeneration{}, pggraph.Inspection{},
 			fmt.Errorf("load job %q is %s, not committed", jobID, stored.Status)
 	}
-	definition, err := propertyGraphDefinition(job)
+	definition, err := persistedPropertyGraphDefinition(ctx, target.Store, job, stored)
 	if err != nil {
 		return stored, meta.PropertyGraphGeneration{}, pggraph.Inspection{}, err
 	}
@@ -251,7 +251,9 @@ func propertyGraphMigrationReport(
 		return report.Document{}, mappingErr
 	}
 	if options.IncludeCounts && stored.Status == meta.JobCommitted {
-		definition, definitionErr := propertyGraphDefinition(job)
+		definition, definitionErr := persistedPropertyGraphDefinition(
+			ctx, target.Store, job, stored,
+		)
 		if definitionErr != nil {
 			return report.Document{}, definitionErr
 		}

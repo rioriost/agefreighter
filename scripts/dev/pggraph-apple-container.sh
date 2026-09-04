@@ -9,6 +9,7 @@ image_name=docker.io/library/postgres:19beta3
 image_digest=sha256:a48b19841e04b35b72a25e9a94314ac80546d32b5e2e3cd9279390cbd8a99572
 database=agefreighter
 password=agefreighter-dev-only
+host_port=55434
 
 fail() {
 	printf '%s\n' "$*" >&2
@@ -18,6 +19,7 @@ fail() {
 require_tools() {
 	command -v container >/dev/null 2>&1 || fail "Apple Container is required"
 	command -v jq >/dev/null 2>&1 || fail "jq is required"
+	command -v nc >/dev/null 2>&1 || fail "nc is required"
 }
 
 container_exists() {
@@ -66,6 +68,7 @@ up() {
 		esac
 	else
 		container run --detach --name "$container_name" --memory 2g --cpus 4 \
+			--publish "127.0.0.1:$host_port:5432" \
 			-e "POSTGRES_PASSWORD=$password" -e "POSTGRES_DB=$database" \
 			"$image_name@$image_digest" >/dev/null
 	fi
@@ -88,16 +91,27 @@ status() {
 }
 
 test_target() {
+	# Recreate the dedicated target so every qualification starts from an empty
+	# database and uses a stable host-published port rather than a guest address.
+	if container_exists; then
+		if [ "$(container_state)" = running ]; then
+			container stop "$container_name" >/dev/null
+		fi
+		container delete "$container_name" >/dev/null
+	fi
 	up
-	address=$(container inspect "$container_name" |
-		jq -er '.[0].status.networks[0].ipv4Address' | cut -d/ -f1)
-	dsn="postgres://postgres:$password@$address:5432/$database?sslmode=disable"
+	count=0
+	while [ "$count" -lt 60 ]; do
+		if nc -z -w 1 127.0.0.1 "$host_port" >/dev/null 2>&1; then
+			break
+		fi
+		count=$((count + 1))
+		sleep 1
+	done
+	[ "$count" -lt 60 ] || fail "$container_name is not reachable from the host"
+	dsn="postgres://postgres:$password@127.0.0.1:$host_port/$database?sslmode=disable"
 	AGEFREIGHTER_PGGRAPH_TEST_DSN="$dsn" \
-		go test -count=1 -v ./internal/pggraph ./internal/app \
-		-run '^(TestPropertyGraphIntegration|TestPropertyGraphOperationGuardsIntegration|TestPropertyGraphMutationLockIntegration|TestPropertyGraphSinkReplayAndAbortIntegration|TestPropertyGraphSinkFailureIntegration|TestPostgreSQLPropertyGraphCreateAndResumeIntegration|TestPostgreSQLPropertyGraphModeMatrixIntegration|TestPostgreSQLPropertyGraphIncrementalResumeIntegration|TestPostgreSQLPropertyGraphReplaceRecoveryIntegration|TestPostgreSQLPropertyGraphIncrementalAdmissionIntegration|TestPostgreSQLPropertyGraphCorruptionDetectionIntegration)$$'
-	AGEFREIGHTER_AGE_TEST_DSN="$dsn" \
-		go test -count=1 -v ./internal/meta \
-		-run '^TestMetadataV14V17V18V19V20UpgradeToV21Integration$$'
+		make test-pggraph
 }
 
 down() {

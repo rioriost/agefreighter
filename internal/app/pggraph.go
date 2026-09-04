@@ -1,12 +1,14 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"slices"
 	"strings"
@@ -363,13 +365,9 @@ func propertyGraphJobVerification(
 	if err != nil {
 		return meta.JobVerification{}, err
 	}
-	summary, err := json.Marshal(struct {
-		SchemaVersion         int                `json:"schemaVersion"`
-		TargetBackend         meta.TargetBackend `json:"targetBackend"`
-		DefinitionFingerprint string             `json:"definitionFingerprint"`
-		Definition            pggraph.Definition `json:"definition"`
-	}{
-		SchemaVersion: 1, TargetBackend: meta.TargetBackendPostgreSQLPropertyGraph,
+	summary, err := json.Marshal(propertyGraphMappingSnapshot{
+		SchemaVersion:         propertyGraphMappingSummaryVersion,
+		TargetBackend:         meta.TargetBackendPostgreSQLPropertyGraph,
 		DefinitionFingerprint: definitionFingerprint, Definition: definition,
 	})
 	if err != nil {
@@ -381,4 +379,85 @@ func propertyGraphJobVerification(
 		ResolvedMappingFingerprint: hex.EncodeToString(digest[:]),
 		ResolvedMappingSummary:     summary,
 	}, nil
+}
+
+const propertyGraphMappingSummaryVersion = 1
+
+type propertyGraphMappingSnapshot struct {
+	SchemaVersion         int                `json:"schemaVersion"`
+	TargetBackend         meta.TargetBackend `json:"targetBackend"`
+	DefinitionFingerprint string             `json:"definitionFingerprint"`
+	Definition            pggraph.Definition `json:"definition"`
+}
+
+func persistedPropertyGraphDefinition(
+	ctx context.Context,
+	store *meta.Store,
+	job config.LoadJob,
+	stored meta.Job,
+) (pggraph.Definition, error) {
+	submittedFingerprint, err := jobFingerprint(job)
+	if err != nil {
+		return pggraph.Definition{}, err
+	}
+	verification, err := store.GetJobVerification(ctx, stored.ID)
+	if err != nil {
+		return pggraph.Definition{}, err
+	}
+	if verification.SubmittedConfigFingerprint != submittedFingerprint {
+		return pggraph.Definition{}, errors.New(
+			"submitted PostgreSQL property graph configuration fingerprint changed",
+		)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(verification.ResolvedMappingSummary))
+	decoder.DisallowUnknownFields()
+	var snapshot propertyGraphMappingSnapshot
+	if err := decoder.Decode(&snapshot); err != nil {
+		return pggraph.Definition{}, fmt.Errorf(
+			"decode persisted PostgreSQL property graph definition: %w", err,
+		)
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return pggraph.Definition{}, errors.New(
+			"persisted PostgreSQL property graph definition must contain one JSON object",
+		)
+	}
+	if snapshot.SchemaVersion != propertyGraphMappingSummaryVersion ||
+		snapshot.TargetBackend != meta.TargetBackendPostgreSQLPropertyGraph {
+		return pggraph.Definition{}, fmt.Errorf(
+			"%w: persisted PostgreSQL property graph definition identity is invalid",
+			meta.ErrGenerationMismatch,
+		)
+	}
+	canonical, err := json.Marshal(snapshot)
+	if err != nil {
+		return pggraph.Definition{}, fmt.Errorf(
+			"encode persisted PostgreSQL property graph definition: %w", err,
+		)
+	}
+	digest := sha256.Sum256(canonical)
+	if hex.EncodeToString(digest[:]) != verification.ResolvedMappingFingerprint {
+		return pggraph.Definition{}, fmt.Errorf(
+			"%w: persisted PostgreSQL property graph definition digest changed",
+			meta.ErrGenerationMismatch,
+		)
+	}
+	definitionFingerprint, err := snapshot.Definition.Fingerprint()
+	if err != nil {
+		return pggraph.Definition{}, err
+	}
+	if definitionFingerprint != snapshot.DefinitionFingerprint {
+		return pggraph.Definition{}, fmt.Errorf(
+			"%w: persisted PostgreSQL property graph definition fingerprint changed",
+			meta.ErrGenerationMismatch,
+		)
+	}
+	if snapshot.Definition.Schema != job.Target.Schema ||
+		snapshot.Definition.Graph != job.Target.Graph {
+		return pggraph.Definition{}, fmt.Errorf(
+			"%w: persisted PostgreSQL property graph target identity changed",
+			meta.ErrGenerationMismatch,
+		)
+	}
+	return snapshot.Definition, nil
 }

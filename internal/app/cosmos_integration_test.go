@@ -349,6 +349,264 @@ func TestCosmosSourceModeMatrixIntegration(t *testing.T) {
 	)
 }
 
+func TestCosmosPostgreSQLPropertyGraphIntegration(t *testing.T) {
+	endpoint := os.Getenv("AGEFREIGHTER_COSMOS_TEST_ENDPOINT")
+	targetDSN := os.Getenv("AGEFREIGHTER_PGGRAPH_TEST_DSN")
+	if endpoint == "" || targetDSN == "" {
+		t.Skip("set AGEFREIGHTER_COSMOS_TEST_ENDPOINT and AGEFREIGHTER_PGGRAPH_TEST_DSN")
+	}
+	database := envOrDefault("AGEFREIGHTER_COSMOS_TEST_DATABASE", "agefreighter")
+	vertexContainer := envOrDefault(
+		"AGEFREIGHTER_COSMOS_TEST_VERTEX_CONTAINER",
+		"vertices",
+	)
+	edgeContainer := envOrDefault(
+		"AGEFREIGHTER_COSMOS_TEST_EDGE_CONTAINER",
+		"edges",
+	)
+	t.Setenv("AGEFREIGHTER_PGGRAPH_APP_TEST_DSN", targetDSN)
+
+	t.Run("NoSQL mode matrix", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(t.Context(), 20*time.Minute)
+		defer cancel()
+		runID, err := newJobID()
+		if err != nil {
+			t.Fatalf("newJobID: %v", err)
+		}
+		seedCosmosSourceModeFixture(
+			t, ctx, endpoint, database, vertexContainer, edgeContainer, runID,
+		)
+
+		graph := fmt.Sprintf("af_cosmos_pgq_%d", time.Now().UnixNano())
+		schema := graph
+		defer dropPropertyGraphSchema(t, targetDSN, schema)
+		var jobIDs []string
+		defer func() {
+			for index := len(jobIDs) - 1; index >= 0; index-- {
+				cleanupPropertyGraphJob(t, targetDSN, jobIDs[index])
+			}
+		}()
+
+		phases := []struct {
+			mode     config.LoadMode
+			dataset  string
+			records  uint64
+			vertices int64
+			edges    int64
+		}{
+			{config.LoadCreate, "create", 3, 2, 1},
+			{config.LoadReplace, "replace", 3, 2, 1},
+			{config.LoadAppend, "append", 2, 3, 2},
+			{config.LoadUpsert, "upsert", 4, 4, 3},
+		}
+		for _, phase := range phases {
+			t.Run(string(phase.mode), func(t *testing.T) {
+				job := cosmosPostgreSQLPropertyGraphJob(
+					t, graph, schema, endpoint, database, vertexContainer,
+					edgeContainer, runID, phase.mode, phase.dataset,
+				)
+				path := writeLoadJob(
+					t, t.TempDir(), "cosmos-pggraph-"+phase.dataset+".yaml", job,
+				)
+				if phase.mode == config.LoadCreate {
+					profile, profileErr := SourceProfile(
+						t.Context(), path,
+						ProfileOptions{Mode: ProfileSample, SampleSize: 100},
+					)
+					if profileErr != nil || profile.Command != "profile" ||
+						len(profile.Sections) == 0 {
+						t.Fatalf("SourceProfile(Cosmos to PG19) = %#v, %v", profile, profileErr)
+					}
+				}
+				result, loadErr := Load(t.Context(), path)
+				if result.JobID != "" {
+					jobIDs = append(jobIDs, result.JobID)
+				}
+				if loadErr != nil {
+					t.Fatalf("Load(%s): %v", phase.mode, loadErr)
+				}
+				if result.Status != meta.JobCommitted ||
+					result.Metrics.RecordsCommitted != phase.records ||
+					result.SourceTelemetry == nil ||
+					result.SourceTelemetry.RequestCharge <= 0 {
+					t.Fatalf("Load(%s) = %#v", phase.mode, result)
+				}
+				if _, err := Verify(t.Context(), path, result.JobID); err != nil {
+					t.Fatalf("Verify(%s): %v", phase.mode, err)
+				}
+				assertPropertyGraphLoad(
+					t, targetDSN, job, result.JobID, phase.vertices, phase.edges,
+				)
+				if phase.mode == config.LoadReplace {
+					if _, err := Cleanup(t.Context(), path, result.JobID); err != nil {
+						t.Fatalf("Cleanup(replace backup): %v", err)
+					}
+				}
+				if phase.mode == config.LoadUpsert {
+					assertCosmosPostgreSQLPropertyGraphProperties(t, targetDSN, job)
+				}
+			})
+		}
+	})
+
+	t.Run("Gremlin backing documents", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(t.Context(), 20*time.Minute)
+		defer cancel()
+		runID, err := newJobID()
+		if err != nil {
+			t.Fatalf("newJobID: %v", err)
+		}
+		label, relationship := seedCosmosGremlinFixture(
+			t, ctx, endpoint, database, vertexContainer, runID,
+		)
+		graph := fmt.Sprintf("af_cosmos_gremlin_pgq_%d", time.Now().UnixNano())
+		job := testLoadJob(graph, "unused.csv", "unused.csv")
+		job.Metadata.Name = "cosmos-gremlin-pg19"
+		job.Target.Type = config.TargetPostgreSQLPropertyGraph
+		job.Target.Schema = graph
+		job.Target.AppendDuplicate = ""
+		job.Target.Connection = config.SecretRef{Env: "AGEFREIGHTER_PGGRAPH_APP_TEST_DSN"}
+		job.Source = config.Source{
+			Type: config.SourceCosmos, Namespace: "cosmos-gremlin-pg19",
+			Cosmos: &config.CosmosSource{
+				Endpoint: endpoint, Credential: "default-azure",
+				Database: database, PageSize: 2,
+				Gremlin: &config.CosmosGremlin{
+					Enabled: true, Container: vertexContainer,
+					PartitionKeyProperty: "partitionKey",
+					LabelPrefix:          label, RelationshipTypePrefix: relationship,
+					MaxLabels: 10, MaxProperties: 20,
+				},
+			},
+		}
+		job.Runtime.BatchRows = 2
+		path := writeLoadJob(t, t.TempDir(), "cosmos-gremlin-pggraph.yaml", job)
+		parsed, err := config.Load(path)
+		if err != nil {
+			t.Fatalf("load Cosmos Gremlin configuration: %v", err)
+		}
+		resolved, err := resolveSource(ctx, parsed)
+		if err != nil {
+			t.Fatalf("resolve Cosmos Gremlin source: %v", err)
+		}
+		result, err := Load(ctx, path)
+		if err != nil {
+			t.Fatalf("Load(Cosmos Gremlin to PG19): %v", err)
+		}
+		defer cleanupPropertyGraphJob(t, targetDSN, result.JobID)
+		defer dropPropertyGraphSchema(t, targetDSN, graph)
+		if result.Status != meta.JobCommitted ||
+			result.Metrics.RecordsCommitted != 3 ||
+			result.SourceTelemetry == nil ||
+			result.SourceTelemetry.RequestCharge <= 0 {
+			t.Fatalf("Load(Cosmos Gremlin to PG19) = %#v", result)
+		}
+		if _, err := Verify(ctx, path, result.JobID); err != nil {
+			t.Fatalf("Verify(Cosmos Gremlin to PG19): %v", err)
+		}
+		assertPropertyGraphLoad(t, targetDSN, resolved, result.JobID, 2, 1)
+	})
+}
+
+func cosmosPostgreSQLPropertyGraphJob(
+	t *testing.T,
+	graph string,
+	schema string,
+	endpoint string,
+	database string,
+	vertexContainer string,
+	edgeContainer string,
+	runID string,
+	mode config.LoadMode,
+	dataset string,
+) config.LoadJob {
+	t.Helper()
+	runParam, err := config.NewCosmosParamValue(runID)
+	if err != nil {
+		t.Fatalf("build Cosmos run parameter: %v", err)
+	}
+	datasetParam, err := config.NewCosmosParamValue(dataset)
+	if err != nil {
+		t.Fatalf("build Cosmos dataset parameter: %v", err)
+	}
+	parameters := []config.CosmosQueryParameter{
+		{Name: "@runId", Value: runParam},
+		{Name: "@dataset", Value: datasetParam},
+	}
+	job := testLoadJob(graph, "unused-vertices", "unused-edges")
+	job.Metadata.Name = "cosmos-pg19-" + dataset
+	job.Target.Type = config.TargetPostgreSQLPropertyGraph
+	job.Target.Schema = schema
+	job.Target.Mode = mode
+	job.Target.Connection = config.SecretRef{Env: "AGEFREIGHTER_PGGRAPH_APP_TEST_DSN"}
+	job.Target.AppendDuplicate = ""
+	if mode == config.LoadAppend {
+		job.Target.AppendDuplicate = config.AppendDuplicateError
+	}
+	job.Source = config.Source{
+		Type: config.SourceCosmos, Namespace: "crm",
+		Cosmos: &config.CosmosSource{
+			Endpoint: endpoint, Credential: "default-azure",
+			Database: database, PageSize: 2,
+			Vertices: []config.CosmosVertexQuery{{
+				Container: vertexContainer, Label: "Person",
+				Query: "SELECT * FROM c WHERE c.runId = @runId " +
+					"AND c.dataset = @dataset AND c.kind = 'vertex'",
+				Parameters: parameters, IDField: "/personId",
+				Properties: map[string]string{
+					"name": "/name", "active": "/active", "score": "/score",
+					"tags": "/tags", "profile": "/profile",
+				},
+			}},
+			Edges: []config.CosmosEdgeQuery{{
+				Container: edgeContainer, Label: "KNOWS",
+				Query: "SELECT * FROM c WHERE c.runId = @runId " +
+					"AND c.dataset = @dataset AND c.kind = 'edge'",
+				Parameters: parameters, ExternalIDField: "/relationshipId",
+				Start:      config.EndpointMapping{Label: "Person", Field: "/fromId"},
+				End:        config.EndpointMapping{Label: "Person", Field: "/toId"},
+				Properties: map[string]string{"weight": "/weight"},
+			}},
+		},
+	}
+	return job
+}
+
+func assertCosmosPostgreSQLPropertyGraphProperties(
+	t *testing.T,
+	dsn string,
+	job config.LoadJob,
+) {
+	t.Helper()
+	definition, err := propertyGraphDefinition(job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	connection, err := pgx.Connect(t.Context(), dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer connection.Close(context.Background())
+	var encoded []byte
+	if err := connection.QueryRow(t.Context(),
+		"SELECT properties FROM "+propertyGraphTable(job, definition.Vertices[0].Table)+
+			" WHERE source_namespace = 'crm' AND external_id = 'p1'",
+	).Scan(&encoded); err != nil {
+		t.Fatal(err)
+	}
+	var properties map[string]any
+	if err := json.Unmarshal(encoded, &properties); err != nil {
+		t.Fatal(err)
+	}
+	tags, tagsOK := properties["tags"].([]any)
+	profile, profileOK := properties["profile"].(map[string]any)
+	if properties["name"] != "Ada Upsert" || properties["active"] != true ||
+		properties["score"] != float64(9.5) || !tagsOK || len(tags) != 1 ||
+		tags[0] != "math" || !profileOK || profile["city"] != "London" {
+		t.Fatalf("Cosmos JSONB properties = %#v", properties)
+	}
+}
+
 func cosmosLiveJob(
 	t *testing.T,
 	graph string,

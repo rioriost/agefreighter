@@ -1094,6 +1094,29 @@ func TestPostgreSQLPropertyGraphCorruptionDetectionIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 		},
+		"missing persisted mapping": func(t *testing.T, pool *pgxpool.Pool, _ config.LoadJob, _ pggraph.Definition, jobID string) {
+			_, err := pool.Exec(t.Context(), `DELETE FROM agefreighter_meta.job_verification
+				WHERE job_id = $1::uuid`, jobID)
+			if err != nil {
+				t.Fatal(err)
+			}
+		},
+		"changed persisted mapping digest": func(t *testing.T, pool *pgxpool.Pool, _ config.LoadJob, _ pggraph.Definition, jobID string) {
+			_, err := pool.Exec(t.Context(), `UPDATE agefreighter_meta.job_verification
+				SET resolved_mapping_fingerprint = repeat('0', 64)
+				WHERE job_id = $1::uuid`, jobID)
+			if err != nil {
+				t.Fatal(err)
+			}
+		},
+		"changed submitted configuration fingerprint": func(t *testing.T, pool *pgxpool.Pool, _ config.LoadJob, _ pggraph.Definition, jobID string) {
+			_, err := pool.Exec(t.Context(), `UPDATE agefreighter_meta.job_verification
+				SET submitted_config_fingerprint = repeat('0', 64)
+				WHERE job_id = $1::uuid`, jobID)
+			if err != nil {
+				t.Fatal(err)
+			}
+		},
 		"missing identity constraint": func(t *testing.T, pool *pgxpool.Pool, job config.LoadJob, definition pggraph.Definition, _ string) {
 			constraint := definition.Vertices[0].Table + "_source_namespace_external_id_key"
 			_, err := pool.Exec(t.Context(), "ALTER TABLE "+propertyGraphTable(job, definition.Vertices[0].Table)+
@@ -1113,7 +1136,7 @@ func TestPostgreSQLPropertyGraphCorruptionDetectionIntegration(t *testing.T) {
 	}
 	for name, mutate := range mutations {
 		t.Run(name, func(t *testing.T) {
-			job, cleanup := propertyGraphCSVJob(t, dsn, strings.ReplaceAll(name, " ", "-"))
+			job, cleanup := propertyGraphCSVJob(t, dsn, "corruption")
 			defer cleanup()
 			jobID, err := newJobID()
 			if err != nil {
@@ -1139,6 +1162,18 @@ func TestPostgreSQLPropertyGraphCorruptionDetectionIntegration(t *testing.T) {
 			}
 			document, err := VerificationReport(t.Context(), path, jobID,
 				VerifyOptions{Counts: true, Integrity: true})
+			if name == "missing persisted mapping" ||
+				name == "changed submitted configuration fingerprint" {
+				if err == nil {
+					t.Fatal("VerificationReport() accepted corrupted persisted mapping identity")
+				}
+				migration, reportErr := MigrationReport(t.Context(), path, jobID,
+					ReportOptions{IncludeCounts: true, LimitBatches: 1})
+				if reportErr == nil {
+					t.Fatalf("MigrationReport() accepted corrupted persisted mapping identity: %#v", migration)
+				}
+				return
+			}
 			if err != nil {
 				t.Fatalf("VerificationReport() returned operational error: %v", err)
 			}
@@ -1148,9 +1183,12 @@ func TestPostgreSQLPropertyGraphCorruptionDetectionIntegration(t *testing.T) {
 			}
 			migration, err := MigrationReport(t.Context(), path, jobID,
 				ReportOptions{IncludeCounts: true, LimitBatches: 1})
-			if name == "changed mapping fingerprint" {
-				if !errors.Is(err, meta.ErrGenerationMismatch) {
-					t.Fatalf("MigrationReport(mapping mismatch) error = %v", err)
+			if name == "changed mapping fingerprint" ||
+				name == "missing persisted mapping" ||
+				name == "changed persisted mapping digest" ||
+				name == "changed submitted configuration fingerprint" {
+				if err == nil {
+					t.Fatal("MigrationReport() accepted corrupted persisted mapping")
 				}
 				return
 			}
