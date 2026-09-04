@@ -13,7 +13,7 @@
 - Working tree: `/Users/rifujita/Git_Managed/agefreighter-horizondb-p2`
 - Resource group: `rg-afps-hdbp2-20260904`
 - Region: Australia East
-- Current state: predeployment gates passed; no VM or database deployed yet
+- Current state: live deployment gate in progress; no timed load has started
 
 The separate `/Users/rifujita/Git_Managed/agefreighter` worktree remains on
 `2.2.0`. Its pre-existing uncommitted Go changes were not modified by this
@@ -73,8 +73,31 @@ zone. A second `what-if` is mandatory before that endpoint is deployed.
 
 ## Next gate
 
-Commit and push the reviewed harness, deploy the two validated templates with
-one generated PostgreSQL credential, query the HorizonDB Private Link metadata,
-and deploy the private endpoint after its separate `what-if`. Then run the SQL
-version/AGE privilege gate before source preparation or any timed load.
+The first cluster and control deployment attempts reached Azure internal
+service errors after their templates had passed server-side validation. The
+failed HorizonDB cluster was removed automatically; its PostgreSQL 18 parameter
+group remains healthy and exposes both requested settings as supported:
 
+- `azure.extensions=AGE`
+- `shared_preload_libraries=age`
+
+The HorizonDB failure tracking ID is
+`6ae754bb-fd79-4835-9a69-7bbbcae9439c`. The Flexible Server failure tracking ID
+is `8c87bcab-09ec-4f7f-bf60-f4f57fa8e6e2`. Neither error reported an invalid
+request or template property.
+
+One controlled HorizonDB retry is in progress. The HorizonDB CLI extension
+updated from `1.0.0b3` to `1.0.0b7`; the retry creates the PostgreSQL 18 /
+8-vCore base cluster first and attaches the AGE parameter group only after base
+creation succeeds.
+
+An attempted incremental control deployment did not reach Flexible Server: it
+correctly rejected changing the immutable SSH public keys on the three retained
+VMs. The original ephemeral SSH key remains available for a future idempotent
+deployment if HorizonDB succeeds. All three VMs have been sent a deallocation
+request to limit cost while the database gate is blocked. The retained disks,
+network, DNS, Key Vault, and deployment evidence were not deleted.
+
+No P2 single-source preparation or timed load is permitted until HorizonDB and
+the Flexible Server control succeed, Private Link is deployed after a separate
+`what-if`, and the SQL version/AGE privilege gate passes.

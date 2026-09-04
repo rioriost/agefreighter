@@ -2,8 +2,9 @@
 
 ## Status and decision to be made
 
-This document is an execution plan. It does not authorize deployment, live
-testing, resource deletion, or spending.
+This document is the reviewed execution plan. It does not authorize resource
+deletion. Deployment and live testing were separately authorized as recorded
+below.
 
 Execution was authorized on 2026-09-03. The live HorizonDB capability response
 then showed PostgreSQL 18 as available in Australia East, although the public
@@ -85,8 +86,9 @@ The historical reference is
 | Flexible memory | 33.34% maximum over the final monitor window |
 | Target footprint | approximately 42.46 GB per graph generation |
 
-The historical result is a continuity check only because its region and
-PostgreSQL/AGE versions differ from the HorizonDB candidate.
+The historical result is a continuity check only because its region differs
+from the controlled study. PostgreSQL and AGE will match if the HorizonDB live
+preflight confirms the required versions.
 
 ### Controlled head-to-head matrix
 
@@ -168,8 +170,9 @@ The deployment should contain:
 
 - the same two Neo4j VM definitions, disks, memory settings, and private names;
 - the same loader VM definition and a dedicated evidence disk;
-- one PostgreSQL 17 Flexible Server control with AGE enabled;
-- one PostgreSQL 17 HorizonDB cluster with two 8-vCore replicas;
+- one PostgreSQL 18 Flexible Server control with AGE 1.7 enabled;
+- one PostgreSQL 18 HorizonDB cluster with AGE 1.7 and two 8-vCore replicas,
+  subject to the live extension gate;
 - a private endpoint and private DNS for HorizonDB, because HorizonDB does not
   currently support VNet injection;
 - no public IP on a VM and no public database ingress;
@@ -209,7 +212,7 @@ SHOW checkpoint_timeout;
 Then run the agefreighter doctor and capability probe, a tiny fixture, and the
 existing P0 smoke path. Confirm that:
 
-- PostgreSQL 17 and AGE 1.6.x pass the repository's compatibility contract;
+- PostgreSQL 18 and AGE 1.7.x pass the repository's compatibility contract;
 - every session can use `ag_catalog` through the configured search path;
 - graph creation, label creation, binary load, count verification, digest
   export, metadata persistence, resume, and replacement primitives work with
