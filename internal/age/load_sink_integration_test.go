@@ -103,6 +103,17 @@ func TestLoadSinkIntegration(t *testing.T) {
 		blocker.Release()
 		t.Fatalf("lock ownership blocker: %v", err)
 	}
+	// Establish the second pool connection before applying the deliberately
+	// short deadline below. Otherwise a busy CI host can spend the entire
+	// deadline creating and initializing that connection, so the assertion
+	// observes a pool-acquisition timeout instead of the advisory-lock timeout
+	// this test is intended to exercise.
+	lockWaiter, err := adapter.pool.Acquire(ctx)
+	if err != nil {
+		blocker.Release()
+		t.Fatalf("prepare ownership lock waiter: %v", err)
+	}
+	lockWaiter.Release()
 	blockedCtx, blockedCancel := context.WithTimeout(ctx, 50*time.Millisecond)
 	if _, err := unlockedTarget.Begin(blockedCtx, sink.BatchMetadata{
 		ID: 99, Attempt: 1, Rows: 1, Bytes: 1,
