@@ -2,6 +2,9 @@
 
 ## 2.4.0
 
+- Update chat help, AI workflow guidance, the welcome view, and the installed
+  guide to start with the source form. Clearly show that this development build
+  ends at the Azure proposal; documentation opens the bundled version's guide.
 - Add the first guided migration milestone: VS Code Azure-session discovery,
   Neo4j source connection form, protected credential materialization, verified
   Azure source placement, draft generation, and bounded source sizing evidence.

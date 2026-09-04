@@ -119,7 +119,7 @@ export function registerAI(
         request,
         stream,
         token,
-        `You are the AGEFreighter migration assistant inside VS Code. Deterministic work is performed only by the AGEFreighter CLI. You may explain, compare, and recommend, but never claim that a command ran or a target changed. Do not request credential values. Available workspace migration jobs: ${JSON.stringify(inventory)}. User request: ${request.prompt}`
+        `You are the AGEFreighter migration assistant inside VS Code. Deterministic work is performed only by the AGEFreighter CLI. You may explain, compare, and recommend, but never claim that a command ran or a target changed. Do not request credential values. Use the following installed-version workflow when explaining how to begin; do not require users to author YAML for a new guided Neo4j migration.\n\n${helpText()}\n\nAvailable existing workspace migration jobs: ${JSON.stringify(inventory)}. User request: ${request.prompt}`
       );
     }
   );
@@ -154,9 +154,16 @@ async function explainWithModel(
 
 function helpText(): string {
   return [
-    "AGEFreighter keeps migration execution deterministic in the CLI.",
+    "Start a new Neo4j migration with **AGEFreighter: New Guided Migration** from the Command Palette or the **+** button in the AGEFreighter view.",
     "",
-    "Use `/validate` and `/plan` before connecting to a database. Use `/profile` and `/doctor` for bounded source and target evidence. `/status` and `/report` require the durable job UUID.",
+    "1. Open a trusted workspace, sign in to Azure in VS Code, and select the AGEFreighter 2.4.0 CLI.",
+    "2. Enter the source host, port, database, credentials, and identity properties in the form. Enter passwords only in the form, never in chat.",
+    "3. Select the Azure subscription and source location. For an Azure source, supply its ARM resource ID; for on-premises, enter the physical location and confirm the suggested region.",
+    "4. Choose **Connect and profile source**. Review exact node/relationship totals, estimated storage, and the proposed Flexible Server and loader VM region, zone, capacity, quota, and compute cost.",
+    "",
+    "The extension saves the draft LoadJob and proposal automatically. This 2.4.0 development build currently ends at the Azure proposal. Guided deployment, automatic migration, and final verification are still being implemented; no Azure resources or migration jobs are started by the wizard yet.",
+    "",
+    "For an **existing LoadJob**, `/validate`, `/plan`, `/profile`, and `/doctor` remain available. `/status` and `/report` require the durable job UUID. Guided drafts are not listed as executable jobs.",
     "",
     "Start, resume, verify, and cleanup are intentionally available only as explicit commands from the AGEFreighter view or Command Palette. They always require direct confirmation and run in a visible terminal."
   ].join("\n");

@@ -27,6 +27,12 @@ creation stays disabled until sizing totals, SKU/quota/AGE availability, cost,
 network reachability, and an ARM what-if result have passed their review gates.
 See the [guided migration contract](vscode-guided-migration-contract.md).
 
+This development build ends at the proposal. Guided Azure deployment, automatic
+migration, and final verification are still being implemented. The generated
+draft is kept out of the existing executable-job list. Chat `/help` and
+**AGEFreighter: Open Documentation** describe the installed build's workflow;
+the documentation command opens its bundled guide.
+
 ## Install
 
 Install the CLI first. The guided path requires the 2.4.0 `inventory` command;

@@ -32,11 +32,16 @@ remains the deterministic migration engine and owner of durable checkpoints.
 
 ## Prerequisites
 
-Install [AGEFreighter from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rioriost.agefreighter),
-then install the AGEFreighter 2.4.0 CLI and ensure `agefreighter` is on `PATH`.
-Alternatively, run **AGEFreighter: Select CLI Binary** and select the executable.
+Use VS Code 1.105 or newer, open a trusted workspace folder, and sign in to
+Azure in VS Code. Select an AGEFreighter 2.4.0 CLI using **AGEFreighter: Select
+CLI Binary**, or put it on `PATH`. The guided form uses its new `inventory`
+command. A released 2.3.0 CLI supports the existing LoadJob commands only.
 
-On macOS, the Homebrew installation is:
+This is a 2.4.0 development package. Use the CLI built from the matching
+development branch until 2.4.0 is released. Installing the extension does not
+install or upgrade the CLI.
+
+For the latest released CLI on macOS, the Homebrew installation is:
 
 ```sh
 brew install rioriost/cask/agefreighter
@@ -44,24 +49,41 @@ brew install rioriost/cask/agefreighter
 
 Linux and Windows release archives are available from the
 [AGEFreighter releases](https://github.com/rioriost/agefreighter/releases).
-Windows CLI binaries in 2.3.0 are provided without an Authenticode signature;
+Windows CLI binaries are provided without an Authenticode signature;
 verify their checksum and GitHub build-provenance attestation before use.
 
-## Start a migration
+## Start a new migration in 2.4.0
 
-For the 2.4.0 guided path, open the AGEFreighter view and select **New guided
-migration**. Enter the Neo4j endpoint and discovery identity properties, select
-the Azure subscription, and identify whether the source is an Azure resource or
-is on-premises. The extension validates the source and presents bounded sizing
-evidence without requiring a LoadJob first.
+1. Open the AGEFreighter view and choose **+ / New Guided Migration**, or run
+   **AGEFreighter: New Guided Migration** from the Command Palette. You can
+   start with an empty workspace; no LoadJob file is needed.
+2. Enter the Neo4j host, port, database, username, password, and the properties
+   that identify nodes and relationships. Select the target Azure subscription.
+3. For an Azure source, provide its ARM resource ID to verify its region and
+   logical availability zone. For on-premises or another cloud, enter its
+   physical location and confirm or change the proposed Azure region.
+4. Select **Connect and profile source**. AGEFreighter validates the generated
+   draft, reads exact node and relationship totals, and estimates storage from
+   a bounded profile.
+5. Review the proposed PostgreSQL 18 Flexible Server and AGEFreighter VM,
+   including region, common zone, capacity, quota availability, and the retail
+   compute estimate. Resolve any reported blockers before proceeding.
 
 The guided path reads the selected subscription's current region, zone, SKU,
 and quota metadata, writes an Azure proposal that expires after 24 hours, and
-shows a bounded retail compute estimate when available. Azure deployment stays
-gated until a later ARM what-if review. A bounded lower limit is never presented
-as a complete capacity estimate.
+shows a bounded retail compute estimate when available. Drafts and evidence
+are saved under `.agefreighter/guided/`; passwords are stored separately.
 
-The existing LoadJob path remains available:
+**Current development-build limit:** the wizard ends at the Azure proposal.
+The planned next steps—review and deploy Azure resources, start the migration
+after readiness checks, and verify the completed migration—are not implemented
+in this build. The wizard does not create Azure resources or start a migration.
+Its generated draft is not yet an executable migration job.
+
+## Existing LoadJob workflow (advanced)
+
+Use this path if you already have a configured source and target with a complete
+LoadJob. It remains available for all supported connectors:
 
 1. Open a trusted workspace containing an AGEFreighter `LoadJob` file.
 2. Open the AGEFreighter activity-bar view.

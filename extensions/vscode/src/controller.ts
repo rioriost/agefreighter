@@ -38,9 +38,16 @@ export class ExtensionController {
     for (const operation of ["load", "resume", "verify", "cleanup"] as const) {
       command(`agefreighter.${operation}`, (argument?: unknown) => this.runTerminalCommand(operation, argument));
     }
-    command("agefreighter.openDocumentation", () => vscode.env.openExternal(
-      vscode.Uri.parse("https://github.com/rioriost/agefreighter/blob/main/docs/reference/vscode-extension.md")
-    ));
+    command("agefreighter.openDocumentation", async () => {
+      let readme = vscode.Uri.joinPath(context.extensionUri, "README.md");
+      try {
+        await vscode.workspace.fs.stat(readme);
+      } catch {
+        // VSIX packaging normalizes the README filename to lowercase.
+        readme = vscode.Uri.joinPath(context.extensionUri, "readme.md");
+      }
+      await vscode.commands.executeCommand("markdown.showPreview", readme);
+    });
   }
 
   public async pickJob(argument?: unknown): Promise<vscode.Uri | undefined> {
@@ -53,7 +60,7 @@ export class ExtensionController {
     const jobs = await this.jobs.getJobs();
     if (jobs.length === 0) {
       void vscode.window.showInformationMessage(
-        "No AGEFreighter LoadJob files were found in this workspace."
+        "No existing LoadJob was found. For a new Neo4j migration, run AGEFreighter: New Guided Migration. Guided drafts are kept separately until deployment is implemented."
       );
       return undefined;
     }
