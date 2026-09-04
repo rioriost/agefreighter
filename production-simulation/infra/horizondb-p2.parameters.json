@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "clusterName": {
+      "value": "afps-hdb-p2-20260904"
+    },
+    "parameterGroupName": {
+      "value": "afps-hdb-p2-20260904-age"
+    },
+    "location": {
+      "value": "australiaeast"
+    },
+    "postgresMajor": {
+      "value": 18
+    },
+    "vCores": {
+      "value": 8
+    },
+    "replicaCount": {
+      "value": 2
+    },
+    "processorType": {
+      "value": "Intel"
+    },
+    "zonePlacementPolicy": {
+      "value": "Strict"
+    },
+    "administratorLogin": {
+      "value": "agefreighter"
+    },
+    "tags": {
+      "value": {
+        "application": "agefreighter",
+        "purpose": "horizondb-p2-feasibility",
+        "environment": "hdbp2-20260904",
+        "phase": "p2",
+        "managedBy": "bicep"
+      }
+    }
+  }
+}

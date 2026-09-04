@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "hdbp2-20260904"
+    },
+    "location": {
+      "value": "australiaeast"
+    },
+    "availabilityZone": {
+      "value": "1"
+    },
+    "testPhase": {
+      "value": "p2"
+    },
+    "administratorUsername": {
+      "value": "agefreighter"
+    },
+    "neo4jVmSize": {
+      "value": "Standard_E8bds_v5"
+    },
+    "loaderVmSize": {
+      "value": "Standard_D8ds_v5"
+    },
+    "postgresSkuName": {
+      "value": "Standard_E8ds_v5"
+    },
+    "neo4jDataDiskSizeGB": {
+      "value": 512
+    },
+    "neo4jDataDiskIOPS": {
+      "value": 10000
+    },
+    "neo4jDataDiskMBps": {
+      "value": 750
+    },
+    "postgresStorageSizeGB": {
+      "value": 1024
+    },
+    "postgresHighAvailability": {
+      "value": "SameZone"
+    }
+  }
+}

@@ -43,3 +43,23 @@ No deployment wrapper is included before review. This intentionally prevents a
 repository command from turning the candidate sizing into live resources by
 accident. A reviewed deployment entry point can be added after the first
 `what-if` output and budget are approved.
+
+## HorizonDB P2 feasibility study
+
+The HorizonDB study keeps its preview resources separate from the established
+Flexible Server topology:
+
+- `horizondb-p2-control.parameters.json` applies the frozen P2 capacity to
+  `main.bicep` in Australia East.
+- `horizondb.bicep` creates the matched HorizonDB cluster and AGE parameter
+  group. Its secure password must be supplied at deployment time.
+- `horizondb-p2.parameters.json` freezes the reviewed 8-vCore, two-replica,
+  PostgreSQL 18 candidate.
+- `horizondb-private-endpoint.bicep` is deployed only after the cluster's live
+  Private Link group ID and DNS zone have been read from Azure. Those preview
+  values are deliberately not guessed in source control.
+
+The study run sheet and current status are in
+[`../docs/horizondb-age-p2-feasibility-plan.md`](../docs/horizondb-age-p2-feasibility-plan.md)
+and
+[`../results/summaries/horizondb-p2-feasibility-progress.md`](../results/summaries/horizondb-p2-feasibility-progress.md).
