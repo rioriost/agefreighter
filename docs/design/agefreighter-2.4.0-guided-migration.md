@@ -216,6 +216,11 @@ cancel/reload leaks no secret and performs no mutation.
 Gate: proposal fixtures cover Azure zonal, Azure zone-unknown, on-premises,
 SKU-restricted, quota-insufficient, incomplete-profile, and stale-price cases.
 
+Implementation status: complete for the Neo4j reference path. The extension
+uses the existing VS Code Azure session to read PostgreSQL 18 capabilities,
+PostgreSQL and Compute quota, zonal VM SKU availability, and bounded USD retail
+rates. It writes a 24-hour proposal and performs no deployment.
+
 ### M3 — infrastructure preview and deployment
 
 - Generalize the production-simulation Bicep into a single-source deployment

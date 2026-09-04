@@ -53,6 +53,19 @@
         "generatedAt": { "type": "string", "format": "date-time" }
       }
     },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidencePath", "generatedAt", "expiresAt", "region", "deployable"],
+      "properties": {
+        "evidencePath": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "region": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "zone": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "deployable": { "type": "boolean" }
+      }
+    },
     "deployment": {
       "type": "object",
       "additionalProperties": false,

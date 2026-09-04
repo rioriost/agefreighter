@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseAzureResourceID, parseResourceList, parseResourcePage } from "../../core/azure";
+import {
+  parseAzureResourceID,
+  parseLocations,
+  parseResourceList,
+  parseResourcePage,
+  recommendRegion
+} from "../../core/azure";
 
 test("parses a complete ARM resource ID", () => {
   assert.deepEqual(
@@ -30,4 +36,15 @@ test("retains only a typed continuation link for pagination", () => {
     nextLink: "https://management.azure.com/next"
   });
   assert.throws(() => parseResourcePage({ value: [], nextLink: { href: "unsafe" } }), /invalid continuation link/);
+});
+
+test("recommends an unambiguous region from Azure physical-location metadata", () => {
+  const locations = parseLocations({ value: [
+    { name: "japaneast", displayName: "Japan East", type: "Region", metadata: { physicalLocation: "Tokyo", latitude: "35.68", longitude: "139.77" } },
+    { name: "japanwest", displayName: "Japan West", type: "Region", metadata: { physicalLocation: "Osaka" } },
+    { name: "edge", displayName: "Edge", type: "EdgeZone" }
+  ] });
+  assert.equal(recommendRegion("Tokyo, Japan", locations), "japaneast");
+  assert.equal(recommendRegion("Nagoya, Japan", locations), undefined);
+  assert.equal(locations[0]?.latitude, 35.68);
 });

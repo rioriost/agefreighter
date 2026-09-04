@@ -5,7 +5,7 @@ migration logic or credentials into an AI model.
 
 AGEFreighter migrates CSV, PostgreSQL, Neo4j, and Azure Cosmos DB graph data to
 Apache AGE or PostgreSQL 19 SQL/PGQ property graphs. This extension is a guided
-interface for the separately installed AGEFreighter 2.3.0 CLI; the Go CLI
+interface for the separately installed AGEFreighter CLI; the Go CLI
 remains the deterministic migration engine and owner of durable checkpoints.
 
 ## Highlights
@@ -14,6 +14,8 @@ remains the deterministic migration engine and owner of durable checkpoints.
   no hand-written LoadJob is required for source profiling.
 - Reuse the Azure account already signed into VS Code, select a subscription,
   and verify an Azure source's region and logical zone from its ARM resource.
+- Check current PostgreSQL 18 capabilities, zonal VM SKU availability, service
+  quotas, and bounded USD retail rates before saving an Azure proposal.
 - Keep passwords in VS Code SecretStorage and owner-only extension storage;
   generated jobs contain secret references, not secret values.
 - Discover AGEFreighter `LoadJob` YAML and JSON files in the workspace.
@@ -31,7 +33,7 @@ remains the deterministic migration engine and owner of durable checkpoints.
 ## Prerequisites
 
 Install [AGEFreighter from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rioriost.agefreighter),
-then install the AGEFreighter 2.3.0 CLI and ensure `agefreighter` is on `PATH`.
+then install the AGEFreighter 2.4.0 CLI and ensure `agefreighter` is on `PATH`.
 Alternatively, run **AGEFreighter: Select CLI Binary** and select the executable.
 
 On macOS, the Homebrew installation is:
@@ -53,9 +55,11 @@ the Azure subscription, and identify whether the source is an Azure resource or
 is on-premises. The extension validates the source and presents bounded sizing
 evidence without requiring a LoadJob first.
 
-Azure deployment remains gated until the profile has a reviewed total, current
-region/zone/SKU/quota checks, a cost estimate, and an ARM what-if review. A
-bounded lower limit is never presented as a complete capacity estimate.
+The guided path reads the selected subscription's current region, zone, SKU,
+and quota metadata, writes an Azure proposal that expires after 24 hours, and
+shows a bounded retail compute estimate when available. Azure deployment stays
+gated until a later ARM what-if review. A bounded lower limit is never presented
+as a complete capacity estimate.
 
 The existing LoadJob path remains available:
 

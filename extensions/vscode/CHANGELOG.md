@@ -7,6 +7,10 @@
   Azure source placement, draft generation, and bounded source sizing evidence.
 - Add a read-only Neo4j transactional count-store inventory command so bounded
   record-size observations can be scaled against exact node and edge totals.
+- Add runtime PostgreSQL 18 capability, zonal Compute SKU, quota, and USD retail
+  checks, then save an expiring private-network Azure deployment proposal.
+- Treat the Azure account already signed into VS Code as a prerequisite; the
+  guided workflow never starts a second Azure login.
 - Preserve the existing LoadJob-first commands and AI read-only boundary.
 
 ## 2.3.0

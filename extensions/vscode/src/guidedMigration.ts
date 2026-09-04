@@ -10,7 +10,8 @@ import {
   Neo4jDraftInput,
   normalizeNeo4jInput
 } from "./core/guided";
-import { runJSON } from "./core/process";
+import { runJSON, runText } from "./core/process";
+import { recommendAzure } from "./core/proposal";
 import { redactText } from "./core/security";
 import { AzureSession } from "./guided/azure";
 import { GuidedStorage } from "./guided/storage";
@@ -21,6 +22,7 @@ interface GuidedMessage {
   source?: unknown;
   password?: unknown;
   placement?: unknown;
+  subscriptionId?: unknown;
 }
 
 export function registerGuidedMigration(
@@ -75,6 +77,9 @@ function openGuidedPanel(
         case "ready":
           await sendSubscriptions(panel, azure);
           break;
+        case "listRegions":
+          await sendLocations(panel, azure, optionalString(message.subscriptionId));
+          break;
         case "profile":
           busy = true;
           await panel.webview.postMessage({ type: "busy", value: true, message: "Connecting and profiling the source…" });
@@ -107,6 +112,16 @@ async function profileSource(
   if (typeof message.password !== "string" || message.password.length === 0) {
     throw new Error("Enter the Neo4j password.");
   }
+  let sourcePassword = message.password;
+  message.password = undefined;
+  const options = processOptions(workspace.uri);
+  const binary = vscode.workspace.getConfiguration("agefreighter", workspace.uri)
+    .get<string>("binaryPath", "agefreighter").trim();
+  try {
+    await runText(binary, ["inventory", "--help"], options);
+  } catch {
+    throw new Error("The guided migration requires the AGEFreighter 2.4.0 CLI (the inventory command is unavailable).");
+  }
   const placementInput = parsePlacement(message.placement);
   const id = randomUUID();
   const state = createGuidedState(id, input, placementInput.kind);
@@ -121,28 +136,27 @@ async function profileSource(
     state.source.resolvedZone = placement.zone;
     state.source.placementConfidence = "verified";
   } else {
-    if (!placementInput.declaredLocation) {
-      throw new Error("Enter the physical source location so Azure regions can be recommended.");
+    if (!placementInput.declaredLocation || !placementInput.preferredRegion) {
+      throw new Error("Enter the physical source location and confirm the recommended Azure region.");
     }
     state.source.declaredLocation = placementInput.declaredLocation;
+    state.source.resolvedLocation = placementInput.preferredRegion;
     state.source.placementConfidence = "declared";
   }
-  const sourceSecretPath = await storage.writeSecret(id, "source-password", message.password);
+  const sourceSecretPath = await storage.writeSecret(id, "source-password", sourcePassword);
+  sourcePassword = "";
   const draft = buildNeo4jDraftYAML(input, sourceSecretPath, storage.targetSecretPath(id));
   const draftURI = await storage.writeText(id, "draft.yaml", draft);
   state.jobPath = draftURI.fsPath;
   await storage.writeState(state);
 
-  const options = processOptions(workspace.uri);
-  const binary = vscode.workspace.getConfiguration("agefreighter", workspace.uri)
-    .get<string>("binaryPath", "agefreighter").trim();
   await runJSON(binary, ["validate", "--format", "json", draftURI.fsPath], options);
   const inventory = await runJSON(binary, ["inventory", "--format", "json", draftURI.fsPath], options);
   const profile = await runJSON(binary, ["profile", "--format", "json", draftURI.fsPath], options);
   const outcome = profileOutcome(profile);
   const inventoryURI = await storage.writeText(id, "source-inventory.json", `${JSON.stringify(inventory, null, 2)}\n`);
   const profileURI = await storage.writeText(id, "source-profile.json", `${JSON.stringify(profile, null, 2)}\n`);
-  const nextState: GuidedState = {
+  const profiledState: GuidedState = {
     ...state,
     revision: state.revision + 1,
     phase: "profiled",
@@ -154,12 +168,56 @@ async function profileSource(
       generatedAt: profileGeneratedAt(profile)
     }
   };
-  await storage.writeState(nextState);
-  jobs.refresh();
   const capacity = combineCapacityAndInventory(
     extractCapacityEvidence(profile),
     extractInventoryEvidence(inventory)
   );
+  const region = profiledState.source.resolvedLocation;
+  const subscriptionID = profiledState.source.subscriptionId;
+  if (!region || !subscriptionID) {
+    throw new Error("The target subscription and region must be resolved before creating an Azure proposal.");
+  }
+  await storage.writeState(profiledState);
+  await panel.webview.postMessage({ type: "busy", value: true, message: "Checking Azure region, SKU, zone, and quota availability…" });
+  const recommendationData = await azure.recommendationData(subscriptionID, region);
+  let proposal = recommendAzure({
+    now: new Date(),
+    region,
+    sourceZone: profiledState.source.resolvedZone,
+    capacity,
+    ...recommendationData
+  });
+  try {
+    const skuNames = [proposal.postgres.sku, proposal.loader.sku].filter((sku) => sku !== "unavailable");
+    const rates = skuNames.length > 0 ? await azure.retailRates(region, skuNames) : [];
+    proposal = recommendAzure({
+      now: new Date(),
+      region,
+      sourceZone: profiledState.source.resolvedZone,
+      capacity,
+      ...recommendationData,
+      rates
+    });
+  } catch (error) {
+    output.appendLine(`${new Date().toISOString()} retail price lookup incomplete: ${safeError(error)}`);
+  }
+  const proposalURI = await storage.writeText(id, "azure-proposal.json", `${JSON.stringify(proposal, null, 2)}\n`);
+  const nextState: GuidedState = {
+    ...profiledState,
+    revision: profiledState.revision + 1,
+    phase: "proposed",
+    updatedAt: new Date().toISOString(),
+    proposal: {
+      evidencePath: proposalURI.fsPath,
+      generatedAt: proposal.generatedAt,
+      expiresAt: proposal.expiresAt,
+      region: proposal.region,
+      zone: proposal.zone,
+      deployable: proposal.deployable
+    }
+  };
+  await storage.writeState(nextState);
+  jobs.refresh();
   output.appendLine(`${new Date().toISOString()} guided source profile completed for workflow ${id}`);
   await panel.webview.postMessage({
     type: "profileComplete",
@@ -183,7 +241,9 @@ async function profileSource(
       vertices: extractInventoryEvidence(inventory).vertices.toString(),
       edges: extractInventoryEvidence(inventory).edges.toString()
     },
-    evidencePath: profileURI.fsPath
+    proposal,
+    evidencePath: profileURI.fsPath,
+    proposalPath: proposalURI.fsPath
   });
 }
 
@@ -197,6 +257,19 @@ async function sendSubscriptions(panel: vscode.WebviewPanel, azure: AzureSession
       message: safeError(error)
     });
   }
+}
+
+async function sendLocations(
+  panel: vscode.WebviewPanel,
+  azure: AzureSession,
+  subscriptionID: string | undefined
+): Promise<void> {
+  if (!subscriptionID) {
+    await panel.webview.postMessage({ type: "locations", locations: [] });
+    return;
+  }
+  const locations = await azure.locations(subscriptionID);
+  await panel.webview.postMessage({ type: "locations", locations });
 }
 
 async function chooseWorkspace(): Promise<vscode.WorkspaceFolder | undefined> {
@@ -224,7 +297,8 @@ function parseMessage(value: unknown): GuidedMessage | undefined {
     type: message.type,
     source: message.source,
     password: message.password,
-    placement: message.placement
+    placement: message.placement,
+    subscriptionId: message.subscriptionId
   } : undefined;
 }
 
@@ -252,6 +326,7 @@ function parsePlacement(value: unknown): {
   subscriptionId?: string;
   resourceId?: string;
   declaredLocation?: string;
+  preferredRegion?: string;
 } {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("The source placement is invalid.");
@@ -264,7 +339,8 @@ function parsePlacement(value: unknown): {
     kind: item.kind,
     subscriptionId: optionalString(item.subscriptionId),
     resourceId: optionalString(item.resourceId),
-    declaredLocation: optionalString(item.declaredLocation)
+    declaredLocation: optionalString(item.declaredLocation),
+    preferredRegion: optionalString(item.preferredRegion)
   };
 }
 
@@ -406,7 +482,8 @@ function guidedHTML(webview: vscode.Webview): string {
       </div>
       <div id="onPremPlacement" class="grid" style="margin-top:14px" hidden>
         <label class="wide">Physical source location<input id="declaredLocation" placeholder="Tokyo, Japan" autocomplete="off"></label>
-        <p class="wide muted">This becomes an input to the nearest-region recommendation. You will confirm the final region before deployment.</p>
+        <label class="wide">Recommended Azure region<select id="preferredRegion"><option value="">Select a target subscription first</option></select></label>
+        <p class="wide muted">AGEFreighter matches the declared place against Azure's physical-region metadata when unambiguous. Confirm or change the result; it is never inferred from the source IP address.</p>
       </div>
     </section>
 
@@ -420,7 +497,7 @@ function guidedHTML(webview: vscode.Webview): string {
     <h2>Source profile and sizing input</h2>
     <dl id="facts"></dl>
     <div id="gate" class="status"></div>
-    <p class="muted">The next milestone will use these facts to check current region, zone, SKU, quota, AGE availability, and price data before showing a deployable Azure proposal.</p>
+    <p class="muted">This proposal expires after 24 hours. Deployment remains a separate, explicit confirmation step and is not started from this screen yet.</p>
   </section>
 
   <script nonce="${nonce}">
@@ -432,6 +509,8 @@ function guidedHTML(webview: vscode.Webview): string {
     const working = byId('working');
     const azureStatus = byId('azureStatus');
     const subscription = byId('subscription');
+    const preferredRegion = byId('preferredRegion');
+    let azureLocations = [];
 
     function selectedPlacement() {
       return document.querySelector('input[name="placement"]:checked').value;
@@ -441,6 +520,10 @@ function guidedHTML(webview: vscode.Webview): string {
       byId('azurePlacement').hidden = !azure;
       byId('onPremPlacement').hidden = azure;
     }));
+    subscription.addEventListener('change', () => {
+      vscode.postMessage({ type: 'listRegions', subscriptionId: subscription.value });
+    });
+    byId('declaredLocation').addEventListener('input', recommendNearestRegion);
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       const kind = selectedPlacement();
@@ -463,7 +546,8 @@ function guidedHTML(webview: vscode.Webview): string {
           kind,
           subscriptionId: subscription.value,
           resourceId: byId('resourceId').value,
-          declaredLocation: byId('declaredLocation').value
+          declaredLocation: byId('declaredLocation').value,
+          preferredRegion: preferredRegion.value
         }
       });
       password.value = '';
@@ -483,9 +567,25 @@ function guidedHTML(webview: vscode.Webview): string {
           ? 'Signed in. Select the Azure subscription that will own the migration resources.'
           : 'Signed in, but no selected Azure subscriptions are available.';
         azureStatus.className = 'status success';
+        if (message.subscriptions.length) {
+          vscode.postMessage({ type: 'listRegions', subscriptionId: subscription.value });
+        }
       } else if (message.type === 'azureSignedOut') {
         azureStatus.textContent = message.message;
         azureStatus.className = 'status error';
+      } else if (message.type === 'locations') {
+        azureLocations = Array.isArray(message.locations) ? message.locations : [];
+        preferredRegion.replaceChildren();
+        const empty = document.createElement('option');
+        empty.value = ''; empty.textContent = 'Select an Azure region';
+        preferredRegion.appendChild(empty);
+        for (const location of azureLocations) {
+          const option = document.createElement('option');
+          option.value = location.name;
+          option.textContent = location.displayName + (location.physicalLocation ? ' — ' + location.physicalLocation : '');
+          preferredRegion.appendChild(option);
+        }
+        recommendNearestRegion();
       } else if (message.type === 'busy') {
         profileButton.disabled = message.value;
         working.textContent = message.value ? message.message : '';
@@ -504,6 +604,11 @@ function guidedHTML(webview: vscode.Webview): string {
           ['Exact source relationships', message.inventory.edges],
           ['Estimated target rows', (capacity.targetRowsLowerBound ? 'at least ' : '') + (capacity.targetRows || 'unavailable')],
           ['Recommended storage evidence', formatBytes(capacity.recommendedStorageLow) + ' – ' + formatBytes(capacity.recommendedStorageHigh)],
+          ['Azure target', message.proposal.region + (message.proposal.zone ? ' / zone ' + message.proposal.zone : '')],
+          ['PostgreSQL', message.proposal.postgresVersion + ' / ' + message.proposal.postgres.sku + ' / ' + message.proposal.postgres.storageGiB + ' GiB'],
+          ['AGEFreighter VM', message.proposal.loader.sku + ' / ' + message.proposal.loader.memoryGiB + ' GiB RAM'],
+          ['HA / network', message.proposal.postgres.highAvailability + ' / private access'],
+          ['Retail compute estimate', message.proposal.estimatedHourlyUSD === undefined ? 'incomplete' : '$' + message.proposal.estimatedHourlyUSD.toFixed(3) + '/hour (storage and network excluded)'],
           ['Evidence', message.evidencePath]
         ];
         const facts = byId('facts');
@@ -514,10 +619,10 @@ function guidedHTML(webview: vscode.Webview): string {
           facts.append(dt, dd);
         }
         const gate = byId('gate');
-        gate.textContent = capacity.deployable
-          ? 'Complete inventory evidence is available for the Azure proposal.'
-          : capacity.reason;
-        gate.className = 'status ' + (capacity.deployable ? 'success' : 'error');
+        const proposalMessages = [...message.proposal.blockers, ...message.proposal.warnings];
+        gate.textContent = (message.proposal.deployable ? 'Azure proposal is ready for review.' : 'Azure proposal is blocked.') +
+          (proposalMessages.length ? ' ' + proposalMessages.join(' ') : '');
+        gate.className = 'status ' + (message.proposal.deployable ? 'success' : 'error');
         byId('result').hidden = false;
         byId('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -530,6 +635,22 @@ function guidedHTML(webview: vscode.Webview): string {
       let n = bytes, i = 0;
       while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
       return n.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+    }
+    function recommendNearestRegion() {
+      const desired = tokens(byId('declaredLocation').value);
+      if (!desired.size || !azureLocations.length) return;
+      const scored = azureLocations.map((location) => {
+        const available = tokens(location.displayName + ' ' + (location.physicalLocation || ''));
+        let score = 0;
+        for (const token of desired) if (available.has(token)) score += token.length;
+        return { name: location.name, score };
+      }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+      if (scored.length && (scored.length === 1 || scored[0].score > scored[1].score)) {
+        preferredRegion.value = scored[0].name;
+      }
+    }
+    function tokens(value) {
+      return new Set(value.toLocaleLowerCase().split(/[^\\p{L}\\p{N}]+/u).filter((token) => token.length >= 2));
     }
     vscode.postMessage({ type: 'ready' });
   </script>

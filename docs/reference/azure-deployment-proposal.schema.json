@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rioriost/agefreighter/docs/reference/azure-deployment-proposal.schema.json",
+  "title": "AGEFreighter Azure deployment proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "generatedAt", "expiresAt", "region", "postgresVersion",
+    "age", "postgres", "loader", "network", "sizingBasis", "blockers",
+    "warnings", "deployable"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "region": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "zone": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "postgresVersion": { "const": "18" },
+    "age": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestedExtension", "predeploymentEvidence", "postDeploymentChecks"],
+      "properties": {
+        "requestedExtension": { "const": "AGE" },
+        "predeploymentEvidence": { "const": "published-service-matrix" },
+        "postDeploymentChecks": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        }
+      }
+    },
+    "postgres": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sku", "tier", "vCores", "storageGiB", "highAvailability"],
+      "properties": {
+        "sku": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "tier": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "vCores": { "type": "integer", "minimum": 0 },
+        "storageGiB": { "type": "integer", "minimum": 0 },
+        "highAvailability": { "const": "SameZone" }
+      }
+    },
+    "loader": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sku", "vCores", "memoryGiB"],
+      "properties": {
+        "sku": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "vCores": { "type": "integer", "minimum": 0 },
+        "memoryGiB": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["publicAccess", "privateAccessRequired"],
+      "properties": {
+        "publicAccess": { "const": "Disabled" },
+        "privateAccessRequired": { "const": true }
+      }
+    },
+    "sizingBasis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "targetRows", "qualifiedEnvelope", "storageHeadroomPercent"],
+      "properties": {
+        "method": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "targetRows": { "type": "string", "pattern": "^[0-9]+$" },
+        "qualifiedEnvelope": { "type": "boolean" },
+        "storageHeadroomPercent": { "const": 25 }
+      }
+    },
+    "estimatedHourlyUSD": { "type": "number", "minimum": 0 },
+    "priceEffectiveAt": { "type": "string", "format": "date-time" },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+    },
+    "deployable": { "type": "boolean" }
+  }
+}

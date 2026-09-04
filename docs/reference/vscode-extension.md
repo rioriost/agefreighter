@@ -11,12 +11,16 @@ Run **AGEFreighter: New Guided Migration** to enter a Neo4j endpoint and source
 placement in a form. The extension uses the Azure account already signed into
 VS Code, stores the Neo4j password outside the workspace through SecretStorage,
 generates a protected draft, and runs CLI validation and bounded profiling.
+The operator signs in before opening the workflow; the extension has no
+secondary Azure login action.
 
 For an Azure-hosted source, select the target subscription and provide the
 source ARM resource ID. Its region and logical availability zone are accepted
 only when Azure Resource Manager verifies them. For an on-premises or other
 cloud source, enter its physical location; the eventual nearest-region value is
-a recommendation that the operator must confirm.
+a recommendation that the operator must confirm. The extension then checks
+PostgreSQL 18 capabilities, PostgreSQL and Compute quotas, zonal VM SKUs, and
+bounded USD retail rates and saves a 24-hour proposal without deploying it.
 
 The source profile preserves lower-bound and incomplete status. Azure resource
 creation stays disabled until sizing totals, SKU/quota/AGE availability, cost,
@@ -25,12 +29,13 @@ See the [guided migration contract](vscode-guided-migration-contract.md).
 
 ## Install
 
-Install the CLI first and verify `agefreighter version` reports 2.3.0 or newer.
+Install the CLI first. The guided path requires the 2.4.0 `inventory` command;
+the existing LoadJob-first features remain compatible with 2.3.0 or newer.
 Then install **AGEFreighter** from the Visual Studio Marketplace, or install a
 reviewed local package:
 
 ```sh
-code --install-extension agefreighter-2.3.0.vsix
+code --install-extension agefreighter-2.4.0.vsix
 ```
 
 If the CLI is not on `PATH`, run **AGEFreighter: Select CLI Binary**. In Remote
@@ -93,6 +98,6 @@ the CLI, credentials, or local paths.
 ## Windows binary status
 
 The extension itself is TypeScript/JavaScript. The separately downloaded
-AGEFreighter 2.3.0 Windows CLI binaries remain unsigned because the SignPath
+AGEFreighter 2.4.0 Windows CLI binaries remain unsigned because the SignPath
 Foundation application was not approved. They are still distributed; verify
 the release checksum and GitHub provenance before selecting the executable.

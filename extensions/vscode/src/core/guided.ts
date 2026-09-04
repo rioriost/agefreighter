@@ -60,6 +60,14 @@ export interface GuidedState {
     inventoryEvidencePath?: string;
     generatedAt?: string;
   };
+  proposal?: {
+    evidencePath: string;
+    generatedAt: string;
+    expiresAt: string;
+    region: string;
+    zone?: string;
+    deployable: boolean;
+  };
   deployment?: {
     subscriptionId: string;
     resourceGroup: string;

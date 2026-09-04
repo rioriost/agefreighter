@@ -21,13 +21,14 @@ The webview may send only these version-1 actions:
 | Action | Payload | Effect |
 |---|---|---|
 | `ready` | none | Read the VS Code Azure session and selected subscriptions. |
+| `listRegions` | selected subscription ID | Read available Azure regions for the on-premises recommendation field. |
 | `profile` | validated source fields, one password, placement fields | Store the password, write a protected draft, validate it, read exact Neo4j count-store totals, and run a bounded read-only profile. |
 
-The extension replies with `subscriptions`, `azureSignedOut`, `busy`, `error`,
-or `profileComplete`. Replies never contain a credential, authentication token,
-connection string, source query, or source record. Password controls are cleared
-immediately after a `profile` message is posted and are never included in
-`vscode.setState`.
+The extension replies with `subscriptions`, `locations`, `azureSignedOut`,
+`busy`, `error`, or `profileComplete`. Replies never contain a credential,
+authentication token, connection string, source query, or source record.
+Password controls are cleared immediately after a `profile` message is posted
+and are never included in `vscode.setState`.
 
 Unknown actions and unexpected fields have no effect. Mutating Azure and
 migration operations will use separate typed messages with modal confirmation;
@@ -62,3 +63,21 @@ scaled by those totals because the guided draft migrates the whole database;
 the proposal records that method and retains the profile's estimation range.
 Without trustworthy totals, the extension must not silently extrapolate a
 bounded prefix.
+
+## Azure proposal evidence
+
+The extension reads PostgreSQL location capabilities and quota, Compute SKU
+availability and quota, and USD Retail Prices at runtime through the selected
+VS Code Azure subscription. It writes the bounded result as
+`azure-proposal.json`, conforming to
+[`azure-deployment-proposal.schema.json`](azure-deployment-proposal.schema.json).
+The proposal expires after 24 hours and does not authorize deployment.
+
+For an Azure source, its verified region and logical zone are the defaults. For
+an on-premises source, Azure's physical-location metadata may preselect a region
+only when the text match is unambiguous; the operator confirms or changes it.
+The target Flexible Server and loader VM must share a supported logical zone.
+
+Predeployment AGE support is advisory service-matrix evidence. Migration remains
+blocked after deployment until the actual server proves the AGE allowlist,
+preload setting, and `pg_available_extensions` entry.
