@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,6 +60,24 @@ func TestBenchmarkDataHelpers(t *testing.T) {
 	second := benchmarkObjectName("prefix")
 	if first == second {
 		t.Fatal("benchmarkObjectName() returned a duplicate")
+	}
+}
+
+func TestRelationalBenchmarkDDLMatchesAGEIDIntegrity(t *testing.T) {
+	tests := []struct {
+		workload        BenchmarkWorkload
+		primaryKeyCount int
+	}{
+		{workload: BenchmarkVertices, primaryKeyCount: 1},
+		{workload: BenchmarkEdges, primaryKeyCount: 2},
+	}
+	for _, test := range tests {
+		t.Run(string(test.workload), func(t *testing.T) {
+			ddl := relationalBenchmarkDDL(test.workload, "target", "vertices")
+			if got := strings.Count(ddl, "id bigint PRIMARY KEY"); got != test.primaryKeyCount {
+				t.Fatalf("primary-key count = %d; want %d in %q", got, test.primaryKeyCount, ddl)
+			}
+		})
 	}
 }
 

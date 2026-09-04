@@ -52,6 +52,13 @@ release runs on AMD EPYC 7763 and Intel Xeon Platinum 8573C measured 72,343,
 the slowest observation while still detecting a material end-to-end regression.
 The hardware-normalized staged-binary ratio remains 40% in every environment.
 
+Starting with v2.2.0, both sides of this comparison enforce the same `id`
+primary-key invariant. Apache AGE edge labels gained an explicit `id` primary
+key during the production-scale recovery work, so leaving the relational
+reference unindexed would measure an integrity mismatch rather than COPY
+overhead. The release gate therefore creates primary keys on the relational
+vertex and edge reference tables as well.
+
 The release workflow is the authoritative performance gate for 2.x tags. The
 `Release performance` workflow is available for explicit diagnostic runs but
 does not duplicate the tag gate. A first failure is confirmed with one clean
