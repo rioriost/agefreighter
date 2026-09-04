@@ -1,0 +1,110 @@
+name: VS Code Extension
+
+on:
+  pull_request:
+    paths:
+      - "extensions/vscode/**"
+      - "internal/cli/config_commands.go"
+      - "internal/cli/root_test.go"
+      - "docs/reference/vscode-extension*.md"
+      - ".github/workflows/vscode-extension.yml"
+  push:
+    branches:
+      - main
+      - "2.3.0"
+    paths:
+      - "extensions/vscode/**"
+      - "internal/cli/config_commands.go"
+      - "internal/cli/root_test.go"
+      - "docs/reference/vscode-extension*.md"
+      - ".github/workflows/vscode-extension.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Unit (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: extensions/vscode
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: extensions/vscode/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Typecheck, unit test, and bundle
+        run: npm run check
+      - name: Audit shipped runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  extension-host:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: extensions/vscode
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: extensions/vscode/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run Extension Host smoke test
+        run: xvfb-run -a npm run test:host
+
+  package:
+    needs: [unit, extension-host]
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: extensions/vscode
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: extensions/vscode/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Package and inspect VSIX
+        run: |
+          set -euo pipefail
+          npm run package
+          vsix=dist/agefreighter-2.3.0.vsix
+          test -f "$vsix"
+          unzip -l "$vsix" >dist/vsix-contents.txt
+          grep -F 'extension/dist/extension.js' dist/vsix-contents.txt
+          if grep -E 'node_modules|\.env|out-test|src/test|\.vscode-test' dist/vsix-contents.txt; then
+            printf 'VSIX contains excluded development or secret material\n' >&2
+            exit 1
+          fi
+          sha256sum "$vsix" >"$vsix.sha256"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: agefreighter-vscode-2.3.0
+          path: |
+            extensions/vscode/dist/agefreighter-2.3.0.vsix
+            extensions/vscode/dist/agefreighter-2.3.0.vsix.sha256
+            extensions/vscode/dist/vsix-contents.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

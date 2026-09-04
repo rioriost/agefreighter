@@ -616,6 +616,25 @@ and [benchmark record](benchmarks/2.2-postgresql-property-graph.md).
   only matching self-hosted runner, `agefreighter-azure-japaneast`, was
   offline. The queued qualification run was canceled without executing tests.
 
+## 2.3 VS Code migration experience
+
+The 2.3 branch adds an open-source VS Code extension without creating a second
+migration engine:
+
+- [x] schema-versioned JSON validation output for editor integrations
+- [x] trusted-workspace LoadJob discovery and guided deterministic commands
+- [x] visible, confirmed terminal execution for long-running or mutating work
+- [x] bounded, script-free local report rendering
+- [x] optional `@agefreighter` chat participant
+- [x] confirmed read-only language-model tool with strict path and redaction
+  boundaries
+- [x] unit and Extension Host tests plus reproducible VSIX packaging
+- [ ] public Visual Studio Marketplace publisher and listing verification
+- [ ] final 2.3.0 GitHub release and Marketplace installation verification
+
+See the [reviewed 2.3 delivery plan](design/agefreighter-2.3.0-vscode-extension.md)
+and [extension guide](reference/vscode-extension.md).
+
 ## Deferred roadmap
 
 ### Beyond 2.2 candidates

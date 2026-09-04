@@ -74,3 +74,6 @@ context. Before use, the extension recursively removes keys whose names contain
 serialized size limit. Raw job files, environment variables, stderr, terminal
 output, and source records are never provided to a model.
 
+The language-model tool accepts an absolute job path, as recommended by the VS
+Code tool contract, but rejects paths outside the trusted workspace and paths
+that are not already recognized as AGEFreighter LoadJob files.

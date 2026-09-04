@@ -7,7 +7,7 @@ Official Windows release archives contain `agefreighter.exe` and
 GitHub Actions before checksums, SBOMs, provenance, and the GitHub release are
 created.
 
-The Windows executables through v2.2.0 are intentionally unsigned. The SignPath
+The Windows executables through v2.3.0 are intentionally unsigned. The SignPath
 Foundation application was not approved because the project does not yet meet
 the program's public visibility requirements. Code signing remains planned for
 a later release, either after a successful future application or through
