@@ -10,6 +10,12 @@ remains the deterministic migration engine and owner of durable checkpoints.
 
 ## Highlights
 
+- Start a guided Neo4j migration by entering the source connection in VS Code;
+  no hand-written LoadJob is required for source profiling.
+- Reuse the Azure account already signed into VS Code, select a subscription,
+  and verify an Azure source's region and logical zone from its ARM resource.
+- Keep passwords in VS Code SecretStorage and owner-only extension storage;
+  generated jobs contain secret references, not secret values.
 - Discover AGEFreighter `LoadJob` YAML and JSON files in the workspace.
 - Validate configuration and inspect static plans without connecting to a
   source or target.
@@ -40,6 +46,18 @@ Windows CLI binaries in 2.3.0 are provided without an Authenticode signature;
 verify their checksum and GitHub build-provenance attestation before use.
 
 ## Start a migration
+
+For the 2.4.0 guided path, open the AGEFreighter view and select **New guided
+migration**. Enter the Neo4j endpoint and discovery identity properties, select
+the Azure subscription, and identify whether the source is an Azure resource or
+is on-premises. The extension validates the source and presents bounded sizing
+evidence without requiring a LoadJob first.
+
+Azure deployment remains gated until the profile has a reviewed total, current
+region/zone/SKU/quota checks, a cost estimate, and an ARM what-if review. A
+bounded lower limit is never presented as a complete capacity estimate.
+
+The existing LoadJob path remains available:
 
 1. Open a trusted workspace containing an AGEFreighter `LoadJob` file.
 2. Open the AGEFreighter activity-bar view.

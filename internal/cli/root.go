@@ -63,6 +63,7 @@ func newRoot(name, summary string, stdout, stderr io.Writer) *cobra.Command {
 			newDoctorCommand(),
 			newVerifyCommand(),
 			newProfileCommand(),
+			newInventoryCommand(),
 			newOptimizeCommand(),
 			newCleanupCommand(),
 		)

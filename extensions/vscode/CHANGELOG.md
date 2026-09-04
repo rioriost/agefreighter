@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.4.0
+
+- Add the first guided migration milestone: VS Code Azure-session discovery,
+  Neo4j source connection form, protected credential materialization, verified
+  Azure source placement, draft generation, and bounded source sizing evidence.
+- Add a read-only Neo4j transactional count-store inventory command so bounded
+  record-size observations can be scaled against exact node and edge totals.
+- Preserve the existing LoadJob-first commands and AI read-only boundary.
+
 ## 2.3.0
 
 - Add workspace discovery and a migration-job tree for AGEFreighter LoadJobs.

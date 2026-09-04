@@ -24,6 +24,7 @@ graph mutations.
 |---|---|---|
 | Validate configuration | `validate --format json JOB` | validation result, schema version 1 |
 | Static plan | `plan JOB` | `apiVersion`, `job`, `source`, `target`, `limits`, `policies` |
+| Exact source inventory | `inventory --format json JOB` | report document |
 | Source profile | `profile --format json JOB` | report document |
 | Target readiness | `doctor --format json --target JOB` | report document |
 | Durable status | `status --target JOB JOB_ID` | durable job record |
@@ -77,3 +78,11 @@ output, and source records are never provided to a model.
 The language-model tool accepts an absolute job path, as recommended by the VS
 Code tool contract, but rejects paths outside the trusted workspace and paths
 that are not already recognized as AGEFreighter LoadJob files.
+
+## Guided migration boundary
+
+AGEFreighter 2.4.0 adds an operator-driven workflow that creates the draft job
+instead of requiring it up front. It uses the same CLI process boundary and
+does not give Azure deployment or migration mutations to a model. See the
+[guided migration contract](vscode-guided-migration-contract.md) for Azure
+authentication, webview messages, local state, and placement/capacity evidence.

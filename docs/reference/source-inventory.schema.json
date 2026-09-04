@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rioriost/agefreighter/docs/reference/source-inventory.schema.json",
+  "title": "agefreighter exact source inventory report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "command", "agefreighterVersion", "generatedAt",
+    "outcome", "checks", "warnings", "errors", "incompleteChecks", "sections"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "command": { "const": "inventory" },
+    "agefreighterVersion": { "type": "string", "minLength": 1, "maxLength": 8192 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "outcome": { "const": "pass" },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": { "$ref": "source-profile.schema.json#/$defs/check" }
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "source-profile.schema.json#/$defs/finding" }
+    },
+    "errors": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "source-profile.schema.json#/$defs/finding" }
+    },
+    "incompleteChecks": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "type": "string", "minLength": 1, "maxLength": 8192 }
+    },
+    "sections": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["title", "fields"],
+        "properties": {
+          "title": { "const": "Source inventory" },
+          "fields": {
+            "type": "array",
+            "minItems": 5,
+            "items": { "$ref": "source-profile.schema.json#/$defs/field" }
+          }
+        }
+      },
+      "items": { "$ref": "source-profile.schema.json#/$defs/section" }
+    }
+  }
+}

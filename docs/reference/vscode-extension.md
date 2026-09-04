@@ -1,9 +1,27 @@
 # VS Code extension
 
-AGEFreighter 2.3.0 includes an open-source VS Code extension in
+AGEFreighter includes an open-source VS Code extension in
 [`extensions/vscode`](../../extensions/vscode). It is a presentation and
 orchestration layer for a separately installed AGEFreighter CLI, not a second
 migration engine.
+
+## Guided source setup (2.4.0)
+
+Run **AGEFreighter: New Guided Migration** to enter a Neo4j endpoint and source
+placement in a form. The extension uses the Azure account already signed into
+VS Code, stores the Neo4j password outside the workspace through SecretStorage,
+generates a protected draft, and runs CLI validation and bounded profiling.
+
+For an Azure-hosted source, select the target subscription and provide the
+source ARM resource ID. Its region and logical availability zone are accepted
+only when Azure Resource Manager verifies them. For an on-premises or other
+cloud source, enter its physical location; the eventual nearest-region value is
+a recommendation that the operator must confirm.
+
+The source profile preserves lower-bound and incomplete status. Azure resource
+creation stays disabled until sizing totals, SKU/quota/AGE availability, cost,
+network reachability, and an ARM what-if result have passed their review gates.
+See the [guided migration contract](vscode-guided-migration-contract.md).
 
 ## Install
 
@@ -21,7 +39,7 @@ extension-host environment.
 
 ## Deterministic workflow
 
-The Migration Jobs view discovers workspace YAML and JSON documents with
+The existing Migration Jobs view discovers workspace YAML and JSON documents with
 `apiVersion: agefreighter.io/v2` and `kind: LoadJob`.
 
 1. Validate the job and inspect the static plan. These do not connect to a

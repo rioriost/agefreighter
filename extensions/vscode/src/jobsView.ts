@@ -2,7 +2,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { looksLikeAgefreighterJob } from "./core/jobs";
 
-const exclude = "**/{.git,.hg,.svn,node_modules,vendor,dist,bin,.coverage,production-simulation/work,production-simulation/results/raw}/**";
+const exclude = "**/{.git,.hg,.svn,.agefreighter,node_modules,vendor,dist,bin,.coverage,production-simulation/work,production-simulation/results/raw}/**";
 
 interface OperationDefinition {
   label: string;

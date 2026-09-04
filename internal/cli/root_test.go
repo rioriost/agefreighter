@@ -103,6 +103,7 @@ func TestLifecycleCommandsReportConfigurationErrors(t *testing.T) {
 		{"doctor", "history", "--target", "missing.yaml"},
 		{"verify", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 		{"profile", "missing.yaml"},
+		{"inventory", "missing.yaml"},
 		{"optimize", "--target", "missing.yaml"},
 		{"cleanup", "--target", "missing.yaml", "11111111-2222-4333-8444-555555555555"},
 	}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rioriost/agefreighter/docs/reference/guided-migration-state.schema.json",
+  "title": "AGEFreighter guided migration state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "revision", "id", "phase", "createdAt", "updatedAt", "source"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "revision": { "type": "integer", "minimum": 1 },
+    "id": { "type": "string", "format": "uuid" },
+    "phase": {
+      "enum": [
+        "draft", "source-connected", "profiled", "proposed",
+        "what-if-reviewed", "deploying", "deployed", "target-ready",
+        "load-started", "load-failed", "load-committed", "verifying",
+        "passed", "failed", "incomplete"
+      ]
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "jobPath": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type", "host", "port", "database", "sourceId", "placement",
+        "placementConfidence"
+      ],
+      "properties": {
+        "type": { "const": "neo4j" },
+        "host": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "database": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "placement": { "enum": ["azure", "on-premises"] },
+        "subscriptionId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "resourceId": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "declaredLocation": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "resolvedLocation": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "resolvedZone": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "placementConfidence": { "enum": ["verified", "declared", "unknown"] }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "evidencePath"],
+      "properties": {
+        "outcome": { "enum": ["pass", "fail", "incomplete"] },
+        "evidencePath": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "inventoryEvidencePath": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "generatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subscriptionId", "resourceGroup", "deploymentName"],
+      "properties": {
+        "subscriptionId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "resourceGroup": { "type": "string", "minLength": 1, "maxLength": 90 },
+        "deploymentName": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "resourceId": { "type": "string", "minLength": 1, "maxLength": 2048 }
+      }
+    },
+    "durableJobId": { "type": "string", "format": "uuid" }
+  }
+}

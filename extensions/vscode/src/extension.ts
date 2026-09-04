@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { registerAI } from "./ai";
 import { ExtensionController } from "./controller";
+import { registerGuidedMigration } from "./guidedMigration";
 import { JobsProvider } from "./jobsView";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -14,6 +15,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerTreeDataProvider("agefreighter.jobs", jobs)
   );
   controller.register(context);
+  registerGuidedMigration(context, jobs, output);
   registerAI(context, controller, jobs);
   output.appendLine("AGEFreighter extension activated.");
 }
