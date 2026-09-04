@@ -14,7 +14,8 @@ is Microsoft's managed PostgreSQL service and can enable the AGE extension.
 The PostgreSQL 19 target stores lossless properties in relational `jsonb`
 columns and exposes them through `GRAPH_TABLE`; it does not install AGE and it
 does not provide Cypher. This target remains experimental while PostgreSQL 19
-is pre-release.
+is pre-release. Version 2.2.0 is qualified against the digest-pinned official
+PostgreSQL 19 Beta 3 image; PostgreSQL 19 GA requires a fresh qualification.
 
 This branch does not preserve the Python API, CLI, configuration, or defaults
 from agefreighter 1.x. The 2.x implementation is maintained on `main`; the 1.x
@@ -43,7 +44,7 @@ desired [GitHub release](https://github.com/rioriost/agefreighter/releases),
 extract it, and install both binaries:
 
 ```sh
-tar -xzf agefreighter_v2.1.0_darwin_arm64.tar.gz
+tar -xzf agefreighter_v2.2.0_darwin_arm64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
@@ -52,30 +53,31 @@ sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 Download the `linux_amd64` or `linux_arm64` archive for the host architecture:
 
 ```sh
-tar -xzf agefreighter_v2.1.0_linux_amd64.tar.gz
+tar -xzf agefreighter_v2.2.0_linux_amd64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
 ### Windows
 
-Download `agefreighter_v2.1.0_windows_amd64.zip`, extract
+Download `agefreighter_v2.2.0_windows_amd64.zip`, extract
 `agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
 `PATH`.
 
-> **Windows signing status:** The Windows binaries in v2.0.0 are intentionally
-> provided without an Authenticode signature while SignPath Foundation
-> enrollment is pending. Code signing is planned for a later release. Windows
-> may display an unknown-publisher or SmartScreen warning. Verify the archive
-> checksum and GitHub build-provenance attestation before use. See the
-> [code signing policy](docs/code-signing-policy.md).
+> **Windows signing status:** The Windows binaries in v2.2.0 are intentionally
+> provided without an Authenticode signature. The SignPath Foundation
+> application was not approved, so Windows code signing remains planned for a
+> later release through a future eligible application or another signing
+> arrangement. Windows may display an unknown-publisher or SmartScreen warning.
+> Verify the archive checksum and GitHub build-provenance attestation before
+> use. See the [code signing policy](docs/code-signing-policy.md).
 
 ```powershell
-Expand-Archive .\agefreighter_v2.1.0_windows_amd64.zip -DestinationPath .\agefreighter
+Expand-Archive .\agefreighter_v2.2.0_windows_amd64.zip -DestinationPath .\agefreighter
 Get-AuthenticodeSignature .\agefreighter\agefreighter.exe
 .\agefreighter\agefreighter.exe version
 ```
 
-For v2.0.0, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
+For v2.2.0, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
 
 ### Build from source
 
@@ -84,8 +86,8 @@ With the Go version declared in `go.mod` installed:
 ```sh
 git clone https://github.com/rioriost/agefreighter.git
 cd agefreighter
-git checkout v2.1.0
-make build VERSION=2.1.0
+git checkout v2.2.0
+make build VERSION=2.2.0
 ```
 
 See the [installation guide](docs/reference/installation.md) for archive names,

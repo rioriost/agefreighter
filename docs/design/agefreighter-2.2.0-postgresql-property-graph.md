@@ -404,7 +404,7 @@ completes successfully. Backup cleanup is validated and idempotent.
 
 The pinned PostgreSQL 19 Beta 3 release suite passes the complete mode matrix,
 concurrent-writer exclusion, replacement recovery, metadata v14-to-v21 upgrade,
-and all sixteen corruption cases. The complete CSV-to-SQL/PGQ path measured
+and all nineteen corruption cases. The complete CSV-to-SQL/PGQ path measured
 71,350 rows/s for 35,000 rows and 81,029 rows/s for 350,000 rows across three
 trials on Apple M4 Max; fixture generation was not timed. The reproducible
 benchmark harness also defines an acknowledgement-gated 160-million-vertex,

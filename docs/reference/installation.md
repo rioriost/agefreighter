@@ -13,12 +13,13 @@ project `LICENSE`, and `THIRD_PARTY_NOTICES.txt` for:
 | Linux | arm64 | `agefreighter_vVERSION_linux_arm64.tar.gz` |
 | Windows | amd64 | `agefreighter_vVERSION_windows_amd64.zip` |
 
-`vVERSION` includes the leading `v`, for example `v2.1.0`.
+`vVERSION` includes the leading `v`, for example `v2.2.0`.
 
-The Windows archive is included in v2.0.0, but its executables are intentionally
-unsigned while SignPath Foundation enrollment is pending. Authenticode signing
-is planned for a later release. Windows may display an unknown-publisher or
-SmartScreen warning.
+The Windows archive is included in v2.2.0, but its executables are intentionally
+unsigned. The SignPath Foundation application was not approved, so
+Authenticode signing remains planned for a later release through a future
+eligible application or another signing arrangement. Windows may display an
+unknown-publisher or SmartScreen warning.
 
 ## Verify a release
 
@@ -29,7 +30,7 @@ release.
 Verify the archive checksum:
 
 ```sh
-grep 'agefreighter_v2.1.0_darwin_arm64.tar.gz$' checksums.txt |
+grep 'agefreighter_v2.2.0_darwin_arm64.tar.gz$' checksums.txt |
   shasum -a 256 -c -
 ```
 
@@ -37,7 +38,7 @@ On Linux, use `sha256sum -c` instead. Verify GitHub's keyless build-provenance
 attestation with GitHub CLI:
 
 ```sh
-gh attestation verify agefreighter_v2.1.0_darwin_arm64.tar.gz \
+gh attestation verify agefreighter_v2.2.0_darwin_arm64.tar.gz \
   --repo rioriost/agefreighter
 ```
 
@@ -45,7 +46,7 @@ The release workflow uses short-lived GitHub OIDC identity for provenance.
 macOS binaries are additionally signed with a Developer ID Application
 certificate, hardened-runtime enabled, securely timestamped, and accepted by
 Apple's notarization service before checksums and attestations are generated.
-The v2.0.0 Windows executables are unsigned. Verify their ZIP checksum and
+The v2.2.0 Windows executables are unsigned. Verify their ZIP checksum and
 GitHub build-provenance attestation before installation; these authenticate the
 release workflow and archive but do not provide an Authenticode publisher
 identity. See the [code signing policy](../code-signing-policy.md). Apple
@@ -56,14 +57,14 @@ credentials are restricted to the protected `release` environment.
 macOS and Linux:
 
 ```sh
-tar -xzf agefreighter_v2.1.0_darwin_arm64.tar.gz
+tar -xzf agefreighter_v2.2.0_darwin_arm64.tar.gz
 install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 agefreighter version
 agefreighter-tools version
 ```
 
 For Windows, extract the zip and place `agefreighter.exe` and
-`agefreighter-tools.exe` in a directory on `PATH`. For v2.0.0,
+`agefreighter-tools.exe` in a directory on `PATH`. For v2.2.0,
 `Get-AuthenticodeSignature` reports `NotSigned` by design.
 
 ## Homebrew
@@ -87,8 +88,8 @@ Formula rather than every package in the third-party tap.
 ```sh
 git clone https://github.com/rioriost/agefreighter.git
 cd agefreighter
-git checkout v2.1.0
-make build VERSION=2.1.0
+git checkout v2.2.0
+make build VERSION=2.2.0
 ```
 
 Source builds require the Go version declared in `go.mod`. Database services
