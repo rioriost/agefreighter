@@ -1,6 +1,6 @@
 # agefreighter roadmap
 
-- Status: 2.1 implemented; PostgreSQL 19 Beta 3 Phase F protected-runner replay pending
+- Status: 2.1 implemented; PostgreSQL 19 Beta 3 Phase F complete
 - Baseline: agefreighter 2.0.0
 - Target compatibility: the exact PostgreSQL 14–18 and Apache AGE 1.6–1.8
   pairings listed in `docs/reference/compatibility.md`
@@ -579,6 +579,8 @@ Beta 3 and Cosmos qualification:
   PostgreSQL 19 with digest verification
 - [x] Cosmos DB for Apache Gremlin backing-document migration into PostgreSQL
   19 with directed `GRAPH_TABLE` verification
+- [x] replay the pinned PG 19 and strict Cosmos suites on the protected Linux
+  amd64 runner
 - [ ] PostgreSQL 19 GA digest qualification and production-scale execution
 
 The unchecked items are external qualification gates, not missing product

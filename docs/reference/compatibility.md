@@ -70,7 +70,9 @@ relational constraints, directed and undirected `GRAPH_TABLE`, metadata
 v14-to-v21 upgrade, and nineteen target-corruption cases. The authenticated
 Cosmos qualification additionally covers NoSQL create, replace, append, and
 upsert plus Gremlin backing documents, with the existing Cosmos-to-AGE path as
-a control. It is not a supported
+a control. The protected Linux amd64 replay is retained in
+[Azure integration run 33826089190](https://github.com/rioriost/agefreighter/actions/runs/33826089190).
+It is not a supported
 production target while PostgreSQL 19 is pre-release, and PostgreSQL 19 GA
 requires a fresh digest-pinned qualification before this status can change.
 

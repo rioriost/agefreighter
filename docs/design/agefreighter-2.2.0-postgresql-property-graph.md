@@ -1,6 +1,6 @@
 # AGEFreighter 2.2.0 PostgreSQL property graph target plan
 
-**Status:** Reviewed; Phases A-E engineering complete and Phase F protected-runner replay pending on branch `2.2.0`
+**Status:** Reviewed; Phases A-F complete on branch `2.2.0`
 **Target release:** AGEFreighter 2.2.0
 **Feature maturity:** Experimental while PostgreSQL 19 is pre-release
 **Reviewed:** 2026-09-03
@@ -432,5 +432,9 @@ Cosmos DB for NoSQL create, replace, append, and upsert matrix, JSONB property
 checks, digest verification, and the Cosmos Gremlin backing-document path (two
 vertices and one directed edge). The existing Cosmos-to-AGE tests passed as the
 control. This qualification is bounded and does not include production-scale
-data. Phase F remains incomplete only until the same pinned image and strict
-Cosmos matrix pass on the protected Linux amd64 runner.
+data. The protected Linux amd64 replay of commit
+`08663415d58899e0a035dafc903eef3c66011d8b` then passed the same pinned PG 19
+suite, all strict Cosmos cases, and the AGE control in 3m54s:
+[Azure integration run 33826089190](https://github.com/rioriost/agefreighter/actions/runs/33826089190).
+Phase F is complete; PostgreSQL 19 GA and production-scale qualification remain
+separate promotion gates.
