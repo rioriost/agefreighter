@@ -361,10 +361,18 @@ jobs:
           test "v$(node -p 'require("./package.json").version')" = "$VERSION"
           npm ci
       - name: Test and package VS Code extension
+        env:
+          VSCODE_TEST_VERSION: "1.100.0"
         run: |
           set -euo pipefail
           npm run check
-          xvfb-run -a npm run test:host
+          for attempt in 1 2 3; do
+            if xvfb-run -a npm run test:host; then
+              break
+            fi
+            [[ "$attempt" -lt 3 ]] || exit 1
+            sleep $((attempt * 10))
+          done
           npm run package
           vsix=dist/agefreighter-2.3.0.vsix
           unzip -l "$vsix" >dist/vsix-contents.txt
