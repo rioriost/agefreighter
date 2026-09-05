@@ -42,7 +42,9 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
   of requested scope. File/report/archive transfers now request a Storage-scoped
   session for the same VS Code account, without ARM/shared-key/account fallback.
   Regression tests cover scopes, refresh and missing/foreign sessions. The GUI
-  retry is transferring files successfully and remains in progress; no development
+  retry uploaded **all 18 files / 1,168,576,671 bytes**, and independent full-byte
+  authenticated readback matched every size and SHA-256 at **10:17:36Z**.
+  See [retained transfer evidence](csv-transfer-20260905.json). No development
   archive or guest execution has occurred. Anonymous read was separately rejected
   (HTTP 409), while the signed-in user's readback succeeded.
 - Source servers were not prepared; preparing dedicated sources is authorized.
@@ -155,7 +157,7 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 |---|---|
 | Dedicated Azure fixture topology / ownership and cost watchdog | RG/VNet/subnet and transfer storage/RBAC created; account-only approved exception and CSV probe passed; compute/cost watchdog not yet enabled |
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
-| P1 local CSV | Prepared; complete canonical comparison passed |
+| P1 local CSV | Prepared; complete canonical comparison passed; installed-GUI upload and all 18 remote file readback hashes passed |
 | R3 remote source configuration, mapping, assessment, upload | Forms, mappings, approved start/status, storage/RBAC/report GUI, CSV upload/seal and pinned test artifact implemented locally; real Azure qualification, schema suggestions and complete assessment evidence remain open |
 | R4 target deployment and same-VM resize | Implementation required |
 | R5 durable migration / resume / verification controller | Implementation required |
@@ -181,6 +183,10 @@ retained locally with its build manifest; it has not been uploaded or executed.
 The subsequent [CI run 33957782167](https://github.com/rioriost/agefreighter/actions/runs/33957782167)
 for `4c12b32756a7e405a64f0d186a9dbf7fdbee45b7` (what-if and restored fields)
 also completed successfully. This predates the final network guard/folder tests.
+
+Storage-audience fix [CI run 33960028041](https://github.com/rioriost/agefreighter/actions/runs/33960028041)
+on `c9d477b5003189082a575ab7afd7a67b1780cdbb` passed all six jobs: Linux/macOS/
+Windows unit tests, source contracts, Extension Host and packaging.
 
 ## Review notes for the next implementation stage
 
