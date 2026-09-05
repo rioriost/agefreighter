@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import type { GuestCommand, GuestReadiness } from "./runnerGuest";
+import type { SourceDraft, SelectedCSV } from "./runnerSource";
+import type { Assessment } from "./runnerAssessment";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
@@ -23,7 +25,7 @@ export interface RunnerArtifact { version: string; url: string; sha256: string }
 export interface RunnerRecord {
   schemaVersion: 2;
   id: string;
-  phase: "previewed" | "deployment-submitted" | "provisioned" | "failed" | "unknown";
+  phase: "draft" | "previewed" | "deployment-submitted" | "provisioned" | "failed" | "unknown";
   input: RunnerInput;
   artifact: RunnerArtifact;
   deploymentId: string;
@@ -35,6 +37,15 @@ export interface RunnerRecord {
   hourlyComputeUSD: number;
   guestCommand?: GuestCommand;
   guestReady?: GuestReadiness;
+  sourceDraft?: SourceDraft;
+  sourceFiles?: (SelectedCSV & { path: string })[];
+  assessment?: Assessment;
+  assessmentHistory?: Assessment[];
+}
+
+/** Local-only draft. Blank artifact/template fields are never deployable. */
+export function sourceWorkflowDraft(id: string, input: RunnerInput): RunnerRecord {
+  return { schemaVersion: 2, id, phase: "draft", input, artifact: { version: "", sha256: "", url: "" }, ...runnerNames(id, input), template: {}, previewHash: "", expiresAt: "", updatedAt: new Date().toISOString(), hourlyComputeUSD: 0 };
 }
 
 export function sourceLocations(type: SourceKind): SourceLocation[] {

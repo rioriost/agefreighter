@@ -2,11 +2,16 @@
 
 ## 2.4.0
 
+- Add local pre-deployment source drafts and field-based Neo4j/PostgreSQL/Cosmos/
+  CSV configuration. Generate read-only table queries, Cosmos explicit/Gremlin
+  mappings and typed CSV mappings with a null marker. Add reviewed native-secret
+  assessment start, retained status reconciliation and successful-operation
+  history. CSV transfer, bulk report transfer and R4/R5 remain unavailable.
+
 - Add protected Linux guest readiness controls and the local R3 assessment
   execution boundary: durable operation IDs, explicit no-replay behavior,
   boot-bound readiness, private credentials, bounded reports and hash-checked
-  diagnostic chunks. Source assessment/mapping and R4/R5 remain disabled; this
-  foundation is not an Azure P1 qualification.
+  diagnostic chunks. This foundation is not an Azure P1 qualification.
 
 - Replace free-text runner RG/region fields with subscription-backed dropdowns.
   Select a shared migration resource group for the runner and the future Flexible
@@ -18,8 +23,8 @@
   a private Linux discovery/migration VM. No desktop CLI is used by this path.
 - Add approval-gated runner deployment with pinned release checksums, quota and
   zone checks, create-only what-if, atomic workflow records, cross-window locks,
-  and status reconciliation after ambiguous responses. Remote assessment,
-  target deployment, same-VM resize and migration remain disabled pending R3–R5.
+  and status reconciliation after ambiguous responses. Target deployment,
+  same-VM resize and migration remain disabled pending R4–R5.
 - The earlier local profiling milestones below are retained as implementation
   history, not the current wizard flow.
 

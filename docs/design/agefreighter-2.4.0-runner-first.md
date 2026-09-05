@@ -133,7 +133,7 @@ The main risks are private-subnet egress, source credential delegation, Burstabl
 throttling, zonal resize capacity, and interrupted control requests. Fail closed
 on each; do not silently expose databases or claim a provisioned VM is ready.
 
-## Implementation checkpoint — 2026-09-05
+## Earlier R1/R2 implementation checkpoint — 2026-09-05
 
 R1/R2 control-plane implementation is present on `codex/2.4.0-guided-migration`.
 The old local-CLI wizard is no longer registered; advanced existing LoadJob
@@ -166,6 +166,28 @@ The smoke test opens the wizard without a workspace or local CLI chooser.
 No live Azure resource was created or changed during this implementation check.
 Controlled integration with a published pinned Linux artifact and R3–R5 work
 are required before release; this is not an end-to-end completion claim.
+
+## Current R3 implementation checkpoint — 2026-09-05
+
+The source-form controller now extends that earlier preview. A local-only draft
+can be reviewed before VM creation or release availability; blank artifact and
+template fields cannot pass deployment gates. The selected source and CSV file
+identities follow the same draft into a separately approved runner preview.
+
+Neo4j/PostgreSQL/Cosmos/CSV forms produce secret-reference-only configurations
+without YAML input. PostgreSQL generates read-only queries from table/column
+mappings; Cosmos supports explicit labels and Gremlin document interpretation;
+CSV includes typed properties and null markers. Native password prompts occur
+only after explicit source-read approval and fresh guest readiness. Protected
+start/status operations retain identity, boot/configuration hashes and successful
+report manifests across reconnects. No source host resolution through ARM is
+performed by the IP/host-only assessment form.
+
+R3 is still not complete: CSV upload, bulk report transfer/acceptance, schema/FK
+suggestions, exact non-Neo4j totals and custom-CA delivery remain open. Source
+passwords can now be accepted for approved guest assessments, but target mutation
+and migration are still disabled. None of these local checks qualifies a P1 Azure
+GUI branch. See the [live qualification ledger](../../production-simulation/vscode-e2e/progress.md).
 
 References: [Azure resizing](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/resize-vm),
 [managed Linux Run Command](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/run-command-managed),

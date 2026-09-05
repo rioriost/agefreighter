@@ -4,7 +4,7 @@ import { Script } from "node:vm";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertFreshPreview, bootstrapScript, object, parseRunnerInput, previewHash, releaseArtifact, RunnerInput, RunnerRecord, runnerNames, runnerTemplate, sourceLocations, validateWhatIf } from "../../core/runner";
+import { assertFreshPreview, bootstrapScript, object, parseRunnerInput, previewHash, releaseArtifact, RunnerInput, RunnerRecord, runnerNames, runnerTemplate, sourceLocations, sourceWorkflowDraft, validateWhatIf } from "../../core/runner";
 import { deploymentResources, preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunner } from "../../core/runnerLifecycle";
 import { runnerHTML } from "../../core/runnerView";
 import { RunnerLockedError, RunnerStore } from "../../guided/runnerStore";
@@ -16,6 +16,13 @@ const input: RunnerInput = { subscriptionId: sub, resourceGroup: "test", region:
   subnetId: `${base}/providers/Microsoft.Network/virtualNetworks/test/subnets/runner`, source: { type: "csv", location: "local" } };
 const digest = "a".repeat(64);
 const artifact = releaseArtifact("2.4.0", `${digest}  agefreighter_v2.4.0_linux_amd64.tar.gz`);
+test("local source drafts require no release or ARM calls and cannot be deployed", async () => {
+  const draft = sourceWorkflowDraft(id, input), f = fixture();
+  assert.equal(draft.phase, "draft"); assert.equal(draft.artifact.sha256, "");
+  assert.equal((await refreshRunner(f.control, draft)).phase, "draft");
+  await assert.rejects(submitRunner(f.control, draft));
+  assert.deepEqual(f.events, []);
+});
 function record(): RunnerRecord {
   const template = runnerTemplate(id, input, artifact, "ssh-ed25519 AAAA");
   return { schemaVersion: 2, id, phase: "previewed", input: structuredClone(input), artifact, ...runnerNames(id, input), template,
@@ -193,7 +200,7 @@ test("runner webview script parses and provides no local password or load action
   assert.doesNotMatch(html, /unsafe-inline|onchange=|onclick=|type="password"|Connect and profile source/);
   for (const type of ["neo4j", "postgresql", "cosmos-nosql", "csv"]) assert.ok(html.includes(`value="${type}"`));
   assert.match(html, /No desktop AGEFreighter installation/);
-  assert.match(html, /Assess on runner — mapping UI not yet available/);
+  assert.match(html, /Configure source & assessment/);
   assert.match(html, /Check Linux guest readiness/);
 });
 

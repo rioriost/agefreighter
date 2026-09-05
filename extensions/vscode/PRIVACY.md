@@ -16,17 +16,32 @@ official Azure retail prices and submit an explicitly approved VM deployment.
 ARM receives the selected placement and a generated VM/NIC/NSG template. GitHub
 serves the matching public release checksum; the VM downloads and checks that
 release. Those services see normal request metadata under their respective terms.
-The preview adds no public IP or source firewall rule and collects no source
-credentials. Source file selection does not upload CSV contents.
+The preview adds no public IP or source firewall rule. Source file selection
+does not upload CSV contents. Source settings and mappings are saved locally
+before final output-folder selection; this does not deploy resources.
 
 Version-2 runner records (resource IDs, source type/location, template, pinned
-artifact checksum, costs and deployment phase) are saved in owner-only files
+artifact checksum, costs, deployment phase, source host/database/username,
+reviewed mapping/configuration, selected CSV paths and assessment manifests)
+are saved in owner-only files
 under extension global storage. No ARM token or source password is saved in
 those records. Azure retains submitted templates and operation records; the VM
 retains bootstrap evidence on its managed disk. Closing VS Code does not stop
 the VM or its charges. This preview does not automatically delete evidence or
-resources. Remote source assessment, CSV transfer and remote migration are not
-yet enabled; they require a separate reviewed credential/transfer implementation.
+resources. Read-only source assessment is an explicitly approved action. For
+Neo4j/PostgreSQL, the native VS Code password prompt supplies an ephemeral
+password; it is not sent through the webview or saved in local workflow records.
+The generated configuration uses environment references. A protected managed
+Run Command parameter carries the configuration and secrets to the runner.
+Cosmos uses the runner's managed identity, not an ARM token or desktop credential.
+
+The guest retains the operation and configuration in private directories. It
+deletes the transient credential handoff after normal finalization; crashes or
+pre-execution failures can retain it for operator review. Bounded stderr remains
+private on the guest and is not returned to the UI/model. Reports redact supplied
+secret values and retain their hash. No source-form data or remote assessment
+payload is passed to an AI tool. CSV transfer, bulk report transfer, remote
+migration and final verification are still not enabled.
 
 ## Optional VS Code language model use
 

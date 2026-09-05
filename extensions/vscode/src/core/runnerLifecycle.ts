@@ -103,7 +103,7 @@ export async function submitRunner(control: RunnerControl, record: RunnerRecord)
 }
 
 export async function refreshRunner(control: RunnerControl, record: RunnerRecord): Promise<RunnerRecord> {
-  if (record.phase === "previewed") return record;
+  if (record.phase === "previewed" || record.phase === "draft") return record;
   const result = await control.request(record.input.subscriptionId, `${record.deploymentId}?api-version=2022-09-01`);
   const state = result.status === 404 ? undefined : object(object(result.value).properties).provisioningState;
   const phase = state === "Succeeded" ? "provisioned" : state === "Failed" || state === "Canceled" ? "failed" : state === "Running" || state === "Accepted" ? "deployment-submitted" : "unknown";

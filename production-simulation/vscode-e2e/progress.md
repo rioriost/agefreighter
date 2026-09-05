@@ -33,8 +33,15 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
    protected control transport, boot-bound readiness, durable read-only workers,
    no automatic replay/reboot resume, and hash-verified bounded report retrieval.
    Actual CSV profiling runs through the child-process boundary in tests. The
-   GUI can request guest readiness; source forms/mapping/upload and the complete
-   assessment controller are still not enabled.
+   GUI can request guest readiness independently of deployment state.
+9. Added field-based source forms for Neo4j, PostgreSQL, Cosmos explicit/Gremlin
+   documents and CSV. They generate configurations without YAML or SQL input;
+   CSV includes property types and an explicit null marker. Local drafts can be
+   reviewed before a release is available or any VM is created.
+10. Wired approved network-source profile and Neo4j inventory to native secret
+    prompts, protected dispatch and retained status checks. Successful operation
+    manifests remain in history. Finished workers are not accepted as capacity
+    or migration passes. CSV dispatch is blocked pending verified upload.
 
 Local retained data (ignored by Git):
 
@@ -46,19 +53,23 @@ Local retained data (ignored by Git):
 ## Required execution stages still open
 
 Validation of this foundation: `go test ./...` passed; extension typechecking and
-all 76 unit tests passed. These commands do not run the Azure P1 GUI scenarios.
-The nine Linux guest tests passed on Linux x64 under Apple Container/Rosetta,
+all 90 unit tests passed. All five GUI-generated source formats passed the actual
+Go CLI validator; the contract test is now part of extension CI. These commands
+do not run the Azure P1 GUI scenarios.
+At the preceding checkpoint, nine Linux guest tests passed under Apple Container/Rosetta,
 including validation of the generated unit by `systemd-analyze verify`. This
 does not exercise a running service manager or an Azure VM agent. The installed
-VS Code 1.136.1 executable passed both isolated Extension Host smoke tests
-(activation and opening the runner-first wizard without a project/local CLI).
+VS Code 1.136.1 executable passed three isolated Extension Host smoke tests,
+including opening all four source editors without a release, workspace, CLI or
+ARM calls. The actual webview scripts also have source-branch and edit/approval
+gating tests. This is not a live connected GUI migration.
 
 | Stage | Current status |
 |---|---|
 | Dedicated Azure fixture topology / ownership and cost watchdog | Not deployed |
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
 | P1 local CSV | Prepared; complete canonical comparison passed |
-| R3 remote source configuration, mapping, assessment, upload | Guest execution/control foundation implemented; full GUI and bulk transfer remain open |
+| R3 remote source configuration, mapping, assessment, upload | Source forms, generated mappings and approved start/status implemented; bulk transfer, schema suggestions and complete assessment evidence remain open |
 | R4 target deployment and same-VM resize | Implementation required |
 | R5 durable migration / resume / verification controller | Implementation required |
 | Installed VS Code 1.136.1 full GUI branches | Not run |
@@ -68,7 +79,7 @@ The current installed preview must not be described as an end-to-end migration
 product. The new local tests and fixture digest are not GUI/Azure qualifications.
 The updated preview VSIX was installed into MacStudio's VS Code 1.136.1. The
 installed and built JavaScript bundles have matching SHA-256:
-`48a11da02b43b028af0c5d055913926d905d2d6770da70b8d3d475f8943cbe7b`.
+`a15048e3742e247ecb2f94c5c9d5d9b2bd3ccfecbd2ff32a6fa88cfab1a6fc7b`.
 An already-open extension host needs a window reload to pick up this build.
 No Marketplace publication was performed here.
 
@@ -77,6 +88,13 @@ No Marketplace publication was performed here.
 - Matching release/bootstrap is still mandatory. The released 2.4 artifact is
   not available; introduce the explicitly reviewed commit/hash-pinned development
   artifact path before live testing. Do not install a mutable branch on guests.
+- The form requires explicit reviewed mappings; automatic PostgreSQL schema/FK
+  recommendations are not implemented. Current table/column/graph identifiers
+  are limited to ASCII letters/digits/underscores. Cosmos explicit mappings use
+  a top-level label field; only the public Azure NoSQL endpoint is supported.
+- TLS validation is mandatory, but custom source-CA upload/installation is not
+  yet implemented. Resolve this before private-IP fixture qualification; never
+  silently disable certificate validation.
 - Neo4j inventory uses count-store totals; generic profile `exact` is still
   bounded to 1,000,000 rows and must not masquerade as a full P1 inventory for
   PostgreSQL/Cosmos/CSV. Implement connector-specific count evidence or explicitly

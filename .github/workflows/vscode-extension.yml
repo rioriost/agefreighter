@@ -6,16 +6,25 @@ on:
       - "extensions/vscode/**"
       - "internal/cli/config_commands.go"
       - "internal/cli/root_test.go"
+      - "internal/config/**"
+      - "internal/runner/**"
+      - "go.mod"
+      - "go.sum"
       - "docs/reference/vscode-extension*.md"
       - ".github/workflows/vscode-extension.yml"
   push:
     branches:
       - main
       - "2.3.0"
+      - "codex/2.4.0-guided-migration"
     paths:
       - "extensions/vscode/**"
       - "internal/cli/config_commands.go"
       - "internal/cli/root_test.go"
+      - "internal/config/**"
+      - "internal/runner/**"
+      - "go.mod"
+      - "go.sum"
       - "docs/reference/vscode-extension*.md"
       - ".github/workflows/vscode-extension.yml"
 
@@ -49,6 +58,31 @@ jobs:
       - name: Audit shipped runtime dependencies
         run: npm audit --omit=dev --audit-level=high
 
+  source-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: extensions/vscode/package-lock.json
+      - run: npm ci
+        working-directory: extensions/vscode
+      - name: Build real CLI for configuration contract tests
+        run: go build -o "$RUNNER_TEMP/agefreighter-source-contract" ./cmd/agefreighter
+      - name: Validate all GUI source formats with the Go engine
+        working-directory: extensions/vscode
+        env:
+          AGEFREIGHTER_TEST_BINARY: ${{ runner.temp }}/agefreighter-source-contract
+        run: npm run test:source-contract
+
   extension-host:
     runs-on: ubuntu-24.04
     defaults:
@@ -67,7 +101,7 @@ jobs:
         run: npm ci
       - name: Run Extension Host smoke test
         env:
-          VSCODE_TEST_VERSION: "1.100.0"
+          VSCODE_TEST_VERSION: "1.105.0"
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
@@ -79,7 +113,7 @@ jobs:
           exit 1
 
   package:
-    needs: [unit, extension-host]
+    needs: [unit, source-contract, extension-host]
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -96,10 +130,13 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Package and inspect VSIX
+        id: package
         run: |
           set -euo pipefail
           npm run package
-          vsix=dist/agefreighter-2.3.0.vsix
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          vsix="dist/agefreighter-$version.vsix"
           test -f "$vsix"
           unzip -l "$vsix" >dist/vsix-contents.txt
           grep -F 'extension/dist/extension.js' dist/vsix-contents.txt
@@ -110,10 +147,10 @@ jobs:
           sha256sum "$vsix" >"$vsix.sha256"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: agefreighter-vscode-2.3.0
+          name: agefreighter-vscode-${{ steps.package.outputs.version }}
           path: |
-            extensions/vscode/dist/agefreighter-2.3.0.vsix
-            extensions/vscode/dist/agefreighter-2.3.0.vsix.sha256
+            extensions/vscode/dist/agefreighter-${{ steps.package.outputs.version }}.vsix
+            extensions/vscode/dist/agefreighter-${{ steps.package.outputs.version }}.vsix.sha256
             extensions/vscode/dist/vsix-contents.txt
           if-no-files-found: error
           retention-days: 14

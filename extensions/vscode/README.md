@@ -19,7 +19,11 @@ LoadJob commands continue to use a separately installed local CLI.
   check zonal SKU availability, quotas, pinned release checksums and compute cost.
 - Require a modal approval and fresh ARM what-if before runner creation. Retain
   deployment IDs and reconcile unknown status without replaying a create.
-- Collect no source credentials in this preview; remote assessment is not enabled.
+- Configure all four source types using fields and vertex/edge mappings, without
+  supplying a LoadJob file. Save an owner-only local draft before VM creation.
+- Approve a sampled remote profile (Neo4j/PostgreSQL/Cosmos) or Neo4j inventory
+  after guest readiness. Passwords use a native private prompt and protected
+  dispatch; no password is saved with the form. CSV execution awaits upload.
 - Check the provisioned Linux guest's installation and boot identity, and
   reconcile the protected control request without replay after communication loss.
 - Discover AGEFreighter `LoadJob` YAML and JSON files in the workspace.
@@ -90,7 +94,13 @@ verify their checksum and GitHub build-provenance attestation before use.
    groups & regions**. RG boundaries do not require VNet peering: a VNet may be
    in another RG in the same subscription. Network connectivity is checked
    separately. Listing a region does not guarantee VM/service capacity there.
-4. Select **Check prerequisites & preview runner**. Review the immutable resource
+4. Optionally select **Configure source & assessment** after entering the runner
+   placement fields, before creating any VM. This saves a local draft and opens
+   the selected source's form. PostgreSQL table/column mappings and Cosmos
+   explicit/Gremlin formats are supported; schema/FK suggestions are still pending.
+   CSV maps selected files, stable IDs, endpoints, property types and a null marker.
+   Review the generated configuration; it is not the final exported LoadJob.
+   Then select **Check prerequisites & preview runner**. Review the immutable resource
    identities, version/checksum, compute cost and additional charges. Approve the
    network prerequisites and costs, then confirm **Approve & deploy discovery VM**.
    The 15-minute preview must still match and a fresh what-if must show only new,
@@ -100,20 +110,26 @@ verify their checksum and GitHub build-provenance attestation before use.
    Unknown results are reconciled by ID; they are not resubmitted automatically.
 6. Once the VM is provisioned, use **Check Linux guest readiness**, followed by
    **Refresh guest command**. This checks the matching installation and boot
-   identity, not source connectivity or migration readiness. Source assessment
-   remains disabled until the mapping, upload and assessment controller is ready.
+   identity, not source connectivity or migration readiness. Reopen **Configure
+   source & assessment**, review the settings and approve sampled source reads
+   or exact Neo4j inventory. A native password prompt follows approval where
+   needed. **Refresh assessment status** submits/reconciles one bounded status
+   check without repeating the source operation. Successful terminal manifests
+   remain in the workflow history when a subsequent assessment is approved.
 
 Workflow metadata is held in extension global storage, without source passwords,
 before output-folder selection. The VM uses persistent managed OS storage and
 has no public IP. Evidence/disks are retained; this preview has no automatic
 cleanup, stop or delete action. Operators remain responsible for resource costs.
 
-**Current development-build limit:** source selection and runner provisioning
-are implemented, but not yet live-Azure qualified. ARM success is not guest
-readiness. Remote assessment, protected credential dispatch, CSV upload, mapping,
-target sizing/deployment, same-VM resize, LoadJob export, remote migration and
-verification are not enabled. No source passwords or migration jobs are created
-by this preview. Do not publish it as a complete guided migration workflow.
+**Current development-build limit:** source forms, runner provisioning and
+protected remote assessment controls are implemented, but not live-Azure
+qualified. ARM success is not guest readiness. A finished assessment worker is
+not a passing migration. Bulk report retrieval, CSV upload, automatic schema/FK
+recommendations, exact non-Neo4j inventories, accepted target sizing/deployment,
+same-VM resize, final LoadJob export, remote migration and verification remain
+open. Publicly trusted TLS is currently required; custom source CA upload is
+not implemented. Do not publish this as a complete guided migration workflow.
 The [runner-first plan](https://github.com/rioriost/agefreighter/blob/codex/2.4.0-guided-migration/docs/design/agefreighter-2.4.0-runner-first.md)
 tracks the remaining gates.
 

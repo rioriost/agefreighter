@@ -1,7 +1,8 @@
 # R3 Linux assessment boundary
 
-Status: implemented local foundation, **not Azure-qualified**. This is not the
-complete R3 source-configuration/mapping/upload UI or the R4/R5 migration flow.
+Status: implemented local foundation and source-form controller, **not
+Azure-qualified**. This is not complete R3 upload/report transfer or the R4/R5
+migration flow.
 
 ## Transport and durable execution
 
@@ -80,8 +81,16 @@ memory/runtime enforcement, actual guest reboot and private-source connectivity
 still require live Azure testing. No mocked/local result counts toward the nine
 P1 GUI paths.
 
-Next gates: immutable development artifact; full source forms/mapping; private
+The four source forms now create secret-reference-only drafts without requiring
+a released artifact or VM creation. Network profiles and Neo4j inventory are
+connected to explicit modal approval, native secret prompts and the protected
+dispatch/status boundary. Successful operation manifests are preserved in a
+bounded history before another approved assessment. Failed/unknown operations
+cannot be replaced by a new start. No result is automatically accepted as sizing
+or migration success, and the full report is not yet imported into the GUI.
+
+Next gates: immutable development artifact; schema/FK recommendations; private
 bulk upload/report transport; exact PG/Cosmos/CSV totals with explicit scan/RU
-bounds; source-read approval; then R4 target deployment/resize and R5 durable
-migration/verification. Keep assessment and migration controls disabled until
-their complete controller and evidence gates are wired and reviewed.
+bounds; reviewed custom CA installation for private sources; then R4 target
+deployment/resize and R5 durable migration/verification. CSV execution and target
+mutations remain disabled pending these gates.

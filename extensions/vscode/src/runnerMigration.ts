@@ -2,12 +2,13 @@ import { runnerHTML } from "./core/runnerView";
 import * as vscode from "vscode";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
 import { AzureSession } from "./guided/azure";
-import { object, parseRunnerInput, previewHash, releaseArtifact, RunnerRecord, runnerNames, runnerTemplate } from "./core/runner";
+import { object, parseRunnerInput, previewHash, releaseArtifact, RunnerRecord, runnerNames, runnerTemplate, sourceWorkflowDraft } from "./core/runner";
 import { preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunner } from "./core/runnerLifecycle";
 import { RunnerLockedError, RunnerStore } from "./guided/runnerStore";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { assertPlacementSelection, placementCatalog } from "./core/runnerPlacement";
 import { dispatchGuest, reconcileGuest } from "./core/runnerGuest";
+import { openRunnerSource } from "./runnerSourcePanel";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -16,6 +17,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
   let panel: vscode.WebviewPanel | undefined;
   let current: RunnerRecord | undefined;
   let busy = false;
+  let pendingCSV: { id: string; name: string; path: string }[] = [];
   const store = new RunnerStore(join(context.globalStorageUri.fsPath, "runner-v2"));
   const catalog = async (subscription: string) => {
     const [groups, regions] = await Promise.all([
@@ -85,7 +87,11 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
           case "csv": {
             const selected = await vscode.window.showOpenDialog({ canSelectMany: true, canSelectFiles: true, canSelectFolders: false,
               openLabel: "Select local CSV files (no upload)", filters: { CSV: ["csv"] } });
-            if (selected) await post({ kind: "csv", files: selected.map(uri => uri.fsPath) });
+            if (selected) {
+              if (selected.length > 64 || selected.some(uri => uri.scheme !== "file")) throw new Error("Select at most 64 local CSV files.");
+              pendingCSV = selected.map(uri => ({ id: randomUUID(), name: basename(uri.fsPath), path: uri.fsPath }));
+              await post({ kind: "csv", files: pendingCSV.map(file => file.name) });
+            }
             break;
           }
           case "restore": {
@@ -97,7 +103,9 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
           case "preview": {
             const input = parseRunnerInput(message.input);
             assertPlacementSelection(input, await catalog(input.subscriptionId));
-            const id = randomUUID();
+            const draft = typeof message.draftId === "string" ? await store.read(message.draftId) : undefined;
+            if (draft && (draft.phase !== "draft" || JSON.stringify(draft.input.source) !== JSON.stringify(input.source))) throw new Error("Source selection changed. Reopen the matching draft or start a separate source configuration.");
+            const id = draft?.id ?? randomUUID();
             // Matching released software is a mandatory prerequisite. Never install a
             // stale version or execute mutable repository source on a customer VM.
             const version = String(context.extension.packageJSON.version);
@@ -116,9 +124,17 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
             const record: RunnerRecord = { schemaVersion: 2, id, phase: "previewed", input, artifact, ...runnerNames(id, input), template,
               previewHash: previewHash(template, input, hourlyComputeUSD), expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
               updatedAt: new Date().toISOString(), hourlyComputeUSD };
+            if (!draft && input.source.type === "csv") record.sourceFiles = pendingCSV;
             await whatIfRunner(control, record);
-            await control.persist(record);
-            await display(record);
+            const reviewed = await store.exclusive(id, async () => {
+              if (draft) {
+                const latest = await store.read(id);
+                if (latest.phase !== "draft" || JSON.stringify(latest.input.source) !== JSON.stringify(input.source)) throw new Error("This draft changed in another window. Review it again.");
+                record.sourceDraft = latest.sourceDraft; record.sourceFiles = latest.sourceFiles;
+              }
+              await control.persist(record); return record;
+            });
+            await display(reviewed);
             break;
           }
           case "deploy": {
@@ -153,6 +169,17 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
             const id = current.id;
             current = await store.exclusive(id, async () => dispatchGuest(control, await store.read(id), { version: 1, workflow: id, operation: randomUUID(), action: "ready" }));
             await display(current);
+            break;
+          }
+          case "configureSource": {
+            if (!current || message.workflow !== current.id) {
+              const input = parseRunnerInput(message.input);
+              const draft = sourceWorkflowDraft(randomUUID(), input);
+              if (input.source.type === "csv") draft.sourceFiles = pendingCSV;
+              await control.persist(draft);
+            }
+            await display(current!);
+            openRunnerSource(context, control, store, current!.id);
             break;
           }
           case "guestRefresh": {

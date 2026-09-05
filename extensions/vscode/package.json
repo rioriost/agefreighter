@@ -330,6 +330,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "test:unit": "tsx --test src/test/unit/*.test.ts",
+    "test:source-contract": "tsx --test src/test/runnerSource.contract.ts",
     "test:host:compile": "tsc -p tsconfig.test.json",
     "test:host": "npm run compile && npm run test:host:compile && node out-test/test/runTest.js",
     "test": "npm run typecheck && npm run test:unit",
