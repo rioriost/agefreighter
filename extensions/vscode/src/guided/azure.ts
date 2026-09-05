@@ -8,6 +8,7 @@ import * as vscode from "vscode";
 import { RunnerRecord } from "../core/runner";
 import { issueCSVCapability, issueReportCapability } from "./blobCapabilities";
 import { CSVManifest, uploadCSV, uploadRunnerArchive } from "./csvTransfer";
+import { storageCredential } from "./storageCredential";
 import { AzureAccessError, existingAzureAccess } from "../core/azureAccess";
 import {
   AzureLocationSummary,
@@ -123,25 +124,30 @@ export class AzureSession implements vscode.Disposable {
   public async reportCapability(record: RunnerRecord, operation: string, permission: "r" | "c"): Promise<string> {
     const subscription = await this.subscription(record.input.subscriptionId);
     if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("Artifact transfer currently requires public Azure cloud.");
-    return issueReportCapability(record, operation, permission, subscription.credential);
+    return issueReportCapability(record, operation, permission, this.storageCredential(subscription));
   }
 
   public async csvCapability(record: RunnerRecord, manifest: CSVManifest): Promise<string> {
     const subscription = await this.subscription(record.input.subscriptionId);
     if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("CSV transfer currently requires public Azure cloud.");
-    return issueCSVCapability(record, manifest, subscription.credential);
+    return issueCSVCapability(record, manifest, this.storageCredential(subscription));
   }
 
   public async uploadRunnerArchive(record: RunnerRecord, path: string, manifest: CSVManifest): Promise<void> {
     const subscription = await this.subscription(record.input.subscriptionId);
     if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("Development artifact transfer requires public Azure cloud.");
-    return uploadRunnerArchive(record, path, manifest, subscription.credential);
+    return uploadRunnerArchive(record, path, manifest, this.storageCredential(subscription));
   }
 
   public async uploadCSV(record: RunnerRecord, path: string, manifest: CSVManifest, progress: (bytes: number) => void): Promise<void> {
     const subscription = await this.subscription(record.input.subscriptionId);
     if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("CSV transfer currently requires public Azure cloud.");
-    return uploadCSV(record, path, manifest, subscription.credential, fetch, progress);
+    return uploadCSV(record, path, manifest, this.storageCredential(subscription), fetch, progress);
+  }
+
+  private storageCredential(subscription: AzureSubscription) {
+    return storageCredential(subscription.account.id, async scopes =>
+      subscription.authentication.getSessionWithScopes(scopes));
   }
 
   /** Control-plane requests only. Never accepts an arbitrary host or forwards redirects. */

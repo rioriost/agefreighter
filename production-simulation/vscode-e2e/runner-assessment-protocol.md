@@ -105,15 +105,25 @@ separate from Run Command's short acknowledgement. This path is now exposed in
 the wizard with separate storage/RBAC/network approval and SDK-issued
 user-delegation capabilities from the existing VS Code account.
 No arbitrary SAS input is exposed. The subsequent installed-GUI storage
-deployment succeeded, but enforced organizational policy disabled its public
-network access. No live file transfer has passed; see [progress](progress.md).
+deployment succeeded, but enforced organizational policy initially disabled its
+public network access. The user then authorized the policy-defined official
+development exception on that owned storage account only. An authenticated CSV
+upload/readback passed; GUI qualification is tracked in [progress](progress.md).
 
 Provisioning success and transfer readiness are distinct. Reconciliation shows
 the actual storage network setting. The current desktop transfer implementation
 stops before capability issuance or transfer for `Disabled` or
 `SecuredByPerimeter` public access. Supporting an approved private route requires
-an explicit connectivity design and qualification; never repair this condition
-by overriding policy, enabling public access, or asking the user to sign in again.
+an explicit connectivity design and qualification. The extension never grants
+policy exceptions or enables public access as an automatic repair; an existing
+organization-approved exception requires explicit operator authorization outside
+this generic workflow. A network failure is not a reason to sign in again.
+
+Storage requests must obtain a Storage-scoped session for the selected existing
+account. The installed azureauth subscription credential captures the ARM token
+and ignores `getToken(scopes)`; it must not be forwarded to the Blob endpoint.
+CSV and archive operations also send UTC `x-ms-date`, as required by
+[Get Blob Properties](https://learn.microsoft.com/en-us/rest/api/storageservices/get-blob-properties).
 
 1. The controller binds a terminal assessment's independent byte length/SHA-256
    to the retained workflow/operation. It checks the deterministic storage account

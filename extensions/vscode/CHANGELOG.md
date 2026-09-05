@@ -2,6 +2,11 @@
 
 ## 2.4.0
 
+- Request Storage-scoped sessions for the selected existing VS Code account for
+  CSV/archive uploads and report capabilities. The subscription SDK credential
+  is ARM-only and ignores requested scopes. Fail missing/foreign sessions without
+  account/key fallback, and include the required UTC date on upload requests.
+
 - Reconcile the ARM what-if response envelope and independently known unchanged
   resources; restore saved source/placement fields. Add bounded CSV-folder
   selection. Display deployed storage network state separately from provisioning

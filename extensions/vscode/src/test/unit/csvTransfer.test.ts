@@ -20,6 +20,7 @@ test("CSV upload hashes all bytes, stages bounded blocks and conditionally commi
   await uploadCSV(record(),path,manifest,credential,async(url,init)=>{
    calls.push({url:String(url),method:String(init?.method)});assert.equal(init?.redirect,"error");assert.ok(init?.signal);
    assert.equal(new Headers(init?.headers).get("authorization"),"Bearer private-token");
+   assert.ok(Math.abs(Date.now()-Date.parse(new Headers(init?.headers).get("x-ms-date")!)) < 5000);
    if(init?.method==="HEAD")return new Response(null,{status:404});
    if(String(url).includes("comp=block&"))blocks.push(Buffer.from(init?.body as Uint8Array));
    else {assert.equal(new Headers(init?.headers).get("if-none-match"),"*");assert.ok(String(init?.body).includes("<Latest>"));}

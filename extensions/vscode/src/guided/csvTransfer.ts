@@ -60,7 +60,7 @@ async function uploadImmutable(record: RunnerRecord, path: string, manifest: CSV
     try {
       const token = await credential.getToken("https://storage.azure.com/.default"); if (!token) throw new Error();
       const response = await fetcher(url + suffix, { method, body: body as NonNullable<Parameters<typeof fetch>[1]>["body"], redirect: "error", signal: AbortSignal.timeout(60000),
-        headers: { authorization: `Bearer ${token.token}`, "x-ms-version": "2023-11-03", ...extra } });
+        headers: { authorization: `Bearer ${token.token}`, "x-ms-version": "2023-11-03", "x-ms-date": new Date().toUTCString(), ...extra } });
       await response.body?.cancel(); return response;
     } catch { throw new Error("CSV transfer acknowledgement is uncertain. Explicit retry reconciles the same content-addressed destination without overwriting a committed file."); }
   };
@@ -68,7 +68,7 @@ async function uploadImmutable(record: RunnerRecord, path: string, manifest: CSV
   const handle = await regular(path);
   try {
     const head = await request("", "HEAD");
-    if (head.status !== 404 && !same(head)) throw new Error("CSV destination is unavailable or conflicts with the approved manifest.");
+    if (head.status !== 404 && !same(head)) throw new Error(`CSV destination is unavailable or conflicts with the approved manifest (HTTP ${head.status}).`);
     const hash = createHash("sha256"), buffer = Buffer.alloc(blockBytes), blocks: string[] = []; let offset = 0;
     while (offset < manifest.bytes) {
       const count = Math.min(buffer.length, manifest.bytes - offset), part = await handle.read(buffer, 0, count, offset);

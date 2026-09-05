@@ -20,15 +20,31 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
   `af83c6b829acdc4405aa2dfb`, its workflow container and operator Storage Blob
   Data Contributor scoped to that account only. Deployment succeeded at
   **2026-09-05T09:24:00Z**. Anonymous and shared-key access remain disabled.
-- **Live network blocker:** the enforced `StorageAccount_PublicNetwork_Modify`
+- **Initial network blocker (resolved for this account):** the enforced `StorageAccount_PublicNetwork_Modify`
   policy in `MCAPSGovDeployPolicies` modified `publicNetworkAccess` to `Disabled`.
   The retained activity observation identifies the modification at 09:23:33Z;
   a read-only authenticated Blob request failed the storage network rules.
-  This is not an Azure sign-in failure. No CSV or development archive was uploaded.
-  Do not re-enable public access or exempt the resource. An approved private
-  connectivity design (including Mac-to-VNet reachability) is required before
-  qualifying the current desktop transfer flow. ARM deployment success is not
-  evidence of usable data-plane connectivity.
+  This was not an Azure sign-in failure. The policy definition was subsequently
+  read: its explicit exclusion defaults are `SecurityControl=Ignore` on a resource
+  or RG. The user identified this as the official development exception and
+  explicitly authorized it **on this storage account only**. Assignment parameter
+  reads were denied, so effective behavior was verified rather than assumed.
+- Merged the approved tag on the owned account, preserving ownership tags, then
+  enabled its authenticated public endpoint. The setting remained `Enabled`;
+  anonymous access and shared keys remained disabled. The RG has no exception tag.
+  An actual `Carrier.csv` upload at 10:00:18Z and authenticated download passed:
+  235,855 bytes, SHA-256
+  `0a2c6e8ecf1fdfe2540c4058202527e458f66e1d7611d75c03d51144089fe88b`.
+  This single-file CLI probe is **not** a GUI/P1 migration pass.
+- The installed GUI selected all 18 CSV files (1,168,576,671 bytes). Its first
+  upload failed before committing a blob. Inspection found that azureauth's
+  `AzureSubscription.credential.getToken` returns a captured ARM token regardless
+  of requested scope. File/report/archive transfers now request a Storage-scoped
+  session for the same VS Code account, without ARM/shared-key/account fallback.
+  Regression tests cover scopes, refresh and missing/foreign sessions. The GUI
+  retry is transferring files successfully and remains in progress; no development
+  archive or guest execution has occurred. Anonymous read was separately rejected
+  (HTTP 409), while the signed-in user's readback succeeded.
 - Source servers were not prepared; preparing dedicated sources is authorized.
 
 ## Completed local foundation
@@ -137,7 +153,7 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 
 | Stage | Current status |
 |---|---|
-| Dedicated Azure fixture topology / ownership and cost watchdog | RG/VNet/subnet and approved transfer storage/RBAC created; transfer blocked by enforced network policy; compute/cost watchdog not yet enabled |
+| Dedicated Azure fixture topology / ownership and cost watchdog | RG/VNet/subnet and transfer storage/RBAC created; account-only approved exception and CSV probe passed; compute/cost watchdog not yet enabled |
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
 | P1 local CSV | Prepared; complete canonical comparison passed |
 | R3 remote source configuration, mapping, assessment, upload | Forms, mappings, approved start/status, storage/RBAC/report GUI, CSV upload/seal and pinned test artifact implemented locally; real Azure qualification, schema suggestions and complete assessment evidence remain open |
@@ -151,9 +167,9 @@ product. The new local tests and fixture digest are not GUI/Azure qualifications
 The preview VSIX is installed into MacStudio's VS Code 1.136.1. Installation
 and bundle identity are rechecked with each packaged update; these do not imply
 that the live GUI branches passed.
-After the network-policy guard and CSV-folder addition, typechecking, all 113
-unit tests and packaging passed. The installed and built JavaScript SHA-256 is
-`f75ce5f3424dcae1e599859c1f6627465748e6d91012ce7a198f04337769eb1b`.
+After the Storage-scoped session fix, typechecking, all 116 unit tests and packaging
+passed. The installed and built JavaScript SHA-256 is
+`92d50336ae387cb1be19c81fcc60551f948ede95085943bc393c32840622c7a7`.
 An already-open extension host needs a window reload to pick up this build.
 No Marketplace publication was performed here.
 
