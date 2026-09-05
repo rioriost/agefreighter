@@ -104,7 +104,16 @@ The guest and controller now implement a complete-report data path (up to 4 MiB)
 separate from Run Command's short acknowledgement. This path is now exposed in
 the wizard with separate storage/RBAC/network approval and SDK-issued
 user-delegation capabilities from the existing VS Code account.
-No storage account was created to test it and no arbitrary SAS input is exposed.
+No arbitrary SAS input is exposed. The subsequent installed-GUI storage
+deployment succeeded, but enforced organizational policy disabled its public
+network access. No live file transfer has passed; see [progress](progress.md).
+
+Provisioning success and transfer readiness are distinct. Reconciliation shows
+the actual storage network setting. The current desktop transfer implementation
+stops before capability issuance or transfer for `Disabled` or
+`SecuredByPerimeter` public access. Supporting an approved private route requires
+an explicit connectivity design and qualification; never repair this condition
+by overriding policy, enabling public access, or asking the user to sign in again.
 
 1. The controller binds a terminal assessment's independent byte length/SHA-256
    to the retained workflow/operation. It checks the deterministic storage account

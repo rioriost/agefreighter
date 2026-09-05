@@ -30,7 +30,7 @@ test("storage PUT is persist-first and uncertain submission can only reconcile",
   const f=fixture();f.fail();const r=await submitStorage(f.control,f.r);
   assert.equal(r.storageDeployment?.phase,"unknown");assert.equal(f.events.at(-3),"persist");assert.equal(f.events.at(-2),"PUT");
   await assert.rejects(submitStorage(f.control,r));f.exists();const before=f.events.length;
-  const ready=await refreshStorage(f.control,r);assert.equal(ready.storageDeployment?.phase,"ready");assert.deepEqual(f.events.slice(before),["GET","persist"]);
+  const ready=await refreshStorage(f.control,r);assert.equal(ready.storageDeployment?.phase,"ready");assert.equal(ready.storageDeployment.networkAccess,"Unknown");assert.deepEqual(f.events.slice(before),["GET","GET","persist"]);
 });
 test("storage refuses existing resources, foreign what-if changes and stale or modified approvals",async()=>{
   for(const kind of ["existing","extra","expired","tampered"]){const f=fixture();if(kind==="existing")f.exists();if(kind==="extra")f.extra();if(kind==="expired")f.r.storageDeployment!.expiresAt="2000-01-01T00:00:00Z";if(kind==="tampered")f.r.storageDeployment!.principalId=id;

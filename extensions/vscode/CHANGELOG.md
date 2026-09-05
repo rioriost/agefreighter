@@ -2,6 +2,12 @@
 
 ## 2.4.0
 
+- Reconcile the ARM what-if response envelope and independently known unchanged
+  resources; restore saved source/placement fields. Add bounded CSV-folder
+  selection. Display deployed storage network state separately from provisioning
+  and stop the current desktop transfer path when governance disables public
+  networking, without changing policy or suggesting another sign-in.
+
 - Wire approved transfer storage/RBAC, existing-account delegation and full report
   import into the source GUI. Add streamed CSV block upload, explicit asynchronous
   guest import with full-hash seals, disk gate and no replay. Add user-opt-in

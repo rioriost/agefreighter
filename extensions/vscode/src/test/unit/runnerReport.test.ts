@@ -139,7 +139,7 @@ test("private report retention publishes atomically, allows identical recovery, 
 });
 
 test("export rejects missing, foreign, anonymously readable or shared-key-enabled storage before dispatch", async () => {
-  for (const mutation of ["missing", "owner", "region", "https", "public", "sharedkey", "container", "endpoint"]) {
+  for (const mutation of ["missing", "owner", "region", "https", "public", "sharedkey", "container", "endpoint", "Disabled", "SecuredByPerimeter"]) {
     const f = fixture(), request = f.control.request;
     f.control.request = async (sub, path, method, body) => {
       const result = await request(sub, path, method, body);
@@ -153,6 +153,7 @@ test("export rejects missing, foreign, anonymously readable or shared-key-enable
           if (mutation === "https") value.properties.supportsHttpsTrafficOnly = false;
           if (mutation === "public") value.properties.allowBlobPublicAccess = true;
           if (mutation === "sharedkey") value.properties.allowSharedKeyAccess = true;
+          if (["Disabled", "SecuredByPerimeter"].includes(mutation)) value.properties.publicNetworkAccess = mutation;
           if (mutation === "endpoint") value.properties.primaryEndpoints = { blob: "https://attacker.invalid/" };
         }
       }

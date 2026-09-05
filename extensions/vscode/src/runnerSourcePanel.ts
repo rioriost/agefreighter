@@ -14,6 +14,7 @@ import { importReport, refreshReportExport, startReportExport } from "./core/run
 import { escapeHTML } from "./core/report";
 import { CSVManifest, inspectCSV } from "./guided/csvTransfer";
 import { csvAssessmentReady, refreshCSVImport, startCSVImport } from "./core/runnerCSV";
+import { csvFilesInFolder } from "./guided/csvSelection";
 
 export interface RunnerSourceServices {
   storagePrincipal(subscription: string): Promise<string>;
@@ -32,7 +33,8 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
   const post = (value: unknown) => disposed ? Promise.resolve(false) : panel.webview.postMessage(value);
   const initialize = (record: RunnerRecord) => post({ kind: "init", type: record.input.source.type, location: record.input.source.location,
     files: record.sourceFiles?.map(({ id, name }) => ({ id, name })), form: record.sourceDraft?.form, assessment: record.assessment,
-    storage: record.storageDeployment?.phase, transferEnabled: !!services, csvTransfers: record.csvTransfers, transfer: record.reportTransfers?.find(item => item.operation === record.assessment?.operation)?.phase,
+    storage: record.storageDeployment ? `${record.storageDeployment.phase}${record.storageDeployment.networkAccess ? ` — public network: ${record.storageDeployment.networkAccess} (provisioning is not transfer readiness)` : ""}` : undefined,
+    transferEnabled: !!services, csvTransfers: record.csvTransfers, transfer: record.reportTransfers?.find(item => item.operation === record.assessment?.operation)?.phase,
     canStart: record.phase === "provisioned" && !!record.guestReady && Date.now() - Date.parse(record.guestReady.checkedAt) <= 300000 });
   const listener = panel.webview.onDidReceiveMessage(async raw => {
     if (busy) return;
@@ -132,11 +134,19 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           view.webview.html = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'"></head><body><h1>Hash-verified source report</h1><p>Not a migration or sizing approval.</p><pre>${escapeHTML(text)}</pre></body></html>`;
           break;
         }
+        case "folder":
         case "files": {
           const record = await store.read(workflow);
           if (record.input.source.type !== "csv" || assessmentActive(record)) throw new Error("CSV selection is unavailable for this workflow.");
-          const picked = await vscode.window.showOpenDialog({ canSelectMany: true, canSelectFiles: true, canSelectFolders: false, filters: { CSV: ["csv"] }, openLabel: "Select files for source mappings (no upload)" });
+          const folder = message.action === "folder";
+          let picked = await vscode.window.showOpenDialog(folder
+            ? { canSelectMany: false, canSelectFiles: false, canSelectFolders: true, openLabel: "Select CSV folder (no upload)" }
+            : { canSelectMany: true, canSelectFiles: true, canSelectFolders: false, filters: { CSV: ["csv"] }, openLabel: "Select files for source mappings (no upload)" });
           if (!picked) break;
+          if (folder) {
+            if (picked[0]?.scheme !== "file") throw new Error("Select a local CSV folder.");
+            picked = (await csvFilesInFolder(picked[0].fsPath)).map(path => vscode.Uri.file(path));
+          }
           if (picked.length > 64 || picked.some(uri => uri.scheme !== "file")) throw new Error("Select at most 64 local CSV files.");
           const files = await Promise.all(picked.map(async uri => {
             if (!(await stat(uri.fsPath)).isFile()) throw new Error("Select regular CSV files.");

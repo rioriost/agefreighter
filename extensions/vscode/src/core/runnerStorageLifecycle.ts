@@ -6,6 +6,7 @@ import { reportStorageNames } from "./runnerReportStorage";
 export interface StorageDeployment {
   phase: "previewed" | "submitted" | "unknown" | "ready" | "failed";
   id: string; principalId: string; roleId: string; template: Record<string, unknown>; hash: string; expiresAt: string;
+  networkAccess?: string;
 }
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -70,12 +71,18 @@ export async function submitStorage(control: RunnerControl, record: RunnerRecord
   return next;
 }
 
-/** One GET, no implicit replay or role repair. */
+/** Read-only deployment and network reconciliation, no implicit replay or role repair. */
 export async function refreshStorage(control: RunnerControl, record: RunnerRecord): Promise<RunnerRecord> {
   const d = record.storageDeployment;
   if (!d || d.phase === "previewed") return record;
   const result = await control.request(record.input.subscriptionId, `${d.id}?api-version=2022-09-01`);
   const state = result.status === 200 ? object(object(result.value).properties).provisioningState : undefined;
   const phase: StorageDeployment["phase"] = state === "Succeeded" ? "ready" : state === "Failed" || state === "Canceled" ? "failed" : state === "Running" || state === "Accepted" ? "submitted" : "unknown";
-  const next = { ...record, storageDeployment: { ...d, phase } }; await control.persist(next); return next;
+  let networkAccess = d.networkAccess;
+  if (phase === "ready") {
+    const account = await control.request(record.input.subscriptionId, `${reportStorageNames(record).id}?api-version=2023-05-01`);
+    const value = account.status === 200 ? object(object(account.value).properties).publicNetworkAccess : undefined;
+    networkAccess = typeof value === "string" && ["Enabled", "Disabled", "SecuredByPerimeter"].includes(value) ? value : "Unknown";
+  }
+  const next = { ...record, storageDeployment: { ...d, phase, networkAccess } }; await control.persist(next); return next;
 }

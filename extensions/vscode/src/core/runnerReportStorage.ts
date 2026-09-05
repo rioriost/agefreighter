@@ -28,6 +28,9 @@ export async function verifyTransferStorage(control: RunnerControl, record: Runn
     properties.allowBlobPublicAccess !== false || properties.allowSharedKeyAccess !== false ||
     !["TLS1_2", "TLS1_3"].includes(String(properties.minimumTlsVersion)) ||
     object(properties.primaryEndpoints).blob !== `${names.origin}/`) throw new Error("Report storage ownership, HTTPS or private-access policy is not verified.");
+  if (properties.publicNetworkAccess === "Disabled" || properties.publicNetworkAccess === "SecuredByPerimeter") {
+    throw new Error("Transfer storage public network access is disabled or perimeter-restricted. The current desktop transfer path needs an approved private connectivity design; do not re-enable public access or bypass Azure governance. This is not an Azure sign-in failure.");
+  }
   const container = await control.request(record.input.subscriptionId, `${names.containerId}?api-version=2023-05-01`);
   if (container.status !== 200) throw new Error("Private report container is unavailable.");
   const target = object(container.value);
