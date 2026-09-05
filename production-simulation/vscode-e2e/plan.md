@@ -1,6 +1,8 @@
 # VS Code guided migration P1 qualification
 
-Status: implementation in progress; no live run has started.
+Status: implementation in progress; dedicated Azure network preparation started,
+but no migration qualification has run. The 96-hour window expires at
+2026-09-09T08:55:00Z. See [progress](progress.md) for current evidence and gates.
 Branch: `codex/2.4.0-guided-migration`. Date: 2026-09-05.
 
 ## Authorization and stop conditions

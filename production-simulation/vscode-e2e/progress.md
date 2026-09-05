@@ -6,8 +6,20 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
 
 - Subscription: `MCAPS-Hybrid-REQ-51508-2023-rifujita` (selected account verified).
 - Approved ceiling: 800 USD; live window: 96 hours from first creation.
-- First creation / deadline: **not started**. No test Azure resource has been
-  created by this work. No old P3 authorization or result is substituted.
+- Conservative first creation: **2026-09-05T08:55:00Z**; deadline:
+  **2026-09-09T08:55:00Z**. No old P3 authorization or result is substituted.
+- Created dedicated `rg-af-vscode-p1-20260905-a` in Japan East and its tagged
+  `vnet-af-vscode-p1` / `runner` compute subnet. Both provisioning states succeeded.
+  No compute, disks, Flexible Server, Cosmos, storage accounts or role grants
+  have been created. Compute remains gated on the cost/deadline watchdog and
+  explicit outbound/network review. Private run metadata retains exact IDs.
+- Actual installed VS Code 1.136.1 GUI selected CSV/local, enumerated the existing
+  Azure Resources account, and selected the authorized subscription and dedicated
+  resource group. This is account/placement evidence, not an Azure migration pass.
+- CSV/local draft reached the native storage approval dialog for
+  storage account `af83c6b829acdc4405aa2dfb`. The dialog proposes user
+  Storage Blob Data Contributor at that new account only. It is awaiting
+  action-time user confirmation; the creation/role button has not been clicked.
 - Source servers were not prepared; preparing dedicated sources is authorized.
 
 ## Completed local foundation
@@ -109,7 +121,7 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 
 | Stage | Current status |
 |---|---|
-| Dedicated Azure fixture topology / ownership and cost watchdog | Not deployed |
+| Dedicated Azure fixture topology / ownership and cost watchdog | Dedicated RG and compute VNet/subnet created; compute/cost watchdog not yet enabled |
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
 | P1 local CSV | Prepared; complete canonical comparison passed |
 | R3 remote source configuration, mapping, assessment, upload | Forms, mappings, approved start/status, storage/RBAC/report GUI, CSV upload/seal and pinned test artifact implemented locally; real Azure qualification, schema suggestions and complete assessment evidence remain open |
@@ -122,9 +134,15 @@ The current installed preview must not be described as an end-to-end migration
 product. The new local tests and fixture digest are not GUI/Azure qualifications.
 The updated preview VSIX was installed into MacStudio's VS Code 1.136.1. The
 installed and built JavaScript bundles have matching SHA-256:
-`94e979de2bda4bfefde2216832d5739bb4720aa247a7193ede5947e4a99b3176`.
+`ab688884425ab0ea90eec5bde6a4dc9e2ae7bbceb4a3f0f3689edbb7ea5050e3`
+(transfer checkpoint `6ff072c0db71a3ae1e42a72e3c336a04ac284df8`).
 An already-open extension host needs a window reload to pick up this build.
 No Marketplace publication was performed here.
+
+At that transfer checkpoint, [CI run 33956445191](https://github.com/rioriost/agefreighter/actions/runs/33956445191)
+passed all six jobs: 110 unit tests on Linux/macOS/Windows, five real-CLI source
+contracts, Extension Host, and packaging. The exact Linux development archive is
+retained locally with its build manifest; it has not been uploaded or executed.
 
 ## Review notes for the next implementation stage
 
