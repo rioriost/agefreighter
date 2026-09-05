@@ -25,7 +25,11 @@ artifact checksum, costs, deployment phase, source host/database/username,
 reviewed mapping/configuration, selected CSV paths and assessment manifests)
 are saved in owner-only files
 under extension global storage. No ARM token or source password is saved in
-those records. Azure retains submitted templates and operation records; the VM
+those records. macOS/Linux use owner-only directory/file modes. Windows uses
+a current-user-only inheritable ACL on this dedicated workflow directory;
+failure to set/verify that ACL blocks access. This uses the operating system's
+PowerShell security commands, not a desktop AGEFreighter or Azure CLI.
+Azure retains submitted templates and operation records; the VM
 retains bootstrap evidence on its managed disk. Closing VS Code does not stop
 the VM or its charges. This preview does not automatically delete evidence or
 resources. Read-only source assessment is an explicitly approved action. For

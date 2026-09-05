@@ -64,6 +64,13 @@ including opening all four source editors without a release, workspace, CLI or
 ARM calls. The actual webview scripts also have source-branch and edit/approval
 gating tests. This is not a live connected GUI migration.
 
+The first branch CI run exposed an existing Windows-specific permission test:
+POSIX group/other bits cannot verify a Windows ACL. Runner storage now explicitly
+sets a current-user-only inheritable Windows ACL and its Windows test checks the
+actual file ACL. A failed ACL setup blocks reads/writes; macOS/Linux retain
+owner-only modes. CI also uses the extension's actual VSIX version and supported
+minimum VS Code 1.105.0 instead of the stale 2.3.0/1.100.0 constants.
+
 | Stage | Current status |
 |---|---|
 | Dedicated Azure fixture topology / ownership and cost watchdog | Not deployed |

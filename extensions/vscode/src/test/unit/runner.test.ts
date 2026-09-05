@@ -8,6 +8,7 @@ import { assertFreshPreview, bootstrapScript, object, parseRunnerInput, previewH
 import { deploymentResources, preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunner } from "../../core/runnerLifecycle";
 import { runnerHTML } from "../../core/runnerView";
 import { RunnerLockedError, RunnerStore } from "../../guided/runnerStore";
+import { verifyPrivateWindowsPath } from "../../guided/privateDirectory";
 
 const sub = "11111111-1111-4111-8111-111111111111";
 const id = "22222222-2222-4222-8222-222222222222";
@@ -211,7 +212,8 @@ test("atomic runner records preserve distinct workflows and exclude group write 
     await Promise.all([store.write(first), store.write(second)]);
     assert.equal((await store.list()).length, 2);
     assert.deepEqual(await store.read(first.id), first);
-    assert.equal((await stat(join(root, first.id + '.json'))).mode & 0o077, 0);
+    if (process.platform === "win32") await verifyPrivateWindowsPath(join(root, first.id + '.json'));
+    else assert.equal((await stat(join(root, first.id + '.json'))).mode & 0o077, 0);
     await assert.rejects(store.read('../outside'), /Invalid/);
     assert.equal(JSON.parse(await readFile(join(root, first.id + '.json'), "utf8")).phase, 'previewed');
   } finally { await rm(root, { recursive: true }); }
