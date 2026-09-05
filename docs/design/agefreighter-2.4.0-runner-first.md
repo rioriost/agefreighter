@@ -57,6 +57,40 @@ for this guided path. Existing LoadJob commands remain a separate local-CLI path
 
 ## Control and durability
 
+### Resource-group and region selection decision
+
+The discovery VM and the later Flexible Server target share the selected
+`RunnerInput.subscriptionId` / `RunnerInput.resourceGroup`. R4 must use this
+same reviewed group instead of introducing an unrelated target RG. Source
+resources are independent and are never moved into that group.
+
+The preview currently offers **existing migration resource groups only**, in a
+subscription-backed dropdown. Operators needing a dedicated new group can
+create it in Azure and refresh the list. This keeps new-RG permissions, policy,
+tags, metadata-location approval and partial-creation recovery out of the current
+VM-only deployment boundary. This is an implementation/approval boundary, not
+a networking restriction: a VM and its VNet may reside in different RGs. Creating
+a new RG does not itself require peering, and selecting an existing RG does not
+prove source reachability. Future inline RG creation can reuse an existing VNet
+without automatically creating another VNet or peering.
+
+The **Azure region** dropdown is fetched from the selected subscription and shows
+display name plus canonical name, e.g. `Japan East (japaneast)`. It does not use
+the RG's metadata location as a VM placement default. Candidate source region
+is preselected only when it appears in the list; Cosmos account metadata is not
+a data-region default. Refresh preserves valid reviewed choices. Changing the
+runner subscription clears RG, region and subnet, and stale responses cannot
+repopulate another subscription. Empty/failed listings never fall back to a
+hard-coded region or unvalidated free text. SKU, zone, source/subnet placement
+and quota gates remain authoritative; listing a region is not service-capacity
+evidence. On-premises region selection remains an explicit operator decision.
+
+Reference: [Azure virtual network configuration](https://learn.microsoft.com/en-us/azure/virtual-network/manage-virtual-network)
+documents independent resource-group placement and same-subscription/region
+requirements for resources attached to a VNet.
+
+### Execution and state
+
 ARM deployment and managed Run Command are the control transport, not SSH or a
 public runner web server. Managed Run Command launches short allowlisted control
 operations; long jobs must live in persistent systemd units on the guest, not

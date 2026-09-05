@@ -10,6 +10,7 @@ This contract currently covers R1/R2, not a completed remote migration service.
 |---|---|
 | ready / accounts | Reuse the VS Code Azure account; no new login session. |
 | groups / sources | Read subscription/RG ARM inventory; return candidate names, IDs and placement only. |
+| placementOptions | Read existing resource groups and Azure regions for the selected subscription. Populate migration-RG/region dropdowns without deriving VM placement from RG metadata. No RG creation or peering mutation. |
 | csv | Show a local file picker after CSV selection; no upload or CLI invocation. |
 | preview | Validate typed source/runner input, matching official Linux release checksum, subnet, source placement, SKU/zone, quota, compute price, collisions and create-only ARM what-if. Save a 15-minute immutable preview. |
 | deploy | Require workspace trust, matching preview hash, network/cost acknowledgments and modal confirmation. Lock the workflow, re-read state, recheck gates, persist intent, submit exactly one deployment PUT. |

@@ -2,6 +2,11 @@
 
 ## 2.4.0
 
+- Replace free-text runner RG/region fields with subscription-backed dropdowns.
+  Select a shared migration resource group for the runner and the future Flexible
+  Server target; keep source RG and network placement independent. Support list
+  refresh, source-region defaults and stale-selection rejection.
+
 - Replace the local Neo4j wizard with a runner-first preview: choose one of four
   sources, defer workspace selection, discover ARM source candidates and review
   a private Linux discovery/migration VM. No desktop CLI is used by this path.

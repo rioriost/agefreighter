@@ -10,6 +10,7 @@ export interface SourceSelection {
 }
 export interface RunnerInput {
   subscriptionId: string;
+  /** Shared deployment group for this runner and the later Flexible Server target. */
   resourceGroup: string;
   region: string;
   zone: string;

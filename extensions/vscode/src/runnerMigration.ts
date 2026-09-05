@@ -6,6 +6,7 @@ import { object, parseRunnerInput, previewHash, releaseArtifact, RunnerRecord, r
 import { preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunner } from "./core/runnerLifecycle";
 import { RunnerLockedError, RunnerStore } from "./guided/runnerStore";
 import { join } from "node:path";
+import { assertPlacementSelection, placementCatalog } from "./core/runnerPlacement";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -15,6 +16,13 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
   let current: RunnerRecord | undefined;
   let busy = false;
   const store = new RunnerStore(join(context.globalStorageUri.fsPath, "runner-v2"));
+  const catalog = async (subscription: string) => {
+    const [groups, regions] = await Promise.all([
+      azure.runnerList(subscription, `/subscriptions/${subscription}/resourcegroups?api-version=2021-04-01`),
+      azure.locations(subscription)
+    ]);
+    return placementCatalog(groups, regions);
+  };
   const control: RunnerControl = {
     request: (...args) => azure.runnerRequest(...args),
     list: (...args) => azure.runnerList(...args),
@@ -55,6 +63,12 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
               `/subscriptions/${subscription}/resourcegroups?api-version=2021-04-01`)).map(item => ({ name: object(item).name })) });
             break;
           }
+          case "placementOptions": {
+            const subscription = selection(message.subscription);
+            if (message.scope !== "runner" && message.scope !== "both") throw new Error("Invalid placement-list scope.");
+            await post({ kind: "placementOptions", subscription, scope: message.scope, catalog: await catalog(subscription) });
+            break;
+          }
           case "sources": {
             const subscription = selection(message.subscription);
             const group = selection(message.group);
@@ -81,6 +95,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
           }
           case "preview": {
             const input = parseRunnerInput(message.input);
+            assertPlacementSelection(input, await catalog(input.subscriptionId));
             const id = randomUUID();
             // Matching released software is a mandatory prerequisite. Never install a
             // stale version or execute mutable repository source on a customer VM.

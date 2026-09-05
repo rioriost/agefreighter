@@ -81,6 +81,13 @@ verify their checksum and GitHub build-provenance attestation before use.
    equality is checked when available; cross-subscription physical-zone mapping
    is not implemented and blocks deployment. Cosmos uses actual data regions,
    not the account metadata location. On-premises region choice is manual.
+   **Migration resource group** and **Azure region** are subscription-backed
+   dropdowns. The selected migration RG is the common placement for the runner
+   and the later Flexible Server target, independent of the source RG. New RGs
+   must currently be created in Azure first, then loaded with **Refresh resource
+   groups & regions**. RG boundaries do not require VNet peering: a VNet may be
+   in another RG in the same subscription. Network connectivity is checked
+   separately. Listing a region does not guarantee VM/service capacity there.
 4. Select **Check prerequisites & preview runner**. Review the immutable resource
    identities, version/checksum, compute cost and additional charges. Approve the
    network prerequisites and costs, then confirm **Approve & deploy discovery VM**.
