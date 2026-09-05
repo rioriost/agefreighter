@@ -70,6 +70,11 @@ sets a current-user-only inheritable Windows ACL and its Windows test checks the
 actual file ACL. A failed ACL setup blocks reads/writes; macOS/Linux retain
 owner-only modes. CI also uses the extension's actual VSIX version and supported
 minimum VS Code 1.105.0 instead of the stale 2.3.0/1.100.0 constants.
+The follow-up [CI run 33952182561](https://github.com/rioriost/agefreighter/actions/runs/33952182561)
+on commit `75f7885d2d4d31bd778870be3866191d027730c6` passed all six jobs:
+90 unit tests on each of Linux, Windows and macOS, the five actual-CLI source
+contracts, the Extension Host suite, and VSIX packaging. In particular, the
+Windows private-directory and inherited-file ACL checks passed on Windows.
 
 | Stage | Current status |
 |---|---|
@@ -86,7 +91,7 @@ The current installed preview must not be described as an end-to-end migration
 product. The new local tests and fixture digest are not GUI/Azure qualifications.
 The updated preview VSIX was installed into MacStudio's VS Code 1.136.1. The
 installed and built JavaScript bundles have matching SHA-256:
-`a15048e3742e247ecb2f94c5c9d5d9b2bd3ccfecbd2ff32a6fa88cfab1a6fc7b`.
+`f86998718c9d60f6f419e9bdca0f3db691d23b9102457f580d0b65350d8b8b63`.
 An already-open extension host needs a window reload to pick up this build.
 No Marketplace publication was performed here.
 
