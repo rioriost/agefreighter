@@ -1,6 +1,6 @@
 # First Linux runner qualification — 2026-09-05
 
-Status: in progress; not a P1 migration qualification.
+Status: paused for VS Code interactive Azure authentication; not a P1 migration qualification.
 
 ## Deployment and installation
 
@@ -49,6 +49,66 @@ Status: in progress; not a P1 migration qualification.
    `/var` versus `/private/var` temporary-directory alias. Canonicalized only
    the fixture root, preserving production symlink-escape protection.
    `go test ./internal/runner` subsequently passed on this Mac.
+4. After approximately one hour, ARM reconciliation returned HTTP 401. The
+   installed azureauth implementation captures the original authentication
+   session inside `AzureSubscription.credential.getToken`; it never refreshes
+   that token. `efc1d99` obtains a fresh same-account, tenant-bound silent session
+   for every ARM request and pagination page. It does not automatically replay
+   failed writes. All 122 unit tests, packaging and CI `33969868871` passed.
+   The updated extension is installed in VS Code 1.136.1; bundle SHA-256
+   `3bcf9192c166f7f8f0f22bd3179aa70782f02ae8ac5493856e5f086d474a8900`.
+   During refresh, Microsoft Authentication also reported `AADSTS50079` and
+   `invalid_grant/basic_action`: interactive MFA is required and silent
+   acquisition is not allowed. macOS broker/keychain errors were logged too.
+   No alternate credential is substituted for the GUI qualification.
+
+## Paused GUI state and recovery boundary
+
+Eight of 18 CSV imports have GUI-verified full-hash receipts. `Location.csv`
+was submitted as the ninth import; its status reconciliation encountered the
+authentication boundary. The other nine remain uploaded, not imported. All
+18 upload receipts and all entered mappings are preserved.
+
+The current retained command is a **status-only** request, not a new CSV import:
+`af-ca9d6344-00df-43bb-9391-da42f8185805`, operation
+`f8929635-7ef9-4d98-be50-aac91008f6dd`. It is marked `unknown`; an independent
+ARM GET returned 404. Do not reset or replay the import because of that absence.
+After the user completes VS Code Azure authentication, reconcile the retained
+guest operation and its seal before continuing. A safe recovery control for an
+absent status-only ARM command may be needed; the persisted workflow must not
+be manually rewritten to claim verification.
+
+No source assessment or report transfer has started. No target deployment,
+resize, migration or post-migration verification is claimed.
+
+## Independent pause-time guest readback
+
+At **13:50:15Z**, a read-only guest diagnostic found nine sealed CSV files,
+522,291,068 bytes. Independently recomputed every byte's SHA-256 and compared
+all nine file identities, sizes and hashes with the retained GUI manifests:
+**9/9 matched**. This includes Location, whose GUI reconciliation is still
+pending; the private workflow was not changed to claim it verified.
+
+| CSV | Bytes | Guest SHA-256 matched desktop manifest |
+| --- | ---: | --- |
+| CARRIED_BY | 70,714,348 | `67d3328f0e2bcc9a9a2f1c71ad51edb8af43148d7abee5becab78c9d91fdee69` |
+| CONTAINS | 204,764,876 | `00d11fffe89b4e5ce19c0046adbfb3fccb1791462a2ce7b3c2211fa347d61890` |
+| Carrier | 235,855 | `0a2c6e8ecf1fdfe2540c4058202527e458f66e1d7611d75c03d51144089fe88b` |
+| Customer | 6,371,355 | `4b82abd66754f08749e12d0f2cda3abbcfed46c3016855caf654a1608517a5bd` |
+| DESTINED_FOR | 71,610,098 | `2da3ab71851271c5e2895d2ca2b2f9599af5334ae87ed431d5d09f4baa5bcec2` |
+| FULFILLS | 92,615,438 | `0d8294d1cfa659300c6b3c275aca46757d93dd240ea504587d64420e70d67842` |
+| Facility | 4,428,974 | `62d18a1c8beccfc9d63bf2d9c5a1b47bdc1b9bb7bc36ac2ceda5cfb2aca9de5e` |
+| INCLUDED_IN | 69,294,950 | `f52ffd09f781a4cb1c0b435649371d79b0cd9b64f82883fb0fb8b08901f0d1a7` |
+| Location | 2,255,174 | `4e4bdc6637d633ce6e1e63bcc6a0f2ba936edfd5cadfa532e2073809817d5a31` |
+
+No active runner operation remained. Disk use was 5%
+(2,854,469,632 / 66,404,147,200 bytes); available memory 7,780,790,272
+bytes; swap, swap-in/out and OOM kills were zero. The task RG activity-log
+check since 13:30Z returned no failed entries (not proof of every token-level
+failure, which need not appear in that log). VM deallocation was requested
+after the evidence check and independently confirmed `PowerState/deallocated`
+before handoff. Disk, CSV files, storage and diagnostics are retained. NAT/IP
+and storage continue to incur small charges; no resources were deleted.
 
 ## GUI mapping review
 
