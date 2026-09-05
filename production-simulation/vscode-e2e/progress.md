@@ -1,0 +1,74 @@
+# Guided migration P1 qualification progress
+
+Updated: 2026-09-05. Overall outcome: **not yet qualified**.
+
+## Authorization / live resources
+
+- Subscription: `MCAPS-Hybrid-REQ-51508-2023-rifujita` (selected account verified).
+- Approved ceiling: 800 USD; live window: 96 hours from first creation.
+- First creation / deadline: **not started**. No test Azure resource has been
+  created by this work. No old P3 authorization or result is substituted.
+- Source servers were not prepared; preparing dedicated sources is authorized.
+
+## Completed local foundation
+
+1. Saved and reviewed the [implementation and qualification plan](plan.md).
+2. Added opt-in typed CSV properties for scalar/array integers, floats, booleans
+   and strings. Legacy mappings remain strings; type changes invalidate resume.
+3. Added `verify --require-complete`, preserving report output while failing
+   incomplete verification. Existing default CLI behavior remains compatible.
+4. Added a controller-side counts-verification decision module with wrong-job,
+   stale evidence, digest mismatch, reject, missing coverage and count mismatch
+   tests. **It is not yet connected to an enabled guided migration operation.**
+5. Regenerated full P1 on MacStudio: 1,600,000 vertices + 4,000,000 edges,
+   64 shards, seed 20260829. All 1,170 fixture files match the earlier fixture root:
+   `f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f`.
+6. Exported 18 headered CSV files, 18 typed Cosmos-ready JSONL files, mapping
+   metadata and checksums. These JSONL files are not yet imported into Cosmos.
+7. Read **all 5,600,000 converted CSV records** through AGEFreighter's actual CSV
+   connector and compared all 64 canonical ranges with the original fixture.
+   Both roots are:
+   `bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+
+Local retained data (ignored by Git):
+
+- `production-simulation/work/vscode-p1-20260905/manifest.json`
+- `production-simulation/work/vscode-p1-portable-20260905/portable-manifest.json`
+- `production-simulation/work/vscode-p1-portable-20260905/csv-source.json`
+- `production-simulation/work/vscode-p1-portable-20260905/canonical-verification.json`
+
+## Required execution stages still open
+
+Validation of this foundation: `go test ./...` passed; extension typechecking and
+all 70 unit tests passed. These commands do not run the Azure P1 GUI scenarios.
+
+| Stage | Current status |
+|---|---|
+| Dedicated Azure fixture topology / ownership and cost watchdog | Not deployed |
+| Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
+| P1 local CSV | Prepared; complete canonical comparison passed |
+| R3 remote source configuration, mapping, assessment, upload | Implementation required |
+| R4 target deployment and same-VM resize | Implementation required |
+| R5 durable migration / resume / verification controller | Implementation required |
+| Installed VS Code 1.136.1 full GUI branches | Not run |
+| Nine P1 base paths and additional branch/failure ledger | 0 / 9 complete |
+
+The current installed preview must not be described as an end-to-end migration
+product. The new local tests and fixture digest are not GUI/Azure qualifications.
+No new extension installation or Marketplace publication was performed here.
+
+## Review notes for the next implementation stage
+
+- Matching release/bootstrap is still mandatory. The released 2.4 artifact is
+  not available; introduce the explicitly reviewed commit/hash-pinned development
+  artifact path before live testing. Do not install a mutable branch on guests.
+- Neo4j inventory uses count-store totals; generic profile `exact` is still
+  bounded to 1,000,000 rows and must not masquerade as a full P1 inventory for
+  PostgreSQL/Cosmos/CSV. Implement connector-specific count evidence or explicitly
+  approved complete scans with bounds and RU costs before automatic sizing.
+- Managed Run Command instance-view output is limited to 4 KB. Use it only for
+  bounded control/acknowledgements, not full reports or CSV transfer. Source
+  secrets require protected parameters; raw command output is not safe UI data.
+  [Azure managed Run Command](https://learn.microsoft.com/ja-jp/azure/virtual-machines/linux/run-command-managed).
+- Keep exact-count verification and full canonical property/endpoint equality
+  separate. A count pass alone cannot qualify the P1 scenario.
