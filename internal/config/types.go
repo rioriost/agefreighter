@@ -131,11 +131,12 @@ type DelimitedOptions struct {
 }
 
 type CSVVertex struct {
-	Label      string            `json:"label" yaml:"label"`
-	Path       string            `json:"path" yaml:"path"`
-	IDColumn   string            `json:"idColumn" yaml:"idColumn"`
-	Properties map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
-	Format     *DelimitedOptions `json:"format,omitempty" yaml:"format,omitempty"`
+	Label         string            `json:"label" yaml:"label"`
+	Path          string            `json:"path" yaml:"path"`
+	IDColumn      string            `json:"idColumn" yaml:"idColumn"`
+	Properties    map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
+	PropertyTypes map[string]string `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
+	Format        *DelimitedOptions `json:"format,omitempty" yaml:"format,omitempty"`
 }
 
 type CSVEdge struct {
@@ -145,6 +146,7 @@ type CSVEdge struct {
 	Start            EndpointMapping   `json:"start" yaml:"start"`
 	End              EndpointMapping   `json:"end" yaml:"end"`
 	Properties       map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
+	PropertyTypes    map[string]string `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
 	Format           *DelimitedOptions `json:"format,omitempty" yaml:"format,omitempty"`
 }
 

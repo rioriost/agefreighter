@@ -484,6 +484,12 @@
         }
       }
     },
+    "csvPropertyTypes": {
+      "type": "object",
+      "additionalProperties": {
+        "enum": ["string", "int64", "float64", "boolean", "string[]", "int64[]", "float64[]", "boolean[]"]
+      }
+    },
     "csvVertex": {
       "type": "object",
       "additionalProperties": false,
@@ -505,6 +511,7 @@
           "type": "string",
           "minLength": 1
         },
+        "propertyTypes": { "$ref": "#/$defs/csvPropertyTypes" },
         "properties": {
           "$ref": "#/$defs/propertyMap"
         },
@@ -536,6 +543,7 @@
           "type": "string",
           "minLength": 1
         },
+        "propertyTypes": { "$ref": "#/$defs/csvPropertyTypes" },
         "start": {
           "$ref": "#/$defs/endpoint"
         },

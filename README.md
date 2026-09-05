@@ -116,7 +116,7 @@ Start with the validated example for the source being migrated, copy it to
 
 | Source | Start from | Usage notes |
 |---|---|---|
-| CSV or other delimited files | [`csv.yaml`](internal/config/testdata/valid/csv.yaml) | Map stable vertex IDs and edge endpoints by column. Comma, tab, or any other supported single-code-point delimiter can be selected globally or per file. |
+| CSV or other delimited files | [`csv.yaml`](internal/config/testdata/valid/csv.yaml) | Map stable vertex IDs and edge endpoints by column. Comma, tab, or any other supported single-code-point delimiter can be selected globally or per file. Optional [explicit property types](docs/reference/csv-property-types.md) preserve numeric, boolean and array values. |
 | PostgreSQL | [`postgresql.yaml`](internal/config/testdata/valid/postgresql.yaml) | Reference the source DSN through an environment variable and provide ordered SQL vertex and edge queries. `copy` is the default streaming mode; `keyset` provides durable resume for suitable append-only sources. |
 | Neo4j | [`neo4j.yaml`](internal/config/testdata/valid/neo4j.yaml) | Reference Bolt credentials and provide ordered Cypher mappings with stable keys and external IDs, or use [`neo4j-discovery.yaml`](internal/config/testdata/valid/neo4j-discovery.yaml) for bounded automatic graph discovery. |
 | Cosmos DB for NoSQL | [`cosmos.json`](internal/config/testdata/valid/cosmos.json) | Authenticate with `DefaultAzureCredential`, use parameterized cross-partition queries, and map fields with JSON Pointers. For Cosmos Gremlin backing documents, use [`cosmos-gremlin.json`](internal/config/testdata/valid/cosmos-gremlin.json) to discover and interpret the graph automatically. |

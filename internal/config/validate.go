@@ -371,6 +371,9 @@ func validateCSV(source CSVSource, namespace string, errs *ValidationErrors) {
 		add(vertex.Path != "", path+".path", "required", "must not be empty")
 		add(vertex.IDColumn != "", path+".idColumn", "required", "must not be empty")
 		validatePropertyMapping(vertex.Properties, path+".properties", errs)
+		if err := ValidateCSVPropertyTypes(vertex.Properties, vertex.PropertyTypes); err != nil {
+			add(false, path+".propertyTypes", "format", err.Error())
+		}
 		if vertex.Format != nil {
 			validateDelimitedOptions(*vertex.Format, path+".format", errs)
 		}
@@ -384,6 +387,9 @@ func validateCSV(source CSVSource, namespace string, errs *ValidationErrors) {
 		validateEndpoint(edge.Start, namespace, path+".start", errs)
 		validateEndpoint(edge.End, namespace, path+".end", errs)
 		validatePropertyMapping(edge.Properties, path+".properties", errs)
+		if err := ValidateCSVPropertyTypes(edge.Properties, edge.PropertyTypes); err != nil {
+			add(false, path+".propertyTypes", "format", err.Error())
+		}
 		if edge.Format != nil {
 			validateDelimitedOptions(*edge.Format, path+".format", errs)
 		}
