@@ -5,6 +5,9 @@ import {
   VSCodeAzureSubscriptionProvider
 } from "@microsoft/vscode-azext-azureauth";
 import * as vscode from "vscode";
+import { RunnerRecord } from "../core/runner";
+import { issueCSVCapability, issueReportCapability } from "./blobCapabilities";
+import { CSVManifest, uploadCSV, uploadRunnerArchive } from "./csvTransfer";
 import { AzureAccessError, existingAzureAccess } from "../core/azureAccess";
 import {
   AzureLocationSummary,
@@ -102,6 +105,43 @@ export class AzureSession implements vscode.Disposable {
     url.searchParams.set("api-version", "2022-12-01");
     const payload = await this.armValuePages(subscription, url);
     return parseLocations(payload);
+  }
+
+  public async storagePrincipal(subscriptionID: string): Promise<string> {
+    const subscription = await this.subscription(subscriptionID);
+    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
+    const token = await subscription.credential.getToken(`${endpoint}/.default`);
+    try {
+      // Identity hint from the trusted credential provider, not an authorization
+      // decision. The exact account-scoped grant is shown for explicit approval.
+      const claims = JSON.parse(Buffer.from(token!.token.split(".")[1]!, "base64url").toString("utf8"));
+      if (claims.tid !== subscription.tenantId || claims.idtyp === "app" || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(claims.oid)) throw new Error();
+      return claims.oid as string;
+    } catch { throw new Error("The signed-in user object ID cannot be determined safely. Storage role creation is blocked."); }
+  }
+
+  public async reportCapability(record: RunnerRecord, operation: string, permission: "r" | "c"): Promise<string> {
+    const subscription = await this.subscription(record.input.subscriptionId);
+    if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("Artifact transfer currently requires public Azure cloud.");
+    return issueReportCapability(record, operation, permission, subscription.credential);
+  }
+
+  public async csvCapability(record: RunnerRecord, manifest: CSVManifest): Promise<string> {
+    const subscription = await this.subscription(record.input.subscriptionId);
+    if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("CSV transfer currently requires public Azure cloud.");
+    return issueCSVCapability(record, manifest, subscription.credential);
+  }
+
+  public async uploadRunnerArchive(record: RunnerRecord, path: string, manifest: CSVManifest): Promise<void> {
+    const subscription = await this.subscription(record.input.subscriptionId);
+    if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("Development artifact transfer requires public Azure cloud.");
+    return uploadRunnerArchive(record, path, manifest, subscription.credential);
+  }
+
+  public async uploadCSV(record: RunnerRecord, path: string, manifest: CSVManifest, progress: (bytes: number) => void): Promise<void> {
+    const subscription = await this.subscription(record.input.subscriptionId);
+    if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("CSV transfer currently requires public Azure cloud.");
+    return uploadCSV(record, path, manifest, subscription.credential, fetch, progress);
   }
 
   /** Control-plane requests only. Never accepts an arbitrary host or forwards redirects. */

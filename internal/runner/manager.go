@@ -138,6 +138,9 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 	if err := writeNew(filepath.Join(dir, "worker.claim"), []byte(state.BootID)); err != nil {
 		return errors.New("worker already claimed; automatic replay is forbidden")
 	}
+	if state.Action == "import-csv" {
+		return m.workCSV(ctx, root, dir, state)
+	}
 	configuration, err := os.ReadFile(filepath.Join(dir, "job.json"))
 	if err != nil || sum(configuration) != state.ConfigSHA256 {
 		return errors.New("assessment configuration changed")

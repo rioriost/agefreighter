@@ -1,7 +1,7 @@
 # R3 Linux assessment boundary
 
 Status: implemented local foundation and source-form controller, **not
-Azure-qualified**. This is not complete R3 upload/report transfer or the R4/R5
+Azure-qualified**. Storage, report and CSV transfer are connected locally; this is not complete R3 qualification or the R4/R5
 migration flow.
 
 ## Transport and durable execution
@@ -15,7 +15,7 @@ Do not delete a pending managed Run Command to make retry possible.
 
 The guest accepts only protocol version 1 and UUID workflow/operation IDs through
 `agefreighter-tools runner dispatch`. The allowlist is `ready`, `profile`,
-`inventory`, `status`, `report`, and `export-report`. There is no shell, load, resume, cleanup,
+`inventory`, `status`, `report`, `export-report` and `import-csv`. There is no shell, load, resume, cleanup,
 provisioning, or arbitrary executable action in this protocol.
 
 Before assessment, readiness checks the bootstrap marker, retained archive hash,
@@ -52,7 +52,8 @@ automatic repair or lease-deletion operation is deliberately not provided yet.
   failure/crash can retain the private handoff for operator reconciliation;
   do not claim that credentials are erased after every failure.
 - CSV paths must remain in this workflow's upload directory, including after
-  symlink resolution. Upload ownership/hash sealing still needs its own R3 path.
+  symlink resolution. Each mapped file needs a matching guest seal; the full file
+  is rehashed before profiling, not merely trusted because a marker exists.
 - Terminal reports preserve JSON number precision, redact supplied secret values,
   and retain byte length and SHA-256. A `finished` worker means a valid report was
   produced, **not** that its assessment/verification outcome passed.
@@ -62,7 +63,7 @@ length and full SHA-256. Client assembly checks all chunks and the full hash.
 This is a bounded diagnostic fallback, not a practical bulk transport: a 4 MiB
 report would require 2,731 control calls. The bulk report protocol below avoids
 that fan-out. Reviewed storage provisioning/capability issuance and GUI wiring
-remain required before P1 qualification; do not use diagnostic chunks for CSV.
+are now implemented but still need live qualification; do not use diagnostic chunks for CSV.
 Managed Run Command instance-view output has a 4 KB limit; ARM provisioning
 success is separate from script execution success.
 [Microsoft documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/run-command-managed).
@@ -88,20 +89,21 @@ connected to explicit modal approval, native secret prompts and the protected
 dispatch/status boundary. Successful operation manifests are preserved in a
 bounded history before another approved assessment. Failed/unknown operations
 cannot be replaced by a new start. No result is automatically accepted as sizing
-or migration success, and the full report is not yet imported into the GUI.
+or migration success. Full reports are imported into a script-disabled GUI viewer
+only after complete byte/hash verification and private immutable retention.
 
-Next gates: immutable development artifact; schema/FK recommendations; private
-bulk upload/report transport; exact PG/Cosmos/CSV totals with explicit scan/RU
+Next gates: live validation of the pinned development artifact and authenticated
+bulk transport; schema/FK recommendations; exact PG/Cosmos/CSV totals with explicit scan/RU
 bounds; reviewed custom CA installation for private sources; then R4 target
-deployment/resize and R5 durable migration/verification. CSV execution and target
-mutations remain disabled pending these gates.
+deployment/resize and R5 durable migration/verification. CSV sampling requires
+every mapped upload seal; target mutations remain disabled.
 
 ## Bulk report transfer implementation checkpoint
 
 The guest and controller now implement a complete-report data path (up to 4 MiB),
-separate from Run Command's short acknowledgement. This path is **not yet exposed
-in the wizard**: creating the reviewed storage/RBAC/network topology and issuing
-user-delegation capabilities from the existing VS Code account are still open.
+separate from Run Command's short acknowledgement. This path is now exposed in
+the wizard with separate storage/RBAC/network approval and SDK-issued
+user-delegation capabilities from the existing VS Code account.
 No storage account was created to test it and no arbitrary SAS input is exposed.
 
 1. The controller binds a terminal assessment's independent byte length/SHA-256
@@ -110,7 +112,7 @@ No storage account was created to test it and no arbitrary SAS input is exposed.
    completed provisioning, HTTPS, TLS 1.2 or higher, disabled anonymous Blob access
    and disabled shared-key access. The exact workflow container must explicitly
    return `publicAccess: None`. These are read-only checks; no policy is changed.
-2. A future approved credential provider supplies two separate, ephemeral
+2. The existing-account credential provider supplies two separate, ephemeral
    **user-delegation** capabilities: `c` for guest creation, `r` for desktop reads.
    Both must be HTTPS-only and restricted to exactly
    `af-<workflow>/reports/<operation>.json`, not a container. Expiry is at most
@@ -136,7 +138,35 @@ No storage account was created to test it and no arbitrary SAS input is exposed.
 Storage here is non-anonymous, authenticated Blob storage; it is not a claim of
 private-endpoint network isolation. Endpoint reachability, network restrictions,
 least-privilege role grants and storage costs require the separate approved
-topology before enabling this path. Full CSV/block transfer is also still open.
+topology before transfer. Real Azure/RBAC propagation tests remain required.
+
+## CSV and development artifact checkpoint
+
+- Desktop CSV inventory streams SHA-256, then asks before uploading contents.
+  The workflow has a 10 GiB aggregate bound and 2 GiB/file bound. Upload uses
+  8 MiB blocks and the existing storage-audience credential; no account keys or
+  container SAS. Blob names include file UUID and digest. Every explicit retry
+  rechecks local bytes, and commits use `If-None-Match: *`. A matching remote HEAD
+  is only upload reconciliation, never a substitute for guest content verification.
+- `import-csv` carries a ten-minute read-only single-blob delegation capability
+  through protected parameters. The same exclusive workflow lease, boot check,
+  persistent disabled-at-boot unit and permanent worker claim apply. The guest
+  checks projected disk use below 80%, reads at most expected size + 1, compares
+  full SHA-256, and publishes without replacing any destination. A private seal
+  is required before assessment. Failed partial bytes are retained, while normal
+  terminal finalization erases the transient capability. Crashes require manual
+  reconciliation; there is no automatic lease repair or import replay.
+- Import is currently approved per file. The GUI's status control never silently
+  starts the next file. Automatic batch queueing/cancellation/recovery needs more
+  implementation before low-interaction P1 qualification.
+- For unpublished test binaries only, user-level opt-in enables a reviewed
+  local manifest/archive. `build-development-runner.sh` builds a clean committed
+  snapshot for Linux amd64. The GUI checks full archive size/hash, uploads the
+  content-addressed archive and previews a container-scoped VM Blob Reader role.
+  Managed-identity download is bounded; hashes are checked before extracting only
+  the two expected binaries. Guest readiness checks version and commit. The
+  manifest is not a signed provenance attestation; only a reviewed build is
+  eligible. Published production release checks are unchanged.
 
 Reviewed API basis: [Put Blob](https://learn.microsoft.com/en-us/rest/api/storageservices/put-blob),
 [conditional headers](https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations),

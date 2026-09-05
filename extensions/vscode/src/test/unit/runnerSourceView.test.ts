@@ -19,13 +19,13 @@ function view() {
   for (const match of html.matchAll(/<(\w+)[^>]*\bid="([^"]+)"[^>]*>/g)) {
     const element = make(match[1]!); element.value = /\bvalue="([^"]*)"/.exec(match[0])?.[1] ?? ""; elements.set(match[2]!, element);
   }
-  let receive: (event: { data: unknown }) => void;
+  const receivers: ((event: { data: unknown }) => void)[] = [];
   new Script(/<script nonce="[^"]+">([\s\S]+)<\/script>/.exec(html)![1]!).runInNewContext({
     document: { getElementById: (id: string) => elements.get(id), createElement: make, querySelectorAll: (selector: string) => all.filter(e => selector.split(',').includes(e.tag)) },
-    window: { addEventListener: (_event: string, callback: typeof receive) => { receive = callback; } },
+    window: { addEventListener: (_event: string, callback: (event: {data: unknown}) => void) => { receivers.push(callback); } },
     acquireVsCodeApi: () => ({ postMessage: (value: unknown) => messages.push(JSON.parse(JSON.stringify(value))) })
   });
-  return { html, el: (id: string) => elements.get(id)!, send: (data: unknown) => receive({ data }), messages };
+  return { html, el: (id: string) => elements.get(id)!, send: (data: unknown) => receivers.forEach(receive => receive({ data })), messages };
 }
 
 test("all source form branches render and submit fields without passwords or YAML input", () => {
@@ -55,4 +55,10 @@ test("active operations disable starts while retaining status refresh", () => {
   v.send({ kind: "assessment", assessment: { operation: "op", phase: "running" } });
   assert.equal(v.el("assess").disabled, true); assert.equal(v.el("inventory").disabled, true); assert.equal(v.el("refresh").disabled, false);
   v.el("refresh").trigger("click"); assert.equal(v.messages.at(-1).action, "refresh");
+});
+test("storage and CSV controls use host actions without URLs or credentials in the webview", () => {
+  const v = view(); v.send({ kind: "init", type: "csv", location: "local", transferEnabled: true, csvTransfers: [{ file: csvFile.id, phase: "uploaded" }] }); v.send({ kind: "busy", value: false });
+  assert.match(v.el("csvStatus").textContent, /uploaded/); assert.equal(v.el("uploadCSV").disabled, false);
+  for (const action of ["storage", "uploadCSV", "importCSV"]) { v.el(action).trigger("click"); assert.deepEqual(v.messages.at(-1), { action }); v.send({ kind: "busy", value: false }); }
+  v.send({kind:"init",type:"csv",location:"local",transferEnabled:false}); assert.equal(v.el("uploadCSV").disabled,true);
 });

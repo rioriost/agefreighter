@@ -1,5 +1,6 @@
 import { assertFreshPreview, object, RunnerInput, RunnerRecord, runnerNames, validateWhatIf } from "./runner";
 import { parseComputeSkus, parseQuotaUsages } from "./proposal";
+import { reportStorageNames, verifyTransferStorage } from "./runnerReportStorage";
 
 export interface RunnerControl {
   request(subscription: string, path: string, method?: "GET" | "POST" | "PUT", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }>;
@@ -11,7 +12,8 @@ export interface RunnerControl {
 export function deploymentResources(record: RunnerRecord): string[] {
   const { prefix } = runnerNames(record.id, record.input);
   const base = `/subscriptions/${record.input.subscriptionId}/resourceGroups/${record.input.resourceGroup}/providers`;
-  return [`${base}/Microsoft.Network/networkSecurityGroups/${prefix}`, `${base}/Microsoft.Network/networkInterfaces/${prefix}`, record.vmId];
+  return [`${base}/Microsoft.Network/networkSecurityGroups/${prefix}`, `${base}/Microsoft.Network/networkInterfaces/${prefix}`, record.vmId,
+    ...record.artifact.development ? [`${reportStorageNames(record).containerId}/providers/Microsoft.Authorization/roleAssignments/${record.id}`] : []];
 }
 
 export async function preflightRunner(control: RunnerControl, input: RunnerInput): Promise<void> {
@@ -61,10 +63,11 @@ export async function preflightRunner(control: RunnerControl, input: RunnerInput
 }
 
 export async function whatIfRunner(control: RunnerControl, record: RunnerRecord): Promise<void> {
+  if (record.artifact.development) await verifyTransferStorage(control, record);
   const sub = record.input.subscriptionId;
   const ids = deploymentResources(record);
   for (const id of [...ids, `${record.deploymentId.slice(0, record.deploymentId.indexOf('/providers/'))}/providers/Microsoft.Compute/disks/${runnerNames(record.id, record.input).prefix}-os`, record.deploymentId]) {
-    const version = id.includes("/Microsoft.Network/") ? "2024-05-01" : id.includes("/deployments/") ? "2022-09-01" : id.includes("/disks/") ? "2024-03-02" : "2024-07-01";
+    const version = id.includes("/roleAssignments/") ? "2022-04-01" : id.includes("/Microsoft.Network/") ? "2024-05-01" : id.includes("/deployments/") ? "2022-09-01" : id.includes("/disks/") ? "2024-03-02" : "2024-07-01";
     if ((await control.request(sub, `${id}?api-version=${version}`)).status !== 404) throw new Error("A proposed resource already exists. No existing resources will be overwritten.");
   }
   let response = await control.request(sub, `${record.deploymentId}/whatIf?api-version=2022-09-01`, "POST", {

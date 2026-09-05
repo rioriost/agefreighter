@@ -3,6 +3,9 @@ import type { GuestCommand, GuestReadiness } from "./runnerGuest";
 import type { SourceDraft, SelectedCSV } from "./runnerSource";
 import type { Assessment } from "./runnerAssessment";
 import type { ReportTransfer } from "./runnerBlob";
+import type { StorageDeployment } from "./runnerStorageLifecycle";
+import type { CSVTransfer } from "../guided/csvTransfer";
+import { developmentDownload } from "./runnerDevelopment";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
@@ -22,7 +25,7 @@ export interface RunnerInput {
   size: string;
   source: SourceSelection;
 }
-export interface RunnerArtifact { version: string; url: string; sha256: string }
+export interface RunnerArtifact { version: string; url: string; sha256: string; development?: {commit: string; bytes: number} }
 export interface RunnerRecord {
   schemaVersion: 2;
   id: string;
@@ -43,6 +46,9 @@ export interface RunnerRecord {
   assessment?: Assessment;
   assessmentHistory?: Assessment[];
   reportTransfers?: ReportTransfer[];
+  storageDeployment?: StorageDeployment;
+  csvTransfers?: CSVTransfer[];
+  developmentUpload?: {artifact: RunnerArtifact; phase: "prepared" | "ready"};
 }
 
 /** Local-only draft. Blank artifact/template fields are never deployable. */
@@ -99,14 +105,19 @@ export function runnerNames(id: string, input: RunnerInput) {
 }
 
 export function bootstrapScript(artifact: RunnerArtifact): string {
-  const validated = releaseArtifact(artifact.version, `${artifact.sha256}  agefreighter_v${artifact.version}_linux_amd64.tar.gz`);
-  if (validated.url !== artifact.url) throw new Error("The runner artifact must be the official matching release.");
+  let download: string;
+  if (artifact.development) download = developmentDownload(artifact);
+  else {
+    const validated = releaseArtifact(artifact.version, `${artifact.sha256}  agefreighter_v${artifact.version}_linux_amd64.tar.gz`);
+    if (validated.url !== artifact.url) throw new Error("The runner artifact must be the official matching release.");
+    download = `curl --fail --location --proto '=https' --proto-redir '=https' --retry 3 --max-time 300 '${artifact.url}' -o "$work/archive.tar.gz"`;
+  }
   return `#!/bin/bash
 set -euo pipefail
 umask 077
 install -d -m 0700 /var/lib/agefreighter /var/lib/agefreighter/evidence
 work=$(mktemp -d /var/lib/agefreighter/install.XXXXXX)
-curl --fail --location --proto '=https' --proto-redir '=https' --retry 3 --max-time 300 '${artifact.url}' -o "$work/archive.tar.gz"
+${download}
 printf '%s  %s\\n' '${artifact.sha256}' "$work/archive.tar.gz" | sha256sum --check --status
 # Extract only the expected executable, not archive-selected paths.
 tar -xOzf "$work/archive.tar.gz" agefreighter > "$work/agefreighter"
@@ -128,6 +139,8 @@ export function runnerTemplate(id: string, input: RunnerInput, artifact: RunnerA
   const nsgId = `${base}/Microsoft.Network/networkSecurityGroups/${prefix}`;
   const nicId = `${base}/Microsoft.Network/networkInterfaces/${prefix}`;
   const tags = { application: "agefreighter", workflow: id, purpose: "discovery-and-migration" };
+  const account = `af${id.replaceAll("-", "").slice(0,22)}`, containerId = `${base}/Microsoft.Storage/storageAccounts/${account}/blobServices/default/containers/af-${id}`;
+  if (artifact.development && artifact.url !== `https://${account}.blob.core.windows.net/af-${id}/artifacts/${artifact.sha256}.tar.gz`) throw new Error("Development artifact belongs to another workflow.");
   const cloudConfig = "#cloud-config\npackage_update: true\npackages: [curl, ca-certificates]\nwrite_files:\n" +
     "  - path: /var/lib/agefreighter-bootstrap.sh\n    permissions: '0700'\n    encoding: b64\n    content: " +
     Buffer.from(bootstrapScript(artifact)).toString("base64") + "\nruncmd:\n  - [bash, /var/lib/agefreighter-bootstrap.sh]\n";
@@ -151,7 +164,10 @@ export function runnerTemplate(id: string, input: RunnerInput, artifact: RunnerA
           osProfile: { computerName: prefix, adminUsername: "afrunner", customData: Buffer.from(cloudConfig).toString("base64"), linuxConfiguration: { provisionVMAgent: true, disablePasswordAuthentication: true, ssh: { publicKeys: [{ path: "/home/afrunner/.ssh/authorized_keys", keyData: publicKey }] } } },
           networkProfile: { networkInterfaces: [{ id: nicId, properties: { deleteOption: "Detach" } }] }
         }
-      }
+      },
+      ...artifact.development ? [{type:"Microsoft.Authorization/roleAssignments", apiVersion:"2022-04-01", name:id, scope:containerId, dependsOn:[vmId],
+        properties:{principalId:`[reference('${vmId}', '2024-07-01', 'Full').identity.principalId]`, principalType:"ServicePrincipal",
+          roleDefinitionId:`/subscriptions/${input.subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/2a2b9908-6ea1-4ae2-8e65-a410df84e7d1`}}] : []
     ],
     outputs: { vmId: { type: "string", value: vmId } }
   };

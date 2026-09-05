@@ -75,8 +75,11 @@ func testManager(t *testing.T) (Manager, Request, *int) {
 	if err := os.MkdirAll(uploads, 0700); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(uploads, "people.csv")
+	path := filepath.Join(uploads, operationID+".csv")
 	if err := os.WriteFile(path, []byte("id,name\na,Ada\nb,Grace\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeNewJSON(path+".seal.json", csvSeal{File: operationID, Bytes: int64(len("id,name\na,Ada\nb,Grace\n")), SHA256: sum([]byte("id,name\na,Ada\nb,Grace\n"))}); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile("../config/testdata/valid/csv.yaml")

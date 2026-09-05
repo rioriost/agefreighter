@@ -1,17 +1,18 @@
 import { createHash, randomUUID } from "node:crypto";
 import { object, RunnerRecord } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
-import { reportCapability, reportManifest } from "./runnerBlob";
+import { csvCapability, reportCapability, reportManifest } from "./runnerBlob";
+import { CSVManifest, validateCSVManifest } from "../guided/csvTransfer";
 
 export interface GuestCommand {
   id: string;
   operation: string;
-  action: "ready" | "profile" | "inventory" | "status" | "report" | "export-report";
+  action: "ready" | "profile" | "inventory" | "status" | "report" | "export-report" | "import-csv";
   phase: "submitted" | "unknown" | "finished" | "failed";
   submittedAt: string;
 }
 export interface GuestReadiness { bootId: string; cliVersion: string; archiveSha256: string; commit: string; checkedAt: string }
-export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number; export?: { url: string; sha256: string; bytes: number } }
+export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number; export?: { url: string; sha256: string; bytes: number }; import?: CSVManifest & { url: string } }
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 
@@ -28,21 +29,26 @@ printf '%s' "$AF_RUNNER_REQUEST" | base64 --decode | /usr/local/bin/agefreighter
 export async function dispatchGuest(control: RunnerControl, record: RunnerRecord, request: GuestRequest): Promise<RunnerRecord> {
   if (record.phase !== "provisioned") throw new Error("The runner VM must be provisioned first.");
   if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command; do not resubmit it.");
-  if (request.version !== 1 || request.workflow !== record.id || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(request.operation) || !["ready", "profile", "inventory", "status", "report", "export-report"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
+  if (request.version !== 1 || request.workflow !== record.id || !uuid.test(request.operation) || !["ready", "profile", "inventory", "status", "report", "export-report", "import-csv"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
   if (["ready", "status", "report", "export-report"].includes(request.action) && (request.configuration !== undefined || request.secrets !== undefined || request.expectedBootId !== undefined)) throw new Error("Read-only guest controls cannot contain source credentials.");
   if (request.action === "export-report") {
     if (!request.export || request.offset !== undefined) throw new Error("Invalid report export capability.");
     reportCapability(request.export.url, record.id, request.operation, "c");
     reportManifest({ ...request.export, operation: request.operation });
   } else if (request.export !== undefined) throw new Error("Unexpected report export capability.");
+  if (request.action === "import-csv") {
+    if (!request.import || request.configuration !== undefined || request.secrets !== undefined || request.offset !== undefined) throw new Error("Unexpected CSV import fields.");
+    validateCSVManifest(request.import); csvCapability(request.import.url, record.id, request.import.file, request.import.sha256);
+  } else if (request.import !== undefined) throw new Error("Unexpected CSV import capability.");
   const assessment = ["profile", "inventory"].includes(request.action);
-  if (assessment) {
+  const bootBound = assessment || request.action === "import-csv";
+  if (bootBound) {
     const ready = record.guestReady;
     const age = ready ? Date.now() - Date.parse(ready.checkedAt) : NaN;
-    if (!ready || !uuid.test(ready.bootId) || !Number.isFinite(age) || age < 0 || age > 5 * 60 * 1000 || ready.cliVersion !== record.artifact.version || ready.archiveSha256 !== record.artifact.sha256 || request.configuration === undefined) throw new Error("Verify fresh guest readiness and review source configuration first.");
+    if (!ready || !uuid.test(ready.bootId) || !Number.isFinite(age) || age < 0 || age > 5 * 60 * 1000 || ready.cliVersion !== record.artifact.version || ready.archiveSha256 !== record.artifact.sha256 || assessment && request.configuration === undefined) throw new Error("Verify fresh guest readiness and review source configuration first.");
   }
   // Bind execution to the verified boot, not a value supplied by a webview.
-  const payload = JSON.stringify(assessment ? { ...request, expectedBootId: record.guestReady!.bootId } : request);
+  const payload = JSON.stringify(bootBound ? { ...request, expectedBootId: record.guestReady!.bootId } : request);
   if (Buffer.byteLength(payload) > 1024 * 1024) throw new Error("Guest request is too large.");
   const command: GuestCommand = { id: `${record.vmId}/runCommands/af-${randomUUID()}`, operation: request.operation, action: request.action, phase: "submitted", submittedAt: new Date().toISOString() };
   if ((await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01`)).status !== 404) throw new Error("Guest command resource already exists.");
@@ -81,6 +87,7 @@ export async function reconcileGuest(control: RunnerControl, record: RunnerRecor
       if (value.version !== 1) throw new Error();
       if (command.action === "ready") {
         if (value.ready !== true || value.os !== "linux" || value.architecture !== "amd64" || value.cliVersion !== record.artifact.version || value.archiveSha256 !== record.artifact.sha256 || typeof value.bootId !== "string" || !uuid.test(value.bootId) || typeof value.commit !== "string") throw new Error();
+        if (record.artifact.development && value.commit !== record.artifact.development.commit) throw new Error();
         // Re-reading an old ARM response must never refresh its validity.
         next.guestReady = { bootId: value.bootId, cliVersion: value.cliVersion, archiveSha256: value.archiveSha256, commit: value.commit, checkedAt: command.submittedAt };
       } else if (value.operation !== command.operation || command.action !== "report" && value.workflow !== record.id) throw new Error();

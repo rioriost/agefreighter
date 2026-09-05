@@ -23,7 +23,10 @@ LoadJob commands continue to use a separately installed local CLI.
   supplying a LoadJob file. Save an owner-only local draft before VM creation.
 - Approve a sampled remote profile (Neo4j/PostgreSQL/Cosmos) or Neo4j inventory
   after guest readiness. Passwords use a native private prompt and protected
-  dispatch; no password is saved with the form. CSV execution awaits upload.
+  dispatch; no password is saved with the form. CSV requires a full-hash guest seal.
+- Prepare workflow-owned transfer storage with explicit account-scoped user
+  data permissions. Upload CSV in bounded blocks, import/seal files on the VM,
+  and retrieve full hash-verified assessment reports without shared keys.
 - Check the provisioned Linux guest's installation and boot identity, and
   reconcile the protected control request without replay after communication loss.
 - Discover AGEFreighter `LoadJob` YAML and JSON files in the workspace.
@@ -50,6 +53,13 @@ same refresh button; subscription lookup failures are not treated as sign-out.
 The guided path does not invoke a desktop CLI. Runner deployment requires a
 published matching 2.4.x Linux release with its checksum; an unpublished release
 blocks deployment instead of falling back to an incompatible older binary.
+For isolated developer qualification only, an explicit user-level
+`agefreighter.allowDevelopmentRunnerArtifacts` opt-in enables **Prepare Pinned
+Development Runner (Qualification Only)**. It accepts a reviewed local manifest
+and Linux archive with matching commit/version/size/SHA-256, uploads to owned
+storage, and grants the eventual VM identity Blob Reader only on that workflow
+container. It neither publishes a release nor builds mutable source on a VM.
+The manifest is a developer assertion, not a signed build attestation.
 Azure subscription permissions must allow the reviewed VM/NIC/NSG deployment.
 Use an existing non-delegated compute subnet with source connectivity, private
 DNS and outbound access for Azure VM agent services and release installation.
@@ -116,6 +126,24 @@ verify their checksum and GitHub build-provenance attestation before use.
    needed. **Refresh assessment status** submits/reconciles one bounded status
    check without repeating the source operation. Successful terminal manifests
    remain in the workflow history when a subsequent assessment is approved.
+7. In the source editor, **Prepare / refresh transfer storage** has its own
+   network/cost/RBAC approval. It creates a new Standard LRS account, disables
+   anonymous/shared-key access, and grants your signed-in user Storage Blob Data
+   Contributor on that account only. Its HTTPS endpoint is network-public, not a
+   private endpoint. RBAC propagation and network access can delay readiness.
+8. For CSV, **Upload reviewed CSV files** hashes the selected data and asks before
+   sending contents to Azure. Maximum 2 GiB/file and 10 GiB/workflow. Retrying an
+   interrupted desktop upload reconciles the same content-addressed blocks and
+   never overwrites a committed blob. **Import next CSV / refresh import** starts
+   one approved VM download or checks its retained status. Import requires fresh
+   guest readiness and space below 80%, and seals only a full size/SHA-256 match.
+   Review mappings again when all mapped files are verified; only then can the
+   sampled CSV assessment start. Failed/reboot-interrupted guest imports require
+   evidence review; automatic lease repair/restart is not implemented.
+9. **Transfer / open verified report** first exports the terminal report, then
+   reconciles and imports it on a subsequent click. It retains original JSON
+   bytes (including int64 values) in private extension storage and opens a
+   script-disabled escaped viewer. A report import is not migration approval.
 
 Workflow metadata is held in extension global storage, without source passwords,
 before output-folder selection. The VM uses persistent managed OS storage and
@@ -125,7 +153,8 @@ cleanup, stop or delete action. Operators remain responsible for resource costs.
 **Current development-build limit:** source forms, runner provisioning and
 protected remote assessment controls are implemented, but not live-Azure
 qualified. ARM success is not guest readiness. A finished assessment worker is
-not a passing migration. Bulk report retrieval, CSV upload, automatic schema/FK
+not a passing migration. Transfer storage/RBAC, bulk reports and CSV upload/import
+are implemented but still require real Azure qualification. Automatic schema/FK
 recommendations, exact non-Neo4j inventories, accepted target sizing/deployment,
 same-VM resize, final LoadJob export, remote migration and verification remain
 open. Publicly trusted TLS is currently required; custom source CA upload is

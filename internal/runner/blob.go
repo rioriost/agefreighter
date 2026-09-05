@@ -113,5 +113,5 @@ func (m Manager) ExportReport(ctx context.Context, request Request) (ExportRecei
 
 // Avoid allowing a query string into diagnostic errors through any URL parser.
 func safeExportAction(request Request) bool {
-	return request.Action == "export-report" && len(request.Configuration) == 0 && len(request.Secrets) == 0 && request.ExpectedBootID == "" && request.Offset == 0 && request.Export != nil && !strings.ContainsRune(request.Export.URL, '\x00')
+	return request.Action == "export-report" && request.Import == nil && len(request.Configuration) == 0 && len(request.Secrets) == 0 && request.ExpectedBootID == "" && request.Offset == 0 && request.Export != nil && !strings.ContainsRune(request.Export.URL, '\x00')
 }

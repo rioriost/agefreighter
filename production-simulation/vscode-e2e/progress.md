@@ -46,8 +46,23 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
     data transfer, independent full hash/size verification, private immutable
     local retention and loss-of-acknowledgement reconciliation. Exact storage
     ownership and non-anonymous/shared-key-disabled policies are checked before
-    transfer. It remains off in the GUI until reviewed storage/network/RBAC and
-    existing-account capability issuance are connected. No storage was deployed.
+    transfer. The GUI now connects reviewed Standard LRS storage creation,
+    account-scoped user Blob Data Contributor, SDK user-delegation capability
+    issuance through the existing Azure login, and a script-disabled report viewer.
+    No storage was deployed. The endpoint is network-public/authenticated HTTPS,
+    not private-endpoint network isolation; this is disclosed before approval.
+12. Connected streamed CSV review/upload (8 MiB blocks, conditional commit,
+    content-addressed destinations) and protected asynchronous guest import.
+    Guest full size/hash seals, 80% disk gate, 10-minute download limit and
+    non-replaying workers are required before CSV profiling. Limits are 2 GiB per
+    file / 10 GiB per workflow. Failed/interrupted guest import repair and bulk
+    automatic import orchestration are still open; imports are approved per file.
+13. Added explicit user-level opt-in for reviewed commit/hash-pinned Linux test
+    artifacts in workflow storage. Production still requires an official release.
+    VM identity gets container-scoped Blob Reader only; cloud-init fetches through
+    managed identity with no SAS/token in the template. Guest readiness also
+    checks the pinned commit. The build helper requires a clean committed tree;
+    no mutable-branch guest builds or unapproved release publication are used.
 
 Local retained data (ignored by Git):
 
@@ -59,7 +74,7 @@ Local retained data (ignored by Git):
 ## Required execution stages still open
 
 Validation of this foundation: `go test ./...` passed; extension typechecking and
-all 99 unit tests passed at the bulk-report checkpoint. Targeted guest/tools
+all 110 unit tests passed at the transfer/CSV/development-artifact checkpoint. Targeted guest/tools
 tests also passed with Go's race detector. All five GUI-generated source formats passed the actual
 Go CLI validator; the contract test is now part of extension CI. These commands
 do not run the Azure P1 GUI scenarios.
@@ -97,7 +112,7 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 | Dedicated Azure fixture topology / ownership and cost watchdog | Not deployed |
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
 | P1 local CSV | Prepared; complete canonical comparison passed |
-| R3 remote source configuration, mapping, assessment, upload | Forms, mappings, approved start/status and bulk-report protocol implemented; report storage/capability/GUI connection, CSV upload, schema suggestions and complete assessment evidence remain open |
+| R3 remote source configuration, mapping, assessment, upload | Forms, mappings, approved start/status, storage/RBAC/report GUI, CSV upload/seal and pinned test artifact implemented locally; real Azure qualification, schema suggestions and complete assessment evidence remain open |
 | R4 target deployment and same-VM resize | Implementation required |
 | R5 durable migration / resume / verification controller | Implementation required |
 | Installed VS Code 1.136.1 full GUI branches | Not run |
@@ -113,9 +128,10 @@ No Marketplace publication was performed here.
 
 ## Review notes for the next implementation stage
 
-- Matching release/bootstrap is still mandatory. The released 2.4 artifact is
-  not available; introduce the explicitly reviewed commit/hash-pinned development
-  artifact path before live testing. Do not install a mutable branch on guests.
+- Matching release/bootstrap is still mandatory in production. The released 2.4
+  artifact is unavailable (rechecked). Test-only commit/hash-pinned artifact upload
+  and managed-identity bootstrap are implemented but await real Azure validation.
+  Do not install a mutable branch on guests or publish an unapproved release.
 - The form requires explicit reviewed mappings; automatic PostgreSQL schema/FK
   recommendations are not implemented. Current table/column/graph identifiers
   are limited to ASCII letters/digits/underscores. Cosmos explicit mappings use

@@ -31,6 +31,7 @@ type Request struct {
 	Secrets        map[string]string `json:"secrets,omitempty"`
 	Offset         int64             `json:"offset,omitempty"`
 	Export         *ReportExport     `json:"export,omitempty"`
+	Import         *CSVImport        `json:"import,omitempty"`
 }
 
 type State struct {
@@ -46,6 +47,9 @@ type State struct {
 	ExitCode     *int   `json:"exitCode,omitempty"`
 	ReportBytes  int64  `json:"reportBytes,omitempty"`
 	ReportSHA256 string `json:"reportSha256,omitempty"`
+	FileID       string `json:"fileId,omitempty"`
+	FileBytes    int64  `json:"fileBytes,omitempty"`
+	FileSHA256   string `json:"fileSha256,omitempty"`
 }
 
 func Decode(input io.Reader) (Request, error) {
@@ -66,9 +70,18 @@ func Decode(input io.Reader) (Request, error) {
 		return Request{}, errors.New("invalid runner protocol version or operation identity")
 	}
 	switch request.Action {
-	case "ready", "profile", "inventory", "status", "report", "export-report":
+	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv":
 	default:
 		return Request{}, errors.New("runner operation is not allowed")
+	}
+	if request.Action == "import-csv" {
+		if !safeCSVAction(request) {
+			return Request{}, errors.New("invalid CSV import control")
+		}
+		return request, nil
+	}
+	if request.Import != nil {
+		return Request{}, errors.New("unexpected CSV capability")
 	}
 	if request.Action == "export-report" {
 		if !safeExportAction(request) {
@@ -176,6 +189,9 @@ func validateUploadPaths(configuration []byte, root string) error {
 		info, err := os.Stat(real)
 		if err != nil || !info.Mode().IsRegular() {
 			return errors.New("CSV upload must be a regular file")
+		}
+		if err := verifyCSVSeal(real); err != nil {
+			return err
 		}
 	}
 	return nil

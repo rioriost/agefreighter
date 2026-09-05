@@ -50,6 +50,12 @@
     "configuration": {
       "title": "AGEFreighter",
       "properties": {
+        "agefreighter.allowDevelopmentRunnerArtifacts": {
+          "type": "boolean",
+          "default": false,
+          "scope": "machine",
+          "description": "Developer qualification only: allow explicitly approved commit/hash-pinned Linux archives in workflow-owned storage. Only an explicit user-level value is accepted; workspace settings cannot enable this."
+        },
         "agefreighter.binaryPath": {
           "type": "string",
           "default": "agefreighter",
@@ -75,6 +81,11 @@
       }
     },
     "commands": [
+      {
+        "command": "agefreighter.prepareDevelopmentRunner",
+        "title": "Prepare Pinned Development Runner (Qualification Only)",
+        "category": "AGEFreighter"
+      },
       {
         "command": "agefreighter.newGuidedMigration",
         "title": "New Guided Migration",
@@ -178,7 +189,7 @@
     "viewsWelcome": [
       {
         "view": "agefreighter.jobs",
-        "contents": "Select a source, then review a private Linux discovery/migration VM. Use your existing Azure login; no desktop CLI or project folder is required to open the wizard.\n[New guided migration](command:agefreighter.newGuidedMigration)\nThis preview supports source forms, runner planning, approval-gated provisioning and remote assessment controls. CSV transfer and end-to-end migration remain unavailable.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
+        "contents": "Select a source, then review a private Linux discovery/migration VM. Use your existing Azure login; no desktop CLI or project folder is required to open the wizard.\n[New guided migration](command:agefreighter.newGuidedMigration)\nThis preview supports source forms, approval-gated runner/storage provisioning, CSV transfer and remote assessment/report controls. End-to-end migration remains under implementation and Azure qualification.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
       }
     ],
     "menus": {
@@ -350,6 +361,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@azure/storage-blob": "12.33.0",
     "@microsoft/vscode-azext-azureauth": "^5.1.1"
   }
 }

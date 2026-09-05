@@ -13,10 +13,19 @@ export interface ReportTransfer extends ReportManifest {
 
 /** Match the guest's strict single-blob, user-delegation capability policy. */
 export function reportCapability(raw: string, workflow: string, operation: string, permission: "r" | "c", now = Date.now()): URL {
+  return singleBlobCapability(raw, workflow, operation, `reports/${operation}.json`, permission, now);
+}
+
+export function csvCapability(raw: string, workflow: string, file: string, digest: string, now = Date.now()): URL {
+  if (!sha.test(digest)) throw new Error("Invalid CSV digest.");
+  return singleBlobCapability(raw, workflow, file, `uploads/${file}/${digest}.csv`, "r", now);
+}
+
+function singleBlobCapability(raw: string, workflow: string, operation: string, suffix: string, permission: "r" | "c", now: number): URL {
   const invalid = () => new Error("A short-lived HTTPS user-delegation capability for the exact report blob is required.");
   let url: URL;
   try { url = new URL(raw); } catch { throw invalid(); }
-  const path = `/af-${workflow}/reports/${operation}.json`;
+  const path = `/af-${workflow}/${suffix}`;
   if (raw.length > 4096 || /[\s\\\u0000-\u001f\u007f]/.test(raw) || !uuid.test(workflow) || !uuid.test(operation) ||
     url.protocol !== "https:" || url.username || url.password || url.hash ||
     !/^[a-z0-9]{3,24}\.blob\.core\.windows\.net$/.test(url.host) || url.pathname !== path ||
@@ -74,5 +83,4 @@ export async function downloadReport(raw: string, workflow: string, expected: Re
   } catch { throw new Error("Report download could not be verified; evidence remains incomplete. No source operation was replayed."); }
   finally { try { await reader?.cancel(); } catch { /* Never expose transport errors containing the SAS. */ } reader?.releaseLock(); }
 }
-
 

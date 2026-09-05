@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { object, RunnerRecord } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
 import { dispatchGuest, reconcileGuest } from "./runnerGuest";
+import { csvAssessmentReady } from "./runnerCSV";
 
 export interface Assessment {
   operation: string; action: "profile" | "inventory"; phase: "submitted" | "unknown" | "accepted" | "running" | "finished" | "failed" | "interrupted";
@@ -15,6 +16,7 @@ export function assessmentActive(record: RunnerRecord): boolean {
 /** Caller holds the workflow lock, reviewed the form and approved source reads. */
 export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>): Promise<RunnerRecord> {
   if (!record.sourceDraft?.canAssess || assessmentActive(record)) throw new Error("A reviewed source and a workflow without a retained assessment are required.");
+  if (record.input.source.type === "csv" && !csvAssessmentReady(record)) throw new Error("Every mapped CSV requires an independently verified guest upload seal.");
   if (action === "inventory" && record.input.source.type !== "neo4j") throw new Error("Exact inventory currently supports Neo4j only.");
   if (object(record.sourceDraft.configuration.source).type !== record.input.source.type) throw new Error("Source type changed after review.");
   const operation = randomUUID();

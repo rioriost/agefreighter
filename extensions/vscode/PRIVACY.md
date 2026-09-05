@@ -44,10 +44,10 @@ deletes the transient credential handoff after normal finalization; crashes or
 pre-execution failures can retain it for operator review. Bounded stderr remains
 private on the guest and is not returned to the UI/model. Reports redact supplied
 secret values and retain their hash. No source-form data or remote assessment
-payload is passed to an AI tool. CSV transfer, bulk report transfer, remote
-migration and final verification are still not enabled.
+payload is passed to an AI tool. CSV/report transfer now require separate
+approvals; remote migration and final verification are still not enabled.
 
-The bulk-report implementation (not yet wired to a GUI action) supports a
+The bulk-report GUI supports a
 workflow-owned, non-anonymous Azure Blob destination with shared-key access
 disabled. It uses separate short-lived create-only/read-only user-delegation
 capabilities, never an ARM bearer token on a Blob request. Capability URLs are
@@ -55,8 +55,27 @@ not retained in local state, sent to the webview/model, or emitted in diagnostic
 the guest creation capability uses a protected Run Command parameter. Verified
 report bytes are retained in owner-only local files without overwriting previous
 evidence. Reports may still contain sensitive source metadata or sample values:
-secret redaction is not anonymization. Storage/RBAC/network provisioning and
-capability issuance remain required before this transfer is enabled for users.
+secret redaction is not anonymization. A native approval creates workflow-owned
+Standard LRS storage and grants the signed-in user Blob Data Contributor on
+that new account only. The endpoint is network-public authenticated HTTPS, not
+private-endpoint isolation. Azure validates the SDK-issued delegation signature.
+RBAC/network errors do not fall back to shared keys or another login.
+
+CSV upload asks before sending complete file contents to that account. It uses
+the existing storage-audience credential and content-addressed bounded blocks.
+Explicit retries reconcile the same data without overwriting a committed blob.
+The guest receives only a short-lived single-file read capability via protected
+parameters, verifies all bytes, and publishes a private seal before profiling.
+The capability is erased after normal finalization; failed partial files remain
+as evidence, and crashes can retain private capability transport until review.
+
+Developer qualification can explicitly opt in at user level to a reviewed
+commit/hash-pinned Linux archive. The GUI uploads that archive to workflow
+storage after approval. The subsequent VM preview includes a container-scoped
+Blob Reader grant for its managed identity. Tokens are fetched inside the guest,
+not embedded in cloud-init/command arguments. The developer manifest is an
+assertion of provenance, not a signed attestation; production release behavior
+is unchanged. This path is not a Marketplace or GitHub publication operation.
 
 ## Optional VS Code language model use
 

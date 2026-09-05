@@ -2,19 +2,24 @@
 
 ## 2.4.0
 
+- Wire approved transfer storage/RBAC, existing-account delegation and full report
+  import into the source GUI. Add streamed CSV block upload, explicit asynchronous
+  guest import with full-hash seals, disk gate and no replay. Add user-opt-in
+  commit/hash-pinned test artifacts with container-scoped managed-identity reads.
+  These paths are locally tested, not yet Azure P1 qualified; R4/R5 remain open.
+
 - Add an immutable bulk-report protocol and private local import: exact report
   identity/size/hash, short-lived single-blob user-delegation capabilities,
   conditional create-only export, GET-only recovery after uncertain responses,
   original int64/Unicode JSON bytes and no-replace evidence retention. Validate
-  owned HTTPS/non-anonymous/shared-key-disabled storage before transfer. Storage
-  provisioning, capability issuance and GUI connection are still pending; this
-  is not an Azure P1 pass or an enabled CSV upload/migration feature.
+  owned HTTPS/non-anonymous/shared-key-disabled storage before transfer. This
+  protocol foundation by itself is not an Azure P1 pass or a migration feature.
 
 - Add local pre-deployment source drafts and field-based Neo4j/PostgreSQL/Cosmos/
   CSV configuration. Generate read-only table queries, Cosmos explicit/Gremlin
   mappings and typed CSV mappings with a null marker. Add reviewed native-secret
   assessment start, retained status reconciliation and successful-operation
-  history. CSV transfer, bulk report transfer and R4/R5 remain unavailable.
+  history. R4/R5 remain unavailable.
 
 - Add protected Linux guest readiness controls and the local R3 assessment
   execution boundary: durable operation IDs, explicit no-replay behavior,

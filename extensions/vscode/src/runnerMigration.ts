@@ -9,6 +9,7 @@ import { basename, join } from "node:path";
 import { assertPlacementSelection, placementCatalog } from "./core/runnerPlacement";
 import { dispatchGuest, reconcileGuest } from "./core/runnerGuest";
 import { openRunnerSource } from "./runnerSourcePanel";
+import { developmentEnabled, prepareDevelopmentRunner } from "./developmentRunner";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -42,6 +43,10 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
     hourlyComputeUSD: record.hourlyComputeUSD, expiresAt: record.expiresAt, updatedAt: record.updatedAt,
     previewHash: record.previewHash, guestCommand: record.guestCommand, guestReady: record.guestReady
   } });
+  context.subscriptions.push(vscode.commands.registerCommand("agefreighter.prepareDevelopmentRunner", async () => {
+    try { await azure.subscriptions(); await prepareDevelopmentRunner(control, store, azure); }
+    catch (error) { await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Development artifact preparation failed."); }
+  }));
   context.subscriptions.push(azure, vscode.commands.registerCommand("agefreighter.newGuidedMigration", () => {
     if (panel) { panel.reveal(); return; }
     panel = vscode.window.createWebviewPanel("agefreighter.runnerMigration", "New AGEFreighter migration", vscode.ViewColumn.One,
@@ -110,11 +115,17 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
             // stale version or execute mutable repository source on a customer VM.
             const version = String(context.extension.packageJSON.version);
             if (!/^2\.4\.\d+(?:-[a-z0-9.]+)?$/.test(version)) throw new Error("Runner release version is invalid.");
+            let artifact;
+            if (draft?.developmentUpload?.phase === "ready") {
+              if (!developmentEnabled() || !vscode.workspace.isTrusted || JSON.stringify(draft.input) !== JSON.stringify(input)) throw new Error("Development artifact opt-in or approved placement changed.");
+              artifact = draft.developmentUpload.artifact;
+            } else {
             const response = await fetch(`https://github.com/rioriost/agefreighter/releases/download/v${version}/checksums.txt`, { signal: AbortSignal.timeout(30_000) });
             if (!response.ok) throw new Error(`The matching AGEFreighter ${version} Linux release/checksums are not available. No Azure deployment was submitted.`);
             const checksums = await response.text();
             if (checksums.length > 1024 * 1024) throw new Error("Release checksum metadata is too large.");
-            const artifact = releaseArtifact(version, checksums);
+            artifact = releaseArtifact(version, checksums);
+            }
             await preflightRunner(control, input);
             const rates = (await azure.retailRates(input.region, [input.size])).filter(r => r.serviceName === "Virtual Machines");
             const ratesNow = rates.filter(r => Date.parse(r.effectiveStartDate) <= Date.now());
@@ -131,6 +142,9 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
                 const latest = await store.read(id);
                 if (latest.phase !== "draft" || JSON.stringify(latest.input.source) !== JSON.stringify(input.source)) throw new Error("This draft changed in another window. Review it again.");
                 record.sourceDraft = latest.sourceDraft; record.sourceFiles = latest.sourceFiles;
+                record.storageDeployment = latest.storageDeployment; record.reportTransfers = latest.reportTransfers;
+                record.csvTransfers = latest.csvTransfers;
+                record.developmentUpload = latest.developmentUpload;
               }
               await control.persist(record); return record;
             });
@@ -140,9 +154,10 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
           case "deploy": {
             if (!vscode.workspace.isTrusted) throw new Error("Trust this VS Code workspace before approving Azure deployment.");
             if (!current || message.hash !== current.previewHash || message.networkApproved !== true || message.costApproved !== true) throw new Error("Review a fresh preview, network prerequisites and additional charges first.");
+            if (current.artifact.development && !developmentEnabled()) throw new Error("User-level development artifact opt-in was removed.");
             const confirmed = await vscode.window.showWarningMessage(
               `Create the reviewed Linux discovery/migration VM ${current.vmId}?`,
-              { modal: true, detail: `${current.input.region} / zone ${current.input.zone}; ${current.input.size}; compute estimate USD ${current.hourlyComputeUSD}/hour. Disk, network, NAT and other charges are additional. Resources remain until separately stopped/deleted. No source firewall, role assignment, target database or migration is created. Source assessment requires a separate approval after guest readiness.` }, "Create reviewed runner");
+              { modal: true, detail: `${current.input.region} / zone ${current.input.zone}; ${current.input.size}; compute estimate USD ${current.hourlyComputeUSD}/hour. Disk, network, NAT and other charges are additional. Resources remain until separately stopped/deleted. No source firewall, target database or migration is created. ${current.artifact.development ? `TEST build ${current.artifact.development.commit}; SHA-256 ${current.artifact.sha256}. Grants this VM identity Blob Reader only on this workflow container.` : "No role assignment is created."} Source assessment requires a separate approval after guest readiness.` }, "Create reviewed runner");
             if (confirmed !== "Create reviewed runner") break;
             const workflowId = current.id;
             current = await store.exclusive(workflowId, async () => {
@@ -179,7 +194,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
               await control.persist(draft);
             }
             await display(current!);
-            openRunnerSource(context, control, store, current!.id);
+            openRunnerSource(context, control, store, current!.id, azure);
             break;
           }
           case "guestRefresh": {

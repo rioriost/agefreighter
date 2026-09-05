@@ -14,6 +14,11 @@ export function reportStorageNames(record: RunnerRecord) {
 export async function verifyReportStorage(control: RunnerControl, record: RunnerRecord, blob: string): Promise<void> {
   const names = reportStorageNames(record);
   if (!blob.startsWith(`${names.origin}/${names.container}/reports/`)) throw new Error("The report destination is not this workflow's owned storage account.");
+  await verifyTransferStorage(control, record);
+}
+
+export async function verifyTransferStorage(control: RunnerControl, record: RunnerRecord): Promise<void> {
+  const names = reportStorageNames(record);
   const account = await control.request(record.input.subscriptionId, `${names.id}?api-version=2023-05-01`);
   if (account.status !== 200) throw new Error("Approved private report storage has not been provisioned.");
   const resource = object(account.value), properties = object(resource.properties), tags = object(resource.tags);
