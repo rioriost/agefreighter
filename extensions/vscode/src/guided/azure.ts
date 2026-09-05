@@ -9,6 +9,7 @@ import { RunnerRecord } from "../core/runner";
 import { issueCSVCapability, issueReportCapability } from "./blobCapabilities";
 import { CSVManifest, uploadCSV, uploadRunnerArchive } from "./csvTransfer";
 import { storageCredential } from "./storageCredential";
+import { armToken } from "./armToken";
 import { AzureAccessError, existingAzureAccess } from "../core/azureAccess";
 import {
   AzureLocationSummary,
@@ -110,12 +111,11 @@ export class AzureSession implements vscode.Disposable {
 
   public async storagePrincipal(subscriptionID: string): Promise<string> {
     const subscription = await this.subscription(subscriptionID);
-    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
-    const token = await subscription.credential.getToken(`${endpoint}/.default`);
+    const token = await this.armToken(subscription);
     try {
       // Identity hint from the trusted credential provider, not an authorization
       // decision. The exact account-scoped grant is shown for explicit approval.
-      const claims = JSON.parse(Buffer.from(token!.token.split(".")[1]!, "base64url").toString("utf8"));
+      const claims = JSON.parse(Buffer.from(token.split(".")[1]!, "base64url").toString("utf8"));
       if (claims.tid !== subscription.tenantId || claims.idtyp === "app" || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(claims.oid)) throw new Error();
       return claims.oid as string;
     } catch { throw new Error("The signed-in user object ID cannot be determined safely. Storage role creation is blocked."); }
@@ -150,6 +150,11 @@ export class AzureSession implements vscode.Disposable {
       subscription.authentication.getSessionWithScopes(scopes));
   }
 
+  private armToken(subscription: AzureSubscription): Promise<string> {
+    return armToken(subscription.account.id, subscription.environment.resourceManagerEndpointUrl,
+      async scopes => subscription.authentication.getSessionWithScopes(scopes));
+  }
+
   /** Control-plane requests only. Never accepts an arbitrary host or forwards redirects. */
   public async runnerRequest(subscriptionID: string, path: string, method: "GET" | "POST" | "PUT" = "GET", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }> {
     const subscription = await this.subscription(subscriptionID);
@@ -159,11 +164,10 @@ export class AzureSession implements vscode.Disposable {
         !url.pathname.toLowerCase().startsWith(`/subscriptions/${subscriptionID.toLowerCase()}/`)) {
       throw new Error("The runner operation is outside the selected subscription.");
     }
-    const token = await subscription.credential.getToken(`${endpoint}/.default`);
-    if (!token?.token) throw new Error("VS Code could not obtain an Azure token.");
+    const token = await this.armToken(subscription);
     const response = await fetch(url, {
       method, redirect: "error", signal: AbortSignal.timeout(30_000),
-      headers: { authorization: `Bearer ${token.token}`, "content-type": "application/json" },
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body)
     });
     if (!response.ok && response.status !== 404) throw new Error(`Azure runner operation returned HTTP ${response.status}. Refresh status before retrying.`);
@@ -285,19 +289,16 @@ export class AzureSession implements vscode.Disposable {
   ): Promise<T[]> {
     const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
     const endpointOrigin = new URL(endpoint).origin;
-    const token = await subscription.credential.getToken(`${endpoint}/.default`);
-    if (!token?.token) {
-      throw new Error("VS Code could not obtain an Azure Resource Manager token.");
-    }
     const items: T[] = [];
     let nextURL: URL | undefined = firstURL;
     for (let pageNumber = 0; nextURL && pageNumber < 100; pageNumber += 1) {
       if (nextURL.protocol !== "https:" || nextURL.origin !== endpointOrigin) {
         throw new Error("Azure Resource Manager returned an unsafe continuation link.");
       }
+      const token = await this.armToken(subscription);
       const response = await fetch(nextURL, {
         redirect: "error",
-        headers: { authorization: `Bearer ${token.token}` },
+        headers: { authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(30_000)
       });
       if (!response.ok) {
