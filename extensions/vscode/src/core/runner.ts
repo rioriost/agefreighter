@@ -185,15 +185,24 @@ export function assertFreshPreview(record: RunnerRecord, now = Date.now()): void
     record.previewHash !== previewHash(record.template, record.input, record.hourlyComputeUSD)) throw new Error("The preview is stale or already submitted. Refresh its status or create a new reviewed preview.");
 }
 
-export function validateWhatIf(value: unknown, allowedIds: string[]): void {
+export function validateWhatIf(value: unknown, allowedIds: string[], existingIds: string[] = []): void {
   const root = object(value);
   const properties = root.properties && typeof root.properties === "object" && !Array.isArray(root.properties) ? object(root.properties) : {};
   if (root.status !== "Succeeded" || root.error || !Array.isArray(properties.changes)) throw new Error("Azure what-if did not produce a complete change review.");
   const expected = new Set(allowedIds.map(id => id.toLowerCase()));
+  const existing = new Set(existingIds.map(id => id.toLowerCase()));
+  const seen = new Set<string>();
   for (const raw of properties.changes) {
     const change = object(raw);
-    if (typeof change.resourceId !== "string" || !expected.has(change.resourceId.toLowerCase()) || change.changeType !== "Create") throw new Error("What-if contains an unexpected or existing resource. No deployment is permitted.");
-    expected.delete(change.resourceId.toLowerCase());
+    if (typeof change.resourceId !== "string") throw new Error("What-if resource identity is missing.");
+    const id = change.resourceId.toLowerCase();
+    if (seen.has(id)) throw new Error("What-if contains duplicate resource evidence.");
+    seen.add(id);
+    // Incremental ARM previews include unchanged resources outside the template.
+    // Ignore is safe only for independently enumerated, non-proposed resources.
+    if (change.changeType === "Ignore" && existing.has(id) && !expected.has(id)) continue;
+    if (!expected.has(id) || change.changeType !== "Create") throw new Error("What-if contains an unexpected or existing resource. No deployment is permitted.");
+    expected.delete(id);
   }
   if (expected.size) throw new Error("What-if did not prove all expected new resources.");
 }

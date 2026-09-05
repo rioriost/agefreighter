@@ -126,6 +126,18 @@ test("discovery preflight checks region, zone, delegation and both quotas", asyn
   h.control.list = async (...args) => args[1].includes('/usages?') ? [] : list(...args);
   await assert.rejects(preflightRunner(h.control, input), /quota/);
 });
+test("incremental what-if permits only independently observed unrelated Ignore entries", () => {
+  const ids = deploymentResources(record()), other = `${base}/providers/Microsoft.Network/virtualNetworks/retained`;
+  const changes = ids.map(resourceId => ({ resourceId, changeType: "Create" }));
+  const response = { status: "Succeeded", properties: { changes: [...changes, { resourceId: other, changeType: "Ignore" }] } };
+  validateWhatIf(response, ids, [other]);
+  assert.throws(() => validateWhatIf(response, ids));
+  for (const changeType of ["Create", "Modify", "Delete", "NoChange"]) {
+    assert.throws(() => validateWhatIf({ status: "Succeeded", properties: { changes: [...changes, { resourceId: other, changeType }] } }, ids, [other]));
+  }
+  assert.throws(() => validateWhatIf({ status: "Succeeded", properties: { changes: [{ resourceId: ids[0]!, changeType: "Ignore" }, ...changes.slice(1)] } }, ids, [ids[0]!]));
+  assert.throws(() => validateWhatIf({ status: "Succeeded", properties: { changes: [...response.properties.changes, { resourceId: other, changeType: "Ignore" }] } }, ids, [other]));
+});
 test("existing resource collision prevents what-if and deployment", async () => {
   const f = fixture(); const request = f.control.request;
   f.control.request = async (...args) => args[1].includes('/networkInterfaces/') ? { status: 200, value: {} } : request(...args);

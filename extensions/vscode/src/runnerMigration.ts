@@ -102,7 +102,11 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
           case "restore": {
             const picked = await vscode.window.showQuickPick((await store.list()).map(record => ({ label: `${record.input.source.type} — ${record.phase}`,
               description: record.id, record })), { placeHolder: "Reconnect to a retained runner workflow (no replay)" });
-            if (picked) { current = picked.record; await display(current); }
+            if (picked) {
+              current = picked.record;
+              await post({ kind: "restoreInput", input: current.input, files: current.sourceFiles?.map(file => file.name) ?? [] });
+              await display(current);
+            }
             break;
           }
           case "preview": {

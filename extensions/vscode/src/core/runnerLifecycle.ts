@@ -66,6 +66,7 @@ export async function whatIfRunner(control: RunnerControl, record: RunnerRecord)
   if (record.artifact.development) await verifyTransferStorage(control, record);
   const sub = record.input.subscriptionId;
   const ids = deploymentResources(record);
+  const existing = await existingGroupResources(control, record);
   for (const id of [...ids, `${record.deploymentId.slice(0, record.deploymentId.indexOf('/providers/'))}/providers/Microsoft.Compute/disks/${runnerNames(record.id, record.input).prefix}-os`, record.deploymentId]) {
     const version = id.includes("/roleAssignments/") ? "2022-04-01" : id.includes("/Microsoft.Network/") ? "2024-05-01" : id.includes("/deployments/") ? "2022-09-01" : id.includes("/disks/") ? "2024-03-02" : "2024-07-01";
     if ((await control.request(sub, `${id}?api-version=${version}`)).status !== 404) throw new Error("A proposed resource already exists. No existing resources will be overwritten.");
@@ -75,7 +76,7 @@ export async function whatIfRunner(control: RunnerControl, record: RunnerRecord)
   });
   for (let attempt = 0; attempt < 30; attempt++) {
     const value = object(response.value);
-    if (value.status === "Succeeded") { validateWhatIf(value, ids); return; }
+    if (value.status === "Succeeded") { validateWhatIf(value, ids, existing); return; }
     if (value.status === "Failed" || value.status === "Canceled" || !response.poll) throw new Error("Azure what-if did not produce a complete change review.");
     await control.sleep(2000);
     const poll = response.poll;
@@ -83,6 +84,14 @@ export async function whatIfRunner(control: RunnerControl, record: RunnerRecord)
     response.poll ??= poll;
   }
   throw new Error("Azure what-if is still pending. No deployment was submitted.");
+}
+
+/** Independent read-only evidence for Incremental-mode Ignore entries. */
+export async function existingGroupResources(control: RunnerControl, record: RunnerRecord): Promise<string[]> {
+  const base = `/subscriptions/${record.input.subscriptionId}/resourceGroups/${record.input.resourceGroup}`;
+  const rows = await control.list(record.input.subscriptionId, `${base}/resources?api-version=2021-04-01`);
+  return rows.map(raw => object(raw).id).filter((id): id is string => typeof id === "string" &&
+    id.toLowerCase().startsWith(`${base}/providers/`.toLowerCase()));
 }
 
 /** Caller holds a single-flight lock, obtains explicit approval, then calls this. */

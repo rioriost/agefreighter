@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { object, RunnerRecord, validateWhatIf } from "./runner";
-import { RunnerControl } from "./runnerLifecycle";
+import { existingGroupResources, RunnerControl } from "./runnerLifecycle";
 import { reportStorageNames } from "./runnerReportStorage";
 
 export interface StorageDeployment {
@@ -41,6 +41,7 @@ function fresh(record: RunnerRecord): StorageDeployment {
 
 export async function reviewStorage(control: RunnerControl, record: RunnerRecord): Promise<void> {
   const d = fresh(record), names = reportStorageNames(record);
+  const existing = await existingGroupResources(control, record);
   for (const id of [names.id, names.containerId, d.roleId, d.id]) {
     const version = id === d.roleId ? "2022-04-01" : id === d.id ? "2022-09-01" : "2023-05-01";
     if ((await control.request(record.input.subscriptionId, `${id}?api-version=${version}`)).status !== 404) throw new Error("Transfer storage or role already exists. Reconcile the retained deployment; do not overwrite it.");
@@ -49,7 +50,7 @@ export async function reviewStorage(control: RunnerControl, record: RunnerRecord
     { properties: { mode: "Incremental", template: d.template, whatIfSettings: { resultFormat: "ResourceIdOnly" } } });
   for (let attempt = 0; attempt < 30; attempt++) {
     const result = object(response.value);
-    if (result.status === "Succeeded") { validateWhatIf(result, [names.id, names.containerId, d.roleId]); return; }
+    if (result.status === "Succeeded") { validateWhatIf(result, [names.id, names.containerId, d.roleId], existing); return; }
     if (["Failed", "Canceled"].includes(String(result.status)) || !response.poll) throw new Error("Storage what-if did not prove the exact new account, container and account-scoped user role.");
     await control.sleep(2000); const poll = response.poll;
     response = await control.request(record.input.subscriptionId, poll); response.poll ??= poll;

@@ -85,6 +85,15 @@ test("CSV and external source paths independently load runner RG/region dropdown
   v.choose('type','postgresql'); v.choose('location','on-premises');
   assert.equal(v.el('region').value, 'japaneast');
 });
+test("reconnect restores the saved source and placement without starting cloud work", () => {
+  const v = view(), before = v.messages.length;
+  v.receive({ kind: "restoreInput", input: { subscriptionId: subscription, resourceGroup: "migration-rg", region: "japaneast", zone: "2", size: "Standard_D2s_v5", subnetId: "retained-subnet", source: { type: "csv", location: "local" } }, files: ["nodes.csv"] });
+  assert.equal(v.el("type").value, "csv"); assert.equal(v.el("location").value, "local");
+  assert.equal(v.el("runnerGroup").value, "migration-rg"); assert.equal(v.el("region").value, "japaneast");
+  assert.equal(v.el("runnerSubscription").value, subscription); assert.equal(v.el("subnet").value, "retained-subnet");
+  assert.equal(v.el("zone").value, "2"); assert.equal(v.el("csvFiles").textContent, "nodes.csv");
+  assert.equal(v.messages.length, before);
+});
 
 test("source RG suggests a default without overwriting a separate migration RG", () => {
   const v = view(); v.choose('subscription',subscription); v.fillCatalog('both');
