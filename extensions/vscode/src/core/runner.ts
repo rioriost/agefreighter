@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { GuestCommand, GuestReadiness } from "./runnerGuest";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
@@ -32,6 +33,8 @@ export interface RunnerRecord {
   expiresAt: string;
   updatedAt: string;
   hourlyComputeUSD: number;
+  guestCommand?: GuestCommand;
+  guestReady?: GuestReadiness;
 }
 
 export function sourceLocations(type: SourceKind): SourceLocation[] {
@@ -99,6 +102,7 @@ install -m 0755 "$work/agefreighter" /usr/local/bin/agefreighter
 install -m 0755 "$work/agefreighter-tools" /usr/local/bin/agefreighter-tools
 /usr/local/bin/agefreighter version > /var/lib/agefreighter/evidence/version.txt
 /usr/local/bin/agefreighter inventory --help > /dev/null
+/usr/local/bin/agefreighter-tools runner --help > /dev/null
 printf '%s\\n' '${artifact.sha256}' > /var/lib/agefreighter/evidence/archive.sha256
 touch /var/lib/agefreighter/bootstrap.complete
 `;

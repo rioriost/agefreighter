@@ -7,6 +7,7 @@ import { preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunn
 import { RunnerLockedError, RunnerStore } from "./guided/runnerStore";
 import { join } from "node:path";
 import { assertPlacementSelection, placementCatalog } from "./core/runnerPlacement";
+import { dispatchGuest, reconcileGuest } from "./core/runnerGuest";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -37,7 +38,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
     id: record.id, phase: record.phase, input: record.input, vmId: record.vmId,
     deploymentId: record.deploymentId, version: record.artifact.version, sha256: record.artifact.sha256,
     hourlyComputeUSD: record.hourlyComputeUSD, expiresAt: record.expiresAt, updatedAt: record.updatedAt,
-    previewHash: record.previewHash
+    previewHash: record.previewHash, guestCommand: record.guestCommand, guestReady: record.guestReady
   } });
   context.subscriptions.push(azure, vscode.commands.registerCommand("agefreighter.newGuidedMigration", () => {
     if (panel) { panel.reveal(); return; }
@@ -146,6 +147,21 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
             }
             await display(current);
             break;
+          case "guestReady": {
+            if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before executing guest controls.");
+            if (!current) throw new Error("Select a provisioned workflow first.");
+            const id = current.id;
+            current = await store.exclusive(id, async () => dispatchGuest(control, await store.read(id), { version: 1, workflow: id, operation: randomUUID(), action: "ready" }));
+            await display(current);
+            break;
+          }
+          case "guestRefresh": {
+            if (!current) throw new Error("Select a retained workflow first.");
+            const id = current.id;
+            current = await store.exclusive(id, async () => (await reconcileGuest(control, await store.read(id))).record);
+            await display(current);
+            break;
+          }
           default: throw new Error("Unsupported guided migration operation.");
         }
       } catch (error) {

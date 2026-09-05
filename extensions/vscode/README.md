@@ -20,6 +20,8 @@ LoadJob commands continue to use a separately installed local CLI.
 - Require a modal approval and fresh ARM what-if before runner creation. Retain
   deployment IDs and reconcile unknown status without replaying a create.
 - Collect no source credentials in this preview; remote assessment is not enabled.
+- Check the provisioned Linux guest's installation and boot identity, and
+  reconcile the protected control request without replay after communication loss.
 - Discover AGEFreighter `LoadJob` YAML and JSON files in the workspace.
 - Validate configuration and inspect static plans without connecting to a
   source or target.
@@ -96,6 +98,10 @@ verify their checksum and GitHub build-provenance attestation before use.
 5. **Refresh deployment status** or **Reconnect to a saved workflow** after a
    reload. Closing VS Code does not cancel Azure deployment or stop charges.
    Unknown results are reconciled by ID; they are not resubmitted automatically.
+6. Once the VM is provisioned, use **Check Linux guest readiness**, followed by
+   **Refresh guest command**. This checks the matching installation and boot
+   identity, not source connectivity or migration readiness. Source assessment
+   remains disabled until the mapping, upload and assessment controller is ready.
 
 Workflow metadata is held in extension global storage, without source passwords,
 before output-folder selection. The VM uses persistent managed OS storage and

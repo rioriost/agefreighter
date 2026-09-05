@@ -2,6 +2,12 @@
 
 ## 2.4.0
 
+- Add protected Linux guest readiness controls and the local R3 assessment
+  execution boundary: durable operation IDs, explicit no-replay behavior,
+  boot-bound readiness, private credentials, bounded reports and hash-checked
+  diagnostic chunks. Source assessment/mapping and R4/R5 remain disabled; this
+  foundation is not an Azure P1 qualification.
+
 - Replace free-text runner RG/region fields with subscription-backed dropdowns.
   Select a shared migration resource group for the runner and the future Flexible
   Server target; keep source RG and network placement independent. Support list

@@ -51,6 +51,7 @@ func runContext(ctx context.Context, args []string, stdout, stderr io.Writer) in
 			tools.NewInspectCommand(),
 			tools.NewConvertGremlinCommand(),
 			tools.NewCheckCypherCommand(),
+			tools.NewRunnerCommand(),
 		)
 		return cli.ExecuteContext(commandContext, command, args)
 	})

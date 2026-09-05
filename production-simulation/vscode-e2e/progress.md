@@ -29,6 +29,12 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
    connector and compared all 64 canonical ranges with the original fixture.
    Both roots are:
    `bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+8. Added the [R3 Linux assessment boundary](runner-assessment-protocol.md):
+   protected control transport, boot-bound readiness, durable read-only workers,
+   no automatic replay/reboot resume, and hash-verified bounded report retrieval.
+   Actual CSV profiling runs through the child-process boundary in tests. The
+   GUI can request guest readiness; source forms/mapping/upload and the complete
+   assessment controller are still not enabled.
 
 Local retained data (ignored by Git):
 
@@ -40,14 +46,19 @@ Local retained data (ignored by Git):
 ## Required execution stages still open
 
 Validation of this foundation: `go test ./...` passed; extension typechecking and
-all 70 unit tests passed. These commands do not run the Azure P1 GUI scenarios.
+all 76 unit tests passed. These commands do not run the Azure P1 GUI scenarios.
+The nine Linux guest tests passed on Linux x64 under Apple Container/Rosetta,
+including validation of the generated unit by `systemd-analyze verify`. This
+does not exercise a running service manager or an Azure VM agent. The installed
+VS Code 1.136.1 executable passed both isolated Extension Host smoke tests
+(activation and opening the runner-first wizard without a project/local CLI).
 
 | Stage | Current status |
 |---|---|
 | Dedicated Azure fixture topology / ownership and cost watchdog | Not deployed |
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
 | P1 local CSV | Prepared; complete canonical comparison passed |
-| R3 remote source configuration, mapping, assessment, upload | Implementation required |
+| R3 remote source configuration, mapping, assessment, upload | Guest execution/control foundation implemented; full GUI and bulk transfer remain open |
 | R4 target deployment and same-VM resize | Implementation required |
 | R5 durable migration / resume / verification controller | Implementation required |
 | Installed VS Code 1.136.1 full GUI branches | Not run |
@@ -55,7 +66,11 @@ all 70 unit tests passed. These commands do not run the Azure P1 GUI scenarios.
 
 The current installed preview must not be described as an end-to-end migration
 product. The new local tests and fixture digest are not GUI/Azure qualifications.
-No new extension installation or Marketplace publication was performed here.
+The updated preview VSIX was installed into MacStudio's VS Code 1.136.1. The
+installed and built JavaScript bundles have matching SHA-256:
+`48a11da02b43b028af0c5d055913926d905d2d6770da70b8d3d475f8943cbe7b`.
+An already-open extension host needs a window reload to pick up this build.
+No Marketplace publication was performed here.
 
 ## Review notes for the next implementation stage
 
