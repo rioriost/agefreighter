@@ -225,7 +225,9 @@ export function parseRetailRates(value: unknown): RetailRate[] {
     const priceLabel = `${text(item.productName) ?? ""} ${text(item.skuName) ?? ""} ${text(item.meterName) ?? ""}`;
     if (!armSkuName || !serviceName || hourlyUSD === undefined || !effectiveStartDate ||
         item.currencyCode !== "USD" || item.unitOfMeasure !== "1 Hour" || item.type !== "Consumption" ||
-        /windows|spot|low priority/i.test(priceLabel)) {
+        // Cloud Services meters share serviceName and armSkuName with ordinary
+        // Linux VMs, but are a different product (observed for Bsv2 in Japan East).
+        /windows|spot|low priority|cloud services/i.test(priceLabel)) {
       return [];
     }
     return [{ armSkuName, serviceName, hourlyUSD, effectiveStartDate }];

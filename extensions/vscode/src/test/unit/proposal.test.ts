@@ -98,6 +98,24 @@ test("removes only zones affected by a zonal compute restriction", () => {
   assert.deepEqual(parsed?.zones, ["1", "3"]);
 });
 
+test("excludes Cloud Services sharing the ordinary Linux VM SKU and service", () => {
+  const base = { armSkuName: "Standard_B2s_v2", serviceName: "Virtual Machines",
+    skuName: "B2s v2", meterName: "B2s v2", retailPrice: 0.109,
+    effectiveStartDate: "2023-09-01T00:00:00Z", currencyCode: "USD",
+    unitOfMeasure: "1 Hour", type: "Consumption" };
+  const linux = { ...base, productName: "Virtual Machines Bsv2 Series" };
+  const rates = parseRetailRates({ Items: [linux,
+    { ...base, productName: "Bsv2 Series Cloud Services", retailPrice: 0.118 },
+    { ...base, productName: "Virtual Machines Bsv2 Series Windows", retailPrice: 0.118 },
+    { ...linux, skuName: "B2s v2 Spot" },
+    { ...linux, meterName: "B2s v2 Low Priority" }
+  ] });
+  assert.equal(rates.length, 1);
+  assert.equal(rates[0]?.hourlyUSD, 0.109);
+  // Do not silently resolve genuinely ambiguous ordinary Linux meters.
+  assert.equal(parseRetailRates({ Items: [linux, { ...linux, retailPrice: 0.12 }] }).length, 2);
+});
+
 test("produces a same-zone production-simulation-backed proposal", () => {
   const rates = parseRetailRates({ Items: [
     {
