@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { GuestCommand, GuestReadiness } from "./runnerGuest";
 import type { SourceDraft, SelectedCSV } from "./runnerSource";
 import type { Assessment } from "./runnerAssessment";
+import type { ReportTransfer } from "./runnerBlob";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
@@ -41,6 +42,7 @@ export interface RunnerRecord {
   sourceFiles?: (SelectedCSV & { path: string })[];
   assessment?: Assessment;
   assessmentHistory?: Assessment[];
+  reportTransfers?: ReportTransfer[];
 }
 
 /** Local-only draft. Blank artifact/template fields are never deployable. */

@@ -1,16 +1,17 @@
 import { createHash, randomUUID } from "node:crypto";
 import { object, RunnerRecord } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
+import { reportCapability, reportManifest } from "./runnerBlob";
 
 export interface GuestCommand {
   id: string;
   operation: string;
-  action: "ready" | "profile" | "inventory" | "status" | "report";
+  action: "ready" | "profile" | "inventory" | "status" | "report" | "export-report";
   phase: "submitted" | "unknown" | "finished" | "failed";
   submittedAt: string;
 }
 export interface GuestReadiness { bootId: string; cliVersion: string; archiveSha256: string; commit: string; checkedAt: string }
-export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number }
+export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number; export?: { url: string; sha256: string; bytes: number } }
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 
@@ -27,8 +28,13 @@ printf '%s' "$AF_RUNNER_REQUEST" | base64 --decode | /usr/local/bin/agefreighter
 export async function dispatchGuest(control: RunnerControl, record: RunnerRecord, request: GuestRequest): Promise<RunnerRecord> {
   if (record.phase !== "provisioned") throw new Error("The runner VM must be provisioned first.");
   if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command; do not resubmit it.");
-  if (request.version !== 1 || request.workflow !== record.id || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(request.operation) || !["ready", "profile", "inventory", "status", "report"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
-  if (["ready", "status", "report"].includes(request.action) && (request.configuration !== undefined || request.secrets !== undefined || request.expectedBootId !== undefined)) throw new Error("Read-only guest controls cannot contain source credentials.");
+  if (request.version !== 1 || request.workflow !== record.id || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(request.operation) || !["ready", "profile", "inventory", "status", "report", "export-report"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
+  if (["ready", "status", "report", "export-report"].includes(request.action) && (request.configuration !== undefined || request.secrets !== undefined || request.expectedBootId !== undefined)) throw new Error("Read-only guest controls cannot contain source credentials.");
+  if (request.action === "export-report") {
+    if (!request.export || request.offset !== undefined) throw new Error("Invalid report export capability.");
+    reportCapability(request.export.url, record.id, request.operation, "c");
+    reportManifest({ ...request.export, operation: request.operation });
+  } else if (request.export !== undefined) throw new Error("Unexpected report export capability.");
   const assessment = ["profile", "inventory"].includes(request.action);
   if (assessment) {
     const ready = record.guestReady;

@@ -142,7 +142,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
             if (!current || message.hash !== current.previewHash || message.networkApproved !== true || message.costApproved !== true) throw new Error("Review a fresh preview, network prerequisites and additional charges first.");
             const confirmed = await vscode.window.showWarningMessage(
               `Create the reviewed Linux discovery/migration VM ${current.vmId}?`,
-              { modal: true, detail: `${current.input.region} / zone ${current.input.zone}; ${current.input.size}; compute estimate USD ${current.hourlyComputeUSD}/hour. Disk, network, NAT and other charges are additional. Resources remain until separately stopped/deleted. No source firewall, role assignment, target database or migration is created. Remote assessment is not available in this preview build.` }, "Create reviewed runner");
+              { modal: true, detail: `${current.input.region} / zone ${current.input.zone}; ${current.input.size}; compute estimate USD ${current.hourlyComputeUSD}/hour. Disk, network, NAT and other charges are additional. Resources remain until separately stopped/deleted. No source firewall, role assignment, target database or migration is created. Source assessment requires a separate approval after guest readiness.` }, "Create reviewed runner");
             if (confirmed !== "Create reviewed runner") break;
             const workflowId = current.id;
             current = await store.exclusive(workflowId, async () => {

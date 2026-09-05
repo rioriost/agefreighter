@@ -1,8 +1,9 @@
-import { open, readdir, readFile, rename, unlink } from "node:fs/promises";
+import { link, lstat, open, readdir, readFile, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { RunnerRecord } from "../core/runner";
 import { preparePrivateDirectory } from "./privateDirectory";
+import { reportManifest, ReportManifest, verifyReportBytes } from "../core/runnerBlob";
 
 export class RunnerLockedError extends Error {}
 
@@ -36,6 +37,39 @@ export class RunnerStore {
     const file = await open(temporary, "wx", 0o600);
     try { await file.writeFile(JSON.stringify(record)); await file.sync(); } finally { await file.close(); }
     await rename(temporary, destination);
+  }
+  async readReport(id: string, manifest: ReportManifest): Promise<string> {
+    await this.prepare(); reportManifest(manifest);
+    const path = this.path(id, `.report-${manifest.operation}.json`);
+    const info = await lstat(path);
+    if (!info.isFile() || info.isSymbolicLink() || info.size !== manifest.bytes) throw new Error("Retained report file changed.");
+    const file = await open(path, "r");
+    try {
+      const data = Buffer.alloc(manifest.bytes + 1);
+      let offset = 0;
+      while (offset < data.length) {
+        const result = await file.read(data, offset, data.length - offset, null);
+        if (!result.bytesRead) break;
+        offset += result.bytesRead;
+      }
+      return verifyReportBytes(data.subarray(0, offset), manifest);
+    } finally { await file.close(); }
+  }
+  /** Atomic no-replace publication. Re-import accepts only identical evidence. */
+  async retainReport(id: string, manifest: ReportManifest, text: string): Promise<void> {
+    await this.prepare(); reportManifest(manifest);
+    verifyReportBytes(Buffer.from(text, "utf8"), manifest);
+    const destination = this.path(id, `.report-${manifest.operation}.json`);
+    const temporary = this.path(id, `.${randomUUID()}.tmp`);
+    const file = await open(temporary, "wx", 0o600);
+    try {
+      await file.writeFile(text, "utf8"); await file.sync(); await file.close();
+      try { await link(temporary, destination); }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+        if (await this.readReport(id, manifest) !== text) throw new Error("Retained report cannot be replaced.");
+      }
+    } finally { await file.close(); await unlink(temporary); }
   }
   async exclusive<T>(id: string, action: () => Promise<T>): Promise<T> {
     await this.prepare();

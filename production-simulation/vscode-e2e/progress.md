@@ -42,6 +42,12 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
     prompts, protected dispatch and retained status checks. Successful operation
     manifests remain in history. Finished workers are not accepted as capacity
     or migration passes. CSV dispatch is blocked pending verified upload.
+11. Implemented guest/controller bulk-report export/import with a single bounded
+    data transfer, independent full hash/size verification, private immutable
+    local retention and loss-of-acknowledgement reconciliation. Exact storage
+    ownership and non-anonymous/shared-key-disabled policies are checked before
+    transfer. It remains off in the GUI until reviewed storage/network/RBAC and
+    existing-account capability issuance are connected. No storage was deployed.
 
 Local retained data (ignored by Git):
 
@@ -53,7 +59,8 @@ Local retained data (ignored by Git):
 ## Required execution stages still open
 
 Validation of this foundation: `go test ./...` passed; extension typechecking and
-all 90 unit tests passed. All five GUI-generated source formats passed the actual
+all 99 unit tests passed at the bulk-report checkpoint. Targeted guest/tools
+tests also passed with Go's race detector. All five GUI-generated source formats passed the actual
 Go CLI validator; the contract test is now part of extension CI. These commands
 do not run the Azure P1 GUI scenarios.
 At the preceding checkpoint, nine Linux guest tests passed under Apple Container/Rosetta,
@@ -81,7 +88,7 @@ Windows private-directory and inherited-file ACL checks passed on Windows.
 | Dedicated Azure fixture topology / ownership and cost watchdog | Not deployed |
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
 | P1 local CSV | Prepared; complete canonical comparison passed |
-| R3 remote source configuration, mapping, assessment, upload | Source forms, generated mappings and approved start/status implemented; bulk transfer, schema suggestions and complete assessment evidence remain open |
+| R3 remote source configuration, mapping, assessment, upload | Forms, mappings, approved start/status and bulk-report protocol implemented; report storage/capability/GUI connection, CSV upload, schema suggestions and complete assessment evidence remain open |
 | R4 target deployment and same-VM resize | Implementation required |
 | R5 durable migration / resume / verification controller | Implementation required |
 | Installed VS Code 1.136.1 full GUI branches | Not run |

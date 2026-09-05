@@ -47,6 +47,17 @@ secret values and retain their hash. No source-form data or remote assessment
 payload is passed to an AI tool. CSV transfer, bulk report transfer, remote
 migration and final verification are still not enabled.
 
+The bulk-report implementation (not yet wired to a GUI action) supports a
+workflow-owned, non-anonymous Azure Blob destination with shared-key access
+disabled. It uses separate short-lived create-only/read-only user-delegation
+capabilities, never an ARM bearer token on a Blob request. Capability URLs are
+not retained in local state, sent to the webview/model, or emitted in diagnostics;
+the guest creation capability uses a protected Run Command parameter. Verified
+report bytes are retained in owner-only local files without overwriting previous
+evidence. Reports may still contain sensitive source metadata or sample values:
+secret redaction is not anonymization. Storage/RBAC/network provisioning and
+capability issuance remain required before this transfer is enabled for users.
+
 ## Optional VS Code language model use
 
 AI assistance is optional. When a user invokes the `@agefreighter` participant

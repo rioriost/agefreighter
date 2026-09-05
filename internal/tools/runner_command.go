@@ -33,6 +33,8 @@ func NewRunnerCommand() *cobra.Command {
 			result, err = manager.Status(request.Workflow, request.Operation)
 		case "report":
 			result, err = manager.Report(request.Workflow, request.Operation, request.Offset)
+		case "export-report":
+			result, err = manager.ExportReport(ctx, request)
 		default:
 			return errors.New("unsupported guest operation")
 		}

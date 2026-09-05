@@ -2,6 +2,14 @@
 
 ## 2.4.0
 
+- Add an immutable bulk-report protocol and private local import: exact report
+  identity/size/hash, short-lived single-blob user-delegation capabilities,
+  conditional create-only export, GET-only recovery after uncertain responses,
+  original int64/Unicode JSON bytes and no-replace evidence retention. Validate
+  owned HTTPS/non-anonymous/shared-key-disabled storage before transfer. Storage
+  provisioning, capability issuance and GUI connection are still pending; this
+  is not an Azure P1 pass or an enabled CSV upload/migration feature.
+
 - Add local pre-deployment source drafts and field-based Neo4j/PostgreSQL/Cosmos/
   CSV configuration. Generate read-only table queries, Cosmos explicit/Gremlin
   mappings and typed CSV mappings with a null marker. Add reviewed native-secret

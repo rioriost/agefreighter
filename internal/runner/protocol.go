@@ -30,6 +30,7 @@ type Request struct {
 	Configuration  json.RawMessage   `json:"configuration,omitempty"`
 	Secrets        map[string]string `json:"secrets,omitempty"`
 	Offset         int64             `json:"offset,omitempty"`
+	Export         *ReportExport     `json:"export,omitempty"`
 }
 
 type State struct {
@@ -65,9 +66,18 @@ func Decode(input io.Reader) (Request, error) {
 		return Request{}, errors.New("invalid runner protocol version or operation identity")
 	}
 	switch request.Action {
-	case "ready", "profile", "inventory", "status", "report":
+	case "ready", "profile", "inventory", "status", "report", "export-report":
 	default:
 		return Request{}, errors.New("runner operation is not allowed")
+	}
+	if request.Action == "export-report" {
+		if !safeExportAction(request) {
+			return Request{}, errors.New("invalid report export control")
+		}
+		return request, nil
+	}
+	if request.Export != nil {
+		return Request{}, errors.New("unexpected report export capability")
 	}
 	if request.Action == "ready" || request.Action == "status" || request.Action == "report" {
 		if len(request.Configuration) > 0 || len(request.Secrets) > 0 || request.ExpectedBootID != "" || request.Offset < 0 || request.Action != "report" && request.Offset != 0 {

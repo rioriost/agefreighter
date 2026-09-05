@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,6 +28,7 @@ type Manager struct {
 	Tools         string
 	BootID        func() (string, error)
 	Start         func(context.Context, string) error
+	blobTransport http.RoundTripper // Test seam; production uses standard TLS validation.
 }
 
 func (m Manager) paths(workflow, operation string) (string, string, error) {
@@ -237,20 +239,41 @@ type ArtifactChunk struct {
 }
 
 func (m Manager) Report(workflow, operation string, offset int64) (ArtifactChunk, error) {
-	state, err := m.Status(workflow, operation)
+	data, state, err := m.reportData(workflow, operation)
 	if err != nil {
 		return ArtifactChunk{}, err
 	}
-	if state.Phase != "finished" && state.Phase != "failed" || state.ReportBytes <= 0 || state.ReportBytes > MaxArtifactBytes || offset < 0 || offset >= state.ReportBytes {
+	if offset < 0 || offset >= state.ReportBytes {
 		return ArtifactChunk{}, errors.New("complete report artifact is unavailable or offset invalid")
-	}
-	_, dir, _ := m.paths(workflow, operation)
-	data, err := os.ReadFile(filepath.Join(dir, "report.json"))
-	if err != nil || int64(len(data)) != state.ReportBytes || sum(data) != state.ReportSHA256 {
-		return ArtifactChunk{}, errors.New("report artifact changed")
 	}
 	end := min(offset+ChunkBytes, int64(len(data)))
 	return ArtifactChunk{Version: 1, Operation: operation, Offset: offset, Total: int64(len(data)), SHA256: state.ReportSHA256, Data: base64.StdEncoding.EncodeToString(data[offset:end])}, nil
+}
+
+func (m Manager) reportData(workflow, operation string) ([]byte, State, error) {
+	state, err := m.Status(workflow, operation)
+	if err != nil {
+		return nil, State{}, err
+	}
+	if state.Phase != "finished" && state.Phase != "failed" || state.ReportBytes <= 0 || state.ReportBytes > MaxArtifactBytes {
+		return nil, State{}, errors.New("complete report artifact is unavailable")
+	}
+	_, dir, _ := m.paths(workflow, operation)
+	path := filepath.Join(dir, "report.json")
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Size() != state.ReportBytes {
+		return nil, State{}, errors.New("report artifact changed")
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, State{}, errors.New("report artifact unavailable")
+	}
+	defer f.Close()
+	data, err := io.ReadAll(io.LimitReader(f, MaxArtifactBytes+1))
+	if err != nil || int64(len(data)) != state.ReportBytes || sum(data) != state.ReportSHA256 {
+		return nil, State{}, errors.New("report artifact changed")
+	}
+	return data, state, nil
 }
 
 func unitName(operation string) string { return "agefreighter-assessment-" + operation + ".service" }

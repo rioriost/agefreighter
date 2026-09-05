@@ -8,6 +8,7 @@ on:
       - "internal/cli/root_test.go"
       - "internal/config/**"
       - "internal/runner/**"
+      - "internal/tools/runner_command.go"
       - "go.mod"
       - "go.sum"
       - "docs/reference/vscode-extension*.md"
@@ -23,6 +24,7 @@ on:
       - "internal/cli/root_test.go"
       - "internal/config/**"
       - "internal/runner/**"
+      - "internal/tools/runner_command.go"
       - "go.mod"
       - "go.sum"
       - "docs/reference/vscode-extension*.md"
@@ -77,6 +79,8 @@ jobs:
         working-directory: extensions/vscode
       - name: Build real CLI for configuration contract tests
         run: go build -o "$RUNNER_TEMP/agefreighter-source-contract" ./cmd/agefreighter
+      - name: Test Linux guest protocol and immutable report transfer
+        run: go test -race ./internal/runner ./internal/tools
       - name: Validate all GUI source formats with the Go engine
         working-directory: extensions/vscode
         env:

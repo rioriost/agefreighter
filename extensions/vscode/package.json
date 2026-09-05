@@ -178,7 +178,7 @@
     "viewsWelcome": [
       {
         "view": "agefreighter.jobs",
-        "contents": "Select a source, then review a private Linux discovery/migration VM. Use your existing Azure login; no desktop CLI or project folder is required to open the wizard.\n[New guided migration](command:agefreighter.newGuidedMigration)\nThis preview supports runner planning and approval-gated provisioning. Remote assessment and migration are not enabled yet.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
+        "contents": "Select a source, then review a private Linux discovery/migration VM. Use your existing Azure login; no desktop CLI or project folder is required to open the wizard.\n[New guided migration](command:agefreighter.newGuidedMigration)\nThis preview supports source forms, runner planning, approval-gated provisioning and remote assessment controls. CSV transfer and end-to-end migration remain unavailable.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
       }
     ],
     "menus": {

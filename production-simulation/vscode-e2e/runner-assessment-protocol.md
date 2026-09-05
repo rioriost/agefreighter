@@ -15,7 +15,7 @@ Do not delete a pending managed Run Command to make retry possible.
 
 The guest accepts only protocol version 1 and UUID workflow/operation IDs through
 `agefreighter-tools runner dispatch`. The allowlist is `ready`, `profile`,
-`inventory`, `status`, and `report`. There is no shell, load, resume, cleanup,
+`inventory`, `status`, `report`, and `export-report`. There is no shell, load, resume, cleanup,
 provisioning, or arbitrary executable action in this protocol.
 
 Before assessment, readiness checks the bootstrap marker, retained archive hash,
@@ -60,8 +60,9 @@ automatic repair or lease-deletion operation is deliberately not provided yet.
 The report control supports 1,536-byte chunks with operation ID, offset, total
 length and full SHA-256. Client assembly checks all chunks and the full hash.
 This is a bounded diagnostic fallback, not a practical bulk transport: a 4 MiB
-report would require 2,731 control calls. Implement reviewed private artifact
-storage/transfer before GUI P1 qualification; do not use this path for CSV files.
+report would require 2,731 control calls. The bulk report protocol below avoids
+that fan-out. Reviewed storage provisioning/capability issuance and GUI wiring
+remain required before P1 qualification; do not use diagnostic chunks for CSV.
 Managed Run Command instance-view output has a 4 KB limit; ARM provisioning
 success is separate from script execution success.
 [Microsoft documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/run-command-managed).
@@ -94,3 +95,55 @@ bulk upload/report transport; exact PG/Cosmos/CSV totals with explicit scan/RU
 bounds; reviewed custom CA installation for private sources; then R4 target
 deployment/resize and R5 durable migration/verification. CSV execution and target
 mutations remain disabled pending these gates.
+
+## Bulk report transfer implementation checkpoint
+
+The guest and controller now implement a complete-report data path (up to 4 MiB),
+separate from Run Command's short acknowledgement. This path is **not yet exposed
+in the wizard**: creating the reviewed storage/RBAC/network topology and issuing
+user-delegation capabilities from the existing VS Code account are still open.
+No storage account was created to test it and no arbitrary SAS input is exposed.
+
+1. The controller binds a terminal assessment's independent byte length/SHA-256
+   to the retained workflow/operation. It checks the deterministic storage account
+   in the same subscription/RG/region through ARM: workflow ownership tags,
+   completed provisioning, HTTPS, TLS 1.2 or higher, disabled anonymous Blob access
+   and disabled shared-key access. The exact workflow container must explicitly
+   return `publicAccess: None`. These are read-only checks; no policy is changed.
+2. A future approved credential provider supplies two separate, ephemeral
+   **user-delegation** capabilities: `c` for guest creation, `r` for desktop reads.
+   Both must be HTTPS-only and restricted to exactly
+   `af-<workflow>/reports/<operation>.json`, not a container. Expiry is at most
+   15 minutes ahead with at most five minutes of start-time skew. Unknown query
+   fields, duplicates, alternate hosts/ports, redirects and broader rights fail
+   closed. SAS validation is a client policy check; Azure validates the signature.
+3. Export intent (destination **without** credentials, operation, bytes, hash) is
+   persisted before PUT. The create capability goes only through the protected
+   Run Command parameter. The guest rechecks the local report before one bounded
+   conditional `Put Blob` (`If-None-Match: *`). It does not overwrite, retry,
+   re-profile, change the source operation, or include service errors/URLs in output.
+4. A lost response is reconciled by GET, never by repeating the export. The
+   controller can import a matching destination even when the acknowledgement
+   was lost, but cannot use this to clear an uncertain ARM command. A missing or
+   rejected export remains unresolved; automatic retry/repair is not implemented.
+5. One bounded authenticated GET reads at most the independently expected bytes,
+   checks UTF-8/JSON plus full SHA-256, and atomically retains the original JSON
+   bytes in private extension storage. Re-import accepts identical evidence;
+   changed existing evidence is never overwritten. Parsing and re-serializing
+   would lose some int64 values, so the retained bytes are not reconstructed from
+   JavaScript numbers. An imported report is **not** a sizing or migration pass.
+
+Storage here is non-anonymous, authenticated Blob storage; it is not a claim of
+private-endpoint network isolation. Endpoint reachability, network restrictions,
+least-privilege role grants and storage costs require the separate approved
+topology before enabling this path. Full CSV/block transfer is also still open.
+
+Reviewed API basis: [Put Blob](https://learn.microsoft.com/en-us/rest/api/storageservices/put-blob),
+[conditional headers](https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations),
+and [user delegation SAS](https://learn.microsoft.com/en-us/rest/api/storageservices/create-user-delegation-sas).
+
+Local tests exercise exact bytes, int64/Unicode, strict capability scope/lifetime,
+one conditional PUT, redirects, ambiguous responses, changed manifests/files,
+symlinks, truncated/oversized responses, atomic no-replace import, private ACLs,
+and foreign/public/shared-key-enabled storage rejection. They are not live Azure
+RBAC, SAS signature or VM-agent qualification.
