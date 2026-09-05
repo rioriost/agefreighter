@@ -83,6 +83,15 @@ on commit `75f7885d2d4d31bd778870be3866191d027730c6` passed all six jobs:
 contracts, the Extension Host suite, and VSIX packaging. In particular, the
 Windows private-directory and inherited-file ACL checks passed on Windows.
 
+At the bulk-report checkpoint, [CI run 33954366675](https://github.com/rioriost/agefreighter/actions/runs/33954366675)
+on commit `67ff793b8e00efd2096e290b1541a37461d81f9d` passed all six jobs.
+Each of Linux, Windows and macOS passed 99 extension tests. The Linux job also
+ran guest/tools tests with the race detector and validated all five source
+configuration formats through the real CLI. Extension Host and packaging passed.
+MacStudio's actual VS Code 1.136.1 separately passed all three isolated host
+smoke tests after this change, and the matching VSIX was installed. None of
+these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration.
+
 | Stage | Current status |
 |---|---|
 | Dedicated Azure fixture topology / ownership and cost watchdog | Not deployed |
@@ -98,7 +107,7 @@ The current installed preview must not be described as an end-to-end migration
 product. The new local tests and fixture digest are not GUI/Azure qualifications.
 The updated preview VSIX was installed into MacStudio's VS Code 1.136.1. The
 installed and built JavaScript bundles have matching SHA-256:
-`f86998718c9d60f6f419e9bdca0f3db691d23b9102457f580d0b65350d8b8b63`.
+`94e979de2bda4bfefde2216832d5739bb4720aa247a7193ede5947e4a99b3176`.
 An already-open extension host needs a window reload to pick up this build.
 No Marketplace publication was performed here.
 
