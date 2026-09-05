@@ -81,7 +81,7 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           const manifest = record.csvTransfers?.find(item => item.phase === "uploaded");
           if (!manifest) throw new Error("No uploaded CSV is awaiting import. Failed/interrupted imports require evidence review; they are never replayed automatically.");
           const confirmed = await vscode.window.showWarningMessage("Download and verify this CSV on the Linux runner?", { modal: true,
-            detail: `${record.sourceFiles?.find(item => item.id === manifest.file)?.name}\n${manifest.bytes} bytes; SHA-256 ${manifest.sha256}\n${record.vmId}\nFull hashing and the 80% disk gate are required. No source assessment or migration starts. Check fresh guest readiness first.` }, "Import and seal CSV");
+            detail: `${record.sourceFiles?.find(item => item.id === manifest.file)?.name}\n${manifest.bytes} bytes; SHA-256 ${manifest.sha256}\n${record.vmId}\n${manifest.rejectedImports?.length ? "A prior request was rejected by the guest decoder before execution; its evidence is retained. This approves a new corrected request.\n" : ""}Full hashing and the 80% disk gate are required. No source assessment or migration starts. Check fresh guest readiness first.` }, "Import and seal CSV");
           if (confirmed !== "Import and seal CSV" || disposed) break;
           const next = await store.exclusive(workflow, async () => { const current = await store.read(workflow); return startCSVImport(control, current, manifest, await services.csvCapability(current, manifest)); });
           reviewedHash = undefined; await initialize(next); break;

@@ -16,7 +16,9 @@ export function csvAssessmentReady(record: RunnerRecord): boolean {
 }
 
 export async function startCSVImport(control: RunnerControl, record: RunnerRecord, manifest: CSVManifest, capability: string): Promise<RunnerRecord> {
-  validateCSVManifest(manifest); csvCapability(capability, record.id, manifest.file, manifest.sha256);
+  // A CSVTransfer is structurally a CSVManifest, but includes controller-only
+  // phase/history fields. The strict Go decoder must receive only the wire DTO.
+  manifest = validateCSVManifest(manifest); csvCapability(capability, record.id, manifest.file, manifest.sha256);
   const retained = record.csvTransfers?.find(item => item.file === manifest.file);
   if (record.input.source.type !== "csv" || !record.sourceFiles?.some(item => item.id === manifest.file) || retained?.phase !== "uploaded" || retained.bytes !== manifest.bytes || retained.sha256 !== manifest.sha256) throw new Error("Only a reviewed uploaded CSV can be imported.");
   if (record.csvTransfers?.some(item => ["submitted", "unknown", "interrupted"].includes(item.phase))) throw new Error("Reconcile the retained CSV import before starting another.");
@@ -29,6 +31,22 @@ export async function startCSVImport(control: RunnerControl, record: RunnerRecor
 export async function refreshCSVImport(control: RunnerControl, record: RunnerRecord): Promise<RunnerRecord> {
   const transfer = record.csvTransfers?.find(item => ["submitted", "unknown"].includes(item.phase));
   if (!transfer?.operation) throw new Error("No retained CSV import to refresh.");
+  // A proven decoder rejection precedes operation creation or source reads.
+  // Retain the rejected command and permit a NEW user-approved attempt, never
+  // replaying the failed request. All other failures stay reconciliation-only.
+  const command = record.guestCommand;
+  if (command?.phase === "failed" && command.action === "import-csv" && command.operation === transfer.operation &&
+      command.id.startsWith(`${record.vmId}/runCommands/af-`) && /^[a-f0-9-]{36}$/.test(command.id.slice(`${record.vmId}/runCommands/af-`.length))) {
+    const response = await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01&$expand=instanceView`);
+    const view = response.status === 200 ? object(object(object(response.value).properties).instanceView) : {};
+    if (view.executionState === "Failed" && view.exitCode === 1 && view.output === "" && view.error === "invalid runner request\n") {
+      const next: RunnerRecord = { ...record, csvTransfers: record.csvTransfers!.map(item => item.file === transfer.file ? {
+        ...item, phase: "uploaded", operation: undefined,
+        rejectedImports: [...item.rejectedImports ?? [], { operation: command.operation, commandId: command.id, reason: "protocol-rejected-before-execution" as const }]
+      } : item) };
+      await control.persist(next); return next;
+    }
+  }
   if (!record.guestCommand || !["submitted", "unknown"].includes(record.guestCommand.phase)) return dispatchGuest(control, record, { version: 1, workflow: record.id, operation: transfer.operation, action: "status" });
   if (record.guestCommand.operation !== transfer.operation || !["import-csv", "status"].includes(record.guestCommand.action)) throw new Error("Reconcile the other guest command first.");
   const checked = await reconcileGuest(control, record);

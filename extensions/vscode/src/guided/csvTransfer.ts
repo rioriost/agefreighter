@@ -9,6 +9,7 @@ export interface CSVManifest { file: string; bytes: number; sha256: string }
 export interface CSVTransfer extends CSVManifest {
   phase: "prepared" | "uploaded" | "submitted" | "unknown" | "verified" | "failed" | "interrupted";
   operation?: string;
+  rejectedImports?: { operation: string; commandId: string; reason: "protocol-rejected-before-execution" }[];
 }
 const blockBytes = 8 * 1024 * 1024;
 export const maxCSVBytes = 2 * 1024 * 1024 * 1024;
