@@ -15,7 +15,7 @@ function fixture() {
   const control:RunnerControl={list:async()=>[],sleep:async()=>{},persist:async r=>{events.push("persist");saved.push(structuredClone(r));},request:async(_sub,_path,method="GET")=>{
     events.push(method);
     if(method==="PUT"){if(fail)throw new Error("lost response");return{status:201,value:{}};}
-    if(method==="POST"){const names=reportStorageNames(r);return{status:200,value:{status:"Succeeded",changes:[names.id,names.containerId,r.storageDeployment!.roleId,...extra?["/foreign"]:[]].map(resourceId=>({resourceId,changeType:"Create"}))}};}
+    if(method==="POST"){const names=reportStorageNames(r);return{status:200,value:{status:"Succeeded",properties:{changes:[names.id,names.containerId,r.storageDeployment!.roleId,...extra?["/foreign"]:[]].map(resourceId=>({resourceId,changeType:"Create"}))}}};}
     return existing?{status:200,value:{properties:{provisioningState:state}}}:{status:404,value:{}};
   }};
   return{r,control,events,saved,fail:()=>{fail=true;},exists:()=>{existing=true;},extra:()=>{extra=true;},state:(s:string)=>{state=s;}};

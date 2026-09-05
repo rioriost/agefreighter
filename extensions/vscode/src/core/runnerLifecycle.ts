@@ -75,7 +75,7 @@ export async function whatIfRunner(control: RunnerControl, record: RunnerRecord)
   });
   for (let attempt = 0; attempt < 30; attempt++) {
     const value = object(response.value);
-    if (value.status === "Succeeded" && Array.isArray(value.changes)) { validateWhatIf(value, ids); return; }
+    if (value.status === "Succeeded") { validateWhatIf(value, ids); return; }
     if (value.status === "Failed" || value.status === "Canceled" || !response.poll) throw new Error("Azure what-if did not produce a complete change review.");
     await control.sleep(2000);
     const poll = response.poll;

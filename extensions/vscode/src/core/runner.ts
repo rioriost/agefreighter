@@ -187,9 +187,10 @@ export function assertFreshPreview(record: RunnerRecord, now = Date.now()): void
 
 export function validateWhatIf(value: unknown, allowedIds: string[]): void {
   const root = object(value);
-  if (root.status !== "Succeeded" || !Array.isArray(root.changes)) throw new Error("Azure what-if did not complete successfully.");
+  const properties = root.properties && typeof root.properties === "object" && !Array.isArray(root.properties) ? object(root.properties) : {};
+  if (root.status !== "Succeeded" || root.error || !Array.isArray(properties.changes)) throw new Error("Azure what-if did not produce a complete change review.");
   const expected = new Set(allowedIds.map(id => id.toLowerCase()));
-  for (const raw of root.changes) {
+  for (const raw of properties.changes) {
     const change = object(raw);
     if (typeof change.resourceId !== "string" || !expected.has(change.resourceId.toLowerCase()) || change.changeType !== "Create") throw new Error("What-if contains an unexpected or existing resource. No deployment is permitted.");
     expected.delete(change.resourceId.toLowerCase());

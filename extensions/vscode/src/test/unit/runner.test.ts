@@ -43,7 +43,7 @@ function fixture() {
     request: async (_sub, path, method = "GET") => {
       events.push(`${method}:${path}`);
       if (method === "PUT") { if (failPut) throw new Error("connection lost after acceptance"); return { status: 201, value: {} }; }
-      if (path.includes('/whatIf?')) return { status: 200, value: { status: "Succeeded", changes: deploymentResources(record()).map(resourceId => ({ resourceId, changeType: "Create" })) } };
+      if (path.includes('/whatIf?')) return { status: 200, value: { status: "Succeeded", properties: { changes: deploymentResources(record()).map(resourceId => ({ resourceId, changeType: "Create" })) } } };
       if (path.startsWith(input.subnetId+'?')) return { status: 200, value: { properties: { delegations: [] } } };
       if (path.includes('/virtualNetworks/test?')) return { status: 200, value: { location: input.region } };
       if (path.startsWith(base+'?')) return { status: 200, value: {} };
@@ -106,11 +106,13 @@ test("stale, modified, redirected and replayed previews fail closed", () => {
 test("what-if accepts exactly the reviewed creates, never modifies or deletes", () => {
   const ids = deploymentResources(record());
   const changes = ids.map(resourceId => ({ resourceId, changeType: "Create" }));
-  validateWhatIf({ status: "Succeeded", changes }, ids);
-  for (const changeType of ["Modify", "Delete", "NoChange", "Ignore"]) assert.throws(() => validateWhatIf({ status: "Succeeded", changes: changes.map(c => ({ ...c, changeType })) }, ids));
-  assert.throws(() => validateWhatIf({ status: "Succeeded", changes: [] }, ids));
-  assert.throws(() => validateWhatIf({ status: "Succeeded", changes: [...changes, changes[0]] }, ids));
-  assert.throws(() => validateWhatIf({ status: "Running", changes }, ids));
+  validateWhatIf({ status: "Succeeded", properties: { changes } }, ids);
+  for (const changeType of ["Modify", "Delete", "NoChange", "Ignore"]) assert.throws(() => validateWhatIf({ status: "Succeeded", properties: { changes: changes.map(c => ({ ...c, changeType })) } }, ids));
+  assert.throws(() => validateWhatIf({ status: "Succeeded", properties: { changes: [] } }, ids));
+  assert.throws(() => validateWhatIf({ status: "Succeeded", properties: { changes: [...changes, changes[0]] } }, ids));
+  assert.throws(() => validateWhatIf({ status: "Running", properties: { changes } }, ids));
+  assert.throws(() => validateWhatIf({ status: "Succeeded", changes }, ids));
+  assert.throws(() => validateWhatIf({ status: "Succeeded", properties: { changes }, error: { code: "Failed" } }, ids));
 });
 test("discovery preflight checks region, zone, delegation and both quotas", async () => {
   await preflightRunner(fixture().control, input);
@@ -156,7 +158,7 @@ test("pending what-if is polled without re-POSTing and incomplete evidence block
   let posts = 0;
   f.control.request = async (...args) => {
     if (args[2] === 'POST') { posts++; return { status: 202, value: {}, poll }; }
-    if (args[1] === poll) return { status: 200, value: { status: "Succeeded", changes: deploymentResources(record()).map(resourceId => ({ resourceId, changeType: "Create" })) } };
+    if (args[1] === poll) return { status: 200, value: { status: "Succeeded", properties: { changes: deploymentResources(record()).map(resourceId => ({ resourceId, changeType: "Create" })) } } };
     return request(...args);
   };
   await whatIfRunner(f.control, record()); assert.equal(posts, 1);
