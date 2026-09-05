@@ -10,9 +10,23 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
   **2026-09-09T08:55:00Z**. No old P3 authorization or result is substituted.
 - Created dedicated `rg-af-vscode-p1-20260905-a` in Japan East and its tagged
   `vnet-af-vscode-p1` / `runner` compute subnet. Both provisioning states succeeded.
-  No compute, disks, Flexible Server or Cosmos resources have been created.
-  Compute remains gated on the cost/deadline watchdog and
-  explicit outbound/network review. Private run metadata retains exact IDs.
+  The first one-VM Linux trial was submitted through the installed GUI at
+  **2026-09-05T12:48:08Z**, after the user approved the pinned development build.
+  No Flexible Server or Cosmos resources have been created. Private run metadata
+  retains exact IDs; ARM completion is not a guest or migration pass.
+  Initial reserve remains **25 USD**. B2s_v2 Linux compute is 0.109 USD/hour;
+  Standard NAT is 0.045 USD/hour plus 0.045 USD/GB, and its Standard public IP
+  is 0.005 USD/hour. At most 92 remaining hours plus a 10 USD disk/data reserve
+  fits the initial ceiling. The global 800 USD / 96-hour limits are unchanged.
+  A bounded pre-creation setup watcher installs a 16:00 UTC Azure daily shutdown
+  on the exact owned VM once it exists, or deallocates it if setup fails.
+- Corrected an initial preflight interpretation: `defaultOutboundAccess=false`
+  **disables** implicit egress ([Azure documentation](https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/default-outbound-access)).
+  Created zone-1 Standard NAT `nat-af-vscode-p1-egress` and its public IP on the
+  task's runner subnet; no VM public IP, ingress rule, peering or source firewall
+  change was made. No exception tag was applied to either network resource.
+  NAT/IP incur charges even with the VM stopped; retain them within the same
+  deadline/cost gate until later qualification or separately authorized cleanup.
 - Actual installed VS Code 1.136.1 GUI selected CSV/local, enumerated the existing
   Azure Resources account, and selected the authorized subscription and dedicated
   resource group. This is account/placement evidence, not an Azure migration pass.
@@ -44,8 +58,7 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
   Regression tests cover scopes, refresh and missing/foreign sessions. The GUI
   retry uploaded **all 18 files / 1,168,576,671 bytes**, and independent full-byte
   authenticated readback matched every size and SHA-256 at **10:17:36Z**.
-  See [retained transfer evidence](csv-transfer-20260905.json). No development
-  archive or guest execution has occurred. Anonymous read was separately rejected
+  See [retained transfer evidence](csv-transfer-20260905.json). Anonymous read was separately rejected
   (HTTP 409), while the signed-in user's readback succeeded.
 - Source servers were not prepared; preparing dedicated sources is authorized.
 
@@ -109,6 +122,16 @@ Updated: 2026-09-05. Overall outcome: **not yet qualified**.
     fail review. Restored drafts now restore source/placement fields. Added
     shallow, bounded CSV-folder selection and explicit storage-network status
     with a pre-transfer stop for disabled/perimeter-restricted public access.
+15. The Linux trial GUI exposed a real Retail Prices ambiguity: Bsv2 Cloud
+    Services shares `serviceName=Virtual Machines` and the ARM SKU with ordinary
+    Linux compute. Excluded that distinct product without selecting arbitrarily
+    among ambiguous Linux meters. All **117 unit tests**, typecheck, packaging,
+    and CI **33966950563** passed on `050ee1f`; installed bundle hash is
+    `31d154d7bb2d00b0ee87b6d26f4b1db2078e54a66123c30774cf374f84296b72`.
+    The GUI then displayed the unique 0.109 USD/hour price and passed what-if.
+    The guest build remains the separately approved `6ff072c0db71` archive,
+    SHA-256 `5fee11ec3fde605ef7e18afaa56131862113348de8ddcb8bc37b52aba1c3620b`;
+    no release/Marketplace publication was made.
 
 Local retained data (ignored by Git):
 

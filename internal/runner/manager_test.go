@@ -65,7 +65,13 @@ func TestReadinessRequiresBootstrapAndMatchingInstallation(t *testing.T) {
 
 func testManager(t *testing.T) (Manager, Request, *int) {
 	t.Helper()
-	dir := t.TempDir()
+	// macOS exposes TempDir through /var -> /private/var. The production
+	// containment check correctly compares canonical paths; model a canonical
+	// Linux runner root without relaxing the real symlink-escape protection.
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	root := filepath.Join(dir, "workflows")
 	units := filepath.Join(dir, "units")
 	if err := os.Mkdir(units, 0700); err != nil {
