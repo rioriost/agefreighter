@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/rioriost/agefreighter/internal/config"
 )
 
 func testMigrationDSN() string {
@@ -131,5 +133,44 @@ func TestMigrationSafetyGatesBlockBeforeLeaseOrStart(t *testing.T) {
 		if _, err := m.Submit(context.Background(), req); err == nil || *starts != 0 {
 			t.Fatal("unsafe guest started migration")
 		}
+	}
+}
+
+func TestNeo4jMigrationRequiresReviewedSourceAndBothProtectedCredentials(t *testing.T) {
+	m, request, _ := testManager(t)
+	data, err := os.ReadFile("../config/testdata/valid/neo4j-discovery.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err := config.Parse(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	job.Source.Neo4j.Password = &config.SecretRef{Env: "AGEFREIGHTER_SOURCE_PASSWORD"}
+	job.Target.Connection = config.SecretRef{Env: "AGEFREIGHTER_TARGET_DSN"}
+	job.Target.Mode = config.LoadCreate
+	request.Action = "migrate-source"
+	request.Configuration, _ = json.Marshal(job)
+	request.Secrets = map[string]string{
+		"AGEFREIGHTER_SOURCE_PASSWORD": "source-secret",
+		"AGEFREIGHTER_TARGET_DSN":      testMigrationDSN(),
+	}
+	if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err != nil {
+		t.Fatal(err)
+	}
+	delete(request.Secrets, "AGEFREIGHTER_SOURCE_PASSWORD")
+	if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err == nil {
+		t.Fatal("missing Neo4j credential accepted")
+	}
+	request.Secrets["AGEFREIGHTER_SOURCE_PASSWORD"] = "source-secret"
+	request.Secrets["AGEFREIGHTER_SOURCE_DSN"] = "unexpected"
+	if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err == nil {
+		t.Fatal("unexpected credential accepted")
+	}
+	delete(request.Secrets, "AGEFREIGHTER_SOURCE_DSN")
+	job.Source.Type = config.SourceCSV
+	request.Configuration, _ = json.Marshal(job)
+	if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err == nil {
+		t.Fatal("non-Neo4j network migration accepted")
 	}
 }

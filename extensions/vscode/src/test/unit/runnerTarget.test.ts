@@ -3,7 +3,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { sourceWorkflowDraft, RunnerRecord } from "../../core/runner";
-import { csvTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, submitTarget, refreshTarget, targetResourceIds, TargetInput } from "../../core/runnerTarget";
+import { csvTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, submitTarget, refreshTarget, targetResourceIds, TargetInput } from "../../core/runnerTarget";
 import { RunnerControl } from "../../core/runnerLifecycle";
 const id="11111111-1111-4111-8111-111111111111",op="22222222-2222-4222-8222-222222222222",file="33333333-3333-4333-8333-333333333333";
 const sha=(v:string)=>createHash("sha256").update(v).digest("hex");
@@ -27,6 +27,20 @@ test("target evidence consumes the real complete CSV report with all 18 mapped l
   assert.equal(e.rows,"5600000");assert.equal(Object.keys(e.labels).length,18);assert.equal(e.labels["v.Carrier"],1000);assert.equal(e.labels["e.CONTAINS"],1000000);
   assert.throws(()=>csvTargetEvidence(r,text+" "),/Import/);
   r.sourceDraft!.configuration.extra="changed";assert.throws(()=>csvTargetEvidence(r,text),/Import/);
+});
+test("Neo4j target evidence uses exact count-store totals and a conservative storage bound",()=>{
+  const r=sourceWorkflowDraft(id,{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:`/subscriptions/${id}/resourceGroups/test/providers/Microsoft.Network/virtualNetworks/net/subnets/runner`,size:"Standard_B2s_v2",source:{type:"neo4j",location:"azure",resourceId:`/subscriptions/${id}/resourceGroups/test/providers/Microsoft.Compute/virtualMachines/source`}});
+  r.phase="provisioned";r.artifact={version:"dev",sha256:"a".repeat(64),url:"https://example.invalid"};
+  const configuration={source:{type:"neo4j",neo4j:{uri:"neo4j+s://source.internal:7687",database:"neo4j"}}};
+  r.sourceDraft={configuration,canAssess:true,warnings:[],form:{} as any};
+  const doc={schemaVersion:1,command:"inventory",agefreighterVersion:"dev",outcome:"pass",errors:[],incompleteChecks:[],checks:[{id:"source-counts",status:"pass"}],sections:[{title:"Source inventory",fields:[{name:"vertices",value:"1600000"},{name:"edges",value:"4000000"},{name:"totalRows",value:"5600000"},{name:"countMethod",value:"neo4j-transactional-count-store"}]}]};
+  const text=JSON.stringify(doc),h=sha(text);
+  r.assessment={operation:op,action:"inventory",phase:"finished",configurationSHA256:sha(JSON.stringify(configuration)),bootId:file,reportSHA256:h,reportBytes:Buffer.byteLength(text)};
+  r.reportTransfers=[{operation:op,sha256:h,bytes:Buffer.byteLength(text),blob:"retained",phase:"imported"}];
+  const evidence=neo4jTargetEvidence(r,text);
+  assert.equal(evidence.sourceType,"neo4j");assert.equal(evidence.rows,"5600000");assert.equal(evidence.vertices,"1600000");assert.equal(evidence.edges,"4000000");
+  assert.equal(evidence.storageHighBytes,(5600000n*16384n).toString());assert.deepEqual(Object.keys(evidence.labels),[]);
+  assert.throws(()=>neo4jTargetEvidence(r,text+" "),/Import/);
 });
 test("incomplete, wrong version, duplicate and wrong-source reports cannot size a target",()=>{
   for(const mutate of [(d:any)=>{d.outcome="incomplete";},(d:any)=>{d.agefreighterVersion="other";},(d:any)=>{d.command="profile";},(d:any)=>{d.sections.find((s:any)=>s.title==="Mapped record counts").fields.push(d.sections.find((s:any)=>s.title==="Mapped record counts").fields[0]);}]){

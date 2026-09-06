@@ -85,8 +85,8 @@ func TestReadinessRequiresBootstrapAndMatchingInstallation(t *testing.T) {
 	if err != nil || !r.Ready || r.ArchiveSHA256 != strings.Repeat("a", 64) {
 		t.Fatalf("%#v %v", r, err)
 	}
-	if len(r.Capabilities) != 2 || r.Capabilities[0] != "csv-inventory-v1" || r.Capabilities[1] != "csv-migration-v1" {
-		t.Fatalf("missing complete CSV inventory capability: %#v", r)
+	if len(r.Capabilities) != 3 || r.Capabilities[0] != "csv-inventory-v1" || r.Capabilities[1] != "csv-migration-v1" || r.Capabilities[2] != "neo4j-migration-v1" {
+		t.Fatalf("missing reviewed migration capability: %#v", r)
 	}
 }
 

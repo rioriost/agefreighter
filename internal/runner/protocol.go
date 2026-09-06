@@ -72,7 +72,7 @@ func Decode(input io.Reader) (Request, error) {
 		return Request{}, errors.New("invalid runner protocol version or operation identity")
 	}
 	switch request.Action {
-	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv":
+	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source":
 	default:
 		return Request{}, errors.New("runner operation is not allowed")
 	}
@@ -114,15 +114,28 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 	if job.Trial != nil {
 		return nil, errors.New("trial writes are not supported by assessment")
 	}
-	if request.Action == "migrate-csv" {
-		if job.Source.Type != config.SourceCSV || job.Target.Type != config.TargetApacheAGE || job.Target.Mode != config.LoadCreate || job.Target.Connection.Env != "AGEFREIGHTER_TARGET_DSN" {
-			return nil, errors.New("remote migration requires a reviewed CSV create-mode AGE job")
+	if request.Action == "migrate-csv" || request.Action == "migrate-source" {
+		if job.Target.Type != config.TargetApacheAGE || job.Target.Mode != config.LoadCreate || job.Target.Connection.Env != "AGEFREIGHTER_TARGET_DSN" {
+			return nil, errors.New("remote migration requires a reviewed create-mode AGE job")
+		}
+		if request.Action == "migrate-csv" && job.Source.Type != config.SourceCSV {
+			return nil, errors.New("CSV migration requires a reviewed CSV source")
+		}
+		if request.Action == "migrate-source" && job.Source.Type != config.SourceNeo4j {
+			return nil, errors.New("network migration currently requires a reviewed Neo4j source")
 		}
 		if _, err := migrationConnection(request.Secrets["AGEFREIGHTER_TARGET_DSN"]); err != nil {
 			return nil, err
 		}
-		if len(request.Secrets) != 1 {
-			return nil, errors.New("CSV migration accepts only the target credential")
+		expectedSecrets := 1
+		if job.Source.Type == config.SourceNeo4j {
+			expectedSecrets = 2
+			if job.Source.Neo4j == nil || job.Source.Neo4j.Password == nil || job.Source.Neo4j.Password.Env != "AGEFREIGHTER_SOURCE_PASSWORD" || request.Secrets["AGEFREIGHTER_SOURCE_PASSWORD"] == "" {
+				return nil, errors.New("Neo4j migration requires the protected source credential")
+			}
+		}
+		if len(request.Secrets) != expectedSecrets {
+			return nil, errors.New("migration received an unexpected credential set")
 		}
 	}
 	refs := []config.SecretRef{job.Target.Connection}
@@ -216,7 +229,7 @@ func Arguments(action, path string) ([]string, error) {
 		return []string{"profile", path, "--mode", "sample", "--sample-size", "10000", "--format", "json"}, nil
 	case "inventory":
 		return []string{"inventory", path, "--format", "json"}, nil
-	case "migrate-csv":
+	case "migrate-csv", "migrate-source":
 		return nil, nil // Fixed prepare/load/verify sequence, not arbitrary arguments.
 	default:
 		return nil, errors.New("runner cannot execute this action")

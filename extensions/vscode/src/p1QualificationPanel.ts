@@ -76,7 +76,7 @@ export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerCo
     const latest=await store.read(id);assertIdleHealth(latest);targetBudget(latest.target!.input);
     if(latest.p1Qualification||latest.migration?.jobId!==r.migration!.jobId||latest.migration.verification?.outcome!=="pass"||latest.guestCommand&&["submitted","unknown"].includes(latest.guestCommand.phase))throw new Error("Qualification state changed; reconcile before submission.");
     const s=await control.request(latest.input.subscriptionId,`${latest.target!.serverId}?api-version=2024-08-01`),v=object(s.value),t=object(v.tags);
-    if(s.status!==200||t.workflow!==id||t.application!=="agefreighter"||t.purpose!=="csv-migration-target"||object(v.properties).state!=="Ready")throw new Error("Target ownership/readiness changed.");
+    if(s.status!==200||t.workflow!==id||t.application!=="agefreighter"||!["migration-target","csv-migration-target"].includes(String(t.purpose))||object(v.properties).state!=="Ready")throw new Error("Target ownership/readiness changed.");
     await verifyTransferStorage(control,latest);
     if((await control.list(latest.input.subscriptionId,`${latest.vmId}/runCommands?api-version=2024-07-01`)).length>=25)throw new Error("Archive completed ARM receipts before qualification.");
     await azure.uploadRunnerArchive(latest,path,manifest);

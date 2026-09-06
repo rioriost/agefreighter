@@ -60,7 +60,7 @@ func (m Manager) Ready(ctx context.Context) (Readiness, error) {
 	if err != nil {
 		return Readiness{}, err
 	}
-	return Readiness{Version: 1, OS: runtime.GOOS, Architecture: runtime.GOARCH, BootID: boot, CLIVersion: version.Current().Version, Commit: version.Current().Commit, ArchiveSHA256: sha, Ready: true, Capabilities: []string{"csv-inventory-v1", "csv-migration-v1"}, Health: health}, nil
+	return Readiness{Version: 1, OS: runtime.GOOS, Architecture: runtime.GOARCH, BootID: boot, CLIVersion: version.Current().Version, Commit: version.Current().Commit, ArchiveSHA256: sha, Ready: true, Capabilities: []string{"csv-inventory-v1", "csv-migration-v1", "neo4j-migration-v1"}, Health: health}, nil
 }
 
 type GuestHealth struct {

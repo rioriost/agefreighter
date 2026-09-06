@@ -67,7 +67,7 @@ func (m Manager) Submit(ctx context.Context, request Request) (State, error) {
 	if err := privateDirectory(root); err != nil {
 		return State{}, err
 	}
-	if request.Action == "migrate-csv" {
+	if request.Action == "migrate-csv" || request.Action == "migrate-source" {
 		probe := m.health
 		if m.healthProbe != nil {
 			probe = m.healthProbe
@@ -84,7 +84,7 @@ func (m Manager) Submit(ctx context.Context, request Request) (State, error) {
 		return State{}, errors.New("workflow has an active or unreconciled operation")
 	}
 	state := State{Version: 1, Workflow: request.Workflow, Operation: request.Operation, Action: request.Action, Phase: "accepted", BootID: boot, ConfigSHA256: sum(configuration)}
-	if request.Action == "migrate-csv" {
+	if request.Action == "migrate-csv" || request.Action == "migrate-source" {
 		state.JobID = request.Operation
 	}
 	if err := writeNewJSON(filepath.Join(dir, "state.json"), state); err != nil {
@@ -177,7 +177,7 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 	if err := replaceJSON(filepath.Join(dir, "state.json"), state); err != nil {
 		return err
 	}
-	if state.Action == "migrate-csv" {
+	if state.Action == "migrate-csv" || state.Action == "migrate-source" {
 		return m.workMigration(ctx, root, dir, state, configuration, secrets)
 	}
 	args, err := Arguments(state.Action, filepath.Join(dir, "job.json"))

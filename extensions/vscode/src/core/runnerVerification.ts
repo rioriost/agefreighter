@@ -9,6 +9,9 @@ export interface VerificationExpectation {
   startedAt: string;
   /** Exact source counts recorded before loading. Keys are v.Label / e.TYPE. */
   labels: Record<string, number>;
+  /** Neo4j count-store fallback when discovery has not retained per-label totals. */
+  vertices?: string;
+  edges?: string;
 }
 
 export interface VerificationEvidence {
@@ -29,7 +32,9 @@ export function assessCountsVerification(expected: VerificationExpectation, evid
   try {
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(expected.jobId) || !/^[a-f0-9]{64}$/.test(expected.fingerprint)) throw new Error();
     const labels = Object.keys(expected.labels);
-    if (!labels.length || labels.length > 255 || labels.some(key => !/^[ve]\..+/.test(key) || !Number.isSafeInteger(expected.labels[key]) || expected.labels[key]! < 0)) throw new Error();
+    const aggregate=labels.length===0;
+    if (labels.length > 255 || labels.some(key => !/^[ve]\..+/.test(key) || !Number.isSafeInteger(expected.labels[key]) || expected.labels[key]! < 0)) throw new Error();
+    if(aggregate && (!/^\d+$/.test(expected.vertices??"") || !/^\d+$/.test(expected.edges??"")))throw new Error();
     if (Buffer.byteLength(evidence.reportJSON) > 4 * 1024 * 1024) throw new Error();
     const digest = createHash("sha256").update(evidence.reportJSON).digest("hex");
     if (digest !== evidence.sha256) throw new Error();
@@ -51,18 +56,24 @@ export function assessCountsVerification(expected: VerificationExpectation, evid
     const countSections = sections.filter(s => s.title === "Per-label counts");
     if (countSections.length !== 1) throw new Error();
     const counts = (countSections[0]!.fields as unknown[]).map(object);
-    if (counts.length !== labels.length + 1 || new Set(counts.map(c => c.name)).size !== counts.length) throw new Error();
+    if ((!aggregate && counts.length !== labels.length + 1) || aggregate && counts.length < 2 || new Set(counts.map(c => c.name)).size !== counts.length) throw new Error();
     if (!counts.some(c => c.name === "unclassified.rejects" && c.value === "0" && c.status === "pass")) return { outcome: "fail", summary: "Reject-free migration has not been established.", sha256: digest };
-    for (const label of labels) {
-      const field = counts.find(c => c.name === label);
-      if (!field || typeof field.value !== "string") throw new Error();
+    const checked=aggregate?counts.filter(c=>typeof c.name==="string" && /^[ve]\..+/.test(c.name)):labels.map(label=>counts.find(c=>c.name===label));
+    if(checked.some(field=>!field))throw new Error();
+    let vertexTotal=0n,edgeTotal=0n;
+    for (const field of checked as Record<string,unknown>[]) {
+      const label=String(field.name);
+      if (typeof field.value !== "string") throw new Error();
       const parts = field.value.split(",").map(p => p.split("="));
       if (parts.some(p => p.length !== 2) || new Set(parts.map(p => p[0])).size !== parts.length) throw new Error();
       const counters = Object.fromEntries(parts);
-      const rows = String(expected.labels[label]);
+      const rows = aggregate?counters.acceptedRows:String(expected.labels[label]);
+      if(!/^\d+$/.test(rows??""))throw new Error();
       if (["acceptedRows", "committedRows", "livePhysicalRows", "liveIdentityRows"].some(key => counters[key] !== rows) || counters.rejectedRows !== "0") return { outcome: "fail", summary: "Source, committed and live target counts do not agree, or records were rejected.", sha256: digest };
       if (counters.counterCompleteness !== "complete" || counters.storedPhysicalComparison !== "verified" || counters.physicalIdentityEquality !== "verified") throw new Error();
+      if(aggregate){if(label.startsWith("v."))vertexTotal+=BigInt(rows);else edgeTotal+=BigInt(rows);}
     }
+    if(aggregate && (vertexTotal!==BigInt(expected.vertices!) || edgeTotal!==BigInt(expected.edges!)))return { outcome:"fail",summary:"Exact Neo4j source totals and target per-label totals do not agree.",sha256:digest };
     return { outcome: "pass", summary: "Exact source and target counts agree with no rejects. Full property-digest qualification is a separate check.", sha256: digest };
   } catch {
     // Do not echo raw documents, credentials, source properties or parse errors.

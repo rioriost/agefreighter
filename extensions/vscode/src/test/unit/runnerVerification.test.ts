@@ -39,3 +39,11 @@ test("source count mismatch, property check failure and nonzero rejects cannot p
   const rejects = document(); rejects.sections[0]!.fields[2]!.value = "1"; assert.equal(assess(rejects).outcome, "fail");
   const failed = document(); failed.checks[0]!.status = "fail"; assert.equal(assess(failed).outcome, "fail");
 });
+test("Neo4j aggregate source totals are reconciled against all target labels", () => {
+  const aggregate: VerificationExpectation = { ...expected, labels: {}, vertices: "2", edges: "1" };
+  const reportJSON=JSON.stringify(document());
+  const evidence={exitCode:0,reportJSON,sha256:createHash("sha256").update(reportJSON).digest("hex")};
+  assert.equal(assessCountsVerification(aggregate,evidence,now).outcome,"pass");
+  assert.equal(assessCountsVerification({...aggregate,vertices:"3"},evidence,now).outcome,"fail");
+  assert.equal(assessCountsVerification({...aggregate,edges:undefined},evidence,now).outcome,"incomplete");
+});

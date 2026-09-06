@@ -27,7 +27,7 @@ func NewRunnerCommand() *cobra.Command {
 		switch request.Action {
 		case "ready":
 			result, err = manager.Ready(ctx)
-		case "profile", "inventory", "migrate-csv":
+		case "profile", "inventory", "migrate-csv", "migrate-source":
 			result, err = manager.Submit(ctx, request)
 		case "status":
 			result, err = manager.Status(request.Workflow, request.Operation)

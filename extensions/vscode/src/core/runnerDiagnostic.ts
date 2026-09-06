@@ -67,7 +67,7 @@ export async function diagnoseTarget(control:RunnerControl,r:RunnerRecord,passwo
   targetBudget(r.target.input);assertIdleHealth(r);
   if(!password || r.guestCommand && ["submitted","unknown"].includes(r.guestCommand.phase))throw new Error("Credentials and reconciled guest status are required.");
   const response=await control.request(r.input.subscriptionId,`${r.target.serverId}?api-version=2024-08-01`),s=object(response.value),tags=object(s.tags);
-  if(response.status!==200 || tags.workflow!==r.id || tags.application!=="agefreighter" || tags.purpose!=="csv-migration-target" || object(s.properties).state!=="Ready")throw new Error("Target ownership/readiness changed.");
+  if(response.status!==200 || tags.workflow!==r.id || tags.application!=="agefreighter" || !["migration-target","csv-migration-target"].includes(String(tags.purpose)) || object(s.properties).state!=="Ready")throw new Error("Target ownership/readiness changed.");
   if((await control.list(r.input.subscriptionId,`${r.vmId}/runCommands?api-version=2024-07-01`)).length>=25)throw new Error("Archive completed command evidence before another diagnostic.");
   const operation=randomUUID(),commandId=`${r.vmId}/runCommands/af-${operation}`;
   if((await control.request(r.input.subscriptionId,`${commandId}?api-version=2024-07-01`)).status!==404)throw new Error("Diagnostic command already exists.");

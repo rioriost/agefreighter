@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -109,7 +110,15 @@ func (m Manager) workMigration(ctx context.Context, root, dir string, state Stat
 		} {
 			cmd := exec.CommandContext(ctx, m.CLI, step.args...)
 			cmd.Dir = dir
-			cmd.Env = []string{"PATH=/usr/local/bin:/usr/bin:/bin", "LANG=C.UTF-8", "HOME=" + dir, "AGEFREIGHTER_TARGET_DSN=" + dsn}
+			cmd.Env = []string{"PATH=/usr/local/bin:/usr/bin:/bin", "LANG=C.UTF-8", "HOME=" + dir}
+			keys := make([]string, 0, len(secrets))
+			for key := range secrets {
+				keys = append(keys, key)
+			}
+			slices.Sort(keys)
+			for _, key := range keys {
+				cmd.Env = append(cmd.Env, key+"="+secrets[key])
+			}
 			out, log := &boundedOutput{limit: MaxArtifactBytes}, &boundedOutput{limit: 64 << 10}
 			cmd.Stdout = out
 			cmd.Stderr = log

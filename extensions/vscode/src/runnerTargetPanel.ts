@@ -5,12 +5,12 @@ import { join } from "node:path";
 import { RunnerStore } from "./guided/runnerStore";
 import { AzureSession } from "./guided/azure";
 import { RunnerControl } from "./core/runnerLifecycle";
-import { csvTargetEvidence, targetPreview, TargetInput, submitTarget, refreshTarget } from "./core/runnerTarget";
+import { sourceTargetEvidence, targetPreview, TargetInput, submitTarget, refreshTarget } from "./core/runnerTarget";
 import { preflightTarget, targetComputeRate } from "./core/runnerTargetPreflight";
 
 export async function reviewRunnerTarget(context:vscode.ExtensionContext,control:RunnerControl,store:RunnerStore,azure:AzureSession,workflow?:string):Promise<void>{
   if(!vscode.workspace.isTrusted)throw new Error("Trust this workspace before planning Azure resources.");
-  const selected=workflow?{id:workflow}:await vscode.window.showQuickPick((await store.list()).filter(r=>r.phase==="provisioned" && r.input.source.type==="csv").map(r=>({label:r.id,description:`${r.input.resourceGroup} — ${r.target?.phase??"assess first"}`,id:r.id})),{placeHolder:"Review a complete CSV inventory and its private PostgreSQL target"});
+  const selected=workflow?{id:workflow}:await vscode.window.showQuickPick((await store.list()).filter(r=>r.phase==="provisioned" && ["csv","neo4j"].includes(r.input.source.type)).map(r=>({label:r.id,description:`${r.input.source.type} — ${r.input.resourceGroup} — ${r.target?.phase??"assess first"}`,id:r.id})),{placeHolder:"Review a complete source inventory and its private PostgreSQL target"});
   if(!selected)return;
   let record=await store.read(selected.id);
   if(record.target && record.target.phase!=="previewed"){
@@ -18,9 +18,9 @@ export async function reviewRunnerTarget(context:vscode.ExtensionContext,control
     void vscode.window.showInformationMessage(`Private target: ${record.target?.phase}. This is ARM status, not AGE readiness, migration or verification. No operation was replayed.`);return;
   }
   const a=record.assessment;
-  if(!a?.reportSHA256 || !a.reportBytes)throw new Error("Complete and import the whole-source CSV inventory first.");
+  if(!a?.reportSHA256 || !a.reportBytes)throw new Error("Complete and import the whole-source inventory first.");
   const report=await store.readReport(record.id,{operation:a.operation,sha256:a.reportSHA256,bytes:a.reportBytes});
-  const evidence=csvTargetEvidence(record,report);
+  const evidence=sourceTargetEvidence(record,report);
   const ask=(prompt:string,value:string)=>vscode.window.showInputBox({prompt,value,ignoreFocusOut:true});
   const serverName=await ask("New private PostgreSQL 18 server name",record.target?.input.serverName??`afpg-${record.id.replaceAll("-","").slice(0,20)}`);if(serverName===undefined)return;
   const subnetCIDR=await ask("New non-overlapping delegated subnet CIDR inside the existing runner VNet",record.target?.input.subnetCIDR??"");if(subnetCIDR===undefined)return;
@@ -34,14 +34,15 @@ export async function reviewRunnerTarget(context:vscode.ExtensionContext,control
   input.hourlyUSD=targetComputeRate(await azure.retailRates(record.input.region,[loaderSize,postgresSKU]),input);
   await preflightTarget(control,record,input);
   const plan=targetPreview({...record,target:undefined},input,evidence);
-  const choice=await vscode.window.showWarningMessage("Review the private CSV migration target and same-VM sizing",{modal:true,detail:
-    `${evidence.rows} mapped rows across ${Object.keys(evidence.labels).length} labels; inventory SHA-256 ${evidence.reportSHA256}\n${record.input.resourceGroup}, ${record.input.region}, zone ${record.input.zone}\nPostgreSQL 18 / AGE: ${postgresSKU}, ${storage} GiB; HA disabled (single-server trial). ${subnetCIDR}, private DNS in the existing VNet. No public access or peering.\nSame runner: ${loaderSize}; resize is a later, separate idle-VM operation.\nCompute USD ${input.hourlyUSD}/hour + USD ${input.additionalReserveUSD} accrued/non-compute reserve. Total ceiling USD ${input.budgetUSD}; deadline ${deadline}. This is a budget gate, not a guaranteed bill or automatic shutdown.\nFolder selection saves a secret-reference-only LoadJob. A generated administrator password is stored only in VS Code SecretStorage. Deployment is followed by separate AGE readiness, migration and full verification; it does not mark completion.`},"Save plan and approve target deployment","Save plan only");
+  const sizing=evidence.sourceType==="neo4j"?"Neo4j sizing high bound uses exact count-store totals at 16 KiB per mapped record; this is conservative for P1 but not a universal property-width guarantee.":`${Object.keys(evidence.labels).length} mapped labels were counted by the complete CSV scan.`;
+  const choice=await vscode.window.showWarningMessage("Review the private migration target and same-VM sizing",{modal:true,detail:
+    `${evidence.rows} mapped rows; inventory SHA-256 ${evidence.reportSHA256}. ${sizing}\n${record.input.resourceGroup}, ${record.input.region}, zone ${record.input.zone}\nPostgreSQL 18 / AGE: ${postgresSKU}, ${storage} GiB; HA disabled (single-server trial). ${subnetCIDR}, private DNS in the existing VNet. No public access or peering.\nSame runner: ${loaderSize}; resize is a later, separate idle-VM operation.\nCompute USD ${input.hourlyUSD}/hour + USD ${input.additionalReserveUSD} accrued/non-compute reserve. Total ceiling USD ${input.budgetUSD}; deadline ${deadline}. This is a budget gate, not a guaranteed bill or automatic shutdown.\nFolder selection saves a secret-reference-only LoadJob. Generated target credentials stay only in VS Code SecretStorage. Deployment is followed by separate AGE readiness, migration and full verification; it does not mark completion.`},"Save plan and approve target deployment","Save plan only");
   if(!choice)return;
   const folder=await vscode.window.showOpenDialog({canSelectFiles:false,canSelectFolders:true,canSelectMany:false,openLabel:"Save reviewed LoadJob and target plan here"});
   if(!folder?.[0] || folder[0].scheme!=="file")return;
   await store.exclusive(record.id,async()=>{
     const latest=await store.read(record.id);
-    if(latest.target && latest.target.phase!=="previewed" || JSON.stringify(csvTargetEvidence(latest,report))!==JSON.stringify(evidence))throw new Error("Workflow changed while reviewing; no deployment was submitted.");
+    if(latest.target && latest.target.phase!=="previewed" || JSON.stringify(sourceTargetEvidence(latest,report))!==JSON.stringify(evidence))throw new Error("Workflow changed while reviewing; no deployment was submitted.");
     // JSON is a strict YAML 1.2 subset. This export is directly accepted by the CLI,
     // uses guest paths and environment references, and never includes a password.
     const stem=`agefreighter-${record.id}-${plan.hash.slice(0,12)}`;

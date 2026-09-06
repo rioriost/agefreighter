@@ -4,11 +4,13 @@ import { extractCapacityEvidence, extractInventoryEvidence } from "./guided";
 import { csvAssessmentReady } from "./runnerCSV";
 import { existingGroupResources, RunnerControl } from "./runnerLifecycle";
 
-export interface CSVTargetEvidence {
+export interface TargetEvidence {
   operation: string; reportSHA256: string; configurationSHA256: string;
-  artifactSHA256: string; csvManifestSHA256: string; rows: string;
+  artifactSHA256: string; sourceType?: "csv" | "neo4j"; csvManifestSHA256?: string; rows: string;
+  vertices?: string; edges?: string;
   storageHighBytes: string; labels: Record<string, number>;
 }
+export type CSVTargetEvidence = TargetEvidence;
 export interface TargetInput {
   serverName: string; subnetCIDR: string; postgresSKU: string;
   postgresTier: "GeneralPurpose" | "MemoryOptimized"; storageGiB: number;
@@ -18,7 +20,7 @@ export interface TargetInput {
 }
 export interface RunnerTarget {
   phase: "previewed" | "submitted" | "unknown" | "provisioned" | "failed";
-  input: TargetInput; evidence: CSVTargetEvidence; template: Record<string,unknown>;
+  input: TargetInput; evidence: TargetEvidence; template: Record<string,unknown>;
   deploymentId: string; serverId: string; subnetId: string; dnsId: string;
   hash: string; expiresAt: string; generatedAt: string;
 }
@@ -48,8 +50,31 @@ export function csvTargetEvidence(record: RunnerRecord, reportJSON: string): CSV
   const csv=object(object(record.sourceDraft.configuration.source).csv);
   const expected=new Set([...(csv.vertices as unknown[]).map(x=>`v.${object(x).label}`),...(csv.edges as unknown[]).map(x=>`e.${object(x).label}`)]);
   if(expected.size!==Object.keys(labels).length || Object.keys(labels).some(key=>!expected.has(key)))throw new Error("Inventory labels differ from the reviewed CSV mappings.");
-  return {operation:assessment.operation,reportSHA256:assessment.reportSHA256!,configurationSHA256:assessment.configurationSHA256,artifactSHA256:record.artifact.sha256,
-    csvManifestSHA256:csvManifestHash(record),rows:counts.totalRows.toString(),storageHighBytes:capacity.recommendedStorageHigh!.toString(),labels};
+  return {operation:assessment.operation,reportSHA256:assessment.reportSHA256!,configurationSHA256:assessment.configurationSHA256,artifactSHA256:record.artifact.sha256,sourceType:"csv",
+    csvManifestSHA256:csvManifestHash(record),rows:counts.totalRows.toString(),vertices:counts.vertices.toString(),edges:counts.edges.toString(),storageHighBytes:capacity.recommendedStorageHigh!.toString(),labels};
+}
+
+/** Neo4j's transactional count store provides exact whole-graph totals without
+ * scanning customer properties. Until a sampled-width plus exact-count join is
+ * retained by the workflow, use a deliberately conservative 16 KiB/record high
+ * bound. The user still reviews the resulting target storage and 25% headroom. */
+export function neo4jTargetEvidence(record: RunnerRecord, reportJSON: string): TargetEvidence {
+  const assessment=record.assessment;
+  if(record.input.source.type!=="neo4j" || !record.sourceDraft?.canAssess || !assessment || assessment.action!=="inventory" || assessment.phase!=="finished" ||
+    assessment.configurationSHA256!==hash(record.sourceDraft.configuration) || !record.reportTransfers?.some(x=>x.operation===assessment.operation && x.phase==="imported" && x.sha256===assessment.reportSHA256) ||
+    Buffer.byteLength(reportJSON)!==assessment.reportBytes || createHash("sha256").update(reportJSON).digest("hex")!==assessment.reportSHA256)throw new Error("Import a complete, matching Neo4j count-store inventory before planning the target.");
+  const doc=object(JSON.parse(reportJSON)),counts=extractInventoryEvidence(doc);
+  if(doc.schemaVersion!==1 || doc.command!=="inventory" || doc.agefreighterVersion!==record.artifact.version || !counts.exact || counts.method!=="neo4j-transactional-count-store" ||
+    !Array.isArray(doc.errors) || doc.errors.length || !Array.isArray(doc.incompleteChecks) || doc.incompleteChecks.length || !Array.isArray(doc.checks) ||
+    !(doc.checks as unknown[]).some(x=>object(x).id==="source-counts" && object(x).status==="pass"))throw new Error("Neo4j whole-source count evidence is incomplete, changed or from another guest version.");
+  if(!Array.isArray(doc.sections) || (doc.sections as unknown[]).map(object).some(s=>!Array.isArray(s.fields) || s.fields.some(x=>object(x).status!=="pass")))throw new Error("A required Neo4j source evidence field is not complete.");
+  const high=counts.totalRows*16384n;
+  return {operation:assessment.operation,reportSHA256:assessment.reportSHA256!,configurationSHA256:assessment.configurationSHA256,artifactSHA256:record.artifact.sha256,sourceType:"neo4j",
+    rows:counts.totalRows.toString(),vertices:counts.vertices.toString(),edges:counts.edges.toString(),storageHighBytes:high.toString(),labels:Object.create(null)};
+}
+
+export function sourceTargetEvidence(record:RunnerRecord,reportJSON:string):TargetEvidence{
+  return record.input.source.type==="csv"?csvTargetEvidence(record,reportJSON):neo4jTargetEvidence(record,reportJSON);
 }
 
 function cidr(value: string): [number,number] {
@@ -75,8 +100,8 @@ export function targetBudget(input: TargetInput, now=Date.now()): void {
     !Number.isFinite(input.budgetUSD) || input.budgetUSD<=0 || input.hourlyUSD*remaining/3600000+input.additionalReserveUSD>input.budgetUSD)throw new Error("The reviewed remaining-window cost plus accrued/storage/network reserve exceeds the budget or deadline.");
 }
 
-export function targetPreview(record: RunnerRecord, input: TargetInput, evidence: CSVTargetEvidence): RunnerTarget {
-  if(record.target || record.phase!=="provisioned" || record.input.source.type!=="csv" || !sha.test(evidence.reportSHA256))throw new Error("Use an assessed CSV workflow without an existing target intent.");
+export function targetPreview(record: RunnerRecord, input: TargetInput, evidence: TargetEvidence): RunnerTarget {
+  if(record.target || record.phase!=="provisioned" || !["csv","neo4j"].includes(record.input.source.type) || evidence.sourceType && evidence.sourceType!==record.input.source.type || !sha.test(evidence.reportSHA256))throw new Error("Use an assessed CSV or Neo4j workflow without an existing target intent.");
   if(!/^[a-z][a-z0-9-]{2,61}[a-z0-9]$/.test(input.serverName) || !/^Standard_[DE]\d+[a-z]*_v[56]$/.test(input.postgresSKU) || !["GeneralPurpose","MemoryOptimized"].includes(input.postgresTier) ||
     !["Standard_D4s_v5","Standard_D8s_v5","Standard_D16s_v5"].includes(input.loaderSize) || ![128,256,512,1024].includes(input.storageGiB))throw new Error("Review a supported private target and x64/SCSI loader size.");
   cidr(input.subnetCIDR);targetBudget(input);
@@ -85,7 +110,7 @@ export function targetPreview(record: RunnerRecord, input: TargetInput, evidence
   if(!vnetId.toLowerCase().startsWith(`${base}/providers/Microsoft.Network/virtualNetworks/`.toLowerCase()))throw new Error("This initial target path requires the runner VNet in the migration resource group; no cross-group deployment is inferred.");
   const suffix=record.id.replaceAll("-","").slice(0,20), subnetName=`afpg-${suffix}`, dnsName=`af-${suffix}.postgres.database.azure.com`;
   const serverId=`${base}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${input.serverName}`, subnetId=`${vnetId}/subnets/${subnetName}`, dnsId=`${base}/providers/Microsoft.Network/privateDnsZones/${dnsName}`;
-  const tags={application:"agefreighter",workflow:record.id,purpose:"csv-migration-target"};
+  const tags={application:"agefreighter",workflow:record.id,purpose:"migration-target"};
   const template:Record<string,unknown>={
     $schema:"https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",contentVersion:"1.0.0.0",parameters:{administratorPassword:{type:"secureString"}},resources:[
       {type:"Microsoft.Network/virtualNetworks/subnets",apiVersion:"2024-05-01",name:`${vnetId.split("/").at(-1)}/${subnetName}`,properties:{addressPrefix:input.subnetCIDR,delegations:[{name:"postgres",properties:{serviceName:"Microsoft.DBforPostgreSQL/flexibleServers"}}]}},
@@ -105,7 +130,9 @@ export function assertTargetFresh(record:RunnerRecord): RunnerTarget {
   const {hash:retained,...original}=p;
   if(record.phase!=="provisioned" || record.upgrade && record.upgrade.phase!=="finished" || record.guestCommand && ["submitted","unknown"].includes(record.guestCommand.phase) || record.assessment?.phase!=="finished")throw new Error("Reconcile active or uncertain guest operations before target deployment.");
   if(p.phase!=="previewed" || hash(original)!==retained || Date.now()>=Date.parse(p.expiresAt) || !Number.isFinite(Date.parse(p.expiresAt)) || record.artifact.sha256!==p.evidence.artifactSHA256 ||
-    !record.sourceDraft || hash(record.sourceDraft.configuration)!==p.evidence.configurationSHA256 || csvManifestHash(record)!==p.evidence.csvManifestSHA256 || !csvAssessmentReady(record) ||
+    !record.sourceDraft || hash(record.sourceDraft.configuration)!==p.evidence.configurationSHA256 ||
+    (record.input.source.type==="csv" && (csvManifestHash(record)!==p.evidence.csvManifestSHA256 || !csvAssessmentReady(record))) ||
+    (p.evidence.sourceType!==undefined && p.evidence.sourceType!==record.input.source.type) ||
     record.assessment?.operation!==p.evidence.operation || record.assessment?.reportSHA256!==p.evidence.reportSHA256)throw new Error("Target preview or source/artifact evidence changed; no deployment is allowed.");
   targetBudget(p.input);return p;
 }

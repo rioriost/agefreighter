@@ -224,12 +224,12 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
             break;
           }
           case "reviewTarget": {
-            if(!current)throw new Error("Select a retained CSV workflow first.");
+            if(!current)throw new Error("Select a retained migration workflow first.");
             await reviewRunnerTarget(context,control,store,azure,current.id);
             current=await store.read(current.id);await display(current);break;
           }
           case "continueExecution": {
-            if(!current)throw new Error("Select a retained CSV workflow first.");
+            if(!current)throw new Error("Select a retained migration workflow first.");
             await continueRunnerExecution(context,control,store,azure,current.id);
             current=await store.read(current.id);await display(current);break;
           }

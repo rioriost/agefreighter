@@ -15,10 +15,11 @@ import {qualifyP1} from "./p1QualificationPanel";
  * a panel cannot launch/resume a migration, resize, or repeat a lost operation. */
 export async function continueRunnerExecution(context:vscode.ExtensionContext,control:RunnerControl,store:RunnerStore,azure:AzureSession,workflow?:string):Promise<void>{
   if(!vscode.workspace.isTrusted)throw new Error("Trust this workspace before controlling migration resources.");
-  const selected=workflow?{id:workflow}:await vscode.window.showQuickPick((await store.list()).filter(r=>r.target?.phase==="provisioned").map(r=>({label:r.id,description:`${r.input.resourceGroup} — ${r.migration?.phase??r.resize?.phase??"resize required"}`,id:r.id})),{placeHolder:"Select the retained private CSV target"});
+  const selected=workflow?{id:workflow}:await vscode.window.showQuickPick((await store.list()).filter(r=>r.target?.phase==="provisioned").map(r=>({label:r.id,description:`${r.input.source.type} — ${r.input.resourceGroup} — ${r.migration?.phase??r.resize?.phase??"resize required"}`,id:r.id})),{placeHolder:"Select the retained private target"});
   if(!selected)return;
   let r=await store.read(selected.id);
-  const action=await vscode.window.showQuickPick(["Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step","Start new CSV migration and counts verification","Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained CSV target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
+  const startLabel=`Start new ${r.input.source.type==="neo4j"?"Neo4j":"CSV"} migration and counts verification`;
+  const action=await vscode.window.showQuickPick(["Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
   if(!action)return;
   const confirm=(title:string,detail:string)=>vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");
   const price=async()=>{if(!r.target)throw new Error("No retained target plan.");const input=r.target.input;if(targetComputeRate(await azure.retailRates(r.input.region,[input.loaderSize,input.postgresSKU]),input)!==input.hourlyUSD)throw new Error("Compute price changed; review the cost plan before further mutation.");};
@@ -32,17 +33,22 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
     if(await confirm("Resize the existing idle Linux runner?",`${r.vmId}\n${r.resize?.phase??"Deallocate before resizing"} → ${r.target.input.loaderSize}. The same NIC, disk and system identity are preserved. No source VM is changed. Data and evidence remain. Deadline ${r.target.input.deadline}; total ceiling USD ${r.target.input.budgetUSD}. An uncertain response is reconciled, never replayed.`)!=="Approve this step")return;
     await price();
     r=await store.exclusive(r.id,async()=>{const latest=await store.read(r.id);return latest.resize?advanceResize(control,latest,true):startResize(control,latest);});
-  }else if(action==="Start new CSV migration and counts verification"){
-    const a=r.assessment;if(!a?.reportSHA256 || !a.reportBytes)throw new Error("Import complete CSV inventory first.");
+  }else if(action===startLabel){
+    const a=r.assessment;if(!a?.reportSHA256 || !a.reportBytes)throw new Error("Import complete source inventory first.");
     const report=await store.readReport(r.id,{operation:a.operation,sha256:a.reportSHA256,bytes:a.reportBytes});
     const evidence=await migrationPreflight(control,r,report);
-    if(await confirm("Start this new CSV migration on the Linux runner?",`${evidence.rows} mapped rows / ${Object.keys(evidence.labels).length} labels. Inventory ${evidence.reportSHA256}. Linux ${r.artifact.version}, archive ${r.artifact.sha256}.\n${r.target!.serverId}\nPrepare AGE, create the new graph, migrate, then run complete counts verification. The new job UUID is retained before writes. No replace, delete, automatic resume or retry. Private target credentials stay in SecretStorage and protected transport. A counts pass is distinct from the independent P1 property digest.`)!=="Approve this step")return;
+    if(await confirm(`Start this new ${r.input.source.type} migration on the Linux runner?`,`${evidence.rows} mapped rows. Inventory ${evidence.reportSHA256}. Linux ${r.artifact.version}, archive ${r.artifact.sha256}.\n${r.target!.serverId}\nPrepare AGE, create the new graph, migrate, then run complete counts verification. The new job UUID is retained before writes. No replace, delete, automatic resume or retry. Source and target credentials use protected transport; only the target secret is retained in SecretStorage. A counts pass is distinct from the independent P1 property digest.`)!=="Approve this step")return;
     await price();
+    let sourcePassword:string|undefined;
+    if(r.input.source.type==="neo4j"){
+      sourcePassword=await vscode.window.showInputBox({title:"Read-only Neo4j source password",prompt:"Sent only through the protected guest channel for this approved migration; not saved or sent to an AI model.",password:true,ignoreFocusOut:true});
+      if(sourcePassword===undefined)return;
+    }
     r=await store.exclusive(r.id,async()=>{
       const latest=await store.read(r.id);
       const key=`runner-target/${r.id}/${createHash("sha256").update(latest.target!.serverId).digest("hex")}`,password=await context.secrets.get(key);
       if(!password)throw new Error("The retained target credential is unavailable.");
-      return startMigration(control,latest,report,password);
+      return startMigration(control,latest,report,password,sourcePassword);
     });
   }else if(action==="Refresh retained migration (never replay)"){
     r=await store.exclusive(r.id,async()=>refreshMigration(control,await store.read(r.id)));
@@ -51,8 +57,8 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   }else if(action==="Archive empty-target preparation failure"){
     if(await confirm("Archive this preparation failure without deleting or resuming anything?",`Requires fresh read-only proof that the target graph and metadata schema are absent. Retains the failed job and diagnostic in history and all guest evidence. This permits a separately approved runner repair and a new create-only job, not replay or replacement of existing data.`)!=="Approve this step")return;
     r=await store.exclusive(r.id,async()=>archiveEmptyTargetFailure(control,await store.read(r.id)));
-  }else if(action==="Diagnose retained CSV target (read only)"){
-    if(!r.targetDiagnostic && await confirm("Read-only diagnosis of the retained CSV target?",`Run the pinned Linux CLI doctor without --persist against the existing target. No load, resume, AGE preparation or resource changes. Private credentials remain in SecretStorage/protected transport. Raw redacted evidence stays on the guest.`)!=="Approve this step")return;
+  }else if(action==="Diagnose retained target (read only)"){
+    if(!r.targetDiagnostic && await confirm("Read-only diagnosis of the retained target?",`Run the pinned Linux CLI doctor without --persist against the existing target. No load, resume, AGE preparation or resource changes. Private credentials remain in SecretStorage/protected transport. Raw redacted evidence stays on the guest.`)!=="Approve this step")return;
     r=await store.exclusive(r.id,async()=>{
       const latest=await store.read(r.id);
       const key=`runner-target/${r.id}/${createHash("sha256").update(latest.target!.serverId).digest("hex")}`;
