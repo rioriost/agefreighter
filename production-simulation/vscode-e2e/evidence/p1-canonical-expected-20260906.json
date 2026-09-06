@@ -1,0 +1,587 @@
+{
+  "version": 1,
+  "canonicalVersion": "agefreighter-production-simulation-v1",
+  "source": "fixture",
+  "fixtureRootSha256": "f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f",
+  "rangeRows": 100000,
+  "recordCount": 5600000,
+  "leaves": [
+    {
+      "kind": "v",
+      "name": "Supplier",
+      "rangeIndex": 0,
+      "startKey": 1,
+      "endKey": 40000,
+      "rows": 40000,
+      "sha256": "f9b986cbcd3f7caf258d0654e5c306b0d6ea5c101f29eee9723f0be42851ac74"
+    },
+    {
+      "kind": "v",
+      "name": "Facility",
+      "rangeIndex": 0,
+      "startKey": 40001,
+      "endKey": 60000,
+      "rows": 20000,
+      "sha256": "56dae1c5eb7db502236dfdf46a81b9baf0c1fdbe7e9c862ef0b1c98e8f4cc244"
+    },
+    {
+      "kind": "v",
+      "name": "Product",
+      "rangeIndex": 0,
+      "startKey": 60001,
+      "endKey": 160000,
+      "rows": 100000,
+      "sha256": "98087b9dba79bb3a5f049dfcb7c4537fe5c4114219be9b4bc53fb03d494e279e"
+    },
+    {
+      "kind": "v",
+      "name": "Product",
+      "rangeIndex": 1,
+      "startKey": 160001,
+      "endKey": 260000,
+      "rows": 100000,
+      "sha256": "7e176d52d7949d4a603e6a644382e179b775f4af961e251297cee58254c2537d"
+    },
+    {
+      "kind": "v",
+      "name": "PurchaseOrder",
+      "rangeIndex": 0,
+      "startKey": 260001,
+      "endKey": 360000,
+      "rows": 100000,
+      "sha256": "70345326123813e3a15287b0f00f96c70c56a990c1b254da4f7e7fd4b2324bf7"
+    },
+    {
+      "kind": "v",
+      "name": "PurchaseOrder",
+      "rangeIndex": 1,
+      "startKey": 360001,
+      "endKey": 460000,
+      "rows": 100000,
+      "sha256": "2efece21fec0c3411460fedcd19bdbb569d100141163fba09b4bf5c821e576d6"
+    },
+    {
+      "kind": "v",
+      "name": "PurchaseOrder",
+      "rangeIndex": 2,
+      "startKey": 460001,
+      "endKey": 560000,
+      "rows": 100000,
+      "sha256": "971edab0958d6e826d0bf99f5f0912dd584640a977f959046f79b8e4993c49e7"
+    },
+    {
+      "kind": "v",
+      "name": "PurchaseOrder",
+      "rangeIndex": 3,
+      "startKey": 560001,
+      "endKey": 660000,
+      "rows": 100000,
+      "sha256": "d7dc723948dfbdb436f8513f59f2d8f839747a41ca9e050d24e307975321b16e"
+    },
+    {
+      "kind": "v",
+      "name": "PurchaseOrder",
+      "rangeIndex": 4,
+      "startKey": 660001,
+      "endKey": 710000,
+      "rows": 50000,
+      "sha256": "147d86438f53905e188dc4845e213a17e4f88405103e094a7c227415007eb429"
+    },
+    {
+      "kind": "v",
+      "name": "Shipment",
+      "rangeIndex": 0,
+      "startKey": 710001,
+      "endKey": 810000,
+      "rows": 100000,
+      "sha256": "2b33e688cad758e4cc21edba7e40c0d89d09892112b75b98fbbacb26bd70d450"
+    },
+    {
+      "kind": "v",
+      "name": "Shipment",
+      "rangeIndex": 1,
+      "startKey": 810001,
+      "endKey": 910000,
+      "rows": 100000,
+      "sha256": "456f0b5a757436e88f8259b3359962590dfd1ffad813a6b7d852075776b6a041"
+    },
+    {
+      "kind": "v",
+      "name": "Shipment",
+      "rangeIndex": 2,
+      "startKey": 910001,
+      "endKey": 1010000,
+      "rows": 100000,
+      "sha256": "dd3568c9430397ba1c79192a11c823a2870ca806e42c60981b3f06e9f692e39a"
+    },
+    {
+      "kind": "v",
+      "name": "Shipment",
+      "rangeIndex": 3,
+      "startKey": 1010001,
+      "endKey": 1060000,
+      "rows": 50000,
+      "sha256": "76bc02dceb3347d503908fc5cfc849bb1e655ed0a0e9644349d69b7426c1d5ed"
+    },
+    {
+      "kind": "v",
+      "name": "Lot",
+      "rangeIndex": 0,
+      "startKey": 1060001,
+      "endKey": 1160000,
+      "rows": 100000,
+      "sha256": "f0848ec59c60f3bac6af678ccb38a6fd167edfeafa0b61085f09d75650a51593"
+    },
+    {
+      "kind": "v",
+      "name": "Lot",
+      "rangeIndex": 1,
+      "startKey": 1160001,
+      "endKey": 1260000,
+      "rows": 100000,
+      "sha256": "df150ac72e1271bb98aa8f619e4dd4d82340a53a70dbf14315cfa7f1c0d31235"
+    },
+    {
+      "kind": "v",
+      "name": "Lot",
+      "rangeIndex": 2,
+      "startKey": 1260001,
+      "endKey": 1360000,
+      "rows": 100000,
+      "sha256": "4577453d1e5e900598bfab56d5ff6c2fc9d4f3fc6e34ffe7624f2fdddaa68a8d"
+    },
+    {
+      "kind": "v",
+      "name": "Lot",
+      "rangeIndex": 3,
+      "startKey": 1360001,
+      "endKey": 1460000,
+      "rows": 100000,
+      "sha256": "445a655786bcd4ce001c137f96677d3a874a6fd86e727e9ae1ee42e16902b5df"
+    },
+    {
+      "kind": "v",
+      "name": "Lot",
+      "rangeIndex": 4,
+      "startKey": 1460001,
+      "endKey": 1560000,
+      "rows": 100000,
+      "sha256": "25c4769152628802fe83b494c525419a0c21b46d20bc4faaf436055bad7bd0f7"
+    },
+    {
+      "kind": "v",
+      "name": "Location",
+      "rangeIndex": 0,
+      "startKey": 1560001,
+      "endKey": 1570000,
+      "rows": 10000,
+      "sha256": "e8e625ad562e96f95cbabbf1ba62a41a9a8249ce703624511ec9329d128a0c0f"
+    },
+    {
+      "kind": "v",
+      "name": "Carrier",
+      "rangeIndex": 0,
+      "startKey": 1570001,
+      "endKey": 1571000,
+      "rows": 1000,
+      "sha256": "5426aed939f641aed32577c7abf751330eaa7d5e824e593ee95de456508cfeea"
+    },
+    {
+      "kind": "v",
+      "name": "Customer",
+      "rangeIndex": 0,
+      "startKey": 1571001,
+      "endKey": 1600000,
+      "rows": 29000,
+      "sha256": "7f11e68f4cca7de12652f3458e104d87df7475c647eb8acf0a3fc6c3516fc478"
+    },
+    {
+      "kind": "e",
+      "name": "SUPPLIES",
+      "rangeIndex": 0,
+      "startKey": 1,
+      "endKey": 100000,
+      "rows": 100000,
+      "sha256": "9004e34c4bcfccf58d00ca3a2f98572ea8e04e9c61f4e2858d6292b38bfa19a0"
+    },
+    {
+      "kind": "e",
+      "name": "SUPPLIES",
+      "rangeIndex": 1,
+      "startKey": 100001,
+      "endKey": 200000,
+      "rows": 100000,
+      "sha256": "db14bf6a51f61b2632dbfff63c2f3e24de81283ba172cd79693c9cdc614afb63"
+    },
+    {
+      "kind": "e",
+      "name": "SUPPLIES",
+      "rangeIndex": 2,
+      "startKey": 200001,
+      "endKey": 300000,
+      "rows": 100000,
+      "sha256": "7f2b6fbc91af5e5e53ebf94af529eaf59238a32752733698a2f32e762e7b5634"
+    },
+    {
+      "kind": "e",
+      "name": "SUPPLIES",
+      "rangeIndex": 3,
+      "startKey": 300001,
+      "endKey": 400000,
+      "rows": 100000,
+      "sha256": "71fc0b5063cd35eba0e87686afab05202f305339304fd845c6bcd9a1d9af4c49"
+    },
+    {
+      "kind": "e",
+      "name": "PRODUCED_AT",
+      "rangeIndex": 0,
+      "startKey": 400001,
+      "endKey": 500000,
+      "rows": 100000,
+      "sha256": "f7abbbb17ef1a74e7a8adda02a6ac4aa6884bac3409f6c8036e0c11cec0b9265"
+    },
+    {
+      "kind": "e",
+      "name": "PRODUCED_AT",
+      "rangeIndex": 1,
+      "startKey": 500001,
+      "endKey": 600000,
+      "rows": 100000,
+      "sha256": "58e0f11ae0cd55885f8caa076df9ed3b9a0d2d63c7dd3cfc92e20035270f51cc"
+    },
+    {
+      "kind": "e",
+      "name": "PRODUCED_AT",
+      "rangeIndex": 2,
+      "startKey": 600001,
+      "endKey": 700000,
+      "rows": 100000,
+      "sha256": "098d7d132c553eec291249af006c0a580277ae5b3f37248d9fc00d95e4a56823"
+    },
+    {
+      "kind": "e",
+      "name": "PLACED_WITH",
+      "rangeIndex": 0,
+      "startKey": 700001,
+      "endKey": 800000,
+      "rows": 100000,
+      "sha256": "44fe2f2f988520d158648c0effccbc84e0a541ec958d56eaf69f16303d56bff5"
+    },
+    {
+      "kind": "e",
+      "name": "PLACED_WITH",
+      "rangeIndex": 1,
+      "startKey": 800001,
+      "endKey": 900000,
+      "rows": 100000,
+      "sha256": "487d09e73c11189ff54e201a49eb4e9247ac989a46a6e057e3d8925ca17f5f95"
+    },
+    {
+      "kind": "e",
+      "name": "PLACED_WITH",
+      "rangeIndex": 2,
+      "startKey": 900001,
+      "endKey": 1000000,
+      "rows": 100000,
+      "sha256": "581c46280d90bb29c36e8e4eaa41bb3c1915f64857fbf55cbd57bccffc55e170"
+    },
+    {
+      "kind": "e",
+      "name": "PLACED_WITH",
+      "rangeIndex": 3,
+      "startKey": 1000001,
+      "endKey": 1100000,
+      "rows": 100000,
+      "sha256": "254d5fd7721a1de0a57d644eac6eef7f8dee8456d11fa0b7c1c80ed4b74c7d8e"
+    },
+    {
+      "kind": "e",
+      "name": "PLACED_WITH",
+      "rangeIndex": 4,
+      "startKey": 1100001,
+      "endKey": 1150000,
+      "rows": 50000,
+      "sha256": "819324d01e4220290177da6fcf914fb68ea9fa197d289132c956f2a064406143"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 0,
+      "startKey": 1150001,
+      "endKey": 1250000,
+      "rows": 100000,
+      "sha256": "d47dc20112af670cbe4f26fd6f16193966e10fdaa7a882ac1abfee3ca0e6d5a3"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 1,
+      "startKey": 1250001,
+      "endKey": 1350000,
+      "rows": 100000,
+      "sha256": "c4942d06332516e22cc2ba1016de47bf26e15e15e945ff052fb4257dbc9883ac"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 2,
+      "startKey": 1350001,
+      "endKey": 1450000,
+      "rows": 100000,
+      "sha256": "9487942982c9120eb42e17a8bb5e75972fe95cdbdb2e2acbd6344375c3d30487"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 3,
+      "startKey": 1450001,
+      "endKey": 1550000,
+      "rows": 100000,
+      "sha256": "f76e4775c713c5ee7f083fe55a0fb8005c3753bae86985b600b576993fbafa8b"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 4,
+      "startKey": 1550001,
+      "endKey": 1650000,
+      "rows": 100000,
+      "sha256": "b0e164b2cfe49a293c4b5ea869eca7fd04499981c769e49bdb7ce6212d51935d"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 5,
+      "startKey": 1650001,
+      "endKey": 1750000,
+      "rows": 100000,
+      "sha256": "c74fbd2f37693f20ea0a2ed0f13b99c398fa7f9573f0d7333c462273b8e4b04c"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 6,
+      "startKey": 1750001,
+      "endKey": 1850000,
+      "rows": 100000,
+      "sha256": "c051fef742edbc19350846d91d6952f99d6781050d17ff3225b672397ce534de"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 7,
+      "startKey": 1850001,
+      "endKey": 1950000,
+      "rows": 100000,
+      "sha256": "b2d65535fbfd474a26758c1b931bb861184ba5eca1a39643308dde5988f5709a"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 8,
+      "startKey": 1950001,
+      "endKey": 2050000,
+      "rows": 100000,
+      "sha256": "15785de8ee8d0132d565cccc15a2b1347a10186249cc1881114ce920f5101aaf"
+    },
+    {
+      "kind": "e",
+      "name": "CONTAINS",
+      "rangeIndex": 9,
+      "startKey": 2050001,
+      "endKey": 2150000,
+      "rows": 100000,
+      "sha256": "90e6c0857fdf38728311a6a55aca2c2753d1f601077252cd7b91468ac95746e2"
+    },
+    {
+      "kind": "e",
+      "name": "FULFILLS",
+      "rangeIndex": 0,
+      "startKey": 2150001,
+      "endKey": 2250000,
+      "rows": 100000,
+      "sha256": "26ab3370b2576ec8243394dfd0e4b5c79f5be6ca410329140a4c0e4a8c3e9cc7"
+    },
+    {
+      "kind": "e",
+      "name": "FULFILLS",
+      "rangeIndex": 1,
+      "startKey": 2250001,
+      "endKey": 2350000,
+      "rows": 100000,
+      "sha256": "2c89bab917040cb3c11a174abc309cf249aa8e4838dbc585c64da0d39e1a2be6"
+    },
+    {
+      "kind": "e",
+      "name": "FULFILLS",
+      "rangeIndex": 2,
+      "startKey": 2350001,
+      "endKey": 2450000,
+      "rows": 100000,
+      "sha256": "cc88039aab3f3d8eb99241638836e31df255d49dbd4e7226bfe5c6ecfc6427cb"
+    },
+    {
+      "kind": "e",
+      "name": "FULFILLS",
+      "rangeIndex": 3,
+      "startKey": 2450001,
+      "endKey": 2550000,
+      "rows": 100000,
+      "sha256": "f1e3d3e5b7894b2ccaa5d72c550830e42ce404e7a94db4f959fd689deb1867b8"
+    },
+    {
+      "kind": "e",
+      "name": "FULFILLS",
+      "rangeIndex": 4,
+      "startKey": 2550001,
+      "endKey": 2600000,
+      "rows": 50000,
+      "sha256": "431b130e07404b66e817adff2386f3d382318c719655a346c21ccf8d741af5f1"
+    },
+    {
+      "kind": "e",
+      "name": "ORIGINATES_AT",
+      "rangeIndex": 0,
+      "startKey": 2600001,
+      "endKey": 2700000,
+      "rows": 100000,
+      "sha256": "32cecbf73af54d6a6eab453c92a85931906ed7b7695383442b121e65d47938e7"
+    },
+    {
+      "kind": "e",
+      "name": "ORIGINATES_AT",
+      "rangeIndex": 1,
+      "startKey": 2700001,
+      "endKey": 2800000,
+      "rows": 100000,
+      "sha256": "eed64ad77e470b8e4587fe91cd7ae89ef6d2b378e9033f24f496af8333f52d74"
+    },
+    {
+      "kind": "e",
+      "name": "ORIGINATES_AT",
+      "rangeIndex": 2,
+      "startKey": 2800001,
+      "endKey": 2900000,
+      "rows": 100000,
+      "sha256": "438c82736eb58f692d37e92f3447cb1be9d8811a38f13ce7a789feb7f824ed5a"
+    },
+    {
+      "kind": "e",
+      "name": "ORIGINATES_AT",
+      "rangeIndex": 3,
+      "startKey": 2900001,
+      "endKey": 2950000,
+      "rows": 50000,
+      "sha256": "6ae5f96e711728ddc6c930c8c5e765ea53e6dc5291fd36d3b8852b60cf3ceec0"
+    },
+    {
+      "kind": "e",
+      "name": "DESTINED_FOR",
+      "rangeIndex": 0,
+      "startKey": 2950001,
+      "endKey": 3050000,
+      "rows": 100000,
+      "sha256": "4fbde8deb5f1c76abf90d7c3a663634c1e4eff1914452e021de6eb1b6aeaef8f"
+    },
+    {
+      "kind": "e",
+      "name": "DESTINED_FOR",
+      "rangeIndex": 1,
+      "startKey": 3050001,
+      "endKey": 3150000,
+      "rows": 100000,
+      "sha256": "efd530d3ea928da754bd7c581640a315e0df17836f5285e9cbff3c290949f33e"
+    },
+    {
+      "kind": "e",
+      "name": "DESTINED_FOR",
+      "rangeIndex": 2,
+      "startKey": 3150001,
+      "endKey": 3250000,
+      "rows": 100000,
+      "sha256": "0a73947dd846e6f60701cba7aced6bfe210b775f3d3f1cf798abf4521d0c2b24"
+    },
+    {
+      "kind": "e",
+      "name": "DESTINED_FOR",
+      "rangeIndex": 3,
+      "startKey": 3250001,
+      "endKey": 3300000,
+      "rows": 50000,
+      "sha256": "671064ee91bdc8a8f296573fb6214fdb17a4647c5a57e352e44bd267a3efd9dc"
+    },
+    {
+      "kind": "e",
+      "name": "CARRIED_BY",
+      "rangeIndex": 0,
+      "startKey": 3300001,
+      "endKey": 3400000,
+      "rows": 100000,
+      "sha256": "593975f661b39061ddae49ac90ecc14fa7b6765297956acb0a28e8c68648cb13"
+    },
+    {
+      "kind": "e",
+      "name": "CARRIED_BY",
+      "rangeIndex": 1,
+      "startKey": 3400001,
+      "endKey": 3500000,
+      "rows": 100000,
+      "sha256": "1f5dc04454e88a97366fb084223d42556207141563e93bbd0be2570b8d117c53"
+    },
+    {
+      "kind": "e",
+      "name": "CARRIED_BY",
+      "rangeIndex": 2,
+      "startKey": 3500001,
+      "endKey": 3600000,
+      "rows": 100000,
+      "sha256": "c5e8e0b61f815765eeb667946625c5d782f9fa3c3c8ae81f9a41430a73c46cc6"
+    },
+    {
+      "kind": "e",
+      "name": "CARRIED_BY",
+      "rangeIndex": 3,
+      "startKey": 3600001,
+      "endKey": 3650000,
+      "rows": 50000,
+      "sha256": "0b014053f01c4f2b3dc326ca4a62132b3dabb55066b114d2c7f440db3ca24222"
+    },
+    {
+      "kind": "e",
+      "name": "INCLUDED_IN",
+      "rangeIndex": 0,
+      "startKey": 3650001,
+      "endKey": 3750000,
+      "rows": 100000,
+      "sha256": "e7b9264066036687b4b5b1c504513d457c94e55f41ca7a80c9068bc4b81a4e0f"
+    },
+    {
+      "kind": "e",
+      "name": "INCLUDED_IN",
+      "rangeIndex": 1,
+      "startKey": 3750001,
+      "endKey": 3850000,
+      "rows": 100000,
+      "sha256": "55c947b51e0e3e7aa696d17a17b6f8dfe0da7bb5004e1546f41facd0dcaf1d53"
+    },
+    {
+      "kind": "e",
+      "name": "INCLUDED_IN",
+      "rangeIndex": 2,
+      "startKey": 3850001,
+      "endKey": 3950000,
+      "rows": 100000,
+      "sha256": "8efeab9fb06e2acb10978a4908d1c2ad3ab08e333c3b73dcd8ddb04b394d4e69"
+    },
+    {
+      "kind": "e",
+      "name": "INCLUDED_IN",
+      "rangeIndex": 3,
+      "startKey": 3950001,
+      "endKey": 4000000,
+      "rows": 50000,
+      "sha256": "ebba5af73ba5a6c8fb67a6fea9ac8dc5a10d99ff92a14a7dcd002108c54ec0ca"
+    }
+  ],
+  "rootSha256": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70"
+}

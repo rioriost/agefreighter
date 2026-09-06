@@ -11,6 +11,7 @@ import type { RunnerTarget } from "./runnerTarget";
 import type { RunnerResize } from "./runnerResize";
 import type { RunnerMigration } from "./runnerExecution";
 import type { TargetDiagnostic } from "./runnerDiagnostic";
+import type { P1Qualification } from "./p1Qualification";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
@@ -62,6 +63,7 @@ export interface RunnerRecord {
   resize?: RunnerResize;
   migration?: RunnerMigration;
   targetDiagnostic?: TargetDiagnostic;
+  p1Qualification?: P1Qualification;
   migrationHistory?: {migration:RunnerMigration;diagnostic:TargetDiagnostic;archivedAt:string;reason:"empty-target-preparation-failure"}[];
   targetRestart?: {phase:"submitted"|"unknown"|"finished";submittedAt:string};
 }

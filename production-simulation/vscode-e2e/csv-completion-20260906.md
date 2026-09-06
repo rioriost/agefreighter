@@ -1,5 +1,40 @@
 # CSV-MAC completion execution sheet
 
+## Latest continuation — 2026-09-06 07:17Z
+
+CSV-MAC is not yet qualified. The first GUI migration
+`1c23a5a3-4eff-40f2-832b-3367a4cd9a66` failed during target preparation,
+before creating the graph, metadata or load process. The hosted worker used
+superuser-only `LOAD 'age'`; it now reuses the existing Flexible Server-aware
+AGE session initialization (`72f45536b052`).
+
+The GUI read-only diagnostic `1a5e8e2b-18fe-478a-9f2d-f7c987c4a80e`
+proved target graph and metadata absent, working TLS/DNS/AGE, and zero errors.
+Doctor report: 4,764 bytes, SHA-256
+`435ab52fed08cb3c8f605e3802953d0c01bf6302e31810bcf95caf5618a19d10`.
+The GUI archived the failed job and diagnostic in workflow history, without
+removing guest evidence or resuming/replacing a job.
+
+Pinned upgrade `35d84e23-ed95-434b-a580-73cd6c867a13` finished on the same
+VM, boot, disk and identity. Installed version `2.4.0-dev.72f45536b052`, archive
+SHA-256 `19e51268d4436272178d07215e6139d92d88e7f4126d071ac4d9b9db6e7dfb80`.
+Fresh readiness 07:10:36Z: idle, disk 6.85%, swap zero, OOM zero.
+New complete inventory `bcb9a509-7558-412a-879e-c80e4ae45a89` is being
+reconciled before a separately approved fresh migration.
+
+An opt-in development GUI qualification harness independently regenerates
+the frozen P1 fixture and compares every typed property, identity and endpoint
+in all 64 canonical ranges. It does not replace the pinned loader. Execution
+and report export are separate, so a 15-minute single-blob credential is issued
+only after verification, not before a potentially 20-minute computation.
+153 unit tests, typecheck and VSIX packaging pass; live digest not yet run.
+
+Historical receipt archives: `runner-readiness-archive-20260906.json` contains
+five previously removed readiness receipts; `runner-receipts-archive-20260906-0717.json`
+preserves five additional superseded successful receipts before scoped ARM
+maintenance. All guest files and failed/current operations remain retained.
+Failed RG activity since 06:59Z is empty. USD 800 / Sep 9 08:55Z unchanged.
+
 ## Latest continuation — 2026-09-06 06:29Z
 
 CSV-MAC remains unqualified: migration and the independent full digest have not
