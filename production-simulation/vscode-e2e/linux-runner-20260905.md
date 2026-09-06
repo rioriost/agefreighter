@@ -69,7 +69,7 @@ was submitted as the ninth import; its status reconciliation encountered the
 authentication boundary. The other nine remain uploaded, not imported. All
 18 upload receipts and all entered mappings are preserved.
 
-The current retained command is a **status-only** request, not a new CSV import:
+At the first pause, the retained command was a **status-only** request, not a new CSV import:
 `af-ca9d6344-00df-43bb-9391-da42f8185805`, operation
 `f8929635-7ef9-4d98-be50-aac91008f6dd`. It is marked `unknown`; an independent
 ARM GET returned 404. Do not reset or replay the import because of that absence.
@@ -110,7 +110,38 @@ after the evidence check and independently confirmed `PowerState/deallocated`
 before handoff. Disk, CSV files, storage and diagnostics are retained. NAT/IP
 and storage continue to incur small charges; no resources were deleted.
 
-## GUI mapping review
+## September 6 resume attempt
+
+- At 01:21–01:29Z, rechecked the authorized 96-hour window, retained VM,
+  unchanged storage access restrictions, 16:00 UTC shutdown and 25 USD trial
+  reserve. Six overnight policy audit failures concerned the evaluator's GET
+  permission on private endpoint connections; these were audit errors, not
+  permission to change policy or a successful compliance result.
+- `4636a70` adds GET-only reconciliation for a status-only ARM command absent
+  for at least five minutes. Its identity is archived, its state is not marked
+  successful, and a later explicit status request can read the existing guest
+  operation. Imports, assessments, exports, readiness, recent and invalid-time
+  requests are not cleared by this exception. All 124 unit tests, package build
+  and CI `34003810189` passed. Installed and reloaded in the actual VS Code.
+- Actual GUI reconciliation preserved the old status command in
+  `absentStatusCommands` and released that status-only blockage, without editing
+  the private workflow file or replaying the CSV import.
+- A successful ARM GET was **not proof of full authentication recovery**. After
+  restarting the same VM at 01:25Z, the GUI readiness request remained unknown:
+  `af-3797f10a-8dc9-45c9-b0d2-51b22267ba54`, operation
+  `f69f7a6c-7964-4554-b032-d1e31622def9`. The latest Microsoft Authentication
+  log still reported `AADSTS50079`, `invalid_grant/basic_action` and prohibited
+  silent acquisition. Retain this unknown request for reconciliation; do not
+  replay it or claim a fresh GUI guest-readiness receipt.
+- A separate read-only health check at 01:28:21Z confirmed cloud-init done,
+  unchanged executable hashes, root-owned 0700 runner storage, disk 5%
+  (2,864,205,824 / 66,404,147,200 bytes), available memory 7,796,563,968 bytes,
+  no running AGEFreighter processes, zero swap and zero OOM kills.
+- No additional CSV was imported and no source assessment started. The VM was
+  again independently confirmed `PowerState/deallocated`, preserving disks and all evidence while
+  the user completes interactive Azure authentication in VS Code.
+
+## Retained GUI mapping review
 
 Entered all nine vertex and nine edge mappings through the actual source-form
 fields. Independently compared the persisted generated configuration against

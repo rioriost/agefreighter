@@ -1,6 +1,6 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-05. Overall outcome: **not yet qualified**.
+Updated: 2026-09-06. Overall outcome: **not yet qualified**.
 
 Latest checkpoint: Linux VM installation/readiness passed, and nine guest CSV
 files (522,291,068 bytes) independently matched their full desktop hashes.
@@ -10,6 +10,14 @@ VS Code's Microsoft Authentication now requires interactive MFA
 (`AADSTS50079`). The trial is paused for the user to complete that authentication.
 No assessment or migration was started. The idle VM is deallocated with
 all evidence retained. See [Linux trial evidence](linux-runner-20260905.md).
+
+September 6 resume: a status-only reconciliation defect is fixed (124 unit
+tests and CI passed) and the preserved status request was reconciled in the GUI.
+However, fresh readiness submission remains unknown and Microsoft Authentication
+still reports MFA required. A successful GET alone did not demonstrate full
+authentication recovery. No additional CSV imports were attempted; the same VM
+was briefly started for checks and confirmed deallocated again. Interactive
+VS Code Azure authentication remains the blocker.
 
 ## Authorization / live resources
 
