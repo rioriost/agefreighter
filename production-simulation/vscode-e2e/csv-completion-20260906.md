@@ -1,5 +1,26 @@
 # CSV-MAC completion execution sheet
 
+## Active migration — 2026-09-06 07:30Z
+
+The installed VS Code GUI approved a new job
+`99f22ed1-d5b4-4432-b761-063e923b726c` at 07:23:31Z and now displays running.
+The worker started at 07:23:46.903643276Z; target preparation succeeded and
+the load process is active. Guest configuration SHA-256:
+`24e5a4d4178154f5a061a16b07439c73da3cc40e083ab447329714827db3f436`.
+At 07:27:08Z RSS was 61,148 KiB, quarantine was empty, boot OOM count zero.
+No completion/committed-row claim is made from process state or an empty file.
+Target storage reached 13.75% at 07:28Z, below the 80% stop gate.
+
+The full P1 verifier is built separately at commit
+`03f31785b7473975af037b361ebc08b3a23a2c22`, archive SHA-256
+`460804d405285a202be5812b04f540939d05c853789ac3f570b13684f5d01177`,
+7,241,672 bytes. It is not the installed loader. Its GUI option is installed,
+but execution remains blocked until the imported counts report passes.
+All five receipts in `runner-receipts-archive-20260906-0717.json` were freshly
+matched and removed from ARM after the archive was pushed; guest data and
+all failed/current operations remain. Historical ARM entries are recoverable
+as archived evidence, not as original live command resources.
+
 ## Latest continuation — 2026-09-06 07:17Z
 
 CSV-MAC is not yet qualified. The first GUI migration
