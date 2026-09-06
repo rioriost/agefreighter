@@ -188,8 +188,11 @@ storage charges and subsequent deletion are distinct, operator-visible choices.
 - Allocated server/disk size is context, not the size of the selected graph.
   PostgreSQL statistics and sampled rows are estimates; Cosmos sampling has an
   RU budget. Any exact count or full scan has an explicit time/cost limit.
-- The current `inventory` CLI is Neo4j-only. Do not call it for other connectors
-  or reuse the Neo4j count-store proof for PostgreSQL/Cosmos/CSV.
+- `inventory` supports Neo4j count-store totals and complete typed CSV scans.
+  CSV has explicit file/byte/row/time bounds and needs the `csv-inventory-v1`
+  capability on a remote guest. PostgreSQL/Cosmos inventory remains unsupported;
+  do not reuse Neo4j's count-store proof for another connector. Exact totals do
+  not turn a prefix-sampled capacity estimate into deployable sizing evidence.
 
 ## Implementation slices and acceptance gates
 

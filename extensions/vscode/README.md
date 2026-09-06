@@ -21,7 +21,7 @@ LoadJob commands continue to use a separately installed local CLI.
   deployment IDs and reconcile unknown status without replaying a create.
 - Configure all four source types using fields and vertex/edge mappings, without
   supplying a LoadJob file. Save an owner-only local draft before VM creation.
-- Approve a sampled remote profile (Neo4j/PostgreSQL/Cosmos) or Neo4j inventory
+- Approve a sampled remote profile or complete Neo4j/CSV inventory
   after guest readiness. Passwords use a native private prompt and protected
   dispatch; no password is saved with the form. CSV requires a full-hash guest seal.
 - Prepare workflow-owned transfer storage with explicit account-scoped user
@@ -138,7 +138,14 @@ verify their checksum and GitHub build-provenance attestation before use.
    one approved VM download or checks its retained status. Import requires fresh
    guest readiness and space below 80%, and seals only a full size/SHA-256 match.
    Review mappings again when all mapped files are verified; only then can the
-   sampled CSV assessment start. Failed/reboot-interrupted guest imports require
+   sampled CSV assessment start. A matching guest advertising `csv-inventory-v1`
+   also enables **Approve complete source inventory**: a full typed scan capped
+   at 64 files, 10 GiB, 100 million mapped records and 30 minutes (or a shorter
+   configured timeout). Older guests cannot run this operation. Exact mapped
+   counts are not proof of unique identities, valid endpoints or a completed
+   migration. Capacity estimates still require target/cost review; scaling a
+   prefix sample by exact totals does not make it deployable.
+   Failed/reboot-interrupted guest imports require
    evidence review; automatic lease repair/restart is not implemented.
 9. **Transfer / open verified report** first exports the terminal report, then
    reconciles and imports it on a subsequent click. It retains original JSON

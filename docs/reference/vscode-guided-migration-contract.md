@@ -60,13 +60,16 @@ recommendation must retain `declared` confidence until the user approves it.
 
 ## Capacity evidence
 
-The CLI profile's `complete-stream-range` may be used as a sizing input. For a
-Neo4j discovery job, `inventory` reads exact unfiltered node and relationship
-totals using simple transactional count-store queries. A bounded profile may be
-scaled by those totals because the guided draft migrates the whole database;
-the proposal records that method and retains the profile's estimation range.
-Without trustworthy totals, the extension must not silently extrapolate a
-bounded prefix.
+The CLI's `complete-stream-range` may be used as a sizing input only with a
+passing report, no failed/unknown checks, and complete positive row coverage.
+For a Neo4j discovery job, `inventory` reads exact unfiltered node and relationship
+totals using transactional count-store queries. CSV inventory scans every
+configured mapping and records complete mapped counts and record widths under
+explicit limits; the remote path requires the `csv-inventory-v1` guest capability.
+A bounded prefix may be scaled by exact totals for review, but this does not make
+it representative or deployable. Combining counts with complete-stream capacity
+preserves eligibility only when their totals match exactly. Storage multipliers
+remain estimates, not deployment approval or migration-verification evidence.
 
 ## Azure proposal evidence
 

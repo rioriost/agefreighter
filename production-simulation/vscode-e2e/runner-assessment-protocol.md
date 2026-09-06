@@ -38,8 +38,13 @@ automatic repair or lease-deletion operation is deliberately not provided yet.
 
 - `profile`: actual CLI sampled profile, 10,000-row sample. It is not an exact
   inventory and must not automatically determine production capacity.
-- `inventory`: existing exact Neo4j count-store inventory only. Other sources
-  cannot use the generic bounded profile as a substitute for exact totals.
+- `inventory`: exact Neo4j count-store totals, or a complete typed CSV scan.
+  CSV requires `csv-inventory-v1` in fresh matching guest readiness and all mapped
+  upload seals. Limits are 64 files, 10 GiB physical input, 100 million mapped
+  records and the source timeout capped at 30 minutes. Any rejected record,
+  changed file, timeout or limit breach fails without partial exact evidence.
+  Counts are per mapping, not distinct IDs or endpoint validation. PostgreSQL and
+  Cosmos cannot use a bounded profile as a substitute for exact totals.
 - Systemd: 30-minute runtime, 4 GiB memory ceiling, no swap, 200% CPU quota,
   private temporary directory and read-only system filesystem with only the
   workflow directory writable. No automatic restart or reboot resume.
@@ -53,7 +58,7 @@ automatic repair or lease-deletion operation is deliberately not provided yet.
   do not claim that credentials are erased after every failure.
 - CSV paths must remain in this workflow's upload directory, including after
   symlink resolution. Each mapped file needs a matching guest seal; the full file
-  is rehashed before profiling, not merely trusted because a marker exists.
+  is rehashed before assessment, not merely trusted because a marker exists.
 - Terminal reports preserve JSON number precision, redact supplied secret values,
   and retain byte length and SHA-256. A `finished` worker means a valid report was
   produced, **not** that its assessment/verification outcome passed.
@@ -84,7 +89,7 @@ still require live Azure testing. No mocked/local result counts toward the nine
 P1 GUI paths.
 
 The four source forms now create secret-reference-only drafts without requiring
-a released artifact or VM creation. Network profiles and Neo4j inventory are
+a released artifact or VM creation. Network profiles and Neo4j/CSV inventory are
 connected to explicit modal approval, native secret prompts and the protected
 dispatch/status boundary. Successful operation manifests are preserved in a
 bounded history before another approved assessment. Failed/unknown operations
@@ -93,10 +98,16 @@ or migration success. Full reports are imported into a script-disabled GUI viewe
 only after complete byte/hash verification and private immutable retention.
 
 Next gates: live validation of the pinned development artifact and authenticated
-bulk transport; schema/FK recommendations; exact PG/Cosmos/CSV totals with explicit scan/RU
-bounds; reviewed custom CA installation for private sources; then R4 target
+bulk transport; schema/FK recommendations; exact PG/Cosmos totals with explicit scan/RU
+bounds; Azure qualification of the new CSV inventory capability; reviewed custom
+CA installation for private sources; then R4 target
 deployment/resize and R5 durable migration/verification. CSV sampling requires
 every mapped upload seal; target mutations remain disabled.
+
+The complete CSV implementation and actual local P1 results are documented in
+[the CSV inventory checkpoint](csv-inventory-20260906.md). The existing Azure
+sample-profile trial does not qualify that newer guest capability. Current live
+evidence and remaining gates are tracked in [progress](progress.md).
 
 ## Bulk report transfer implementation checkpoint
 
