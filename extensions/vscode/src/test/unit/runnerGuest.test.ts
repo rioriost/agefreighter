@@ -33,6 +33,11 @@ test("ambiguous transport results reconcile with GET only",async()=>{
   const f=fixture();f.fail();const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
   assert.equal(next.guestCommand?.phase,"unknown");const before=f.events.length;await reconcileGuest(f.control,next);assert.ok(f.events.slice(before).every(e=>e.startsWith("GET:")));
 });
+test("managed command capacity fails before intent or PUT without deleting evidence",async()=>{
+  const f=fixture();f.control.list=async()=>Array.from({length:25},()=>({}));
+  await assert.rejects(dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"}),/25 managed Run Command limit/);
+  assert.equal(f.saved.length,0);assert.equal(f.bodies.length,0);assert.equal(f.events.length,0);
+});
 test("old absent status command is retained without replay or a successful receipt", async()=>{
   const f=fixture(),r=record();
   r.guestCommand={id:`${r.vmId}/runCommands/af-${op}`,operation:op,action:"status",phase:"unknown",submittedAt:"2020-01-01T00:00:00Z"};
