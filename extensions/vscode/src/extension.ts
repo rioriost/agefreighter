@@ -15,7 +15,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerTreeDataProvider("agefreighter.jobs", jobs)
   );
   controller.register(context);
-  registerRunnerMigration(context);
+  registerRunnerMigration(context, output);
   registerAI(context, controller, jobs);
   output.appendLine("AGEFreighter extension activated.");
 }

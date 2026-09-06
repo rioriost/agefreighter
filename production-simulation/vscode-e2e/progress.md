@@ -1,6 +1,20 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-06. Overall outcome: **CSV-MAC qualified; remaining branches not yet qualified**.
+Updated: 2026-09-06. Overall outcome: **CSV-MAC and AZ-N44 qualified; seven remaining branches not yet qualified**.
+
+### AZ-N44 qualification — PASS at 12:59Z
+
+The installed VS Code 1.136.1 GUI completed the Azure Neo4j 4.4.48 path from
+resource selection and complete inventory through private target deployment,
+same-VM discovery-to-migration resize, load and independent verification. Job
+`45e2d8bb-641b-424d-9074-d55e14b6ac2a` committed all 1,600,000 vertices and
+4,000,000 edges with zero rejects. The read-only verifier compared all
+5,600,000 typed records in 64 ranges; expected and actual canonical root are
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+See the [execution sheet](az-n44-completion-20260906.md) and
+[redacted evidence](evidence/az-n44-qualified-20260906.json). Both VMs are
+deallocated and the Flexible Server is Stopped; data and evidence are retained.
+This passes AZ-N44 only; seven other remote-source branches remain open.
 
 ### CSV-MAC qualification — PASS at 07:47Z
 
@@ -279,16 +293,16 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 | Stage | Current status |
 |---|---|
 | Dedicated Azure fixture topology / ownership and cost watchdog | RG/VNet/subnet, explicit NAT, transfer storage/RBAC and one private runner VM tested; account-only approved exception; exact-VM 16:00 UTC shutdown enabled; whole-suite cost automation remains open |
-| Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
+| Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Azure Neo4j 4.4.48 P1 source prepared and qualified; the other source fixtures remain open |
 | P1 local CSV | Prepared; complete local canonical comparison passed; installed-GUI storage upload, Linux import/sealing and independent full-byte readback all passed for 18 files |
-| R3 remote source configuration, mapping, assessment, upload | Actual installed-GUI CSV path passed Linux bootstrap, full-hash imports, reviewed mappings, bounded profile and verified report retrieval; network-source live qualification, representative/full inventory and schema suggestions remain open |
-| R4 target deployment and same-VM resize | CSV-MAC actual Azure path passed; remaining source branches open |
-| R5 durable migration / resume / verification controller | CSV-MAC clean migration, counts and canonical verification passed; recovery and remaining source branches open |
-| Installed VS Code 1.136.1 full GUI branches | CSV-MAC passed; eight branches not run |
-| Nine P1 base paths and additional branch/failure ledger | 1 / 9 complete |
+| R3 remote source configuration, mapping, assessment, upload | CSV-MAC and Azure Neo4j 4.4 resource discovery/full inventory passed; the other network-source branches remain open |
+| R4 target deployment and same-VM resize | CSV-MAC and AZ-N44 actual Azure paths passed; remaining source branches open |
+| R5 durable migration / resume / verification controller | CSV-MAC and AZ-N44 clean migrations, counts and canonical verification passed; recovery and remaining source branches open |
+| Installed VS Code 1.136.1 full GUI branches | CSV-MAC and AZ-N44 passed; seven branches not run |
+| Nine P1 base paths and additional branch/failure ledger | 2 / 9 complete |
 
-The current installed preview has one end-to-end GUI/Azure qualification
-(CSV-MAC). It must not be described as qualified for the other eight branches.
+The current installed preview has two end-to-end GUI/Azure qualifications
+(CSV-MAC and AZ-N44). It must not be described as qualified for the other seven branches.
 The preview VSIX is installed into MacStudio's VS Code 1.136.1. Installation
 and bundle identity are rechecked with each packaged update; these do not imply
 that the live GUI branches passed.

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {createHash} from "node:crypto";
 import test from "node:test";
 import {sourceWorkflowDraft,RunnerRecord} from "../../core/runner";
 import {RunnerControl} from "../../core/runnerLifecycle";
@@ -41,6 +42,25 @@ test("resize refuses missing health, expired budget and changed persistent ident
   const a=fixture();delete a.r.guestReady!.health;await assert.rejects(startResize(a.control,a.r),/readiness/);assert.ok(!a.events.includes("POST"));
   const b=fixture();b.r.target!.input.deadline="2000-01-01T00:00:00Z";await assert.rejects(startResize(b.control,b.r),/budget|deadline/);
   const c=fixture();const r=await startResize(c.control,c.r);c.vm.identity.principalId="foreign";await assert.rejects(advanceResize(c.control,r,true),/changed/);
+});
+test("resize canonicalizes ARM ID casing and a materialized Standard security default",async()=>{
+  const f=fixture();let r=await startResize(f.control,f.r);
+  f.vm.properties.storageProfile.osDisk.managedDisk.id=f.vm.properties.storageProfile.osDisk.managedDisk.id.replace("/resourceGroups/test/","/resourceGroups/TEST/");
+  (f.vm.properties as any).securityProfile={securityType:"Standard"};
+  f.vm.properties.instanceView.statuses[0]!.code="PowerState/deallocated";
+  r=await advanceResize(f.control,r);
+  assert.equal(r.resize?.phase,"ready-to-resize");
+});
+test("resize upgrades a retained pre-canonicalization digest only after observing a valid transition",async()=>{
+  const f=fixture(),legacy=(x:unknown)=>createHash("sha256").update(JSON.stringify(x)).digest("hex");
+  let r=await startResize(f.control,f.r);
+  r.resize!.preservedSHA256=legacy({disk:f.vm.properties.storageProfile.osDisk.managedDisk.id,nic:f.vm.properties.networkProfile.networkInterfaces[0]!.id,principal:f.vm.identity.principalId,tenant:f.vm.identity.tenantId,controller:f.vm.properties.storageProfile.diskControllerType,location:f.vm.location,zones:f.vm.zones});
+  f.vm.properties.storageProfile.osDisk.managedDisk.id=f.vm.properties.storageProfile.osDisk.managedDisk.id.replace("/resourceGroups/test/","/resourceGroups/TEST/");
+  f.vm.properties.instanceView.statuses[0]!.code="PowerState/deallocated";
+  const old=r.resize!.preservedSHA256;
+  r=await advanceResize(f.control,r);
+  assert.equal(r.resize?.phase,"ready-to-resize");
+  assert.notEqual(r.resize?.preservedSHA256,old);
 });
 test("AGE preload restart is once-only and requires owned configuration to reconcile",async()=>{
   const f=fixture();let pending=true;const events:string[]=[];

@@ -15,7 +15,7 @@ import { continueRunnerExecution } from "./runnerExecutionPanel";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
-export function registerRunnerMigration(context: vscode.ExtensionContext): void {
+export function registerRunnerMigration(context: vscode.ExtensionContext, output: vscode.LogOutputChannel): void {
   const azure = new AzureSession();
   let panel: vscode.WebviewPanel | undefined;
   let current: RunnerRecord | undefined;
@@ -46,8 +46,11 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
     previewHash: record.previewHash, guestCommand: record.guestCommand, guestReady: record.guestReady
   } });
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.prepareDevelopmentRunner", async () => {
-    try { await azure.subscriptions(); await prepareDevelopmentRunner(control, store, azure); }
-    catch (error) { await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Development artifact preparation failed."); }
+    try { await azure.subscriptions(); await prepareDevelopmentRunner(control, store, azure, message => output.info(message)); }
+    catch (error) {
+      output.error("Development artifact preparation failed", error);
+      await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Development artifact preparation failed.");
+    }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.upgradeDevelopmentRunner", async () => {
     try { await azure.subscriptions(); await upgradeDevelopmentRunner(control, store, azure); }
