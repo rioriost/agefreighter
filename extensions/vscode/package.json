@@ -82,6 +82,10 @@
     },
     "commands": [
       {
+        "command": "agefreighter.continueRunnerExecution",
+        "title": "AGEFreighter: Continue / Verify Linux CSV Migration"
+      },
+      {
         "command": "agefreighter.reviewRunnerTarget",
         "title": "AGEFreighter: Review / Reconcile Private CSV Target"
       },

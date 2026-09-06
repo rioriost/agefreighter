@@ -119,6 +119,53 @@ retail-price response is not treated as zero cost or permission to skip pricing.
   96-hour overall authorization is unchanged. Existing retained-resource charges
   continue and are not claimed to be a finalized Azure bill.
 
-Next: unlock Mac → reconcile/import the existing report through its GUI →
-install/reload the latest reviewed target wizard → complete target/resize and
-R5 implementation/qualification. No CSV-MAC migration pass yet.
+## Continuation after unlock
+
+The existing full inventory was imported and displayed through the actual GUI
+at approximately 04:56Z. Export/assessment were not replayed. After reloading
+the installed target wizard, the same workflow was restored. The runner boot
+changed to `16f8a00c-6821-48c8-a822-6447761161c5`; GUI readiness matched the pinned
+installation. Read-only health at 05:03:21Z showed idle lease/loader, disk 6%,
+swap 0 and no boot OOM events. Governance reads showed the prior owned
+deallocation and resource-health transitions, no other control changes.
+
+The GUI selected `afpg-83c6b829acdc4405aa2d`, PG18/D4ds_v5/128 GiB, delegated
+`10.246.2.0/24` in the existing VNet, and later D4s_v5 for the same runner.
+Current compute quote was USD 0.736/hour; a USD 100 accrued/non-compute reserve
+was included under the original USD 800 ceiling and Sep 9 08:55Z deadline.
+After explicit approval and folder selection, secret-reference-only LoadJob
+and plan were saved in the ignored work directory. ARM target deployment
+subsequently succeeded, with the server Ready in Japan East zone 1 and public
+access Disabled. The AGE preload parameter requires a separately reconciled
+restart. This does not establish AGE readiness or successful migration.
+
+The new local R5 implementation seals a create-only job UUID before writes,
+uses verified TLS to the owned Flexible Server, prepares AGE, loads with that
+UUID, then requires complete counts verification. A fixed Linux worker and
+same-VM resize controller preserve unknown outcomes without replay. Migration
+freezes the source evidence and installed artifact. Explicit recovery of a
+failed migration remains an operator gate, not an automatic retry. A new pinned
+guest upgrade, complete re-inventory, resize/preload restart and live execution
+are still required. Full P1 property/identity/endpoint digest is separate.
+
+The Mac locked again before GUI target reconciliation. Azure's deployment is
+Succeeded while the retained GUI target intent is still `submitted`; reconcile
+by GET after unlock, never redeploy. The exact target plan hash is
+`2f387200a96ae56f5420f29ec7a26ffb3443b4b4990534780a4360772f8879e7`.
+At 05:23:29Z, a fresh read-only guest check again showed no active workflow or
+loader, disk 6%, swap 0, and no OOM matches. `journalctl --grep` returned 1 with
+empty stdout/stderr for no matches; the new health reader explicitly distinguishes
+that case from permission/missing-journal errors. Two policy audit events were
+read: the audit principal could not GET `Microsoft.Security/assessments` for the
+new subnet. No denial or resource mutation was inferred, and no exception tag
+was added outside the previously authorized storage account.
+
+For cost containment during the GUI block, fresh ARM reads confirmed the VM
+deallocated and Flexible Server Stopped. Neither operation deletes data or
+evidence; retained storage, disk and network charges continue. The server's
+seven-day automatic-start behavior does not extend the September 9 deadline.
+The retained source guest is still c880a67, not the new local execution code.
+The new implementation has 148 passing extension tests and passing Go app/CLI/
+tools/runner tests. A parallel test run had a readiness child-process timeout;
+the complete runner package passed on isolated rerun without relaxing the
+production timeout. This is local test evidence, not an Azure migration pass.

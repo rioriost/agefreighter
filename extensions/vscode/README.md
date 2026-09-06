@@ -161,8 +161,18 @@ verify their checksum and GitHub build-provenance attestation before use.
     deployment. Separately approved deployment is create-only and uses generated
     credentials in VS Code SecretStorage/ARM secure parameters. Reopen the control
     to reconcile an uncertain submission; it does not replay it. This initial
-    target path requires the VNet in the migration RG. **Target creation does not
-    resize the VM, prepare AGE or start/verify migration yet.**
+    target path requires the VNet in the migration RG. Target creation alone does
+    not resize the VM, prepare AGE or start/verify migration.
+11. **Continue / verify Linux CSV migration** is a development preview. With a
+    matching migration-capable guest and complete inventory, separately approve
+    the AGE preload restart and each idle same-VM resize step. Unknown responses
+    are reconciled without replay; NIC, identity and disk must remain unchanged.
+12. Separately approve a new create-mode CSV migration. The job UUID is retained
+    before writes. The fixed Linux worker prepares AGE over verified TLS, loads,
+    then runs complete counts verification. Reconnect with **Refresh retained
+    migration**, then **Transfer / open migration verification**. A passing
+    counts report is not the independent P1 full-property digest. Failed runs
+    require operator reconciliation; this preview never automatically resumes.
 
 Workflow metadata is held in extension global storage, without source passwords,
 before output-folder selection. The VM uses persistent managed OS storage and
@@ -175,9 +185,11 @@ qualified. ARM success is not guest readiness. A finished assessment worker is
 not a passing migration. Transfer storage/RBAC, bulk reports and CSV upload/import
 are implemented but still require real Azure qualification. Automatic schema/FK
 recommendations and exact PostgreSQL/Cosmos inventories remain open. Complete CSV
-inventory and reviewed private target/export controls are implemented; target
-controls are not yet live-qualified. Same-VM resize, remote migration and final
-verification remain open. Publicly trusted TLS is currently required; custom source CA upload is
+inventory and reviewed private target/export controls are implemented and the
+isolated P1 GUI inventory/private target deployment have run. Same-VM resize and
+remote CSV migration/counts-verification previews are locally tested but remain
+unqualified on Azure. Full property-digest acceptance remains open.
+Publicly trusted TLS is currently required; custom source CA upload is
 not implemented. Do not publish this as a complete guided migration workflow.
 The [runner-first plan](https://github.com/rioriost/agefreighter/blob/codex/2.4.0-guided-migration/docs/design/agefreighter-2.4.0-runner-first.md)
 tracks the remaining gates.

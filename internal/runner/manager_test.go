@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/rioriost/agefreighter/internal/app"
 	"github.com/rioriost/agefreighter/internal/config"
@@ -27,6 +28,23 @@ const bootID = "33333333-3333-4333-8333-333333333333"
 func TestMain(m *testing.M) {
 	if len(os.Args) > 1 && os.Args[1] == "version" {
 		_, _ = io.WriteString(os.Stdout, version.Current().String("agefreighter"))
+		os.Exit(0)
+	}
+	// Protocol orchestration doubles only. These do not qualify a database or
+	// replace the separate real Azure migration/digest acceptance test.
+	if len(os.Args) > 4 && os.Args[1] == "load" {
+		if _, err := os.Stat("fail-load"); err == nil {
+			os.Exit(1)
+		}
+		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"jobId": os.Args[4], "status": "committed"})
+		os.Exit(0)
+	}
+	if len(os.Args) > 2 && os.Args[1] == "verify" {
+		doc := report.New("verify", time.Now().UTC())
+		doc.Outcome = report.OutcomePass
+		doc.Job = &report.Job{ID: os.Args[2], ConfigFingerprint: strings.Repeat("a", 64)}
+		doc.Checks = []report.Check{{ID: "job-status", Status: report.CheckPass, Summary: "orchestration fixture only"}}
+		_ = json.NewEncoder(os.Stdout).Encode(doc)
 		os.Exit(0)
 	}
 	if len(os.Args) > 2 && (os.Args[1] == "profile" || os.Args[1] == "inventory") {
@@ -67,7 +85,7 @@ func TestReadinessRequiresBootstrapAndMatchingInstallation(t *testing.T) {
 	if err != nil || !r.Ready || r.ArchiveSHA256 != strings.Repeat("a", 64) {
 		t.Fatalf("%#v %v", r, err)
 	}
-	if len(r.Capabilities) != 1 || r.Capabilities[0] != "csv-inventory-v1" {
+	if len(r.Capabilities) != 2 || r.Capabilities[0] != "csv-inventory-v1" || r.Capabilities[1] != "csv-migration-v1" {
 		t.Fatalf("missing complete CSV inventory capability: %#v", r)
 	}
 }
@@ -117,6 +135,9 @@ func testManager(t *testing.T) (Manager, Request, *int) {
 	}
 	starts := new(int)
 	manager := Manager{Root: root, UnitDirectory: units, CLI: executable, Tools: "/usr/local/bin/agefreighter-tools", BootID: func() (string, error) { return bootID, nil }, Start: func(context.Context, string) error { *starts++; return nil }}
+	manager.healthProbe = func(context.Context) (*GuestHealth, error) {
+		return &GuestHealth{Idle: true, StorageUsedPercent: 6}, nil
+	}
 	return manager, Request{Version: 1, Workflow: workflowID, Operation: operationID, Action: "profile", ExpectedBootID: bootID, Configuration: data, Secrets: map[string]string{"AGEFREIGHTER_SOURCE_PASSWORD": "private-secret"}}, starts
 }
 

@@ -15,6 +15,7 @@ export function assessmentActive(record: RunnerRecord): boolean {
 
 /** Caller holds the workflow lock, reviewed the form and approved source reads. */
 export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>): Promise<RunnerRecord> {
+  if(record.migration)throw new Error("The retained migration freezes source evidence; reconcile it instead of starting another assessment.");
   if (!record.sourceDraft?.canAssess || assessmentActive(record)) throw new Error("A reviewed source and a workflow without a retained assessment are required.");
   if (record.input.source.type === "csv" && !csvAssessmentReady(record)) throw new Error("Every mapped CSV requires an independently verified guest upload seal.");
   if (action === "inventory" && !["neo4j", "csv"].includes(record.input.source.type)) throw new Error("Exact inventory currently supports Neo4j and CSV only.");

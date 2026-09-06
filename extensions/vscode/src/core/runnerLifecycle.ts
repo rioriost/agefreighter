@@ -3,7 +3,7 @@ import { parseComputeSkus, parseQuotaUsages } from "./proposal";
 import { reportStorageNames, verifyTransferStorage } from "./runnerReportStorage";
 
 export interface RunnerControl {
-  request(subscription: string, path: string, method?: "GET" | "POST" | "PUT", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }>;
+  request(subscription: string, path: string, method?: "GET" | "POST" | "PUT" | "PATCH", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }>;
   list(subscription: string, path: string): Promise<unknown[]>;
   persist(record: RunnerRecord): Promise<void>;
   sleep(ms: number): Promise<void>;

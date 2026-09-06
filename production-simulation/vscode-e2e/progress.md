@@ -10,21 +10,34 @@ See [live evidence](evidence/csv-inventory-linux-20260906.json) and the
 [execution sheet](csv-completion-20260906.md). This is source inventory, **not
 a migration pass** or a uniqueness/endpoint/canonical-graph proof.
 
-The GUI installed the pinned `c880a67` Linux upgrade while retaining the old
-binaries, CSVs and reports. It observed inventory completion and approved report
-export; Azure completed export at 03:46:44Z. An independent authenticated read
-matched the entire 3,220-byte report and SHA-256. The Mac then locked, so GUI
-report import/display remains pending; private workflow state was not edited
-to simulate completion. The operator must unlock the Mac to continue GUI work.
+After the Mac was unlocked, the GUI imported and displayed the exact 3,220-byte
+whole-source report. No source scan was replayed and no private workflow file
+was manually patched. The current `c880a67` guest and all old evidence are retained.
 
-Private CSV target review, folder selection/secret-reference-only LoadJob export,
-live service/SKU/quota/network/price preflight, secure-parameter deployment and
-GET-only reconciliation are implemented locally; 142 extension tests pass.
-They are **not yet live-qualified**. Same-VM resize and R5 remote migration/full
-verification still remain. No target or migration was created. At 03:49:40Z the
-guest worker was inactive/successful, no workflow lease or loader remained,
-disk usage was 6%, swap 0, and kernel OOM events 0. The owned VM was deallocated
-and independently confirmed at 03:52:23Z. All data and evidence remain retained.
+The actual GUI then reviewed source counts, live prices/capabilities/quotas,
+selected a save folder and submitted a private PostgreSQL 18 target. ARM reports
+**Succeeded**, server initially **Ready**, D4ds_v5 / 128 GiB / Japan East zone 1, with public
+access disabled and a dedicated delegated subnet in the runner VNet. Shared
+preload `pg_stat_statements,age` is pending a restart. No migration has started.
+Compute quote: USD 0.736/hour for the planned D4s_v5 runner plus target; USD 100
+accrued/non-compute reserve under the unchanged USD 800 / Sep 9 08:55Z deadline.
+This is a conservative exposure gate, not a finalized bill.
+
+The same-VM resize state machine and fixed Linux CSV prepare/load/counts-verify
+sequence are now implemented for qualification, with a retained UUID before
+target writes, explicit approvals, no automatic resume/replay, and independent
+report-hash validation. They require a new pinned guest artifact and a fresh
+complete inventory before use. Local extension tests pass (148); live R5 and
+the full P1 property digest remain unqualified. The Mac locked again before
+GUI target reconciliation. Latest guest health at 05:23:29Z was idle, disk 6%,
+swap 0, kernel OOM 0. Fresh ARM reads confirm VM **deallocated** and Flexible
+Server **Stopped**. All data/resources/evidence are retained; disk, storage and
+network charges continue. Flexible Server can automatically start after seven
+days; the authorized September 9 deadline is earlier and remains binding.
+Unlock is required for the next actual GUI steps; no metadata was patched to
+claim a completed deployment reconciliation or migration.
+
+## Earlier retained transport and sample checkpoints
 
 Latest checkpoint: **the bounded Linux CSV trial passed its transport and
 assessment controls**, not a P1 migration. After user reauthentication, the
@@ -61,9 +74,10 @@ was operator maintenance, not automatic housekeeping or a source replay.
   `vnet-af-vscode-p1` / `runner` compute subnet. Both provisioning states succeeded.
   The first one-VM Linux trial was submitted through the installed GUI at
   **2026-09-05T12:48:08Z**, after the user approved the pinned development build.
-  No Flexible Server or Cosmos resources have been created. Private run metadata
+  At that initial checkpoint no Flexible Server or Cosmos resources existed;
+  the CSV Flexible Server described above was subsequently created. Private run metadata
   retains exact IDs; ARM completion is not a guest or migration pass.
-  Initial reserve remains **25 USD**. B2s_v2 Linux compute is 0.109 USD/hour;
+  Initial reserve was **25 USD**, superseded by the **100 USD** target-plan reserve above. B2s_v2 Linux compute is 0.109 USD/hour;
   Standard NAT is 0.045 USD/hour plus 0.045 USD/GB, and its Standard public IP
   is 0.005 USD/hour. At most 92 remaining hours plus a 10 USD disk/data reserve
   fits the initial ceiling. The global 800 USD / 96-hour limits are unchanged.

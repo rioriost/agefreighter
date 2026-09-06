@@ -50,6 +50,8 @@ type State struct {
 	FileID       string `json:"fileId,omitempty"`
 	FileBytes    int64  `json:"fileBytes,omitempty"`
 	FileSHA256   string `json:"fileSha256,omitempty"`
+	JobID        string `json:"jobId,omitempty"`
+	Fingerprint  string `json:"fingerprint,omitempty"`
 }
 
 func Decode(input io.Reader) (Request, error) {
@@ -70,7 +72,7 @@ func Decode(input io.Reader) (Request, error) {
 		return Request{}, errors.New("invalid runner protocol version or operation identity")
 	}
 	switch request.Action {
-	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv":
+	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv":
 	default:
 		return Request{}, errors.New("runner operation is not allowed")
 	}
@@ -111,6 +113,17 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 	}
 	if job.Trial != nil {
 		return nil, errors.New("trial writes are not supported by assessment")
+	}
+	if request.Action == "migrate-csv" {
+		if job.Source.Type != config.SourceCSV || job.Target.Type != config.TargetApacheAGE || job.Target.Mode != config.LoadCreate || job.Target.Connection.Env != "AGEFREIGHTER_TARGET_DSN" {
+			return nil, errors.New("remote migration requires a reviewed CSV create-mode AGE job")
+		}
+		if _, err := migrationConnection(request.Secrets["AGEFREIGHTER_TARGET_DSN"]); err != nil {
+			return nil, err
+		}
+		if len(request.Secrets) != 1 {
+			return nil, errors.New("CSV migration accepts only the target credential")
+		}
 	}
 	refs := []config.SecretRef{job.Target.Connection}
 	if job.Source.PostgreSQL != nil {
@@ -203,6 +216,8 @@ func Arguments(action, path string) ([]string, error) {
 		return []string{"profile", path, "--mode", "sample", "--sample-size", "10000", "--format", "json"}, nil
 	case "inventory":
 		return []string{"inventory", path, "--format", "json"}, nil
+	case "migrate-csv":
+		return nil, nil // Fixed prepare/load/verify sequence, not arbitrary arguments.
 	default:
 		return nil, errors.New("runner cannot execute this action")
 	}

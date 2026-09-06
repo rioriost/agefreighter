@@ -57,8 +57,8 @@
     "guiApprovedReportExport": true,
     "azureExportCompletedAt": "2026-09-06T03:46:44Z",
     "independentAuthenticatedBlobReadMatchedAllBytesAndSHA256": true,
-    "guiReportImportCompleted": false,
-    "guiBlocker": "Mac locked after report export approval"
+    "guiReportImportCompleted": true,
+    "previousGUIBlocker": "Mac locked after export approval; resolved by GUI import on 2026-09-06"
   },
   "migrationQualified": false
 }

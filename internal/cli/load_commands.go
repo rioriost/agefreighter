@@ -14,18 +14,27 @@ import (
 )
 
 func newLoadCommand() *cobra.Command {
-	return &cobra.Command{
+	var jobID string
+	command := &cobra.Command{
 		Use:   "load JOB",
 		Short: "Load a validated job into Apache AGE",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(command *cobra.Command, args []string) error {
-			result, err := app.Load(command.Context(), args[0])
+			var result app.LoadResult
+			var err error
+			if jobID == "" {
+				result, err = app.Load(command.Context(), args[0])
+			} else {
+				result, err = app.LoadWithID(command.Context(), args[0], jobID)
+			}
 			if err != nil {
 				return fmt.Errorf("load job %s: %w", result.JobID, err)
 			}
 			return writeJSON(command, result)
 		},
 	}
+	command.Flags().StringVar(&jobID, "job-id", "", "new durable job UUID retained by an orchestrator (never resumes an existing job)")
+	return command
 }
 
 func newResumeCommand() *cobra.Command {

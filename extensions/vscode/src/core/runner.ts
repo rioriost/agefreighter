@@ -8,6 +8,8 @@ import type { CSVTransfer } from "../guided/csvTransfer";
 import { developmentDownload } from "./runnerDevelopment";
 import type { RunnerUpgrade } from "./runnerUpgrade";
 import type { RunnerTarget } from "./runnerTarget";
+import type { RunnerResize } from "./runnerResize";
+import type { RunnerMigration } from "./runnerExecution";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
@@ -56,6 +58,9 @@ export interface RunnerRecord {
   upgrade?: RunnerUpgrade;
   upgradeHistory?: RunnerUpgrade[];
   target?: RunnerTarget;
+  resize?: RunnerResize;
+  migration?: RunnerMigration;
+  targetRestart?: {phase:"submitted"|"unknown"|"finished";submittedAt:string};
 }
 
 /** Local-only draft. Blank artifact/template fields are never deployable. */

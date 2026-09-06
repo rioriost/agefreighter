@@ -22,13 +22,15 @@ import (
 )
 
 type Manager struct {
-	Root          string
-	UnitDirectory string
-	CLI           string
-	Tools         string
-	BootID        func() (string, error)
-	Start         func(context.Context, string) error
-	blobTransport http.RoundTripper // Test seam; production uses standard TLS validation.
+	Root             string
+	UnitDirectory    string
+	CLI              string
+	Tools            string
+	BootID           func() (string, error)
+	Start            func(context.Context, string) error
+	blobTransport    http.RoundTripper                           // Test seam; production uses standard TLS validation.
+	healthProbe      func(context.Context) (*GuestHealth, error) // Test seam; nil uses local Linux evidence.
+	migrationPrepare func(context.Context, []byte, string) error // Test seam; nil uses verified PostgreSQL TLS preparation.
 }
 
 func (m Manager) paths(workflow, operation string) (string, string, error) {
@@ -65,6 +67,16 @@ func (m Manager) Submit(ctx context.Context, request Request) (State, error) {
 	if err := privateDirectory(root); err != nil {
 		return State{}, err
 	}
+	if request.Action == "migrate-csv" {
+		probe := m.health
+		if m.healthProbe != nil {
+			probe = m.healthProbe
+		}
+		health, err := probe(ctx)
+		if err != nil || health == nil || !health.Idle || health.StorageUsedPercent >= 80 || health.SwapUsedBytes != 0 || health.OOMEvents != 0 {
+			return State{}, errors.New("migration requires current idle, storage, swap and OOM safety evidence")
+		}
+	}
 	if err := os.Mkdir(dir, 0700); err != nil {
 		return State{}, errors.New("operation already exists or cannot be created; query its status, do not replay")
 	}
@@ -72,6 +84,9 @@ func (m Manager) Submit(ctx context.Context, request Request) (State, error) {
 		return State{}, errors.New("workflow has an active or unreconciled operation")
 	}
 	state := State{Version: 1, Workflow: request.Workflow, Operation: request.Operation, Action: request.Action, Phase: "accepted", BootID: boot, ConfigSHA256: sum(configuration)}
+	if request.Action == "migrate-csv" {
+		state.JobID = request.Operation
+	}
 	if err := writeNewJSON(filepath.Join(dir, "state.json"), state); err != nil {
 		return State{}, err
 	}
@@ -161,6 +176,9 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 	state.StartedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	if err := replaceJSON(filepath.Join(dir, "state.json"), state); err != nil {
 		return err
+	}
+	if state.Action == "migrate-csv" {
+		return m.workMigration(ctx, root, dir, state, configuration, secrets)
 	}
 	args, err := Arguments(state.Action, filepath.Join(dir, "job.json"))
 	if err != nil {

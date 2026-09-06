@@ -11,6 +11,7 @@ import { dispatchGuest, reconcileGuest } from "./core/runnerGuest";
 import { openRunnerSource } from "./runnerSourcePanel";
 import { developmentEnabled, prepareDevelopmentRunner, upgradeDevelopmentRunner } from "./developmentRunner";
 import { reviewRunnerTarget } from "./runnerTargetPanel";
+import { continueRunnerExecution } from "./runnerExecutionPanel";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -55,6 +56,10 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.reviewRunnerTarget", async () => {
     try { await azure.subscriptions(); await reviewRunnerTarget(context,control,store,azure); }
     catch(error){ await vscode.window.showErrorMessage(error instanceof Error?error.message:"Target review could not complete. No automatic retry was made."); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("agefreighter.continueRunnerExecution", async () => {
+    try { await azure.subscriptions(); await continueRunnerExecution(context,control,store,azure); }
+    catch(error){ await vscode.window.showErrorMessage(error instanceof Error?error.message:"Execution requires evidence review; no automatic retry was made."); }
   }));
   context.subscriptions.push(azure, vscode.commands.registerCommand("agefreighter.newGuidedMigration", () => {
     if (panel) { panel.reveal(); return; }
@@ -221,6 +226,11 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
           case "reviewTarget": {
             if(!current)throw new Error("Select a retained CSV workflow first.");
             await reviewRunnerTarget(context,control,store,azure,current.id);
+            current=await store.read(current.id);await display(current);break;
+          }
+          case "continueExecution": {
+            if(!current)throw new Error("Select a retained CSV workflow first.");
+            await continueRunnerExecution(context,control,store,azure,current.id);
             current=await store.read(current.id);await display(current);break;
           }
           default: throw new Error("Unsupported guided migration operation.");

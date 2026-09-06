@@ -6,9 +6,9 @@ import { verifyReportStorage } from "./runnerReportStorage";
 
 /** Caller approves an owned private destination and holds the workflow lock.
  * Capability minting/storage provisioning are separate; never accept a webview SAS. */
-export async function startReportExport(control: RunnerControl, record: RunnerRecord, createCapability: string): Promise<RunnerRecord> {
+export async function startReportExport(control: RunnerControl, record: RunnerRecord, createCapability: string, operation?:string): Promise<RunnerRecord> {
   if (record.phase !== "provisioned") throw new Error("The report exporter requires the retained provisioned runner.");
-  const assessment = record.assessment;
+  const assessment = operation!==undefined && operation===record.migration?.operation ? record.migration : record.assessment;
   if (!assessment || !["finished", "failed"].includes(assessment.phase) || !assessment.reportSHA256 || !assessment.reportBytes) throw new Error("A terminal assessment and independently retained report manifest are required.");
   const manifest = reportManifest({ operation: assessment.operation, sha256: assessment.reportSHA256, bytes: assessment.reportBytes });
   if (record.reportTransfers?.some(value => value.operation === manifest.operation)) throw new Error("An export intent already exists. Reconcile or import its destination; never replay it.");
@@ -46,7 +46,7 @@ export async function importReport(control: RunnerControl, record: RunnerRecord,
   retain: (workflow: string, manifest: ReportManifest, text: string) => Promise<void>, fetcher: typeof fetch = fetch): Promise<RunnerRecord> {
   const transfer = record.reportTransfers?.find(value => value.operation === operation);
   if (!transfer) throw new Error("No retained export destination.");
-  const assessment = [record.assessment, ...record.assessmentHistory ?? []].find(value => value?.operation === operation);
+  const assessment = [record.assessment, ...record.assessmentHistory ?? [],record.migration].find(value => value?.operation === operation);
   if (!assessment || assessment.reportSHA256 !== transfer.sha256 || assessment.reportBytes !== transfer.bytes) throw new Error("Export no longer matches independent assessment evidence.");
   const url = reportCapability(readCapability, record.id, operation, "r");
   if (`${url.origin}${url.pathname}` !== transfer.blob) throw new Error("Report capability points to a different retained destination.");

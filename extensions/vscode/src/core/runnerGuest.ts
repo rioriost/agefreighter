@@ -7,12 +7,13 @@ import { CSVManifest, validateCSVManifest } from "../guided/csvTransfer";
 export interface GuestCommand {
   id: string;
   operation: string;
-  action: "ready" | "profile" | "inventory" | "status" | "report" | "export-report" | "import-csv";
+  action: "ready" | "profile" | "inventory" | "status" | "report" | "export-report" | "import-csv" | "migrate-csv";
   phase: "submitted" | "unknown" | "finished" | "failed";
   submittedAt: string;
   failure?: string;
 }
-export interface GuestReadiness { bootId: string; cliVersion: string; archiveSha256: string; commit: string; checkedAt: string; capabilities?: string[] }
+export interface GuestHealth { idle:boolean; storageUsedPercent:number; swapUsedBytes:number; oomEvents:number }
+export interface GuestReadiness { bootId: string; cliVersion: string; archiveSha256: string; commit: string; checkedAt: string; capabilities?: string[]; health?:GuestHealth }
 export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number; export?: { url: string; sha256: string; bytes: number }; import?: CSVManifest & { url: string } }
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
@@ -31,7 +32,7 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
   if (record.phase !== "provisioned") throw new Error("The runner VM must be provisioned first.");
   if (record.upgrade && record.upgrade.phase !== "finished") throw new Error("Reconcile the guest upgrade before any other operation.");
   if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command; do not resubmit it.");
-  if (request.version !== 1 || request.workflow !== record.id || !uuid.test(request.operation) || !["ready", "profile", "inventory", "status", "report", "export-report", "import-csv"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
+  if (request.version !== 1 || request.workflow !== record.id || !uuid.test(request.operation) || !["ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
   if (["ready", "status", "report", "export-report"].includes(request.action) && (request.configuration !== undefined || request.secrets !== undefined || request.expectedBootId !== undefined)) throw new Error("Read-only guest controls cannot contain source credentials.");
   if (request.action === "export-report") {
     if (!request.export || request.offset !== undefined) throw new Error("Invalid report export capability.");
@@ -42,7 +43,11 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
     if (!request.import || request.configuration !== undefined || request.secrets !== undefined || request.offset !== undefined) throw new Error("Unexpected CSV import fields.");
     validateCSVManifest(request.import); csvCapability(request.import.url, record.id, request.import.file, request.import.sha256);
   } else if (request.import !== undefined) throw new Error("Unexpected CSV import capability.");
-  const assessment = ["profile", "inventory"].includes(request.action);
+  const assessment = ["profile", "inventory", "migrate-csv"].includes(request.action);
+  if(request.action==="migrate-csv"){
+    assertIdleHealth(record);
+    if(!record.guestReady?.capabilities?.includes("csv-migration-v1") || record.migration?.operation!==request.operation || record.migration.phase!=="submitted" || record.target?.phase!=="provisioned" || record.resize?.phase!=="finished")throw new Error("Migration requires an approved retained execution intent and prepared target/runner.");
+  }
   const bootBound = assessment || request.action === "import-csv";
   if (bootBound) {
     const ready = record.guestReady;
@@ -121,6 +126,11 @@ export async function reconcileGuest(control: RunnerControl, record: RunnerRecor
         if (value.capabilities !== undefined && (!Array.isArray(value.capabilities) || value.capabilities.length > 32 || value.capabilities.some(x => typeof x !== "string" || !/^[a-z0-9-]{1,64}$/.test(x)))) throw new Error();
         next.guestReady = { bootId: value.bootId, cliVersion: value.cliVersion, archiveSha256: value.archiveSha256, commit: value.commit, checkedAt: command.submittedAt,
           capabilities: value.capabilities as string[] | undefined };
+        if(value.health!==undefined){
+          const h=object(value.health);
+          if(typeof h.idle!=="boolean" || typeof h.storageUsedPercent!=="number" || !Number.isFinite(h.storageUsedPercent) || h.storageUsedPercent<0 || h.storageUsedPercent>100 || !Number.isSafeInteger(h.swapUsedBytes) || Number(h.swapUsedBytes)<0 || !Number.isSafeInteger(h.oomEvents) || Number(h.oomEvents)<0)throw new Error();
+          next.guestReady.health=h as unknown as GuestHealth;
+        }
       } else if (value.operation !== command.operation || command.action !== "report" && value.workflow !== record.id) throw new Error();
       next.guestCommand = { ...command, phase: "finished" };
     } catch { result = undefined; }
@@ -128,6 +138,11 @@ export async function reconcileGuest(control: RunnerControl, record: RunnerRecor
   if (command.action === "ready" && next.guestCommand?.phase !== "finished") delete next.guestReady;
   await control.persist(next);
   return { record: next, result };
+}
+
+export function assertIdleHealth(record:RunnerRecord):void{
+  const r=record.guestReady,h=r?.health,age=r?Date.now()-Date.parse(r.checkedAt):NaN;
+  if(!r || r.archiveSha256!==record.artifact.sha256 || r.cliVersion!==record.artifact.version || !Number.isFinite(age) || age<0 || age>300000 || !h || h.idle!==true || !Number.isFinite(h.storageUsedPercent) || h.storageUsedPercent<0 || h.storageUsedPercent>=80 || h.swapUsedBytes!==0 || h.oomEvents!==0)throw new Error("Refresh Linux readiness: idle worker, disk below 80%, no swap/OOM and matching installation are required.");
 }
 
 /** Assemble all chunks and verify the independently retained artifact hash. */

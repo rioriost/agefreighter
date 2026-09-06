@@ -157,7 +157,7 @@ export class AzureSession implements vscode.Disposable {
   }
 
   /** Control-plane requests only. Never accepts an arbitrary host or forwards redirects. */
-  public async runnerRequest(subscriptionID: string, path: string, method: "GET" | "POST" | "PUT" = "GET", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }> {
+  public async runnerRequest(subscriptionID: string, path: string, method: "GET" | "POST" | "PUT" | "PATCH" = "GET", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }> {
     const subscription = await this.subscription(subscriptionID);
     const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
     const url = new URL(path, endpoint);

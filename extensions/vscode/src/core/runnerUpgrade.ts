@@ -14,7 +14,7 @@ export interface RunnerUpgrade {
 }
 
 export function assertUpgradeIdle(record: RunnerRecord): void {
-  if (record.phase !== "provisioned" || record.upgrade && record.upgrade.phase !== "finished" ||
+  if (record.migration || record.phase !== "provisioned" || record.upgrade && record.upgrade.phase !== "finished" ||
       record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase) ||
       record.assessment && !["finished", "failed"].includes(record.assessment.phase) ||
       record.csvTransfers?.some(x => x.phase !== "verified") ||

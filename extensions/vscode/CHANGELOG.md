@@ -5,8 +5,12 @@
 - Add complete CSV inventory, a data-preserving pinned Linux upgrade, and private
   CSV target review/export with live service, quota, network and price gates.
   Target approval uses native fields and SecretStorage, create-only what-if and
-  GET-only reconciliation. Same-VM resize and remote migration/verification remain
-  open. The isolated P1 Linux GUI inventory counted all 5.6M rows; this is not a
+  GET-only reconciliation. Add an explicitly approved, evidence-preserving same-VM
+  resize and a pinned Linux CSV prepare/load/complete-counts verification preview.
+  Retain job UUID before writes; require fresh idle/disk/swap/OOM health, verified
+  TLS, complete re-inventory after upgrade, and no automatic resume or replay.
+  Live migration and independent property-digest qualification remain open.
+  The isolated P1 Linux GUI inventory counted all 5.6M rows; this is not a
   migration qualification or a public release of the completed guided workflow.
 - Clear an earlier sample report's imported indicator when a new inventory starts.
 

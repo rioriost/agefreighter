@@ -56,7 +56,12 @@ pre-execution failures can retain it for operator review. Bounded stderr remains
 private on the guest and is not returned to the UI/model. Reports redact supplied
 secret values and retain their hash. No source-form data or remote assessment
 payload is passed to an AI tool. CSV/report transfer now require separate
-approvals; remote migration and final verification are still not enabled.
+approvals. The CSV execution preview separately approves the owned target's
+preload restart, same-VM resize and new migration. A retained UUID precedes target
+writes. Only the target DSN is sent through protected transport, with verified
+TLS; the fixed worker prepares AGE, loads and verifies complete counts. Terminal
+reports use the same private, hash-checked transfer. Raw step logs stay on the
+guest. Automatic recovery and full property-digest qualification remain separate.
 
 The bulk-report GUI supports a
 workflow-owned, non-anonymous Azure Blob destination with shared-key access
