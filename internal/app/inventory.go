@@ -25,6 +25,9 @@ func SourceInventory(
 	if err != nil {
 		return report.Document{}, fmt.Errorf("load inventory configuration: %w", err)
 	}
+	if job.Source.Type == config.SourceCSV && job.Source.CSV != nil {
+		return csvSourceInventory(ctx, job, options)
+	}
 	if job.Source.Type != config.SourceNeo4j || job.Source.Neo4j == nil {
 		return report.Document{}, fmt.Errorf(
 			"source inventory is not implemented for %q",

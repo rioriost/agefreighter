@@ -74,6 +74,8 @@ test("readiness requires matching Linux architecture, release and checksum",asyn
   const f=fixture();const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
   const ready={version:1,ready:true,os:"linux",architecture:"amd64",bootId:op,cliVersion:"2.4.0",archiveSha256:next.artifact.sha256,commit:"commit"};
   f.result(ready);assert.equal((await reconcileGuest(f.control,next)).record.guestReady?.bootId,op);
+  f.result({...ready,capabilities:["csv-inventory-v1"]});assert.deepEqual((await reconcileGuest(f.control,next)).record.guestReady?.capabilities,["csv-inventory-v1"]);
+  f.result({...ready,capabilities:[42]});assert.equal((await reconcileGuest(f.control,next)).record.guestReady,undefined);
   for(const change of [{architecture:"arm64"},{os:"darwin"},{archiveSha256:"wrong"},{cliVersion:"2.3.0"},{ready:false}]){
     f.result({...ready,...change});const checked=await reconcileGuest(f.control,next);assert.equal(checked.record.guestCommand?.phase,"failed");assert.equal(checked.record.guestReady,undefined);
   }

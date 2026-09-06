@@ -52,6 +52,7 @@ test("keeps bounded profile estimates non-deployable", () => {
 
 test("accepts complete profile capacity evidence", () => {
   const result = extractCapacityEvidence({
+    outcome: "pass",
     sections: [{ title: "Capacity indicators", fields: [
       { name: "method", value: "complete-stream-range" },
       { name: "estimatedTargetRows", value: "560000000" },
@@ -63,7 +64,21 @@ test("accepts complete profile capacity evidence", () => {
   assert.equal(result.reason, undefined);
 });
 
-test("scales a bounded profile only with an exact consistent inventory", () => {
+test("failed or incomplete whole-stream results cannot become a capacity approval", () => {
+  const sections = [{ title: "Capacity indicators", fields: [
+    { name: "method", value: "complete-stream-range" }, { name: "estimatedTargetRows", value: "5600000" },
+    { name: "recommendedStorageBytesRange", value: "1000000000..4000000000" }
+  ] }];
+  for (const outcome of [undefined, "fail", "incomplete"]) assert.equal(extractCapacityEvidence({ outcome, sections }).deployable, false);
+  assert.equal(extractCapacityEvidence({ outcome: "pass", sections, checks: [{ status: "unknown" }] }).deployable, false);
+  const inventory = extractInventoryEvidence({ outcome: "pass", sections: [{ title: "Source inventory", fields: [
+    { name: "countMethod", value: "csv-complete-stream" }, { name: "vertices", value: "1600000" },
+    { name: "edges", value: "4000000" }, { name: "totalRows", value: "5600000" }
+  ] }] });
+  assert.equal(inventory.exact, true);
+});
+
+test("exact counts do not promote a scaled prefix sample into deployable capacity", () => {
   const inventory = extractInventoryEvidence({
     outcome: "pass",
     sections: [{ title: "Source inventory", fields: [
@@ -83,8 +98,11 @@ test("scales a bounded profile only with an exact consistent inventory", () => {
   }, inventory);
   assert.equal(result.targetRows, 560000000n);
   assert.equal(result.recommendedStorageHigh, 224000000000n);
-  assert.equal(result.deployable, true);
+  assert.equal(result.deployable, false);
   assert.equal(result.method, "exact-counts-scaled-bounded-profile");
+  assert.match(result.reason!, /prefix sample/);
+  const full = { ...result, method: "complete-stream-range", deployable: true };
+  assert.equal(combineCapacityAndInventory(full, inventory), full);
 });
 
 test("rejects inconsistent inventory evidence", () => {

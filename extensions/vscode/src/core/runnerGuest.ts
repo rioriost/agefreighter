@@ -12,7 +12,7 @@ export interface GuestCommand {
   submittedAt: string;
   failure?: string;
 }
-export interface GuestReadiness { bootId: string; cliVersion: string; archiveSha256: string; commit: string; checkedAt: string }
+export interface GuestReadiness { bootId: string; cliVersion: string; archiveSha256: string; commit: string; checkedAt: string; capabilities?: string[] }
 export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number; export?: { url: string; sha256: string; bytes: number }; import?: CSVManifest & { url: string } }
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
@@ -117,7 +117,9 @@ export async function reconcileGuest(control: RunnerControl, record: RunnerRecor
         if (value.ready !== true || value.os !== "linux" || value.architecture !== "amd64" || value.cliVersion !== record.artifact.version || value.archiveSha256 !== record.artifact.sha256 || typeof value.bootId !== "string" || !uuid.test(value.bootId) || typeof value.commit !== "string") throw new Error();
         if (record.artifact.development && value.commit !== record.artifact.development.commit) throw new Error();
         // Re-reading an old ARM response must never refresh its validity.
-        next.guestReady = { bootId: value.bootId, cliVersion: value.cliVersion, archiveSha256: value.archiveSha256, commit: value.commit, checkedAt: command.submittedAt };
+        if (value.capabilities !== undefined && (!Array.isArray(value.capabilities) || value.capabilities.length > 32 || value.capabilities.some(x => typeof x !== "string" || !/^[a-z0-9-]{1,64}$/.test(x)))) throw new Error();
+        next.guestReady = { bootId: value.bootId, cliVersion: value.cliVersion, archiveSha256: value.archiveSha256, commit: value.commit, checkedAt: command.submittedAt,
+          capabilities: value.capabilities as string[] | undefined };
       } else if (value.operation !== command.operation || command.action !== "report" && value.workflow !== record.id) throw new Error();
       next.guestCommand = { ...command, phase: "finished" };
     } catch { result = undefined; }

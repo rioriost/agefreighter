@@ -2,6 +2,14 @@
 
 Updated: 2026-09-06. Overall outcome: **not yet qualified**.
 
+Subsequent local R4 prerequisite: [complete CSV inventory](csv-inventory-20260906.md)
+now scans all P1 records rather than extrapolating the first 10,000 vertices.
+Local CLI evidence: 1.6 million vertices + 4 million edges, before/after file
+hashes matched, 9.70 seconds / 28.3 MiB maximum RSS. Whole-source capacity
+evidence and advertised guest-capability gates are implemented and tested.
+This new operation has **not run on Azure**; the retained VM is unchanged and
+deallocated. R4 target/resize and R5 migration/verification are still unimplemented.
+
 Latest checkpoint: **the bounded Linux CSV trial passed its transport and
 assessment controls**, not a P1 migration. After user reauthentication, the
 installed VS Code 1.136.1 GUI verified all **18 CSV imports / 1,168,576,671 bytes**.
@@ -249,6 +257,8 @@ Windows unit tests, source contracts, Extension Host and packaging.
 - The live CSV profile sampled 10,000 vertices and no edges. Do not feed its
   lower-bound estimates into automatic VM/target sizing. Whole-source inventory
   or explicitly representative assessment remains an R4 acceptance gate.
+  Complete CSV inventory has now passed local P1 testing, and prefix-scaled
+  estimates no longer pass the capacity gate even with exact total counts.
 - The form requires explicit reviewed mappings; automatic PostgreSQL schema/FK
   recommendations are not implemented. Current table/column/graph identifiers
   are limited to ASCII letters/digits/underscores. Cosmos explicit mappings use

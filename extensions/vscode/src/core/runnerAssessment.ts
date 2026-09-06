@@ -17,7 +17,8 @@ export function assessmentActive(record: RunnerRecord): boolean {
 export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>): Promise<RunnerRecord> {
   if (!record.sourceDraft?.canAssess || assessmentActive(record)) throw new Error("A reviewed source and a workflow without a retained assessment are required.");
   if (record.input.source.type === "csv" && !csvAssessmentReady(record)) throw new Error("Every mapped CSV requires an independently verified guest upload seal.");
-  if (action === "inventory" && record.input.source.type !== "neo4j") throw new Error("Exact inventory currently supports Neo4j only.");
+  if (action === "inventory" && !["neo4j", "csv"].includes(record.input.source.type)) throw new Error("Exact inventory currently supports Neo4j and CSV only.");
+  if (action === "inventory" && record.input.source.type === "csv" && !record.guestReady?.capabilities?.includes("csv-inventory-v1")) throw new Error("The installed guest does not advertise complete CSV inventory. Use a reviewed matching runner artifact and refresh readiness; no request was submitted.");
   if (object(record.sourceDraft.configuration.source).type !== record.input.source.type) throw new Error("Source type changed after review.");
   const operation = randomUUID();
   const assessmentHistory = [...record.assessmentHistory ?? [], ...record.assessment ? [record.assessment] : []];

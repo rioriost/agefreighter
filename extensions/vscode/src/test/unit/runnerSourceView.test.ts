@@ -62,3 +62,16 @@ test("storage and CSV controls use host actions without URLs or credentials in t
   for (const action of ["storage", "uploadCSV", "importCSV"]) { v.el(action).trigger("click"); assert.deepEqual(v.messages.at(-1), { action }); v.send({ kind: "busy", value: false }); }
   v.send({kind:"init",type:"csv",location:"local",transferEnabled:false}); assert.equal(v.el("uploadCSV").disabled,true);
 });
+
+test("complete CSV inventory stays disabled on old guests and requires review", () => {
+  const v = view();
+  v.send({ kind: "init", type: "csv", canStart: true, csvInventory: false, form: sourceForm });
+  v.send({ kind: "busy", value: false });
+  v.send({ kind: "review", draft: { canAssess: true, warnings: [], configuration: {} } });
+  assert.equal(v.el("inventory").disabled, true);
+  v.send({ kind: "init", type: "csv", canStart: true, csvInventory: true, form: sourceForm });
+  assert.equal(v.el("inventory").disabled, true);
+  v.send({ kind: "review", draft: { canAssess: true, warnings: [], configuration: {} } });
+  assert.equal(v.el("inventory").disabled, false);
+  v.el("inventory").trigger("click"); assert.deepEqual(v.messages.at(-1), { action: "assess", method: "inventory" });
+});

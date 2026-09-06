@@ -29,8 +29,14 @@ func TestMain(m *testing.M) {
 		_, _ = io.WriteString(os.Stdout, version.Current().String("agefreighter"))
 		os.Exit(0)
 	}
-	if len(os.Args) > 2 && os.Args[1] == "profile" {
-		doc, err := app.SourceProfile(context.Background(), os.Args[2], app.ProfileOptions{Mode: app.ProfileSample, SampleSize: 10000})
+	if len(os.Args) > 2 && (os.Args[1] == "profile" || os.Args[1] == "inventory") {
+		var doc report.Document
+		var err error
+		if os.Args[1] == "inventory" {
+			doc, err = app.SourceInventory(context.Background(), os.Args[2], app.InventoryOptions{})
+		} else {
+			doc, err = app.SourceProfile(context.Background(), os.Args[2], app.ProfileOptions{Mode: app.ProfileSample, SampleSize: 10000})
+		}
 		if err != nil {
 			os.Exit(1)
 		}
@@ -60,6 +66,9 @@ func TestReadinessRequiresBootstrapAndMatchingInstallation(t *testing.T) {
 	r, err := m.Ready(context.Background())
 	if err != nil || !r.Ready || r.ArchiveSHA256 != strings.Repeat("a", 64) {
 		t.Fatalf("%#v %v", r, err)
+	}
+	if len(r.Capabilities) != 1 || r.Capabilities[0] != "csv-inventory-v1" {
+		t.Fatalf("missing complete CSV inventory capability: %#v", r)
 	}
 }
 
@@ -177,6 +186,44 @@ func TestDurableAssessmentRunsRealCSVProfileAndRetrievesAllReportChunks(t *testi
 	}
 	if _, err := m.Report(workflowID, operationID, state.ReportBytes); err == nil {
 		t.Fatal("out-of-range artifact read")
+	}
+}
+
+func TestDurableCSVInventoryUsesSealsAndRetainsCompleteReport(t *testing.T) {
+	m, request, _ := testManager(t)
+	request.Action = "inventory"
+	if _, err := m.Submit(t.Context(), request); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Work(t.Context(), workflowID, operationID); err != nil {
+		t.Fatal(err)
+	}
+	state, err := m.Status(workflowID, operationID)
+	if err != nil || state.Phase != "finished" || state.ReportBytes == 0 {
+		t.Fatalf("%+v %v", state, err)
+	}
+	var data []byte
+	for offset := int64(0); offset < state.ReportBytes; {
+		chunk, err := m.Report(workflowID, operationID, offset)
+		if err != nil {
+			t.Fatal(err)
+		}
+		part, err := base64.StdEncoding.DecodeString(chunk.Data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data = append(data, part...)
+		offset += int64(len(part))
+	}
+	var doc report.Document
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc.Command != "inventory" || doc.Outcome != report.OutcomePass {
+		t.Fatalf("%+v", doc)
+	}
+	if !strings.Contains(string(data), "csv-complete-stream") {
+		t.Fatal("missing complete inventory")
 	}
 }
 

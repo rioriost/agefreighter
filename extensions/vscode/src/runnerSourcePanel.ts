@@ -35,6 +35,7 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
     files: record.sourceFiles?.map(({ id, name }) => ({ id, name })), form: record.sourceDraft?.form, assessment: record.assessment,
     storage: record.storageDeployment ? `${record.storageDeployment.phase}${record.storageDeployment.networkAccess ? ` — public network: ${record.storageDeployment.networkAccess} (provisioning is not transfer readiness)` : ""}` : undefined,
     transferEnabled: !!services, csvTransfers: record.csvTransfers, transfer: record.reportTransfers?.find(item => item.operation === record.assessment?.operation)?.phase,
+    csvInventory: record.guestReady?.capabilities?.includes("csv-inventory-v1") === true,
     canStart: record.phase === "provisioned" && !!record.guestReady && Date.now() - Date.parse(record.guestReady.checkedAt) <= 300000 });
   const listener = panel.webview.onDidReceiveMessage(async raw => {
     if (busy) return;
@@ -185,7 +186,7 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           if (!record.sourceDraft || !reviewedHash || hash(record.sourceDraft) !== reviewedHash) throw new Error("Review current source settings in this window first.");
           if (record.phase !== "provisioned" || !record.guestReady || !Number.isFinite(Date.parse(record.guestReady.checkedAt)) || Date.now() - Date.parse(record.guestReady.checkedAt) > 300000) throw new Error("Provision the runner and check fresh Linux guest readiness before approving source reads.");
           if (!record.sourceDraft.canAssess || assessmentActive(record)) throw new Error("This source cannot start a new assessment here.");
-          const confirmed = await vscode.window.showWarningMessage(`Run ${message.method === "profile" ? "a sampled profile" : "an exact Neo4j count inventory"} from the Linux runner?`,
+          const confirmed = await vscode.window.showWarningMessage(`Run ${message.method === "profile" ? "a sampled profile" : record.input.source.type === "csv" ? "a complete CSV inventory (all mapped rows and before/after file hashes; up to 64 files / 10 GiB / 100 million rows)" : "an exact Neo4j count inventory"} from the Linux runner?`,
             { modal: true, detail: `${record.input.source.type} / ${record.sourceDraft.form.host} / ${record.sourceDraft.form.database}\nRunner: ${record.vmId}\n${record.sourceDraft.warnings.join("\n")}\nGuest limits: 30 minutes, 4 GiB, no swap. Keep the source unchanged. Closing VS Code will not stop the operation.` }, "Approve source reads");
           if (confirmed !== "Approve source reads" || disposed) break;
           let password: string | undefined;

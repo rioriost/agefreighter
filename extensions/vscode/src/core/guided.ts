@@ -217,7 +217,9 @@ export function extractCapacityEvidence(profile: unknown): CapacityEvidence {
   const storage = parseRange(value("recommendedStorageBytesRange"));
   const targetRowsLowerBound = rowText?.startsWith(">=") ?? false;
   const targetRows = parseInteger(rowText?.replace(/^>=/, ""));
-  const complete = method === "complete-stream-range";
+  const checks = Array.isArray(document?.checks) ? document.checks.map(asRecord) : [];
+  const complete = document?.outcome === "pass" && method === "complete-stream-range" && !targetRowsLowerBound && targetRows !== undefined && targetRows > 0n &&
+    checks.every(check => check?.status !== "fail" && check?.status !== "unknown");
   return {
     method,
     targetRows,
@@ -252,7 +254,7 @@ export function extractInventoryEvidence(inventory: unknown): InventoryEvidence 
     vertices,
     edges,
     totalRows,
-    exact: document?.outcome === "pass" && method === "neo4j-transactional-count-store",
+    exact: document?.outcome === "pass" && (method === "neo4j-transactional-count-store" || method === "csv-complete-stream"),
     method
   };
 }
@@ -275,13 +277,15 @@ export function combineCapacityAndInventory(
       reason: "The bounded profile and exact inventory cannot be combined into a consistent storage estimate."
     };
   }
+  if (capacity.deployable && capacity.method === "complete-stream-range" && !capacity.targetRowsLowerBound && observedRows === inventory.totalRows) return capacity;
   return {
     method: "exact-counts-scaled-bounded-profile",
     targetRows: inventory.totalRows,
     targetRowsLowerBound: false,
     recommendedStorageLow: ceilDivide(capacity.recommendedStorageLow * inventory.totalRows, observedRows),
     recommendedStorageHigh: ceilDivide(capacity.recommendedStorageHigh * inventory.totalRows, observedRows),
-    deployable: true
+    deployable: false,
+    reason: "Exact totals do not make a prefix sample representative. Review whole-source capacity evidence before deployment."
   };
 }
 

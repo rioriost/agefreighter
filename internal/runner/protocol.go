@@ -129,8 +129,8 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 			return nil, errors.New("invalid runner secret handle or value")
 		}
 	}
-	if request.Action == "inventory" && job.Source.Type != config.SourceNeo4j {
-		return nil, errors.New("exact inventory currently requires Neo4j; bounded profiles are not totals")
+	if request.Action == "inventory" && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourceCSV {
+		return nil, errors.New("exact inventory currently requires Neo4j or CSV; bounded profiles are not totals")
 	}
 	if job.Source.CSV != nil {
 		for _, v := range job.Source.CSV.Vertices {

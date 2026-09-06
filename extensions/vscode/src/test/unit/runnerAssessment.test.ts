@@ -4,7 +4,7 @@ import { RunnerRecord } from "../../core/runner";
 import { RunnerControl } from "../../core/runnerLifecycle";
 import { buildSourceDraft } from "../../core/runnerSource";
 import { assessmentActive, refreshAssessment, startAssessment } from "../../core/runnerAssessment";
-import { workflow, sourceForm } from "../sourceFixtures";
+import { workflow, sourceForm, csvFile } from "../sourceFixtures";
 
 function fixture() {
   const record: RunnerRecord = { schemaVersion: 2, id: workflow, phase: "provisioned", input: { subscriptionId: workflow, resourceGroup: "test", region: "japaneast", zone: "1", subnetId: "subnet", size: "Standard_B2s_v2", source: { type: "neo4j", location: "on-premises" } }, artifact: { version: "2.4.0", sha256: "a".repeat(64), url: "https://example.invalid/archive" }, vmId: `/subscriptions/${workflow}/resourceGroups/test/providers/Microsoft.Compute/virtualMachines/runner`, deploymentId: "deployment", template: {}, previewHash: "hash", expiresAt: "", updatedAt: "", hourlyComputeUSD: 0.1,
@@ -52,4 +52,19 @@ test("unfinished, changed or unsupported source drafts never dispatch an assessm
   await assert.rejects(startAssessment(f.control, f.record, "inventory", {}));
   await assert.rejects(startAssessment(f.control, f.record, "profile", {}));
   assert.equal(f.requests.length, 0);
+});
+
+test("CSV inventory requires verified files and an advertised guest capability", async () => {
+  const f = fixture(); f.record.input.source = { type: "csv", location: "local" };
+  f.record.sourceDraft = buildSourceDraft(f.record.input.source, { ...sourceForm, mappings: sourceForm.mappings.map(m => ({ ...m, collection: csvFile.id })) }, workflow, [csvFile]);
+  f.record.sourceDraft.canAssess = true;
+  f.record.csvTransfers = [{ file: csvFile.id, bytes: 10, sha256: "b".repeat(64), phase: "verified" }];
+  await assert.rejects(startAssessment(f.control, f.record, "inventory", {}), /does not advertise/);
+  assert.equal(f.requests.length, 0);
+  f.record.guestReady!.capabilities = ["csv-inventory-v1"];
+  f.record.csvTransfers[0]!.phase = "uploaded";
+  await assert.rejects(startAssessment(f.control, f.record, "inventory", {}), /verified/);
+  f.record.csvTransfers[0]!.phase = "verified";
+  const result = await startAssessment(f.control, f.record, "inventory", {});
+  assert.equal(result.assessment?.action, "inventory");
 });

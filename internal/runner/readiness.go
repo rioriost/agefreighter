@@ -14,14 +14,15 @@ import (
 )
 
 type Readiness struct {
-	Version       int    `json:"version"`
-	OS            string `json:"os"`
-	Architecture  string `json:"architecture"`
-	BootID        string `json:"bootId"`
-	CLIVersion    string `json:"cliVersion"`
-	Commit        string `json:"commit"`
-	ArchiveSHA256 string `json:"archiveSha256"`
-	Ready         bool   `json:"ready"`
+	Version       int      `json:"version"`
+	OS            string   `json:"os"`
+	Architecture  string   `json:"architecture"`
+	BootID        string   `json:"bootId"`
+	CLIVersion    string   `json:"cliVersion"`
+	Commit        string   `json:"commit"`
+	ArchiveSHA256 string   `json:"archiveSha256"`
+	Ready         bool     `json:"ready"`
+	Capabilities  []string `json:"capabilities,omitempty"`
 }
 
 func (m Manager) Ready(ctx context.Context) (Readiness, error) {
@@ -50,5 +51,5 @@ func (m Manager) Ready(ctx context.Context) (Readiness, error) {
 	if err := cmd.Run(); err != nil || output.overflow || strings.TrimSpace(output.String()) != version.Current().String("agefreighter") {
 		return Readiness{}, errors.New("installed CLI and tools versions do not match")
 	}
-	return Readiness{Version: 1, OS: runtime.GOOS, Architecture: runtime.GOARCH, BootID: boot, CLIVersion: version.Current().Version, Commit: version.Current().Commit, ArchiveSHA256: sha, Ready: true}, nil
+	return Readiness{Version: 1, OS: runtime.GOOS, Architecture: runtime.GOARCH, BootID: boot, CLIVersion: version.Current().Version, Commit: version.Current().Commit, ArchiveSHA256: sha, Ready: true, Capabilities: []string{"csv-inventory-v1"}}, nil
 }
