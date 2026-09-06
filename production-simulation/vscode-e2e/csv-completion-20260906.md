@@ -169,3 +169,22 @@ The new implementation has 148 passing extension tests and passing Go app/CLI/
 tools/runner tests. A parallel test run had a readiness child-process timeout;
 the complete runner package passed on isolated rerun without relaxing the
 production timeout. This is local test evidence, not an Azure migration pass.
+
+## Saved restart checkpoint
+
+- Implementation commit: `360bee443206ed8f36b04b0c64375d8326feb873`, pushed to
+  `codex/2.4.0-guided-migration`. A final serial package run passed all four
+  Go packages (runner, app, CLI, tools); extension packaging passed 148 tests.
+- Linux/amd64 CLI and tools cross-build succeeded from that clean commit.
+  Version: `2.4.0-dev.360bee443206`; archive: 37,015,749 bytes;
+  SHA-256: `0e55422e668bc9d4e82b59547dd6d6763e388176345784172a5c3acfe8227923`.
+  Local reviewed manifest: `../work/vscode-runner-build.F6cq0d/manifest.json`.
+  This artifact is not yet installed on the guest and is not a public release.
+- Updated VSIX installed in the Mac's VS Code. Installed/built extension bundle
+  SHA-256 both equal `c04fda19cf5f3540fc3491d258a0da1496b543f0e86a214f1e532879d0bbe0d5`.
+  Reloading and GUI validation remain pending because the Mac is locked.
+- Next: unlock, reload, reconcile the existing target (GET, never redeploy),
+  safely restart retained compute, approve the pinned guest upgrade, repeat
+  complete inventory/import, apply preload/same-VM resize, then explicitly
+  start migration/counts verification. Full independent P1 digest remains
+  required before calling CSV-MAC qualified.
