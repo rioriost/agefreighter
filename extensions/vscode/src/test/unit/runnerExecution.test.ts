@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {sourceWorkflowDraft} from "../../core/runner";
 import {RunnerControl} from "../../core/runnerLifecycle";
-import {migrationPreflight,refreshMigration,targetDSN} from "../../core/runnerExecution";
+import {migrationPreflight,refreshMigration,targetDSN,sameAzureLocation} from "../../core/runnerExecution";
 import {assertIdleHealth} from "../../core/runnerGuest";
 const id="11111111-1111-4111-8111-111111111111";
+test("target location accepts ARM display names but rejects other or missing regions",()=>{
+  for(const location of ["Japan East","japaneast","JAPANEAST"])assert.equal(sameAzureLocation(location,"japaneast"),true);
+  for(const location of ["Japan West","",undefined,null,{},19])assert.equal(sameAzureLocation(location,"japaneast"),false);
+});
 function fixture(){
   const r=sourceWorkflowDraft(id,{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:"subnet",size:"Standard_D4s_v5",source:{type:"csv",location:"local"}});r.phase="provisioned";
   r.artifact={version:"dev",sha256:"a".repeat(64),url:"https://example.invalid"};

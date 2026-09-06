@@ -12,6 +12,10 @@ export interface RunnerMigration {
   reportSHA256?:string; reportBytes?:number; exitCode?:number; verification?:VerificationDecision;
 }
 const sha=/^[a-f0-9]{64}$/;
+/** ARM may return a location display name instead of its canonical name. */
+export function sameAzureLocation(actual:unknown,expected:string):boolean{
+  return typeof actual==="string" && actual.length>0 && actual.replace(/\s/g,"").toLowerCase()===expected.replace(/\s/g,"").toLowerCase();
+}
 export async function migrationPreflight(control:RunnerControl,r:RunnerRecord,report:string):Promise<CSVTargetEvidence>{
   if(r.migration || r.target?.phase!=="provisioned" || r.resize?.phase!=="finished" || r.upgrade && r.upgrade.phase!=="finished")throw new Error("Complete the private target and same-VM resize; an existing migration must never be replayed.");
   targetBudget(r.target.input);assertIdleHealth(r);
@@ -19,7 +23,7 @@ export async function migrationPreflight(control:RunnerControl,r:RunnerRecord,re
   const e=csvTargetEvidence(r,report),p=r.target;
   if(e.configurationSHA256!==p.evidence.configurationSHA256 || e.csvManifestSHA256!==p.evidence.csvManifestSHA256 || JSON.stringify(e.labels)!==JSON.stringify(p.evidence.labels) || BigInt(e.storageHighBytes)*125n>BigInt(p.input.storageGiB)*1024n**3n*100n)throw new Error("Source mappings, files, counts or capacity changed after target approval.");
   const response=await control.request(r.input.subscriptionId,`${p.serverId}?api-version=2024-08-01`),s=object(response.value),props=object(s.properties),network=object(props.network),tags=object(s.tags);
-  if(response.status!==200 || tags.workflow!==r.id || tags.application!=="agefreighter" || tags.purpose!=="csv-migration-target" || s.location!==r.input.region || props.availabilityZone!==r.input.zone || props.version!=="18" || props.state!=="Ready" || network.publicNetworkAccess!=="Disabled" || network.delegatedSubnetResourceId!==p.subnetId || network.privateDnsZoneArmResourceId!==p.dnsId || object(s.sku).name!==p.input.postgresSKU)throw new Error("Private target identity, placement, SKU or readiness changed.");
+  if(response.status!==200 || tags.workflow!==r.id || tags.application!=="agefreighter" || tags.purpose!=="csv-migration-target" || !sameAzureLocation(s.location,r.input.region) || props.availabilityZone!==r.input.zone || props.version!=="18" || props.state!=="Ready" || network.publicNetworkAccess!=="Disabled" || network.delegatedSubnetResourceId!==p.subnetId || network.privateDnsZoneArmResourceId!==p.dnsId || object(s.sku).name!==p.input.postgresSKU)throw new Error("Private target identity, placement, SKU or readiness changed.");
   const preload=await control.request(r.input.subscriptionId,`${p.serverId}/configurations/shared_preload_libraries?api-version=2024-08-01`),pc=object(object(preload.value).properties);
   if(preload.status!==200 || pc.isConfigPendingRestart!==false || !String(pc.value).split(",").map(x=>x.trim()).includes("age"))throw new Error("Apply the approved target preload configuration and reconcile its restart before migration.");
   const vm=await control.request(r.input.subscriptionId,`${r.vmId}?api-version=2024-07-01&$expand=instanceView`),v=object(vm.value),vp=object(v.properties);
