@@ -55,4 +55,28 @@ wrong receipt identity, stale readiness, pending operations and command limits.
 Private-network reference: [Microsoft's Flexible Server private access guidance](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/concepts-networking-private).
 AGE preparation reference: [Microsoft's AGE extension guidance](https://github.com/MicrosoftDocs/azure-databases-docs/blob/main/articles/postgresql/azure-ai/generative-ai-age-overview.md).
 
-Status: implementation/execution in progress. No new CSV-MAC migration pass yet.
+## Target foundation and current execution gate
+
+The local target controller now binds the imported complete CSV report to the
+current source configuration, artifact, all file seals and exact per-label counts.
+It builds a PostgreSQL 18/private delegated subnet/DNS-link/database/AGE-parameter
+template in the same region, zone and migration RG. The initial path requires
+the VNet in that RG; it fails rather than guessing a cross-group deployment.
+Capacity plus 25% storage headroom, CIDR containment/non-overlap, bounded budget
+and deadline, create-only what-if and persist-before-PUT/GET-only reconciliation
+are covered by tests. Actual passwords are secure ARM parameters, not fields in
+the template or retained record. HA is explicitly disabled for this P1 trial.
+
+This controller is **not yet enabled in the GUI**. Live service/SKU/quota/price
+preflight, reviewed target GUI/folder export, same-VM resize and the R5 guest
+load/verification operations are still required. No target resource was created.
+The existing runner remains deallocated. All 138 extension unit tests and
+typechecking passed; these are not Azure qualification results.
+
+The Mac was locked when computer control attempted to open VS Code. Manual
+unlock is required for actual GUI upgrade/inventory qualification. No alternative
+CLI-only migration is substituted as a GUI pass. The pinned upgrade artifact
+was built from committed `c880a67`; it has not been installed on the guest.
+
+Status: awaiting Mac unlock for GUI execution; remaining implementation continues
+to be tracked separately. No new CSV-MAC migration pass yet.

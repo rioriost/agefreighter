@@ -7,6 +7,7 @@ import type { StorageDeployment } from "./runnerStorageLifecycle";
 import type { CSVTransfer } from "../guided/csvTransfer";
 import { developmentDownload } from "./runnerDevelopment";
 import type { RunnerUpgrade } from "./runnerUpgrade";
+import type { RunnerTarget } from "./runnerTarget";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
@@ -54,6 +55,7 @@ export interface RunnerRecord {
   developmentUpload?: {artifact: RunnerArtifact; phase: "prepared" | "ready"};
   upgrade?: RunnerUpgrade;
   upgradeHistory?: RunnerUpgrade[];
+  target?: RunnerTarget;
 }
 
 /** Local-only draft. Blank artifact/template fields are never deployable. */

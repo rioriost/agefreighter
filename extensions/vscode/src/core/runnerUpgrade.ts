@@ -118,6 +118,7 @@ export async function refreshUpgrade(control: RunnerControl, record: RunnerRecor
   if (!["Succeeded", "Failed", "Canceled", "TimedOut"].includes(String(view.executionState))) return record;
   let accepted = false;
   try {
+    if(typeof view.output !== "string" || Buffer.byteLength(view.output)>=4096)throw new Error();
     const value = object(JSON.parse(String(view.output)));
     accepted = view.executionState === "Succeeded" && view.exitCode === 0 && value.version === 1 && value.ready === true && value.bootId === upgrade.bootId &&
       value.os === "linux" && value.architecture === "amd64" && value.archiveSha256 === upgrade.artifact.sha256 && value.cliVersion === upgrade.artifact.version && value.commit === upgrade.artifact.development?.commit;

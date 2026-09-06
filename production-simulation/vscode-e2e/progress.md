@@ -2,6 +2,13 @@
 
 Updated: 2026-09-06. Overall outcome: **not yet qualified**.
 
+CSV-MAC completion is now the active scope. See the
+[execution sheet](csv-completion-20260906.md): a reviewed guest upgrade command
+and the private-target controller foundation were added with 138 local extension
+tests. The Mac is locked, preventing actual VS Code GUI execution until manual
+unlock. No Azure resource was changed in this continuation; runner remains
+deallocated. Target GUI/live preflight, same-VM resize and R5 remain open.
+
 Subsequent local R4 prerequisite: [complete CSV inventory](csv-inventory-20260906.md)
 now scans all P1 records rather than extrapolating the first 10,000 vertices.
 Local CLI evidence: 1.6 million vertices + 4 million edges, before/after file
