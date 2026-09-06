@@ -1,5 +1,40 @@
 # CSV-MAC completion execution sheet
 
+## Latest continuation — 2026-09-06 06:29Z
+
+CSV-MAC remains unqualified: migration and the independent full digest have not
+yet run. Actual installed VS Code GUI operations after unlock:
+
+- Reconciled the existing private target (Ready, PG18, public access Disabled).
+- Upgraded the same guest with operation `159e2e43-9206-4a5b-ba43-d362dda4e2eb`
+  to `2.4.0-dev.360bee443206`; archive SHA-256
+  `0e55422e668bc9d4e82b59547dd6d6763e388176345784172a5c3acfe8227923`.
+- Repeated complete inventory operation `4626606f-d2e1-4897-99b8-40e1c0fe9a03`
+  and imported/displayed its independently hash-verified report through the GUI.
+  All 1.6M vertices / 4M edges, 18 mappings, zero errors/incomplete checks;
+  all source bytes unchanged. Report: 3,220 bytes, SHA-256
+  `3da92d808cd9eacd9bb251e498d8d11ae29cd05820eef8c280ee66a5ccedc950`.
+- Reconciled AGE preload and approved each same-VM resize step separately:
+  Standard_B2s_v2 to Standard_D4s_v5. NIC, disk and identity retained;
+  preservation SHA-256
+  `16929ff930b2d29a61f50e25fa21f772ff0cb1fe3201254abdd1675cf2633c38`.
+  Fresh boot `ff26e838-e7b8-4257-bfcf-ab089504d8ea`; readiness at 06:21:33Z
+  showed idle, disk 6.53%, swap zero and no boot OOM events.
+- The start preflight rejected Azure's location display name `Japan East`
+  against retained `japaneast`, before migration or credential dispatch.
+  Commit `939f046` normalizes whitespace/case only for this region comparison;
+  all ownership, zone, private subnet/DNS, SKU and readiness checks remain.
+  Installed VSIX updated; 149 unit tests/typecheck/package pass.
+- Six historical completed managed Run Command resources were deleted only
+  after their live successful views exactly matched the committed
+  `evidence/runner-assessment-commands-20260906.json` archive. Command count
+  fell to 17. Guest evidence and all inputs remain; ARM receipts themselves
+  were removed, with their full archived copies retained in Git.
+- Failed RG activity events since 06:03Z were empty at 06:29Z. Trial deadline
+  Sep 9 08:55Z and USD 800 ceiling unchanged; quoted compute USD 0.736/hour
+  plus retained storage/network is not a finalized bill. VM and target are
+  running for the next explicitly approved migration step.
+
 Scope: complete the existing P1 CSV GUI path on the owned Linux runner and a
 private PostgreSQL 18 Flexible Server with AGE. This is not a P3 rerun or an
 authorization to modify another subscription's resources. The original USD 800

@@ -10,6 +10,7 @@ import type { RunnerUpgrade } from "./runnerUpgrade";
 import type { RunnerTarget } from "./runnerTarget";
 import type { RunnerResize } from "./runnerResize";
 import type { RunnerMigration } from "./runnerExecution";
+import type { TargetDiagnostic } from "./runnerDiagnostic";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
@@ -60,6 +61,7 @@ export interface RunnerRecord {
   target?: RunnerTarget;
   resize?: RunnerResize;
   migration?: RunnerMigration;
+  targetDiagnostic?: TargetDiagnostic;
   targetRestart?: {phase:"submitted"|"unknown"|"finished";submittedAt:string};
 }
 

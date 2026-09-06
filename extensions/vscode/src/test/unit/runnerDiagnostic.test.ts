@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {sourceWorkflowDraft} from "../../core/runner";
+import {diagnoseTarget,targetDiagnosticScript} from "../../core/runnerDiagnostic";
+import {RunnerControl} from "../../core/runnerLifecycle";
+const id="11111111-1111-4111-8111-111111111111";
+test("diagnosis is terminal-only, GET-reconciled and never replays a lost submission",async()=>{
+  const r=sourceWorkflowDraft(id,{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:"subnet",size:"Standard_D4s_v5",source:{type:"csv",location:"local"}});
+  const requests:string[]=[];
+  const c:RunnerControl={list:async()=>[],sleep:async()=>{},persist:async()=>{},request:async(_s,_p,method="GET")=>{requests.push(method);return {status:200,value:{properties:{instanceView:{executionState:"Running"}}}};}};
+  await assert.rejects(diagnoseTarget(c,r),/terminal/);assert.deepEqual(requests,[]);
+  r.target={phase:"provisioned"} as any;r.migration={phase:"running",jobId:id} as any;
+  await assert.rejects(diagnoseTarget(c,r),/terminal/);
+  r.migration!.phase="failed";r.targetDiagnostic={operation:id,commandId:r.vmId+"/runCommands/af-"+id,phase:"unknown",submittedAt:new Date().toISOString()};
+  assert.equal(await diagnoseTarget(c,r),r);assert.deepEqual(requests,["GET"]);
+  assert.ok(targetDiagnosticScript.includes("os.environ.pop('AF_DIAGNOSTIC')"));
+  assert.ok(targetDiagnosticScript.includes("'doctor','--target'"));
+  assert.ok(!targetDiagnosticScript.includes("'--persist'"));
+  assert.ok(!targetDiagnosticScript.includes("'load'"));
+});
