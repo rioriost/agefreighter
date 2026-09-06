@@ -33,7 +33,7 @@ test("Neo4j target evidence uses exact count-store totals and a conservative sto
   r.phase="provisioned";r.artifact={version:"dev",sha256:"a".repeat(64),url:"https://example.invalid"};
   const configuration={source:{type:"neo4j",neo4j:{uri:"neo4j+s://source.internal:7687",database:"neo4j"}}};
   r.sourceDraft={configuration,canAssess:true,warnings:[],form:{} as any};
-  const doc={schemaVersion:1,command:"inventory",agefreighterVersion:"dev",outcome:"pass",errors:[],incompleteChecks:[],checks:[{id:"source-counts",status:"pass"}],sections:[{title:"Source inventory",fields:[{name:"vertices",value:"1600000"},{name:"edges",value:"4000000"},{name:"totalRows",value:"5600000"},{name:"countMethod",value:"neo4j-transactional-count-store"}]}]};
+  const doc={schemaVersion:1,command:"inventory",agefreighterVersion:"dev",outcome:"pass",errors:[],incompleteChecks:[],checks:[{id:"source-counts",status:"pass"}],sections:[{title:"Source inventory",fields:[{name:"vertices",value:"1600000",status:"pass"},{name:"edges",value:"4000000",status:"pass"},{name:"totalRows",value:"5600000",status:"pass"},{name:"countMethod",value:"neo4j-transactional-count-store",status:"pass"}]}]};
   const text=JSON.stringify(doc),h=sha(text);
   r.assessment={operation:op,action:"inventory",phase:"finished",configurationSHA256:sha(JSON.stringify(configuration)),bootId:file,reportSHA256:h,reportBytes:Buffer.byteLength(text)};
   r.reportTransfers=[{operation:op,sha256:h,bytes:Buffer.byteLength(text),blob:"retained",phase:"imported"}];
