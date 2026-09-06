@@ -174,3 +174,53 @@ func TestNeo4jMigrationRequiresReviewedSourceAndBothProtectedCredentials(t *test
 		t.Fatal("non-Neo4j network migration accepted")
 	}
 }
+
+func TestPostgreSQLAndCosmosNetworkMigrationsUseOnlyReviewedCredentials(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		fixture    string
+		sourceType config.SourceType
+	}{
+		{"postgresql", "../config/testdata/valid/postgresql.yaml", config.SourcePostgreSQL},
+		{"cosmos", "../config/testdata/valid/cosmos.json", config.SourceCosmos},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			m, request, _ := testManager(t)
+			data, err := os.ReadFile(test.fixture)
+			if err != nil {
+				t.Fatal(err)
+			}
+			job, err := config.Parse(data)
+			if err != nil || job.Source.Type != test.sourceType {
+				t.Fatalf("fixture = %#v, %v", job, err)
+			}
+			job.Target.Connection = config.SecretRef{Env: "AGEFREIGHTER_TARGET_DSN"}
+			job.Target.Mode = config.LoadCreate
+			job.Errors.MissingEndpoint = config.MissingEndpointError
+			request.Action = "migrate-source"
+			request.Secrets = map[string]string{"AGEFREIGHTER_TARGET_DSN": testMigrationDSN()}
+			if test.sourceType == config.SourcePostgreSQL {
+				job.Source.PostgreSQL.Connection = config.SecretRef{Env: "AGEFREIGHTER_SOURCE_DSN"}
+				request.Secrets["AGEFREIGHTER_SOURCE_DSN"] = "postgresql://readonly:secret@source.example:5432/source?sslmode=verify-full"
+			}
+			request.Configuration, _ = json.Marshal(job)
+			if _, err := config.Parse(request.Configuration); err != nil {
+				t.Fatalf("remarshaled fixture is invalid: %v", err)
+			}
+			if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err != nil {
+				t.Fatal(err)
+			}
+			request.Secrets["AGEFREIGHTER_SOURCE_PASSWORD"] = "unexpected"
+			if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err == nil {
+				t.Fatal("unexpected network-source credential accepted")
+			}
+			delete(request.Secrets, "AGEFREIGHTER_SOURCE_PASSWORD")
+			if test.sourceType == config.SourcePostgreSQL {
+				delete(request.Secrets, "AGEFREIGHTER_SOURCE_DSN")
+				if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err == nil {
+					t.Fatal("missing PostgreSQL source connection accepted")
+				}
+			}
+		})
+	}
+}

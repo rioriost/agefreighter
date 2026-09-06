@@ -180,15 +180,17 @@ has no public IP. Evidence/disks are retained; this preview has no automatic
 cleanup, stop or delete action. Operators remain responsible for resource costs.
 
 **Current development-build limit:** source forms, runner provisioning and
-protected remote assessment controls are implemented, but not live-Azure
-qualified. ARM success is not guest readiness. A finished assessment worker is
-not a passing migration. Transfer storage/RBAC, bulk reports and CSV upload/import
-are implemented but still require real Azure qualification. Automatic schema/FK
-recommendations and exact PostgreSQL/Cosmos inventories remain open. Complete CSV
-inventory and reviewed private target/export controls are implemented and the
-isolated P1 GUI inventory/private target deployment have run. Same-VM resize and
-remote CSV migration/counts-verification previews are locally tested but remain
-unqualified on Azure. Full property-digest acceptance remains open.
+protected remote assessment controls are implemented, but not all paths are
+live-Azure qualified. ARM success is not guest readiness. A finished assessment
+worker is not a passing migration. Transfer storage/RBAC, bulk reports and CSV
+upload/import are implemented. Complete PostgreSQL and Cosmos mapped-record
+inventories now run on the Linux guest: PostgreSQL holds one exported
+repeatable-read snapshot, while Cosmos requires an immutable-source window.
+Their label/capacity evidence and create-only migration dispatch are locally
+tested, but their P1 Azure GUI paths remain unqualified. Automatic schema/FK
+recommendations remain open. CSV and Neo4j 4.4 full P1 GUI paths have passed;
+Neo4j 5.26 is retained immediately before migration. Full canonical property
+digest acceptance is still required independently for every remaining path.
 Publicly trusted TLS is currently required; custom source CA upload is
 not implemented. Do not publish this as a complete guided migration workflow.
 The [runner-first plan](https://github.com/rioriost/agefreighter/blob/codex/2.4.0-guided-migration/docs/design/agefreighter-2.4.0-runner-first.md)

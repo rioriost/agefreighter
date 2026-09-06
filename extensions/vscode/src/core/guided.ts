@@ -254,7 +254,7 @@ export function extractInventoryEvidence(inventory: unknown): InventoryEvidence 
     vertices,
     edges,
     totalRows,
-    exact: document?.outcome === "pass" && (method === "neo4j-transactional-count-store" || method === "csv-complete-stream"),
+    exact: document?.outcome === "pass" && ["neo4j-transactional-count-store", "csv-complete-stream", "postgresql-repeatable-read-complete-stream", "cosmos-nosql-complete-stream"].includes(method),
     method
   };
 }

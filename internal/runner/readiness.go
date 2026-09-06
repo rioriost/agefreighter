@@ -46,10 +46,8 @@ func (m Manager) Ready(ctx context.Context) (Readiness, error) {
 	}
 	deadline, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(deadline, m.CLI, "version")
-	output := &boundedOutput{limit: 4096}
-	cmd.Stdout = output
-	if err := cmd.Run(); err != nil || output.overflow || strings.TrimSpace(output.String()) != version.Current().String("agefreighter") {
+	installed, err := m.installedVersion(deadline)
+	if err != nil || strings.TrimSpace(installed) != version.Current().String("agefreighter") {
 		return Readiness{}, errors.New("installed CLI and tools versions do not match")
 	}
 	probe := m.health
@@ -60,7 +58,28 @@ func (m Manager) Ready(ctx context.Context) (Readiness, error) {
 	if err != nil {
 		return Readiness{}, err
 	}
-	return Readiness{Version: 1, OS: runtime.GOOS, Architecture: runtime.GOARCH, BootID: boot, CLIVersion: version.Current().Version, Commit: version.Current().Commit, ArchiveSHA256: sha, Ready: true, Capabilities: []string{"csv-inventory-v1", "csv-migration-v1", "neo4j-migration-v1"}, Health: health}, nil
+	return Readiness{Version: 1, OS: runtime.GOOS, Architecture: runtime.GOARCH, BootID: boot, CLIVersion: version.Current().Version, Commit: version.Current().Commit, ArchiveSHA256: sha, Ready: true, Capabilities: []string{
+		"csv-inventory-v1", "csv-migration-v1",
+		"neo4j-inventory-v1", "neo4j-migration-v1",
+		"postgresql-inventory-v1", "postgresql-migration-v1",
+		"cosmos-nosql-inventory-v1", "cosmos-nosql-migration-v1",
+	}, Health: health}, nil
+}
+
+func (m Manager) installedVersion(ctx context.Context) (string, error) {
+	if m.versionProbe != nil {
+		return m.versionProbe(ctx)
+	}
+	cmd := exec.CommandContext(ctx, m.CLI, "version")
+	output := &boundedOutput{limit: 4096}
+	cmd.Stdout = output
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	if output.overflow {
+		return "", errors.New("installed CLI version output exceeds its bound")
+	}
+	return output.String(), nil
 }
 
 type GuestHealth struct {

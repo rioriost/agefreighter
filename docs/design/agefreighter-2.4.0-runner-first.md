@@ -183,11 +183,13 @@ start/status operations retain identity, boot/configuration hashes and successfu
 report manifests across reconnects. No source host resolution through ARM is
 performed by the IP/host-only assessment form.
 
-R3 is still not complete: CSV upload, bulk report transfer/acceptance, schema/FK
-suggestions, exact non-Neo4j totals and custom-CA delivery remain open. Source
-passwords can now be accepted for approved guest assessments, but target mutation
-and migration are still disabled. None of these local checks qualifies a P1 Azure
-GUI branch. See the [live qualification ledger](../../production-simulation/vscode-e2e/progress.md).
+R3–R5 now include CSV upload, bulk report transfer, private target preparation,
+same-VM resize and fixed create-only migration/verification workers. Complete
+PostgreSQL and Cosmos mapped-record inventories and their protected migration
+dispatch are implemented locally. Schema/FK suggestions and custom-CA delivery
+remain open. PostgreSQL/Cosmos implementation tests do not qualify their P1
+Azure GUI branches. See the
+[live qualification ledger](../../production-simulation/vscode-e2e/progress.md).
 
 References: [Azure resizing](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/resize-vm),
 [managed Linux Run Command](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/run-command-managed),

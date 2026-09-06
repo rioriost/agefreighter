@@ -18,7 +18,7 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   const selected=workflow?{id:workflow}:await vscode.window.showQuickPick((await store.list()).filter(r=>r.target?.phase==="provisioned").map(r=>({label:r.id,description:`${r.input.source.type} — ${r.input.resourceGroup} — ${r.migration?.phase??r.resize?.phase??"resize required"}`,id:r.id})),{placeHolder:"Select the retained private target"});
   if(!selected)return;
   let r=await store.read(selected.id);
-  const startLabel=`Start new ${r.input.source.type==="neo4j"?"Neo4j":"CSV"} migration and counts verification`;
+  const startLabel=`Start new ${r.input.source.type} migration and counts verification`;
   const action=await vscode.window.showQuickPick(["Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
   if(!action)return;
   const confirm=(title:string,detail:string)=>vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");
@@ -40,8 +40,8 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
     if(await confirm(`Start this new ${r.input.source.type} migration on the Linux runner?`,`${evidence.rows} mapped rows. Inventory ${evidence.reportSHA256}. Linux ${r.artifact.version}, archive ${r.artifact.sha256}.\n${r.target!.serverId}\nPrepare AGE, create the new graph, migrate, then run complete counts verification. The new job UUID is retained before writes. No replace, delete, automatic resume or retry. Source and target credentials use protected transport; only the target secret is retained in SecretStorage. A counts pass is distinct from the independent P1 property digest.`)!=="Approve this step")return;
     await price();
     let sourcePassword:string|undefined;
-    if(r.input.source.type==="neo4j"){
-      sourcePassword=await vscode.window.showInputBox({title:"Read-only Neo4j source password",prompt:"Sent only through the protected guest channel for this approved migration; not saved or sent to an AI model.",password:true,ignoreFocusOut:true});
+    if(r.input.source.type==="neo4j"||r.input.source.type==="postgresql"){
+      sourcePassword=await vscode.window.showInputBox({title:`Read-only ${r.input.source.type==="neo4j"?"Neo4j":"PostgreSQL"} source password`,prompt:"Sent only through the protected guest channel for this approved migration; not saved or sent to an AI model.",password:true,ignoreFocusOut:true});
       if(sourcePassword===undefined)return;
     }
     r=await store.exclusive(r.id,async()=>{

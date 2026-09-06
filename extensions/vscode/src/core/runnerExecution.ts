@@ -4,6 +4,7 @@ import {RunnerControl} from "./runnerLifecycle";
 import {assertIdleHealth,dispatchGuest,reconcileGuest} from "./runnerGuest";
 import {TargetEvidence,sourceTargetEvidence,targetBudget} from "./runnerTarget";
 import {assessCountsVerification,VerificationDecision} from "./runnerVerification";
+import {sourceSecrets} from "./runnerSource";
 
 export interface RunnerMigration {
   operation:string; jobId:string; phase:"submitted"|"accepted"|"running"|"finished"|"failed"|"interrupted";
@@ -19,7 +20,7 @@ export function sameAzureLocation(actual:unknown,expected:string):boolean{
 export async function migrationPreflight(control:RunnerControl,r:RunnerRecord,report:string):Promise<TargetEvidence>{
   if(r.migration || r.target?.phase!=="provisioned" || r.resize?.phase!=="finished" || r.upgrade && r.upgrade.phase!=="finished")throw new Error("Complete the private target and same-VM resize; an existing migration must never be replayed.");
   targetBudget(r.target.input);assertIdleHealth(r);
-  const capability=r.input.source.type==="csv"?"csv-migration-v1":"neo4j-migration-v1";
+  const capability=`${r.input.source.type}-migration-v1`;
   if(!r.guestReady?.capabilities?.includes(capability))throw new Error("Upgrade to a reviewed migration-capable Linux artifact and repeat complete source inventory before migration.");
   const e=sourceTargetEvidence(r,report),p=r.target;
   if(e.configurationSHA256!==p.evidence.configurationSHA256 || e.csvManifestSHA256!==p.evidence.csvManifestSHA256 || e.rows!==p.evidence.rows || e.vertices!==p.evidence.vertices || e.edges!==p.evidence.edges || JSON.stringify(e.labels)!==JSON.stringify(p.evidence.labels) || BigInt(e.storageHighBytes)*125n>BigInt(p.input.storageGiB)*1024n**3n*100n)throw new Error("Source mappings, files, counts or capacity changed after target approval.");
@@ -59,14 +60,12 @@ export function targetDSN(r:RunnerRecord,password:string):string{
 }
 /** Exclusive lock, native approval and private credential channel are required. */
 export async function startMigration(control:RunnerControl,r:RunnerRecord,report:string,password:string,sourcePassword?:string):Promise<RunnerRecord>{
-  if(r.input.source.type==="neo4j" && !sourcePassword)throw new Error("Enter the read-only Neo4j source password for this approved migration.");
+  if((r.input.source.type==="neo4j"||r.input.source.type==="postgresql") && !sourcePassword)throw new Error("Enter the read-only source password for this approved migration.");
   const evidence=await migrationPreflight(control,r,report),operation=randomUUID();
   const migration:RunnerMigration={operation,jobId:operation,phase:"submitted",startedAt:new Date().toISOString(),bootId:r.guestReady!.bootId,artifactSHA256:r.artifact.sha256,cliVersion:r.artifact.version,evidence};
   const action=r.input.source.type==="csv"?"migrate-csv":"migrate-source";
   const secrets:Record<string,string>={AGEFREIGHTER_TARGET_DSN:targetDSN(r,password)};
-  if(r.input.source.type==="neo4j"){
-    secrets.AGEFREIGHTER_SOURCE_PASSWORD=sourcePassword!;
-  }
+  if(r.input.source.type==="neo4j"||r.input.source.type==="postgresql")Object.assign(secrets,sourceSecrets(r.input.source.type,r.sourceDraft!.form,sourcePassword));
   return dispatchGuest(control,{...r,migration},{version:1,workflow:r.id,operation,action,configuration:r.sourceDraft!.configuration,secrets});
 }
 export async function refreshMigration(control:RunnerControl,r:RunnerRecord):Promise<RunnerRecord>{

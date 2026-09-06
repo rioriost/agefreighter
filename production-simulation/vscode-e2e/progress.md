@@ -1,6 +1,29 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-06. Overall outcome: **CSV-MAC and AZ-N44 qualified; seven remaining branches not yet qualified**.
+Updated: 2026-09-07. Overall outcome: **CSV-MAC and AZ-N44 qualified; seven remaining branches not yet qualified**.
+
+### Headless checkpoint — AZ-N526 retained; network-source gaps closed locally
+
+AZ-N526 has completed the private target deployment, AGE preload restart and
+same-VM resize from the discovery SKU to `Standard_D4s_v5`. The Neo4j 5.26.30
+source and runner remain unchanged and the retained workflow is ready to start
+its create-only migration. macOS is locked while the operator is travelling, so
+VS Code SecretStorage cannot release the existing target credential to a
+headless process. The credential was not reset or copied, no substitute job was
+created, and no GUI qualification is claimed. The runner and source are
+deallocated and the PostgreSQL target is Stopped; exact resume state and guest
+evidence are retained.
+
+While GUI work is unavailable, the PostgreSQL and Cosmos guided paths were
+extended to support complete mapped-record inventories on the Linux runner,
+per-label and capacity evidence admission, source-specific runner capabilities,
+and protected PostgreSQL/Cosmos create-only migration dispatch. PostgreSQL uses
+one exported repeatable-read snapshot. Cosmos requires the source-immutability
+window because there is no cross-container transactional snapshot. Local tests
+cover both connectors and reject partial streams, substituted labels, missing
+credentials and unsupported capabilities. These changes are implementation
+evidence only; AZ-PGVM, AZ-PGFS, AZ-COSMOS and OP-PG remain unqualified until
+their full P1 GUI runs and canonical digest checks pass.
 
 ### AZ-N44 qualification — PASS at 12:59Z
 
@@ -204,10 +227,12 @@ was operator maintenance, not automatic housekeeping or a source replay.
    documents and CSV. They generate configurations without YAML or SQL input;
    CSV includes property types and an explicit null marker. Local drafts can be
    reviewed before a release is available or any VM is created.
-10. Wired approved network-source profile and Neo4j inventory to native secret
-    prompts, protected dispatch and retained status checks. Successful operation
-    manifests remain in history. Finished workers are not accepted as capacity
-    or migration passes. CSV dispatch is blocked pending verified upload.
+10. Wired approved network-source profiles and complete Neo4j, PostgreSQL and
+    Cosmos inventories to native secret prompts, protected dispatch and retained
+    status checks. Successful operation manifests remain in history. Finished
+    workers are not accepted as capacity or migration passes. PostgreSQL/Cosmos
+    whole-source inventory and migration dispatch are locally tested but not
+    Azure-qualified.
 11. Implemented guest/controller bulk-report export/import with a single bounded
     data transfer, independent full hash/size verification, private immutable
     local retention and loss-of-acknowledgement reconciliation. Exact storage

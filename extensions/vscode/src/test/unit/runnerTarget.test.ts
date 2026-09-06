@@ -3,7 +3,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { sourceWorkflowDraft, RunnerRecord } from "../../core/runner";
-import { csvTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, submitTarget, refreshTarget, targetResourceIds, TargetInput } from "../../core/runnerTarget";
+import { csvTargetEvidence, mappedNetworkTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, submitTarget, refreshTarget, targetResourceIds, TargetInput } from "../../core/runnerTarget";
 import { RunnerControl } from "../../core/runnerLifecycle";
 const id="11111111-1111-4111-8111-111111111111",op="22222222-2222-4222-8222-222222222222",file="33333333-3333-4333-8333-333333333333";
 const sha=(v:string)=>createHash("sha256").update(v).digest("hex");
@@ -41,6 +41,27 @@ test("Neo4j target evidence uses exact count-store totals and a conservative sto
   assert.equal(evidence.sourceType,"neo4j");assert.equal(evidence.rows,"5600000");assert.equal(evidence.vertices,"1600000");assert.equal(evidence.edges,"4000000");
   assert.equal(evidence.storageHighBytes,(5600000n*16384n).toString());assert.deepEqual(Object.keys(evidence.labels),[]);
   assert.throws(()=>neo4jTargetEvidence(r,text+" "),/Import/);
+});
+test("PostgreSQL and Cosmos target evidence requires a complete mapped stream for every approved label",()=>{
+  for(const type of ["postgresql","cosmos-nosql"] as const){
+    const r=sourceWorkflowDraft(id,{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:`/subscriptions/${id}/resourceGroups/test/providers/Microsoft.Network/virtualNetworks/net/subnets/runner`,size:"Standard_B2s_v2",source:{type,location:type==="cosmos-nosql"?"azure":"on-premises",...(type==="cosmos-nosql"?{resourceId:`/subscriptions/${id}/resourceGroups/test/providers/Microsoft.DocumentDB/databaseAccounts/source`}:{})}});
+    r.phase="provisioned";r.artifact={version:"dev",sha256:"a".repeat(64),url:"https://example.invalid"};
+    const configuration={source:{type}};
+    r.sourceDraft={configuration,canAssess:true,warnings:[],form:{mappings:[{kind:"vertex",label:"Person"},{kind:"edge",label:"KNOWS"}]} as any};
+    const method=type==="postgresql"?"postgresql-repeatable-read-complete-stream":"cosmos-nosql-complete-stream";
+    const doc={schemaVersion:1,command:"inventory",agefreighterVersion:"dev",outcome:"pass",errors:[],incompleteChecks:[],checks:[{id:"source-counts",status:"pass"},{id:"read-only",status:"pass"}],sections:[
+      {title:"Source inventory",fields:[{name:"vertices",value:"2",status:"pass"},{name:"edges",value:"1",status:"pass"},{name:"totalRows",value:"3",status:"pass"},{name:"countMethod",value:method,status:"pass"}]},
+      {title:"Mapped record counts",fields:[{name:"edge:KNOWS",value:"1",status:"pass"},{name:"vertex:Person",value:"2",status:"pass"}]},
+      {title:"Capacity indicators",fields:[{name:"estimatedTargetRows",value:"3",status:"pass"},{name:"method",value:"complete-stream-range",status:"pass"},{name:"recommendedStorageBytesRange",value:"1024..4096",status:"pass"}]}
+    ]};
+    const text=JSON.stringify(doc),h=sha(text);
+    r.assessment={operation:op,action:"inventory",phase:"finished",configurationSHA256:sha(JSON.stringify(configuration)),bootId:file,reportSHA256:h,reportBytes:Buffer.byteLength(text)};
+    r.reportTransfers=[{operation:op,sha256:h,bytes:Buffer.byteLength(text),blob:"retained",phase:"imported"}];
+    const evidence=mappedNetworkTargetEvidence(r,text);
+    assert.equal(evidence.sourceType,type);assert.equal(evidence.rows,"3");assert.deepEqual({...evidence.labels},{"e.KNOWS":1,"v.Person":2});
+    r.sourceDraft.form.mappings[1]!.label="OTHER";
+    assert.throws(()=>mappedNetworkTargetEvidence(r,text),/approved inventory/);
+  }
 });
 test("incomplete, wrong version, duplicate and wrong-source reports cannot size a target",()=>{
   for(const mutate of [(d:any)=>{d.outcome="incomplete";},(d:any)=>{d.agefreighterVersion="other";},(d:any)=>{d.command="profile";},(d:any)=>{d.sections.find((s:any)=>s.title==="Mapped record counts").fields.push(d.sections.find((s:any)=>s.title==="Mapped record counts").fields[0]);}]){

@@ -30,6 +30,7 @@ type Manager struct {
 	Start            func(context.Context, string) error
 	blobTransport    http.RoundTripper                           // Test seam; production uses standard TLS validation.
 	healthProbe      func(context.Context) (*GuestHealth, error) // Test seam; nil uses local Linux evidence.
+	versionProbe     func(context.Context) (string, error)       // Test seam; nil executes the installed CLI.
 	migrationPrepare func(context.Context, []byte, string) error // Test seam; nil uses verified PostgreSQL TLS preparation.
 }
 

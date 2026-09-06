@@ -65,11 +65,11 @@ test("storage and CSV controls use host actions without URLs or credentials in t
 
 test("complete CSV inventory stays disabled on old guests and requires review", () => {
   const v = view();
-  v.send({ kind: "init", type: "csv", canStart: true, csvInventory: false, form: sourceForm });
+  v.send({ kind: "init", type: "csv", canStart: true, inventoryReady: false, form: sourceForm });
   v.send({ kind: "busy", value: false });
   v.send({ kind: "review", draft: { canAssess: true, warnings: [], configuration: {} } });
   assert.equal(v.el("inventory").disabled, true);
-  v.send({ kind: "init", type: "csv", canStart: true, csvInventory: true, form: sourceForm });
+  v.send({ kind: "init", type: "csv", canStart: true, inventoryReady: true, form: sourceForm });
   assert.equal(v.el("inventory").disabled, true);
   v.send({ kind: "review", draft: { canAssess: true, warnings: [], configuration: {} } });
   assert.equal(v.el("inventory").disabled, false);

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -85,7 +86,13 @@ func TestReadinessRequiresBootstrapAndMatchingInstallation(t *testing.T) {
 	if err != nil || !r.Ready || r.ArchiveSHA256 != strings.Repeat("a", 64) {
 		t.Fatalf("%#v %v", r, err)
 	}
-	if len(r.Capabilities) != 3 || r.Capabilities[0] != "csv-inventory-v1" || r.Capabilities[1] != "csv-migration-v1" || r.Capabilities[2] != "neo4j-migration-v1" {
+	wantCapabilities := []string{
+		"csv-inventory-v1", "csv-migration-v1",
+		"neo4j-inventory-v1", "neo4j-migration-v1",
+		"postgresql-inventory-v1", "postgresql-migration-v1",
+		"cosmos-nosql-inventory-v1", "cosmos-nosql-migration-v1",
+	}
+	if !slices.Equal(r.Capabilities, wantCapabilities) {
 		t.Fatalf("missing reviewed migration capability: %#v", r)
 	}
 }
@@ -135,6 +142,7 @@ func testManager(t *testing.T) (Manager, Request, *int) {
 	}
 	starts := new(int)
 	manager := Manager{Root: root, UnitDirectory: units, CLI: executable, Tools: "/usr/local/bin/agefreighter-tools", BootID: func() (string, error) { return bootID, nil }, Start: func(context.Context, string) error { *starts++; return nil }}
+	manager.versionProbe = func(context.Context) (string, error) { return version.Current().String("agefreighter"), nil }
 	manager.healthProbe = func(context.Context) (*GuestHealth, error) {
 		return &GuestHealth{Idle: true, StorageUsedPercent: 6}, nil
 	}

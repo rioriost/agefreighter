@@ -8,7 +8,7 @@ import { workflow, sourceForm, csvFile } from "../sourceFixtures";
 
 function fixture() {
   const record: RunnerRecord = { schemaVersion: 2, id: workflow, phase: "provisioned", input: { subscriptionId: workflow, resourceGroup: "test", region: "japaneast", zone: "1", subnetId: "subnet", size: "Standard_B2s_v2", source: { type: "neo4j", location: "on-premises" } }, artifact: { version: "2.4.0", sha256: "a".repeat(64), url: "https://example.invalid/archive" }, vmId: `/subscriptions/${workflow}/resourceGroups/test/providers/Microsoft.Compute/virtualMachines/runner`, deploymentId: "deployment", template: {}, previewHash: "hash", expiresAt: "", updatedAt: "", hourlyComputeUSD: 0.1,
-    guestReady: { bootId: workflow, cliVersion: "2.4.0", archiveSha256: "a".repeat(64), commit: "commit", checkedAt: new Date().toISOString() },
+    guestReady: { bootId: workflow, cliVersion: "2.4.0", archiveSha256: "a".repeat(64), commit: "commit", checkedAt: new Date().toISOString(), capabilities: ["neo4j-inventory-v1", "neo4j-migration-v1"] },
     sourceDraft: buildSourceDraft({ type: "neo4j", location: "on-premises" }, sourceForm, workflow) };
   const saved: RunnerRecord[] = [], requests: { method: string; path: string }[] = [];
   let result: unknown, fail = false;

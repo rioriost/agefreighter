@@ -6,7 +6,7 @@ import { existingGroupResources, RunnerControl } from "./runnerLifecycle";
 
 export interface TargetEvidence {
   operation: string; reportSHA256: string; configurationSHA256: string;
-  artifactSHA256: string; sourceType?: "csv" | "neo4j"; csvManifestSHA256?: string; rows: string;
+  artifactSHA256: string; sourceType?: "csv" | "neo4j" | "postgresql" | "cosmos-nosql"; csvManifestSHA256?: string; rows: string;
   vertices?: string; edges?: string;
   storageHighBytes: string; labels: Record<string, number>;
 }
@@ -73,8 +73,29 @@ export function neo4jTargetEvidence(record: RunnerRecord, reportJSON: string): T
     rows:counts.totalRows.toString(),vertices:counts.vertices.toString(),edges:counts.edges.toString(),storageHighBytes:high.toString(),labels:Object.create(null)};
 }
 
+export function mappedNetworkTargetEvidence(record: RunnerRecord, reportJSON: string): TargetEvidence {
+  const type=record.input.source.type,assessment=record.assessment;
+  if(!["postgresql","cosmos-nosql"].includes(type) || !record.sourceDraft?.canAssess || !assessment || assessment.action!=="inventory" || assessment.phase!=="finished" ||
+    assessment.configurationSHA256!==hash(record.sourceDraft.configuration) || !record.reportTransfers?.some(x=>x.operation===assessment.operation && x.phase==="imported" && x.sha256===assessment.reportSHA256) ||
+    Buffer.byteLength(reportJSON)!==assessment.reportBytes || createHash("sha256").update(reportJSON).digest("hex")!==assessment.reportSHA256)throw new Error("Import a complete, matching network-source inventory before planning the target.");
+  const doc=object(JSON.parse(reportJSON)),counts=extractInventoryEvidence(doc),capacity=extractCapacityEvidence(doc),expectedMethod=type==="postgresql"?"postgresql-repeatable-read-complete-stream":"cosmos-nosql-complete-stream";
+  if(doc.schemaVersion!==1 || doc.command!=="inventory" || doc.agefreighterVersion!==record.artifact.version || !counts.exact || counts.method!==expectedMethod || !capacity.deployable || capacity.recommendedStorageHigh===undefined || !Array.isArray(doc.errors) || doc.errors.length ||
+    !Array.isArray(doc.incompleteChecks) || doc.incompleteChecks.length || !Array.isArray(doc.checks) || !["source-counts","read-only"].every(id=>(doc.checks as unknown[]).some(x=>object(x).id===id&&object(x).status==="pass")))throw new Error("Whole-source network inventory evidence is incomplete.");
+  if(!Array.isArray(doc.sections) || (doc.sections as unknown[]).map(object).some(s=>!Array.isArray(s.fields)||s.fields.some(x=>object(x).status!=="pass")))throw new Error("A required source evidence field is not complete.");
+  const section=(doc.sections as unknown[]).map(object).filter(s=>s.title==="Mapped record counts");
+  if(section.length!==1||!Array.isArray(section[0]!.fields))throw new Error("Exact per-label mapped counts are required.");
+  const labels:Record<string,number>=Object.create(null);
+  for(const raw of section[0]!.fields){const f=object(raw);if(typeof f.name!=="string"||!/^(vertex|edge):[A-Za-z_][A-Za-z0-9_]*$/.test(f.name)||typeof f.value!=="string"||!/^\d+$/.test(f.value)||f.status!=="pass"||!Number.isSafeInteger(Number(f.value)))throw new Error("Invalid mapped label count.");
+    const key=f.name.replace(/^vertex:/,"v.").replace(/^edge:/,"e.");if(Object.hasOwn(labels,key))throw new Error("Duplicate mapped label count.");labels[key]=Number(f.value);}
+  const expectedLabels=new Set(record.sourceDraft.form.mappings.map(mapping=>`${mapping.kind==="vertex"?"v":"e"}.${mapping.label}`));
+  if(!Object.keys(labels).length||Object.values(labels).reduce((a,b)=>a+b,0)!==Number(counts.totalRows)||Object.entries(labels).filter(([key])=>key.startsWith("v.")).reduce((n,[,v])=>n+v,0)!==Number(counts.vertices)||
+    expectedLabels.size!==Object.keys(labels).length||Object.keys(labels).some(label=>!expectedLabels.has(label)))throw new Error("Mapped labels do not cover the whole approved inventory.");
+  return {operation:assessment.operation,reportSHA256:assessment.reportSHA256!,configurationSHA256:assessment.configurationSHA256,artifactSHA256:record.artifact.sha256,
+    sourceType:type as "postgresql"|"cosmos-nosql",rows:counts.totalRows.toString(),vertices:counts.vertices.toString(),edges:counts.edges.toString(),storageHighBytes:capacity.recommendedStorageHigh!.toString(),labels};
+}
+
 export function sourceTargetEvidence(record:RunnerRecord,reportJSON:string):TargetEvidence{
-  return record.input.source.type==="csv"?csvTargetEvidence(record,reportJSON):neo4jTargetEvidence(record,reportJSON);
+  return record.input.source.type==="csv"?csvTargetEvidence(record,reportJSON):record.input.source.type==="neo4j"?neo4jTargetEvidence(record,reportJSON):mappedNetworkTargetEvidence(record,reportJSON);
 }
 
 function cidr(value: string): [number,number] {
@@ -101,7 +122,7 @@ export function targetBudget(input: TargetInput, now=Date.now()): void {
 }
 
 export function targetPreview(record: RunnerRecord, input: TargetInput, evidence: TargetEvidence): RunnerTarget {
-  if(record.target || record.phase!=="provisioned" || !["csv","neo4j"].includes(record.input.source.type) || evidence.sourceType && evidence.sourceType!==record.input.source.type || !sha.test(evidence.reportSHA256))throw new Error("Use an assessed CSV or Neo4j workflow without an existing target intent.");
+  if(record.target || record.phase!=="provisioned" || !["csv","neo4j","postgresql","cosmos-nosql"].includes(record.input.source.type) || evidence.sourceType && evidence.sourceType!==record.input.source.type || !sha.test(evidence.reportSHA256))throw new Error("Use an assessed supported-source workflow without an existing target intent.");
   if(!/^[a-z][a-z0-9-]{2,61}[a-z0-9]$/.test(input.serverName) || !/^Standard_[DE]\d+[a-z]*_v[56]$/.test(input.postgresSKU) || !["GeneralPurpose","MemoryOptimized"].includes(input.postgresTier) ||
     !["Standard_D4s_v5","Standard_D8s_v5","Standard_D16s_v5"].includes(input.loaderSize) || ![128,256,512,1024].includes(input.storageGiB))throw new Error("Review a supported private target and x64/SCSI loader size.");
   cidr(input.subnetCIDR);targetBudget(input);

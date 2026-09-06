@@ -46,7 +46,8 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
   const assessment = ["profile", "inventory", "migrate-csv", "migrate-source"].includes(request.action);
   if(request.action==="migrate-csv" || request.action==="migrate-source"){
     assertIdleHealth(record);
-    const capability=request.action==="migrate-csv"?"csv-migration-v1":"neo4j-migration-v1";
+    const type=object(record.sourceDraft?.configuration.source).type;
+    const capability=request.action==="migrate-csv"?"csv-migration-v1":`${type}-migration-v1`;
     if(!record.guestReady?.capabilities?.includes(capability) || record.migration?.operation!==request.operation || record.migration.phase!=="submitted" || record.target?.phase!=="provisioned" || record.resize?.phase!=="finished")throw new Error("Migration requires an approved retained execution intent and prepared target/runner.");
   }
   const bootBound = assessment || request.action === "import-csv";

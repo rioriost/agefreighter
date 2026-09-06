@@ -2,7 +2,8 @@
 
 The extension is the control plane; a Linux x64 VM is the execution plane.
 See the [design and release gates](../design/agefreighter-2.4.0-runner-first.md).
-This contract currently covers R1/R2, not a completed remote migration service.
+This contract covers the implemented runner control plane. Each source path
+still needs an independent live qualification before release claims are made.
 
 ## Messages and authority
 
@@ -14,7 +15,9 @@ This contract currently covers R1/R2, not a completed remote migration service.
 | csv | Show a local file picker after CSV selection; no upload or CLI invocation. |
 | preview | Validate typed source/runner input, matching official Linux release checksum, subnet, source placement, SKU/zone, quota, compute price, collisions and create-only ARM what-if. Save a 15-minute immutable preview. |
 | deploy | Require workspace trust, matching preview hash, network/cost acknowledgments and modal confirmation. Lock the workflow, re-read state, recheck gates, persist intent, submit exactly one deployment PUT. |
-| restore / refresh | Load retained state and query the exact deployment ID. Never restart, replay or replace resources. |
+| inventory | Run a complete, bounded source scan on the guest. CSV verifies sealed files; Neo4j uses the transactional count store; PostgreSQL streams all mappings in one exported repeatable-read snapshot; Cosmos streams all mappings during an operator-enforced immutable-source window. |
+| migrate-csv / migrate-source | Start one retained create-only load UUID after exact source evidence, private target, same-VM resize and fresh health gates. Network sources are Neo4j, PostgreSQL or Cosmos. PostgreSQL and Neo4j credentials use protected parameters; Cosmos uses the runner identity. |
+| restore / refresh | Load retained state and query the exact deployment or operation ID. Never restart, replay or replace resources. |
 
 The view never supplies templates, shell commands or artifact URLs. These are
 constructed by typed extension code. The view receives no ARM token. No source
@@ -55,8 +58,10 @@ independent durable evidence and an explicit transition gate.
 - CLI version is pinned to matching 2.4.x and SHA-256 checked before execution.
   The archive must be published; old binaries and mutable branch builds are not
   fallback installers. The guest does not download credentials in customData.
-- No delete, cleanup, resize, remote profile, source upload or load action exists
-  in this preview. Operator-managed resource costs continue after the window closes.
+- No automatic delete, cleanup, retry or resume exists. Source upload,
+  assessment, target deployment, resize and load are explicit, separately
+  retained actions. Operator-managed resource costs continue after the window
+  closes.
 
 ## Qualification before release
 

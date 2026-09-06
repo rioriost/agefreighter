@@ -121,8 +121,8 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 		if request.Action == "migrate-csv" && job.Source.Type != config.SourceCSV {
 			return nil, errors.New("CSV migration requires a reviewed CSV source")
 		}
-		if request.Action == "migrate-source" && job.Source.Type != config.SourceNeo4j {
-			return nil, errors.New("network migration currently requires a reviewed Neo4j source")
+		if request.Action == "migrate-source" && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourcePostgreSQL && job.Source.Type != config.SourceCosmos {
+			return nil, errors.New("network migration requires a reviewed Neo4j, PostgreSQL, or Cosmos source")
 		}
 		if _, err := migrationConnection(request.Secrets["AGEFREIGHTER_TARGET_DSN"]); err != nil {
 			return nil, err
@@ -133,6 +133,13 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 			if job.Source.Neo4j == nil || job.Source.Neo4j.Password == nil || job.Source.Neo4j.Password.Env != "AGEFREIGHTER_SOURCE_PASSWORD" || request.Secrets["AGEFREIGHTER_SOURCE_PASSWORD"] == "" {
 				return nil, errors.New("Neo4j migration requires the protected source credential")
 			}
+		} else if job.Source.Type == config.SourcePostgreSQL {
+			expectedSecrets = 2
+			if job.Source.PostgreSQL == nil || job.Source.PostgreSQL.Connection.Env != "AGEFREIGHTER_SOURCE_DSN" || request.Secrets["AGEFREIGHTER_SOURCE_DSN"] == "" {
+				return nil, errors.New("PostgreSQL migration requires the protected source connection")
+			}
+		} else if job.Source.Type == config.SourceCosmos && job.Source.Cosmos == nil {
+			return nil, errors.New("Cosmos migration requires a reviewed source")
 		}
 		if len(request.Secrets) != expectedSecrets {
 			return nil, errors.New("migration received an unexpected credential set")
@@ -155,8 +162,8 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 			return nil, errors.New("invalid runner secret handle or value")
 		}
 	}
-	if request.Action == "inventory" && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourceCSV {
-		return nil, errors.New("exact inventory currently requires Neo4j or CSV; bounded profiles are not totals")
+	if request.Action == "inventory" && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourceCSV && job.Source.Type != config.SourcePostgreSQL && job.Source.Type != config.SourceCosmos {
+		return nil, errors.New("exact inventory requires a supported source connector; bounded profiles are not totals")
 	}
 	if job.Source.CSV != nil {
 		for _, v := range job.Source.CSV.Vertices {
