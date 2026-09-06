@@ -33,6 +33,25 @@ test("ambiguous transport results reconcile with GET only",async()=>{
   const f=fixture();f.fail();const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
   assert.equal(next.guestCommand?.phase,"unknown");const before=f.events.length;await reconcileGuest(f.control,next);assert.ok(f.events.slice(before).every(e=>e.startsWith("GET:")));
 });
+test("old absent status command is retained without replay or a successful receipt", async()=>{
+  const f=fixture(),r=record();
+  r.guestCommand={id:`${r.vmId}/runCommands/af-${op}`,operation:op,action:"status",phase:"unknown",submittedAt:"2020-01-01T00:00:00Z"};
+  const checked=await reconcileGuest(f.control,r);
+  assert.equal(checked.result,undefined);assert.equal(checked.record.guestCommand?.phase,"failed");
+  assert.deepEqual(checked.record.absentStatusCommands,[r.guestCommand]);
+  assert.equal(f.bodies.length,0);assert.equal(f.events.filter(x=>x.startsWith("GET:")).length,1);
+  const again=await reconcileGuest(f.control,checked.record);
+  assert.equal(again.record.absentStatusCommands?.length,1);
+});
+test("404 never clears a mutating, fresh, or invalid-time guest command",async()=>{
+  for(const action of ["profile","inventory","import-csv","export-report","ready","report","status"] as const){
+    for(const submittedAt of ["2020-01-01T00:00:00Z",new Date().toISOString(),"bad",new Date(Date.now()+60000).toISOString()]){
+      if(action==="status"&&submittedAt.startsWith("2020"))continue;
+      const f=fixture(),r=record();r.guestCommand={id:`${r.vmId}/runCommands/af-${op}`,operation:op,action,phase:"unknown",submittedAt};
+      const checked=await reconcileGuest(f.control,r);assert.deepEqual(checked.record,r);assert.equal(f.saved.length,0);assert.equal(f.bodies.length,0);
+    }
+  }
+});
 test("readiness requires matching Linux architecture, release and checksum",async()=>{
   const f=fixture();const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
   const ready={version:1,ready:true,os:"linux",architecture:"amd64",bootId:op,cliVersion:"2.4.0",archiveSha256:next.artifact.sha256,commit:"commit"};

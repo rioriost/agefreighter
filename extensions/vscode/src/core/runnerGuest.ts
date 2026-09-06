@@ -74,7 +74,19 @@ export async function reconcileGuest(control: RunnerControl, record: RunnerRecor
   if (!command) throw new Error("No retained guest command to reconcile.");
   if (!command.id.startsWith(`${record.vmId}/runCommands/af-`) || !uuid.test(command.id.slice(`${record.vmId}/runCommands/af-`.length))) throw new Error("Guest command does not belong to this VM.");
   const response = await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01&$expand=instanceView`);
-  if (response.status === 404) return { record };
+  if (response.status === 404) {
+    const age = Date.now() - Date.parse(command.submittedAt);
+    // A missing status-only command can be replaced by a later explicit status
+    // read. This says nothing about the underlying operation's success and
+    // never permits replay of import/profile/inventory/export requests.
+    if (command.action === "status" && ["submitted", "unknown"].includes(command.phase) && Number.isFinite(age) && age >= 300000) {
+      const next: RunnerRecord = { ...record,
+        absentStatusCommands: [...record.absentStatusCommands ?? [], { ...command }],
+        guestCommand: { ...command, phase: "failed" } };
+      await control.persist(next); return { record: next };
+    }
+    return { record };
+  }
   const properties = object(object(response.value).properties);
   const view = properties.instanceView ? object(properties.instanceView) : {};
   if (!["Succeeded", "Failed", "Canceled", "TimedOut"].includes(String(view.executionState))) return { record };

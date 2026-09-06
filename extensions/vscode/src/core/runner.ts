@@ -40,6 +40,7 @@ export interface RunnerRecord {
   updatedAt: string;
   hourlyComputeUSD: number;
   guestCommand?: GuestCommand;
+  absentStatusCommands?: GuestCommand[];
   guestReady?: GuestReadiness;
   sourceDraft?: SourceDraft;
   sourceFiles?: (SelectedCSV & { path: string })[];
