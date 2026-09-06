@@ -2,6 +2,28 @@
 
 Updated: 2026-09-06. Overall outcome: **not yet qualified**.
 
+### Current checkpoint — 07:20Z
+
+The Mac is unlocked. The actual installed GUI has reconciled the private PG18
+target, applied AGE preload, and completed the same-VM resize to D4s_v5.
+VM and target are running within the unchanged USD 800 / Sep 9 08:55Z limits.
+The first migration failed before graph/metadata creation; a GUI read-only
+diagnostic proved the empty target, and the failed job is retained in history.
+The repaired guest now reuses the established hosted AGE session initialization.
+
+Pinned guest: `2.4.0-dev.72f45536b052`. Its new full inventory
+`bcb9a509-7558-412a-879e-c80e4ae45a89` has been imported and displayed in VS Code:
+all 1.6M vertices / 4M edges / 18 mappings, no errors, unchanged input hashes.
+Report SHA-256 `a66e2231baf6b785917538ad68a7143deab7ecf9fec1c0bcd7c33b1cc7871af0`.
+Next: approve a new create-only migration, import complete counts verification,
+then run the isolated full P1 canonical verifier through the development GUI.
+Extension tests: 153 pass; relevant Go tests pass. CSV-MAC and the other eight
+scenario branches remain unqualified until their actual end-to-end evidence passes.
+See the [execution sheet](csv-completion-20260906.md) for retained failures,
+diagnostics, artifact pins and archived ARM receipts. Entries below are historical.
+
+## Earlier inventory / target checkpoints
+
 CSV-MAC completion is the active scope. **The actual installed VS Code GUI
 completed the Linux whole-source CSV inventory on 2026-09-06**: 1.6 million
 vertices + 4 million edges across all 18 mappings, no rejects, and matching
