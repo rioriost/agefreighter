@@ -82,6 +82,10 @@
     },
     "commands": [
       {
+        "command": "agefreighter.upgradeDevelopmentRunner",
+        "title": "AGEFreighter: Upgrade / Reconcile Pinned Development Runner"
+      },
+      {
         "command": "agefreighter.prepareDevelopmentRunner",
         "title": "Prepare Pinned Development Runner (Qualification Only)",
         "category": "AGEFreighter"

@@ -29,6 +29,7 @@ printf '%s' "$AF_RUNNER_REQUEST" | base64 --decode | /usr/local/bin/agefreighter
 /** Caller holds the workflow lock and has obtained approval for source reads. */
 export async function dispatchGuest(control: RunnerControl, record: RunnerRecord, request: GuestRequest): Promise<RunnerRecord> {
   if (record.phase !== "provisioned") throw new Error("The runner VM must be provisioned first.");
+  if (record.upgrade && record.upgrade.phase !== "finished") throw new Error("Reconcile the guest upgrade before any other operation.");
   if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command; do not resubmit it.");
   if (request.version !== 1 || request.workflow !== record.id || !uuid.test(request.operation) || !["ready", "profile", "inventory", "status", "report", "export-report", "import-csv"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
   if (["ready", "status", "report", "export-report"].includes(request.action) && (request.configuration !== undefined || request.secrets !== undefined || request.expectedBootId !== undefined)) throw new Error("Read-only guest controls cannot contain source credentials.");

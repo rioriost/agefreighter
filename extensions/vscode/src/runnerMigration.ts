@@ -9,7 +9,7 @@ import { basename, join } from "node:path";
 import { assertPlacementSelection, placementCatalog } from "./core/runnerPlacement";
 import { dispatchGuest, reconcileGuest } from "./core/runnerGuest";
 import { openRunnerSource } from "./runnerSourcePanel";
-import { developmentEnabled, prepareDevelopmentRunner } from "./developmentRunner";
+import { developmentEnabled, prepareDevelopmentRunner, upgradeDevelopmentRunner } from "./developmentRunner";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -46,6 +46,10 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.prepareDevelopmentRunner", async () => {
     try { await azure.subscriptions(); await prepareDevelopmentRunner(control, store, azure); }
     catch (error) { await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Development artifact preparation failed."); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("agefreighter.upgradeDevelopmentRunner", async () => {
+    try { await azure.subscriptions(); await upgradeDevelopmentRunner(control, store, azure); }
+    catch (error) { await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Runner upgrade requires evidence review."); }
   }));
   context.subscriptions.push(azure, vscode.commands.registerCommand("agefreighter.newGuidedMigration", () => {
     if (panel) { panel.reveal(); return; }
