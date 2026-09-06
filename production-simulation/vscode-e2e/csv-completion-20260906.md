@@ -1,5 +1,29 @@
 # CSV-MAC completion execution sheet
 
+## Final outcome — PASS at 2026-09-06 07:47Z
+
+Installed VS Code 1.136.1 completed CSV-MAC through the designed GUI. Migration
+job `99f22ed1-d5b4-4432-b761-063e923b726c` ran from 07:23:46.903643276Z to
+07:28:48.5428813Z: 5,600,000 read and committed, 1,120/1,120 batches committed,
+zero rejects. Counts report SHA-256
+`ef7c27e6e188e5d4a2263e8b60db702f154ae5e432a6f202f55106897f60b71d`
+was imported and independently accepted by the controller.
+
+The isolated read-only verifier ran from 07:42:57Z to 07:44:57Z and did not
+replace the loader. It independently regenerated the P1 fixture, read the
+committed target generation and matched all 5,600,000 typed records in all 64
+ranges. Expected and actual canonical root:
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+Result report: 23,220 bytes, SHA-256
+`bcd09ddf652209702d49db97b859059dc7fa4678508ea52d2c7c32dd09728add`.
+The same hash matched the private guest file, immutable blob and retained Mac
+copy. Final guest state: idle, disk 9%, swap zero, boot OOM zero. Target storage
+14.98%, below the 80% gate. No failed Azure activity event occurred after start.
+
+This qualifies CSV-MAC only. The eight remote-source paths remain open. Raw
+reports and guest evidence are retained privately; the committed
+`evidence/csv-mac-qualified-20260906.json` is redacted and contains no secrets.
+
 ## Active migration — 2026-09-06 07:30Z
 
 The installed VS Code GUI approved a new job

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "scenario": "CSV-MAC",
+  "outcome": "pass",
+  "workflow": "83c6b829-acdc-4405-aa2d-fb2f2d99af9f",
+  "source": {
+    "location": "MacStudio local CSV",
+    "mappings": 18,
+    "vertices": 1600000,
+    "edges": 4000000,
+    "portableBytes": 1168576671,
+    "inventoryOperation": "bcb9a509-7558-412a-879e-c80e4ae45a89",
+    "inventoryReportSHA256": "a66e2231baf6b785917538ad68a7143deab7ecf9fec1c0bcd7c33b1cc7871af0",
+    "allFilesUnchanged": true
+  },
+  "runner": {
+    "version": "2.4.0-dev.72f45536b052",
+    "archiveSHA256": "19e51268d4436272178d07215e6139d92d88e7f4126d071ac4d9b9db6e7dfb80",
+    "sku": "Standard_D4s_v5",
+    "zone": "1",
+    "swapBytesAfterQualification": 0,
+    "bootOOMEventsAfterQualification": 0,
+    "diskUsedPercentAfterQualification": 9
+  },
+  "target": {
+    "service": "Azure Database for PostgreSQL Flexible Server",
+    "postgresqlMajor": "18",
+    "sku": "Standard_D4ds_v5",
+    "region": "japaneast",
+    "zone": "1",
+    "publicNetworkAccess": "Disabled",
+    "storageGiB": 128,
+    "storageUsedPercentAfterQualification": 14.980942028169054
+  },
+  "migration": {
+    "jobId": "99f22ed1-d5b4-4432-b761-063e923b726c",
+    "startedAt": "2026-09-06T07:23:46.903643276Z",
+    "finishedAt": "2026-09-06T07:28:48.5428813Z",
+    "recordsRead": 5600000,
+    "recordsCommitted": 5600000,
+    "batchesCommitted": 1120,
+    "batchesFailed": 0,
+    "rejects": 0,
+    "workerPeakMemoryBytes": 16517202,
+    "countsReportSHA256": "ef7c27e6e188e5d4a2263e8b60db702f154ae5e432a6f202f55106897f60b71d",
+    "countsOutcome": "pass"
+  },
+  "canonicalVerification": {
+    "operation": "3bea17b2-f854-41d5-943f-b51d6512296c",
+    "readOnly": true,
+    "verifierCommit": "03f31785b7473975af037b361ebc08b3a23a2c22",
+    "verifierArchiveSHA256": "460804d405285a202be5812b04f540939d05c853789ac3f570b13684f5d01177",
+    "generatedAt": "2026-09-06T07:44:57.147376321Z",
+    "records": 5600000,
+    "ranges": 64,
+    "fixtureRootSHA256": "f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f",
+    "expectedRootSHA256": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70",
+    "actualRootSHA256": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70",
+    "reportSHA256": "bcd09ddf652209702d49db97b859059dc7fa4678508ea52d2c7c32dd09728add",
+    "comparison": "pass"
+  },
+  "governance": {
+    "authorizedCeilingUSD": 800,
+    "authorizedDeadline": "2026-09-09T08:55:00Z",
+    "failedAzureActivityEventsSinceMigrationStart": 0,
+    "rawReportsRetainedPrivately": true,
+    "secretsIncluded": false
+  }
+}

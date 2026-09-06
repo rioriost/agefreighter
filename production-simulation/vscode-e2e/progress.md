@@ -1,8 +1,21 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-06. Overall outcome: **not yet qualified**.
+Updated: 2026-09-06. Overall outcome: **CSV-MAC qualified; remaining branches not yet qualified**.
 
-### Current checkpoint — 07:20Z
+### CSV-MAC qualification — PASS at 07:47Z
+
+The installed VS Code 1.136.1 GUI completed the full local-CSV path. Job
+`99f22ed1-d5b4-4432-b761-063e923b726c` committed all 1,600,000 vertices and
+4,000,000 edges in 1,120 batches, with zero failed batches and zero rejects.
+The hash-verified counts report passed. An isolated read-only verifier then
+regenerated the frozen P1 fixture and compared typed properties, identities and
+endpoints in all 64 canonical ranges. All 5,600,000 records matched; expected
+and actual root are
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+See the [redacted qualification evidence](evidence/csv-mac-qualified-20260906.json).
+This passes CSV-MAC only; it does not qualify the eight remote-source branches.
+
+### Earlier checkpoint — 07:20Z
 
 The Mac is unlocked. The actual installed GUI has reconciled the private PG18
 target, applied AGE preload, and completed the same-VM resize to D4s_v5.
@@ -267,13 +280,13 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
 | P1 local CSV | Prepared; complete local canonical comparison passed; installed-GUI storage upload, Linux import/sealing and independent full-byte readback all passed for 18 files |
 | R3 remote source configuration, mapping, assessment, upload | Actual installed-GUI CSV path passed Linux bootstrap, full-hash imports, reviewed mappings, bounded profile and verified report retrieval; network-source live qualification, representative/full inventory and schema suggestions remain open |
-| R4 target deployment and same-VM resize | Implementation required |
-| R5 durable migration / resume / verification controller | Implementation required |
-| Installed VS Code 1.136.1 full GUI branches | Not run |
-| Nine P1 base paths and additional branch/failure ledger | 0 / 9 complete |
+| R4 target deployment and same-VM resize | CSV-MAC actual Azure path passed; remaining source branches open |
+| R5 durable migration / resume / verification controller | CSV-MAC clean migration, counts and canonical verification passed; recovery and remaining source branches open |
+| Installed VS Code 1.136.1 full GUI branches | CSV-MAC passed; eight branches not run |
+| Nine P1 base paths and additional branch/failure ledger | 1 / 9 complete |
 
-The current installed preview must not be described as an end-to-end migration
-product. The new local tests and fixture digest are not GUI/Azure qualifications.
+The current installed preview has one end-to-end GUI/Azure qualification
+(CSV-MAC). It must not be described as qualified for the other eight branches.
 The preview VSIX is installed into MacStudio's VS Code 1.136.1. Installation
 and bundle identity are rechecked with each packaged update; these do not imply
 that the live GUI branches passed.
