@@ -82,6 +82,10 @@
     },
     "commands": [
       {
+        "command": "agefreighter.reviewRunnerTarget",
+        "title": "AGEFreighter: Review / Reconcile Private CSV Target"
+      },
+      {
         "command": "agefreighter.upgradeDevelopmentRunner",
         "title": "AGEFreighter: Upgrade / Reconcile Pinned Development Runner"
       },

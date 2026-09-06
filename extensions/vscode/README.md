@@ -151,6 +151,18 @@ verify their checksum and GitHub build-provenance attestation before use.
    reconciles and imports it on a subsequent click. It retains original JSON
    bytes (including int64 values) in private extension storage and opens a
    script-disabled escaped viewer. A report import is not migration approval.
+10. For a complete, imported CSV inventory, **Review / reconcile private CSV
+    target** opens native fields for a new PostgreSQL 18/AGE server, non-overlapping
+    delegated subnet, target storage, same-VM migration size, authorized deadline
+    and cost reserve. It rechecks private placement, service/SKU and both quotas,
+    and unique live Linux/PostgreSQL prices. Review the single-server/no-HA trial
+    configuration and additional retained-resource costs; then select a folder
+    for the secret-reference-only LoadJob and target plan. Save-only performs no
+    deployment. Separately approved deployment is create-only and uses generated
+    credentials in VS Code SecretStorage/ARM secure parameters. Reopen the control
+    to reconcile an uncertain submission; it does not replay it. This initial
+    target path requires the VNet in the migration RG. **Target creation does not
+    resize the VM, prepare AGE or start/verify migration yet.**
 
 Workflow metadata is held in extension global storage, without source passwords,
 before output-folder selection. The VM uses persistent managed OS storage and
@@ -162,9 +174,10 @@ protected remote assessment controls are implemented, but not live-Azure
 qualified. ARM success is not guest readiness. A finished assessment worker is
 not a passing migration. Transfer storage/RBAC, bulk reports and CSV upload/import
 are implemented but still require real Azure qualification. Automatic schema/FK
-recommendations, exact non-Neo4j inventories, accepted target sizing/deployment,
-same-VM resize, final LoadJob export, remote migration and verification remain
-open. Publicly trusted TLS is currently required; custom source CA upload is
+recommendations and exact PostgreSQL/Cosmos inventories remain open. Complete CSV
+inventory and reviewed private target/export controls are implemented; target
+controls are not yet live-qualified. Same-VM resize, remote migration and final
+verification remain open. Publicly trusted TLS is currently required; custom source CA upload is
 not implemented. Do not publish this as a complete guided migration workflow.
 The [runner-first plan](https://github.com/rioriost/agefreighter/blob/codex/2.4.0-guided-migration/docs/design/agefreighter-2.4.0-runner-first.md)
 tracks the remaining gates.

@@ -2,6 +2,14 @@
 
 ## 2.4.0
 
+- Add complete CSV inventory, a data-preserving pinned Linux upgrade, and private
+  CSV target review/export with live service, quota, network and price gates.
+  Target approval uses native fields and SecretStorage, create-only what-if and
+  GET-only reconciliation. Same-VM resize and remote migration/verification remain
+  open. The isolated P1 Linux GUI inventory counted all 5.6M rows; this is not a
+  migration qualification or a public release of the completed guided workflow.
+- Clear an earlier sample report's imported indicator when a new inventory starts.
+
 - Request Storage-scoped sessions for the selected existing VS Code account for
   CSV/archive uploads and report capabilities. The subscription SDK credential
   is ARM-only and ignores requested scopes. Fail missing/foreign sessions without

@@ -10,6 +10,7 @@ import { issueCSVCapability, issueReportCapability } from "./blobCapabilities";
 import { CSVManifest, uploadCSV, uploadRunnerArchive } from "./csvTransfer";
 import { storageCredential } from "./storageCredential";
 import { armToken } from "./armToken";
+import { postgresQuotaAPIVersion } from "../core/runnerTargetPreflight";
 import { AzureAccessError, existingAzureAccess } from "../core/azureAccess";
 import {
   AzureLocationSummary,
@@ -198,7 +199,10 @@ export class AzureSession implements vscode.Disposable {
     computeSkus.searchParams.set("api-version", "2021-07-01");
     computeSkus.searchParams.set("$filter", `location eq '${location}'`);
     const postgresQuota = new URL(`${base}/Microsoft.DBforPostgreSQL/locations/${encodeURIComponent(location)}/resourceType/flexibleServers/usages`);
-    postgresQuota.searchParams.set("api-version", "2025-08-01");
+    // The documented stable route is not deployed in every subscription.
+    // This supported preview was verified against the selected Japan East RP;
+    // missing/failed quota evidence still blocks deployment, never bypasses it.
+    postgresQuota.searchParams.set("api-version", postgresQuotaAPIVersion);
     const computeQuota = new URL(`${base}/Microsoft.Compute/locations/${encodeURIComponent(location)}/usages`);
     computeQuota.searchParams.set("api-version", "2025-04-01");
     const [postgresPayload, computePayload, postgresQuotaPayload, computeQuotaPayload] = await Promise.all([

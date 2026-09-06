@@ -20,6 +20,17 @@ The preview adds no public IP or source firewall rule. Source file selection
 does not upload CSV contents. Source settings and mappings are saved locally
 before final output-folder selection; this does not deploy resources.
 
+Private CSV target review additionally reads service capabilities, quota and the
+existing VM/NIC/VNet. A native approval can create a delegated subnet, private
+DNS zone/link, PostgreSQL Flexible Server, database and AGE configuration values.
+No public database endpoint, VNet peering or source firewall change is inferred.
+The generated administrator password is retained in VS Code SecretStorage and
+sent only as an ARM secure parameter. The exported LoadJob contains an environment
+reference, not the password; the separate plan contains resource IDs, source
+inventory counts/hashes, reviewed cost reserve and deadline. Folder selection
+occurs before target submission. Neither approval nor an ARM success means that
+migration/verification has completed, and no automatic resource cleanup occurs.
+
 Version-2 runner records (resource IDs, source type/location, template, pinned
 artifact checksum, costs, deployment phase, source host/database/username,
 reviewed mapping/configuration, selected CSV paths and assessment manifests)

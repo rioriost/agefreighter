@@ -75,3 +75,10 @@ test("complete CSV inventory stays disabled on old guests and requires review", 
   assert.equal(v.el("inventory").disabled, false);
   v.el("inventory").trigger("click"); assert.deepEqual(v.messages.at(-1), { action: "assess", method: "inventory" });
 });
+
+test("new inventory does not inherit the old sample report's imported label",()=>{
+  const v=view();v.send({kind:"init",type:"csv",transfer:"imported",assessment:{operation:"sample",phase:"finished",reportSHA256:"old"}});
+  assert.equal(v.el("transferStatus").textContent,"imported");
+  v.send({kind:"assessment",assessment:{operation:"inventory",phase:"submitted"}});
+  assert.equal(v.el("transferStatus").textContent,"No report transferred");
+});

@@ -67,16 +67,58 @@ and deadline, create-only what-if and persist-before-PUT/GET-only reconciliation
 are covered by tests. Actual passwords are secure ARM parameters, not fields in
 the template or retained record. HA is explicitly disabled for this P1 trial.
 
-This controller is **not yet enabled in the GUI**. Live service/SKU/quota/price
-preflight, reviewed target GUI/folder export, same-VM resize and the R5 guest
-load/verification operations are still required. No target resource was created.
-The existing runner remains deallocated. All 138 extension unit tests and
-typechecking passed; these are not Azure qualification results.
+The subsequent controller adds a native target-review wizard and main-view
+entry point. It binds imported source evidence, checks owned private NIC/VM
+placement, service capabilities, total/family quota, subnet overlap and unique
+current Linux/PostgreSQL compute prices. It exports a new secret-reference-only
+LoadJob (JSON-form YAML 1.2) and reviewed plan only after folder selection.
+Generated target credentials stay in VS Code SecretStorage and ARM secure
+parameters, not the exported files. Submission is separately approved and
+rechecked under the workflow lock. Failed/unknown submissions reconcile by GET.
+HA is explicitly disabled for this bounded single-server trial; resize and R5
+remain separate unimplemented gates. Local tests/typechecking/package pass
+(142 tests); this target path is not yet live-qualified or publicly released.
 
-The Mac was locked when computer control attempted to open VS Code. Manual
-unlock is required for actual GUI upgrade/inventory qualification. No alternative
-CLI-only migration is substituted as a GUI pass. The pinned upgrade artifact
-was built from committed `c880a67`; it has not been installed on the guest.
+The [documented quota endpoint](https://learn.microsoft.com/en-us/rest/api/postgresql/quota-usages/list?view=rest-postgresql-2025-08-01)
+with stable `2025-08-01` returned `InvalidApiVersionParameter` in this subscription;
+`2025-08-01-preview` returned `NoRegisteredProviderFound`. The RP-advertised
+`2023-06-01-preview` succeeded: regional PostgreSQL cores 2/196 and Ddsv5-family
+2/64 in Japan East. The controller uses this supported version and still fails
+closed on missing/insufficient quota. The live PG D4ds_v5 compute meter was
+USD 0.488/hour; quotes are fetched again before any deployment. A rate-limited
+retail-price response is not treated as zero cost or permission to skip pricing.
 
-Status: awaiting Mac unlock for GUI execution; remaining implementation continues
-to be tracked separately. No new CSV-MAC migration pass yet.
+## Actual GUI continuation on 2026-09-06
+
+- Mac initially unlocked; installed VS Code 1.136.1 reloaded the reviewed VSIX
+  and restored the existing CSV workflow without editing private metadata.
+- VM started after ownership/window/governance checks. Boot:
+  `365f83e4-2cde-44db-aa31-2ced80664ddc`.
+- GUI-approved upgrade `75cd1825-edbf-4936-9285-1cc088e62ae4` submitted
+  03:37:04Z; Azure success 03:37:25Z. Archive SHA-256
+  `50873caae75cfe03d9f790147c9a1c9c0e87722b9769e90425f0a77593918bf1`.
+  Old binaries and all input/report evidence were retained. Fresh readiness
+  advertised `csv-inventory-v1` with matching commit/version/hash.
+- GUI-approved complete inventory `e4b4cdcc-8403-4847-95a8-38213d7ce11c`
+  ran 03:43:29.076722476Z–03:43:52.046389067Z. All 5.6M mapped rows passed;
+  all file bytes/metadata matched before/after; zero errors/incomplete checks.
+  Capacity high estimate is 29,052,316,636 bytes, not a measured target size.
+- GUI approved export; Azure exported the report successfully at 03:46:44Z.
+  Independent authenticated Blob read matched all 3,220 bytes and SHA-256
+  `a285e77400c4aa705b36871f4134d0eedb5df03683b1b2c8d62b1c2b6168e837`.
+  The Mac locked before GUI reconciliation/import. **Do not label the report
+  GUI-imported yet**, replay inventory, or patch the private workflow file.
+- Read-only guest check at 03:49:40Z: inactive/successful worker, exit 0, no
+  active lease or loader, root filesystem 6%, swap 0, kernel OOM events 0.
+  Peak RSS was not returned by this systemd version; do not invent a measured
+  peak from its configured 4 GiB/no-swap limit.
+- Ownership tags still matched; failed RG activity events since 03:24Z were
+  empty. No target created. VM deallocation independently confirmed 03:52:23Z.
+  Storage, NAT/IP, disk, CSVs and all failure/success evidence remain retained.
+  Current-hour B2s_v2 exposure was less than USD 0.109; the original 800 USD/
+  96-hour overall authorization is unchanged. Existing retained-resource charges
+  continue and are not claimed to be a finalized Azure bill.
+
+Next: unlock Mac → reconcile/import the existing report through its GUI →
+install/reload the latest reviewed target wizard → complete target/resize and
+R5 implementation/qualification. No CSV-MAC migration pass yet.

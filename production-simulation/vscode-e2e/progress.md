@@ -2,20 +2,29 @@
 
 Updated: 2026-09-06. Overall outcome: **not yet qualified**.
 
-CSV-MAC completion is now the active scope. See the
-[execution sheet](csv-completion-20260906.md): a reviewed guest upgrade command
-and the private-target controller foundation were added with 138 local extension
-tests. The Mac is locked, preventing actual VS Code GUI execution until manual
-unlock. No Azure resource was changed in this continuation; runner remains
-deallocated. Target GUI/live preflight, same-VM resize and R5 remain open.
+CSV-MAC completion is the active scope. **The actual installed VS Code GUI
+completed the Linux whole-source CSV inventory on 2026-09-06**: 1.6 million
+vertices + 4 million edges across all 18 mappings, no rejects, and matching
+before/after file hashes. The worker ran from 03:43:29Z to 03:43:52Z (22.97 s).
+See [live evidence](evidence/csv-inventory-linux-20260906.json) and the
+[execution sheet](csv-completion-20260906.md). This is source inventory, **not
+a migration pass** or a uniqueness/endpoint/canonical-graph proof.
 
-Subsequent local R4 prerequisite: [complete CSV inventory](csv-inventory-20260906.md)
-now scans all P1 records rather than extrapolating the first 10,000 vertices.
-Local CLI evidence: 1.6 million vertices + 4 million edges, before/after file
-hashes matched, 9.70 seconds / 28.3 MiB maximum RSS. Whole-source capacity
-evidence and advertised guest-capability gates are implemented and tested.
-This new operation has **not run on Azure**; the retained VM is unchanged and
-deallocated. R4 target/resize and R5 migration/verification are still unimplemented.
+The GUI installed the pinned `c880a67` Linux upgrade while retaining the old
+binaries, CSVs and reports. It observed inventory completion and approved report
+export; Azure completed export at 03:46:44Z. An independent authenticated read
+matched the entire 3,220-byte report and SHA-256. The Mac then locked, so GUI
+report import/display remains pending; private workflow state was not edited
+to simulate completion. The operator must unlock the Mac to continue GUI work.
+
+Private CSV target review, folder selection/secret-reference-only LoadJob export,
+live service/SKU/quota/network/price preflight, secure-parameter deployment and
+GET-only reconciliation are implemented locally; 142 extension tests pass.
+They are **not yet live-qualified**. Same-VM resize and R5 remote migration/full
+verification still remain. No target or migration was created. At 03:49:40Z the
+guest worker was inactive/successful, no workflow lease or loader remained,
+disk usage was 6%, swap 0, and kernel OOM events 0. The owned VM was deallocated
+and independently confirmed at 03:52:23Z. All data and evidence remain retained.
 
 Latest checkpoint: **the bounded Linux CSV trial passed its transport and
 assessment controls**, not a P1 migration. After user reauthentication, the

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "redacted-live-inventory-summary-not-migration",
+  "workflow": "83c6b829-acdc-4405-aa2d-fb2f2d99af9f",
+  "operation": "e4b4cdcc-8403-4847-95a8-38213d7ce11c",
+  "cliVersion": "2.4.0-dev.c880a670e5d1",
+  "commit": "c880a670e5d19e627014227549125063d28f2098",
+  "archiveSHA256": "50873caae75cfe03d9f790147c9a1c9c0e87722b9769e90425f0a77593918bf1",
+  "generatedAt": "2026-09-06T03:43:52.045357718Z",
+  "report": {
+    "bytes": 3220,
+    "sha256": "a285e77400c4aa705b36871f4134d0eedb5df03683b1b2c8d62b1c2b6168e837",
+    "outcome": "pass",
+    "checks": {"read-only": "pass", "source-counts": "pass", "source-unchanged": "pass"},
+    "errors": [],
+    "incompleteChecks": [],
+    "warnings": ["INVENTORY_NOT_MIGRATION_VERIFICATION"]
+  },
+  "counts": {
+    "vertices": 1600000,
+    "edges": 4000000,
+    "totalRows": 5600000,
+    "inputBytes": 1168576671,
+    "mappedRecordBytes": 1921565474,
+    "method": "csv-complete-stream"
+  },
+  "perLabel": {
+    "v.Carrier": 1000,
+    "v.Customer": 29000,
+    "v.Facility": 20000,
+    "v.Location": 10000,
+    "v.Lot": 500000,
+    "v.Product": 200000,
+    "v.PurchaseOrder": 450000,
+    "v.Shipment": 350000,
+    "v.Supplier": 40000,
+    "e.CARRIED_BY": 350000,
+    "e.CONTAINS": 1000000,
+    "e.DESTINED_FOR": 350000,
+    "e.FULFILLS": 450000,
+    "e.INCLUDED_IN": 350000,
+    "e.ORIGINATES_AT": 350000,
+    "e.PLACED_WITH": 450000,
+    "e.PRODUCED_AT": 300000,
+    "e.SUPPLIES": 400000
+  },
+  "capacity": {
+    "method": "complete-stream-range",
+    "recommendedStorageLowBytes": 10324627370,
+    "recommendedStorageHighBytes": 29052316636,
+    "estimatesNotMeasuredTargetSize": true
+  },
+  "sourceFileMetadataFingerprint": "440280ad8df0fc57a3fa3157ef00e1048cc5245ed73dce3f60e6e8bc9c171c99",
+  "transport": {
+    "guiStartedInventory": true,
+    "guiObservedFinished": true,
+    "guiApprovedReportExport": true,
+    "azureExportCompletedAt": "2026-09-06T03:46:44Z",
+    "independentAuthenticatedBlobReadMatchedAllBytesAndSHA256": true,
+    "guiReportImportCompleted": false,
+    "guiBlocker": "Mac locked after report export approval"
+  },
+  "migrationQualified": false
+}
