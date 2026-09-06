@@ -23,6 +23,10 @@ copy. Final guest state: idle, disk 9%, swap zero, boot OOM zero. Target storage
 This qualifies CSV-MAC only. The eight remote-source paths remain open. Raw
 reports and guest evidence are retained privately; the committed
 `evidence/csv-mac-qualified-20260906.json` is redacted and contains no secrets.
+After pushing this evidence, the runner VM was confirmed deallocated and the
+Flexible Server confirmed Stopped. No resource, CSV, graph or evidence was
+deleted. Flexible Server's platform seven-day automatic restart behavior still
+applies while the retained server exists.
 
 ## Active migration — 2026-09-06 07:30Z
 

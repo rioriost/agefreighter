@@ -14,6 +14,8 @@ and actual root are
 `bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
 See the [redacted qualification evidence](evidence/csv-mac-qualified-20260906.json).
 This passes CSV-MAC only; it does not qualify the eight remote-source branches.
+The runner VM is deallocated and the Flexible Server is Stopped; all resources,
+CSV data, graph data, private reports and guest evidence remain retained.
 
 ### Earlier checkpoint — 07:20Z
 
