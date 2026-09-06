@@ -1,0 +1,96 @@
+{
+  "workflow": "83c6b829-acdc-4405-aa2d-fb2f2d99af9f",
+  "commands": [
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-060aad7e-9c0d-4792-bb0e-ad5555deb253",
+      "view": {
+        "endTime": "2026-09-06T02:10:15+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"f44a4b40-58e5-40ca-aac9-df00e1b8e8e1\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"82ff617d-ed80-43c8-b5e5-13ae766ca158\",\"configSha256\":\"\",\"startedAt\":\"2026-09-06T02:09:32.716334355Z\",\"finishedAt\":\"2026-09-06T02:09:32.943408703Z\",\"exitCode\":0,\"fileId\":\"be9256bf-d112-4593-ac4b-ac44dcc45d2c\",\"fileBytes\":8797607,\"fileSha256\":\"0ecaaca3879b11a4bc76835c23f37cda9bfac7d5ed457ad50937170876d861fe\"}\n",
+        "startTime": "2026-09-06T02:10:15+00:00"
+      },
+      "sha256": "d6fe563070595c0de21a8153b7ca271431eacdedbbd2b5a58a9f549f672414d5"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-3cb4d7f0-e1a5-4f7c-a9ca-3067421f21e7",
+      "view": {
+        "endTime": "2026-09-06T02:13:49+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"82ff617d-ed80-43c8-b5e5-13ae766ca158\",\"cliVersion\":\"2.4.0-dev.6ff072c0db71\",\"commit\":\"6ff072c0db71a3ae1e42a72e3c336a04ac284df8\",\"archiveSha256\":\"5fee11ec3fde605ef7e18afaa56131862113348de8ddcb8bc37b52aba1c3620b\",\"ready\":true}\n",
+        "startTime": "2026-09-06T02:13:49+00:00"
+      },
+      "sha256": "cf2ae2fd0fd1e3a0e4b4304d87cfe402bbb0f1054146ce98b4f7c52d22bb6e5e"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-4212988f-2aba-48b1-9575-696051170096",
+      "view": {
+        "endTime": "2026-09-06T02:14:50+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"0aa24eac-33c0-4747-9e44-65e50115c6cb\",\"action\":\"profile\",\"phase\":\"finished\",\"bootId\":\"82ff617d-ed80-43c8-b5e5-13ae766ca158\",\"configSha256\":\"2f42daf79877726cb0e8ad70da7306bf308287e7e891b02db1731ca525dd4679\",\"startedAt\":\"2026-09-06T02:14:31.62103802Z\",\"finishedAt\":\"2026-09-06T02:14:31.746780075Z\",\"exitCode\":0,\"reportBytes\":26514,\"reportSha256\":\"ed7e24eb327986d9574ae6e10581eadf06524c70d49879add29ea9cc47fc6409\"}\n",
+        "startTime": "2026-09-06T02:14:50+00:00"
+      },
+      "sha256": "d80227b1aa18843a8443dcd4d9507d541c8fd867f191f2d3395d0ef98b66ed56"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-81b3caac-eb8c-46f7-b41f-d90347b82ac8",
+      "view": {
+        "endTime": "2026-09-05T12:50:49+00:00",
+        "error": "invalid runner request\n",
+        "executionMessage": "Execution failed: failed to execute command: command terminated with exit status=1",
+        "executionState": "Failed",
+        "exitCode": 1,
+        "output": "",
+        "startTime": "2026-09-05T12:50:49+00:00"
+      },
+      "sha256": "3e6e56dd6be88ddb37fcb55b9cb590c32df902f4a99bf3cc54637b558d773303"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-a7db728d-9802-470a-9ab5-ec468d6ab298",
+      "view": {
+        "endTime": "2026-09-06T02:08:37+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"82ff617d-ed80-43c8-b5e5-13ae766ca158\",\"cliVersion\":\"2.4.0-dev.6ff072c0db71\",\"commit\":\"6ff072c0db71a3ae1e42a72e3c336a04ac284df8\",\"archiveSha256\":\"5fee11ec3fde605ef7e18afaa56131862113348de8ddcb8bc37b52aba1c3620b\",\"ready\":true}\n",
+        "startTime": "2026-09-06T02:08:37+00:00"
+      },
+      "sha256": "48f26fc05814b38c39d440ffc11e8d412d1bfa778198397df79e9fda4b21fdd8"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-b6b38f8d-b7f4-4af9-a2ce-cf039a3dd66e",
+      "view": {
+        "endTime": "2026-09-06T02:15:35+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"0aa24eac-33c0-4747-9e44-65e50115c6cb\",\"sha256\":\"ed7e24eb327986d9574ae6e10581eadf06524c70d49879add29ea9cc47fc6409\",\"bytes\":26514,\"exported\":true}\n",
+        "startTime": "2026-09-06T02:15:35+00:00"
+      },
+      "sha256": "599e8e4527814882c807771cf62cea288cf9fa59afb203ed234c7357e01aa0d0"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-ba5cbd12-1c18-4df8-a7b3-eac6b04d69a0",
+      "view": {
+        "endTime": "2026-09-06T02:14:30+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"0aa24eac-33c0-4747-9e44-65e50115c6cb\",\"action\":\"profile\",\"phase\":\"accepted\",\"bootId\":\"82ff617d-ed80-43c8-b5e5-13ae766ca158\",\"configSha256\":\"2f42daf79877726cb0e8ad70da7306bf308287e7e891b02db1731ca525dd4679\"}\n",
+        "startTime": "2026-09-06T02:14:30+00:00"
+      },
+      "sha256": "5520bf0b50bb7355652360247076269d3535366e251a077867d48f5fd364e88a"
+    }
+  ]
+}

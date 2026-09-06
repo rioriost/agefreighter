@@ -2,22 +2,30 @@
 
 Updated: 2026-09-06. Overall outcome: **not yet qualified**.
 
-Latest checkpoint: Linux VM installation/readiness passed, and nine guest CSV
-files (522,291,068 bytes) independently matched their full desktop hashes.
-Eight are GUI-verified; the ninth GUI receipt is pending. A long-session ARM
-token-refresh defect was fixed and tested (122 unit tests and CI passed), but
-VS Code's Microsoft Authentication now requires interactive MFA
-(`AADSTS50079`). The trial is paused for the user to complete that authentication.
-No assessment or migration was started. The idle VM is deallocated with
-all evidence retained. See [Linux trial evidence](linux-runner-20260905.md).
+Latest checkpoint: **the bounded Linux CSV trial passed its transport and
+assessment controls**, not a P1 migration. After user reauthentication, the
+installed VS Code 1.136.1 GUI verified all **18 CSV imports / 1,168,576,671 bytes**.
+Independent Linux full-byte readback matched every desktop manifest. All 18
+typed mappings matched the P1 reference. A GUI-approved Linux sample profile
+completed and its **26,514-byte** report was hash-verified, retained privately
+and displayed in VS Code. See [Linux trial evidence](linux-runner-20260905.md)
+and [full-file readback](evidence/csv-guest-readback-20260906.json).
 
-September 6 resume: a status-only reconciliation defect is fixed (124 unit
-tests and CI passed) and the preserved status request was reconciled in the GUI.
-However, fresh readiness submission remains unknown and Microsoft Authentication
-still reports MFA required. A successful GET alone did not demonstrate full
-authentication recovery. No additional CSV imports were attempted; the same VM
-was briefly started for checks and confirmed deallocated again. Interactive
-VS Code Azure authentication remains the blocker.
+The profile itself reports **incomplete**, as designed: it observed only a
+bounded prefix of 10,000 vertices / 0 edges. Mapping validation and read-only
+checks passed; whole-source counts, capacity acceptance and migration success
+remain unproven. No target or migration has started. VM deallocation was
+requested at 02:18Z and independently confirmed; disk, CSVs, reports and failure
+evidence are retained.
+
+Corrected the earlier blocker attribution: old MFA errors did not prove the
+cause of every later PUT failure. Fresh diagnostics exposed HTTP 400 with
+exactly Azure's maximum 25 Managed Run Command resources. Safe capacity
+preflight and bounded HTTP diagnostics were added; 127 unit tests, package and
+CI `34004772287` passed. Completed command receipts were archived/pushed and
+freshly hash-matched before removing only historical successful ARM command
+resources. Latest and failed receipts and all guest data were retained. This
+was operator maintenance, not automatic housekeeping or a source replay.
 
 ## Authorization / live resources
 
@@ -195,10 +203,10 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 
 | Stage | Current status |
 |---|---|
-| Dedicated Azure fixture topology / ownership and cost watchdog | RG/VNet/subnet and transfer storage/RBAC created; account-only approved exception and CSV probe passed; compute/cost watchdog not yet enabled |
+| Dedicated Azure fixture topology / ownership and cost watchdog | RG/VNet/subnet, explicit NAT, transfer storage/RBAC and one private runner VM tested; account-only approved exception; exact-VM 16:00 UTC shutdown enabled; whole-suite cost automation remains open |
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Not run |
-| P1 local CSV | Prepared; complete canonical comparison passed; installed-GUI upload and all 18 remote file readback hashes passed |
-| R3 remote source configuration, mapping, assessment, upload | Forms, mappings, approved start/status, storage/RBAC/report GUI, CSV upload/seal and pinned test artifact implemented locally; real Azure qualification, schema suggestions and complete assessment evidence remain open |
+| P1 local CSV | Prepared; complete local canonical comparison passed; installed-GUI storage upload, Linux import/sealing and independent full-byte readback all passed for 18 files |
+| R3 remote source configuration, mapping, assessment, upload | Actual installed-GUI CSV path passed Linux bootstrap, full-hash imports, reviewed mappings, bounded profile and verified report retrieval; network-source live qualification, representative/full inventory and schema suggestions remain open |
 | R4 target deployment and same-VM resize | Implementation required |
 | R5 durable migration / resume / verification controller | Implementation required |
 | Installed VS Code 1.136.1 full GUI branches | Not run |
@@ -231,9 +239,16 @@ Windows unit tests, source contracts, Extension Host and packaging.
 ## Review notes for the next implementation stage
 
 - Matching release/bootstrap is still mandatory in production. The released 2.4
-  artifact is unavailable (rechecked). Test-only commit/hash-pinned artifact upload
-  and managed-identity bootstrap are implemented but await real Azure validation.
+  artifact remains a production gate. The approved test-only commit/hash-pinned
+  artifact and managed-identity bootstrap passed the actual Azure Linux CSV trial.
   Do not install a mutable branch on guests or publish an unapproved release.
+- Managed Run Command capacity now fails before submission at 25 resources.
+  Evidence-preserving lifecycle management is still manual. Plan bounded command
+  retention before long GUI sessions; do not delete active/uncertain commands or
+  guest data to recover capacity.
+- The live CSV profile sampled 10,000 vertices and no edges. Do not feed its
+  lower-bound estimates into automatic VM/target sizing. Whole-source inventory
+  or explicitly representative assessment remains an R4 acceptance gate.
 - The form requires explicit reviewed mappings; automatic PostgreSQL schema/FK
   recommendations are not implemented. Current table/column/graph identifiers
   are limited to ASCII letters/digits/underscores. Cosmos explicit mappings use
