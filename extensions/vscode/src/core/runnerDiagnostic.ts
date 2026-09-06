@@ -6,6 +6,22 @@ import {targetBudget} from "./runnerTarget";
 import {targetDSN} from "./runnerExecution";
 
 export interface TargetDiagnostic {commandId:string;operation:string;phase:"submitted"|"unknown"|"finished"|"failed";submittedAt:string;result?:unknown}
+
+/** Explicit operator reconciliation only for an empty target, never a resume or
+ * a failed load with retained metadata. All previous evidence remains archived. */
+export async function archiveEmptyTargetFailure(control:RunnerControl,r:RunnerRecord):Promise<RunnerRecord>{
+  const m=r.migration,d=r.targetDiagnostic,v=object(d?.result),summary=object(v.summary);
+  const age=d?Date.now()-Date.parse(d.submittedAt):NaN;
+  const checks=Array.isArray(summary.checks)?summary.checks.map(object):[];
+  const check=(id:string,status:string,detail:string)=>checks.filter(c=>c.id===id && c.status===status && c.detail===detail).length===1;
+  if(!m || m.phase!=="failed" || m.fingerprint || m.reportSHA256 || d?.phase!=="finished" || v.jobId!==m.jobId || v.exitCode!==0 || !Number.isFinite(age) || age<0 || age>900000 || !Array.isArray(summary.errors) || summary.errors.length!==0 ||
+    !check("metadata-schema","unavailable","installed=0 supported=21 pending=0; doctor does not migrate") ||
+    !check("target-graph","pass","target graph is absent and create mode may create it"))throw new Error("Fresh diagnostic proof of an absent target graph and absent metadata is required; existing or uncertain loads cannot be cleared.");
+  assertIdleHealth(r);if(r.guestCommand && ["submitted","unknown"].includes(r.guestCommand.phase))throw new Error("Reconcile guest work first.");
+  const next:RunnerRecord={...r,migrationHistory:[...r.migrationHistory??[],{migration:m,diagnostic:d,archivedAt:new Date().toISOString(),reason:"empty-target-preparation-failure"}]};
+  delete next.migration;delete next.targetDiagnostic;
+  await control.persist(next);return next;
+}
 // Fixed read-only CLI operation. Never persists a password or arbitrary command
 // supplied by a webview; captures bounded, redacted diagnostics on the guest.
 export const targetDiagnosticScript=`#!/bin/bash

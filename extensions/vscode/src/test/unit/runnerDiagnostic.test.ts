@@ -1,9 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {sourceWorkflowDraft} from "../../core/runner";
-import {diagnoseTarget,targetDiagnosticScript} from "../../core/runnerDiagnostic";
+import {diagnoseTarget,targetDiagnosticScript,archiveEmptyTargetFailure} from "../../core/runnerDiagnostic";
 import {RunnerControl} from "../../core/runnerLifecycle";
 const id="11111111-1111-4111-8111-111111111111";
+test("empty-target reconciliation preserves failed evidence and refuses existing or uncertain jobs",async()=>{
+  const r=sourceWorkflowDraft(id,{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:"subnet",size:"Standard_D4s_v5",source:{type:"csv",location:"local"}});
+  r.migration={phase:"failed",jobId:id} as any;
+  r.artifact={version:"dev",sha256:"a".repeat(64),url:"https://example.invalid"};
+  r.guestReady={checkedAt:new Date().toISOString(),bootId:id,cliVersion:"dev",archiveSha256:"a".repeat(64),commit:"b".repeat(40),health:{idle:true,storageUsedPercent:7,swapUsedBytes:0,oomEvents:0}};
+  r.targetDiagnostic={operation:id,commandId:"retained",phase:"finished",submittedAt:new Date().toISOString(),result:{jobId:id,exitCode:0,summary:{errors:[],checks:[{id:"metadata-schema",status:"unavailable",detail:"installed=0 supported=21 pending=0; doctor does not migrate"},{id:"target-graph",status:"pass",detail:"target graph is absent and create mode may create it"}]}}};
+  const c:RunnerControl={list:async()=>{throw Error("unexpected");},request:async()=>{throw Error("unexpected");},sleep:async()=>{},persist:async()=>{}};
+  const next=await archiveEmptyTargetFailure(c,r);
+  assert.equal(next.migration,undefined);assert.equal(next.migrationHistory?.[0]?.migration,r.migration);assert.equal(next.migrationHistory?.[0]?.diagnostic,r.targetDiagnostic);
+  for(const patch of [{phase:"running"},{fingerprint:"a".repeat(64)},{reportSHA256:"b".repeat(64)}])await assert.rejects(archiveEmptyTargetFailure(c,{...r,migration:{...r.migration!,...patch} as any}));
+  await assert.rejects(archiveEmptyTargetFailure(c,{...r,targetDiagnostic:{...r.targetDiagnostic!,submittedAt:"2020-01-01T00:00:00Z"}}));
+  await assert.rejects(archiveEmptyTargetFailure(c,{...r,targetDiagnostic:{...r.targetDiagnostic!,result:{jobId:id,exitCode:0,summary:{errors:[],checks:[]}}}}));
+});
 test("diagnosis is terminal-only, GET-reconciled and never replays a lost submission",async()=>{
   const r=sourceWorkflowDraft(id,{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:"subnet",size:"Standard_D4s_v5",source:{type:"csv",location:"local"}});
   const requests:string[]=[];

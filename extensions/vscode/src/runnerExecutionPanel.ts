@@ -8,7 +8,7 @@ import {migrationPreflight,startMigration,refreshMigration,verifyMigrationReport
 import {startReportExport,refreshReportExport,importReport} from "./core/runnerReport";
 import {escapeHTML} from "./core/report";
 import {targetComputeRate} from "./core/runnerTargetPreflight";
-import {diagnoseTarget} from "./core/runnerDiagnostic";
+import {diagnoseTarget,archiveEmptyTargetFailure} from "./core/runnerDiagnostic";
 
 /** Native choices are intentionally separate approvals. Reconnecting or closing
  * a panel cannot launch/resume a migration, resize, or repeat a lost operation. */
@@ -17,7 +17,7 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   const selected=workflow?{id:workflow}:await vscode.window.showQuickPick((await store.list()).filter(r=>r.target?.phase==="provisioned").map(r=>({label:r.id,description:`${r.input.resourceGroup} — ${r.migration?.phase??r.resize?.phase??"resize required"}`,id:r.id})),{placeHolder:"Select the retained private CSV target"});
   if(!selected)return;
   let r=await store.read(selected.id);
-  const action=await vscode.window.showQuickPick(["Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step","Start new CSV migration and counts verification","Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained CSV target (read only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
+  const action=await vscode.window.showQuickPick(["Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step","Start new CSV migration and counts verification","Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained CSV target (read only)","Archive empty-target preparation failure"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
   if(!action)return;
   const confirm=(title:string,detail:string)=>vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");
   const price=async()=>{if(!r.target)throw new Error("No retained target plan.");const input=r.target.input;if(targetComputeRate(await azure.retailRates(r.input.region,[input.loaderSize,input.postgresSKU]),input)!==input.hourlyUSD)throw new Error("Compute price changed; review the cost plan before further mutation.");};
@@ -45,6 +45,9 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
     });
   }else if(action==="Refresh retained migration (never replay)"){
     r=await store.exclusive(r.id,async()=>refreshMigration(control,await store.read(r.id)));
+  }else if(action==="Archive empty-target preparation failure"){
+    if(await confirm("Archive this preparation failure without deleting or resuming anything?",`Requires fresh read-only proof that the target graph and metadata schema are absent. Retains the failed job and diagnostic in history and all guest evidence. This permits a separately approved runner repair and a new create-only job, not replay or replacement of existing data.`)!=="Approve this step")return;
+    r=await store.exclusive(r.id,async()=>archiveEmptyTargetFailure(control,await store.read(r.id)));
   }else if(action==="Diagnose retained CSV target (read only)"){
     if(!r.targetDiagnostic && await confirm("Read-only diagnosis of the retained CSV target?",`Run the pinned Linux CLI doctor without --persist against the existing target. No load, resume, AGE preparation or resource changes. Private credentials remain in SecretStorage/protected transport. Raw redacted evidence stays on the guest.`)!=="Approve this step")return;
     r=await store.exclusive(r.id,async()=>{

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/report"
 )
@@ -60,7 +61,7 @@ func prepareMigration(ctx context.Context, configuration []byte, dsn string) err
 	if _, err := connection.Exec(ctx, "CREATE EXTENSION IF NOT EXISTS age"); err != nil {
 		return errors.New("AGE extension preparation failed; review allowlist and preload configuration")
 	}
-	if _, err := connection.Exec(ctx, "LOAD 'age'"); err != nil {
+	if err := age.InitializeSession(ctx, connection); err != nil {
 		return errors.New("AGE session initialization failed")
 	}
 	var job config.LoadJob

@@ -62,6 +62,7 @@ export interface RunnerRecord {
   resize?: RunnerResize;
   migration?: RunnerMigration;
   targetDiagnostic?: TargetDiagnostic;
+  migrationHistory?: {migration:RunnerMigration;diagnostic:TargetDiagnostic;archivedAt:string;reason:"empty-target-preparation-failure"}[];
   targetRestart?: {phase:"submitted"|"unknown"|"finished";submittedAt:string};
 }
 
