@@ -15,7 +15,7 @@ export async function reviewRunnerTarget(context:vscode.ExtensionContext,control
   let record=await store.read(selected.id);
   if(record.target && record.target.phase!=="previewed"){
     record=await store.exclusive(record.id,async()=>refreshTarget(control,await store.read(record.id)));
-    await vscode.window.showInformationMessage(`Private target: ${record.target?.phase}. This is ARM status, not AGE readiness, migration or verification. No operation was replayed.`);return;
+    void vscode.window.showInformationMessage(`Private target: ${record.target?.phase}. This is ARM status, not AGE readiness, migration or verification. No operation was replayed.`);return;
   }
   const a=record.assessment;
   if(!a?.reportSHA256 || !a.reportBytes)throw new Error("Complete and import the whole-source CSV inventory first.");
@@ -59,5 +59,5 @@ export async function reviewRunnerTarget(context:vscode.ExtensionContext,control
       if(live!==input.hourlyUSD)throw new Error("Compute price changed; review a new plan before deployment.");
     });
   });
-  await vscode.window.showInformationMessage(choice==="Save plan only"?"Reviewed LoadJob and plan saved. No Azure resources were deployed.":"Target intent retained. Reopen target review to reconcile ARM status; do not replay deployment. AGE readiness and migration remain separate.");
+  void vscode.window.showInformationMessage(choice==="Save plan only"?"Reviewed LoadJob and plan saved. No Azure resources were deployed.":"Target intent retained. Reopen target review to reconcile ARM status; do not replay deployment. AGE readiness and migration remain separate.");
 }

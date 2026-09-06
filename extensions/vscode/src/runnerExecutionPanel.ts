@@ -61,5 +61,5 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
       view.webview.html=`<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'"><h1>${escapeHTML(r.migration.verification.summary)}</h1><pre>${escapeHTML(text)}</pre>`;
     }
   }
-  await vscode.window.showInformationMessage(`Target preload: ${r.targetRestart?.phase??"not checked"}; runner resize: ${r.resize?.phase??"not started"}; migration: ${r.migration?.phase??"not started"}; counts: ${r.migration?.verification?.outcome??"not verified"}. Independent P1 property digest is a separate qualification gate.`);
+  void vscode.window.showInformationMessage(`Target preload: ${r.targetRestart?.phase??"not checked"}; runner resize: ${r.resize?.phase??"not started"}; migration: ${r.migration?.phase??"not started"}; counts: ${r.migration?.verification?.outcome??"not verified"}. Independent P1 property digest is a separate qualification gate.`);
 }
