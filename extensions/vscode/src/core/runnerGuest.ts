@@ -10,6 +10,7 @@ export interface GuestCommand {
   action: "ready" | "profile" | "inventory" | "status" | "report" | "export-report" | "import-csv";
   phase: "submitted" | "unknown" | "finished" | "failed";
   submittedAt: string;
+  failure?: string;
 }
 export interface GuestReadiness { bootId: string; cliVersion: string; archiveSha256: string; commit: string; checkedAt: string }
 export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number; export?: { url: string; sha256: string; bytes: number }; import?: CSVManifest & { url: string } }
@@ -61,8 +62,12 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
     });
     if (response.status < 200 || response.status >= 300) throw new Error();
     return submitted;
-  } catch {
-    const unknown: RunnerRecord = { ...submitted, guestCommand: { ...command, phase: "unknown" } };
+  } catch (error) {
+    // Only preserve our bounded HTTP status message, never arbitrary SDK text,
+    // credentials, request bodies or remote diagnostics.
+    const http = error instanceof Error && /^Azure runner operation returned HTTP (\d{3})\. Refresh status before retrying\.$/.exec(error.message);
+    const failure = http ? `Azure returned HTTP ${http[1]}; reconcile before retrying.` : "Guest submission was not confirmed; reconcile before retrying.";
+    const unknown: RunnerRecord = { ...submitted, guestCommand: { ...command, phase: "unknown", failure } };
     await control.persist(unknown);
     return unknown;
   }
@@ -83,6 +88,15 @@ export async function reconcileGuest(control: RunnerControl, record: RunnerRecor
       const next: RunnerRecord = { ...record,
         absentStatusCommands: [...record.absentStatusCommands ?? [], { ...command }],
         guestCommand: { ...command, phase: "failed" } };
+      await control.persist(next); return { record: next };
+    }
+    if (command.action === "ready" && ["submitted", "unknown"].includes(command.phase) && Number.isFinite(age) && age >= 300000) {
+      const next: RunnerRecord = { ...record,
+        absentReadinessCommands: [...record.absentReadinessCommands ?? [], { ...command }],
+        guestCommand: { ...command, phase: "failed" } };
+      // Readiness reads no source and launches no worker. A separate explicit
+      // check must prove the current boot; an absent command proves nothing.
+      delete next.guestReady;
       await control.persist(next); return { record: next };
     }
     return { record };

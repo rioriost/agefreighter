@@ -46,10 +46,23 @@ test("old absent status command is retained without replay or a successful recei
 test("404 never clears a mutating, fresh, or invalid-time guest command",async()=>{
   for(const action of ["profile","inventory","import-csv","export-report","ready","report","status"] as const){
     for(const submittedAt of ["2020-01-01T00:00:00Z",new Date().toISOString(),"bad",new Date(Date.now()+60000).toISOString()]){
-      if(action==="status"&&submittedAt.startsWith("2020"))continue;
+      if((action==="status"||action==="ready")&&submittedAt.startsWith("2020"))continue;
       const f=fixture(),r=record();r.guestCommand={id:`${r.vmId}/runCommands/af-${op}`,operation:op,action,phase:"unknown",submittedAt};
       const checked=await reconcileGuest(f.control,r);assert.deepEqual(checked.record,r);assert.equal(f.saved.length,0);assert.equal(f.bodies.length,0);
     }
+  }
+});
+test("absent old readiness clears no source work and requires a fresh boot proof",async()=>{
+  const f=fixture(),r=record();r.guestCommand={id:`${r.vmId}/runCommands/af-${op}`,operation:op,action:"ready",phase:"unknown",submittedAt:"2020-01-01T00:00:00Z"};
+  r.guestReady={bootId:op,cliVersion:"2.4.0",archiveSha256:r.artifact.sha256,commit:"commit",checkedAt:new Date().toISOString()};
+  const checked=await reconcileGuest(f.control,r);assert.equal(checked.record.guestReady,undefined);assert.equal(checked.result,undefined);
+  assert.deepEqual(checked.record.absentReadinessCommands,[r.guestCommand]);assert.equal(f.bodies.length,0);
+});
+test("submission preserves only safe HTTP status diagnostics",async()=>{
+  for(const message of ["Azure runner operation returned HTTP 403. Refresh status before retrying.","private-secret in arbitrary remote failure"]){
+    const f=fixture();const request=f.control.request;f.control.request=async(s,p,m,b)=>{if(m==="PUT")throw new Error(message);return request(s,p,m,b);};
+    const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
+    assert.equal(next.guestCommand?.phase,"unknown");assert.equal(next.guestCommand?.failure?.includes("403"),message.includes("403"));assert.ok(!JSON.stringify(f.saved).includes("private-secret"));
   }
 });
 test("readiness requires matching Linux architecture, release and checksum",async()=>{

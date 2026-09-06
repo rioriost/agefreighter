@@ -41,6 +41,7 @@ export interface RunnerRecord {
   hourlyComputeUSD: number;
   guestCommand?: GuestCommand;
   absentStatusCommands?: GuestCommand[];
+  absentReadinessCommands?: GuestCommand[];
   guestReady?: GuestReadiness;
   sourceDraft?: SourceDraft;
   sourceFiles?: (SelectedCSV & { path: string })[];

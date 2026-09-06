@@ -188,6 +188,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext): void 
             const id = current.id;
             current = await store.exclusive(id, async () => dispatchGuest(control, await store.read(id), { version: 1, workflow: id, operation: randomUUID(), action: "ready" }));
             await display(current);
+            if (current.guestCommand?.phase === "unknown") await post({ kind: "error", text: current.guestCommand.failure ?? "Guest submission was not confirmed; refresh status before retrying." });
             break;
           }
           case "configureSource": {
