@@ -93,6 +93,14 @@ and size 37,040,215 bytes. The source tree now disables macOS extended
 attributes for subsequent archives; the already-qualified archive emitted only
 harmless extraction warnings for two provenance attributes.
 
+After committing the retained corrections, a new archive was built from
+`e513db56820c52e3d91296e00217e12752f2658d`. Its immutable blob contains only
+`agefreighter` and `agefreighter-tools`, has SHA-256
+`07522145ab0a92093194cec02424b95934b316f484a74efe092681dafce3edcd`, and is
+37,040,133 bytes. A fresh download reproduced that digest and emitted no
+extended-attribute warning. This post-run artifact has not been substituted for
+the older artifact named in the four completed inventory reports.
+
 The Cost Management snapshot for this resource group was USD
 `7.37302738132321` at `2026-09-07T01:00Z`; billing can lag, so the USD 800 gate
 remains authoritative. No lock existed. External policy actions against the
@@ -101,12 +109,10 @@ security state were re-read before mutations.
 
 ## Remaining work
 
-1. Commit and push the retained failure corrections, inspection scripts and
-   redacted evidence; rebuild the no-xattr commit-pinned Linux archive.
-2. Prepare separate IP-SAN Neo4j 4.4/5.26 fixtures or an independently reviewed
+1. Prepare separate IP-SAN Neo4j 4.4/5.26 fixtures or an independently reviewed
    TLS server-name design before attempting OP-N44/OP-N526. The retained
    AZ-N526 source and its SecretStorage-dependent workflow must not be modified.
-3. When GUI access returns, reload the installed VSIX and execute the
+2. When GUI access returns, reload the installed VSIX and execute the
    remaining path-specific source assessment, target, migration and full P1
    canonical verification flows. No headless preparation result is promoted to
    a guided GUI qualification.

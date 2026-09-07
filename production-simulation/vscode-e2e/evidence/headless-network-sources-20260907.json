@@ -13,6 +13,17 @@
     "archiveSHA256": "b68c726ddadbb5b902e390a7d4c20cf9c731e128f9ef1641ed892a28186c4355",
     "archiveBytes": 37040215
   },
+  "postRunArtifact": {
+    "commit": "e513db56820c52e3d91296e00217e12752f2658d",
+    "version": "2.4.0-dev.e513db56820c",
+    "archiveSHA256": "07522145ab0a92093194cec02424b95934b316f484a74efe092681dafce3edcd",
+    "archiveBytes": 37040133,
+    "blob": "artifacts/development/e513db56820c52e3d91296e00217e12752f2658d/agefreighter-2.4.0-dev.e513db56820c-linux-amd64.tar.gz",
+    "serverEncrypted": true,
+    "downloadVerified": true,
+    "extendedAttributes": false,
+    "usedByInventories": false
+  },
   "sourcePreparation": {
     "postgresqlVM": {
       "attempt": "r7",
