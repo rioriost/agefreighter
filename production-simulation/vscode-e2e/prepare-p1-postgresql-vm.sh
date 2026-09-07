@@ -27,8 +27,22 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq ca-certificates curl docker.io jq openssl >/dev/null
 systemctl enable --now docker >/dev/null
-install -d -m 0700 "$work" "$work/evidence" "$work/download"
+install -d -m 0700 "$work" "$work/evidence" "$work/download" "$work/attempts"
 install -d -m 0755 "$work/csv"
+
+# A fresh fixture attempt may replace the dedicated database, but never its
+# prior evidence. Seal the previous report, runtime state and terminal logs
+# before removing the old container or data directory.
+if find "$work/evidence" -mindepth 1 -maxdepth 1 -type f -print -quit | grep -q .; then
+  previous=$work/attempts/$(date -u +%Y%m%dT%H%M%SZ)
+  mkdir -m 0700 "$previous"
+  cp -a "$work/evidence/." "$previous/"
+  if docker inspect "$container" > "$previous/container-inspect.json" 2>/dev/null; then
+    docker logs "$container" > "$previous/container.log" 2>&1 || true
+  fi
+  find "$previous" -maxdepth 1 -type f -exec sha256sum {} + | sort -k2 > "$previous/SHA256SUMS"
+  chmod -R go-rwx "$previous"
+fi
 
 azcopy_archive="$work/azcopy.tar.gz"
 curl --fail --location --proto '=https' --proto-redir '=https' --retry 3 \
@@ -148,6 +162,13 @@ test "$total" -eq 5600000
 # runtime container backed by the completed data directory and no password
 # environment variable or secret mount.
 docker rm -f "$container" >/dev/null
+# PostgreSQL 18 creates an intermediate version directory as root before
+# dropping privileges. It is normally traversable, but a later broad chmod can
+# make the running UID lose access at its first checkpoint. Normalize the
+# complete dedicated tree to the image's PostgreSQL UID before the final start.
+chown -R 999:999 "$work/pgdata"
+find "$work/pgdata" -type d -exec chmod 0700 {} +
+find "$work/pgdata" -type f -exec chmod u+rw,go-rwx {} +
 docker run -d --name "$container" --restart no \
   --publish 10.246.1.20:5432:5432 \
   --volume "$work/csv:/csv:ro" --volume "$work/tls:/tls:ro" \
@@ -169,6 +190,14 @@ docker inspect "$container" | jq '.[0] | {
 jq -e --arg image "$postgres_image" '.image == $image and .passwordEnvironment == [] and .secretMounts == []' "$work/evidence/container-security.json" >/dev/null
 test ! -e "$password_file"
 
+# Force the persistence boundary that exposed a delayed permission regression
+# in r6; a readiness probe alone is insufficient because the first timed
+# checkpoint can occur minutes later.
+docker exec -e PGPASSWORD="$admin_password" "$container" psql \
+  -v ON_ERROR_STOP=1 -U postgres -d p1source -c 'CHECKPOINT' >/dev/null
+sleep 2
+test "$(docker inspect --format '{{.State.Running}}' "$container")" = true
+
 docker exec \
   -e PGPASSWORD="$source_password" -e PGSSLMODE=verify-full -e PGSSLROOTCERT=/tls/ca.crt \
   "$container" psql -h postgres18.azpgvm.internal -U agefreighter_reader -d p1source -At \
@@ -180,6 +209,10 @@ jq -n --arg preparedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --arg image "$image_digest" --arg tlsSHA256 "$tls_sha256" --argjson rows "$total" \
   '{schemaVersion:1,preparedAt:$preparedAt,source:"postgresql-vm",postgresqlImage:$image,tlsArchiveSHA256:$tlsSHA256,rows:$rows,vertices:1600000,edges:4000000,readOnlyRole:true,publicIP:false}' \
   > "$work/evidence/source.json"
-chmod -R go-rwx "$work"
+# Keep root-owned fixture and evidence material private without changing
+# PostgreSQL's own version-directory ownership or traversal permissions.
+chmod -R go-rwx "$work/evidence" "$work/tls" "$work/csv" "$work/download"
+chmod go-rwx "$work" "$work/attempts" "$work/portable-manifest.json" \
+  "$work/postgres-tls.tar.gz" "$work/azcopy.tar.gz"
 unset admin_password source_password
 echo "P1 PostgreSQL VM source prepared and verified"

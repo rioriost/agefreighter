@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-07T02:15:00Z",
+  "scope": {
+    "subscription": "MCAPS-Hybrid-REQ-51508-2023-rifujita",
+    "resourceGroup": "rg-af-vscode-p1-20260905-a",
+    "deadline": "2026-09-09T08:55:00Z",
+    "costCeilingUSD": 800
+  },
+  "artifact": {
+    "commit": "06c0e9f225f2c81db527f519ebba1a42d3d9c7fd",
+    "version": "2.4.0-dev.06c0e9f225f2",
+    "archiveSHA256": "b68c726ddadbb5b902e390a7d4c20cf9c731e128f9ef1641ed892a28186c4355",
+    "archiveBytes": 37040215
+  },
+  "sourcePreparation": {
+    "postgresqlVM": {
+      "attempt": "r7",
+      "rows": 5600000,
+      "mappedTables": 18,
+      "sourceSHA256": "8814a601c30a463c235a92a83f6337793a3a85d34bdf724269ca5ff6861fe0d7",
+      "countsSHA256": "02702cf111848f3bd081918f7f67bc1df7189f85eb930c555ae93721991bcff0",
+      "containerSecuritySHA256": "b5c459df5a8e22325eb0b8dd08a33c83539f4cdf810e5a17bed35f14d10aeca6",
+      "tlsReadOnlySHA256": "721512a6b086346537c6f919ae94114af206e2550c5a9a7149a9caf4e241d062",
+      "forcedCheckpoint": "pass",
+      "timedCheckpoint": "pass"
+    },
+    "cosmosNoSQL": {
+      "attempt": "r3",
+      "rows": 5600000,
+      "mappedLabels": 18,
+      "sourceSHA256": "36d575024984ed6c3efd1c78ffb3634aaf433de4dbff1e8142e71c6a90b31178",
+      "loadSHA256": "8fa3c5b16daae9fb161ab7fd1f286cb717b7fc4ba8a5f215392cad9195364c8d",
+      "dataPlaneRole": "Cosmos DB Built-in Data Reader",
+      "roleAssignment": "401792f5-9386-4524-81f8-7ddb0d03dee5",
+      "publicNetworkAccess": "Disabled",
+      "currentAutoscaleMaxRU": 4000
+    }
+  },
+  "inventories": [
+    {
+      "path": "AZ-PGVM",
+      "run": "pg-r2-06c0e9f",
+      "access": "private-dns-custom-ca-verify-full-read-only",
+      "startedAt": "2026-09-07T01:37:38Z",
+      "finishedAt": "2026-09-07T01:39:21Z",
+      "vertices": 1600000,
+      "edges": 4000000,
+      "rows": 5600000,
+      "mappedLabels": 18,
+      "outcome": "pass",
+      "reportSHA256": "2d74dbffd8e2aa83535ed35fe5567edf24cdbf9764743dbcbd2e0dac8ebd58e9"
+    },
+    {
+      "path": "OP-PG",
+      "run": "pg-ip-r1-06c0e9f",
+      "access": "ip-port-only-custom-ca-ip-san-verify-full-read-only",
+      "startedAt": "2026-09-07T01:56:33Z",
+      "finishedAt": "2026-09-07T01:58:20Z",
+      "vertices": 1600000,
+      "edges": 4000000,
+      "rows": 5600000,
+      "mappedLabels": 18,
+      "outcome": "pass",
+      "reportSHA256": "d283d36f6187fc105bd2da4e47addf5c2a3a19bc97f2982d6d219f7dbaf85f82"
+    },
+    {
+      "path": "AZ-PGFS",
+      "run": "pgfs-r2-06c0e9f",
+      "access": "flexible-server-private-dns-system-ca-verify-full-read-only",
+      "startedAt": "2026-09-07T02:04:27Z",
+      "finishedAt": "2026-09-07T02:06:16Z",
+      "vertices": 1600000,
+      "edges": 4000000,
+      "rows": 5600000,
+      "mappedLabels": 18,
+      "outcome": "pass",
+      "reportSHA256": "6bee7b9932b36605be9634b5349d280d511eebf603067a4795d0cc1ebe558b53"
+    },
+    {
+      "path": "AZ-COSMOS",
+      "run": "cosmos-r1-06c0e9f",
+      "access": "managed-identity-private-endpoint-data-reader",
+      "startedAt": "2026-09-07T01:43:50Z",
+      "finishedAt": "2026-09-07T01:48:39Z",
+      "vertices": 1600000,
+      "edges": 4000000,
+      "rows": 5600000,
+      "mappedLabels": 18,
+      "outcome": "pass",
+      "reportSHA256": "24d6f3f2038c167386d12a05bf0aad5f96cca07ce5c45b9c4e72db20e2010818"
+    }
+  ],
+  "resourceStateAfterRun": {
+    "virtualMachines": {
+      "expected": 6,
+      "deallocated": 6
+    },
+    "flexibleServers": {
+      "expected": 4,
+      "stopped": 4
+    }
+  },
+  "qualificationBoundary": {
+    "sourceRead": "pass",
+    "targetDeployment": "not-run",
+    "migration": "not-run",
+    "canonicalVerification": "not-run",
+    "guidedGUIQualification": "not-claimed"
+  }
+}

@@ -197,7 +197,11 @@ upload/import are implemented. Complete PostgreSQL and Cosmos mapped-record
 inventories now run on the Linux guest: PostgreSQL holds one exported
 repeatable-read snapshot, while Cosmos requires an immutable-source window.
 Their label/capacity evidence and create-only migration dispatch are locally
-tested, but their P1 Azure GUI paths remain unqualified. Automatic schema/FK
+tested. The commit-pinned Linux binary has also completed exact 5.6-million-row
+source inventories for Azure PostgreSQL-on-VM, Flexible Server, Cosmos and the
+IP/port-only PostgreSQL simulation. These are source-read results, not target,
+migration or canonical-verification qualifications; their P1 GUI paths remain
+unqualified. Automatic schema/FK
 recommendations remain open. CSV and Neo4j 4.4 full P1 GUI paths have passed;
 Neo4j 5.26 is retained immediately before migration. Full canonical property
 digest acceptance is still required independently for every remaining path.

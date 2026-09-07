@@ -20,7 +20,7 @@ flags="-X github.com/rioriost/agefreighter/internal/version.Version=$build_versi
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "$flags" -o "$artifact_dir/bin/agefreighter-tools" ./cmd/agefreighter-tools
 )
 archive="agefreighter-${build_version}-linux-amd64.tar.gz"
-COPYFILE_DISABLE=1 tar -czf "$artifact_dir/$archive" -C "$artifact_dir/bin" agefreighter agefreighter-tools
+COPYFILE_DISABLE=1 tar --no-xattrs -czf "$artifact_dir/$archive" -C "$artifact_dir/bin" agefreighter agefreighter-tools
 checksum=$(shasum -a 256 "$artifact_dir/$archive" | awk '{print $1}')
 bytes=$(wc -c < "$artifact_dir/$archive" | tr -d ' ')
 jq -n --arg version "$build_version" --arg commit "$revision" --arg sha256 "$checksum" --arg archive "$archive" --argjson bytes "$bytes" \

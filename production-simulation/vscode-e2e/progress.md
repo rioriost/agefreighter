@@ -8,13 +8,15 @@ The operator is travelling and cannot use the installed GUI. GUI state and
 SecretStorage-dependent AZ-N526 are preserved without credential reset or
 substitute execution. GUI-independent source preparation and product work is
 tracked in the [headless checkpoint](headless-source-preparation-20260907.md).
-PostgreSQL Flexible Server P1 source preparation has passed and that server is
-stopped. Cosmos contains all 5,600,000 P1 documents and an exact remote-count
-retry is active after retaining two distinct failures. PostgreSQL-on-VM r6 will
-run only after the shared preparation VM is idle. These are source-fixture and
-implementation results, not additional guided-path qualifications.
+PostgreSQL Flexible Server, PostgreSQL-on-VM and Cosmos P1 preparation passed.
+The actual AGEFreighter Linux artifact also completed all-record inventories
+for AZ-PGVM, AZ-PGFS, AZ-COSMOS and the IP/port-only OP-PG simulation. Each
+returned 1.6 million vertices, 4 million edges and all 18 exact label counts.
+Cosmos retains only Data Reader and is back at 4,000 RU/s. The source VM is
+deallocated and the Flexible Server is stopped. These are source-fixture and
+source-read results, not additional guided-path migration qualifications.
 
-### Headless checkpoint — AZ-N526 retained; network-source gaps closed locally
+### Headless checkpoint — AZ-N526 retained; four network sources read completely
 
 AZ-N526 has completed the private target deployment, AGE preload restart and
 same-VM resize from the discovery SKU to `Standard_D4s_v5`. The Neo4j 5.26.30
@@ -31,11 +33,12 @@ extended to support complete mapped-record inventories on the Linux runner,
 per-label and capacity evidence admission, source-specific runner capabilities,
 and protected PostgreSQL/Cosmos create-only migration dispatch. PostgreSQL uses
 one exported repeatable-read snapshot. Cosmos requires the source-immutability
-window because there is no cross-container transactional snapshot. Local tests
-cover both connectors and reject partial streams, substituted labels, missing
-credentials and unsupported capabilities. These changes are implementation
-evidence only; AZ-PGVM, AZ-PGFS, AZ-COSMOS and OP-PG remain unqualified until
-their full P1 GUI runs and canonical digest checks pass.
+window because there is no cross-container transactional snapshot. The actual
+commit-pinned Linux binary then read and decoded all 5,600,000 records for
+AZ-PGVM, AZ-PGFS, AZ-COSMOS and the IP/port-only OP-PG simulation. All four
+inventories passed every exact label count. These source-read results do not
+qualify target deployment, migration or canonical verification; those four P1
+paths remain open until their complete guided runs pass.
 
 ### AZ-N44 qualification — PASS at 12:59Z
 
@@ -332,9 +335,9 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 | Stage | Current status |
 |---|---|
 | Dedicated Azure fixture topology / ownership and cost watchdog | RG/VNet/subnet, explicit NAT, transfer storage/RBAC and one private runner VM tested; account-only approved exception; exact-VM 16:00 UTC shutdown enabled; whole-suite cost automation remains open |
-| Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Neo4j 4.4/5.26 fixtures retained; PGFS preparation passed and stopped; PGVM r6 and Cosmos exact-count sealing remain active in the headless checkpoint |
+| Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | All dedicated source fixtures are retained. PGVM r7, PGFS r3 and Cosmos r3 passed exact preparation checks; all six VMs are deallocated and all four Flexible Servers are stopped |
 | P1 local CSV | Prepared; complete local canonical comparison passed; installed-GUI storage upload, Linux import/sealing and independent full-byte readback all passed for 18 files |
-| R3 remote source configuration, mapping, assessment, upload | CSV-MAC and Azure Neo4j 4.4 resource discovery/full inventory passed; the other network-source branches remain open |
+| R3 remote source configuration, mapping, assessment, upload | CSV-MAC and Azure Neo4j 4.4 passed in the installed GUI. Commit-pinned headless complete inventories also passed for AZ-PGVM, AZ-PGFS, AZ-COSMOS and OP-PG; this does not promote them to full guided-path qualifications |
 | R4 target deployment and same-VM resize | CSV-MAC and AZ-N44 actual Azure paths passed; remaining source branches open |
 | R5 durable migration / resume / verification controller | CSV-MAC and AZ-N44 clean migrations, counts and canonical verification passed; recovery and remaining source branches open |
 | Installed VS Code 1.136.1 full GUI branches | CSV-MAC and AZ-N44 passed; seven branches not run |
