@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { GuestCommand, GuestReadiness } from "./runnerGuest";
-import type { SourceDraft, SelectedCSV } from "./runnerSource";
+import type { SourceCA, SourceDraft, SelectedCSV } from "./runnerSource";
 import type { Assessment } from "./runnerAssessment";
 import type { ReportTransfer } from "./runnerBlob";
 import type { StorageDeployment } from "./runnerStorageLifecycle";
@@ -12,6 +12,7 @@ import type { RunnerResize } from "./runnerResize";
 import type { RunnerMigration } from "./runnerExecution";
 import type { TargetDiagnostic } from "./runnerDiagnostic";
 import type { P1Qualification } from "./p1Qualification";
+import type { CosmosAccess } from "./runnerCosmosAccess";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
@@ -50,6 +51,8 @@ export interface RunnerRecord {
   absentReadinessCommands?: GuestCommand[];
   guestReady?: GuestReadiness;
   sourceDraft?: SourceDraft;
+  sourceCA?: SourceCA;
+  cosmosAccess?: CosmosAccess;
   sourceFiles?: (SelectedCSV & { path: string })[];
   assessment?: Assessment;
   assessmentHistory?: Assessment[];

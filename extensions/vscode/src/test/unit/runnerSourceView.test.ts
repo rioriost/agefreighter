@@ -33,11 +33,17 @@ test("all source form branches render and submit fields without passwords or YAM
     const v = view(); v.send({ kind: "init", type, location: type === "csv" ? "local" : "azure", form: sourceForm, files: [csvFile] }); v.send({ kind: "busy", value: false });
     assert.equal(v.el("neo4j").hidden, type !== "neo4j"); assert.equal(v.el("cosmos").hidden, type !== "cosmos-nosql");
     assert.equal(v.el("hostLabel").hidden, type === "csv"); assert.equal(v.el("mappingSection").hidden, type === "neo4j");
+    assert.equal(v.el("sourceTLS").hidden, !["neo4j", "postgresql"].includes(type));
     v.el("review").trigger("click");
     const message = v.messages.at(-1); assert.equal(message.action, "review"); assert.equal(message.form.mappings.length, 2);
     assert.equal(message.form.mappings[1].startField, "from_id"); assert.equal(message.form.password, undefined);
     assert.doesNotMatch(v.html, /type="password"|<textarea|innerHTML/);
   }
+});
+test("custom source CA uses a host file action and exposes only metadata to the webview", () => {
+  const v = view(); v.send({ kind: "init", type: "postgresql", location: "on-premises", sourceCA: { name: "root.pem", bytes: 1234, sha256: "a".repeat(64) } }); v.send({ kind: "busy", value: false });
+  assert.match(v.el("sourceCA").textContent, /root\.pem.*1234.*SHA-256/); assert.doesNotMatch(v.el("sourceCA").textContent, /Users|private|path/);
+  v.el("sourceCAButton").trigger("click"); assert.deepEqual(v.messages.at(-1), { action: "sourceCA" });
 });
 test("edits invalidate review, CSV cannot assess, and Gremlin toggles mapping controls", () => {
   const v = view(); v.send({ kind: "init", type: "csv", location: "local", form: sourceForm, files: [csvFile] }); v.send({ kind: "busy", value: false });

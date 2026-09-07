@@ -3,6 +3,7 @@ import { object, RunnerRecord } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
 import { dispatchGuest, reconcileGuest } from "./runnerGuest";
 import { csvAssessmentReady } from "./runnerCSV";
+import { assertCosmosAccessCurrent, cosmosAccessReady } from "./runnerCosmosAccess";
 
 export interface Assessment {
   operation: string; action: "profile" | "inventory"; phase: "submitted" | "unknown" | "accepted" | "running" | "finished" | "failed" | "interrupted";
@@ -17,10 +18,12 @@ export function assessmentActive(record: RunnerRecord): boolean {
 export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>): Promise<RunnerRecord> {
   if(record.migration)throw new Error("The retained migration freezes source evidence; reconcile it instead of starting another assessment.");
   if (!record.sourceDraft?.canAssess || assessmentActive(record)) throw new Error("A reviewed source and a workflow without a retained assessment are required.");
+  if (!cosmosAccessReady(record)) throw new Error("Grant and verify Cosmos Data Reader access for this runner first.");
   if (record.input.source.type === "csv" && !csvAssessmentReady(record)) throw new Error("Every mapped CSV requires an independently verified guest upload seal.");
   const inventoryCapability=`${record.input.source.type}-inventory-v1`;
   if (action === "inventory" && !record.guestReady?.capabilities?.includes(inventoryCapability)) throw new Error("The installed guest does not advertise complete inventory for this source. Use a reviewed matching runner artifact and refresh readiness; no request was submitted.");
   if (object(record.sourceDraft.configuration.source).type !== record.input.source.type) throw new Error("Source type changed after review.");
+  await assertCosmosAccessCurrent(control, record);
   const operation = randomUUID();
   const assessmentHistory = [...record.assessmentHistory ?? [], ...record.assessment ? [record.assessment] : []];
   if (assessmentHistory.length > 16) throw new Error("Assessment history limit reached; retain evidence and review the workflow before continuing.");

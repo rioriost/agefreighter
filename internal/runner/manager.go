@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -157,16 +158,27 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 	if state.Action == "import-csv" {
 		return m.workCSV(ctx, root, dir, state)
 	}
+	secretsPath := filepath.Join(dir, "secrets.json")
+	// Once the worker has claimed the operation, every normal return path must
+	// remove the transient protected transport. Evidence never needs secrets.
+	defer os.Remove(secretsPath)
 	configuration, err := os.ReadFile(filepath.Join(dir, "job.json"))
 	if err != nil || sum(configuration) != state.ConfigSHA256 {
 		return errors.New("assessment configuration changed")
 	}
 	var secrets map[string]string
-	if err := readJSON(filepath.Join(dir, "secrets.json"), &secrets); err != nil {
+	if err := readJSON(secretsPath, &secrets); err != nil {
 		return errors.New("source secrets unavailable")
 	}
 	if _, err := ValidateConfiguration(Request{Workflow: workflow, Operation: operation, Action: state.Action, Configuration: configuration, Secrets: secrets}, root); err != nil {
 		return err
+	}
+	secrets, sourceCAPath, err := stageSourceCA(dir, secrets)
+	if err != nil {
+		return err
+	}
+	if sourceCAPath != "" {
+		defer os.Remove(sourceCAPath)
 	}
 	// Resolve real upload paths before invoking a connector. A symlink cannot
 	// turn a lexically contained CSV path into access outside this workflow.
@@ -241,7 +253,7 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 		return err
 	}
 	// Erase only this operation's transient secret transport, never its evidence.
-	if err := os.Remove(filepath.Join(dir, "secrets.json")); err != nil {
+	if err := os.Remove(secretsPath); err != nil {
 		return err
 	}
 	active, err := os.ReadFile(filepath.Join(root, "active"))
@@ -249,6 +261,43 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 		return errors.New("workflow lease changed; operator reconciliation required")
 	}
 	return os.Remove(filepath.Join(root, "active"))
+}
+
+func stageSourceCA(dir string, input map[string]string) (map[string]string, string, error) {
+	data, ok := input["AGEFREIGHTER_SOURCE_CA_PEM"]
+	if !ok {
+		return input, "", nil
+	}
+	if err := validateSourceCA([]byte(data)); err != nil {
+		return nil, "", err
+	}
+	path := filepath.Join(dir, "source-ca.pem")
+	if err := writeNew(path, []byte(data)); err != nil {
+		return nil, "", errors.New("cannot stage protected source CA")
+	}
+	secrets := make(map[string]string, len(input))
+	for key, value := range input {
+		if key != "AGEFREIGHTER_SOURCE_CA_PEM" {
+			secrets[key] = value
+		}
+	}
+	secrets["SSL_CERT_FILE"] = path
+	if dsn, exists := secrets["AGEFREIGHTER_SOURCE_DSN"]; exists {
+		u, err := url.Parse(dsn)
+		if err != nil {
+			_ = os.Remove(path)
+			return nil, "", errors.New("cannot bind custom CA to PostgreSQL source")
+		}
+		query := u.Query()
+		if query.Get("sslmode") != "verify-full" || query.Has("sslrootcert") {
+			_ = os.Remove(path)
+			return nil, "", errors.New("custom CA requires a reviewed PostgreSQL TLS connection")
+		}
+		query.Set("sslrootcert", path)
+		u.RawQuery = query.Encode()
+		secrets["AGEFREIGHTER_SOURCE_DSN"] = u.String()
+	}
+	return secrets, path, nil
 }
 
 type ArtifactChunk struct {

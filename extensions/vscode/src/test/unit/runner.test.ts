@@ -214,6 +214,7 @@ test("runner webview script parses and provides no local password or load action
   assert.match(html, /default-src 'none'/);
   assert.doesNotMatch(html, /unsafe-inline|onchange=|onclick=|type="password"|Connect and profile source/);
   for (const type of ["neo4j", "postgresql", "cosmos-nosql", "csv"]) assert.ok(html.includes(`value="${type}"`));
+  assert.match(html, /\['csv','neo4j','postgresql','cosmos-nosql'\]\.includes/);
   assert.match(html, /No desktop AGEFreighter installation/);
   assert.match(html, /Configure source & assessment/);
   assert.match(html, /Check Linux guest readiness/);

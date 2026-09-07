@@ -4,7 +4,9 @@ package runner
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io"
 	"os"
@@ -128,6 +130,7 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 			return nil, err
 		}
 		expectedSecrets := 1
+		_, customCA := request.Secrets["AGEFREIGHTER_SOURCE_CA_PEM"]
 		if job.Source.Type == config.SourceNeo4j {
 			expectedSecrets = 2
 			if job.Source.Neo4j == nil || job.Source.Neo4j.Password == nil || job.Source.Neo4j.Password.Env != "AGEFREIGHTER_SOURCE_PASSWORD" || request.Secrets["AGEFREIGHTER_SOURCE_PASSWORD"] == "" {
@@ -140,6 +143,12 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 			}
 		} else if job.Source.Type == config.SourceCosmos && job.Source.Cosmos == nil {
 			return nil, errors.New("Cosmos migration requires a reviewed source")
+		}
+		if customCA {
+			if job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourcePostgreSQL {
+				return nil, errors.New("custom source CA is allowed only for Neo4j or PostgreSQL")
+			}
+			expectedSecrets++
 		}
 		if len(request.Secrets) != expectedSecrets {
 			return nil, errors.New("migration received an unexpected credential set")
@@ -160,6 +169,14 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 	for name, value := range request.Secrets {
 		if !allowedSecret(name) || len(value) > 64<<10 || strings.ContainsRune(value, 0) {
 			return nil, errors.New("invalid runner secret handle or value")
+		}
+	}
+	if value, ok := request.Secrets["AGEFREIGHTER_SOURCE_CA_PEM"]; ok {
+		if err := validateSourceCA([]byte(value)); err != nil {
+			return nil, err
+		}
+		if job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourcePostgreSQL {
+			return nil, errors.New("custom source CA is allowed only for Neo4j or PostgreSQL")
 		}
 	}
 	if request.Action == "inventory" && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourceCSV && job.Source.Type != config.SourcePostgreSQL && job.Source.Type != config.SourceCosmos {
@@ -185,7 +202,7 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 
 func allowedSecret(name string) bool {
 	switch name {
-	case "AGEFREIGHTER_SOURCE_DSN", "AGEFREIGHTER_SOURCE_PASSWORD", "AGEFREIGHTER_TARGET_DSN":
+	case "AGEFREIGHTER_SOURCE_DSN", "AGEFREIGHTER_SOURCE_PASSWORD", "AGEFREIGHTER_SOURCE_CA_PEM", "AGEFREIGHTER_TARGET_DSN":
 		return true
 	}
 	return false
@@ -241,4 +258,30 @@ func Arguments(action, path string) ([]string, error) {
 	default:
 		return nil, errors.New("runner cannot execute this action")
 	}
+}
+
+func validateSourceCA(data []byte) error {
+	if len(data) == 0 || len(data) > 64<<10 {
+		return errors.New("custom source CA bundle exceeds its bound")
+	}
+	certificates := 0
+	for len(bytes.TrimSpace(data)) > 0 {
+		block, rest := pem.Decode(data)
+		if block == nil || block.Type != "CERTIFICATE" || len(block.Headers) != 0 {
+			return errors.New("custom source CA bundle is not certificate-only PEM")
+		}
+		certificate, err := x509.ParseCertificate(block.Bytes)
+		if err != nil || !certificate.IsCA {
+			return errors.New("custom source CA bundle contains a non-CA certificate")
+		}
+		certificates++
+		if certificates > 16 {
+			return errors.New("custom source CA bundle has too many certificates")
+		}
+		data = rest
+	}
+	if certificates == 0 {
+		return errors.New("custom source CA bundle is empty")
+	}
+	return nil
 }

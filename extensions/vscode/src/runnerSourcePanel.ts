@@ -1,11 +1,11 @@
 import * as vscode from "vscode";
 import { createHash, randomUUID } from "node:crypto";
 import { basename } from "node:path";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { object, RunnerRecord } from "./core/runner";
 import { RunnerControl } from "./core/runnerLifecycle";
 import { RunnerStore } from "./guided/runnerStore";
-import { buildSourceDraft, sourceSecrets } from "./core/runnerSource";
+import { buildSourceDraft, inspectSourceCA, sourceSecrets } from "./core/runnerSource";
 import { assessmentActive, refreshAssessment, startAssessment } from "./core/runnerAssessment";
 import { runnerSourceHTML } from "./core/runnerSourceView";
 import { refreshStorage, storageDraft, submitStorage } from "./core/runnerStorageLifecycle";
@@ -15,6 +15,7 @@ import { escapeHTML } from "./core/report";
 import { CSVManifest, inspectCSV } from "./guided/csvTransfer";
 import { csvAssessmentReady, refreshCSVImport, startCSVImport } from "./core/runnerCSV";
 import { csvFilesInFolder } from "./guided/csvSelection";
+import { previewCosmosAccess, refreshCosmosAccess, submitCosmosAccess } from "./core/runnerCosmosAccess";
 
 export interface RunnerSourceServices {
   storagePrincipal(subscription: string): Promise<string>;
@@ -33,6 +34,8 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
   const post = (value: unknown) => disposed ? Promise.resolve(false) : panel.webview.postMessage(value);
   const initialize = (record: RunnerRecord) => post({ kind: "init", type: record.input.source.type, location: record.input.source.location,
     files: record.sourceFiles?.map(({ id, name }) => ({ id, name })), form: record.sourceDraft?.form, assessment: record.assessment,
+    sourceCA: record.sourceCA ? { name: record.sourceCA.name, bytes: record.sourceCA.bytes, sha256: record.sourceCA.sha256 } : undefined,
+    cosmosAccess: record.cosmosAccess?.phase,
     storage: record.storageDeployment ? `${record.storageDeployment.phase}${record.storageDeployment.networkAccess ? ` — public network: ${record.storageDeployment.networkAccess} (provisioning is not transfer readiness)` : ""}` : undefined,
     transferEnabled: !!services, csvTransfers: record.csvTransfers, transfer: record.reportTransfers?.find(item => item.operation === record.assessment?.operation)?.phase,
     inventoryReady: record.guestReady?.capabilities?.includes(`${record.input.source.type}-inventory-v1`) === true,
@@ -44,6 +47,18 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
       const message = object(raw);
       switch (message.action) {
         case "ready": await initialize(await store.read(workflow)); break;
+        case "cosmosAccess": {
+          let record = await store.read(workflow);
+          if (record.input.source.type !== "cosmos-nosql" || assessmentActive(record)) throw new Error("Cosmos read access is unavailable for this workflow.");
+          if (!record.cosmosAccess) record = await store.exclusive(workflow, async () => previewCosmosAccess(control, await store.read(workflow)));
+          if (record.cosmosAccess?.phase === "previewed") {
+            const confirmed = await vscode.window.showWarningMessage("Grant this Linux runner read-only Cosmos data access?", { modal: true,
+              detail: `Principal: ${record.cosmosAccess.principalId}\nScope: ${record.cosmosAccess.scope}\nRole: Cosmos DB Built-in Data Reader\nOnly this new assignment is created. It does not expose the account, grant writes, use keys, start assessment or migrate data. An uncertain PUT is reconciled by GET and never replayed.` }, "Grant Data Reader");
+            if (confirmed !== "Grant Data Reader" || disposed) { await initialize(record); break; }
+            record = await store.exclusive(workflow, async () => submitCosmosAccess(control, await store.read(workflow)));
+          } else record = await store.exclusive(workflow, async () => refreshCosmosAccess(control, await store.read(workflow)));
+          await initialize(record); break;
+        }
         case "uploadCSV": {
           if (!services || !vscode.workspace.isTrusted) throw new Error("Trusted Azure account access is required for CSV transfer.");
           const record = await store.read(workflow);
@@ -165,11 +180,28 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           });
           reviewedHash = undefined; await initialize(next); break;
         }
+        case "sourceCA": {
+          const record = await store.read(workflow);
+          if (!["neo4j", "postgresql"].includes(record.input.source.type) || assessmentActive(record)) throw new Error("Custom source CA selection is unavailable for this workflow.");
+          const picked = await vscode.window.showOpenDialog({ canSelectMany: false, canSelectFiles: true, canSelectFolders: false, filters: { "PEM certificates": ["pem", "crt", "cer"] }, openLabel: "Select source CA bundle (no upload yet)" });
+          if (!picked) break;
+          const uri = picked[0]!;
+          if (uri.scheme !== "file") throw new Error("Select a local source CA bundle.");
+          const sourceCA = inspectSourceCA(uri.fsPath, basename(uri.fsPath), await readFile(uri.fsPath));
+          const next = await store.exclusive(workflow, async () => {
+            const current = await store.read(workflow);
+            if (assessmentActive(current)) throw new Error("The source already has a retained operation.");
+            const updated: RunnerRecord = { ...current, sourceCA };
+            delete updated.sourceDraft;
+            await store.write(updated); return updated;
+          });
+          reviewedHash = undefined; await initialize(next); break;
+        }
         case "review": {
           const next = await store.exclusive(workflow, async () => {
             const current = await store.read(workflow);
             if (assessmentActive(current)) throw new Error("Retain the existing assessment configuration; it cannot be replaced here.");
-            const sourceDraft = buildSourceDraft(current.input.source, message.form, workflow, current.sourceFiles);
+            const sourceDraft = buildSourceDraft(current.input.source, message.form, workflow, current.sourceFiles, current.sourceCA);
             const next = { ...current, sourceDraft };
             if (current.input.source.type === "csv" && csvAssessmentReady(next)) {
               next.sourceDraft = { ...sourceDraft, canAssess: true, warnings: [...sourceDraft.warnings.filter(w => !w.includes("upload")), "All mapped CSV files have guest full-hash seals. Sample profiling is not a complete inventory or migration qualification."] };
@@ -195,7 +227,13 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
             if (password === undefined || disposed) break;
           }
           try {
-            const secrets = sourceSecrets(record.input.source.type, record.sourceDraft.form, password);
+            let sourceCAPEM: string | undefined;
+            if (record.sourceCA) {
+              const data = await readFile(record.sourceCA.path), checked = inspectSourceCA(record.sourceCA.path, record.sourceCA.name, data);
+              if (checked.bytes !== record.sourceCA.bytes || checked.sha256 !== record.sourceCA.sha256 || record.sourceDraft.sourceCASHA256 !== checked.sha256) throw new Error("The selected source CA changed; select and review it again.");
+              sourceCAPEM = data.toString("utf8");
+            }
+            const secrets = sourceSecrets(record.input.source.type, record.sourceDraft.form, password, sourceCAPEM);
             const next = await store.exclusive(workflow, async () => {
               const current = await store.read(workflow);
               if (hash(current.sourceDraft) !== reviewedHash) throw new Error("Source settings changed in another window; review them again.");

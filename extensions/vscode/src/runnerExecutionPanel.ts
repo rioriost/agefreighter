@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import {createHash} from "node:crypto";
+import {readFile} from "node:fs/promises";
 import {RunnerControl} from "./core/runnerLifecycle";
 import {RunnerStore} from "./guided/runnerStore";
 import {AzureSession} from "./guided/azure";
@@ -10,6 +11,7 @@ import {escapeHTML} from "./core/report";
 import {targetComputeRate} from "./core/runnerTargetPreflight";
 import {diagnoseTarget,archiveEmptyTargetFailure} from "./core/runnerDiagnostic";
 import {qualifyP1} from "./p1QualificationPanel";
+import {inspectSourceCA} from "./core/runnerSource";
 
 /** Native choices are intentionally separate approvals. Reconnecting or closing
  * a panel cannot launch/resume a migration, resize, or repeat a lost operation. */
@@ -48,7 +50,9 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
       const latest=await store.read(r.id);
       const key=`runner-target/${r.id}/${createHash("sha256").update(latest.target!.serverId).digest("hex")}`,password=await context.secrets.get(key);
       if(!password)throw new Error("The retained target credential is unavailable.");
-      return startMigration(control,latest,report,password,sourcePassword);
+      let sourceCAPEM:string|undefined;
+      if(latest.sourceCA){const data=await readFile(latest.sourceCA.path),checked=inspectSourceCA(latest.sourceCA.path,latest.sourceCA.name,data);if(checked.bytes!==latest.sourceCA.bytes||checked.sha256!==latest.sourceCA.sha256||latest.sourceDraft?.sourceCASHA256!==checked.sha256)throw new Error("The selected source CA changed; select and review it again.");sourceCAPEM=data.toString("utf8");}
+      return startMigration(control,latest,report,password,sourcePassword,sourceCAPEM);
     });
   }else if(action==="Refresh retained migration (never replay)"){
     r=await store.exclusive(r.id,async()=>refreshMigration(control,await store.read(r.id)));

@@ -2,10 +2,17 @@ package runner
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io"
+	"math/big"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,6 +30,68 @@ import (
 const workflowID = "11111111-1111-4111-8111-111111111111"
 const operationID = "22222222-2222-4222-8222-222222222222"
 const bootID = "33333333-3333-4333-8333-333333333333"
+
+func testSourceCAPEM(t *testing.T) string {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "AGEFreighter test CA"}, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour), IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))
+}
+
+func TestProtectedSourceCAIsValidatedStagedAndRemoved(t *testing.T) {
+	ca := testSourceCAPEM(t)
+	if err := validateSourceCA([]byte(ca)); err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	dsn := "postgresql://reader:secret@source.example:5432/source?sslmode=verify-full&connect_timeout=15"
+	secrets, path, err := stageSourceCA(dir, map[string]string{"AGEFREIGHTER_SOURCE_DSN": dsn, "AGEFREIGHTER_SOURCE_CA_PEM": ca})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if secrets["AGEFREIGHTER_SOURCE_CA_PEM"] != "" || secrets["SSL_CERT_FILE"] != path {
+		t.Fatal("CA content was exposed to the child or its path was not bound")
+	}
+	u, err := url.Parse(secrets["AGEFREIGHTER_SOURCE_DSN"])
+	if err != nil || u.Query().Get("sslmode") != "verify-full" || u.Query().Get("sslrootcert") != path {
+		t.Fatalf("custom CA was not bound to strict PostgreSQL TLS: %q", secrets["AGEFREIGHTER_SOURCE_DSN"])
+	}
+	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0600 {
+		t.Fatalf("staged CA permissions = %#v, %v", info, err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	for _, invalid := range []string{"not pem", strings.Replace(ca, "CERTIFICATE", "PRIVATE KEY", 1)} {
+		if err := validateSourceCA([]byte(invalid)); err == nil {
+			t.Fatal("invalid CA bundle accepted")
+		}
+	}
+}
+
+func TestClaimedWorkerRemovesProtectedTransportOnEarlyFailure(t *testing.T) {
+	m, request, _ := testManager(t)
+	if _, err := m.Submit(t.Context(), request); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(m.Root, request.Workflow, request.Operation)
+	if err := os.WriteFile(filepath.Join(dir, "job.json"), []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Work(t.Context(), request.Workflow, request.Operation); err == nil {
+		t.Fatal("changed configuration was accepted")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "secrets.json")); !os.IsNotExist(err) {
+		t.Fatal("claimed worker retained protected transport after failure")
+	}
+}
 
 // The child executes the real source profiler, not a stub success report. The
 // systemd transport is injected separately so these tests run on macOS as well.

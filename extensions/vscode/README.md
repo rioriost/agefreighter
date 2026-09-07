@@ -126,6 +126,14 @@ verify their checksum and GitHub build-provenance attestation before use.
    needed. **Refresh assessment status** submits/reconciles one bounded status
    check without repeating the source operation. Successful terminal manifests
    remain in the workflow history when a subsequent assessment is approved.
+   Neo4j and PostgreSQL sources using a private CA can select a certificate-only
+   PEM bundle. Its bytes are never put in the generated LoadJob or webview; the
+   bundle is hash-bound to review, rechecked before each operation and sent to
+   Linux only through the protected command channel. Hostname verification stays
+   enabled. For Cosmos, separately choose **Grant / verify Cosmos Data Reader**
+   after readiness. This creates and GET-verifies one account-scoped built-in
+   Data Reader assignment for the owned runner identity; it never grants writes,
+   uses account keys, or starts source reads.
 7. In the source editor, **Prepare / refresh transfer storage** has its own
    network/cost/RBAC approval. It creates a new Standard LRS account, disables
    anonymous/shared-key access, and grants your signed-in user Storage Blob Data
@@ -151,8 +159,8 @@ verify their checksum and GitHub build-provenance attestation before use.
    reconciles and imports it on a subsequent click. It retains original JSON
    bytes (including int64 values) in private extension storage and opens a
    script-disabled escaped viewer. A report import is not migration approval.
-10. For a complete, imported CSV inventory, **Review / reconcile private CSV
-    target** opens native fields for a new PostgreSQL 18/AGE server, non-overlapping
+10. For a complete, imported source inventory, **Review / reconcile private
+    migration target** opens native fields for a new PostgreSQL 18/AGE server, non-overlapping
     delegated subnet, target storage, same-VM migration size, authorized deadline
     and cost reserve. It rechecks private placement, service/SKU and both quotas,
     and unique live Linux/PostgreSQL prices. Review the single-server/no-HA trial
@@ -163,15 +171,17 @@ verify their checksum and GitHub build-provenance attestation before use.
     to reconcile an uncertain submission; it does not replay it. This initial
     target path requires the VNet in the migration RG. Target creation alone does
     not resize the VM, prepare AGE or start/verify migration.
-11. **Continue / verify Linux CSV migration** is a development preview. With a
+11. **Continue / verify Linux migration** is a development preview. With a
     matching migration-capable guest and complete inventory, separately approve
     the AGE preload restart and each idle same-VM resize step. Unknown responses
     are reconciled without replay; NIC, identity and disk must remain unchanged.
-12. Separately approve a new create-mode CSV migration. The job UUID is retained
+12. Separately approve a new create-mode migration. The job UUID is retained
     before writes. The fixed Linux worker prepares AGE over verified TLS, loads,
     then runs complete counts verification. Reconnect with **Refresh retained
     migration**, then **Transfer / open migration verification**. A passing
-    counts report is not the independent P1 full-property digest. Failed runs
+    counts report is not an independent full-property digest. PostgreSQL uses one
+    exported repeatable-read snapshot; Cosmos requires the disclosed source-
+    immutability window. Failed runs
     require operator reconciliation; this preview never automatically resumes.
 
 Workflow metadata is held in extension global storage, without source passwords,
@@ -191,8 +201,12 @@ tested, but their P1 Azure GUI paths remain unqualified. Automatic schema/FK
 recommendations remain open. CSV and Neo4j 4.4 full P1 GUI paths have passed;
 Neo4j 5.26 is retained immediately before migration. Full canonical property
 digest acceptance is still required independently for every remaining path.
-Publicly trusted TLS is currently required; custom source CA upload is
-not implemented. Do not publish this as a complete guided migration workflow.
+Neo4j and PostgreSQL source forms can bind an optional private-PKI CA bundle:
+VS Code stores only its local path and digest in the private workflow record,
+rechecks the exact PEM bytes for every approved source operation, and transports
+them as a protected parameter. The Linux worker validates 1-16 CA certificates,
+uses the temporary bundle with hostname verification still enabled, and removes
+it after the operation. Do not publish this as a complete guided migration workflow.
 The [runner-first plan](https://github.com/rioriost/agefreighter/blob/codex/2.4.0-guided-migration/docs/design/agefreighter-2.4.0-runner-first.md)
 tracks the remaining gates.
 

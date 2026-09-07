@@ -2,6 +2,18 @@
 
 Updated: 2026-09-07. Overall outcome: **CSV-MAC and AZ-N44 qualified; seven remaining branches not yet qualified**.
 
+### Headless source preparation — active
+
+The operator is travelling and cannot use the installed GUI. GUI state and
+SecretStorage-dependent AZ-N526 are preserved without credential reset or
+substitute execution. GUI-independent source preparation and product work is
+tracked in the [headless checkpoint](headless-source-preparation-20260907.md).
+PostgreSQL Flexible Server P1 source preparation has passed and that server is
+stopped. Cosmos contains all 5,600,000 P1 documents and an exact remote-count
+retry is active after retaining two distinct failures. PostgreSQL-on-VM r6 will
+run only after the shared preparation VM is idle. These are source-fixture and
+implementation results, not additional guided-path qualifications.
+
 ### Headless checkpoint — AZ-N526 retained; network-source gaps closed locally
 
 AZ-N526 has completed the private target deployment, AGE preload restart and
@@ -213,7 +225,9 @@ was operator maintenance, not automatic housekeeping or a source replay.
    64 shards, seed 20260829. All 1,170 fixture files match the earlier fixture root:
    `f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f`.
 6. Exported 18 headered CSV files, 18 typed Cosmos-ready JSONL files, mapping
-   metadata and checksums. These JSONL files are not yet imported into Cosmos.
+   metadata and checksums. All 5,600,000 JSONL documents are now present in the
+   dedicated private Cosmos account; the exact remote-count seal is tracked in
+   the headless checkpoint above.
 7. Read **all 5,600,000 converted CSV records** through AGEFreighter's actual CSV
    connector and compared all 64 canonical ranges with the original fixture.
    Both roots are:
@@ -318,7 +332,7 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 | Stage | Current status |
 |---|---|
 | Dedicated Azure fixture topology / ownership and cost watchdog | RG/VNet/subnet, explicit NAT, transfer storage/RBAC and one private runner VM tested; account-only approved exception; exact-VM 16:00 UTC shutdown enabled; whole-suite cost automation remains open |
-| Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Azure Neo4j 4.4.48 P1 source prepared and qualified; the other source fixtures remain open |
+| Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | Neo4j 4.4/5.26 fixtures retained; PGFS preparation passed and stopped; PGVM r6 and Cosmos exact-count sealing remain active in the headless checkpoint |
 | P1 local CSV | Prepared; complete local canonical comparison passed; installed-GUI storage upload, Linux import/sealing and independent full-byte readback all passed for 18 files |
 | R3 remote source configuration, mapping, assessment, upload | CSV-MAC and Azure Neo4j 4.4 resource discovery/full inventory passed; the other network-source branches remain open |
 | R4 target deployment and same-VM resize | CSV-MAC and AZ-N44 actual Azure paths passed; remaining source branches open |
@@ -369,13 +383,16 @@ Windows unit tests, source contracts, Extension Host and packaging.
   recommendations are not implemented. Current table/column/graph identifiers
   are limited to ASCII letters/digits/underscores. Cosmos explicit mappings use
   a top-level label field; only the public Azure NoSQL endpoint is supported.
-- TLS validation is mandatory, but custom source-CA upload/installation is not
-  yet implemented. Resolve this before private-IP fixture qualification; never
-  silently disable certificate validation.
+- TLS validation remains mandatory. A custom Neo4j/PostgreSQL source CA can now
+  be selected locally, digest-bound to the reviewed source, rechecked at each
+  approved operation, transported only as a protected parameter, validated as
+  CA-only PEM on Linux, and removed after use. Live private-IP qualification is
+  still required; hostname verification is never disabled.
 - Neo4j inventory uses count-store totals; generic profile `exact` is still
-  bounded to 1,000,000 rows and must not masquerade as a full P1 inventory for
-  PostgreSQL/Cosmos/CSV. Implement connector-specific count evidence or explicitly
-  approved complete scans with bounds and RU costs before automatic sizing.
+  bounded to 1,000,000 rows and must not masquerade as a full inventory.
+  PostgreSQL, Cosmos and CSV now have connector-specific, explicitly approved
+  complete streams with row/time bounds (and Cosmos RU disclosure). Their local
+  implementation does not replace path-specific Azure migration qualification.
 - Managed Run Command instance-view output is limited to 4 KB. Use it only for
   bounded control/acknowledgements, not full reports or CSV transfer. Source
   secrets require protected parameters; raw command output is not safe UI data.

@@ -1,3 +1,4 @@
+import { createHash, X509Certificate } from "node:crypto";
 import { isIP } from "node:net";
 import { object, SourceKind, SourceSelection } from "./runner";
 
@@ -12,7 +13,20 @@ export interface SourceForm {
   container: string; partitionKey: string; labelField: string; nullValue: string; mappings: SourceMapping[];
 }
 export interface SelectedCSV { id: string; name: string }
-export interface SourceDraft { form: SourceForm; configuration: Record<string, unknown>; warnings: string[]; canAssess: boolean }
+export interface SourceCA { path: string; name: string; bytes: number; sha256: string }
+export interface SourceDraft { form: SourceForm; configuration: Record<string, unknown>; warnings: string[]; canAssess: boolean; sourceCASHA256?: string }
+
+export function inspectSourceCA(path: string, name: string, data: Buffer): SourceCA {
+  if (!path || !name || data.length < 1 || data.length > 64 * 1024) throw new Error("Select a PEM CA bundle of at most 64 KiB.");
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(data);
+  const blocks = [...text.matchAll(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g)];
+  if (!blocks.length || blocks.length > 16 || text.replace(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g, "").trim()) throw new Error("The source CA file must contain only 1-16 PEM certificates.");
+  for (const block of blocks) {
+    const certificate = new X509Certificate(block[0]);
+    if (!certificate.ca) throw new Error("Every certificate in the source CA bundle must be a CA certificate.");
+  }
+  return { path, name, bytes: data.length, sha256: createHash("sha256").update(data).digest("hex") };
+}
 
 function text(value: unknown, label: string, maximum = 256, optional = false): string {
   if (typeof value !== "string" || value.length > maximum || /[\x00-\x1f\x7f]/.test(value) || !optional && !value.trim()) throw new Error(`Enter a valid ${label}.`);
@@ -47,7 +61,7 @@ function properties(value: string, type: SourceKind): { properties: Record<strin
 }
 
 /** Form values only. No YAML, SQL, arbitrary paths or credentials are accepted. */
-export function buildSourceDraft(selection: SourceSelection, raw: unknown, workflow: string, files: SelectedCSV[] = []): SourceDraft {
+export function buildSourceDraft(selection: SourceSelection, raw: unknown, workflow: string, files: SelectedCSV[] = [], sourceCA?: SourceCA): SourceDraft {
   const value = object(raw), type = selection.type;
   if (!/^[a-f0-9-]{36}$/.test(workflow)) throw new Error("Invalid workflow identity.");
   const name = text(value.name, "migration name", 63);
@@ -64,6 +78,9 @@ export function buildSourceDraft(selection: SourceSelection, raw: unknown, workf
     form.host = hostname(value.host); form.port = Number(value.port); form.username = text(value.username, "username");
     if (!Number.isInteger(form.port) || form.port < 1 || form.port > 65535) throw new Error("Port must be 1–65535.");
     warnings.push("TLS certificate validation is required. Use a read-only source account; an Azure VM candidate is not proof of database identity.");
+    if (sourceCA) warnings.push(`Custom source CA ${sourceCA.name} is bound by SHA-256 ${sourceCA.sha256}; it is re-read and verified for each approved operation.`);
+  } else if (sourceCA) {
+    throw new Error("A custom source CA is supported only for Neo4j and PostgreSQL sources.");
   }
   if (type === "neo4j") {
     form.vertexKey = text(value.vertexKey, "vertex key property"); form.edgeKey = text(value.edgeKey, "edge key property");
@@ -124,7 +141,7 @@ export function buildSourceDraft(selection: SourceSelection, raw: unknown, workf
     else if (type === "csv") { source.csv = { defaults: { delimiter: ",", quote: '"', escape: '"', header: true, encoding: "utf-8", nullValue: form.nullValue }, vertices, edges }; warnings.push("CSV upload is not enabled yet. These guest paths are planned only, not evidence that files exist."); }
     else Object.assign(object(source.cosmos), { vertices, edges });
   }
-  return { form, warnings, canAssess: type !== "csv", configuration: {
+  return { form, warnings, canAssess: type !== "csv", ...(sourceCA ? { sourceCASHA256: sourceCA.sha256 } : {}), configuration: {
     apiVersion: "agefreighter.io/v2", kind: "LoadJob", metadata: { name }, source,
     target: { type: "apache-age", graph: name.replaceAll("-", "_"), mode: "create", connection: { env: "AGEFREIGHTER_TARGET_DSN" }, propertyMode: "replace" },
     runtime: { memoryLimit: "4GiB", batchRows: 5000, batchBytes: "16MiB", maxSourceConcurrency: 1, maxTransformConcurrency: 1, maxTargetConnections: 8, operationTimeout: "2m" },
@@ -133,10 +150,12 @@ export function buildSourceDraft(selection: SourceSelection, raw: unknown, workf
 }
 
 /** Password is supplied by a native secret prompt, never the webview/config. */
-export function sourceSecrets(type: SourceKind, form: SourceForm, password?: string): Record<string, string> {
+export function sourceSecrets(type: SourceKind, form: SourceForm, password?: string, sourceCAPEM?: string): Record<string, string> {
   if (type !== "postgresql" && type !== "neo4j") return {};
   if (!password || password.length > 16000 || /[\x00\r\n]/.test(password)) throw new Error("Enter a nonempty source password without control characters.");
-  if (type === "neo4j") return { AGEFREIGHTER_SOURCE_PASSWORD: password };
+  if (sourceCAPEM !== undefined && (!sourceCAPEM || Buffer.byteLength(sourceCAPEM) > 64 * 1024 || sourceCAPEM.includes("\x00"))) throw new Error("The protected source CA bundle is invalid.");
+  const ca: Record<string, string> = sourceCAPEM === undefined ? {} : { AGEFREIGHTER_SOURCE_CA_PEM: sourceCAPEM };
+  if (type === "neo4j") return { AGEFREIGHTER_SOURCE_PASSWORD: password, ...ca };
   const host = isIP(form.host) === 6 ? `[${form.host}]` : form.host;
-  return { AGEFREIGHTER_SOURCE_DSN: `postgresql://${encodeURIComponent(form.username)}:${encodeURIComponent(password)}@${host}:${form.port}/${encodeURIComponent(form.database)}?sslmode=verify-full&connect_timeout=15` };
+  return { AGEFREIGHTER_SOURCE_DSN: `postgresql://${encodeURIComponent(form.username)}:${encodeURIComponent(password)}@${host}:${form.port}/${encodeURIComponent(form.database)}?sslmode=verify-full&connect_timeout=15`, ...ca };
 }

@@ -48,9 +48,10 @@ test("source forms reject URL credentials, invalid ports, duplicate labels, prop
 test("passwords are separate from forms and PostgreSQL URI preserves special characters with strict TLS", () => {
   const password = "p@ss:/?#% secret";
   const form = { ...sourceForm, host: "2001:db8::1", port: 5432, username: "reader@tenant", database: "a/b" };
-  const secrets = sourceSecrets("postgresql", form, password);
+  const secrets = sourceSecrets("postgresql", form, password, "-----BEGIN CERTIFICATE-----\nprotected-ca\n-----END CERTIFICATE-----\n");
   const uri = new URL(secrets.AGEFREIGHTER_SOURCE_DSN!);
   assert.equal(decodeURIComponent(uri.password), password); assert.equal(uri.hostname, "[2001:db8::1]"); assert.equal(uri.searchParams.get("sslmode"), "verify-full");
+  assert.match(secrets.AGEFREIGHTER_SOURCE_CA_PEM!, /BEGIN CERTIFICATE/);
   assert.equal(decodeURIComponent(uri.pathname.slice(1)), "a/b");
   assert.ok(!JSON.stringify(buildSourceDraft({ type: "postgresql", location: "on-premises" }, form, workflow)).includes(password));
   assert.deepEqual(sourceSecrets("cosmos-nosql", sourceForm), {});

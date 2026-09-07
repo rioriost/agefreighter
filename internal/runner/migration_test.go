@@ -210,6 +210,13 @@ func TestPostgreSQLAndCosmosNetworkMigrationsUseOnlyReviewedCredentials(t *testi
 			if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err != nil {
 				t.Fatal(err)
 			}
+			if test.sourceType == config.SourcePostgreSQL {
+				request.Secrets["AGEFREIGHTER_SOURCE_CA_PEM"] = testSourceCAPEM(t)
+				if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err != nil {
+					t.Fatal(err)
+				}
+				delete(request.Secrets, "AGEFREIGHTER_SOURCE_CA_PEM")
+			}
 			request.Secrets["AGEFREIGHTER_SOURCE_PASSWORD"] = "unexpected"
 			if _, err := ValidateConfiguration(request, filepath.Join(m.Root, request.Workflow)); err == nil {
 				t.Fatal("unexpected network-source credential accepted")

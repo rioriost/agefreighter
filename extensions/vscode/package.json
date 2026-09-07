@@ -83,11 +83,11 @@
     "commands": [
       {
         "command": "agefreighter.continueRunnerExecution",
-        "title": "AGEFreighter: Continue / Verify Linux CSV Migration"
+        "title": "AGEFreighter: Continue / Verify Linux Migration"
       },
       {
         "command": "agefreighter.reviewRunnerTarget",
-        "title": "AGEFreighter: Review / Reconcile Private CSV Target"
+        "title": "AGEFreighter: Review / Reconcile Private Migration Target"
       },
       {
         "command": "agefreighter.upgradeDevelopmentRunner",
@@ -201,7 +201,7 @@
     "viewsWelcome": [
       {
         "view": "agefreighter.jobs",
-        "contents": "Select a source, then review a private Linux discovery/migration VM. Use your existing Azure login; no desktop CLI or project folder is required to open the wizard.\n[New guided migration](command:agefreighter.newGuidedMigration)\nThis preview supports source forms, approval-gated runner/storage provisioning, CSV transfer and remote assessment/report controls. End-to-end migration remains under implementation and Azure qualification.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
+        "contents": "Select a source, then review a private Linux discovery/migration VM. Use your existing Azure login; no desktop CLI or project folder is required to open the wizard.\n[New guided migration](command:agefreighter.newGuidedMigration)\nThis preview supports source forms, approval-gated runner/storage provisioning, CSV transfer, remote assessment, target deployment, migration and verification controls. Azure qualification remains path-specific.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
       }
     ],
     "menus": {
