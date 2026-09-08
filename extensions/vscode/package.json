@@ -375,5 +375,8 @@
   "dependencies": {
     "@azure/storage-blob": "12.33.0",
     "@microsoft/vscode-azext-azureauth": "^5.1.1"
+  },
+  "overrides": {
+    "serialize-javascript": "7.0.5"
   }
 }
