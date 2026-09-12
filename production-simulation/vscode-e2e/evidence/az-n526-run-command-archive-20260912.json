@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "workflow": "09bb0173-608f-4ab1-bf62-2607ffa57757",
+  "runner": "af-09bb0173608f4ab1bf62",
+  "archivedAt": "2026-09-12T10:05:00Z",
+  "reason": "preserve capacity for one new migration and independent qualification",
+  "evidenceBoundary": "Only completed 2026-09-06 ARM control receipts were removed. Imported reports, workflow state, source data, target data and guest evidence remain retained.",
+  "commands": [
+    {
+      "name": "af-08c42db3-dd71-47b3-a2aa-d87b8f1b5a84",
+      "completedAt": "2026-09-06T21:43:03Z",
+      "kind": "readiness",
+      "outcome": "succeeded"
+    },
+    {
+      "name": "af-462a851f-c869-45bc-a26c-d1c088772e4c",
+      "completedAt": "2026-09-06T21:51:16Z",
+      "kind": "readiness",
+      "outcome": "succeeded"
+    },
+    {
+      "name": "af-e51da97e-9e11-4c30-9ea2-071721a1474d",
+      "completedAt": "2026-09-06T21:46:50Z",
+      "kind": "profile-dispatch",
+      "operation": "ed266ba0-db6c-42e0-b9d8-1157af984a93",
+      "outcome": "accepted"
+    },
+    {
+      "name": "af-b138579d-1b33-46af-b10a-65d96555833f",
+      "completedAt": "2026-09-06T21:49:01Z",
+      "kind": "profile-status",
+      "operation": "ed266ba0-db6c-42e0-b9d8-1157af984a93",
+      "outcome": "finished"
+    },
+    {
+      "name": "af-4ae0f247-5c83-4040-9737-51d386b55f25",
+      "completedAt": "2026-09-06T21:50:11Z",
+      "kind": "profile-export",
+      "operation": "ed266ba0-db6c-42e0-b9d8-1157af984a93",
+      "outcome": "exported",
+      "reportSHA256": "8f2596bb6e139804c4378012ecca22d3e44a6fb2e3a8a4bf5713cecb6c8b75c5"
+    },
+    {
+      "name": "af-f8848dcd-3612-478a-8582-2b5495ad9736",
+      "completedAt": "2026-09-06T21:53:17Z",
+      "kind": "inventory-dispatch",
+      "operation": "17701ac8-04dd-45e4-b420-2d5a2f7705c9",
+      "outcome": "accepted"
+    },
+    {
+      "name": "af-6dd11e28-46da-4fcb-aa0a-f9d2baa25133",
+      "completedAt": "2026-09-06T21:55:50Z",
+      "kind": "inventory-status",
+      "operation": "17701ac8-04dd-45e4-b420-2d5a2f7705c9",
+      "outcome": "finished"
+    },
+    {
+      "name": "af-a9e87159-9dc9-4606-83a4-471b9c2727c1",
+      "completedAt": "2026-09-06T21:56:55Z",
+      "kind": "inventory-export",
+      "operation": "17701ac8-04dd-45e4-b420-2d5a2f7705c9",
+      "outcome": "exported",
+      "reportSHA256": "adbe60cd413eefeb60b3e68dbdc49c64fcea4e26455ec04718473d5d32f7886e"
+    }
+  ]
+}

@@ -1,6 +1,28 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-07. Overall outcome: **CSV-MAC and AZ-N44 qualified; seven remaining branches not yet qualified**.
+Updated: 2026-09-12. Overall outcome: **CSV-MAC and AZ-N44 qualified; AZ-N526 is active; six other branches remain unqualified**.
+
+### AZ-N526 qualification — temporary credential recovered; migration retry pending
+
+The installed VS Code GUI completed discovery, exact inventory, private target
+deployment, AGE preload and the same-VM resize. Two create-only migration jobs
+failed before graph or metadata creation because the retained Neo4j credential
+was rejected. Both failed jobs and their empty-target diagnostics remain in GUI
+history and must not be replayed.
+
+At 10:01Z the native `neo4j` credential was recovered using an unpublished,
+loopback-only Neo4j 5.26.30 recovery container with authentication disabled.
+The original container and configuration were restored, authentication is
+enabled, and authenticated post-recovery reads returned the unchanged exact
+counts of 1,600,000 vertices and 4,000,000 edges. A checksummed 280,915-byte
+pre-change `system` database backup and all guest logs are retained. The secret
+value is absent from repository and command output. See the
+[redacted recovery evidence](evidence/az-n526-password-recovery-20260912.json).
+
+Next: archive enough completed runner Run Command receipts to preserve capacity,
+refresh readiness in the installed GUI, approve one new create-only migration
+using the recovered credential, then complete count verification and all 64 P1
+canonical digest ranges. No AZ-N526 migration qualification is claimed yet.
 
 ### Headless source preparation — active
 
