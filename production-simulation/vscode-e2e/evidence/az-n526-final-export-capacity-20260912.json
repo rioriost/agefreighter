@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "workflow": "09bb0173-608f-4ab1-bf62-2607ffa57757",
+  "runner": "af-09bb0173608f4ab1bf62",
+  "archivedAt": "2026-09-12T13:07:00Z",
+  "reason": "preserve capacity for the already-completed P1 qualification report export",
+  "evidenceBoundary": "Only completed, superseded ARM control receipts were removed. The migration job, terminal status receipt, imported counts report, P1 verification command, source data, target data and all guest evidence remain retained.",
+  "commands": [
+    {
+      "name": "af-73f4e1ef-e7c2-473a-b973-11bb4f88c7c7",
+      "kind": "readiness",
+      "completedAt": "2026-09-12T12:41:43Z",
+      "outcome": "succeeded",
+      "outputSHA256": "609881dfe187acd60f2dbe1769ae67556503f171c2626dfe33e67ce2b96035bf"
+    },
+    {
+      "name": "af-211a11d4-7e79-4bac-80e5-8558f89b549c",
+      "kind": "readiness",
+      "completedAt": "2026-09-12T12:48:36Z",
+      "outcome": "succeeded",
+      "outputSHA256": "e023ece69b9b7c8537d892e9934058881ff5fed5d1c24271d5a30bd63df2b165"
+    },
+    {
+      "name": "af-8e41759f-2924-42c9-9646-77b2d5ce2c61",
+      "kind": "migration-status",
+      "completedAt": "2026-09-12T12:52:27Z",
+      "outcome": "running",
+      "operation": "313f6dca-680b-4379-9eac-a7539cb95792",
+      "outputSHA256": "d0ab03f8bcecb5af3d5d061715c0693c8db0d5519d60253dc507fa9934379a23"
+    },
+    {
+      "name": "af-8d6cec96-edbb-4705-89c7-9525ff599498",
+      "kind": "migration-status",
+      "completedAt": "2026-09-12T12:56:22Z",
+      "outcome": "running",
+      "operation": "313f6dca-680b-4379-9eac-a7539cb95792",
+      "outputSHA256": "d0ab03f8bcecb5af3d5d061715c0693c8db0d5519d60253dc507fa9934379a23"
+    },
+    {
+      "name": "af-fc65e4b8-1e92-48c7-82e7-6d4f9dae3257",
+      "kind": "migration-report-export",
+      "completedAt": "2026-09-12T12:59:45Z",
+      "outcome": "exported",
+      "operation": "313f6dca-680b-4379-9eac-a7539cb95792",
+      "reportSHA256": "4816412aece55c3c70170779503c6ba0477b2ac903c6b4ea154e1a68afd678dc",
+      "outputSHA256": "a627f629705f74268c9cfbeacf10f4bda089e3da1edcecd51b2b7beb4320e8b5"
+    }
+  ]
+}

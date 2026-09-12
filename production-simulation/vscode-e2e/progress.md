@@ -1,28 +1,31 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-12. Overall outcome: **CSV-MAC and AZ-N44 qualified; AZ-N526 is active; six other branches remain unqualified**.
+Updated: 2026-09-12. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-N526 qualification — temporary credential recovered; migration retry pending
+### AZ-N526 qualification — PASS at 13:16Z
 
-The installed VS Code GUI completed discovery, exact inventory, private target
-deployment, AGE preload and the same-VM resize. Two create-only migration jobs
-failed before graph or metadata creation because the retained Neo4j credential
-was rejected. Both failed jobs and their empty-target diagnostics remain in GUI
-history and must not be replayed.
+The installed VS Code 1.136.1 GUI completed the Azure Neo4j 5.26.30 branch from
+source selection and exact inventory through private target deployment, AGE
+preload, same-VM discovery-to-migration resize, load, counts verification and
+independent full P1 verification. Job
+`313f6dca-680b-4379-9eac-a7539cb95792` committed all 1,600,000 vertices and
+4,000,000 edges with zero rejects. Its 9,619-byte migration report has SHA-256
+`4816412aece55c3c70170779503c6ba0477b2ac903c6b4ea154e1a68afd678dc`.
 
-At 10:01Z the native `neo4j` credential was recovered using an unpublished,
-loopback-only Neo4j 5.26.30 recovery container with authentication disabled.
-The original container and configuration were restored, authentication is
-enabled, and authenticated post-recovery reads returned the unchanged exact
-counts of 1,600,000 vertices and 4,000,000 edges. A checksummed 280,915-byte
-pre-change `system` database backup and all guest logs are retained. The secret
-value is absent from repository and command output. See the
-[redacted recovery evidence](evidence/az-n526-password-recovery-20260912.json).
+The isolated read-only verifier regenerated the frozen P1 fixture and compared
+all 5,600,000 typed records in 64 canonical ranges. Properties, identities and
+relationship endpoints matched, and expected and actual canonical roots were
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+The 23,215-byte verifier report has SHA-256
+`fe3f6e23e19230c8f54de8615bcbe4bf15932bacbc516ed878515c0cb2d90bff`.
 
-Next: archive enough completed runner Run Command receipts to preserve capacity,
-refresh readiness in the installed GUI, approve one new create-only migration
-using the recovered credential, then complete count verification and all 64 P1
-canonical digest ranges. No AZ-N526 migration qualification is claimed yet.
+The final GUI health check reported the runner idle, 5.18% disk use, zero swap
+and zero boot OOM events. Target storage was 12.79%; no failed Azure activity
+event was present from migration start through shutdown. Both VMs are
+deallocated and the Flexible Server is Stopped. Data and raw evidence remain
+retained. See the [execution sheet](az-n526-completion-20260912.md),
+[redacted qualification evidence](evidence/az-n526-qualified-20260912.json) and
+[credential-recovery evidence](evidence/az-n526-password-recovery-20260912.json).
 
 ### Headless source preparation — active
 
