@@ -9,6 +9,7 @@ import {migrationPreflight,startMigration,refreshMigration,verifyMigrationReport
 import {startReportExport,refreshReportExport,importReport} from "./core/runnerReport";
 import {escapeHTML} from "./core/report";
 import {targetComputeRate} from "./core/runnerTargetPreflight";
+import {renewTargetAuthorization} from "./core/runnerTarget";
 import {diagnoseTarget,archiveEmptyTargetFailure} from "./core/runnerDiagnostic";
 import {qualifyP1} from "./p1QualificationPanel";
 import {inspectSourceCA} from "./core/runnerSource";
@@ -21,11 +22,22 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   if(!selected)return;
   let r=await store.read(selected.id);
   const startLabel=`Start new ${r.input.source.type} migration and counts verification`;
-  const action=await vscode.window.showQuickPick(["Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
+  const renewLabel="Review a new cost authorization (no Azure mutation)";
+  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
   if(!action)return;
   const confirm=(title:string,detail:string)=>vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");
   const price=async()=>{if(!r.target)throw new Error("No retained target plan.");const input=r.target.input;if(targetComputeRate(await azure.retailRates(r.input.region,[input.loaderSize,input.postgresSKU]),input)!==input.hourlyUSD)throw new Error("Compute price changed; review the cost plan before further mutation.");};
-  if(action==="Apply / reconcile AGE preload restart"){
+  if(action===renewLabel){
+    if(!r.target)throw new Error("No retained target plan.");
+    const ask=(prompt:string,value:string)=>vscode.window.showInputBox({prompt,value,ignoreFocusOut:true});
+    const deadline=await ask("New explicitly approved UTC deadline (ISO 8601; maximum 96 hours from now)",new Date(Date.now()+96*3600000-60000).toISOString());if(deadline===undefined)return;
+    const budget=await ask("New additional workflow cost ceiling, USD",String(r.target.input.budgetUSD));if(budget===undefined)return;
+    const reserve=await ask("Reserve within this new ceiling for retained storage/network and delayed billing, USD",String(r.target.input.additionalReserveUSD));if(reserve===undefined)return;
+    const candidate={deadline,budgetUSD:Number(budget),additionalReserveUSD:Number(reserve),hourlyUSD:targetComputeRate(await azure.retailRates(r.input.region,[r.target.input.loaderSize,r.target.input.postgresSKU]),r.target.input)};
+    renewTargetAuthorization(r,candidate);
+    if(await confirm("Record this new cost authorization?",`No Azure operation is performed by this step. Previous deadline and ceiling remain in local audit history.\nNew deadline ${candidate.deadline}; additional ceiling USD ${candidate.budgetUSD}; reserve USD ${candidate.additionalReserveUSD}; current compute USD ${candidate.hourlyUSD}/hour.`)!=="Approve this step")return;
+    r=await store.exclusive(r.id,async()=>{const latest=await store.read(r.id);const next=renewTargetAuthorization(latest,candidate);await control.persist(next);return next;});
+  }else if(action==="Apply / reconcile AGE preload restart"){
     const approved=!!r.targetRestart || await confirm("Apply the AGE preload configuration?",`Restart only ${r.target?.serverId} if its approved preload parameter requires it. This is before migration. Existing data is retained. An already submitted restart is reconciled by read only.`)==="Approve this step";
     r=await store.exclusive(r.id,async()=>applyTargetPreload(control,await store.read(r.id),approved));
   }else if(action==="Reconcile resize (read only)"){

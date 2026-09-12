@@ -3,7 +3,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { sourceWorkflowDraft, RunnerRecord } from "../../core/runner";
-import { csvTargetEvidence, mappedNetworkTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, submitTarget, refreshTarget, targetResourceIds, TargetInput } from "../../core/runnerTarget";
+import { csvTargetEvidence, mappedNetworkTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, renewTargetAuthorization, submitTarget, refreshTarget, targetResourceIds, TargetInput } from "../../core/runnerTarget";
 import { RunnerControl } from "../../core/runnerLifecycle";
 const id="11111111-1111-4111-8111-111111111111",op="22222222-2222-4222-8222-222222222222",file="33333333-3333-4333-8333-333333333333";
 const sha=(v:string)=>createHash("sha256").update(v).digest("hex");
@@ -85,6 +85,18 @@ test("network, deadline, price and storage gates reject unsafe proposals",()=>{
   for(const prefix of ["10.0.1.0/24","10.0.0.0/16","10.0.2.1/24","10.1.0.0/24","256.0.0.0/24"])assert.throws(()=>validateTargetSubnet(prefix,vnet));
   const {r,text,input}=fixture();for(const patch of [{hourlyUSD:NaN},{budgetUSD:1},{deadline:"bad"},{deadline:"2020-01-01T00:00:00Z"},{additionalReserveUSD:-1}])assert.throws(()=>targetBudget({...input,...patch}));
   const e=csvTargetEvidence(r,text);assert.throws(()=>targetPreview(r,input,{...e,storageHighBytes:String(200*1024**3)}),/storage/);
+});
+test("a renewed authorization preserves target identity and records the expired cost window",()=>{
+  const {r,text,input}=fixture(),now=Date.parse("2026-09-12T07:00:00Z");
+  r.target=targetPreview(r,input,csvTargetEvidence(r,text));
+  r.target.phase="provisioned";
+  r.target.input.deadline="2026-09-09T08:55:00Z";
+  const next=renewTargetAuthorization(r,{deadline:"2026-09-16T06:59:00Z",budgetUSD:800,additionalReserveUSD:200,hourlyUSD:2},now);
+  assert.equal(next.target?.serverId,r.target.serverId);
+  assert.equal(next.target?.input.deadline,"2026-09-16T06:59:00Z");
+  assert.deepEqual(next.costAuthorizations?.[0]?.previous,{deadline:"2026-09-09T08:55:00Z",budgetUSD:800,additionalReserveUSD:50,hourlyUSD:2});
+  assert.equal(next.costAuthorizations?.[0]?.authorizedAt,"2026-09-12T07:00:00.000Z");
+  assert.throws(()=>renewTargetAuthorization({...r,migration:{} as any},{deadline:"2026-09-16T06:59:00Z",budgetUSD:800,additionalReserveUSD:200,hourlyUSD:2},now));
 });
 test("target deployment persists once, carries secrets only in ARM secure parameters, and reconciles by GET",async()=>{
   const {r,text,input}=fixture();r.target=targetPreview(r,input,csvTargetEvidence(r,text));const events:string[]=[],saved:RunnerRecord[]=[];let completed=false;

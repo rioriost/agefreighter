@@ -121,6 +121,17 @@ export function targetBudget(input: TargetInput, now=Date.now()): void {
     !Number.isFinite(input.budgetUSD) || input.budgetUSD<=0 || input.hourlyUSD*remaining/3600000+input.additionalReserveUSD>input.budgetUSD)throw new Error("The reviewed remaining-window cost plus accrued/storage/network reserve exceeds the budget or deadline.");
 }
 
+/** Records a fresh, explicitly reviewed cost window without touching Azure.
+ * The deployed target identity and every non-cost sizing choice are immutable. */
+export function renewTargetAuthorization(record: RunnerRecord, input: Pick<TargetInput,"deadline"|"budgetUSD"|"additionalReserveUSD"|"hourlyUSD">, now=Date.now()): RunnerRecord {
+  if(record.target?.phase!=="provisioned" || record.migration)throw new Error("Renew authorization only for a provisioned target before migration.");
+  const previous=record.target.input;
+  const current={...previous,...input};
+  targetBudget(current,now);
+  const authorization={authorizedAt:new Date(now).toISOString(),previous:{deadline:previous.deadline,budgetUSD:previous.budgetUSD,additionalReserveUSD:previous.additionalReserveUSD,hourlyUSD:previous.hourlyUSD},current:{deadline:current.deadline,budgetUSD:current.budgetUSD,additionalReserveUSD:current.additionalReserveUSD,hourlyUSD:current.hourlyUSD}};
+  return {...record,target:{...record.target,input:current},costAuthorizations:[...(record.costAuthorizations??[]),authorization]};
+}
+
 export function targetPreview(record: RunnerRecord, input: TargetInput, evidence: TargetEvidence): RunnerTarget {
   if(record.target || record.phase!=="provisioned" || !["csv","neo4j","postgresql","cosmos-nosql"].includes(record.input.source.type) || evidence.sourceType && evidence.sourceType!==record.input.source.type || !sha.test(evidence.reportSHA256))throw new Error("Use an assessed supported-source workflow without an existing target intent.");
   if(!/^[a-z][a-z0-9-]{2,61}[a-z0-9]$/.test(input.serverName) || !/^Standard_[DE]\d+[a-z]*_v[56]$/.test(input.postgresSKU) || !["GeneralPurpose","MemoryOptimized"].includes(input.postgresTier) ||

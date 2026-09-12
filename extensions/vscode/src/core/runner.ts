@@ -63,6 +63,11 @@ export interface RunnerRecord {
   upgrade?: RunnerUpgrade;
   upgradeHistory?: RunnerUpgrade[];
   target?: RunnerTarget;
+  costAuthorizations?: {
+    authorizedAt: string;
+    previous: Pick<RunnerTarget["input"], "deadline" | "budgetUSD" | "additionalReserveUSD" | "hourlyUSD">;
+    current: Pick<RunnerTarget["input"], "deadline" | "budgetUSD" | "additionalReserveUSD" | "hourlyUSD">;
+  }[];
   resize?: RunnerResize;
   migration?: RunnerMigration;
   targetDiagnostic?: TargetDiagnostic;
