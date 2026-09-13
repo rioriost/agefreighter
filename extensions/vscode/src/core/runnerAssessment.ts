@@ -14,6 +14,16 @@ export function assessmentActive(record: RunnerRecord): boolean {
   return record.assessment !== undefined && (record.assessment.phase !== "finished" || !record.assessment.reportSHA256);
 }
 
+/** Explicit operator reconciliation only; preserves evidence and never starts a worker. */
+export function retainFailedAssessment(record: RunnerRecord, operation: string, now = Date.now()): RunnerRecord {
+  const a = record.assessment, ready = record.guestReady, command = record.guestCommand;
+  if (record.phase !== "provisioned" || record.target || record.migration || !a || a.operation !== operation || a.phase !== "failed") throw new Error("Only this failed pre-target assessment can be retained for a fresh attempt.");
+  if (command?.action !== "ready" || command.phase !== "finished" || !ready || ready.bootId !== a.bootId || !Number.isFinite(Date.parse(ready.checkedAt)) || now - Date.parse(ready.checkedAt) < 0 || now - Date.parse(ready.checkedAt) > 300000 || ready.health?.idle !== true || ready.health.swapUsedBytes !== 0 || ready.health.oomEvents !== 0 || !Number.isFinite(ready.health.storageUsedPercent) || ready.health.storageUsedPercent >= 80) throw new Error("Refresh successful idle Linux guest readiness on the same boot before retaining the failure.");
+  const assessmentHistory = [...record.assessmentHistory ?? [], a];
+  if (assessmentHistory.length > 16) throw new Error("Assessment history limit reached; retain evidence and review the workflow before continuing.");
+  return { ...record, assessmentHistory, assessment: undefined };
+}
+
 /** Caller holds the workflow lock, reviewed the form and approved source reads. */
 export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>): Promise<RunnerRecord> {
   if(record.migration)throw new Error("The retained migration freezes source evidence; reconcile it instead of starting another assessment.");

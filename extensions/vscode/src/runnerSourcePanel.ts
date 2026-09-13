@@ -6,7 +6,7 @@ import { object, RunnerRecord } from "./core/runner";
 import { RunnerControl } from "./core/runnerLifecycle";
 import { RunnerStore } from "./guided/runnerStore";
 import { buildSourceDraft, inspectSourceCA, sourceSecrets } from "./core/runnerSource";
-import { assessmentActive, refreshAssessment, startAssessment } from "./core/runnerAssessment";
+import { assessmentActive, refreshAssessment, startAssessment, retainFailedAssessment } from "./core/runnerAssessment";
 import { runnerSourceHTML } from "./core/runnerSourceView";
 import { refreshStorage, storageDraft, submitStorage } from "./core/runnerStorageLifecycle";
 import { reportStorageNames, verifyReportStorage, verifyTransferStorage } from "./core/runnerReportStorage";
@@ -47,6 +47,18 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
       const message = object(raw);
       switch (message.action) {
         case "ready": await initialize(await store.read(workflow)); break;
+        case "retainFailure": {
+          if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before reconciling source operations.");
+          const current = await store.read(workflow), operation = current.assessment?.operation ?? "";
+          retainFailedAssessment(current, operation);
+          const choice = await vscode.window.showWarningMessage("Retain failed source assessment and prepare a fresh attempt?", { modal: true, detail: `Operation ${operation}. Confirm you reviewed its guest failure evidence and corrected the cause. The failed operation and files remain retained. This action performs no source reads, credential changes, or target writes. Review the source again and separately approve a new operation; the old operation is never resumed.` }, "Retain failure and review source");
+          if (choice !== "Retain failure and review source" || disposed) break;
+          const next = await store.exclusive(workflow, async () => {
+            const updated = retainFailedAssessment(await store.read(workflow), operation);
+            await store.write(updated); return updated;
+          });
+          reviewedHash = undefined; await initialize(next); break;
+        }
         case "cosmosAccess": {
           let record = await store.read(workflow);
           if (record.input.source.type !== "cosmos-nosql" || assessmentActive(record)) throw new Error("Cosmos read access is unavailable for this workflow.");

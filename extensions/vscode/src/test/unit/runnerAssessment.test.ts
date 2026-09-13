@@ -3,7 +3,7 @@ import test from "node:test";
 import { RunnerRecord } from "../../core/runner";
 import { RunnerControl } from "../../core/runnerLifecycle";
 import { buildSourceDraft } from "../../core/runnerSource";
-import { assessmentActive, refreshAssessment, startAssessment } from "../../core/runnerAssessment";
+import { assessmentActive, refreshAssessment, startAssessment, retainFailedAssessment } from "../../core/runnerAssessment";
 import { workflow, sourceForm, csvFile } from "../sourceFixtures";
 
 function fixture() {
@@ -25,6 +25,36 @@ test("assessment intent is durable before dispatch; on-prem source needs only ru
   assert.ok(!JSON.stringify(f.saved).includes('"private"'));
   assert.ok(f.requests.every(request => request.path.startsWith(f.record.vmId + "/runCommands/")));
   await assert.rejects(startAssessment(f.control, r, "profile", {}), /retained assessment/);
+});
+
+test("failed source reconciliation is explicit, idle-gated and retains evidence without dispatch", () => {
+  const f = fixture(), now = Date.now();
+  const a = { operation: workflow, action: "inventory" as const, phase: "failed" as const, bootId: workflow, configurationSHA256: "c".repeat(64) };
+  f.record.assessment = a;
+  f.record.guestCommand = { id: "ready-command", operation: "ready-op", action: "ready", phase: "finished", submittedAt: new Date(now).toISOString() };
+  f.record.guestReady!.checkedAt = new Date(now).toISOString();
+  f.record.guestReady!.health = { idle: true, swapUsedBytes: 0, oomEvents: 0, storageUsedPercent: 4 };
+  const result = retainFailedAssessment(f.record, workflow, now);
+  assert.equal(result.assessment, undefined);
+  assert.deepEqual(result.assessmentHistory, [a]);
+  assert.deepEqual(f.record.assessment, a);
+  assert.equal(f.requests.length, 0);
+  for (const mutate of [
+    (r: RunnerRecord) => { r.assessment!.phase = "running"; },
+    (r: RunnerRecord) => { r.assessment!.phase = "unknown"; },
+    (r: RunnerRecord) => { r.assessment!.phase = "interrupted"; },
+    (r: RunnerRecord) => { r.guestCommand!.phase = "submitted"; },
+    (r: RunnerRecord) => { r.guestCommand!.action = "status"; },
+    (r: RunnerRecord) => { r.guestReady!.checkedAt = new Date(now - 300001).toISOString(); },
+    (r: RunnerRecord) => { r.guestReady!.bootId = "changed"; },
+    (r: RunnerRecord) => { r.guestReady!.health!.idle = false; },
+    (r: RunnerRecord) => { r.guestReady!.health!.oomEvents = 1; },
+    (r: RunnerRecord) => { r.guestReady!.health!.swapUsedBytes = 1; },
+    (r: RunnerRecord) => { r.guestReady!.health!.storageUsedPercent = 80; },
+    (r: RunnerRecord) => { r.target = {} as NonNullable<RunnerRecord["target"]>; },
+    (r: RunnerRecord) => { r.migration = {} as NonNullable<RunnerRecord["migration"]>; },
+  ]) { const r = structuredClone(f.record); mutate(r); assert.throws(() => retainFailedAssessment(r, workflow, now)); }
+  assert.throws(() => retainFailedAssessment(f.record, "different", now));
 });
 test("lost assessment acknowledgement is reconciled without duplicate source reads", async () => {
   const f = fixture(); f.fail(); const r = await startAssessment(f.control, f.record, "profile", {});

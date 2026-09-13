@@ -78,6 +78,21 @@ test("active operations disable starts while retaining status refresh", () => {
   assert.equal(v.el("assess").disabled, true); assert.equal(v.el("inventory").disabled, true); assert.equal(v.el("refresh").disabled, false);
   v.el("refresh").trigger("click"); assert.equal(v.messages.at(-1).action, "refresh");
 });
+
+test("failed assessment requires a separate retain action before any new source approval", () => {
+  const v = view();
+  v.send({ kind: "init", type: "postgresql", canStart: true, inventoryReady: true, assessment: { operation: "old", phase: "failed" } });
+  v.send({ kind: "busy", value: false });
+  v.send({ kind: "review", draft: { canAssess: true, warnings: [], configuration: {} } });
+  assert.equal(v.el("inventory").disabled, true);
+  assert.equal(v.el("retainFailure").disabled, false);
+  v.el("retainFailure").trigger("click");
+  assert.deepEqual(v.messages.at(-1), { action: "retainFailure" });
+  v.send({ kind: "init", type: "postgresql", canStart: true, inventoryReady: true });
+  v.send({ kind: "busy", value: false });
+  assert.equal(v.el("retainFailure").disabled, true);
+  assert.equal(v.el("inventory").disabled, true);
+});
 test("storage and CSV controls use host actions without URLs or credentials in the webview", () => {
   const v = view(); v.send({ kind: "init", type: "csv", location: "local", transferEnabled: true, csvTransfers: [{ file: csvFile.id, phase: "uploaded" }] }); v.send({ kind: "busy", value: false });
   assert.match(v.el("csvStatus").textContent, /uploaded/); assert.equal(v.el("uploadCSV").disabled, false);
