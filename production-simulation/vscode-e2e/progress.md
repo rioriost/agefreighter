@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM — complete GUI inventory passed; private target review next
+### AZ-PGVM — complete GUI inventory passed; private target deploying
 
 The installed GUI selected the PostgreSQL VM through Azure discovery and saved
 the TLS-verified source configuration with all 18 P1 mappings. The approved
@@ -13,8 +13,10 @@ tested and installed before the GUI started complete source inventory. That
 attempt failed during initialization: the source container was stopped and its
 certificate had expired. Both are repaired without changing data or disabling
 TLS checks. The explicit fresh attempt passed all 1.6M vertices, 4M edges and
-18 label counts; its hash-verified report is imported. Private target review
-is next. See
+18 label counts; its hash-verified report is imported. The reviewed private
+PG18 / AGE target began deployment at 13:36:58Z, retaining the USD 800 ceiling
+and September 16 deadline. Same-VM resize, migration and full verification
+remain pending. See
 the [execution sheet](az-pgvm-execution-20260913.md).
 Migration and full canonical verification have not started; coverage stays 3/9.
 
