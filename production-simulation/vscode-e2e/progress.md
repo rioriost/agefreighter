@@ -2,12 +2,14 @@
 
 Updated: 2026-09-13. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM — GUI source configured; storage approval pending
+### AZ-PGVM — storage created; transfer-network and artifact gates pending
 
 The installed GUI selected the PostgreSQL VM through Azure discovery and saved
-the TLS-verified source configuration with all 18 P1 mappings. The dedicated
-storage/scoped-role approval is displayed but not accepted. No cloud resources
-were changed in this step. See the [execution sheet](az-pgvm-execution-20260913.md).
+the TLS-verified source configuration with all 18 P1 mappings. The approved
+dedicated storage and account-scoped user role are created, but Azure Policy
+modified public network access to Disabled. Network-exemption and pinned test
+artifact approvals remain pending. All existing VMs remain deallocated. See
+the [execution sheet](az-pgvm-execution-20260913.md).
 Migration and full canonical verification have not started; coverage stays 3/9.
 
 ### AZ-N526 qualification — PASS at 13:16Z

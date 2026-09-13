@@ -1,7 +1,8 @@
 # AZ-PGVM guided P1 execution
 
-Status: GUI source configuration reviewed and saved; awaiting the dedicated
-storage/scoped-role approval. This path is not qualified.
+Status: GUI source configuration saved and dedicated storage/scoped role created;
+transfer blocked by Azure Policy network modification. Development artifact
+approval is displayed but not accepted. This path is not qualified.
 
 ## Retained setup
 
@@ -38,11 +39,23 @@ The certificate was therefore selected first, all mappings re-entered, and the
 reviewed persisted draft checked. Preserve this as a usability defect to fix;
 do not confuse successful field entry with persistence.
 
-The current GUI approval creates workflow-owned Standard LRS storage and grants
-the signed-in user Storage Blob Data Contributor on that new account only.
-Its HTTPS endpoint is network-public; anonymous access and shared keys remain
-disabled. It does not expose the source server. The approval has not been
-accepted and no cloud mutations were made in this step.
+The user approved storage creation. At 12:23–12:27Z, read-only reconciliation
+confirmed the workflow-owned account is `Succeeded` and the signed-in user has
+Storage Blob Data Contributor scoped to that account only. Azure activity
+records show successful `policies/modify/action` events during creation;
+the resulting `publicNetworkAccess` is `Disabled`. Anonymous access and shared
+keys are also disabled. The GUI reports storage ready but explicitly says
+provisioning is not transfer readiness. No artifact upload was attempted.
+
+The five older trial storage accounts have the user-approved organizational
+`SecurityControl=Ignore` tag and enabled public networking. The new account has
+neither. Applying that exemption and enabling authenticated HTTPS on this exact
+account is awaiting confirmation; no policy, tag or network setting has been
+changed by this continuation. Source access remains private.
+
+The GUI has inspected and hash-verified the retained development archive and
+displays its pinned-artifact approval. No new executable has been uploaded or
+deployed. All six existing VMs remain deallocated. No new runner/target exists.
 
 ## Remaining qualification
 
