@@ -14,7 +14,7 @@ import {developmentArtifact} from "./core/runnerDevelopment";
 import {inspectCSV} from "./guided/csvTransfer";
 import {verifyTransferStorage} from "./core/runnerReportStorage";
 import {downloadReport,reportCapability,reportManifest} from "./core/runnerBlob";
-import {p1Root,p1FixtureRoot,p1Script,p1ExportScript,verifyP1,P1Qualification} from "./core/p1Qualification";
+import {p1Root,p1FixtureRoot,p1Script,p1ExportScript,verifyP1,assertP1Projection,parseP1Receipt,P1Qualification} from "./core/p1Qualification";
 import {escapeHTML} from "./core/report";
 
 export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerControl,store:RunnerStore,azure:AzureSession,id:string):Promise<RunnerRecord>{
@@ -28,8 +28,7 @@ export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerCo
       if(["submitted","unknown"].includes(q.phase)){
         const response=await control.request(r.input.subscriptionId,`${q.commandId}?api-version=2024-07-01&$expand=instanceView`),view=object(object(object(response.value).properties).instanceView);
         if(!["Succeeded","Failed","TimedOut","Canceled"].includes(String(view.executionState)))return r;
-        let result:unknown;try{result=JSON.parse(String(view.output));}catch{}
-        const v=object(result);
+        const v=parseP1Receipt(view.output);
         if(view.executionState!=="Succeeded"||view.exitCode!==0||v.workflow!==id||v.operation!==q.operation||v.jobId!==q.jobId||v.verified!==true){r={...r,p1Qualification:{...q,phase:"failed"}};await control.persist(r);throw new Error("P1 qualification failed. Retain evidence; do not replay.");}
         reportManifest({operation:q.operation,sha256:String(v.sha256),bytes:Number(v.bytes)});
         q={...q,phase:"verified",sha256:String(v.sha256),bytes:Number(v.bytes)};r={...r,p1Qualification:q};await control.persist(r);
@@ -48,8 +47,7 @@ export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerCo
         if(!q.exportCommandId?.startsWith(`${r.vmId}/runCommands/af-`))throw new Error("Invalid export identity.");
         const response=await control.request(r.input.subscriptionId,`${q.exportCommandId}?api-version=2024-07-01&$expand=instanceView`),view=object(object(object(response.value).properties).instanceView);
         if(!["Succeeded","Failed","TimedOut","Canceled"].includes(String(view.executionState)))return r;
-        let value:unknown;try{value=JSON.parse(String(view.output));}catch{}
-        const v=object(value);
+        const v=parseP1Receipt(view.output);
         if(view.executionState!=="Succeeded"||view.exitCode!==0||v.workflow!==id||v.operation!==q.operation||v.jobId!==q.jobId||v.exported!==true||v.sha256!==q.sha256||v.bytes!==q.bytes){r={...r,p1Qualification:{...q,phase:"failed"}};await control.persist(r);throw new Error("Result export failed; verification evidence is retained. Do not replay.");}
         q={...q,phase:"exported"};r={...r,p1Qualification:q};await control.persist(r);
       }
@@ -63,6 +61,7 @@ export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerCo
       return r;
     });
   }
+  assertP1Projection(r.sourceDraft?.configuration);
   assertIdleHealth(r);targetBudget(r.target!.input);
   const selected=await vscode.window.showOpenDialog({canSelectMany:false,filters:{"P1 verifier manifest":["json"]},openLabel:"Review pinned P1 verifier"});
   if(!selected?.[0]||selected[0].scheme!=="file")return r;

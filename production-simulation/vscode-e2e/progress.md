@@ -1,8 +1,8 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-13. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
+Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM — migration and strict counts PASS; full digest running
+### AZ-PGVM — counts PASS; full verification FAILED, projection repair required
 
 The installed GUI selected the PostgreSQL VM through Azure discovery and saved
 the TLS-verified source configuration with all 18 P1 mappings. The approved
@@ -24,8 +24,20 @@ Migration and strict counts passed: all 5.6M records, zero rejects, all 24 check
 no incomplete checks. The GUI imported the verified report. The independent
 full P1 verifier was approved and submitted at 2026-09-13T22:54:07Z as operation
 `c0efdd7b-fd18-49db-a872-bbd29d1736c2`, on the same runner and retained graph.
-Only the runner and target are running; the source remains deallocated.
-Coverage stays 3/9 until all 64 canonical ranges and the root match.
+It failed with exit 1 at 22:55:33Z without generating a canonical result.
+The retained configuration omits `source_key` and the corresponding identity
+properties from all 18 projections; identity fields are not automatically graph
+properties. Counts do not prove preservation of omitted source properties.
+GUI guidance, frozen-P1 projection admission and plain-text failure receipt
+handling are fixed, with all 172 tests passing and the updated extension
+installed. A corrected mapping fixture is prepared but not applied. The Mac
+locked before final read-only GUI failure reconciliation; the local phase still
+says submitted, not success. Azure's command outcome is definitively Failed.
+All seven trial VMs are now deallocated and all five Flexible Servers Stopped.
+Original data/evidence remain retained. A new corrective migration requires a
+reviewed projection and fresh job/graph; do not patch or replay the original.
+See [failure evidence](evidence/az-pgvm-p1-failed-20260914.json).
+Coverage remains 3/9. Earlier paragraphs describe historical execution states.
 
 ### AZ-N526 qualification — PASS at 13:16Z
 

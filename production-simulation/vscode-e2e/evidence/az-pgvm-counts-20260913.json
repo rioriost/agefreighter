@@ -1,6 +1,6 @@
 {
   "route": "AZ-PGVM",
-  "qualificationOutcome": "incomplete",
+  "qualificationOutcome": "failed-full-verification",
   "guiCountsOutcome": "pass",
   "workflow": "2595fb2d-df9d-4582-b8b8-237ae211ec1c",
   "job": "12a2462e-e5a3-4368-a356-54e292650051",
@@ -21,7 +21,8 @@
   "countsReportBytes": 9617,
   "countsReportSHA256": "b74fda5ee5f05ebe7a2b0dc79e7bb595281f2fe43bb0fd490a55642c2628bb9b",
   "fingerprint": "17406fc8ae263a5a2b06cac197a1cfbfde7681a35958f079265c76e67de60d46",
-  "fullCanonicalVerification": "not-started-awaiting-approval",
+  "fullCanonicalVerification": "failed-exit-1-no-result",
+  "fullVerificationEvidence": "az-pgvm-p1-failed-20260914.json",
   "expectedCanonicalRoot": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70",
   "postLoadHealth": {
     "checkedAt": "2026-09-13T14:09:29.630Z",

@@ -20,6 +20,16 @@ test("PostgreSQL table mappings generate only quoted read queries and mapped end
   assert.deepEqual(pg.connection, { env: "AGEFREIGHTER_SOURCE_DSN" });
   assert.throws(() => buildSourceDraft({ type: "postgresql", location: "azure" }, { ...sourceForm, mappings: [{ ...sourceForm.mappings[0], collection: 'people; DROP TABLE secret' }] }, workflow), /PostgreSQL table/);
 });
+test("explicit mappings warn about identity-only fields without silently changing graph properties",()=>{
+  const raw={...sourceForm,port:5432};
+  const before=buildSourceDraft({type:"postgresql",location:"azure"},raw,workflow);
+  assert.ok(before.warnings.some(w=>w.includes("stable ID field is used for identity only")));
+  const rows=raw.mappings.map(m=>({...m,properties:`${m.properties},identity_copy=${m.identity}`}));
+  const after=buildSourceDraft({type:"postgresql",location:"azure"},{...raw,mappings:rows},workflow);
+  assert.ok(!after.warnings.some(w=>w.includes("stable ID field is used for identity only")));
+  assert.equal((before.configuration.source as any).postgresql.vertices[0].properties.identity_copy,undefined);
+  assert.equal((after.configuration.source as any).postgresql.vertices[0].properties.identity_copy,rows[0]!.identity);
+});
 test("Cosmos explicit mappings bind labels and escape JSON pointers; Gremlin uses bounded discovery", () => {
   const form = { ...sourceForm, host: "account.documents.azure.com", mappings: [{ ...sourceForm.mappings[0], identity: "a/b~c" }] };
   const cosmos = (buildSourceDraft({ type: "cosmos-nosql", location: "azure" }, form, workflow).configuration.source as any).cosmos;

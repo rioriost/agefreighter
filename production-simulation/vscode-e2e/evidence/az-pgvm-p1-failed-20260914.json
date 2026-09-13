@@ -1,0 +1,52 @@
+{
+  "route": "AZ-PGVM",
+  "qualificationOutcome": "failed",
+  "countsOutcome": "pass",
+  "workflow": "2595fb2d-df9d-4582-b8b8-237ae211ec1c",
+  "job": "12a2462e-e5a3-4368-a356-54e292650051",
+  "operation": "c0efdd7b-fd18-49db-a872-bbd29d1736c2",
+  "submittedAt": "2026-09-13T22:54:07.899Z",
+  "executionStartedAt": "2026-09-13T22:54:45Z",
+  "executionFinishedAt": "2026-09-13T22:55:33Z",
+  "executionState": "Failed",
+  "exitCode": 1,
+  "systemdResult": "exit-code",
+  "verifierCommit": "19026db1930a7893ac4fb30f8647e1c277fe9920",
+  "verifierArchiveSHA256": "8e9bf7ec6c37aa06b5aa49fd204663c0abd723c06eda8655631e9d2f776d2c49",
+  "stderrBytes": 72,
+  "stderrSHA256": "6ae81cb87f11ed97be59fbd3982241b3c8e97afabd1c82eb0c5ea37402cc4540",
+  "stdoutBytes": 0,
+  "resultJSONPresent": false,
+  "actualCanonicalRoot": null,
+  "mappingFinding": {
+    "evidence": "retained source draft and generated query semantics",
+    "verticesMissingProperties": ["source_key", "external_id"],
+    "edgesMissingProperties": ["source_key", "relationship_id"],
+    "affectedMappings": 18,
+    "note": "Identity configuration does not automatically project properties. Generic stderr does not identify the precise failing instruction."
+  },
+  "diagnosticHealth": {
+    "runnerDiskUsedPercentRounded": 6,
+    "availableMemoryMiB": 15418,
+    "swapUsedBytes": 0
+  },
+  "guiReconciliation": "pending-manual-Mac-unlock; local phase submitted; authoritative ARM outcome Failed",
+  "repair": {
+    "extensionTestsPassed": 172,
+    "installedBundleSHA256": "ec7cebde43cf03cb63bd6c27fcb49c7e0a69e134fa689388d5de02341c45ab2b",
+    "correctedFixture": "../fixtures/postgresql-p1-mappings.json",
+    "correctiveMigrationStarted": false
+  },
+  "finalCostSavingState": {
+    "trialVMsDeallocated": 7,
+    "flexibleServersStopped": 5,
+    "storageChargesContinue": true
+  },
+  "costRefresh": "two Cost Management requests throttled with HTTP 429; last billed baseline USD 20.71 is lagging and not final",
+  "budgetUSD": 800,
+  "deadline": "2026-09-16T07:14:35.311Z",
+  "retained": ["original-job", "original-target-graph", "source-data", "verifier-binary", "generated-fixture", "stdout", "stderr", "active-marker"],
+  "replayAllowed": false,
+  "qualifiedRoutes": 3,
+  "totalRoutes": 9
+}

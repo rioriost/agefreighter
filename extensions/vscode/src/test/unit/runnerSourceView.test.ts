@@ -38,6 +38,8 @@ test("all source form branches render and submit fields without passwords or YAM
     const message = v.messages.at(-1); assert.equal(message.action, "review"); assert.equal(message.form.mappings.length, 2);
     assert.equal(message.form.mappings[1].startField, "from_id"); assert.equal(message.form.password, undefined);
     assert.doesNotMatch(v.html, /type="password"|<textarea|innerHTML/);
+    assert.match(v.html,/Only explicitly mapped properties are copied/);
+    assert.match(v.html,/Exact counts do not prove that all source properties were preserved/);
   }
 });
 test("custom source CA uses a host file action and exposes only metadata to the webview", () => {

@@ -1,10 +1,41 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {readFileSync} from "node:fs";
-import {verifyP1,p1Script,p1ExportScript,P1Qualification} from "../../core/p1Qualification";
+import {verifyP1,p1Script,p1ExportScript,assertP1Projection,parseP1Receipt,P1Qualification} from "../../core/p1Qualification";
 import {sourceWorkflowDraft} from "../../core/runner";
+import {buildSourceDraft} from "../../core/runnerSource";
+import {sourceForm,workflow} from "../sourceFixtures";
 const id="11111111-1111-4111-8111-111111111111";
+test("terminal P1 command errors without a JSON object are admitted to failure reconciliation",()=>{
+  for(const value of [undefined,null,"", "Independent qualification failed; inspect retained evidence\n","null","[]","1",'"error"'])assert.deepEqual(parseP1Receipt(value),{});
+  assert.deepEqual(parseP1Receipt('{"verified":true,"jobId":"job"}'),{verified:true,jobId:"job"});
+});
 function report(){const expected=JSON.parse(readFileSync("../../production-simulation/vscode-e2e/evidence/p1-canonical-expected-20260906.json","utf8"));return {version:1,jobId:id,readOnly:true,expected,actual:{...structuredClone(expected),source:"apache-age",jobId:id},comparison:{status:"pass"}};}
+function projection(type="postgresql"):any{
+  const vertices="Supplier Facility Product PurchaseOrder Shipment Lot Location Carrier Customer".split(" ").map(label=>({label,idField:"external_id",properties:Object.fromEntries("source_key external_id name region created_at status score active tags quantities description".split(" ").map(p=>[p,p]))}));
+  const edges="SUPPLIES PRODUCED_AT PLACED_WITH CONTAINS FULFILLS ORIGINATES_AT DESTINED_FOR CARRIED_BY INCLUDED_IN".split(" ").map(label=>({label,externalIdField:"relationship_id",properties:Object.fromEntries("source_key relationship_id occurred_at quantity status distance_km notes".split(" ").map(p=>[p,p]))}));
+  return {source:{type,[type==="cosmos-nosql"?"cosmos":type]:{vertices,edges}}};
+}
+test("P1 rejects the AZ-PGVM projection omission even when identity fields exist",()=>{
+  const c=projection();const pg=c.source.postgresql!;
+  for(const row of pg.vertices){delete row.properties.source_key;delete row.properties.external_id;}
+  for(const row of pg.edges){delete row.properties.source_key;delete row.properties.relationship_id;}
+  assert.throws(()=>assertP1Projection(c),/Supplier.*source_key, external_id/);
+});
+test("P1 projection admission accepts full explicit mappings but not missing, duplicated or extra properties",()=>{
+  for(const type of ["postgresql","csv","cosmos-nosql"])assert.doesNotThrow(()=>assertP1Projection(projection(type)));
+  for(const change of [(p:any)=>p.vertices.pop(),(p:any)=>p.vertices[1].label="Supplier",(p:any)=>delete p.edges[0].properties.relationship_id,(p:any)=>p.vertices[0].properties.extra="extra"]){const c=projection();change(c.source.postgresql);assert.throws(()=>assertP1Projection(c));}
+  assert.throws(()=>assertP1Projection({}));
+  assert.doesNotThrow(()=>assertP1Projection({source:{type:"neo4j"}}));
+});
+test("corrected reviewed PostgreSQL P1 mappings include identity properties and source keys in every generated query",()=>{
+  const mappings=JSON.parse(readFileSync("../../production-simulation/vscode-e2e/fixtures/postgresql-p1-mappings.json","utf8"));
+  const draft=buildSourceDraft({type:"postgresql",location:"azure"},{...sourceForm,port:5432,mappings},workflow);
+  assert.doesNotThrow(()=>assertP1Projection(draft.configuration));
+  const pg=(draft.configuration.source as any).postgresql;
+  for(const row of [...pg.vertices,...pg.edges]){assert.match(row.query,/"source_key"/);assert.equal(row.properties.source_key,"source_key");}
+  assert.ok(!draft.warnings.some(w=>w.includes("stable ID field is used for identity only")));
+});
 test("P1 verifier recomputes all 64 canonical leaves and cannot trust a forged summary",()=>{
   verifyP1(JSON.stringify(report()),id);
   for(const change of [(r:any)=>r.actual.leaves.pop(),(r:any)=>r.actual.leaves[0].sha256="a".repeat(64),(r:any)=>r.actual.leaves[0].rows++,(r:any)=>r.actual.jobId="foreign",(r:any)=>r.expected.rootSha256="a".repeat(64),(r:any)=>r.readOnly=false,(r:any)=>r.actual.leaves[0].name+="\0",(r:any)=>r.comparison.status="fail"]){const r=report();change(r);assert.throws(()=>verifyP1(JSON.stringify(r),id));}

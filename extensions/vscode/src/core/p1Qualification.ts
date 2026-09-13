@@ -6,6 +6,37 @@ export const p1Root="bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e0
 export const p1FixtureRoot="f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f";
 export interface P1Qualification {operation:string;commandId:string;jobId:string;artifact:RunnerArtifact;startedAt:string;phase:"submitted"|"unknown"|"verified"|"exporting"|"exported"|"pass"|"failed";exportCommandId?:string;sha256?:string;bytes?:number}
 
+/** A failed ARM command can return plain text or no JSON. Let the caller seal
+ * terminal failure instead of leaving it submitted after a parser exception. */
+export function parseP1Receipt(output:unknown):Record<string,unknown>{
+  try{const value:unknown=JSON.parse(String(output));return value!==null&&typeof value==="object"&&!Array.isArray(value)?value as Record<string,unknown>:{};}catch{return {};}
+}
+
+/** Frozen P1-only admission, not a general migration restriction. Stable IDs
+ * correlate records but are not automatically copied into graph properties. */
+export function assertP1Projection(configuration:unknown):void{
+  const source=object(object(configuration).source);
+  if(source.type==="neo4j")return; // Discovery determines properties; full digest remains mandatory.
+  const mappings=object(source.type==="postgresql"?source.postgresql:source.type==="csv"?source.csv:source.cosmos);
+  if(source.type==="cosmos-nosql" && object(mappings.gremlin??{}).enabled===true)return;
+  if(!["postgresql","csv","cosmos-nosql"].includes(String(source.type)))throw new Error("Unsupported P1 source configuration.");
+  const groups=[
+    {key:"vertices",names:"Supplier Facility Product PurchaseOrder Shipment Lot Location Carrier Customer",properties:"source_key external_id name region created_at status score active tags quantities description"},
+    {key:"edges",names:"SUPPLIES PRODUCED_AT PLACED_WITH CONTAINS FULFILLS ORIGINATES_AT DESTINED_FOR CARRIED_BY INCLUDED_IN",properties:"source_key relationship_id occurred_at quantity status distance_km notes"},
+  ];
+  for(const group of groups){
+    const rows=mappings[group.key],names=group.names.split(" "),properties=group.properties.split(" ");
+    if(!Array.isArray(rows)||rows.length!==names.length)throw new Error("Frozen P1 requires all nine vertex and nine edge mappings.");
+    for(const name of names){
+      const matches=rows.filter(row=>object(row).label===name);
+      if(matches.length!==1)throw new Error(`Frozen P1 mapping missing or duplicated: ${name}.`);
+      const actual=Object.keys(object(object(matches[0]).properties));
+      const missing=properties.filter(p=>!actual.includes(p));
+      if(missing.length || actual.length!==properties.length)throw new Error(`P1 property projection differs for ${name}: missing ${missing.join(", ")||"none"}; unexpected properties ${actual.filter(p=>!properties.includes(p)).join(", ")||"none"}. Identity fields must also be explicitly mapped as properties. Retain this job; review a new migration, never patch the committed graph.`);
+    }
+  }
+}
+
 /** Recompute the canonical root from every leaf; do not trust a summary pass. */
 export function verifyP1(text:string,jobId:string):void{
   const d=object(JSON.parse(text)),e=object(d.expected),a=object(d.actual),c=object(d.comparison);

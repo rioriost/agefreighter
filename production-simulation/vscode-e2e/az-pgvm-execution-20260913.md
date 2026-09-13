@@ -2,7 +2,8 @@
 
 Status: complete GUI source inventory passed and its hash-verified report is
 imported. Private target, same-VM resize, migration and strict counts verification
-passed. Approved full P1 verification is running; this path is not yet qualified.
+passed. Approved full P1 verification failed; this path is not qualified.
+All seven trial VMs are deallocated and all five Flexible Servers are Stopped.
 
 ## Retained setup
 
@@ -12,7 +13,9 @@ passed. Approved full P1 verification is running; this path is not yet qualified
 - PostgreSQL 18 fixture, database `p1source`, read-only source role; TLS
   certificate validation remains required with the fixture's custom CA.
 - All nine vertex and nine edge mappings were entered and reviewed in the GUI.
-  Stable IDs, endpoints and typed source properties match the prepared fixture.
+  Stable IDs and endpoints were configured, but the projection was incomplete:
+  `source_key` and the corresponding identity property were omitted. See the
+  final verification finding below; the original mappings remain retained.
 - Discovery runner proposed in Japan East, zone 1, existing runner subnet,
   `Standard_B2s_v2`; the same runner is now resized to `Standard_D4s_v5`.
 - Frozen local development runner built from
@@ -187,7 +190,7 @@ then reopen the full P1 verifier action for this same job. Do not replay the
 migration or replace its graph. Compare all 5.6M records and all 64 ranges with
 the frozen canonical root before marking AZ-PGVM qualified.
 
-## Remaining qualification
+## Approved full verification and failure
 
 The user authorized the reviewed verifier on September 14 JST. At
 2026-09-13T22:54:07Z the installed GUI submitted read-only qualification
@@ -207,7 +210,57 @@ One older completed readiness receipt was archived (SHA-256
 before removing only its Azure command entry to retain capacity for result
 export and final health checks. No guest evidence or data was deleted.
 
-Monitor the submitted verifier; do not replay it. Compare all 5,600,000 typed
-records across 64 canonical ranges, import the result through the GUI, retain
-evidence and stop compute. Target creation, resize, migration and exact counts
-are complete and must not be replayed. Counts alone are not full qualification.
+The verifier executed from 22:54:45Z to 22:55:33Z and failed with exit 1.
+No `result.json` was generated; no actual canonical root or successful range
+comparison is available. Its systemd result is `exit-code`, not OOM. The
+72-byte stderr contains only a generic retained-evidence error and has SHA-256
+`6ae81cb87f11ed97be59fbd3982241b3c8e97afabd1c82eb0c5ea37402cc4540`.
+Read-only diagnostics found zero swap, 6% runner disk use and about 15 GiB
+available memory. The verifier, generated fixture, logs and active marker are
+retained. Do not clear the marker or replay this operation.
+
+Independent review of the saved GUI configuration proved that all 18 mappings
+omit `source_key`; vertex projections also omit `external_id`, and edge
+projections omit `relationship_id`. Configuring these fields for identity does
+not automatically copy them into graph properties. The frozen P1 canonical
+verifier requires those properties, so this projection cannot qualify against
+the fixture. This is a proven mapping defect, not an assertion that the generic
+stderr identifies the exact failing instruction. Counts PASS remains valid for
+the configured projection but does not establish full source preservation.
+
+The extension now explains explicit property projection, warns when stable IDs
+are not also mapped as properties, and rejects incomplete frozen-P1 projections
+before starting a new P1 verifier. It does not silently add properties or weaken
+the canonical comparison. A separate receipt parser fix lets a terminal command
+with plain-text/empty output be sealed as failed instead of throwing a JSON
+parser error and leaving the local phase `submitted`. All 172 extension tests,
+typecheck, compile and packaging pass. The updated extension was installed in
+VS Code 1.136.1 and reloaded; the installed bundle matches build SHA-256
+`ec7cebde43cf03cb63bd6c27fcb49c7e0a69e134fa689388d5de02341c45ab2b`.
+
+The Mac locked before the final read-only GUI reconciliation could complete.
+The private GUI record therefore still says `submitted`, while the authoritative
+Azure command is Failed. Do not patch the local workflow record manually. After
+manual unlock, choose this retained target and **Qualify / reconcile full P1
+digest (development only)** to record the existing failure without replay.
+
+Final Azure readback confirms all seven trial VMs deallocated and all five
+Flexible Servers Stopped. Existing graphs, source data and raw evidence remain
+retained; storage charges continue. The new verifier failure evidence is in
+[the redacted receipt](evidence/az-pgvm-p1-failed-20260914.json).
+
+## Corrective migration proposal — not executed
+
+The [corrected 18-mapping fixture](fixtures/postgresql-p1-mappings.json) includes
+all frozen P1 properties. Unit tests generate the PostgreSQL queries from this
+exact fixture and confirm the required projection. It has not been applied to
+the GUI workflow or target graph.
+
+After approval of a corrective run, preserve this job, graph, fingerprint and
+failed verifier. Use a separately reviewed source draft and fresh create-only
+migration job/graph, not an in-place property patch or replay. Refresh the
+unchanged USD 800 / September 16 deadline and live safety gates, confirm source
+container/TLS health, and run complete inventory again because the projection
+and its fingerprint change. Follow the GUI deployment/migration approval flow,
+then require strict counts and all 64 full canonical ranges/root to pass before
+qualification. Mapping repair alone is not proof of a future successful run.

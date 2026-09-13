@@ -110,6 +110,7 @@ export function buildSourceDraft(selection: SourceSelection, raw: unknown, workf
       if (names.has(mapping.label)) throw new Error("Use a unique label for each mapping, including vertex and edge labels.");
       names.add(mapping.label);
       const props = properties(mapping.properties, type);
+      if (!Object.values(props.properties).includes(type === "cosmos-nosql" ? pointer(mapping.identity) : mapping.identity)) warnings.push(`${mapping.label}: the stable ID field is used for identity only, not copied to graph properties. Explicitly map it as a property if graph queries or full source comparison require it.`);
       const built: Record<string, unknown> = { label: mapping.label, properties: props.properties };
       const field = (v: string) => type === "cosmos-nosql" ? pointer(v) : v;
       if (mapping.kind === "vertex") built[type === "csv" ? "idColumn" : "idField"] = field(mapping.identity);
