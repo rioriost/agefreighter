@@ -2,7 +2,7 @@ import { runnerHTML } from "./core/runnerView";
 import * as vscode from "vscode";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
 import { AzureSession } from "./guided/azure";
-import { object, parseRunnerInput, previewHash, releaseArtifact, RunnerRecord, runnerNames, runnerTemplate, sourceWorkflowDraft } from "./core/runner";
+import { object, parseRunnerInput, previewHash, releaseArtifact, retainDraftSetup, RunnerRecord, runnerNames, runnerTemplate, sourceWorkflowDraft } from "./core/runner";
 import { preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunner } from "./core/runnerLifecycle";
 import { RunnerLockedError, RunnerStore } from "./guided/runnerStore";
 import { basename, join } from "node:path";
@@ -153,7 +153,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             if (ratesNow.length !== 1 || !Number.isFinite(ratesNow[0]!.hourlyUSD) || ratesNow[0]!.hourlyUSD <= 0) throw new Error("A unique current Linux compute price is unavailable. Deployment is blocked.");
             const hourlyComputeUSD = ratesNow[0]!.hourlyUSD;
             const template = runnerTemplate(id, input, artifact, bootstrapPublicKey());
-            const record: RunnerRecord = { schemaVersion: 2, id, phase: "previewed", input, artifact, ...runnerNames(id, input), template,
+            let record: RunnerRecord = { schemaVersion: 2, id, phase: "previewed", input, artifact, ...runnerNames(id, input), template,
               previewHash: previewHash(template, input, hourlyComputeUSD), expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
               updatedAt: new Date().toISOString(), hourlyComputeUSD };
             if (!draft && input.source.type === "csv") record.sourceFiles = pendingCSV;
@@ -161,11 +161,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             const reviewed = await store.exclusive(id, async () => {
               if (draft) {
                 const latest = await store.read(id);
-                if (latest.phase !== "draft" || JSON.stringify(latest.input.source) !== JSON.stringify(input.source)) throw new Error("This draft changed in another window. Review it again.");
-                record.sourceDraft = latest.sourceDraft; record.sourceFiles = latest.sourceFiles;
-                record.storageDeployment = latest.storageDeployment; record.reportTransfers = latest.reportTransfers;
-                record.csvTransfers = latest.csvTransfers;
-                record.developmentUpload = latest.developmentUpload;
+                record = retainDraftSetup(record, latest);
               }
               await control.persist(record); return record;
             });

@@ -76,6 +76,18 @@ export interface RunnerRecord {
   targetRestart?: {phase:"submitted"|"unknown"|"finished";submittedAt:string};
 }
 
+/** Carry source trust and transfer evidence into a new, separately reviewed VM preview. */
+export function retainDraftSetup(preview: RunnerRecord, draft: RunnerRecord): RunnerRecord {
+  if (draft.id !== preview.id || draft.phase !== "draft" ||
+    JSON.stringify(draft.input.source) !== JSON.stringify(preview.input.source)) {
+    throw new Error("This draft changed in another window. Review it again.");
+  }
+  return { ...preview, sourceDraft: draft.sourceDraft, sourceCA: draft.sourceCA,
+    sourceFiles: draft.sourceFiles, storageDeployment: draft.storageDeployment,
+    reportTransfers: draft.reportTransfers, csvTransfers: draft.csvTransfers,
+    developmentUpload: draft.developmentUpload };
+}
+
 /** Local-only draft. Blank artifact/template fields are never deployable. */
 export function sourceWorkflowDraft(id: string, input: RunnerInput): RunnerRecord {
   return { schemaVersion: 2, id, phase: "draft", input, artifact: { version: "", sha256: "", url: "" }, ...runnerNames(id, input), template: {}, previewHash: "", expiresAt: "", updatedAt: new Date().toISOString(), hourlyComputeUSD: 0 };

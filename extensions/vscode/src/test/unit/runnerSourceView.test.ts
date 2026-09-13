@@ -55,6 +55,22 @@ test("edits invalidate review, CSV cannot assess, and Gremlin toggles mapping co
   v.send({ kind: "review", draft: { canAssess: true, warnings: [], configuration: {} } }); assert.equal(v.el("assess").disabled, false);
   v.el("host").trigger("change"); assert.equal(v.el("assess").disabled, true); assert.equal(v.el("reviewSection").hidden, true);
 });
+test("CA selection preserves unsaved connection and mapping edits while invalidating approval", () => {
+  const v = view();
+  v.send({ kind: "init", type: "postgresql", location: "azure", form: sourceForm, canStart: true, inventoryReady: true });
+  v.send({ kind: "busy", value: false });
+  v.el("database").value = "unsaved_database";
+  v.el("addVertex").trigger("click");
+  v.send({ kind: "review", draft: { canAssess: true, warnings: [], configuration: {} } });
+  assert.equal(v.el("inventory").disabled, false);
+  v.send({ kind: "sourceCA", sourceCA: { name: "new.pem", bytes: 1513, sha256: "b".repeat(64) } });
+  assert.equal(v.el("database").value, "unsaved_database");
+  assert.equal(v.el("inventory").disabled, true);
+  assert.equal(v.el("reviewSection").hidden, true);
+  assert.match(v.el("sourceCA").textContent, /new\.pem.*1513/);
+  v.el("review").trigger("click");
+  assert.equal(v.messages.at(-1).form.mappings.length, sourceForm.mappings.length + 1);
+});
 test("active operations disable starts while retaining status refresh", () => {
   const v = view(); v.send({ kind: "init", type: "neo4j", location: "on-premises", form: sourceForm }); v.send({ kind: "busy", value: false });
   v.send({ kind: "review", draft: { canAssess: true, warnings: [], configuration: {} } });

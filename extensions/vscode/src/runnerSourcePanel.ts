@@ -192,10 +192,15 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
             const current = await store.read(workflow);
             if (assessmentActive(current)) throw new Error("The source already has a retained operation.");
             const updated: RunnerRecord = { ...current, sourceCA };
-            delete updated.sourceDraft;
+            // Rebind persisted settings, but require a new in-window review.
+            if (current.sourceDraft) updated.sourceDraft = buildSourceDraft(current.input.source,
+              current.sourceDraft.form, workflow, current.sourceFiles, sourceCA);
             await store.write(updated); return updated;
           });
-          reviewedHash = undefined; await initialize(next); break;
+          reviewedHash = undefined;
+          await post({ kind: "sourceCA", sourceCA: { name: next.sourceCA!.name,
+            bytes: next.sourceCA!.bytes, sha256: next.sourceCA!.sha256 } });
+          break;
         }
         case "review": {
           const next = await store.exclusive(workflow, async () => {

@@ -4,7 +4,7 @@ import { Script } from "node:vm";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertFreshPreview, bootstrapScript, object, parseRunnerInput, previewHash, releaseArtifact, RunnerInput, RunnerRecord, runnerNames, runnerTemplate, sourceLocations, sourceWorkflowDraft, validateWhatIf } from "../../core/runner";
+import { assertFreshPreview, bootstrapScript, object, parseRunnerInput, previewHash, releaseArtifact, retainDraftSetup, RunnerInput, RunnerRecord, runnerNames, runnerTemplate, sourceLocations, sourceWorkflowDraft, validateWhatIf } from "../../core/runner";
 import { deploymentResources, preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunner } from "../../core/runnerLifecycle";
 import { runnerHTML } from "../../core/runnerView";
 import { RunnerLockedError, RunnerStore } from "../../guided/runnerStore";
@@ -29,6 +29,19 @@ function record(): RunnerRecord {
   return { schemaVersion: 2, id, phase: "previewed", input: structuredClone(input), artifact, ...runnerNames(id, input), template,
     hourlyComputeUSD: .1, previewHash: previewHash(template, input, .1), expiresAt: new Date(Date.now() + 600_000).toISOString(), updatedAt: new Date().toISOString() };
 }
+test("VM preview retains draft CA binding but cannot copy a changed source or active run", () => {
+  const draft = sourceWorkflowDraft(id, input), preview = record();
+  draft.sourceCA = { path: "/private/root.pem", name: "root.pem", bytes: 1513, sha256: "b".repeat(64) };
+  const next = retainDraftSetup(preview, draft);
+  assert.deepEqual(next.sourceCA, draft.sourceCA);
+  assert.equal(next.phase, "previewed");
+  assert.equal(next.previewHash, preview.previewHash);
+  assert.equal(draft.phase, "draft");
+  assert.throws(() => retainDraftSetup(preview, { ...draft, id: "other" }), /changed/);
+  assert.throws(() => retainDraftSetup(preview, { ...draft, phase: "provisioned" }), /changed/);
+  assert.throws(() => retainDraftSetup(preview, { ...draft, input: { ...draft.input,
+    source: { type: "postgresql", location: "azure" } } }), /changed/);
+});
 function fixture() {
   const events: string[] = [];
   const saved: RunnerRecord[] = [];
