@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM — migration and strict counts PASS; full digest awaits approval
+### AZ-PGVM — migration and strict counts PASS; full digest running
 
 The installed GUI selected the PostgreSQL VM through Azure discovery and saved
 the TLS-verified source configuration with all 18 P1 mappings. The approved
@@ -22,9 +22,9 @@ preserved. Post-boot readiness passed; the GUI submitted new migration
 the [execution sheet](az-pgvm-execution-20260913.md).
 Migration and strict counts passed: all 5.6M records, zero rejects, all 24 checks,
 no incomplete checks. The GUI imported the verified report. The independent
-full P1 verifier has been reviewed but not executed; action-time approval was
-requested. Source and runner VMs are deallocated; the target is Stopped.
-All data and guest evidence remain preserved while waiting.
+full P1 verifier was approved and submitted at 2026-09-13T22:54:07Z as operation
+`c0efdd7b-fd18-49db-a872-bbd29d1736c2`, on the same runner and retained graph.
+Only the runner and target are running; the source remains deallocated.
 Coverage stays 3/9 until all 64 canonical ranges and the root match.
 
 ### AZ-N526 qualification — PASS at 13:16Z

@@ -2,7 +2,7 @@
 
 Status: complete GUI source inventory passed and its hash-verified report is
 imported. Private target, same-VM resize, migration and strict counts verification
-passed. Full P1 verification awaits approval; this path is not yet qualified.
+passed. Approved full P1 verification is running; this path is not yet qualified.
 
 ## Retained setup
 
@@ -189,7 +189,25 @@ the frozen canonical root before marking AZ-PGVM qualified.
 
 ## Remaining qualification
 
-After the separately requested verifier approval, compare all 5,600,000 typed
+The user authorized the reviewed verifier on September 14 JST. At
+2026-09-13T22:54:07Z the installed GUI submitted read-only qualification
+`c0efdd7b-fd18-49db-a872-bbd29d1736c2` for the same retained migration job.
+Only the existing runner and target were restarted; the source remains
+deallocated. A retained N44 target found Ready was stopped again. Post-boot
+health passed with 3.52% disk use and zero swap/OOM. Storage still requires
+authenticated HTTPS, with anonymous access and shared keys disabled. Recent
+policy audit failures concern missing permissions for the policy evaluator to
+read private endpoint connections, not a configuration change; no policy-modify
+event or resource lock was found. Cost API calls were throttled (429); the last
+billed baseline was USD 20.71 for September 12/13, with billing lag, not a final
+total. The retained USD 400 reserve, USD 800 ceiling and September 16 deadline
+are unchanged. Extension typechecking and all 167 tests passed again.
+One older completed readiness receipt was archived (SHA-256
+`90729bba85165deef6f9df037766d8b65c714d425d3461bcea8b95e2d9ce18c3`)
+before removing only its Azure command entry to retain capacity for result
+export and final health checks. No guest evidence or data was deleted.
+
+Monitor the submitted verifier; do not replay it. Compare all 5,600,000 typed
 records across 64 canonical ranges, import the result through the GUI, retain
 evidence and stop compute. Target creation, resize, migration and exact counts
 are complete and must not be replayed. Counts alone are not full qualification.
