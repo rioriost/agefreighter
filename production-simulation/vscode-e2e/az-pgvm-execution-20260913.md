@@ -1,8 +1,8 @@
 # AZ-PGVM guided P1 execution
 
 Status: complete GUI source inventory passed and its hash-verified report is
-imported. Private target and same-VM resize are complete; migration is submitted.
-This path is not qualified.
+imported. Private target, same-VM resize, migration and strict counts verification
+passed. Full P1 verification awaits approval; this path is not yet qualified.
 
 ## Retained setup
 
@@ -147,10 +147,49 @@ passed on the new boot with 3.50% disk use and zero swap/OOM. At 13:59:55Z the
 installed GUI approved and submitted new migration
 `12a2462e-e5a3-4368-a356-54e292650051`, using the pinned `2fd3aa4c157f`
 runner, unchanged source inventory/mappings and the existing read-only source
-credential through protected transport. Counts and full digest remain pending.
+credential through protected transport.
+
+The strict `verify` artifact was generated at 14:04:57Z and imported/displayed
+in VS Code at 14:08Z. It passes all 24 checks, all 18 exact label counts,
+physical/identity equality, generation ownership and configuration checks.
+There are exactly 1,600,000 vertices, 4,000,000 edges and zero rejects, with no
+errors or incomplete checks. This is not yet a full property-digest pass.
+The 9,617-byte report SHA-256 is
+`b74fda5ee5f05ebe7a2b0dc79e7bb595281f2fe43bb0fd490a55642c2628bb9b`;
+configuration fingerprint is
+`17406fc8ae263a5a2b06cac197a1cfbfde7681a35958f079265c76e67de60d46`.
+Submission-to-verification-artifact time is about five minutes, not an isolated
+loader throughput measurement.
+
+Post-load GUI health is idle, disk 3.52%, swap zero and boot OOM events zero.
+Azure Monitor target storage peaked at 13.893% through 14:10Z. There are no
+failed or policy-modify activity events after migration submission in the
+checked interval. Two additional completed readiness ARM command receipts were
+archived with checksums before removing their management entries (24 → 22
+entries); raw guest operation directories and all data remain retained.
+Archive SHA-256 values are
+`ac528b306b31f42557b6169869208d2129613526183f66ae4c643ed940b44362`
+and `d2bffd3be4933e17aef469fc568b4c0a3ff53102014d45ff890643982a61ef8d`.
+
+The GUI reviewed the same independent P1 verifier used by the prior qualified
+routes: commit `19026db1930a7893ac4fb30f8647e1c277fe9920`, archive SHA-256
+`8e9bf7ec6c37aa06b5aa49fd204663c0abd723c06eda8655631e9d2f776d2c49`.
+Execution on this runner awaits the user's action-time approval. The native
+dialog was cancelled without submitting or uploading the verifier. Its
+`p1Qualification` remains absent. Both the source and runner VMs are confirmed
+deallocated and the target is Stopped to avoid idle compute charges while
+waiting. The other five VMs and four Flexible Servers remain stopped. Storage
+charges continue; Flexible Server can automatically restart after seven days.
+
+After approval, start only this existing runner and target, reconcile their
+live state, refresh budget/governance and same-artifact idle guest readiness,
+then reopen the full P1 verifier action for this same job. Do not replay the
+migration or replace its graph. Compare all 5.6M records and all 64 ranges with
+the frozen canonical root before marking AZ-PGVM qualified.
 
 ## Remaining qualification
 
-Reconcile private target deployment and AGE readiness; resize the same runner; migrate;
-verify exact counts and all 5,600,000 records across 64 canonical ranges; retain
-evidence and stop compute. Headless preparation is not GUI qualification.
+After the separately requested verifier approval, compare all 5,600,000 typed
+records across 64 canonical ranges, import the result through the GUI, retain
+evidence and stop compute. Target creation, resize, migration and exact counts
+are complete and must not be replayed. Counts alone are not full qualification.
