@@ -12,6 +12,11 @@ test -s "$evidence/source.json"
 test -s "$evidence/counts.tsv"
 test -s "$evidence/container-security.json"
 test -s "$evidence/tls-readonly.txt"
+# Retained preparation-time TLS success does not prove the certificate is valid now.
+openssl x509 -in "$work/tls/server.crt" -noout -dates -fingerprint -sha256
+openssl verify -CAfile "$work/tls/ca.crt" "$work/tls/server.crt"
+openssl x509 -in "$work/tls/server.crt" -noout -checkhost postgres18.azpgvm.internal
+openssl x509 -in "$work/tls/server.crt" -noout -checkend 345600
 
 jq -c '{schemaVersion,preparedAt,source,postgresqlImage,tlsArchiveSHA256,rows,vertices,edges,readOnlyRole,publicIP}' \
   "$evidence/source.json"
@@ -24,9 +29,11 @@ sha256sum "$evidence/source.json" "$evidence/counts.tsv" \
 
 docker inspect "$container" | jq -c '.[0] | {
   image: .Config.Image,
-  passwordEnvironment: [.Config.Env[] | select(startswith("POSTGRES_PASSWORD"))],
+  running: .State.Running,
+  passwordEnvironment: [.Config.Env[] | select(startswith("POSTGRES_PASSWORD")) | split("=")[0]],
   secretMounts: [.Mounts[] | select(.Destination == "/run/secrets/postgres-password") | .Destination]
 }'
+test "$(docker inspect --format '{{.State.Running}}' "$container")" = true
 test ! -e "$work/postgres-init-password"
 
 disk_used=$(df -P "$work" | awk 'NR == 2 {gsub(/%/, "", $5); print $5}')

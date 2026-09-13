@@ -2,13 +2,17 @@
 
 Updated: 2026-09-13. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM — storage created; transfer-network and artifact gates pending
+### AZ-PGVM — runner deployed; expired fixture certificate recovery
 
 The installed GUI selected the PostgreSQL VM through Azure discovery and saved
 the TLS-verified source configuration with all 18 P1 mappings. The approved
-dedicated storage and account-scoped user role are created, but Azure Policy
-modified public network access to Disabled. Network-exemption and pinned test
-artifact approvals remain pending. All existing VMs remain deallocated. See
+dedicated storage and pinned development artifact approvals were applied. The
+source and discovery runner are running; the other five VMs and all four old
+Flexible Servers are stopped/deallocated. CA persistence defects were fixed,
+tested and installed before the GUI started complete source inventory. That
+attempt failed during initialization; the retained source server certificate
+had expired on September 9. Certificate renewal and a separately approved,
+evidence-preserving fresh-attempt path are being verified. See
 the [execution sheet](az-pgvm-execution-20260913.md).
 Migration and full canonical verification have not started; coverage stays 3/9.
 
