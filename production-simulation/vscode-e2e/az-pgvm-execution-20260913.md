@@ -1,9 +1,7 @@
 # AZ-PGVM guided P1 execution
 
-Status: approved storage and pinned runner are deployed; first GUI inventory
-failed during initialization. The stopped source container and expired fixture
-TLS certificate are repaired; explicit evidence-preserving retry is next.
-This path is not qualified.
+Status: complete GUI source inventory passed and its hash-verified report is
+imported. Private target review is next. This path is not qualified.
 
 ## Retained setup
 
@@ -113,9 +111,21 @@ The preflight script now requires a running container and a certificate valid
 for the next 96 hours, rather than treating retained preparation-time TLS
 evidence as current connectivity proof.
 
+The GUI retained the failed operation in history, reviewed unchanged source
+settings and explicitly started new inventory
+`1ae33ad6-789f-4705-ac91-af36b60ae6aa`. It passed at 13:25:04Z: all 1,600,000
+vertices, 4,000,000 edges and 18 exact label counts, zero errors, one complete
+repeatable-read stream. Decoded mapped-record bytes are 458,398,000; the sizing
+range is 3,008,790,000–8,567,972,000 bytes before additional target headroom.
+The 2,944-byte report was exported and hash-verified in the installed GUI:
+`044b34352a83bbdca3bfd8a257da3162a5f3f8ece9a61634434d3750643e3b02`.
+Five completed runner diagnostic command resources were likewise archived with
+checksums before removing only their Azure management entries, freeing slots
+for migration/verification. Their guest operation data and all source/target
+data remain retained.
+
 ## Remaining qualification
 
-Finish and import the complete mapped inventory;
-review capacity and private target deployment; resize the same runner; migrate;
+Review capacity and private target deployment; resize the same runner; migrate;
 verify exact counts and all 5,600,000 records across 64 canonical ranges; retain
 evidence and stop compute. Headless preparation is not GUI qualification.

@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM — runner deployed; expired fixture certificate recovery
+### AZ-PGVM — complete GUI inventory passed; private target review next
 
 The installed GUI selected the PostgreSQL VM through Azure discovery and saved
 the TLS-verified source configuration with all 18 P1 mappings. The approved
@@ -10,9 +10,11 @@ dedicated storage and pinned development artifact approvals were applied. The
 source and discovery runner are running; the other five VMs and all four old
 Flexible Servers are stopped/deallocated. CA persistence defects were fixed,
 tested and installed before the GUI started complete source inventory. That
-attempt failed during initialization; the retained source server certificate
-had expired on September 9. Certificate renewal and a separately approved,
-evidence-preserving fresh-attempt path are being verified. See
+attempt failed during initialization: the source container was stopped and its
+certificate had expired. Both are repaired without changing data or disabling
+TLS checks. The explicit fresh attempt passed all 1.6M vertices, 4M edges and
+18 label counts; its hash-verified report is imported. Private target review
+is next. See
 the [execution sheet](az-pgvm-execution-20260913.md).
 Migration and full canonical verification have not started; coverage stays 3/9.
 
