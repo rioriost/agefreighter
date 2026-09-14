@@ -1,7 +1,8 @@
 # AZ-PGVM corrective GUI attempt
 
-Status: local source draft reviewed; new transfer storage/access grant awaits
-action-time user approval. No Azure mutation or source read this turn.
+Status: local source draft reviewed; transfer storage and scoped user role are
+created. Transfer is blocked by the effective Disabled public network setting.
+No source read, new runner or target deployment, or migration has started.
 
 ## Preserved original
 
@@ -43,13 +44,32 @@ No password was entered or reset. No source read or migration has started.
 
 ## Current approval boundary
 
-The installed GUI displays its native approval for new account
+The installed GUI displayed its native approval for new account
 `af22f11b89e9434d56967573` and **Storage Blob Data Contributor for the signed-in
 Azure user on that new account only**. The proposed authenticated HTTPS
 endpoint is network-public; anonymous access and shared keys are disabled.
 The source remains private. Standard LRS storage/request/egress charges apply.
-The confirmation has not been accepted. This account and grant did not exist
-in the saved draft's state; no storage deployment has been submitted.
+The user approved this operation. The next observation already found the GUI
+state submitted, so no duplicate submission was attempted. Azure deployment
+completion is `2026-09-14T00:43:53.922411Z`; the scoped user role and private
+container both succeeded. GUI read-only reconciliation now reports
+`ready — public network: Disabled (provisioning is not transfer readiness)`.
+
+Effective settings are HTTPS-only, TLS 1.2 minimum, anonymous blob access false,
+shared-key access false and public network access Disabled. The role readback
+confirms Storage Blob Data Contributor for the intended user at this new
+account scope only. Successful policy-modify events occurred during creation
+(00:43:18–00:43:24Z); the deployed template requested Enabled but the actual
+account is Disabled. Do not treat provisioning success as upload readiness.
+No upload or access-control override was attempted.
+
+The next decision is whether to apply the previously used organizational
+`SecurityControl=Ignore` tag **to this new trial storage account only** and
+enable its authenticated HTTPS public network. This changes policy treatment
+and network isolation and therefore awaits separate explicit approval. Do not
+change the resource group, source firewall, anonymous/shared-key controls or
+other resources. After approval, inspect the resulting settings and policy
+activity and verify authenticated data access before continuing.
 
 The renewed USD 800 ceiling and `2026-09-16T07:14:35.311Z` deadline are unchanged.
 The read-only Cost Management refresh returned HTTP 429 again; no fresh actual
@@ -57,9 +77,8 @@ total is claimed. Existing seven VMs are deallocated and five Flexible Servers
 Stopped. No resource-group locks, failed activity events or policy-modify
 events were returned for the checked interval starting September 13 23:00 UTC.
 
-After approval, create/reconcile only this scoped storage; inspect live policy
-effects before any transfer. A policy-disabled network must not be silently
-re-enabled. Prepare the pinned qualification runner through the existing GUI
+After this new approval, inspect live policy effects before any transfer.
+A policy-disabled network must not be silently re-enabled. Prepare the pinned qualification runner through the existing GUI
 approval flow, deploy the private runner, validate guest and source health,
 and perform a new complete inventory for the changed projection. Continue
 through reviewed target deployment, same-VM resize, create-only migration,
