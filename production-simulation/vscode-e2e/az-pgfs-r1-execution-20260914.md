@@ -3,7 +3,8 @@
 Status: source configuration saved and reviewed in the installed VS Code GUI.
 The user approved dedicated storage; its deployment and artifact upload passed.
 Runner placement passed after the region-name fix below; the installed GUI
-submitted the private discovery VM deployment once. Guest readiness is pending.
+submitted the private discovery VM deployment once. Guest readiness passed;
+the complete inventory is awaiting private source-password entry in VS Code.
 No assessment, migration or target deployment has started. Overall qualified
 route coverage remains 5/9.
 
@@ -91,3 +92,13 @@ No public IP, SSH ingress, peering or source firewall change was requested.
 The VM identity receives Blob Reader only on the synthetic-test artifact
 container. At this stage the agent was still initializing; ARM VM creation
 is not evidence of guest readiness or successful assessment.
+
+Cloud-init subsequently reported done with the runner tools present. The GUI
+readiness result at `2026-09-14T09:22:35.060Z` confirms the pinned artifact,
+the native PostgreSQL floating-point capability, an idle runner, 3.5079% disk
+usage, zero swap and zero OOM events. The saved 18 mappings were reviewed again.
+The approved complete-inventory action is paused at **Read-only source password**
+for the retained Flexible Server's `agefreighter_reader` account. No password
+was read into this conversation and no source assessment has yet been dispatched.
+Only this new runner and the AZ-PGFS source are running; old route resources
+remain preserved and stopped/deallocated. The budget and deadline are unchanged.
