@@ -3,6 +3,7 @@ import { object, RunnerRecord, validateWhatIf } from "./runner";
 import { extractCapacityEvidence, extractInventoryEvidence } from "./guided";
 import { csvAssessmentReady } from "./runnerCSV";
 import { existingGroupResources, RunnerControl } from "./runnerLifecycle";
+import { assertIdleHealth } from "./runnerGuest";
 
 export interface TargetEvidence {
   operation: string; reportSHA256: string; configurationSHA256: string;
@@ -23,6 +24,7 @@ export interface RunnerTarget {
   input: TargetInput; evidence: TargetEvidence; template: Record<string,unknown>;
   deploymentId: string; serverId: string; subnetId: string; dnsId: string;
   hash: string; expiresAt: string; generatedAt: string;
+  configurationRepair?: {phase:"submitted"|"unknown"|"finished";submittedAt:string;originalDeploymentState:"Failed";failureCode:"ServerIsBusy";resourceId:string;previousValue:string;desiredValue:string};
 }
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const sha = /^[a-f0-9]{64}$/;
@@ -150,7 +152,10 @@ export function targetPreview(record: RunnerRecord, input: TargetInput, evidence
       {type:"Microsoft.Network/privateDnsZones/virtualNetworkLinks",apiVersion:"2024-06-01",name:`${dnsName}/runner`,location:"global",tags,dependsOn:[dnsId],properties:{registrationEnabled:false,virtualNetwork:{id:vnetId}}},
       {type:"Microsoft.DBforPostgreSQL/flexibleServers",apiVersion:"2024-08-01",name:input.serverName,location:record.input.region,tags,dependsOn:[subnetId,`${dnsId}/virtualNetworkLinks/runner`],sku:{name:input.postgresSKU,tier:input.postgresTier},properties:{version:"18",createMode:"Default",administratorLogin:"afadmin",administratorLoginPassword:"[parameters('administratorPassword')]",availabilityZone:record.input.zone,storage:{storageSizeGB:input.storageGiB,autoGrow:"Disabled"},backup:{backupRetentionDays:7,geoRedundantBackup:"Disabled"},highAvailability:{mode:"Disabled"},network:{publicNetworkAccess:"Disabled",delegatedSubnetResourceId:subnetId,privateDnsZoneArmResourceId:dnsId},authConfig:{passwordAuth:"Enabled",activeDirectoryAuth:"Disabled"}}},
       {type:"Microsoft.DBforPostgreSQL/flexibleServers/databases",apiVersion:"2024-08-01",name:`${input.serverName}/agefreighter`,dependsOn:[serverId],properties:{charset:"UTF8",collation:"en_US.utf8"}},
-      ...[["azure.extensions","AGE"],["shared_preload_libraries","pg_stat_statements,age"]].map(([name,value])=>({type:"Microsoft.DBforPostgreSQL/flexibleServers/configurations",apiVersion:"2024-08-01",name:`${input.serverName}/${name}`,dependsOn:[serverId],properties:{value,source:"user-override"}}))
+      // Flexible Server rejects concurrent child writes with ServerIsBusy.
+      // Order database -> extension allow-list -> preload; external operations
+      // can still contend, so a failed deployment must never be auto-replayed.
+      ...[["azure.extensions","AGE",`${serverId}/databases/agefreighter`],["shared_preload_libraries","pg_stat_statements,age",`${serverId}/configurations/azure.extensions`]].map(([name,value,after])=>({type:"Microsoft.DBforPostgreSQL/flexibleServers/configurations",apiVersion:"2024-08-01",name:`${input.serverName}/${name}`,dependsOn:[after],properties:{value,source:"user-override"}}))
     ]};
   const generatedAt=new Date().toISOString(), expiresAt=new Date(Date.now()+900000).toISOString();
   const plan={phase:"previewed" as const,input,evidence,template,deploymentId:`${base}/providers/Microsoft.Resources/deployments/afpg-${suffix}`,serverId,subnetId,dnsId,generatedAt,expiresAt};
@@ -200,8 +205,58 @@ export async function submitTarget(control:RunnerControl,record:RunnerRecord,pas
 }
 export async function refreshTarget(control:RunnerControl,record:RunnerRecord):Promise<RunnerRecord>{
   const p=record.target;if(!p || p.phase==="previewed")return record;
+  if(p.configurationRepair?.phase==="finished")return record;
+  if(p.configurationRepair)return repairBusyTargetPreload(control,record);
   const response=await control.request(record.input.subscriptionId,`${p.deploymentId}?api-version=2022-09-01`);
   const state=response.status===404?undefined:object(object(response.value).properties).provisioningState;
   const phase=state==="Succeeded"?"provisioned":["Failed","Canceled"].includes(String(state))?"failed":["Running","Accepted"].includes(String(state))?"submitted":"unknown";
   const next:RunnerRecord={...record,target:{...p,phase}};await control.persist(next);return next;
+}
+
+/** Narrow operator recovery, not deployment retry. Only the single failed
+ * preload child can be updated once. Retain the original failed deployment,
+ * never create resources, retrieve/reset credentials or replay target creation.
+ * Reconciliation after any acknowledgement loss is GET-only. */
+export async function repairBusyTargetPreload(control:RunnerControl,r:RunnerRecord,approved=false):Promise<RunnerRecord>{
+  const p=r.target;
+  if(!p || (!p.configurationRepair && p.phase!=="failed") || r.migration || r.resize || r.upgrade && r.upgrade.phase!=="finished" || r.guestCommand && ["submitted","unknown"].includes(r.guestCommand.phase))throw new Error("Repair only a failed pre-migration target after reconciling guest operations.");
+  targetBudget(p.input);
+  if(!r.sourceDraft?.canAssess || hash(r.sourceDraft.configuration)!==p.evidence.configurationSHA256 || r.artifact.sha256!==p.evidence.artifactSHA256 || r.assessment?.phase!=="finished" || r.assessment.reportSHA256!==p.evidence.reportSHA256)throw new Error("Source or artifact evidence changed before repair.");
+  const {hash:retained,configurationRepair,...original}=p;
+  if(hash({...original,phase:"previewed"})!==retained)throw new Error("Original reviewed target plan changed; repair is blocked.");
+  const sub=r.input.subscriptionId,resourceId=`${p.serverId}/configurations/shared_preload_libraries`,desired="pg_stat_statements,age";
+  if(configurationRepair && (configurationRepair.resourceId!==resourceId || configurationRepair.desiredValue!==desired || configurationRepair.failureCode!=="ServerIsBusy" || configurationRepair.originalDeploymentState!=="Failed"))throw new Error("Retained repair identity changed.");
+  const deployment=await control.request(sub,`${p.deploymentId}?api-version=2022-09-01`);
+  if(deployment.status!==200 || object(object(deployment.value).properties).provisioningState!=="Failed")throw new Error("Original failed deployment evidence changed or is unavailable.");
+  const operations=await control.list(sub,`${p.deploymentId}/operations?api-version=2022-09-01`),expected=new Set(targetResourceIds(p).map(x=>x.toLowerCase())),seen=new Set<string>();
+  if(operations.length!==expected.size)throw new Error("Review all original target deployment operations before repair.");
+  for(const entry of operations){
+    const op=object(object(entry).properties),id=String(object(op.targetResource).id).toLowerCase();
+    if(!expected.has(id) || seen.has(id))throw new Error("Unexpected or duplicate deployment operation blocks repair.");seen.add(id);
+    if(id===resourceId.toLowerCase()){
+      if(op.provisioningState!=="Failed" || object(object(op.statusMessage).error).code!=="ServerIsBusy")throw new Error("Only a retained ServerIsBusy preload failure is repairable.");
+    }else if(op.provisioningState!=="Succeeded")throw new Error("Other failed or unfinished target resources require separate review.");
+  }
+  const response=await control.request(sub,`${p.serverId}?api-version=2024-08-01`),server=object(response.value),props=object(server.properties),net=object(props.network),tags=object(server.tags);
+  if(response.status!==200 || tags.application!=="agefreighter" || tags.workflow!==r.id || tags.purpose!=="migration-target" || String(server.location).replace(/\s/g,"").toLowerCase()!==r.input.region || props.availabilityZone!==r.input.zone || props.version!=="18" || object(server.sku).name!==p.input.postgresSKU || object(props.storage).storageSizeGB!==p.input.storageGiB || net.publicNetworkAccess!=="Disabled" || String(net.delegatedSubnetResourceId).toLowerCase()!==p.subnetId.toLowerCase() || String(net.privateDnsZoneArmResourceId).toLowerCase()!==p.dnsId.toLowerCase())throw new Error("Target ownership, placement, capacity or private network changed.");
+  if(props.state!=="Ready"){
+    if(configurationRepair && ["Updating","Starting","Restarting"].includes(String(props.state)))return r;
+    throw new Error("Wait for the existing target to become Ready before repair.");
+  }
+  const db=await control.request(sub,`${p.serverId}/databases/agefreighter?api-version=2024-08-01`),extensions=await control.request(sub,`${p.serverId}/configurations/azure.extensions?api-version=2024-08-01`),preload=await control.request(sub,`${resourceId}?api-version=2024-08-01`),config=object(object(preload.value).properties);
+  if(db.status!==200 || extensions.status!==200 || object(object(extensions.value).properties).value!=="AGE" || preload.status!==200 || typeof config.isConfigPendingRestart!=="boolean")throw new Error("Target database or approved AGE settings are missing or changed.");
+  if(configurationRepair){
+    if(config.value!==desired)return r; // No automatic retry, even after failure.
+    const next:RunnerRecord={...r,target:{...p,phase:"provisioned",configurationRepair:{...configurationRepair,phase:"finished"}}};await control.persist(next);return next;
+  }
+  if(!approved)return r;
+  assertIdleHealth(r);targetBudget(p.input);
+  if(config.source!=="system-default" || typeof config.defaultValue!=="string" || config.value!==config.defaultValue || config.isConfigPendingRestart!==false)throw new Error("Preload is no longer the unchanged system default; do not overwrite it.");
+  const repair:NonNullable<RunnerTarget["configurationRepair"]>={phase:"submitted",submittedAt:new Date().toISOString(),originalDeploymentState:"Failed",failureCode:"ServerIsBusy",resourceId,previousValue:String(config.value),desiredValue:desired};
+  let next:RunnerRecord={...r,target:{...p,configurationRepair:repair}};await control.persist(next);
+  try{
+    const result=await control.request(sub,`${resourceId}?api-version=2024-08-01`,"PUT",{properties:{value:desired,source:"user-override"}});
+    if(result.status<200 || result.status>=300)throw new Error();
+  }catch{next={...next,target:{...next.target!,configurationRepair:{...repair,phase:"unknown"}}};await control.persist(next);}
+  return next;
 }

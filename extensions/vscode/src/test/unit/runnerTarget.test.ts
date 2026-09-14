@@ -3,7 +3,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { sourceWorkflowDraft, RunnerRecord } from "../../core/runner";
-import { csvTargetEvidence, mappedNetworkTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, renewTargetAuthorization, submitTarget, refreshTarget, targetResourceIds, TargetInput } from "../../core/runnerTarget";
+import { csvTargetEvidence, mappedNetworkTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, renewTargetAuthorization, submitTarget, refreshTarget, targetResourceIds, TargetInput, repairBusyTargetPreload } from "../../core/runnerTarget";
 import { RunnerControl } from "../../core/runnerLifecycle";
 const id="11111111-1111-4111-8111-111111111111",op="22222222-2222-4222-8222-222222222222",file="33333333-3333-4333-8333-333333333333";
 const sha=(v:string)=>createHash("sha256").update(v).digest("hex");
@@ -112,4 +112,80 @@ test("target deployment persists once, carries secrets only in ARM secure parame
   await assert.rejects(submitTarget(control,next,password,async()=>{}));
   const before=events.length;await refreshTarget(control,next);assert.deepEqual(events.slice(before),["GET","persist"]);
   completed=true;assert.equal((await refreshTarget(control,next)).target?.phase,"provisioned");
+});
+
+test("target children serialize database, AGE allow-list and preload writes",()=>{
+  const {r,text,input}=fixture(),p=targetPreview(r,input,csvTargetEvidence(r,text)),resources=p.template.resources as any[];
+  const bySuffix=(suffix:string)=>resources.find(x=>x.name===`${input.serverName}/${suffix}`);
+  assert.deepEqual(bySuffix("agefreighter").dependsOn,[p.serverId]);
+  assert.deepEqual(bySuffix("azure.extensions").dependsOn,[`${p.serverId}/databases/agefreighter`]);
+  assert.deepEqual(bySuffix("shared_preload_libraries").dependsOn,[`${p.serverId}/configurations/azure.extensions`]);
+});
+
+function repairFixture(){
+  const {r,text,input}=fixture();r.target=targetPreview(r,input,csvTargetEvidence(r,text));r.target.phase="failed";
+  r.guestReady={bootId:file,cliVersion:r.artifact.version,archiveSha256:r.artifact.sha256,commit:"a".repeat(40),checkedAt:new Date().toISOString(),health:{idle:true,storageUsedPercent:4,swapUsedBytes:0,oomEvents:0}};
+  const p=r.target,preloadId=`${p.serverId}/configurations/shared_preload_libraries`;
+  const operations=targetResourceIds(p).map(id=>({properties:{targetResource:{id},provisioningState:id===preloadId?"Failed":"Succeeded",statusMessage:id===preloadId?{error:{code:"ServerIsBusy"}}:undefined}}));
+  const server={location:r.input.region,tags:{application:"agefreighter",workflow:r.id,purpose:"migration-target"},sku:{name:p.input.postgresSKU},properties:{state:"Ready",version:"18",availabilityZone:r.input.zone,storage:{storageSizeGB:128},network:{publicNetworkAccess:"Disabled",delegatedSubnetResourceId:p.subnetId,privateDnsZoneArmResourceId:p.dnsId}}};
+  const config={value:"pg_cron,pg_stat_statements",defaultValue:"pg_cron,pg_stat_statements",source:"system-default",isConfigPendingRestart:false};
+  const events:string[]=[],saved:RunnerRecord[]=[];let loseAck=false;
+  const control:RunnerControl={sleep:async()=>{},persist:async r=>{events.push("persist");saved.push(structuredClone(r));},list:async()=>operations,request:async(_sub,path,method="GET",body)=>{
+    events.push(method);
+    if(method!=="GET"){
+      assert.equal(method,"PUT");assert.equal(path,`${preloadId}?api-version=2024-08-01`);
+      assert.deepEqual(body,{properties:{value:"pg_stat_statements,age",source:"user-override"}});
+      if(loseAck)throw new Error("private failure text must not be persisted");return {status:200,value:{}};
+    }
+    if(path.startsWith(p.deploymentId+"?"))return {status:200,value:{properties:{provisioningState:"Failed"}}};
+    if(path.startsWith(p.serverId+"?"))return {status:200,value:server};
+    if(path.includes("/databases/"))return {status:200,value:{}};
+    if(path.includes("/configurations/azure.extensions"))return {status:200,value:{properties:{value:"AGE"}}};
+    if(path.startsWith(preloadId+"?"))return {status:200,value:{properties:config}};
+    throw new Error("Unexpected read: "+path);
+  }};
+  return {r,control,events,saved,server,config,operations,loseAck:()=>{loseAck=true;}};
+}
+
+test("preload repair is explicit, single-write, persists original failure and never replays deployment",async()=>{
+  const f=repairFixture();await repairBusyTargetPreload(f.control,f.r);assert.equal(f.events.some(x=>x!=="GET"),false);
+  f.events.length=0;const next=await repairBusyTargetPreload(f.control,f.r,true);
+  assert.equal(next.target?.phase,"failed");assert.equal(next.target?.configurationRepair?.phase,"submitted");
+  assert.equal(next.target?.configurationRepair?.originalDeploymentState,"Failed");assert.ok(f.events.indexOf("persist")<f.events.indexOf("PUT"));
+  assert.equal(f.events.filter(x=>x==="PUT").length,1);assert.equal(next.target?.template,f.r.target?.template);
+  f.events.length=0;await repairBusyTargetPreload(f.control,next,true);assert.ok(!f.events.includes("PUT"));
+  f.config.value="pg_stat_statements,age";f.config.isConfigPendingRestart=true;
+  const done=await refreshTarget(f.control,next);assert.equal(done.target?.phase,"provisioned");assert.equal(done.target?.configurationRepair?.phase,"finished");
+  assert.equal((await refreshTarget(f.control,{...done,resize:{phase:"finished"} as any})).target?.phase,"provisioned");
+});
+
+test("lost preload repair acknowledgement is retained and reconciled without another write",async()=>{
+  const f=repairFixture();f.loseAck();const next=await repairBusyTargetPreload(f.control,f.r,true);
+  assert.equal(next.target?.configurationRepair?.phase,"unknown");assert.ok(!JSON.stringify(f.saved).includes("private failure"));
+  f.events.length=0;await refreshTarget(f.control,next);assert.ok(!f.events.includes("PUT"));
+  f.config.value="pg_stat_statements,age";assert.equal((await refreshTarget(f.control,next)).target?.phase,"provisioned");
+});
+
+test("repair refuses other failures, partial coverage and unexpected resources",async()=>{
+  for(const mutate of [(f:ReturnType<typeof repairFixture>)=>{f.operations.at(-1)!.properties.statusMessage!.error.code="Forbidden";},
+    (f:ReturnType<typeof repairFixture>)=>{f.operations.pop();},
+    (f:ReturnType<typeof repairFixture>)=>{f.operations[0]!.properties.provisioningState="Failed";},
+    (f:ReturnType<typeof repairFixture>)=>{f.operations[0]!.properties.targetResource.id="/foreign";}]){
+    const f=repairFixture();mutate(f);await assert.rejects(repairBusyTargetPreload(f.control,f.r,true));assert.ok(!f.events.includes("PUT"));
+  }
+});
+
+test("repair refuses changed target security, ownership, settings, plan or unsafe health",async()=>{
+  for(const mutate of [(f:ReturnType<typeof repairFixture>)=>{f.server.properties.network.publicNetworkAccess="Enabled";},
+    (f:ReturnType<typeof repairFixture>)=>{f.server.tags.workflow=file;},
+    (f:ReturnType<typeof repairFixture>)=>{f.server.properties.state="Updating";},
+    (f:ReturnType<typeof repairFixture>)=>{f.config.value="operator_custom_library";},
+    (f:ReturnType<typeof repairFixture>)=>{f.config.source="user-override";},
+    (f:ReturnType<typeof repairFixture>)=>{f.r.target!.input.storageGiB=256;},
+    (f:ReturnType<typeof repairFixture>)=>{f.r.guestReady!.health!.oomEvents=1;},
+    (f:ReturnType<typeof repairFixture>)=>{f.r.guestReady!.checkedAt="2020-01-01T00:00:00Z";},
+    (f:ReturnType<typeof repairFixture>)=>{f.r.sourceDraft!.configuration.changed=true;},
+    (f:ReturnType<typeof repairFixture>)=>{f.r.migration={} as any;}]){
+    const f=repairFixture();mutate(f);await assert.rejects(repairBusyTargetPreload(f.control,f.r,true));assert.ok(!f.events.includes("PUT"));
+  }
 });

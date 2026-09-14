@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { RunnerStore } from "./guided/runnerStore";
 import { AzureSession } from "./guided/azure";
 import { RunnerControl } from "./core/runnerLifecycle";
-import { sourceTargetEvidence, targetPreview, TargetInput, submitTarget, refreshTarget } from "./core/runnerTarget";
+import { sourceTargetEvidence, targetPreview, TargetInput, submitTarget, refreshTarget, repairBusyTargetPreload } from "./core/runnerTarget";
 import { preflightTarget, targetComputeRate } from "./core/runnerTargetPreflight";
 
 export async function reviewRunnerTarget(context:vscode.ExtensionContext,control:RunnerControl,store:RunnerStore,azure:AzureSession,workflow?:string):Promise<void>{
@@ -15,6 +15,13 @@ export async function reviewRunnerTarget(context:vscode.ExtensionContext,control
   let record=await store.read(selected.id);
   if(record.target && record.target.phase!=="previewed"){
     record=await store.exclusive(record.id,async()=>refreshTarget(control,await store.read(record.id)));
+    if(record.target?.phase==="failed" && !record.target.configurationRepair){
+      // Read-only eligibility checks precede the narrow native approval.
+      await repairBusyTargetPreload(control,record);
+      const repair=await vscode.window.showWarningMessage("Repair only the failed AGE preload setting?",{modal:true,detail:`${record.target.serverId}\nThe original deployment failed only for shared_preload_libraries with ServerIsBusy; other resources succeeded. Apply the already reviewed pg_stat_statements,age value once, only if the server is Ready and the value remains its unchanged system default. Preserve the original failed deployment, server, database, credentials and evidence. No target recreation, automatic retry or migration. A later explicit restart may be needed. Deadline ${record.target.input.deadline}; ceiling USD ${record.target.input.budgetUSD}.`},"Repair reviewed preload only");
+      if(repair==="Repair reviewed preload only")record=await store.exclusive(record.id,async()=>repairBusyTargetPreload(control,await store.read(record.id),true));
+      void vscode.window.showInformationMessage(`Preload repair: ${record.target?.configurationRepair?.phase??"not submitted"}. Reopen target review for read-only reconciliation; no deployment is replayed.`);return;
+    }
     void vscode.window.showInformationMessage(`Private target: ${record.target?.phase}. This is ARM status, not AGE readiness, migration or verification. No operation was replayed.`);return;
   }
   const a=record.assessment;

@@ -1,7 +1,8 @@
 # OP-PG r1 installed-GUI qualification
 
-Status: complete inventory passed and was hash-verified/imported; a fresh
-private target is being provisioned. Migration and canonical verification
+Status: complete inventory passed and was hash-verified/imported; the fresh
+private target exists, but one AGE setting requires narrowly scoped recovery.
+Migration and canonical verification
 are not complete. Overall route coverage remains 4/9.
 
 ## Route boundary
@@ -62,6 +63,33 @@ the private local OP-PG staging folder and submitted target deployment once.
 - Reviewed compute: USD 0.736/hour plus accrued/non-compute reserve USD 400.
 - Total ceiling USD 800; deadline `2026-09-16T07:14:35.311Z`, unchanged.
 - Deployment observed Running at `2026-09-14T07:48:19.852353Z`.
+
+## Retained deployment failure and scoped repair
+
+The original deployment failed only on `shared_preload_libraries` with
+`ServerIsBusy`. The other six resource operations succeeded, including the
+server, database and `azure.extensions=AGE`. The server was Ready and private;
+preload remained the unchanged system default `pg_cron,pg_stat_statements`.
+Concurrent child writes in the original template are a contention risk;
+external policy/Advanced Threat Protection operations were also observed, so
+exclusive causation is not claimed.
+
+The extension now serializes database, AGE allow-list and preload creation.
+For this retained failure only, a separate explicit GUI action validates all
+seven original operations, unchanged ownership/placement/capacity/private
+network, original plan hash and idle health before one preload-setting PUT.
+It cannot replay deployment or recreate resources/reset credentials. Lost
+acknowledgement is reconciled with reads only; custom configuration blocks
+repair. The original failed deployment is preserved. AGE restart remains a
+separate operation. All 188 unit tests and typecheck passed; the revised VSIX
+was installed in the existing Mac VS Code.
+
+Installed-GUI repair submitted the single setting update at
+`2026-09-14T08:05:25.789Z`; GET-only reconciliation marked it finished.
+Azure independently reports `pg_stat_statements,age`, user override, pending
+restart. The original deployment still records its failure. Fresh readiness
+at `08:04:05.214Z` proved the same idle boot/artifact, 3.511% disk and zero
+swap/OOM. The GUI then approved the separate pre-migration target restart.
 
 ## Safety and remaining gates
 

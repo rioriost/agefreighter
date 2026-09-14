@@ -2,14 +2,19 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526 and AZ-PGVM qualified (4/9); five other branches remain unqualified**.
 
-### OP-PG r1 — complete inventory passed; fresh target deployment running
+### OP-PG r1 — inventory passed; retained target configuration repaired
 
 Private credential entry was completed. The whole-source repeatable-read
 inventory passed: 1.6M vertices / 4M edges across all 18 mappings, no errors or
 incomplete checks. Its 2,947-byte report was hash-verified and imported through
 the GUI (SHA-256 `e217d947f121501c24ae833e593c5c66475a0718461f2d2a5dfc2126b78fafda`).
-A fresh private PostgreSQL 18 / AGE target is now being deployed: D4ds_v5,
-128 GiB, Japan East zone 1, dedicated subnet `10.246.12.0/24`. The same runner
+A fresh private PostgreSQL 18 / AGE target exists: D4ds_v5,
+128 GiB, Japan East zone 1, dedicated subnet `10.246.12.0/24`. Its original
+deployment failed only on the AGE preload child with `ServerIsBusy`.
+The installed GUI repaired that one setting without replaying deployment;
+the original failure is retained. A separate target restart is underway.
+Future target child writes are serialized; 188 tests and typecheck pass.
+The same runner
 will be resized to D4s_v5 after target readiness. Budget and deadline are
 unchanged. No migration has started; coverage remains 4/9.
 [Execution evidence and next gates](op-pg-r1-execution-20260914.md).
