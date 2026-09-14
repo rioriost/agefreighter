@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM and OP-PG qualified (5/9); four other branches remain unqualified**.
 
-### AZ-PGFS r1 — complete inventory PASS; fresh target plan saved
+### AZ-PGFS r1 — complete inventory PASS; target and resized runner ready
 
 The installed GUI discovered the retained private Flexible Server source from
 the approved subscription and resource group. Workflow
@@ -19,8 +19,11 @@ readiness passed at `09:22:35.060Z`: pinned artifact/capabilities match, idle,
 3.5079% disk, swap/OOM zero. After private password entry, all 18 mappings
 reached EOF in one repeatable-read snapshot: 1.6M vertices / 4M edges, no
 errors or incomplete checks. The GUI imported the checksummed inventory.
-A private PostgreSQL 18 / AGE target plan is saved (D4ds_v5, 128 GiB,
-Japan East zone 1, fresh subnet `10.246.13.0/24`); migration has not started.
+A private PostgreSQL 18 / AGE target is provisioned (D4ds_v5, 128 GiB,
+Japan East zone 1, fresh subnet `10.246.13.0/24`); AGE restart is finished.
+The same VM was resized to D4s_v5 preserving its disk/NIC/identity. Post-boot
+health passes at `09:46:39.122Z`, idle, 3.5103% disk, swap/OOM zero.
+Migration has not started; its private source-password entry is still required.
 This remains **unqualified** until migration and full canonical verification pass.
 [AZ-PGFS execution record](az-pgfs-r1-execution-20260914.md).
 

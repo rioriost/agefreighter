@@ -5,7 +5,8 @@ The user approved dedicated storage; its deployment and artifact upload passed.
 Runner placement passed after the region-name fix below; the installed GUI
 submitted the private discovery VM deployment once. Guest readiness passed;
 the complete inventory passed and its hash-verified report was imported through
-the GUI. A fresh private target plan is saved. Migration has not started. Overall qualified
+the GUI. A fresh private target is provisioned, AGE restart and same-VM resize
+are complete. Migration has not started. Overall qualified
 route coverage remains 5/9.
 
 ## Scope and preserved source
@@ -133,3 +134,25 @@ the USD 800 ceiling and September 16 deadline are unchanged. A fresh cost
 query returned HTTP 429 and was not retried; the earlier USD 36.7436452084183
 observation remains delayed rather than a current bill. The recent policy
 activity query returned no actions and the trial group had no locks.
+
+## Target and same-VM resize completed
+
+Target deployment was observed Running at `2026-09-14T09:33:33.080213Z` and
+all children subsequently succeeded, including database, AGE allowlist and
+preload settings. The installed GUI reconciled the target to provisioned.
+The serialized child-write fix avoided the previous route's `ServerIsBusy`:
+no repair, target recreation or deployment replay was needed.
+
+The separate AGE restart was submitted at `09:41:29.703Z` and reconciled to
+finished. Live configuration is `pg_stat_statements,age`, with restart pending
+false. Same-VM resize began at `09:42:58.203Z`; the GUI separately controlled
+deallocate, resize and start, then reconciled finished. The NIC, persistent
+disk and identity preservation hash is
+`c55f7f9790ffdca20b456dc1fcb22e68ab66bdc58ece9745fc740676f973849a`.
+
+Post-resize GUI readiness at `2026-09-14T09:46:39.122Z` confirms the new boot,
+unchanged Linux version/archive/capabilities, idle state, 3.5103% disk usage,
+zero swap and zero OOM events. The source VM was not resized (the source is
+Flexible Server). The trial group still has no locks and the recent policy
+activity query returned no actions. Source password is not retained; a new
+private entry is required for the separately approved migration.
