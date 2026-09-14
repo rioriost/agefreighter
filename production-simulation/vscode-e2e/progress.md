@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM and OP-PG qualified (5/9); four other branches remain unqualified**.
 
-### AZ-PGFS r1 — runner ready; private source-password entry pending
+### AZ-PGFS r1 — complete inventory PASS; fresh target plan saved
 
 The installed GUI discovered the retained private Flexible Server source from
 the approved subscription and resource group. Workflow
@@ -16,8 +16,12 @@ Commit `dd6b401` fixes it while retaining region/zone checks; 189 tests pass,
 and the installed extension is updated. The repaired GUI preflight passed and
 submitted the private B2s_v2 runner once (USD 0.109/hour compute). GUI guest
 readiness passed at `09:22:35.060Z`: pinned artifact/capabilities match, idle,
-3.5079% disk, swap/OOM zero. Complete source inventory is awaiting private
-password entry in VS Code. This remains **unqualified**.
+3.5079% disk, swap/OOM zero. After private password entry, all 18 mappings
+reached EOF in one repeatable-read snapshot: 1.6M vertices / 4M edges, no
+errors or incomplete checks. The GUI imported the checksummed inventory.
+A private PostgreSQL 18 / AGE target plan is saved (D4ds_v5, 128 GiB,
+Japan East zone 1, fresh subnet `10.246.13.0/24`); migration has not started.
+This remains **unqualified** until migration and full canonical verification pass.
 [AZ-PGFS execution record](az-pgfs-r1-execution-20260914.md).
 
 ### OP-PG r1 — full installed-GUI qualification PASS

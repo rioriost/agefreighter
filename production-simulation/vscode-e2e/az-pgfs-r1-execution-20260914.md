@@ -4,8 +4,8 @@ Status: source configuration saved and reviewed in the installed VS Code GUI.
 The user approved dedicated storage; its deployment and artifact upload passed.
 Runner placement passed after the region-name fix below; the installed GUI
 submitted the private discovery VM deployment once. Guest readiness passed;
-the complete inventory is awaiting private source-password entry in VS Code.
-No assessment, migration or target deployment has started. Overall qualified
+the complete inventory passed and its hash-verified report was imported through
+the GUI. A fresh private target plan is saved. Migration has not started. Overall qualified
 route coverage remains 5/9.
 
 ## Scope and preserved source
@@ -102,3 +102,34 @@ for the retained Flexible Server's `agefreighter_reader` account. No password
 was read into this conversation and no source assessment has yet been dispatched.
 Only this new runner and the AZ-PGFS source are running; old route resources
 remain preserved and stopped/deallocated. The budget and deadline are unchanged.
+
+## Complete inventory and target plan
+
+The user entered the read-only password privately. Operation
+`e0a624da-95ae-416a-a635-e81898e307d1` was submitted once at
+`2026-09-14T09:25:35.439Z`. Its report generated at
+`2026-09-14T09:27:50.558680111Z` passes both checks, with no errors or incomplete
+checks. All 18 mappings reached EOF in one repeatable-read snapshot: 1,600,000
+vertices and 4,000,000 edges. Counts are not full migration verification.
+
+The GUI exported and imported the exact 2,947 bytes; independent local hashing
+agrees with SHA-256
+`ea1bc40b73047cc683ea6edc385380c499a5de4e76abb8d5e5b1430873afa4fe`.
+Mapped bytes: 553,598,000; estimated target storage range:
+3,484,790,000–9,900,772,000 bytes. Post-inventory GUI health at
+`09:30:53.120Z`: idle, same boot/artifact, 3.5093% disk, swap/OOM zero.
+
+The saved plan proposes `afpg-29558917403e4a76aaa0`, PostgreSQL 18 / AGE,
+GP D4ds_v5, 128 GiB, HA off, Japan East zone 1. A fresh delegated subnet
+`10.246.13.0/24` does not overlap any existing trial subnet; private DNS remains
+inside the runner VNet. No public database access or peering is requested.
+The same runner's later resize is D4s_v5, with a 4 GiB application bound.
+Plan SHA-256: `c214d8eb139f2071b1a9a16c85aa9529113d99763b326deb527e206f0207184b`.
+The GUI saved a secret-reference-only LoadJob and target plan in the private
+AZ-PGFS staging folder. Target credentials remain in VS Code SecretStorage.
+
+Reviewed compute is USD 0.736/hour plus USD 400 accrued/non-compute reserve;
+the USD 800 ceiling and September 16 deadline are unchanged. A fresh cost
+query returned HTTP 429 and was not retried; the earlier USD 36.7436452084183
+observation remains delayed rather than a current bill. The recent policy
+activity query returned no actions and the trial group had no locks.
