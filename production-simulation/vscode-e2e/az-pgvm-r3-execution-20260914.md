@@ -4,8 +4,8 @@ Status: fixed development artifact installed on the new private VM; installed-GU
 readiness and source health pass. After private credential entry, a new complete
 inventory has passed and its hash-verified report is imported. Private target
 deployment, AGE preload restart and same-VM resize are complete. Post-boot
-readiness passes; new migration admission is approved and private source
-credential entry is the remaining handoff. No migration has started yet.
+readiness passes; after private credential entry, the fresh migration is running.
+Counts and full P1 canonical verification remain pending.
 
 ## Scope and preserved evidence
 
@@ -204,3 +204,15 @@ confirmation was accepted. The actual UI is again at **Read-only PostgreSQL
 source password**; previous credentials were discarded, not retrieved or saved.
 No migration intent exists yet. Only the source and r3 runner VMs are Running;
 the r3 target is Ready and all six previous Flexible Servers remain Stopped.
+
+## Fresh migration running
+
+After the next private input, the GUI submitted fresh durable job/operation
+`b4e66d41-cfdc-4bf3-bc84-2181a7ff5a37` at `2026-09-14T05:46:08.973Z`.
+The installed GUI reconciled accepted, then running without replay. This job
+uses the same approved r3 target, fixed native-float Linux archive and boot
+`0e859515-6c61-4620-b069-198082fd3daf`, with the complete 18-label inventory.
+The PostgreSQL source and target use verified TLS. Credentials are absent from
+the report and retained workflow metadata. Full qualification is still pending.
+Cost Management again returned 429; prior lagged costs and the conservative
+USD 400 reserve remain under the unchanged renewed USD 800 / September 16 gate.
