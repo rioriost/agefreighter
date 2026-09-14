@@ -2,7 +2,19 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526 and AZ-PGVM qualified (4/9); five other branches remain unqualified**.
 
-### OP-PG r1 — private runner ready; source password input pending
+### OP-PG r1 — complete inventory passed; fresh target deployment running
+
+Private credential entry was completed. The whole-source repeatable-read
+inventory passed: 1.6M vertices / 4M edges across all 18 mappings, no errors or
+incomplete checks. Its 2,947-byte report was hash-verified and imported through
+the GUI (SHA-256 `e217d947f121501c24ae833e593c5c66475a0718461f2d2a5dfc2126b78fafda`).
+A fresh private PostgreSQL 18 / AGE target is now being deployed: D4ds_v5,
+128 GiB, Japan East zone 1, dedicated subnet `10.246.12.0/24`. The same runner
+will be resized to D4s_v5 after target readiness. Budget and deadline are
+unchanged. No migration has started; coverage remains 4/9.
+[Execution evidence and next gates](op-pg-r1-execution-20260914.md).
+
+The paragraphs below retain the earlier setup and password-handoff history.
 
 Workflow `53625ae3-b155-4821-bfc3-910cc8cad6df` was created in the installed
 GUI with PostgreSQL / **on-premises**, IP and port, the retained read-only
