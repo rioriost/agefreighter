@@ -1,15 +1,34 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM and OP-PG qualified (5/9); four other branches remain unqualified**.
+Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-PGFS r1 — complete inventory PASS; target and resized runner ready
+### AZ-PGFS r1 — full installed-GUI qualification PASS
+
+The installed GUI displays **P1 full canonical digest: PASS**. All 1,600,000
+vertices and 4,000,000 edges / 64 ranges match, including typed properties,
+identities and endpoints. Both canonical roots were independently recomputed:
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+The 23,218-byte result generated at `2026-09-14T10:00:50.732774263Z` was
+exported, hash-verified and imported through the GUI; SHA-256
+`39f4898473a7c639d322ec0ea129556b352012c2e365a15600de06b0968bdf82`.
+Migration and complete counts verification took approximately 5 minutes 18 seconds,
+with all 24 checks / 18 labels passing and zero rejects. This is P1 qualification,
+not production-scale testing. Remaining routes: **AZ-COSMOS, OP-N44, OP-N526**.
+[Redacted AZ-PGFS evidence](evidence/az-pgfs-r1-p1-pass-20260914.json).
+
+Final cost-saving state confirmed at `2026-09-14T10:05:39Z`: all eleven trial
+VMs deallocated, all nine Flexible Servers Stopped. No data or resources were
+deleted. Retained storage charges and the seven-day automatic database restart
+remain relevant; the USD 800 ceiling / September 16 deadline are unchanged.
+
+The following paragraphs retain the setup history preceding this result.
 
 The installed GUI discovered the retained private Flexible Server source from
 the approved subscription and resource group. Workflow
 `29558917-403e-4a76-aaa0-de07122ea9c6` now holds all 18 mappings, independently
 confirmed identical to the frozen P1 mapping fixture. The source was started;
-the trial runners and other databases were not restarted. No migration,
-assessment or new target has begun. The user approved dedicated transfer
+the trial runners and other databases were not restarted. At that initial stage,
+no migration, assessment or new target had begun. The user approved dedicated transfer
 storage and the account-scoped grant; GUI upload of the pinned Linux archive
 passed. Live preview exposed a `Japan East` versus `japaneast` comparison bug.
 Commit `dd6b401` fixes it while retaining region/zone checks; 189 tests pass,
@@ -23,8 +42,8 @@ A private PostgreSQL 18 / AGE target is provisioned (D4ds_v5, 128 GiB,
 Japan East zone 1, fresh subnet `10.246.13.0/24`); AGE restart is finished.
 The same VM was resized to D4s_v5 preserving its disk/NIC/identity. Post-boot
 health passes at `09:46:39.122Z`, idle, 3.5103% disk, swap/OOM zero.
-Migration has not started; its private source-password entry is still required.
-This remains **unqualified** until migration and full canonical verification pass.
+The user subsequently entered the private source password. Migration job
+`958d33c4-b7a9-449e-9017-04f7081a23a9` and the full verification above passed.
 [AZ-PGFS execution record](az-pgfs-r1-execution-20260914.md).
 
 ### OP-PG r1 — full installed-GUI qualification PASS
@@ -39,7 +58,7 @@ SHA-256 `22b727306457f412b6fd589bc16de47a81c209a3a6edf5dd9b2d59ca317046f7`.
 This qualifies the IP/port-only on-premises simulation separately from AZ-PGVM.
 It is P1 scope, not production-scale qualification or every PostgreSQL schema.
 
-Remaining routes: **AZ-PGFS, AZ-COSMOS, OP-N44, OP-N526**.
+At OP-PG completion, remaining routes were **AZ-PGFS, AZ-COSMOS, OP-N44, OP-N526**.
 At OP-PG completion, all ten trial VMs were deallocated and all eight Flexible Servers were Stopped;
 no resources/data/evidence were deleted. Retained storage charges continue.
 Latest returned trial cost: USD 36.7436452084183 (delayed, not final billing).

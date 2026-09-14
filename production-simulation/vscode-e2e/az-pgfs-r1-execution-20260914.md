@@ -6,8 +6,9 @@ Runner placement passed after the region-name fix below; the installed GUI
 submitted the private discovery VM deployment once. Guest readiness passed;
 the complete inventory passed and its hash-verified report was imported through
 the GUI. A fresh private target is provisioned, AGE restart and same-VM resize
-are complete. Migration has not started. Overall qualified
-route coverage remains 5/9.
+are complete. Migration, complete counts verification and independent full
+canonical verification passed in the installed GUI. Overall qualified route
+coverage is now 6/9. The chronological sections below preserve earlier gates.
 
 ## Scope and preserved source
 
@@ -156,3 +157,62 @@ zero swap and zero OOM events. The source VM was not resized (the source is
 Flexible Server). The trial group still has no locks and the recent policy
 activity query returned no actions. Source password is not retained; a new
 private entry is required for the separately approved migration.
+
+## Migration and complete counts verification
+
+After private source-password entry, the GUI submitted durable job
+`958d33c4-b7a9-449e-9017-04f7081a23a9` once at
+`2026-09-14T09:49:32.699Z`. The verification report generated at
+`09:54:50.418587147Z` passes all 24 checks and all 18 exact label counts:
+1,600,000 vertices and 4,000,000 edges, zero rejects, no errors or incomplete
+checks. Elapsed submission-to-report time is approximately 5 minutes 18 seconds.
+Configuration fingerprint:
+`0705a346c5894657904e73fc57d753b48262e9f06f23af249ba8a9de89e38f52`.
+
+The installed GUI exported and imported the report and displays **Exact source
+and target counts agree with no rejects**. Independent local hashing confirms
+9,619 bytes and SHA-256
+`88fe5d0fbabd944e4852c75f9d5023d2158d16aac54530fb477dd7ba9272a87d`.
+No migration replay, graph repair or source modification was performed.
+
+Post-load readiness at `09:57:02.197Z`: idle, same boot and loader artifact,
+3.5127% disk, zero swap and zero OOM events. There are no group locks; fresh
+policy events are audit/auditIfNotExists observations, not enforcement changes.
+The unchanged USD 800 / September 16 authorization and conservative reserve
+remain in force.
+
+The GUI submitted independent read-only P1 qualification
+`7f5badd9-35e3-49b5-bb44-11f7701cd911` at `09:58:36.376Z` using the same
+pinned verifier as the previously qualified routes. This compares every typed
+property, identity and endpoint across all 64 canonical ranges; counts alone
+do not qualify this route.
+
+## Full canonical qualification PASS
+
+The report generated at `2026-09-14T10:00:50.732774263Z` was exported,
+hash-verified and imported through the installed GUI, which displays
+**P1 full canonical digest: PASS**. All 1,600,000 vertices and 4,000,000 edges,
+64 ranges, typed properties, identities and endpoints agree with the frozen
+fixture. Independent local comparison checked every leaf and recomputed both
+canonical roots; each equals
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+
+Result: 23,218 bytes, SHA-256
+`39f4898473a7c639d322ec0ea129556b352012c2e365a15600de06b0968bdf82`.
+Verifier commit `19026db1930a7893ac4fb30f8647e1c277fe9920`; archive SHA-256
+`8e9bf7ec6c37aa06b5aa49fd204663c0abd723c06eda8655631e9d2f776d2c49`.
+No loader replacement, target repair, migration replay or source data change
+was needed. This is the P1 guided Azure Flexible Server source path, not a
+new production-scale qualification or a guarantee for arbitrary source schemas.
+
+Extension typecheck and all 189 unit tests pass. Observed target storage maximum
+was 14.7127%, below the 80% limit. Budget and deadline are unchanged.
+[Redacted qualification evidence](evidence/az-pgfs-r1-p1-pass-20260914.json).
+
+Final health at `10:02:09.739Z` confirms idle state, unchanged loader/boot,
+5.0942% disk usage, zero swap and zero OOM events. Only this route's runner
+was deallocated and its source and target Flexible Servers stopped. At
+`10:05:39Z`, all eleven trial VMs were deallocated and all nine Flexible
+Servers were Stopped. Nothing was deleted; all jobs, databases, reports and
+failure evidence are retained. Storage charges continue, and Flexible Servers
+automatically restart after seven days unless managed before then.
