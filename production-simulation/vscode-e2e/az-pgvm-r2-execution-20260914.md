@@ -1,9 +1,9 @@
 # AZ-PGVM corrective GUI attempt
 
-Status: corrected source draft reviewed; authenticated artifact transfer passed.
-New private runner preview passed; VM installation and container-scoped Blob
-Reader grant await action-time approval. No source read, new runner or target
-deployment, or migration has started.
+Status: corrected source draft reviewed; authenticated artifact transfer and
+private Linux runner readiness and source health passed. The installed GUI is
+waiting for the read-only source password before complete inventory. No target
+deployment or migration has started.
 
 ## Preserved original
 
@@ -28,7 +28,7 @@ Do not restart old compute merely to update this display.
 - Name / proposed graph: `az-pgvm-p1-r2` / `az_pgvm_p1_r2`.
 - Azure resource discovery selected the existing PostgreSQL source VM.
 - Existing trial resource group, Japan East / zone 1 / existing runner subnet.
-- Proposed discovery SKU: `Standard_B2s_v2`; no VM deployed yet.
+- Discovery SKU: `Standard_B2s_v2`; private VM provisioned on September 14.
 - PostgreSQL 18, database `p1source`, existing read-only role and validated TLS.
 - Selected public CA SHA-256:
   `0b196d1e310a5a68732879c7bf0aa8c9f1fc67bbfe436fe560a31de7afa05b68`.
@@ -87,7 +87,7 @@ The GUI uploaded the 37,040,125-byte archive through the authenticated data path
 and marked `developmentUpload.phase=ready`. An independent authenticated blob
 properties read confirms that byte length. No new Linux execution occurred.
 
-## Private runner approval pending
+## Private runner approval and readiness
 
 The GUI reconnected to this new draft and completed its live placement,
 quota/SKU and ARM change preview. Preview hash:
@@ -103,11 +103,33 @@ artifact is installed only on this isolated new VM. The VM's managed identity
 receives Storage Blob Data Reader at **this workflow's container scope only**,
 not at the storage account, resource-group or subscription scope.
 
-The native **Create reviewed runner** confirmation is open and has not been
-accepted. The chat requests approval for installation/execution of the pinned
-test build and that new identity grant together. No target database or source
-assessment is part of this deployment. Existing failed-run resources/evidence
-remain untouched; no compute was restarted while awaiting approval.
+The user approved the pinned build and exact container-scoped identity grant.
+The next observation already found the deployment submitted, so it was not
+submitted again. ARM provisioning completed at `2026-09-14T01:26:26.5338161Z`.
+The installed GUI reconciled the deployment and guest readiness. Readiness
+operation `378f0ae6-1dfc-4668-841e-4da1a0dc58cc` confirms the exact version,
+commit and archive SHA above, all expected connector capabilities, idle guest,
+3.48% storage use, zero swap and zero OOM events. Boot ID is
+`a7042ce1-667c-4ec4-9825-d3612e1455f7`. A subsequent GUI health refresh is
+timestamped `2026-09-14T01:33:53.756Z`.
+
+The user also directed continuation without repeating previously covered
+approvals; materially different authority still requires a new decision.
+The retained source VM and its existing restart-disabled PostgreSQL container
+were started explicitly for this corrective attempt. Managed health command
+`af-pgvm-r2-health-20260914` finished Succeeded / exit 0 at the 01:36 UTC
+observation. Current certificate chain, hostname and 96-hour validity checks
+pass; the certificate expires September 20 12:59:55 UTC. The retained fixture
+manifest/count evidence describes 18 tables and 5,600,000 rows (not a new live
+inventory). The container is running; disk use is 9%, swap and boot OOM events
+are zero. No source data was recreated or changed. The new runner remains
+private, with no source firewall changes.
+
+The GUI re-reviewed the corrected source configuration and accepted the
+previously covered complete-inventory read confirmation. It is now displaying
+the secure **Read-only source password** input. No password was copied to chat,
+no secret was persisted to the form and no inventory was submitted yet. User
+credential entry is required; this is not a repeated approval request.
 
 The renewed USD 800 ceiling and `2026-09-16T07:14:35.311Z` deadline are unchanged.
 The read-only Cost Management refresh returned HTTP 429 again; no fresh actual
@@ -115,9 +137,8 @@ total is claimed. Existing seven VMs are deallocated and five Flexible Servers
 Stopped. No resource-group locks, failed activity events or policy-modify
 events were returned for the checked interval starting September 13 23:00 UTC.
 
-After VM approval, refresh any expired preview and deploy the private runner
-through the existing GUI approval flow, validate guest and source health,
-and perform a new complete inventory for the changed projection. Continue
+Next, validate source health and perform a new complete inventory for the
+changed projection through the installed GUI. Continue
 through reviewed target deployment, same-VM resize, create-only migration,
 strict counts and independent full canonical verification. None of these
 later stages is complete; coverage remains 3/9.

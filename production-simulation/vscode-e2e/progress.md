@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM corrective attempt — artifact transferred; private runner approval pending
+### AZ-PGVM corrective attempt — runner/source healthy; secure password input
 
 After manual unlock, the installed GUI created a separate draft
 `22f11b89-e943-4d56-9675-7331a78b6de7`, named `az-pgvm-p1-r2`. All 18
@@ -19,15 +19,23 @@ on this new account only. Effective settings now confirm Enabled networking,
 HTTPS-only, TLS 1.2, anonymous access false and shared keys false. Authenticated
 listing and the installed GUI's 37,040,125-byte frozen runner upload succeeded.
 The new VM preview passed: Japan East / zone 1 / B2s_v2, USD 0.109/hour compute
-plus disk/network. Its final native approval is open for the pinned test build
-installation and managed-identity Blob Reader on this workflow container only.
-No new compute, source read, target or migration has been started.
+plus disk/network. The user approved the pinned test build and managed-identity
+Blob Reader on this workflow container only. The new private VM provisioned at
+01:26:26Z; installed-GUI readiness confirms the frozen build, idle guest,
+3.48% storage use and no swap/OOM. The retained source VM was started for a
+current health check, which passed: container running, TLS chain/hostname and
+96-hour certificate validity confirmed, disk 9%, no swap/OOM. The GUI accepted
+the already-covered complete inventory read confirmation and now awaits the
+read-only source password in its secure input. No inventory, target or migration
+has been started for r2. Previously
+covered approvals need not be requested again; new kinds of authority remain
+separate decisions.
 
 Read-only reconciliation of the original verifier did not restart it. The
 deallocated VM's current ARM instance view reports Pending/exit 0 without the
 old result, so the GUI correctly remains submitted; the prior terminal failure
 and guest logs are still retained. This is not success or permission to replay.
-All seven existing trial VMs and five Flexible Servers remain stopped. Cost
+The other six existing trial VMs and five Flexible Servers remain stopped. Cost
 refresh was again throttled (429); the USD 800 ceiling and September 16 deadline
 are unchanged. See the [corrective execution sheet](az-pgvm-r2-execution-20260914.md).
 
