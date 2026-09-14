@@ -2,6 +2,9 @@
 
 ## 2.4.0
 
+- Incorporate the 2.3.1 PostgreSQL floating-point preservation and gRPC security
+  fixes without downgrading the runner-first guided UI or its dependencies.
+
 - Add complete CSV inventory, a data-preserving pinned Linux upgrade, and private
   CSV target review/export with live service, quota, network and price gates.
   Target approval uses native fields and SecretStorage, create-only what-if and
@@ -77,6 +80,14 @@
 - Treat the Azure account already signed into VS Code as a prerequisite; the
   guided workflow never starts a second Azure login.
 - Preserve the existing LoadJob-first commands and AI read-only boundary.
+
+## 2.3.1
+
+- Package the stable extension alongside the CLI PostgreSQL floating-point
+  correctness patch; no guided-migration development features are included.
+- Retain the previously merged serialize-javascript security update.
+- Recommend CLI 2.3.1; PostgreSQL checkpoints from older CLI versions require
+  a new migration rather than an in-place resume with the new CLI.
 
 ## 2.3.0
 

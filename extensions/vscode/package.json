@@ -60,7 +60,7 @@
           "type": "string",
           "default": "agefreighter",
           "scope": "resource",
-          "description": "Local CLI path for existing LoadJob commands (2.3.0 or newer). The runner-first guided workflow does not use a desktop CLI."
+          "description": "Local CLI path for existing LoadJob commands (2.3.1 recommended). The runner-first guided workflow does not use a desktop CLI."
         },
         "agefreighter.readTimeoutSeconds": {
           "type": "number",

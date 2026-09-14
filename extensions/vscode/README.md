@@ -9,6 +9,10 @@ interface to the deterministic Go engine and its durable checkpoints. The new
 guided path is being moved to a dedicated Linux Azure VM; advanced existing
 LoadJob commands continue to use a separately installed local CLI.
 
+The development engine includes the 2.3.1 PostgreSQL native floating-point fix.
+Old PostgreSQL checkpoints are not replayed with the changed fingerprint;
+retain failed-run evidence and use a fresh job and target for corrective tests.
+
 ## Highlights
 
 - Select Neo4j, PostgreSQL, Cosmos DB for NoSQL or CSV in the runner-first wizard;
@@ -68,7 +72,7 @@ VS Code workspace trust is required for deployment, but opening the wizard does
 not require an output folder. The final flow will choose that folder only after
 target review. CSV files can be selected earlier without upload.
 
-**Advanced local LoadJob commands only:** select a CLI 2.3.0 or newer with
+**Advanced local LoadJob commands only:** CLI 2.3.1 is recommended; select it with
 **AGEFreighter: Select CLI Binary**, or put it on `PATH`. Installing the extension
 does not install or upgrade the desktop CLI.
 

@@ -449,7 +449,11 @@ func TestPostgreSQLConnectionLossIntegration(t *testing.T) {
 	if _, err := iterator.Next(t.Context()); err != nil {
 		t.Fatalf("first Next() error = %v", err)
 	}
-	current, ok := iterator.current.(*cursorReader)
+	typed, ok := iterator.current.(*typedRecordReader)
+	if !ok {
+		t.Fatalf("current reader = %T", iterator.current)
+	}
+	current, ok := typed.recordReader.(*cursorReader)
 	if !ok {
 		t.Fatalf("current reader = %T", iterator.current)
 	}
