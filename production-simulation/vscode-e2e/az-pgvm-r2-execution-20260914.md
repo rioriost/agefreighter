@@ -1,8 +1,9 @@
 # AZ-PGVM corrective GUI attempt
 
-Status: local source draft reviewed; transfer storage and scoped user role are
-created. Transfer is blocked by the effective Disabled public network setting.
-No source read, new runner or target deployment, or migration has started.
+Status: corrected source draft reviewed; authenticated artifact transfer passed.
+New private runner preview passed; VM installation and container-scoped Blob
+Reader grant await action-time approval. No source read, new runner or target
+deployment, or migration has started.
 
 ## Preserved original
 
@@ -63,7 +64,7 @@ account scope only. Successful policy-modify events occurred during creation
 account is Disabled. Do not treat provisioning success as upload readiness.
 No upload or access-control override was attempted.
 
-The next decision is whether to apply the previously used organizational
+The next decision was whether to apply the previously used organizational
 `SecurityControl=Ignore` tag **to this new trial storage account only** and
 enable its authenticated HTTPS public network. This changes policy treatment
 and network isolation and therefore awaits separate explicit approval. Do not
@@ -71,15 +72,51 @@ change the resource group, source firewall, anonymous/shared-key controls or
 other resources. After approval, inspect the resulting settings and policy
 activity and verify authenticated data access before continuing.
 
+The user subsequently approved that exact account exception and network change.
+At 2026-09-14 01:19 UTC the tag was merged without replacing ownership tags,
+and public network access was enabled on this account only. Readback confirms
+`SecurityControl=Ignore`, Enabled networking, HTTPS-only, TLS 1.2 minimum,
+anonymous access false and shared-key access false. Authenticated container
+listing succeeded; the GUI reconciled the Enabled setting. No source firewall,
+resource-group tag, credential, or other storage account was changed.
+
+The installed GUI selected the same frozen `2fd3aa4c157f` Linux archive used by
+the original attempt. Local byte hashing matched SHA-256
+`df8b6244963bd059389b3057274392c64164118dad0ca5949e69b04606cfa8fb`.
+The GUI uploaded the 37,040,125-byte archive through the authenticated data path
+and marked `developmentUpload.phase=ready`. An independent authenticated blob
+properties read confirms that byte length. No new Linux execution occurred.
+
+## Private runner approval pending
+
+The GUI reconnected to this new draft and completed its live placement,
+quota/SKU and ARM change preview. Preview hash:
+`c2b8977ab1a788a0259eb47647eb70ae1daeed704cb37c288c2434f18facf5d4`.
+Its expiry is `2026-09-14T01:39:33.799Z`; if expired when approval arrives,
+refresh the preview rather than bypassing freshness admission.
+
+Proposed VM `af-22f11b89e9434d569675` uses Japan East / zone 1, B2s_v2 at
+USD 0.109/hour compute, with disk/network/NAT charged separately. Its NIC and
+NSG are new; it uses the existing private compute subnet, without public IP,
+SSH ingress, peering or source firewall changes. The reviewed development
+artifact is installed only on this isolated new VM. The VM's managed identity
+receives Storage Blob Data Reader at **this workflow's container scope only**,
+not at the storage account, resource-group or subscription scope.
+
+The native **Create reviewed runner** confirmation is open and has not been
+accepted. The chat requests approval for installation/execution of the pinned
+test build and that new identity grant together. No target database or source
+assessment is part of this deployment. Existing failed-run resources/evidence
+remain untouched; no compute was restarted while awaiting approval.
+
 The renewed USD 800 ceiling and `2026-09-16T07:14:35.311Z` deadline are unchanged.
 The read-only Cost Management refresh returned HTTP 429 again; no fresh actual
 total is claimed. Existing seven VMs are deallocated and five Flexible Servers
 Stopped. No resource-group locks, failed activity events or policy-modify
 events were returned for the checked interval starting September 13 23:00 UTC.
 
-After this new approval, inspect live policy effects before any transfer.
-A policy-disabled network must not be silently re-enabled. Prepare the pinned qualification runner through the existing GUI
-approval flow, deploy the private runner, validate guest and source health,
+After VM approval, refresh any expired preview and deploy the private runner
+through the existing GUI approval flow, validate guest and source health,
 and perform a new complete inventory for the changed projection. Continue
 through reviewed target deployment, same-VM resize, create-only migration,
 strict counts and independent full canonical verification. None of these

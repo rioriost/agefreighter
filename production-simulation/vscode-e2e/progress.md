@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM corrective attempt — storage created; network exception approval pending
+### AZ-PGVM corrective attempt — artifact transferred; private runner approval pending
 
 After manual unlock, the installed GUI created a separate draft
 `22f11b89-e943-4d56-9675-7331a78b6de7`, named `az-pgvm-p1-r2`. All 18
@@ -13,9 +13,15 @@ dedicated storage and the scoped user role. Their deployment succeeded at
 00:43:53Z; the GUI reconciled it as ready, but actual public network access is
 Disabled. Policy-modify events occurred during creation. HTTPS-only, TLS 1.2,
 anonymous access disabled and shared keys disabled are confirmed. No upload,
-source read, new VM, target or migration has been submitted. Applying the
-organizational exception tag and enabling authenticated public HTTPS on this
-new storage account only awaits explicit approval.
+source read, new VM, target or migration had been submitted at that checkpoint.
+The user subsequently approved the exception tag and authenticated public HTTPS
+on this new account only. Effective settings now confirm Enabled networking,
+HTTPS-only, TLS 1.2, anonymous access false and shared keys false. Authenticated
+listing and the installed GUI's 37,040,125-byte frozen runner upload succeeded.
+The new VM preview passed: Japan East / zone 1 / B2s_v2, USD 0.109/hour compute
+plus disk/network. Its final native approval is open for the pinned test build
+installation and managed-identity Blob Reader on this workflow container only.
+No new compute, source read, target or migration has been started.
 
 Read-only reconciliation of the original verifier did not restart it. The
 deallocated VM's current ARM instance view reports Pending/exit 0 without the
