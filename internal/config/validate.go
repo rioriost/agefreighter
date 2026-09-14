@@ -580,6 +580,9 @@ func validateCosmos(source CosmosSource, namespace string, errs *ValidationError
 		validateJSONPointer(path+".idField", vertex.IDField, errs)
 		validateCosmosParameters(vertex.Parameters, path+".parameters", errs)
 		validateCosmosPropertyMapping(vertex.Properties, path+".properties", errs)
+		if err := ValidateCosmosPropertyTypes(vertex.Properties, vertex.PropertyTypes); err != nil {
+			add(false, path+".propertyTypes", "format", err.Error())
+		}
 		validateCosmosDocumentFormat(
 			vertex.DocumentFormat,
 			vertex.PartitionKeyProperty,
@@ -601,6 +604,9 @@ func validateCosmos(source CosmosSource, namespace string, errs *ValidationError
 		validateCosmosEndpoint(edge.End, namespace, path+".end", errs)
 		validateCosmosParameters(edge.Parameters, path+".parameters", errs)
 		validateCosmosPropertyMapping(edge.Properties, path+".properties", errs)
+		if err := ValidateCosmosPropertyTypes(edge.Properties, edge.PropertyTypes); err != nil {
+			add(false, path+".propertyTypes", "format", err.Error())
+		}
 		validateCosmosDocumentFormat(
 			edge.DocumentFormat,
 			edge.PartitionKeyProperty,

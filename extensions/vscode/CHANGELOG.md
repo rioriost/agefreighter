@@ -2,6 +2,12 @@
 
 ## 2.4.0
 
+- Add optional Cosmos `propertyTypes` through `name=field:type` mappings. Preserve
+  declared floats even when JSON spells them as integers, bind types to resume
+  fingerprints, and block typed jobs on runners without the new capability.
+  Existing untyped jobs retain their inference; changed mappings require fresh
+  jobs. Full P1 offline parity passes; Azure Cosmos GUI requalification is pending.
+
 - Reject PostgreSQL assessment/migration on older Linux runners that do not advertise native SQL float preservation; retain read-only access to failed-run evidence.
 
 - Incorporate the 2.3.1 PostgreSQL floating-point preservation and gRPC security

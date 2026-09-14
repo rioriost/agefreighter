@@ -253,6 +253,7 @@ type CosmosVertexQuery struct {
 	Parameters           []CosmosQueryParameter `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	IDField              string                 `json:"idField" yaml:"idField"`
 	Properties           map[string]string      `json:"properties,omitempty" yaml:"properties,omitempty"`
+	PropertyTypes        map[string]string      `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
 	DocumentFormat       CosmosDocumentFormat   `json:"documentFormat,omitempty" yaml:"-"`
 	PartitionKeyProperty string                 `json:"partitionKeyProperty,omitempty" yaml:"-"`
 	MaxProperties        int                    `json:"maxProperties,omitempty" yaml:"-"`
@@ -270,6 +271,7 @@ type CosmosEdgeQuery struct {
 	Start                EndpointMapping        `json:"start" yaml:"start"`
 	End                  EndpointMapping        `json:"end" yaml:"end"`
 	Properties           map[string]string      `json:"properties,omitempty" yaml:"properties,omitempty"`
+	PropertyTypes        map[string]string      `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
 	DocumentFormat       CosmosDocumentFormat   `json:"documentFormat,omitempty" yaml:"-"`
 	PartitionKeyProperty string                 `json:"partitionKeyProperty,omitempty" yaml:"-"`
 	MaxProperties        int                    `json:"maxProperties,omitempty" yaml:"-"`

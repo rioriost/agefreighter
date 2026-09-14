@@ -161,6 +161,7 @@ func TestReadinessRequiresBootstrapAndMatchingInstallation(t *testing.T) {
 		"postgresql-inventory-v1", "postgresql-migration-v1",
 		"cosmos-nosql-inventory-v1", "cosmos-nosql-migration-v1",
 		"postgresql-native-floats-v1",
+		"cosmos-explicit-property-types-v1",
 	}
 	if !slices.Equal(r.Capabilities, wantCapabilities) {
 		t.Fatalf("missing reviewed migration capability: %#v", r)

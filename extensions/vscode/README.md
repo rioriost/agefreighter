@@ -112,6 +112,9 @@ verify their checksum and GitHub build-provenance attestation before use.
    placement fields, before creating any VM. This saves a local draft and opens
    the selected source's form. PostgreSQL table/column mappings and Cosmos
    explicit/Gremlin formats are supported; schema/FK suggestions are still pending.
+   Known Cosmos property types can be declared as `score=score:float64` (or the
+   other supported scalar/array types). Undeclared fields retain JSON inference;
+   declarations require an updated Linux runner and a fresh job if changed.
    CSV maps selected files, stable IDs, endpoints, property types and a null marker.
    Review the generated configuration; it is not the final exported LoadJob.
    Then select **Check prerequisites & preview runner**. Review the immutable resource

@@ -34,6 +34,7 @@ type fingerprintMapping struct {
 	EndNamespace         string                 `json:"endNamespace,omitempty"`
 	EndField             string                 `json:"endField,omitempty"`
 	Properties           map[string]string      `json:"properties,omitempty"`
+	PropertyTypes        map[string]string      `json:"propertyTypes,omitempty"`
 	DocumentFormat       string                 `json:"documentFormat,omitempty"`
 	PartitionKeyProperty string                 `json:"partitionKeyProperty,omitempty"`
 	MaxProperties        int                    `json:"maxProperties,omitempty"`
@@ -109,6 +110,12 @@ func bindFingerprint(
 			entry.Properties = make(map[string]string, len(mapping.properties))
 			for _, property := range mapping.properties {
 				entry.Properties[property.name] = property.pointer.raw
+				if property.declaredType != "" {
+					if entry.PropertyTypes == nil {
+						entry.PropertyTypes = make(map[string]string)
+					}
+					entry.PropertyTypes[property.name] = property.declaredType
+				}
 			}
 		}
 		manifest.Mappings[index] = entry

@@ -908,7 +908,8 @@
         },
         "properties": {
           "$ref": "#/$defs/cosmosPropertyMap"
-        }
+        },
+        "propertyTypes": { "$ref": "#/$defs/csvPropertyTypes" }
       }
     },
     "cosmosEdgeQuery": {
@@ -951,7 +952,8 @@
         },
         "properties": {
           "$ref": "#/$defs/cosmosPropertyMap"
-        }
+        },
+        "propertyTypes": { "$ref": "#/$defs/csvPropertyTypes" }
       }
     },
     "cosmosSource": {

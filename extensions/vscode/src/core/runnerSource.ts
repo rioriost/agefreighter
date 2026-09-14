@@ -47,12 +47,12 @@ function properties(value: string, type: SourceKind): { properties: Record<strin
   const result: Record<string, string> = Object.create(null), types: Record<string, string> = Object.create(null);
   for (const entry of value.split(",").map(s => s.trim()).filter(Boolean)) {
     const match = /^([^=]+)=([^:]+)(?::(.+))?$/.exec(entry);
-    if (!match) throw new Error("Properties use graph_name=source_field, with optional :type for CSV.");
+    if (!match) throw new Error("Properties use graph_name=source_field, with optional :type for CSV or Cosmos.");
     const name = identifier(match[1]?.trim(), "property name"), field = text(match[2]?.trim(), "property source field");
     if (Object.hasOwn(result, name)) throw new Error("Property names must not be duplicated.");
     result[name] = type === "cosmos-nosql" ? pointer(field) : field;
     if (match[3]) {
-      if (type !== "csv" || !/^(string|int64|float64|boolean)(\[\])?$/.test(match[3])) throw new Error("Explicit property types are for CSV: string, int64, float64, boolean, or their [] arrays.");
+      if (!["csv","cosmos-nosql"].includes(type) || !/^(string|int64|float64|boolean)(\[\])?$/.test(match[3])) throw new Error("Explicit property types are for CSV or Cosmos: string, int64, float64, boolean, or their [] arrays.");
       types[name] = match[3];
     }
   }
@@ -126,6 +126,7 @@ export function buildSourceDraft(selection: SourceSelection, raw: unknown, workf
         built.query = `SELECT ${fields.join(", ")} FROM "${mapping.schema}"."${table}" ORDER BY "${mapping.identity}"`;
       } else if (type === "cosmos-nosql") {
         built.container = mapping.collection;
+        if(Object.keys(props.propertyTypes).length)built.propertyTypes = props.propertyTypes;
         built.query = `SELECT * FROM c WHERE c[${JSON.stringify(form.labelField)}] = @label`;
         built.parameters = [{ name: "@label", value: mapping.label }];
       } else {

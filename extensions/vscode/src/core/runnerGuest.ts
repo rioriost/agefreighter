@@ -18,8 +18,13 @@ export interface GuestRequest { version: 1; workflow: string; operation: string;
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 
-/** Do not reuse pre-fix PostgreSQL runners; read-only evidence controls remain available. */
+/** Require declared-type support; read-only evidence controls remain available. */
 export function assertPostgreSQLTypePreservation(record: RunnerRecord): void {
+  if(record.input.source.type==="cosmos-nosql"){
+    const c=object(object(record.sourceDraft?.configuration.source??{}).cosmos??{});
+    const typed=[...(Array.isArray(c.vertices)?c.vertices:[]),...(Array.isArray(c.edges)?c.edges:[])].some(m=>Object.keys(object(object(m).propertyTypes??{})).length>0);
+    if(typed&&!record.guestReady?.capabilities?.includes("cosmos-explicit-property-types-v1"))throw new Error("This Cosmos mapping requires a reviewed Linux runner with explicit property-type preservation. Retain old jobs; never resume them with changed types.");
+  }
   if (record.input.source.type === "postgresql" && !record.guestReady?.capabilities?.includes("postgresql-native-floats-v1")) {
     throw new Error("This PostgreSQL runner lacks native floating-point preservation. Use a reviewed fixed Linux artifact and a fresh workflow, target and job; retain old results without replay.");
   }

@@ -2,6 +2,20 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
+### AZ-COSMOS r2 preparation — explicit numeric types; live GUI test pending
+
+Optional Cosmos `propertyTypes` now preserve declared floats, including integral
+JSON numbers. The GUI accepts `score=score:float64` and
+`distance_km=distance_km:float64`; old Linux runners without the new capability
+are rejected before typed assessment/migration. Types bind resume fingerprints;
+the unchanged r1 graph and failure evidence must not be replayed or patched.
+The frozen 5.6M-record / 64-range offline parity test matches the original
+canonical root; it is **not** an Azure qualification. A fresh workflow/job is
+required. The Mac is locked, so GUI requalification awaits manual unlock.
+All 12 trial VMs and 10 Flexible Servers were independently confirmed stopped
+during preparation; no Azure resources were mutated by this fix.
+[Implementation review and r2 handoff](cosmos-property-types-review-20260914.md).
+
 ### AZ-COSMOS r1 — ordering fixed; numeric type mismatch identified (not qualified)
 
 The installed corrected verifier (`252f14f`) read the same committed job in

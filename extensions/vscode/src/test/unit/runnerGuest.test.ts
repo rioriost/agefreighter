@@ -5,6 +5,16 @@ import { assembleGuestReport, dispatchGuest, guestDispatchScript, reconcileGuest
 import { RunnerRecord } from "../../core/runner";
 import { RunnerControl } from "../../core/runnerLifecycle";
 
+test("typed Cosmos mappings fail closed on an old Linux runner before any Azure write",async()=>{
+  const f=fixture(),r=record();r.input.source={type:"cosmos-nosql",location:"azure"};
+  r.sourceDraft={configuration:{source:{type:"cosmos-nosql",cosmos:{vertices:[{properties:{score:"/score"},propertyTypes:{score:"float64"}}]}}}} as any;
+  r.guestReady={bootId:op,cliVersion:r.artifact.version,archiveSha256:r.artifact.sha256,commit:"commit",checkedAt:new Date().toISOString(),capabilities:["cosmos-nosql-inventory-v1"]};
+  await assert.rejects(dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action:"inventory",configuration:r.sourceDraft!.configuration}),/explicit property-type preservation/);
+  assert.equal(f.events.length,0);
+  r.guestReady.capabilities!.push("cosmos-explicit-property-types-v1");
+  const result=await dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action:"inventory",configuration:r.sourceDraft!.configuration});assert.equal(result.guestCommand?.phase,"submitted");
+});
+
 const id="11111111-1111-4111-8111-111111111111", op="22222222-2222-4222-8222-222222222222";
 function record(): RunnerRecord {
   return { schemaVersion:2,id,phase:"provisioned",input:{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:"subnet",size:"Standard_B2s_v2",source:{type:"neo4j",location:"on-premises"}},artifact:{version:"2.4.0",sha256:"a".repeat(64),url:"https://example.invalid/artifact"},vmId:`/subscriptions/${id}/resourceGroups/test/providers/Microsoft.Compute/virtualMachines/runner`,deploymentId:"deployment",template:{},previewHash:"hash",expiresAt:"",updatedAt:"",hourlyComputeUSD:.1 };

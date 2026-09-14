@@ -32,8 +32,9 @@ func (kind mappingKind) String() string {
 
 // compiledProperty binds a property name to its parsed JSON Pointer.
 type compiledProperty struct {
-	name    string
-	pointer pointer
+	name         string
+	pointer      pointer
+	declaredType string
 }
 
 // compiledMapping is a config.CosmosVertexQuery/CosmosEdgeQuery compiled
@@ -101,7 +102,7 @@ func buildMappings(
 		if err != nil {
 			return nil, fmt.Errorf("Cosmos vertex mapping %q idField: %w", vertex.Label, err)
 		}
-		properties, err := compileProperties(vertex.Properties)
+		properties, err := compileTypedProperties(vertex.Properties, vertex.PropertyTypes)
 		if err != nil {
 			return nil, fmt.Errorf("Cosmos vertex mapping %q: %w", vertex.Label, err)
 		}
@@ -165,7 +166,7 @@ func buildMappings(
 		if err != nil {
 			return nil, fmt.Errorf("Cosmos edge mapping %q end field: %w", edge.Label, err)
 		}
-		properties, err := compileProperties(edge.Properties)
+		properties, err := compileTypedProperties(edge.Properties, edge.PropertyTypes)
 		if err != nil {
 			return nil, fmt.Errorf("Cosmos edge mapping %q: %w", edge.Label, err)
 		}
@@ -234,6 +235,13 @@ func validateDocumentFormat(
 }
 
 func compileProperties(properties map[string]string) ([]compiledProperty, error) {
+	return compileTypedProperties(properties, nil)
+}
+
+func compileTypedProperties(properties, types map[string]string) ([]compiledProperty, error) {
+	if err := config.ValidateCosmosPropertyTypes(properties, types); err != nil {
+		return nil, err
+	}
 	names := make([]string, 0, len(properties))
 	for name := range properties {
 		names = append(names, name)
@@ -245,7 +253,7 @@ func compileProperties(properties map[string]string) ([]compiledProperty, error)
 		if err != nil {
 			return nil, fmt.Errorf("property %q: %w", name, err)
 		}
-		compiled = append(compiled, compiledProperty{name: name, pointer: parsed})
+		compiled = append(compiled, compiledProperty{name: name, pointer: parsed, declaredType: types[name]})
 	}
 	return compiled, nil
 }

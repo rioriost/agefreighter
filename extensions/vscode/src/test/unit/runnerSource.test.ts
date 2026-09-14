@@ -3,6 +3,17 @@ import test from "node:test";
 import { buildSourceDraft, sourceSecrets } from "../../core/runnerSource";
 import { csvFile, sourceForm, workflow } from "../sourceFixtures";
 
+test("Cosmos explicit numeric declarations survive the GUI mapping and draft fingerprint",()=>{
+  const selection={type:"cosmos-nosql",location:"azure"} as const;
+  const form={...sourceForm,host:"account.documents.azure.com",cosmosFormat:"explicit",labelField:"label"};
+  const before=buildSourceDraft(selection,form,workflow);
+  const mappings=form.mappings.map(m=>({...m,properties:m.kind==="vertex"?"score=score:float64":"distance_km=distance_km:float64"}));
+  const after=buildSourceDraft(selection,{...form,mappings},workflow),c=(after.configuration.source as any).cosmos;
+  assert.deepEqual({...c.vertices[0].propertyTypes},{score:"float64"});assert.deepEqual({...c.edges[0].propertyTypes},{distance_km:"float64"});
+  assert.notDeepEqual(before.configuration,after.configuration);
+  assert.throws(()=>buildSourceDraft(selection,{...form,mappings:mappings.map(m=>({...m,properties:"bad=bad:date"}))},workflow));
+});
+
 test("Neo4j 4/5 form creates TLS discovery with environment handles and no ARM lookup", () => {
   for (const location of ["azure", "on-premises", "other-cloud"] as const) {
     const draft = buildSourceDraft({ type: "neo4j", location }, sourceForm, workflow);
