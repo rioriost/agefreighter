@@ -2,6 +2,34 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526 and AZ-PGVM qualified (4/9); five other branches remain unqualified**.
 
+### OP-PG r1 — fresh GUI draft; storage approval pending
+
+Workflow `53625ae3-b155-4821-bfc3-910cc8cad6df` was created in the installed
+GUI with PostgreSQL / **on-premises**, IP and port, the retained read-only
+database user and verified custom CA. No source ARM ID or Azure source
+candidate was supplied. All 18 GUI mappings exactly match the P1 fixture;
+configuration SHA-256 is
+`284397bc7549f79520b426ed66bf182dba52e59e1ffb52ca457ae5691f63ada5`.
+Source CA SHA-256 remains
+`0b196d1e310a5a68732879c7bf0aa8c9f1fc67bbfe436fe560a31de7afa05b68`.
+
+The private runner placement is the existing trial group / runner subnet,
+Japan East zone 1, initially B2s_v2. Published 2.4.0 is unavailable, so the
+release prerequisite correctly submitted no VM deployment. The next step is
+dedicated transfer storage, then the previously reviewed pinned development
+artifact. The native confirmation is open for account
+`af53625ae3b1554821bfc391` and user-scoped Storage Blob Data Contributor on
+that new account only. It has not been submitted. No new Azure resources,
+source reads, job or target were created in this step; no route is promoted.
+
+Fresh baseline at 06:36–06:39 UTC confirms all nine VMs deallocated and all
+seven Flexible Servers Stopped. Recent external network writes were inspected:
+the runner subnet retains its NSG, no route table, and no added inbound allow
+rule. No security control was changed. Cost Management returned USD
+35.32679129750154 across September 12–14; billing is lagged, not a final total.
+The USD 400 accrued/non-compute reserve, USD 800 ceiling and
+`2026-09-16T07:14:35.311Z` deadline remain unchanged.
+
 ### AZ-PGVM r3 — complete GUI qualification PASS
 
 The new PostgreSQL 18 VM → private Flexible Server / AGE migration used the
