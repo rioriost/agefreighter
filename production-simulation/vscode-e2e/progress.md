@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r1 — complete inventory running
+### AZ-COSMOS r1 — inventory passed; private target submitted
 
 Workflow `7b79f05d-1dc1-40a6-b3dc-6c8129d4e0c1` selects the retained Cosmos
 P1 account through the installed GUI's subscription / resource-group Discover
@@ -15,9 +15,13 @@ in the GUI, then independently matched against the P1 mapping fixture.
 The user approved Data Reader on the dedicated Cosmos source only; the GUI
 reconciled the grant and started complete inventory
 `faa15c58-8f07-4f45-b006-98468ca1b1d4`. Fresh readiness at `12:06:16.851Z`
-passed. Inventory is running; no target or migration has started and full
-qualification is still required. The new runner costs USD 0.109/hour plus
-storage/network; previously stopped compute was not restarted.
+passed. Inventory completed in about 8m49s: all 18 labels reached EOF,
+1.6M vertices / 4M edges, no errors or incomplete checks. The GUI imported
+its independently hash-verified report. The private PostgreSQL 18 / AGE target
+was submitted once (D4ds_v5, 128 GiB, Japan East zone 1); deployment and
+same-runner resize remain in progress. No migration has started. Reviewed
+target/runner compute is USD 0.736/hour plus the USD 400 additional reserve;
+previously stopped compute was not restarted.
 Budget and September 16 deadline are unchanged; cost refresh returned 429 and
 was not retried. [Current handoff](az-cosmos-r1-execution-20260914.md).
 

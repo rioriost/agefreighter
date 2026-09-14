@@ -1,8 +1,8 @@
 # AZ-COSMOS r1 installed-GUI qualification
 
-Status: **complete source inventory running after approved Data Reader grant**.
-Storage and runner deployment are complete; no target or migration has been
-submitted. Earlier handoffs below are retained as history.
+Status: **complete source inventory passed; private target deployment submitted**.
+Storage and runner deployment are complete; migration has not started.
+Earlier handoffs below are retained as history.
 Overall qualification remains 6/9; the earlier headless Cosmos inventory is
 not a guided migration pass.
 
@@ -32,8 +32,8 @@ prepared; do not substitute an unreviewed build.
 
 ## Current GUI handoff
 
-Current action: monitor the complete inventory, then import its hash-verified
-report. The Data Reader grant was approved and independently reconciled.
+Current action: reconcile the submitted private target, then verify AGE readiness
+and resize the same runner. The complete inventory was hash-verified and imported.
 The following paragraphs describe the previous storage-approval handoff.
 
 The source form has unsaved basic entries for `az-cosmos-p1-r1`, namespace
@@ -144,3 +144,27 @@ built isolated local test CLI. The first invocation lacked the required test
 binary environment variable; supplying the test harness prerequisite resolved
 that setup failure. This local validator test did not replace the Linux source
 inventory or execute a local migration.
+
+## Inventory accepted; private target submitted
+
+The inventory completed at `2026-09-14T12:15:22.217304956Z`, approximately
+8 minutes 49 seconds after guest start. All 18 labels reached EOF: 1,600,000
+vertices and 4,000,000 edges. Read-only and source-counts checks pass, with
+no errors or incomplete checks. The installed GUI exported and imported the
+2,940-byte report; independently verified SHA-256:
+`f6056bc71f83c1ba75510b3fb28b3d662550d23e83df6c27f431297f155686fe`.
+Mapped records total 458,398,000 bytes; the reported storage estimate is
+3,008,790,000–8,567,972,000 bytes. No source throughput tuning was applied.
+
+Readiness at `12:19:04.406Z` passes: idle, 3.5104% disk, zero swap/OOM.
+The GUI saved the secret-reference-only LoadJob and target plan in the local
+trial staging folder and submitted target deployment
+`afpg-7b79f05d1dc140a6b3dc` once. Preview SHA-256:
+`bc20f6499fd2492e9de03d019851d3abd7196f593bc48ddbd7e3505bd63bcb3d`.
+It provisions PostgreSQL 18 / AGE, D4ds_v5, 128 GiB, Japan East / zone 1,
+with public access disabled and dedicated subnet `10.246.14.0/24` in the
+existing VNet. The same runner's reviewed migration size is D4s_v5.
+Combined target/runner compute estimate is USD 0.736/hour; USD 400 additional
+reserve, USD 800 ceiling and September 16 deadline are unchanged.
+The GUI reports target `submitted`; ARM completion, AGE readiness, migration
+and full canonical verification are separate remaining gates.
