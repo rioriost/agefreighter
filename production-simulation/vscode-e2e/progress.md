@@ -34,8 +34,10 @@ but the following ARM VM-state gate refused admission; no migration job was
 created. A bounded GET-only wait for the matching running VM's Updating state
 is now installed (183 tests pass), with all final gates retained. Re-admission
 and private source-password entry subsequently succeeded. Fresh job
-`b4e66d41-cfdc-4bf3-bc84-2181a7ff5a37` started at 05:46 UTC and is running;
-counts and full P1 digest remain pending. No old failed job was replayed.
+`b4e66d41-cfdc-4bf3-bc84-2181a7ff5a37` started at 05:46 UTC and its complete
+counts report passes at 05:51 UTC (5.6M rows, 24 checks, zero rejects/errors).
+Full 64-range P1 verification was submitted at 05:58 UTC and remains pending.
+No old failed job was replayed.
 See [r3 execution sheet](az-pgvm-r3-execution-20260914.md). This source inventory
 pass is not a completed migration or P1 property-digest qualification.
 

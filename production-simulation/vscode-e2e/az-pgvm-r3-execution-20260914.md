@@ -4,8 +4,8 @@ Status: fixed development artifact installed on the new private VM; installed-GU
 readiness and source health pass. After private credential entry, a new complete
 inventory has passed and its hash-verified report is imported. Private target
 deployment, AGE preload restart and same-VM resize are complete. Post-boot
-readiness passes; after private credential entry, the fresh migration is running.
-Counts and full P1 canonical verification remain pending.
+readiness passes; fresh migration and complete counts verification pass.
+Independent full P1 canonical verification is running.
 
 ## Scope and preserved evidence
 
@@ -216,3 +216,28 @@ The PostgreSQL source and target use verified TLS. Credentials are absent from
 the report and retained workflow metadata. Full qualification is still pending.
 Cost Management again returned 429; prior lagged costs and the conservative
 USD 400 reserve remain under the unchanged renewed USD 800 / September 16 gate.
+
+## Complete counts PASS; full P1 verification submitted
+
+The retained report generated at `2026-09-14T05:51:26.657388413Z` passes all
+24 checks and all 18 exact label counts, with 5,600,000 records, zero rejects,
+empty errors and empty incomplete checks. From GUI submission through that
+report is about 5m18s, including preparation/load/count verification; this is
+not isolated loader throughput. The GUI imported and verified 9,619 bytes:
+SHA-256 `dc829bd1aa2e48ab7e858c37389ce02691e18107cd9754de03b0a7c6e505738b`.
+Job fingerprint is `3a5aea659bf18ff0969206b56bd4c2101b65f21f4146020caad36cbc73aa94e6`.
+Its visible counts result is PASS, explicitly distinct from property validation.
+
+Post-load readiness at `05:56:21.889Z` confirmed the same boot, idle=true,
+disk 3.53%, no swap/OOM. Target storage peaked around 14.70%, below 80%.
+The earlier read-only diagnostic found the worker active with cgroup memory
+51,675,136 bytes under its 4 GiB cap and disk 4%; its optional JSON extraction
+failed because jq is absent on the VM. This diagnostic was not a job failure.
+
+The installed GUI selected the already-reviewed frozen P1 verifier (commit
+`19026db1930a7893ac4fb30f8647e1c277fe9920`, archive SHA-256
+`8e9bf7ec6c37aa06b5aa49fd204663c0abd723c06eda8655631e9d2f776d2c49`).
+It submitted independent verification `e79bb594-4af6-4c7a-9fca-172e166f46dc`
+at `05:58:43.923Z` for this exact migration job. All 64 ranges / 5.6M records
+must match; qualification remains pending. No source, graph, loader or network
+changes are made by that verifier.
