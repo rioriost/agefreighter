@@ -1,8 +1,19 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
+Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r2 preparation — explicit numeric types; live GUI test pending
+### AZ-COSMOS r2 — fresh GUI setup complete; scoped storage grant awaiting confirmation
+
+Mac unlocked and installed extension reloaded. Fresh workflow
+`d138f4e4-bcf3-40fe-a876-ee9ce062e08a` discovers the retained Cosmos source
+through Azure subscription/RG selection. All 18 mappings entered in the GUI
+are independently identical to the typed P1 fixture. No source read or migration
+started; no Azure write submitted. The GUI is at the new account-scoped transfer
+storage permission confirmation. All 12 existing VMs / 10 databases remain
+stopped; budget and deadline unchanged.
+[Current r2 execution handoff](az-cosmos-r2-execution-20260915.md).
+
+### Earlier AZ-COSMOS r2 preparation — explicit numeric types
 
 Optional Cosmos `propertyTypes` now preserve declared floats, including integral
 JSON numbers. The GUI accepts `score=score:float64` and
