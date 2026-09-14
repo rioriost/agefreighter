@@ -54,7 +54,10 @@ export async function preflightRunner(control: RunnerControl, input: RunnerInput
       const regions = Array.isArray(properties.locations) ? properties.locations.map(x => String(object(x).locationName).replaceAll(" ", "").toLowerCase()) : [];
       if (!regions.includes(input.region)) throw new Error("Select an actual Cosmos data region. Account metadata location is not placement evidence.");
     } else {
-      if (value.location !== input.region) throw new Error("Select the source region for the runner.");
+      // Flexible Server GET returns display names such as "Japan East", while
+      // the placement catalog uses canonical names such as "japaneast".
+      const sourceRegion = typeof value.location === "string" ? value.location.replace(/\s/g, "").toLowerCase() : "";
+      if (sourceRegion !== input.region) throw new Error("Select the source region for the runner.");
       const properties = object(value.properties);
       const zone = pg ? properties.availabilityZone : Array.isArray(value.zones) && value.zones.length === 1 ? value.zones[0] : undefined;
       if (zone && zone !== input.zone) throw new Error("Select the source availability zone for the runner.");

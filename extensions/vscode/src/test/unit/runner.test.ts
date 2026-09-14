@@ -167,6 +167,28 @@ test("source placement uses PostgreSQL availabilityZone and rejects cross-subscr
   await assert.rejects(preflightRunner(f.control, { ...input, source: { ...source, resourceId: sourceId.replace(sub,id) } }), /physical-zone mapping/);
 });
 
+test("Flexible Server display region names match canonical placement without weakening zone checks", async () => {
+  const sourceId = `${base}/providers/Microsoft.DBforPostgreSQL/flexibleServers/source`;
+  const source = { type: "postgresql" as const, location: "azure" as const, resourceId: sourceId };
+  for (const location of ["Japan East", "japaneast", "JAPAN EAST"]) {
+    const f = fixture(), request = f.control.request;
+    f.control.request = async (...args) => args[1].startsWith(sourceId+'?')
+      ? { status: 200, value: { location, properties: { availabilityZone: "1" } } } : request(...args);
+    await preflightRunner(f.control, { ...input, source });
+    assert.ok(!f.events.some(e => e.startsWith('POST:') || e.startsWith('PUT:')));
+  }
+  for (const location of ["Japan West", "", undefined, {}]) {
+    const f = fixture(), request = f.control.request;
+    f.control.request = async (...args) => args[1].startsWith(sourceId+'?')
+      ? { status: 200, value: { location, properties: { availabilityZone: "1" } } } : request(...args);
+    await assert.rejects(preflightRunner(f.control, { ...input, source }), /source region/);
+  }
+  const f = fixture(), request = f.control.request;
+  f.control.request = async (...args) => args[1].startsWith(sourceId+'?')
+    ? { status: 200, value: { location: "Japan East", properties: { availabilityZone: "2" } } } : request(...args);
+  await assert.rejects(preflightRunner(f.control, { ...input, source }), /source availability zone/);
+});
+
 test("Cosmos location is the selected data region, not account metadata", async () => {
   const f = fixture(); const request = f.control.request;
   const sourceId = `${base}/providers/Microsoft.DocumentDB/databaseAccounts/source`;
