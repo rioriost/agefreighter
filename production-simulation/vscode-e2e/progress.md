@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM corrective attempt — runner/source healthy; secure password input
+### AZ-PGVM corrective attempt — inventory authentication failure retained
 
 After manual unlock, the installed GUI created a separate draft
 `22f11b89-e943-4d56-9675-7331a78b6de7`, named `az-pgvm-p1-r2`. All 18
@@ -36,7 +36,13 @@ assessment was submitted. The extension now refreshes stale idle health after
 credential entry without replaying source operations or weakening health/boot
 checks. All 177 tests passed; the corrected VSIX is installed and reloaded in
 VS Code 1.137.0. The same corrected r2 draft is reopened at secure password
-entry. GUI inventory and full migration qualification remain pending.
+entry. On the next input, automatic readiness refresh succeeded and the GUI
+submitted operation `b78461db-10aa-482c-a75f-ae22d551fe0d` at 02:05:29Z with
+the corrected projection. It failed during initialization at 02:05:37Z; a
+password-authentication rejection is present in the source log for that same
+interval. Failed evidence is retained; no replay, credential reset, target
+deployment or migration occurred. Correct existing read-only credentials are
+required before a fresh attempt. Full qualification remains pending.
 
 Read-only reconciliation of the original verifier did not restart it. The
 deallocated VM's current ARM instance view reports Pending/exit 0 without the

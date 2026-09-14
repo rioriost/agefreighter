@@ -1,9 +1,10 @@
 # AZ-PGVM corrective GUI attempt
 
 Status: corrected source draft reviewed; authenticated artifact transfer and
-private Linux runner readiness and source health passed. The installed GUI is
-waiting for the read-only source password before complete inventory. No target
-deployment or migration has started.
+private Linux runner readiness and source health passed. The corrected GUI
+submitted complete inventory, which failed during initialization with a
+matching PostgreSQL authentication rejection. Evidence is retained; corrected
+read-only credentials are required. No target deployment or migration started.
 
 ## Preserved original
 
@@ -157,6 +158,52 @@ The installed GUI reconnected to the same r2 workflow, displayed the revised
 readiness guidance, and accepted the existing read approval. Its secure
 password field is open again; end-to-end delayed-entry qualification remains
 pending the new input and actual complete inventory result.
+
+## First corrected-projection inventory: authentication failure
+
+On the next password entry, the installed GUI automatically refreshed Linux
+readiness at `2026-09-14T02:05:15.879Z`, preserving the same boot, pinned build,
+idle worker, 3.48% disk use and zero swap/OOM. It then submitted exactly one
+inventory at `02:05:29.119Z`: operation
+`b78461db-10aa-482c-a75f-ae22d551fe0d`. The saved configuration remains
+`f35bfa01b6f487ca3c4b84c501a40148f6ecaf2b6ff31d6305ad7beb83b6c7bc`;
+guest configuration is
+`9750d398f27fe1f9d591a5b128d2dc8bd9863b4d43c9adbb5ed64fa972d2ad71`.
+This confirms the delayed-entry fix reached protected source dispatch rather
+than being rejected by stale readiness.
+
+The worker ran from `02:05:37.537282585Z` to `02:05:37.695986033Z`, exit 1.
+Its 51-byte initialization-error log has SHA-256
+`d1d694a1717436e62073c3f131686fba9f5f11455eb128dd409544982872d94b`.
+GUI GET reconciliation marked the assessment failed, without replay. The
+source container logs for 02:05–02:07 UTC contain one password-authentication
+failure; the container remains running with OOM false. The runner resolves the
+reviewed hostname to the expected private source IP. The generic CLI error
+alone did not establish authentication failure; the server log supplies that
+additional evidence. No password, connection string or raw private diagnostics
+were printed. No password reset was performed.
+
+Read-only diagnostic command evidence is retained, including one diagnostic
+that could not run because the minimal runner has no jq, and a TLS diagnostic
+that found the transient CA file already removed by the worker's normal
+cleanup. Neither diagnostic failure is an assessment result or proof of bad
+TLS. No source/target data or operation directories were deleted.
+
+The next step is fresh same-boot idle health, explicit retention of this failed
+assessment, re-review of unchanged mappings, and input of the correct existing
+`agefreighter_reader` password. A fresh attempt must have a new operation ID;
+this failed operation must never be resumed. The Cost Management query again
+returned 429; the USD 800 ceiling / September 16 deadline are unchanged. No
+resource-group locks or failed/policy-modify governance events were returned
+for the pre-assessment review interval. Qualification remains 3/9.
+
+Subsequently the GUI refreshed same-boot idle readiness at `02:11:42.480Z`.
+While the native failure-retention confirmation was open, the user acted in
+VS Code. Readback confirms the failed operation is retained in
+`assessmentHistory`, with no current assessment and no replay. The GUI
+re-reviewed the unchanged source and accepted the previously covered read
+approval, then opened its secure password field. It is waiting for corrected
+existing credentials; there has been no second inventory submission.
 
 The renewed USD 800 ceiling and `2026-09-16T07:14:35.311Z` deadline are unchanged.
 The read-only Cost Management refresh returned HTTP 429 again; no fresh actual
