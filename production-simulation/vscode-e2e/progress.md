@@ -1,8 +1,26 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526 and AZ-PGVM qualified (4/9); five other branches remain unqualified**.
+Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM and OP-PG qualified (5/9); four other branches remain unqualified**.
 
-### OP-PG r1 — inventory, private target and same-VM resize ready
+### OP-PG r1 — full installed-GUI qualification PASS
+
+The actual VS Code now displays **P1 full canonical digest: PASS**.
+All 1,600,000 vertices and 4,000,000 edges / 64 ranges match, including typed
+properties, identities and endpoints. Expected and actual canonical roots are
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+The 23,216-byte report generated at `2026-09-14T08:29:37.022758513Z` was
+exported, hash-verified, imported and independently revalidated locally;
+SHA-256 `22b727306457f412b6fd589bc16de47a81c209a3a6edf5dd9b2d59ca317046f7`.
+This qualifies the IP/port-only on-premises simulation separately from AZ-PGVM.
+It is P1 scope, not production-scale qualification or every PostgreSQL schema.
+
+Remaining routes: **AZ-PGFS, AZ-COSMOS, OP-N44, OP-N526**.
+All ten trial VMs are deallocated and all eight Flexible Servers are Stopped;
+no resources/data/evidence were deleted. Retained storage charges continue.
+Latest returned trial cost: USD 36.7436452084183 (delayed, not final billing).
+[Redacted OP-PG evidence](evidence/op-pg-r1-p1-pass-20260914.json).
+
+The following paragraphs preserve the steps leading to this result.
 
 Private credential entry was completed. The whole-source repeatable-read
 inventory passed: 1.6M vertices / 4M edges across all 18 mappings, no errors or
@@ -17,7 +35,12 @@ Future target child writes are serialized; 188 tests and typecheck pass.
 The same runner was resized from B2s_v2 to D4s_v5, preserving its disk, NIC
 and identity. Post-boot readiness passed with the unchanged Linux artifact,
 3.512% disk usage and zero swap/OOM. Budget and deadline are
-unchanged. No migration has started; coverage remains 4/9.
+unchanged. New durable job `bef7834e-3c7f-4d7a-8021-2c99c70cef66`
+was submitted at `2026-09-14T08:13:10.085Z` after private credential entry.
+The report generated at `08:18:31.411226266Z` passes all 24 checks and 18
+exact label counts with zero rejects. The installed GUI imported and
+hash-verified it. At that stage full canonical verification was pending (4/9);
+the independent final comparison above now qualifies this fifth route.
 [Execution evidence and next gates](op-pg-r1-execution-20260914.md).
 
 The paragraphs below retain the earlier setup and password-handoff history.
@@ -97,8 +120,9 @@ properties, identities and endpoints match canonical root
 `bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
 The verifier is unchanged from the rejected r2 trial; old failed graphs and
 evidence are preserved. [Pass evidence](evidence/az-pgvm-r3-p1-pass-20260914.json).
-Remaining routes: OP-PG, AZ-PGFS, AZ-COSMOS, OP-N44, OP-N526. None is promoted
-by this result; OP-PG needs a separate IP/port-only GUI workflow and evidence.
+At the earlier AZ-PGVM completion, remaining routes were OP-PG, AZ-PGFS,
+AZ-COSMOS, OP-N44 and OP-N526. OP-PG has since passed its separate IP/port-only
+GUI workflow and evidence, as recorded above; no other route is promoted.
 After final idle/no-swap/no-OOM checks, all nine trial VMs are deallocated and
 all seven Flexible Servers are Stopped (06:08 UTC). Data and evidence remain;
 storage charges continue and Flexible Servers can auto-start after seven days.
@@ -640,7 +664,10 @@ MacStudio's actual VS Code 1.136.1 separately passed all three isolated host
 smoke tests after this change, and the matching VSIX was installed. None of
 these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration.
 
-| Stage | Current status |
+The following is the historical two-route snapshot, retained for audit.
+Use the report's opening summary for current qualification and resource state.
+
+| Stage | Historical status at two-route qualification |
 |---|---|
 | Dedicated Azure fixture topology / ownership and cost watchdog | RG/VNet/subnet, explicit NAT, transfer storage/RBAC and one private runner VM tested; account-only approved exception; exact-VM 16:00 UTC shutdown enabled; whole-suite cost automation remains open |
 | Source preparation: Neo4j 4.4 / 5.26, PG VM / FS, Cosmos | All dedicated source fixtures are retained. PGVM r7, PGFS r3 and Cosmos r3 passed exact preparation checks; all six VMs are deallocated and all four Flexible Servers are stopped |
@@ -651,8 +678,8 @@ these tests exercised Azure storage provisioning, real SAS/RBAC, or P1 migration
 | Installed VS Code 1.136.1 full GUI branches | CSV-MAC and AZ-N44 passed; seven branches not run |
 | Nine P1 base paths and additional branch/failure ledger | 2 / 9 complete |
 
-The current installed preview has two end-to-end GUI/Azure qualifications
-(CSV-MAC and AZ-N44). It must not be described as qualified for the other seven branches.
+At that point the installed preview had two end-to-end GUI/Azure qualifications
+(CSV-MAC and AZ-N44); the other seven were not yet qualified.
 The preview VSIX is installed into MacStudio's VS Code 1.136.1. Installation
 and bundle identity are rechecked with each packaged update; these do not imply
 that the live GUI branches passed.

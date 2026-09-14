@@ -1,9 +1,9 @@
 # OP-PG r1 installed-GUI qualification
 
-Status: complete inventory passed and was hash-verified/imported; the fresh
-private target and same-VM resize are ready after narrowly scoped AGE recovery.
-Migration and canonical verification
-are not complete. Overall route coverage remains 4/9.
+Status: installed-GUI source inventory, target provisioning/recovery, same-VM
+resize, migration, exact counts and independent full canonical verification
+all pass. Overall route coverage is now 5/9. All ten trial VMs are deallocated
+and all eight Flexible Servers are Stopped; all resources and evidence remain.
 
 ## Route boundary
 
@@ -118,11 +118,73 @@ Defender/Event Grid/storage actions were observed and not attributed to this
 workflow. The new transfer account still has HTTPS/TLS 1.2, anonymous and
 shared-key access disabled, and the approved storage-only exception.
 
-The fresh Cost Management query was throttled (429). The latest successful
-returned total remains USD 35.32679129750154, subject to billing delay; it is
+The target-preparation Cost Management query was throttled (429). During the
+migration, a fresh query succeeded: September 12 USD 17.5157291900634,
+September 13 USD 18.2042099605521 and September 14 USD 1.0237060578028
+(USD 36.7436452084183 total in returned rows). Billing is delayed; this is
 not the final spend. The conservative reserve and deadline remain binding.
 
-Next: obtain the private source password for the separately approved fresh job, then
-pass exact counts and the unchanged independent full P1 verifier (all 64
-ranges, typed properties, identities, endpoints and canonical root). Preserve
-all earlier targets/jobs/evidence. No source or target replay is permitted.
+## Fresh migration submitted
+
+After private credential entry the installed GUI submitted new durable job
+`bef7834e-3c7f-4d7a-8021-2c99c70cef66` at
+`2026-09-14T08:13:10.085Z`, then reconciled its guest acceptance without replay.
+It uses the retained OP-PG inventory, reviewed target, fixed Linux artifact and
+post-resize boot. Source passwords are not retained in workflow metadata.
+The 1,600,000 vertices and 4,000,000 edges must pass complete counts and the
+independent canonical comparison; acceptance is not qualification.
+
+The guest started at `08:13:19.832227993Z`; GUI reconciliation confirmed
+running, with guest configuration SHA-256
+`e5e1b1ab4138b9108ef6a6599ce8b4244403e319340026f4067bef155601b6ea`.
+A read-only guest check at `08:15:14Z` saw the worker active, cgroup memory
+52,150,272 bytes under its 4 GiB limit, guest disk 4%, no swap and no boot
+OOM events. Target storage observations rose to 10.894%, below the 80% gate.
+
+## Complete counts PASS
+
+The report generated at `2026-09-14T08:18:31.411226266Z` passes all 24
+checks and all 18 exact label counts, with zero rejects. GUI submission to
+this report took about 5m21s, including preparation/load/count verification;
+this is not isolated loader throughput. The installed GUI imported 9,619
+bytes and verified SHA-256
+`6a2dc6eda6aecda20214c0390bc1a10ad9b0fcff8994c29cde54b1de6d9b049e`.
+It visibly displays that exact source and target counts agree with no rejects.
+Independent full P1 verification remains required.
+
+Post-load GUI readiness at `08:24:22.584Z` confirmed idle=true, disk 3.528%,
+zero swap/OOM and the same boot/artifact. The installed GUI selected the
+unchanged frozen verifier and submitted operation
+`d93436fe-46bd-4dac-8e2c-494ad3505109` at `2026-09-14T08:27:00.704Z`.
+Verifier commit `19026db1930a7893ac4fb30f8647e1c277fe9920`, archive SHA-256
+`8e9bf7ec6c37aa06b5aa49fd204663c0abd723c06eda8655631e9d2f776d2c49`.
+The verifier is read-only against this exact target/job and leaves the
+installed loader and networking unchanged. Full qualification remains pending.
+
+## Full canonical verification PASS
+
+The independent result generated at `2026-09-14T08:29:37.022758513Z` passed.
+The installed GUI reconciled, exported and imported this exact result (23,216
+bytes), checked SHA-256
+`22b727306457f412b6fd589bc16de47a81c209a3a6edf5dd9b2d59ca317046f7`,
+and recomputed the canonical root from every leaf. Its visible result is
+**P1 full canonical digest: PASS**. A separate local read-only validation
+checked the report/job/hash/bytes, all 64 leaf pairs and root recomputation.
+
+All 5,600,000 records agree, including typed properties, identities and edge
+endpoints. Expected and actual root:
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+This is the fifth qualified GUI route, separately exercising IP/port-only
+source configuration without Azure source metadata. It does not claim P3
+scale or arbitrary PostgreSQL schema/type coverage. The target storage
+observations peaked at 14.775%, safely below 80%.
+
+The [redacted pass evidence](evidence/op-pg-r1-p1-pass-20260914.json) is retained
+in the repository. Final GUI health at `08:32:19.124Z` confirms the same idle
+boot, disk 5.0972%, no swap/OOM and no pending worker. Deallocation was
+submitted for only the current runner and source VM, and stop for only the
+current target. No new route, replay, data deletion or credential change occurs.
+By `2026-09-14T08:37:46Z`, all ten trial VMs are confirmed deallocated and
+all eight Flexible Servers Stopped. Retained storage charges continue, and
+Flexible Servers automatically restart after seven days unless otherwise
+managed. The latest returned USD 36.7436452084183 is not a final bill.
