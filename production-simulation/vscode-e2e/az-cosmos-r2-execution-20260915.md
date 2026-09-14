@@ -34,7 +34,30 @@ Overall GUI coverage remains **6/9**. Old r1 graph/jobs/evidence are unchanged.
   USD 24.25 through the deadline. This is an estimate, not current billing;
   retained Cosmos/storage charges remain separate.
 
-## Current approval handoff
+## Storage approval and current connectivity gate
+
+At the user's explicit action-time approval, **Create storage and scoped role**
+was pressed at approximately `2026-09-14T22:48:47Z`. Deployment succeeded;
+the GUI reconciled storage to ready. Independent ARM reads confirmed the
+account-scoped role assignment `db222a8c-5b6d-4cb6-b4af-8740911f87e6` grants
+the signed-in user Storage Blob Data Contributor only on this new account.
+
+However, live Public Network Access is **Disabled**, despite the reviewed
+template requesting Enabled. The account activity log includes successful
+`Microsoft.Authorization/policies/modify/action` at
+`2026-09-14T22:48:58.7262832Z`; this supports policy modification during creation.
+The GUI explicitly reports `ready — public network: Disabled (provisioning is
+not transfer readiness)`. Shared keys and anonymous access remain disabled,
+TLS1.2 remains configured. No upload, VM deployment, assessment or migration
+has begun. Do not equate provisioning success with transfer readiness.
+
+The current handoff is whether to apply the same trial-storage-only official
+`SecurityControl=Ignore` exception plus unchanged expiry and authenticated
+public HTTPS used for r1, now to `afd138f4e4bcf340fea876ee` only. No exception,
+network re-enablement or policy change has been applied to this new account.
+Source networks and authentication must remain unchanged.
+
+### Earlier approval handoff (resolved)
 
 GUI shows **Create dedicated transfer storage and grant your Azure user data
 access?** for `afd138f4e4bcf340fea876ee` in `rg-af-vscode-p1-20260905-a`.

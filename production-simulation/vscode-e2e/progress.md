@@ -2,15 +2,18 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r2 — fresh GUI setup complete; scoped storage grant awaiting confirmation
+### AZ-COSMOS r2 — storage created; policy-disabled transfer connectivity
 
 Mac unlocked and installed extension reloaded. Fresh workflow
 `d138f4e4-bcf3-40fe-a876-ee9ce062e08a` discovers the retained Cosmos source
 through Azure subscription/RG selection. All 18 mappings entered in the GUI
 are independently identical to the typed P1 fixture. No source read or migration
-started; no Azure write submitted. The GUI is at the new account-scoped transfer
-storage permission confirmation. All 12 existing VMs / 10 databases remain
-stopped; budget and deadline unchanged.
+started. Following explicit user approval, the GUI created the dedicated transfer
+account and account-scoped user role. ARM deployment and role checks pass, but
+the GUI reports public networking Disabled. A successful policy modify event
+was observed during creation. Transfer remains blocked; no upload or new VM
+has begun. The new account's network exception has not been applied. Existing
+compute remains stopped; budget and deadline unchanged.
 [Current r2 execution handoff](az-cosmos-r2-execution-20260915.md).
 
 ### Earlier AZ-COSMOS r2 preparation — explicit numeric types
