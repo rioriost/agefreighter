@@ -1,8 +1,9 @@
 # AZ-COSMOS r1 installed-GUI qualification
 
-Status: **migration and complete counts PASS; independent P1 verifier failed**.
-AZ-COSMOS is not qualified. The failure is not yet proven to be a data mismatch;
-no final comparison report was produced. All job and guest evidence is retained.
+Status: **migration/counts PASS; verifier ordering failure diagnosed**.
+AZ-COSMOS is not qualified. The new read-only diagnosis returned
+`target-digest / source-key-order`; no final canonical comparison exists yet.
+All job and guest evidence is retained.
 Earlier handoffs below are retained as history.
 Overall qualification remains 6/9; the earlier headless Cosmos inventory is
 not a guided migration pass.
@@ -33,9 +34,10 @@ prepared; do not substitute an unreviewed build.
 
 ## Current GUI handoff
 
-Current action: preserve the failed verifier and stop route compute while awaiting
-approval to run an instrumented read-only verifier. Do not replay this operation,
-patch the committed graph, or classify counts-only success as qualification.
+Current action: diagnosis complete; stop route compute and retain its receipt.
+Next correct the P1-only canonical traversal ordering and requalify the unchanged
+committed graph with a separate operation. Do not replay migration, patch the
+graph, or classify counts-only success as qualification.
 The following paragraphs describe the previous storage-approval handoff.
 
 The source form has unsaved basic entries for `az-cosmos-p1-r1`, namespace
@@ -245,3 +247,57 @@ run a separately identified diagnostic without replaying migration, determine
 the exact cause, review any correction, and requalify the unchanged job or
 explicitly review a fresh migration if a loader defect requires it. Never
 relax the canonical checks to turn this failure into a pass.
+
+## Approved read-only diagnosis: source-key ordering identified
+
+The user approved the diagnostic verifier. Commit `9c11095` adds an installed-GUI
+**Diagnose retained P1 failure (read only)** action. It requires the same terminal
+migration with passing counts, a retained failed P1 operation, fresh pinned
+Linux health, budget/deadline and target ownership checks. It never clears the
+old qualification, changes the graph, replays migration or replaces the loader.
+Its separate guest lock checks the exact retained marker, inactive old service
+and absence of loader/verifier processes; the failed operation's marker is
+preserved, not misrepresented as idle. Only fixed stage/code identifiers return
+through ARM. Missing, unexpected or successful-verifier receipts are not admitted
+as diagnosis success or qualification PASS.
+
+All 192 extension unit tests, typecheck and packaging pass. The initial separate
+`npm run build` invocation found no such script; the actual package prepublish
+pipeline ran typecheck, tests and compile successfully. The build helper is not
+executable directly and was correctly invoked with bash. The new VSIX is installed
+in the Mac's VS Code and reloaded; SHA-256
+`a12533d820b5d44ab4e3fb7fddaca294c8051743590af076b67bb33a93391723`.
+The diagnostic archive was built from committed source, not the working tree:
+commit `9c1109514c76d0eb016c255cc5a2c1eb305c054b`, 7,245,271 bytes,
+SHA-256 `a39b9f9a698969acc8f02e45a74478f26e58cb74271d33028de881fca1f5e110`.
+
+Only this route's VM and target were started. No locks or modifying policy action
+were observed before restart. The target was Ready; fresh guest health at
+`2026-09-14T13:18:16.283Z` showed 5.1007% disk, zero swap/OOM, and idle=false
+because the old failure marker was retained. The fixed guest process checks
+passed. The GUI submitted diagnostic `815f2755-4a47-46cb-af1a-3c32e5dbd04f`
+at `13:20:05.918Z` and later displayed the finished diagnosis, explicitly **not
+qualification PASS**. Its 81-byte failure receipt was independently rehashed:
+`a2f1d1bd51827f85b3c42f1412f4791d2db41058d786c10b5261f0354e721d21`.
+Stage `target-digest`, code `source-key-order` confirms that graph-ID traversal
+does not yield increasing source keys. The prior ordering hypothesis is now
+supported by live evidence. It does not establish data corruption, nor does it
+prove complete data integrity. No canonical acceptance condition was relaxed.
+
+The next correction belongs in P1 verification: canonical ordering must use the
+fixture's source-key identity independently of allocated graph IDs. Keep the
+P3 streaming path separate; do not introduce an unreviewed production-scale sort.
+Retain strict types, full properties, edge endpoints, duplicate detection, all
+64 ranges and the original root. A new read-only qualification of the same
+committed job is still required. Counts remain PASS and route coverage stays 6/9.
+
+After diagnosis, no locks were returned and only an auditIfNotExists policy event
+was observed. Stop requests were issued for the same runner and target, preserving
+all data, credentials and failed/diagnostic evidence. No source was restarted or
+modified, no network/security access was broadened, and no new spending window
+was introduced. [Redacted diagnostic receipt](evidence/az-cosmos-r1-diagnosis-20260914.json).
+
+Final stopped state confirmed at `2026-09-14T13:24:11Z`: all twelve trial VMs
+deallocated and all ten Flexible Servers Stopped. No resources or data deleted.
+Cosmos provisioned throughput and retained storage charges continue; Flexible
+Server automatic restart after seven days still applies.

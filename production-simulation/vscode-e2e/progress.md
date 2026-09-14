@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r1 — counts PASS; full verifier failed (not qualified)
+### AZ-COSMOS r1 — counts PASS; verifier ordering failure identified (not qualified)
 
 Workflow `7b79f05d-1dc1-40a6-b3dc-6c8129d4e0c1` selects the retained Cosmos
 P1 account through the installed GUI's subscription / resource-group Discover
@@ -25,11 +25,18 @@ job `7fa558e4-8027-4335-9a2b-564f70b3df02` at `12:37:48.928Z` using the
 read-only Cosmos managed identity. Migration and all 24 complete-count checks
 passed in about 10m13s with zero rejects; the GUI imported the hash-verified
 report. Full P1 verifier operation `cb0c7805-5d5e-4ccd-bff8-1d39b6015b0f`
-failed without producing a comparison report. **This route is not qualified**;
-data mismatch versus verifier failure is not yet resolved. Evidence is retained,
-and no migration replay or graph patch was made. A local diagnostic-only change
-adds secret-free failure stages; its tests pass but it has not run on Azure.
-Route compute stop requests were issued while awaiting the new diagnostic run.
+failed without producing a comparison report. **This route is not qualified**.
+The user approved a separately identified read-only diagnosis, run through the
+updated installed extension. Operation `815f2755-4a47-46cb-af1a-3c32e5dbd04f`
+returned `target-digest / source-key-order`; the 81-byte receipt hash was verified
+independently. The verifier's graph-ID ordering assumption caused the stop.
+No data corruption is established, but full integrity is not yet proven either.
+Original failure/marker and committed graph remain untouched. All 192 extension
+unit tests pass; code is pushed as `9c11095`. Next correct P1 canonical traversal
+ordering and requalify the same graph; do not replay migration or weaken checks.
+After diagnosis, route compute stop requests were issued again.
+At `2026-09-14T13:24:11Z`, all twelve VMs are deallocated and all ten Flexible
+Servers are Stopped. Cosmos/storage charges continue; no evidence was deleted.
 At `13:04:29Z`, all twelve VMs are deallocated, nine Flexible Servers are
 Stopped and this route's server is Stopping. Cosmos/storage charges continue.
 Reviewed
