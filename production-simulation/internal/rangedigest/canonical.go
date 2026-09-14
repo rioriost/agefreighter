@@ -112,7 +112,6 @@ func (builder *rangeBuilder) flush() {
 	)
 	builder.rangeIndex++
 	builder.rows = 0
-	builder.hasKey = false
 	builder.digest = sha256.New()
 }
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {diagnosticGate,diagnosticReceipt,p1DiagnosticScript,P1Diagnostic} from "../../core/p1Diagnostic";
 import {sourceWorkflowDraft} from "../../core/runner";
+import {requalificationGate,p1Script} from "../../core/p1Qualification";
 const id="11111111-1111-4111-8111-111111111111",op="22222222-2222-4222-8222-222222222222";
 function fixture(){
   const r=sourceWorkflowDraft(id,{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:"subnet",size:"Standard_D4s_v5",source:{type:"csv",location:"local"}});
@@ -28,4 +29,16 @@ test("diagnostic receipt cannot assert qualification success or leak unrecognize
   const {r,d}=fixture();const v={workflow:id,operation:op,jobId:id,failedOperation:id,readOnly:true,exitCode:1,bytes:95,sha256:"a".repeat(64),failure:{version:1,outcome:"fail",stage:"target-digest",code:"source-key-order",secret:"not allowed"},secret:"not allowed"};
   const out=diagnosticReceipt(v,r,d);assert.ok(!JSON.stringify(out).includes("not allowed"));
   for(const bad of [{...v,jobId:op},{...v,readOnly:false},{...v,exitCode:0},{...v,bytes:4000},{...v,failure:{...v.failure,code:"postgresql://secret"}},{...v,failure:{...v.failure,outcome:"pass"}}])assert.throws(()=>diagnosticReceipt(bad,r,d));
+});
+test("explicit ordering correction preserves failure history and refuses unrelated retries",()=>{
+  const {r,d}=fixture();
+  assert.throws(()=>requalificationGate(r));
+  r.p1Diagnostic={...d,phase:"finished",result:{failure:{stage:"target-digest",code:"source-key-order"}}};
+  assert.doesNotThrow(()=>requalificationGate(r));
+  const bad=structuredClone(r);bad.p1Diagnostic!.result!.failure={stage:"comparison",code:"canonical-mismatch"};assert.throws(()=>requalificationGate(bad));
+  const q={...r.p1Qualification!,operation:op,artifact:r.artifact,replacesFailedOperation:id};
+  assert.throws(()=>p1Script(r,q));
+  r.p1QualificationHistory=[structuredClone(r.p1Qualification!)];
+  const script=p1Script(r,q);assert.match(script,/active\.retained/);assert.match(script,/mv "\$root\/active"/);assert.match(script,/pgrep -x p1runnerverify/);
+  assert.ok(!script.includes(" load "));assert.equal(r.p1QualificationHistory[0]!.phase,"failed");
 });

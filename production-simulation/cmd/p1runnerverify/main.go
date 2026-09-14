@@ -91,7 +91,7 @@ func run(ctx context.Context, args []string, input io.Reader) error {
 	if err != nil || expected.RootSHA256 != canonicalRoot || expected.RecordCount != 5600000 || len(expected.Leaves) != 64 {
 		return &qualificationFailure{"fixture-digest", "fixture-digest-or-coverage"}
 	}
-	actual, err := rangedigest.TargetManifest(ctx, dsn, filepath.Join("fixture", "manifest.json"), args[0], 100000)
+	actual, err := rangedigest.P1TargetManifest(ctx, dsn, filepath.Join("fixture", "manifest.json"), args[0], 100000)
 	if err != nil {
 		code := "target-read-or-canonicalization"
 		if errors.Is(err, rangedigest.ErrSourceKeyOrder) {

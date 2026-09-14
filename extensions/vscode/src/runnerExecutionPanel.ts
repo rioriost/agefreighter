@@ -25,7 +25,7 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   let r=await store.read(selected.id);
   const startLabel=`Start new ${r.input.source.type} migration and counts verification`;
   const renewLabel="Review a new cost authorization (no Azure mutation)";
-  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)","Diagnose retained P1 failure (read only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
+  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)","Diagnose retained P1 failure (read only)","Requalify with reviewed P1 ordering fix (read only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
   if(!action)return;
   const confirm=(title:string,detail:string)=>vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");
   const price=async()=>{if(!r.target)throw new Error("No retained target plan.");const input=r.target.input;if(targetComputeRate(await azure.retailRates(r.input.region,[input.loaderSize,input.postgresSKU]),input)!==input.hourlyUSD)throw new Error("Compute price changed; review the cost plan before further mutation.");};
@@ -76,6 +76,8 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
     r=await diagnoseP1(context,control,store,azure,r.id);
   }else if(action==="Qualify / reconcile full P1 digest (development only)"){
     r=await qualifyP1(context,control,store,azure,r.id);
+  }else if(action==="Requalify with reviewed P1 ordering fix (read only)"){
+    r=await qualifyP1(context,control,store,azure,r.id,true);
   }else if(action==="Archive empty-target preparation failure"){
     if(await confirm("Archive this preparation failure without deleting or resuming anything?",`Requires fresh read-only proof that the target graph and metadata schema are absent. Retains the failed job and diagnostic in history and all guest evidence. This permits a separately approved runner repair and a new create-only job, not replay or replacement of existing data.`)!=="Approve this step")return;
     r=await store.exclusive(r.id,async()=>archiveEmptyTargetFailure(control,await store.read(r.id)));

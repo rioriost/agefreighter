@@ -1,10 +1,17 @@
 import {createHash} from "node:crypto";
 import {object,RunnerArtifact,RunnerRecord} from "./runner";
 import {developmentDownload} from "./runnerDevelopment";
+import {diagnosticGate} from "./p1Diagnostic";
 
 export const p1Root="bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70";
 export const p1FixtureRoot="f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f";
-export interface P1Qualification {operation:string;commandId:string;jobId:string;artifact:RunnerArtifact;startedAt:string;phase:"submitted"|"unknown"|"verified"|"exporting"|"exported"|"pass"|"failed";exportCommandId?:string;sha256?:string;bytes?:number}
+export interface P1Qualification {operation:string;commandId:string;jobId:string;artifact:RunnerArtifact;startedAt:string;phase:"submitted"|"unknown"|"verified"|"exporting"|"exported"|"pass"|"failed";exportCommandId?:string;sha256?:string;bytes?:number;replacesFailedOperation?:string}
+
+export function requalificationGate(r:RunnerRecord):void {
+  diagnosticGate(r);
+  const d=r.p1Diagnostic, f=object(d?.result?.failure??{});
+  if(d?.phase!=="finished"||d.failedOperation!==r.p1Qualification?.operation||d.jobId!==r.migration?.jobId||f.stage!=="target-digest"||f.code!=="source-key-order")throw new Error("Reviewed retained source-key-order diagnosis is required; no automatic retry.");
+}
 
 /** A failed ARM command can return plain text or no JSON. Let the caller seal
  * terminal failure instead of leaving it submitted after a parser exception. */
@@ -56,11 +63,25 @@ export function verifyP1(text:string,jobId:string):void{
 /** Isolated executable; does not replace the qualified loader installation. */
 export function p1Script(r:RunnerRecord,q:P1Qualification):string{
   if(!/^[a-f0-9-]{36}$/.test(r.id)||!/^[a-f0-9-]{36}$/.test(q.operation)||q.jobId!==r.migration?.jobId||!/^[a-f0-9-]{36}$/.test(q.jobId)||!r.target||!/^[a-z][a-z0-9-]+$/.test(r.target.input.serverName))throw new Error("Invalid qualification identity.");
+  const old=q.replacesFailedOperation;
+  if(old && (!/^[a-f0-9-]{36}$/.test(old)||old===q.operation||!r.p1QualificationHistory?.some(h=>h.operation===old&&h.phase==="failed"&&h.jobId===q.jobId)||!r.guestReady?.bootId||!/^[a-f0-9-]{36}$/.test(r.guestReady.bootId)))throw new Error("Missing retained failed qualification identity.");
   return `#!/bin/bash
 set -euo pipefail
 set +x
 umask 077
 root=/var/lib/agefreighter/workflows/${r.id}
+exec 9>"$root/p1-diagnostic.lock"
+flock -n 9
+test "$(cat /var/lib/agefreighter/evidence/archive.sha256)" = '${r.artifact.sha256}'
+test "$(df -P "$root" | awk 'NR==2 {gsub(/%/,"",$5); print $5}')" -lt 75
+${old?`test "$(cat /proc/sys/kernel/random/boot_id)" = '${r.guestReady!.bootId}'
+test "$(cat "$root/active")" = '${old}'
+! systemctl is-active --quiet af-p1-${old}
+! pgrep -x agefreighter >/dev/null
+! pgrep -x p1runnerverify >/dev/null
+test -d "$root/p1-${old}"
+test ! -e "$root/p1-${old}/active.retained"
+mv "$root/active" "$root/p1-${old}/active.retained"`:""}
 test ! -e "$root/active"
 test "$(cat /var/lib/agefreighter/evidence/archive.sha256)" = '${r.artifact.sha256}'
 test "$(df -P "$root" | awk 'NR==2 {gsub(/%/,"",$5); print $5}')" -lt 75

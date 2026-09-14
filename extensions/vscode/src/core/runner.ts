@@ -73,6 +73,7 @@ export interface RunnerRecord {
   migration?: RunnerMigration;
   targetDiagnostic?: TargetDiagnostic;
   p1Qualification?: P1Qualification;
+  p1QualificationHistory?: P1Qualification[];
   p1Diagnostic?: P1Diagnostic;
   migrationHistory?: {migration:RunnerMigration;diagnostic:TargetDiagnostic;archivedAt:string;reason:"empty-target-preparation-failure"}[];
   targetRestart?: {phase:"submitted"|"unknown"|"finished";submittedAt:string};
