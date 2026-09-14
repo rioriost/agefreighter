@@ -1,8 +1,8 @@
 # AZ-COSMOS r1 installed-GUI qualification
 
-Status: **private runner ready; paused at Cosmos Data Reader confirmation**.
-Storage and runner deployment are complete; no source inventory or migration
-has been submitted. The earlier handoff below is retained as history.
+Status: **complete source inventory running after approved Data Reader grant**.
+Storage and runner deployment are complete; no target or migration has been
+submitted. Earlier handoffs below are retained as history.
 Overall qualification remains 6/9; the earlier headless Cosmos inventory is
 not a guided migration pass.
 
@@ -32,8 +32,8 @@ prepared; do not substitute an unreviewed build.
 
 ## Current GUI handoff
 
-Current action: **Grant Data Reader** for the new Linux runner identity on the
-existing dedicated Cosmos source account. See the completed preparation below.
+Current action: monitor the complete inventory, then import its hash-verified
+report. The Data Reader grant was approved and independently reconciled.
 The following paragraphs describe the previous storage-approval handoff.
 
 The source form has unsaved basic entries for `az-cosmos-p1-r1`, namespace
@@ -110,3 +110,37 @@ to runner identity `e654ffc2-5287-46d8-91a9-758c654002dc`, scoped only to
 `d203e078-1b89-4aa7-8654-1de59e8ac86c` is previewed, not submitted. It grants
 no writes, uses no account key and does not expose the source. The agent
 paused at this new access-grant type; source inventory has not started.
+
+## Data Reader approved; complete inventory started
+
+The user approved the scoped Cosmos Data Reader assignment at
+`2026-09-14T12:05:17.371Z`. The installed GUI reconciled the exact assignment
+to ready; no Contributor role, account key or public access was introduced.
+The same 18 mappings and source-immutability condition were reviewed again.
+Fresh automatic readiness at `12:06:16.851Z` confirms the same boot/artifact,
+idle state, 3.4787% disk, zero swap and zero OOM events.
+
+The installed GUI submitted complete inventory operation
+`faa15c58-8f07-4f45-b006-98468ca1b1d4`, bound to configuration SHA-256
+`f05eb6d79526a1d8284d7050579d3a173660666b8e984826f3ac0dba3e52007a`.
+It was subsequently observed running. Limits remain 30 minutes / 4 GiB /
+no swap; Cosmos source data remains unchanged. No target writes have begun.
+The source still uses the retained 4,000 RU/s autoscale maximum. Source count,
+capacity acceptance, migration and independent canonical verification remain
+separate gates; this running inventory is not a qualification pass.
+
+The recent policy modify event was the transfer storage at `11:52:38Z`, before
+the already recorded scoped exception; there were no group locks. This is not
+evidence of a Cosmos source configuration change. Budget/deadline are unchanged.
+
+At approximately four minutes of guest runtime, a read-only diagnostic confirmed
+the inventory still running, RSS 27,800 KiB, zero swap and 4% root-disk usage.
+Azure request metrics also show continuing reads. The first diagnostic used
+unavailable `jq`; it was rerun with standard read-only tools and did not change
+the running inventory. No configuration or throughput tuning was applied.
+
+The nine GUI field-to-CLI configuration contract tests passed with a freshly
+built isolated local test CLI. The first invocation lacked the required test
+binary environment variable; supplying the test harness prerequisite resolved
+that setup failure. This local validator test did not replace the Linux source
+inventory or execute a local migration.
