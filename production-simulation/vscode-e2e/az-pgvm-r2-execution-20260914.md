@@ -7,7 +7,8 @@ inventory passed all 5,600,000 rows and was hash-verified in the installed GUI.
 The earlier authentication failure remains retained. The new private target
 deployment, AGE preload restart and same-VM resize are complete. Post-boot
 readiness passed. The corrected migration and strict counts now pass in the
-installed GUI; independent full property-digest qualification remains pending.
+installed GUI. Full property-digest qualification failed: 63 of 64 range hashes
+differ despite complete counts. Evidence is retained; no replay is permitted.
 No migration qualification is claimed.
 
 ## Preserved original
@@ -344,3 +345,53 @@ credential or network setting is replaced. This development executable's
 action-time confirmation is displayed for the user; no verifier has been
 submitted yet. Source VM, runner and target are still running at this
 checkpoint, within the retained budget/deadline; idle charges continue.
+
+## Full digest failure and complete offline cause reproduction
+
+The first native approval expired the five-minute idle-health gate and did not
+submit verification. Health refreshed at `03:43:25.457Z`; after the same approved
+manifest was reselected, operation `4ed0d7dc-c319-4981-ac3b-4acfee6a0f92`
+was submitted at `03:45:23.604Z`. The user changed the GUI during the final
+action, so it was reread and the existing submission was retained, not repeated.
+ARM execution ran from 03:45:33Z through 03:47:39Z, ending Failed / exit 1.
+Systemd reports exit-code, with no swap/OOM and 6% guest disk use. The installed
+GUI reconciled qualification as failed and retains its active marker/evidence.
+
+Unlike the original missing-properties attempt, this verifier produced a
+23,259-byte `result.json` (SHA-256
+`4f4332d7bee279140abc4fafc6da615d042b20d4551521293691dd26b39d165f`).
+Both manifests contain 5,600,000 records and 64 ranges with matching counts and
+range boundaries, but 63 range hashes differ; only Carrier agrees. Actual root:
+`33196eb1524a2310b74f5313a6fa64e96ad7704118eafefa895a33f533ae6cb1`.
+The frozen expected root remains unchanged. Generic stderr and its checksum,
+both manifests, fixtures, loader/job and old failed graph are retained.
+
+Read-only SQL against the retained source demonstrates `double precision`
+`score` values 74/38 serialized by `row_to_json` without a decimal point.
+The PostgreSQL reader uses this JSON serialization, and `convertValue` infers
+integer type from numbers without a decimal point/exponent. Canonical P1
+requires floating-point `score` and `distance_km`, including integral values.
+
+The optional offline diagnostic
+`TestDiagnoseP1PostgreSQLIntegralFloatCollapse` reads the verified frozen Mac
+fixture without modifying it. Converting only integral-valued floats in those
+two fields reproduces the exact observed target root across all 5.6M records
+and 64 ranges: **40,175 values lost floating-point type**. It completed in
+55.55 seconds. This proves the observed aggregate mismatch is explained by
+that conversion; it is not a successful migration qualification and does not
+weaken or replace any canonical-verifier behavior.
+
+Next repair: preserve PostgreSQL property types independently of JSON numeric
+spelling, with regressions for float zero/integral/fractional/exponent values,
+int64 boundaries, nulls and nested JSON/arrays across supported read modes.
+Keep precision/non-finite rejection and checkpoint/fingerprint compatibility
+explicit; do not cast every JSON number to float or relax canonical equality.
+After review and a pinned Linux build, use a new create-only migration and
+repeat inventory, strict counts and full canonical verification. Do not resume
+or alter either failed graph or remove its evidence.
+
+All eight trial VMs are confirmed deallocated and all six Flexible Servers
+Stopped. No resource/data was deleted. Storage/network retention charges
+continue, and stopped Flexible Servers may automatically restart after seven
+days. USD 800 and the September 16 deadline are unchanged. Qualification
+remains 3/9; production connector behavior has not yet been repaired.

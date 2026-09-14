@@ -2,7 +2,27 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM corrective attempt — migration/counts PASS; full property digest pending
+### AZ-PGVM corrective attempt — counts PASS; full digest FAILED (numeric-type investigation)
+
+The user approved the pinned full verifier. The first approval outlasted the
+five-minute health gate without submitting work; fresh health and the same
+approval submitted operation `4ed0d7dc-c319-4981-ac3b-4acfee6a0f92` at
+03:45:23Z. It compared all 5.6M records and all 64 ranges, then failed at
+03:47:39Z: 63 range hashes differ, while row counts and range boundaries agree.
+The installed GUI reconciled the failure without replay. Result/checksums and
+the failed graph are retained. PostgreSQL source readback confirms integral
+`double precision` values serialize without a decimal marker; the current
+connector consequently interprets them as integers. This is a typed-property
+preservation defect requiring repair, not permission to weaken the digest.
+See [redacted r2 evidence](evidence/az-pgvm-r2-p1-failed-20260914.json).
+The offline read-only diagnostic over the frozen P1 fixture reproduced the
+exact failed target root by collapsing 40,175 integral-valued `score` and
+`distance_km` floats to integers. It covers all 5.6M records / 64 ranges, so
+the type conversion explains the complete observed mismatch, not just samples.
+This diagnostic PASS is not migration qualification. All eight trial VMs are
+now deallocated and all six Flexible Servers are Stopped; data and evidence
+remain, with storage charges continuing. The connector fix and a new qualified
+migration remain required; no production conversion behavior was changed here.
 
 After manual unlock, the installed GUI created a separate draft
 `22f11b89-e943-4d56-9675-7331a78b6de7`, named `az-pgvm-p1-r2`. All 18
