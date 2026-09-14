@@ -1,7 +1,7 @@
 # OP-PG r1 installed-GUI qualification
 
 Status: complete inventory passed and was hash-verified/imported; the fresh
-private target exists, but one AGE setting requires narrowly scoped recovery.
+private target and same-VM resize are ready after narrowly scoped AGE recovery.
 Migration and canonical verification
 are not complete. Overall route coverage remains 4/9.
 
@@ -91,6 +91,25 @@ restart. The original deployment still records its failure. Fresh readiness
 at `08:04:05.214Z` proved the same idle boot/artifact, 3.511% disk and zero
 swap/OOM. The GUI then approved the separate pre-migration target restart.
 
+The restart submitted at `08:06:11.346Z` finished; Azure reports the reviewed
+preload value with pending-restart false. The installed GUI separately
+deallocated, resized and started the same runner (resize began
+`08:07:04.519Z`), then read-only reconciled completion. B2s_v2 became D4s_v5.
+Disk/NIC/system identity/security preservation SHA-256 remained
+`b641f1a614257b3694ba0f2d5fe2125a80fa1a5e055d1cc33e3a508f6dda21bd`.
+Post-boot readiness at `08:10:27.660Z` passed with boot ID
+`433e6cc2-c1cf-47ad-a970-abdef7953fde`, unchanged pinned Linux artifact,
+idle guest, disk 3.512%, swap/OOM zero. All other eight VMs were deallocated
+and all seven earlier Flexible Servers remained Stopped. The current target
+is Ready and public access remains Disabled.
+
+The installed-GUI migration preflight passed and its native new-job approval
+was accepted. The GUI is now at `Read-only PostgreSQL source password`.
+The source password from inventory was not retained; no migration job has
+been submitted while awaiting this private entry. Code/evidence fix commit:
+`3a8023f`; installed VSIX SHA-256:
+`276716ad10114d04c3fa44f1d67ee3d6c3887050b3abd88cc58ec7746b9416ec`.
+
 ## Safety and remaining gates
 
 Only this runner and the PostgreSQL fixture VM are running; the prior seven
@@ -103,8 +122,7 @@ The fresh Cost Management query was throttled (429). The latest successful
 returned total remains USD 35.32679129750154, subject to billing delay; it is
 not the final spend. The conservative reserve and deadline remain binding.
 
-Next: reconcile target completion, apply AGE preload if required, resize the
-same idle VM, refresh post-boot readiness, explicitly start a fresh job, then
+Next: obtain the private source password for the separately approved fresh job, then
 pass exact counts and the unchanged independent full P1 verifier (all 64
 ranges, typed properties, identities, endpoints and canonical root). Preserve
 all earlier targets/jobs/evidence. No source or target replay is permitted.

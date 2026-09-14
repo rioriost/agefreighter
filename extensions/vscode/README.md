@@ -175,6 +175,14 @@ verify their checksum and GitHub build-provenance attestation before use.
     to reconcile an uncertain submission; it does not replay it. This initial
     target path requires the VNet in the migration RG. Target creation alone does
     not resize the VM, prepare AGE or start/verify migration.
+    Target database/configuration writes are serialized. If the retained
+    deployment failed **only** on `shared_preload_libraries` with `ServerIsBusy`,
+    reopen target review for a separately approved, one-setting repair. It
+    requires all other resource operations to have succeeded, unchanged private
+    placement/ownership and the unchanged default preload value. It preserves
+    the failed deployment and existing resources; uncertain repair responses
+    are read-only reconciled, never automatically retried. Other failures or
+    custom settings require operator review. Any required restart stays separate.
 11. **Continue / verify Linux migration** is a development preview. With a
     matching migration-capable guest and complete inventory, separately approve
     the AGE preload restart and each idle same-VM resize step. Unknown responses
