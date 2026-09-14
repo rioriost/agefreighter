@@ -175,3 +175,24 @@ preflight passed and the already-covered native start approval was accepted.
 The remaining private input is the read-only PostgreSQL source password for
 this migration, not a replay of the inventory. No old target or job is reused;
 the new durable job will be created only after credential entry and admission.
+
+## Admission timing failure retained before job creation
+
+After private credential input, idle readiness refreshed at
+`2026-09-14T05:38:21.500Z` on the same boot, disk 3.48%, swap/OOM zero.
+The second migration preflight refused the sized VM's ARM readiness. No
+migration intent/job was created and no target writes were submitted. Subsequent
+read-only VM inspection confirms matching workflow, Standard_D4s_v5, Running
+and Succeeded. The readiness Run Command completed in Azure at 05:38:54.875Z.
+An ARM state-settling race is suspected; the original rejected VM response was
+not retained, so its exact transient provisioning state is not asserted.
+
+The Extension now polls GET-only for at most 30 seconds when the same running,
+correctly sized/owned VM specifically reports Updating. Other provisioning or
+identity changes fail immediately. The final Succeeded and fresh health/budget
+checks remain mandatory; no migration or readiness write is replayed. Added
+regressions cover successful settling, bounded timeout, changed identity/size/
+power, terminal failure, and health/budget expiry. Typecheck, build and all
+183 unit tests pass. Updated VSIX SHA-256:
+`675e03c6d24c5a7582900c061f19081407a060cde901700ca9ee83fd280f120c`.
+Installed and reloaded in the real VS Code; Linux artifact remains unchanged.

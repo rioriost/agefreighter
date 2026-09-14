@@ -29,7 +29,11 @@ errors or incomplete checks. Its 2,947-byte SHA-256-verified report is imported.
 Fresh private target deployment succeeded at 05:23 UTC. AGE preload restart
 and same-VM resize to Standard_D4s_v5 are complete. Post-boot guest readiness
 passes (idle, disk 3.48%, no swap/OOM). New migration preflight and approval
-passed; private source-password entry is required before a job is created.
+passed initially. After credential entry, a fresh readiness command succeeded
+but the following ARM VM-state gate refused admission; no migration job was
+created. A bounded GET-only wait for the matching running VM's Updating state
+is now installed (183 tests pass), with all final gates retained. Re-admission
+and private source-password entry remain necessary.
 See [r3 execution sheet](az-pgvm-r3-execution-20260914.md). This source inventory
 pass is not a completed migration or P1 property-digest qualification.
 

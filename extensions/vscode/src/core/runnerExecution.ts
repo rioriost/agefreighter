@@ -32,9 +32,25 @@ export async function migrationPreflight(control:RunnerControl,r:RunnerRecord,re
   if(response.status!==200 || tags.workflow!==r.id || tags.application!=="agefreighter" || !["migration-target","csv-migration-target"].includes(String(tags.purpose)) || !sameAzureLocation(s.location,r.input.region) || props.availabilityZone!==r.input.zone || props.version!=="18" || props.state!=="Ready" || network.publicNetworkAccess!=="Disabled" || network.delegatedSubnetResourceId!==p.subnetId || network.privateDnsZoneArmResourceId!==p.dnsId || object(s.sku).name!==p.input.postgresSKU)throw new Error("Private target identity, placement, SKU or readiness changed.");
   const preload=await control.request(r.input.subscriptionId,`${p.serverId}/configurations/shared_preload_libraries?api-version=2024-08-01`),pc=object(object(preload.value).properties);
   if(preload.status!==200 || pc.isConfigPendingRestart!==false || !String(pc.value).split(",").map(x=>x.trim()).includes("age"))throw new Error("Apply the approved target preload configuration and reconcile its restart before migration.");
-  const vm=await control.request(r.input.subscriptionId,`${r.vmId}?api-version=2024-07-01&$expand=instanceView`),v=object(vm.value),vp=object(v.properties);
-  if(vm.status!==200 || object(v.tags).workflow!==r.id || object(vp.hardwareProfile).vmSize!==p.input.loaderSize || vp.provisioningState!=="Succeeded" || !Array.isArray(object(vp.instanceView).statuses) || !(object(vp.instanceView).statuses as unknown[]).some(x=>object(x).code==="PowerState/running"))throw new Error("The sized runner is not running and ready.");
+  await waitForMigrationRunner(control,r);
   return e;
+}
+
+/** A completed Run Command can precede the VM's ARM Updating -> Succeeded
+ * transition. Wait only for that state on the matching running VM. Never retry
+ * a write, accept other transitional states, or weaken the final health gate. */
+export async function waitForMigrationRunner(control:RunnerControl,r:RunnerRecord):Promise<void>{
+  if(!r.target)throw new Error("No reviewed migration target.");
+  for(let attempt=0;attempt<=15;attempt++){
+    assertIdleHealth(r);targetBudget(r.target.input);
+    const vm=await control.request(r.input.subscriptionId,`${r.vmId}?api-version=2024-07-01&$expand=instanceView`),v=object(vm.value),vp=object(v.properties);
+    const statuses=object(vp.instanceView).statuses;
+    if(vm.status!==200 || object(v.tags).workflow!==r.id || object(vp.hardwareProfile).vmSize!==r.target.input.loaderSize || !Array.isArray(statuses) || !statuses.some(x=>object(x).code==="PowerState/running"))throw new Error("The sized runner identity, size or running state changed; no migration was submitted.");
+    if(vp.provisioningState==="Succeeded"){assertIdleHealth(r);return;}
+    if(vp.provisioningState!=="Updating")throw new Error("The sized runner is not running and ready; reconcile its Azure provisioning state.");
+    if(attempt<15)await control.sleep(2000);
+  }
+  throw new Error("Azure runner provisioning is still Updating after 30 seconds. Reconcile before migration; no job was submitted.");
 }
 
 /** One explicit target restart, only to apply the approved AGE preload value.
