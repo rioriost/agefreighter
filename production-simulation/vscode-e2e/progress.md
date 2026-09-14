@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM corrective attempt — inventory authentication failure retained
+### AZ-PGVM corrective attempt — complete inventory PASS; private target deploying
 
 After manual unlock, the installed GUI created a separate draft
 `22f11b89-e943-4d56-9675-7331a78b6de7`, named `az-pgvm-p1-r2`. All 18
@@ -42,7 +42,21 @@ the corrected projection. It failed during initialization at 02:05:37Z; a
 password-authentication rejection is present in the source log for that same
 interval. Failed evidence is retained; no replay, credential reset, target
 deployment or migration occurred. Correct existing read-only credentials are
-required before a fresh attempt. Full qualification remains pending.
+required before a fresh attempt.
+
+The saved credential was subsequently confirmed to be a 64-character random
+hexadecimal password, not a hash. After the user entered it, fresh operation
+`5132c60a-fddb-47d3-89f0-4e189718f6cf` passed at 02:21:06Z with all 1.6M
+vertices / 4M edges and 18 exact mappings, no errors or incomplete checks.
+The installed GUI imported/displayed the hash-verified 2,944-byte report
+(`33c83a3021d9691333a0220f678e3bbf93d92533fc968b38fb5eb5992dfc5c0e`).
+The previous failure remains retained. The installed GUI saved a new LoadJob
+and submitted the separate private target at 02:31:21Z: PG18/AGE D4ds_v5,
+128 GiB, Japan East/zone 1, new `10.246.10.0/24` delegated subnet, no public
+access or peering. The same runner is planned for D4s_v5. Combined compute is
+USD 0.736/hour plus USD 400 accrued/non-compute reserve under the unchanged
+USD 800 / September 16 deadline. Target readiness, resize, migration and full
+canonical qualification are pending; coverage remains 3/9.
 
 Read-only reconciliation of the original verifier did not restart it. The
 deallocated VM's current ARM instance view reports Pending/exit 0 without the

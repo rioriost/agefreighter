@@ -2,9 +2,10 @@
 
 Status: corrected source draft reviewed; authenticated artifact transfer and
 private Linux runner readiness and source health passed. The corrected GUI
-submitted complete inventory, which failed during initialization with a
-matching PostgreSQL authentication rejection. Evidence is retained; corrected
-read-only credentials are required. No target deployment or migration started.
+submitted complete inventory with the saved random credential. The fresh
+inventory passed all 5,600,000 rows and was hash-verified in the installed GUI.
+The earlier authentication failure remains retained. The new private target
+deployment is running; no migration qualification is claimed.
 
 ## Preserved original
 
@@ -203,16 +204,67 @@ VS Code. Readback confirms the failed operation is retained in
 `assessmentHistory`, with no current assessment and no replay. The GUI
 re-reviewed the unchanged source and accepted the previously covered read
 approval, then opened its secure password field. It is waiting for corrected
-existing credentials; there has been no second inventory submission.
+existing credentials; there had been no second inventory submission at that
+checkpoint.
 
-The renewed USD 800 ceiling and `2026-09-16T07:14:35.311Z` deadline are unchanged.
-The read-only Cost Management refresh returned HTTP 429 again; no fresh actual
-total is claimed. Existing seven VMs are deallocated and five Flexible Servers
-Stopped. No resource-group locks, failed activity events or policy-modify
-events were returned for the checked interval starting September 13 23:00 UTC.
+## Saved credential provenance and fresh inventory
 
-Next, validate source health and perform a new complete inventory for the
-changed projection through the installed GUI. Continue
-through reviewed target deployment, same-VM resize, create-only migration,
+The local test password file is owner-only readable/writable and contains a
+64-character hexadecimal string. The creation record at
+`2026-09-06T23:26:23.288Z` uses `openssl rand -hex 32`; subsequent preparation
+calls pass the saved value as `sourcePassword`. It is a randomly generated
+password, not a password hash to decode or a PostgreSQL SCRAM/MD5 verifier.
+The value was not printed in chat or in these results.
+
+After the user entered that saved value, installed-GUI readiness refreshed at
+`2026-09-14T02:17:49.661Z` and a fresh inventory was submitted at
+`02:18:15.164Z`, operation `5132c60a-fddb-47d3-89f0-4e189718f6cf`.
+The approved configuration SHA remains unchanged. Guest configuration SHA is
+`16dc629fc075ae6e9a5c2949696fed4d751e5ff2b7770a3752be6d517b34ee8e`.
+GUI status progressed from accepted through running to finished; the earlier
+failed operation remains in history and was not resumed. The PASS report was
+generated at `2026-09-14T02:21:06.029971691Z`: 1,600,000 vertices, 4,000,000
+edges, all 18 exact mapping counts, zero errors and zero incomplete checks,
+using one complete repeatable-read snapshot. It reports 458,398,000 decoded
+mapped-record bytes and a storage sizing range of
+3,008,790,000–8,567,972,000 bytes before target headroom. The installed GUI
+exported and imported the exact 2,944-byte report and displayed it as
+hash-verified. SHA-256:
+`33c83a3021d9691333a0220f678e3bbf93d92533fc968b38fb5eb5992dfc5c0e`.
+This confirms the saved plaintext random password is accepted by the actual
+source. It is an inventory success, not a target migration or canonical digest
+qualification. The reviewed private VNet has unused `10.246.10.0/24` space for
+the separate r2 target; previous target subnets and graphs remain untouched.
+
+## Private target deployment submitted
+
+After complete-inventory import and another idle readiness check
+(`02:26:57.685Z`), the installed GUI reviewed current placement, quota and
+retail-price evidence. It saved the secret-reference-only LoadJob and plan in
+the local trial staging folder and submitted a new private target deployment.
+ARM reports Running, timestamp `2026-09-14T02:31:21.624418Z`.
+
+- New target: `afpg-22f11b89e9434d569675`, PostgreSQL 18 / AGE.
+- Same trial resource group, Japan East, zone 1; no public access or peering.
+- New delegated subnet `10.246.10.0/24`, private DNS in the existing VNet.
+- General Purpose `Standard_D4ds_v5`, 128 GiB; HA disabled for this trial.
+- Same runner planned for `Standard_D4s_v5`; resize has not started.
+- Combined target/loader compute USD 0.736/hour; accrued/non-compute reserve
+  USD 400, total ceiling USD 800, deadline `2026-09-16T07:14:35.311Z`.
+- Plan SHA-256:
+  `b866f3826105ef8020e936486f33465e916b7c66d675325f86d50a069a8771eb`.
+
+Existing graphs, source data and failed evidence are untouched. Only the new
+runner and retained PostgreSQL source VM are running; the other six VMs remain
+deallocated. The previous five Flexible Servers remain stopped and the new
+one is provisioning. The read-only Cost Management refresh returned HTTP 429
+again; no fresh actual billed total is claimed. No resource-group locks or
+failed/policy-modify governance events were returned for the current review
+interval. The last command-slot check found 15 of the new VM's 25 managed Run
+Command entries occupied; preserve evidence and check capacity before later
+dispatches.
+
+Next, reconcile target deployment and AGE readiness, then same-VM resize,
+create-only migration,
 strict counts and independent full canonical verification. None of these
 later stages is complete; coverage remains 3/9.
