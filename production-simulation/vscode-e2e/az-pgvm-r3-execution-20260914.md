@@ -196,3 +196,11 @@ power, terminal failure, and health/budget expiry. Typecheck, build and all
 183 unit tests pass. Updated VSIX SHA-256:
 `675e03c6d24c5a7582900c061f19081407a060cde901700ca9ee83fd280f120c`.
 Installed and reloaded in the real VS Code; Linux artifact remains unchanged.
+
+The saved r3 workflow was reconnected through the GUI without replay. New
+readiness at `05:44:21.931Z` confirms the same boot, idle=true, disk 3.48%,
+no swap/OOM. The updated migration preflight passed and the native start
+confirmation was accepted. The actual UI is again at **Read-only PostgreSQL
+source password**; previous credentials were discarded, not retrieved or saved.
+No migration intent exists yet. Only the source and r3 runner VMs are Running;
+the r3 target is Ready and all six previous Flexible Servers remain Stopped.
