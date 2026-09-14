@@ -34,7 +34,34 @@ Overall GUI coverage remains **6/9**. Old r1 graph/jobs/evidence are unchanged.
   USD 24.25 through the deadline. This is an estimate, not current billing;
   retained Cosmos/storage charges remain separate.
 
-## Storage exception resolved; pinned upload and runner preview ready
+## Private runner ready; Cosmos read-only grant awaiting approval
+
+The user approved the private VM and container-scoped Blob Reader grant.
+The unchanged fresh preview was confirmed and submitted once through the
+installed GUI at `2026-09-14T23:43:47.815Z`. ARM and GUI report provisioned.
+VM `af-d138f4e4bcf340fea876` is running, B2s_v2, zone 1, no public IP.
+System-assigned principal: `0132a1ea-492d-41d3-b910-b5d978a5a06c`.
+The retained role assignment matches Storage Blob Data Reader at the approved
+transfer container only; no source permission was included.
+
+GUI Linux readiness operation `d6abe3de-a37c-452d-bba0-b90676b04206` finished
+and was reconciled at the GUI. Retained check timestamp:
+`2026-09-14T23:45:06.082Z`. Version `2.4.0-dev.8a23a5109798`, implementation
+commit and archive SHA-256 match the reviewed pinned artifact; the guest
+advertises `cosmos-explicit-property-types-v1`. Boot ID
+`71e307e5-3f09-4b84-b989-2a1c4573f824`; idle true, disk 3.4784649594897576%,
+swap 0, OOM events 0. No source reads or migration have started.
+
+**Current GUI handoff:** the new runner's **Grant Data Reader** confirmation
+for `afcosmosp120260907` only is open and has not been accepted. The proposed
+Cosmos DB Built-in Data Reader assignment permits reads, not writes, does not
+enable public networking or keys, and does not start assessment. The new
+principal's access requires action-time approval. Source remains private.
+Refresh Linux readiness if stale before the separately approved inventory.
+The new VM incurs USD 0.109/hour compute while awaiting input; old compute
+was not restarted. Budget/expiry are unchanged.
+
+## Earlier storage exception, upload and runner preview (completed)
 
 The user explicitly approved the new account's network exception. At about
 `2026-09-14T23:37Z`, only `afd138f4e4bcf340fea876ee` received merged tags

@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r2 — transfer ready; fresh private VM approval pending
+### AZ-COSMOS r2 — private runner ready; Cosmos read-only grant pending
 
 Mac unlocked and installed extension reloaded. Fresh workflow
 `d138f4e4-bcf3-40fe-a876-ee9ce062e08a` discovers the retained Cosmos source
@@ -13,9 +13,13 @@ account and account-scoped user role. Policy initially disabled networking;
 the user then explicitly approved the trial-account-only exception. Authenticated
 HTTPS is now enabled while anonymous access/shared keys remain disabled. GUI
 upload of the reviewed fixed Linux archive succeeded. Fresh private B2s_v2 VM
-preview passes, including the same-container Blob Reader grant for its new
-identity; deployment awaits action-time approval. No source read or new VM has
-started. Existing compute remains stopped; budget and deadline unchanged.
+preview passed and the user approved deployment. The new private VM is running;
+its pinned fixed binary/capability and Linux readiness pass: idle, disk 3.48%,
+swap/OOM zero. Its container-only Blob Reader grant is independently confirmed.
+The GUI now requests approval for Cosmos Data Reader on the test source account
+for this new VM identity. No source read or migration has started. Old compute
+remains stopped; the new B2s_v2 runs at USD 0.109/hour plus other charges.
+Budget and deadline are unchanged.
 [Current r2 execution handoff](az-cosmos-r2-execution-20260915.md).
 
 ### Earlier AZ-COSMOS r2 preparation — explicit numeric types
