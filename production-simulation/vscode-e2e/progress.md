@@ -2,16 +2,20 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM and OP-PG qualified (5/9); four other branches remain unqualified**.
 
-### AZ-PGFS r1 — GUI source configured; scoped storage approval pending
+### AZ-PGFS r1 — private runner deployment submitted
 
 The installed GUI discovered the retained private Flexible Server source from
 the approved subscription and resource group. Workflow
 `29558917-403e-4a76-aaa0-de07122ea9c6` now holds all 18 mappings, independently
 confirmed identical to the frozen P1 mapping fixture. The source was started;
 the trial runners and other databases were not restarted. No migration,
-assessment or new target has begun. The GUI is awaiting approval to create
-dedicated transfer storage and grant the signed-in user Blob Data Contributor
-on that new account only. This remains **unqualified**.
+assessment or new target has begun. The user approved dedicated transfer
+storage and the account-scoped grant; GUI upload of the pinned Linux archive
+passed. Live preview exposed a `Japan East` versus `japaneast` comparison bug.
+Commit `dd6b401` fixes it while retaining region/zone checks; 189 tests pass,
+and the installed extension is updated. The repaired GUI preflight passed and
+submitted the private B2s_v2 runner once (USD 0.109/hour compute). Guest
+readiness and source inventory are pending. This remains **unqualified**.
 [AZ-PGFS execution record](az-pgfs-r1-execution-20260914.md).
 
 ### OP-PG r1 — full installed-GUI qualification PASS
