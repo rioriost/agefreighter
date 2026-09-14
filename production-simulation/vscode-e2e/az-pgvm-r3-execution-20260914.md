@@ -5,7 +5,7 @@ readiness and source health pass. After private credential entry, a new complete
 inventory has passed and its hash-verified report is imported. Private target
 deployment, AGE preload restart and same-VM resize are complete. Post-boot
 readiness passes; fresh migration and complete counts verification pass.
-Independent full P1 canonical verification is running.
+Independent full P1 canonical verification passes and is imported in the GUI.
 
 ## Scope and preserved evidence
 
@@ -241,3 +241,32 @@ It submitted independent verification `e79bb594-4af6-4c7a-9fca-172e166f46dc`
 at `05:58:43.923Z` for this exact migration job. All 64 ranges / 5.6M records
 must match; qualification remains pending. No source, graph, loader or network
 changes are made by that verifier.
+
+## Full canonical verification PASS
+
+The independent verifier ran from `05:59:19Z` and generated its successful
+result at `2026-09-14T06:01:21.912679394Z`. The installed GUI reconciled that
+same operation, exported and imported its 23,218-byte result, checked SHA-256
+`8574e721cc0ecb6f086a881308af3213373d076ca89eea7032c7a046d6e3b9f8`,
+then recomputed the canonical root from every leaf. The UI displays
+**P1 full canonical digest: PASS**.
+
+All 1,600,000 vertices and 4,000,000 edges / 64 ranges agree, including typed
+properties, identities and endpoints. Expected and actual roots are both
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+The unchanged verifier that rejected r2 now accepts r3: the released native
+SQL float-preservation fix is validated on this complete P1 route, not just
+counts or selected examples. This is P1 qualification, not P3 scale or a claim
+that every PostgreSQL schema/type and every remaining route is qualified.
+
+AZ-PGVM is the fourth of nine GUI-qualified routes. Previous r1/r2 failure
+evidence remains retained. See [redacted pass evidence](evidence/az-pgvm-r3-p1-pass-20260914.json).
+Final GUI health at `06:04:06.059Z` confirms idle=true, disk 5.0954%, swap=0,
+OOM=0 on the same boot. The exact retained result SHA/job/all 64 leaves also
+agree with the redacted summary in a separate local read-only validation.
+
+By `2026-09-14T06:08:56Z`, all nine trial VMs are confirmed deallocated and all
+seven Flexible Servers are Stopped. No data, evidence, storage or failed job was
+deleted. Retained storage charges continue; Flexible Servers may auto-start
+after seven days. Billing refresh remained throttled, so no final bill is claimed.
+No new route, release, Marketplace publication or production-scale run was started.

@@ -1,6 +1,24 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
+Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526 and AZ-PGVM qualified (4/9); five other branches remain unqualified**.
+
+### AZ-PGVM r3 — complete GUI qualification PASS
+
+The new PostgreSQL 18 VM → private Flexible Server / AGE migration used the
+released native-float fix in the pinned development runner. Fresh job
+`b4e66d41-cfdc-4bf3-bc84-2181a7ff5a37` passed all 24 counts checks and the
+independent full 64-range canonical comparison. The real VS Code UI displays
+**P1 full canonical digest: PASS**. All 1.6M vertices / 4M edges, typed
+properties, identities and endpoints match canonical root
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+The verifier is unchanged from the rejected r2 trial; old failed graphs and
+evidence are preserved. [Pass evidence](evidence/az-pgvm-r3-p1-pass-20260914.json).
+Remaining routes: OP-PG, AZ-PGFS, AZ-COSMOS, OP-N44, OP-N526. None is promoted
+by this result; OP-PG needs a separate IP/port-only GUI workflow and evidence.
+After final idle/no-swap/no-OOM checks, all nine trial VMs are deallocated and
+all seven Flexible Servers are Stopped (06:08 UTC). Data and evidence remain;
+storage charges continue and Flexible Servers can auto-start after seven days.
+Earlier sections below are historical phase observations, not current status.
 
 ### Development resumed with the released PostgreSQL fix
 
