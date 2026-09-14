@@ -2,6 +2,18 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
+### AZ-COSMOS r1 — GUI source discovered; new storage access confirmation
+
+Workflow `7b79f05d-1dc1-40a6-b3dc-6c8129d4e0c1` selects the retained Cosmos
+P1 account through the installed GUI's subscription / resource-group Discover
+flow. Private access, disabled key authentication and 4,000 RU/s autoscale
+maximum were confirmed. No source fixture was rewritten. The new draft is
+paused at **Create storage and scoped role** for its workflow-owned transfer
+account; no new Azure deployment or migration has started. All mappings and
+fresh inventory / migration / canonical verification remain required.
+Budget and September 16 deadline are unchanged; cost refresh returned 429 and
+was not retried. [Current handoff](az-cosmos-r1-execution-20260914.md).
+
 ### AZ-PGFS r1 — full installed-GUI qualification PASS
 
 The installed GUI displays **P1 full canonical digest: PASS**. All 1,600,000
