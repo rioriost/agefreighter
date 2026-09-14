@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3.1
+
+- Package the stable extension alongside the CLI PostgreSQL floating-point
+  correctness patch; no guided-migration development features are included.
+- Retain the previously merged serialize-javascript security update.
+- Recommend CLI 2.3.1; PostgreSQL checkpoints from older CLI versions require
+  a new migration rather than an in-place resume with the new CLI.
+
 ## 2.3.0
 
 - Add workspace discovery and a migration-job tree for AGEFreighter LoadJobs.

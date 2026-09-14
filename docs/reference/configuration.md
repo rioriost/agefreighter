@@ -180,6 +180,23 @@ Temporal, UUID, network, and other PostgreSQL values emitted by
 `row_to_json` map to strings. Unsupported or overflowing values follow the
 configured malformed-record policy.
 
+Starting in 2.3.1, native `real` and `double precision` property columns
+(including arrays and domains over these types) use the SQL projection's type
+metadata: an integral floating value such as `74.0` remains a float even if
+`row_to_json` emits `74`. NaN and infinities in these columns are rejected,
+not converted to strings. Integer columns retain signed 64-bit precision.
+JSON/JSONB values, `numeric`, and floating values embedded in composite objects
+retain the existing JSON-based conversion rules; this patch does not infer
+SQL types inside JSON objects. Cast a projected expression to `double precision`
+when the intended property type is floating-point.
+
+**Upgrade safety:** 2.3.1 changes the PostgreSQL source fingerprint version.
+Do not resume a PostgreSQL job created with 2.3.0 or earlier using 2.3.1;
+it is rejected before connecting to the source. Preserve the old evidence and
+run a new job against a fresh target, or complete the old job with its original
+binary and qualify it separately. Upgrading does not repair previously loaded
+properties. This change does not alter the other connectors' fingerprints.
+
 The source fingerprint includes a credential-free identity of the configured
 PostgreSQL hosts, user, database, and startup session parameters in addition to
 every mapping. Repointing an environment-variable or file secret at a
