@@ -1,8 +1,9 @@
 # AZ-PGVM native-float corrective GUI attempt
 
-Status: fixed development artifact prepared, installed-GUI source draft reviewed,
-new private discovery VM deployment submitted. No source inventory, migration or
-full P1 qualification has completed in this attempt.
+Status: fixed development artifact installed on the new private VM; installed-GUI
+readiness and source health pass. The GUI is awaiting the read-only source
+password for a new complete inventory. No source inventory, migration or full P1
+qualification has completed in this attempt.
 
 ## Scope and preserved evidence
 
@@ -80,7 +81,23 @@ chain / more than 96 hours remaining. Its intentionally restart-disabled
 PostgreSQL container was stopped; an explicit start of that same container was
 submitted without changing data, credentials or certificate validation.
 
-Next: reconcile new VM and source-container readiness, require
-`postgresql-native-floats-v1`, then obtain the read-only source password through
-the private native VS Code input and perform a fresh full inventory. No password
-is stored in this report, the source form or a generated LoadJob.
+## Readiness passed; private credential entry pending
+
+The new VM deployment completed at `2026-09-14T04:59:04.242274Z` and the GUI
+reconciled it without replay. Guest readiness operation
+`091c9cda-423e-4306-ba8c-f0b7fdd9012a` was submitted at `05:00:23.758Z` and
+completed successfully. Version, commit and archive SHA match the pinned build;
+`postgresql-native-floats-v1` is advertised. Boot ID is
+`842f6400-ed79-40c0-a7f8-c3fa38e67bcc`; idle=true, disk 3.48%, swap=0, OOM=0.
+
+The source container start also succeeded. Current certificate validation
+accepts both its DNS name and private IP, with more than 96 hours remaining;
+source disk remains 9%, swap=0. No data or credential changes occurred.
+
+The installed GUI re-reviewed the source, accepted the already-covered complete
+inventory read approval and opened **Read-only source password**. The operator
+must enter the existing read-only credential in that private input and press
+Enter. No inventory intent exists yet; its operation is created only after
+credential entry and fresh health admission. No password is stored in this
+report, the source form or a generated LoadJob. The source and new runner remain
+running within the renewed trial window; old failed resources remain stopped.

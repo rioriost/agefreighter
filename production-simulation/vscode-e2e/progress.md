@@ -21,7 +21,11 @@ float arrays/domains and legacy-checkpoint refusal pass as well.
 The fixed VSIX is installed/reloaded on the Mac. New GUI workflow
 `c275d043-de93-4b0a-b2b0-59cddd13c84f` (`az-pgvm-p1-r3`) has all 18
 reviewed mappings and the existing validated CA. Its newly pinned Linux
-artifact is uploaded; private discovery VM deployment has been submitted.
+artifact is uploaded; private discovery VM deployment and guest readiness pass.
+The guest advertises native-float preservation, with disk 3.48%, no swap/OOM.
+Source container health and current TLS validation pass. The installed GUI
+is now waiting at the private source-password input for a fresh full inventory;
+no new inventory or migration has started yet.
 See [r3 execution sheet](az-pgvm-r3-execution-20260914.md). This is not yet a
 completed source inventory or migration.
 
