@@ -3,7 +3,9 @@
 Status: fixed development artifact installed on the new private VM; installed-GUI
 readiness and source health pass. After private credential entry, a new complete
 inventory has passed and its hash-verified report is imported. Private target
-deployment is running; no migration or full P1 qualification has completed.
+deployment, AGE preload restart and same-VM resize are complete. Post-boot
+readiness passes; new migration admission is approved and private source
+credential entry is the remaining handoff. No migration has started yet.
 
 ## Scope and preserved evidence
 
@@ -149,3 +151,27 @@ and plan in the existing private trial output folder and submitted deployment
 
 AGE preload readiness and same-VM resize are still required after provisioning.
 No migration job has been created. Previous failed graphs remain unchanged.
+
+## Target provisioned and same VM resized
+
+Azure deployment succeeded at `2026-09-14T05:23:41.224719Z`; the installed GUI
+reconciled `provisioned`. It then submitted the dedicated target's AGE preload
+restart at `05:24:57.134Z` and reconciled `finished` with Ready state and no
+pending preload restart. Public access remains Disabled.
+
+GUI readiness refreshed at `05:25:15.184Z` before resize. Same-VM resize
+started at `05:26:52.649Z`: deallocate, reconcile, change SKU, reconcile,
+start, reconcile. The GUI reports `finished` at Standard_D4s_v5. Preserved
+disk/NIC/identity/placement SHA-256 is
+`7062f043e5ce063f72d44eaa65d2bc6fc0f5c013c04f743854c5ff4407ea27b2`.
+Source VM and failed targets were not resized or modified. Recent governance
+events include target deployIfNotExists evaluation; no override was applied.
+Post-boot guest readiness is the next admission gate, before a new migration.
+
+Post-boot GUI readiness passed at `2026-09-14T05:31:00.055Z`, on new boot
+`0e859515-6c61-4620-b069-198082fd3daf`. Pinned commit/archive and native-float
+capability match; idle=true, disk 3.48%, swap=0, OOM=0. The new migration
+preflight passed and the already-covered native start approval was accepted.
+The remaining private input is the read-only PostgreSQL source password for
+this migration, not a replay of the inventory. No old target or job is reused;
+the new durable job will be created only after credential entry and admission.

@@ -26,8 +26,10 @@ The guest advertises native-float preservation, with disk 3.48%, no swap/OOM.
 Source container health and current TLS validation pass. The installed GUI
 completed the full inventory: 18 mappings, 1.6M vertices / 4M edges, with no
 errors or incomplete checks. Its 2,947-byte SHA-256-verified report is imported.
-Fresh private target deployment was submitted once at 05:16 UTC and is running;
-no migration has started yet. AGE readiness and same-VM resize are next.
+Fresh private target deployment succeeded at 05:23 UTC. AGE preload restart
+and same-VM resize to Standard_D4s_v5 are complete. Post-boot guest readiness
+passes (idle, disk 3.48%, no swap/OOM). New migration preflight and approval
+passed; private source-password entry is required before a job is created.
 See [r3 execution sheet](az-pgvm-r3-execution-20260914.md). This source inventory
 pass is not a completed migration or P1 property-digest qualification.
 
