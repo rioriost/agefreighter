@@ -1,7 +1,8 @@
 # AZ-COSMOS r1 installed-GUI qualification
 
-Status: **private target and same-VM resize complete; migration submitted**.
-Complete source inventory passed; migration and verification are in progress.
+Status: **migration and complete counts PASS; independent P1 verifier failed**.
+AZ-COSMOS is not qualified. The failure is not yet proven to be a data mismatch;
+no final comparison report was produced. All job and guest evidence is retained.
 Earlier handoffs below are retained as history.
 Overall qualification remains 6/9; the earlier headless Cosmos inventory is
 not a guided migration pass.
@@ -32,8 +33,9 @@ prepared; do not substitute an unreviewed build.
 
 ## Current GUI handoff
 
-Current action: monitor the retained migration without replay, then import counts
-verification and run the independent full P1 digest.
+Current action: preserve the failed verifier and stop route compute while awaiting
+approval to run an instrumented read-only verifier. Do not replay this operation,
+patch the committed graph, or classify counts-only success as qualification.
 The following paragraphs describe the previous storage-approval handoff.
 
 The source form has unsaved basic entries for `az-cosmos-p1-r1`, namespace
@@ -192,3 +194,54 @@ same mappings and pinned Linux loader. Cosmos authentication uses the retained
 read-only managed identity; no source keys or passwords were requested. Target
 credentials remain in SecretStorage/protected transport. No migration replay,
 source modification or new authorization window was introduced.
+
+## Migration and counts PASS; full verifier failure retained
+
+The Linux migration sequence ran from `2026-09-14T12:38:04.480829277Z` to
+`12:48:17.305124833Z` (about 10m13s). The installed GUI imported the 9,619-byte
+counts report generated at `12:48:16.350782052Z`; independent byte/hash validation
+passed. SHA-256:
+`740452a3a419ad15bfe7b8f72cdb73cb28d4f79a34d9141d81498c305e657d64`.
+All 24 checks pass with zero errors, incomplete checks and rejects; all 18 labels
+agree. Job fingerprint is
+`ecf0f4e6fca7a2963d07b42338a7023198a57d31148907697a952548934171c3`.
+
+The GUI submitted full P1 operation `cb0c7805-5d5e-4ccd-bff8-1d39b6015b0f`
+at `2026-09-14T12:54:26.352Z` with the unchanged verifier archive
+`8e9bf7ec6c37aa06b5aa49fd204663c0abd723c06eda8655631e9d2f776d2c49`.
+Preflight was idle, 3.5298% disk, zero swap/OOM. The GUI later reconciled
+**failed**, never PASS. The guest retains its executable, archive, generated
+fixture manifest, empty stdout and 72-byte generic stderr; no `result.json`
+exists. This proves verifier failure, not its precise cause or a canonical
+root mismatch. No failed operation was replayed.
+
+Code inspection identifies an ordering assumption worth testing: target digest
+reads by allocated graph ID but demands increasing fixture source keys; the
+generated Cosmos SELECT has no ordering clause. This is a hypothesis, not a
+live-confirmed cause. A local diagnostic-only change now records fixed,
+secret-free failure stage/code identifiers in a create-only private
+`failure.json`, including a distinguishable source-key-order error. Existing
+root, row, property and endpoint acceptance checks remain unchanged. The
+verifier and rangedigest unit suites pass. This new diagnostic code has not
+been deployed or run against Azure; the original verifier/evidence is unchanged.
+
+At `13:01:25Z`, a read-only guest check found no loader/verifier processes,
+zero swap and 6% disk use. The observed target storage maximum was 15.2576%,
+below the 80% gate. Cosmos still has public access Disabled, key auth disabled,
+Japan East data placement and maximum 4,000 RU/s. No source data was rewritten.
+After confirming resource ownership and no locks, stop requests were issued
+for only this route's runner and Flexible Server; no resources or evidence
+were deleted. Final stopped-state confirmation is recorded below when available.
+
+At `2026-09-14T13:04:29Z`, all twelve trial VMs are deallocated; nine Flexible
+Servers are Stopped and this route's server is Stopping. Cosmos provisioned
+throughput and retained storage still incur charges. Flexible Server automatic
+restart after seven days remains relevant. The USD 800 ceiling and September 16
+deadline are unchanged. `go test ./production-simulation/...` passes; no revised
+verifier binary has been installed or used for qualification.
+
+Next: after approval, retain the failed operation and its active-marker evidence,
+run a separately identified diagnostic without replaying migration, determine
+the exact cause, review any correction, and requalify the unchanged job or
+explicitly review a fresh migration if a loader defect requires it. Never
+relax the canonical checks to turn this failure into a pass.

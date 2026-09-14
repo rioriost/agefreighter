@@ -15,6 +15,10 @@ import (
 	"github.com/rioriost/agefreighter/pkg/model"
 )
 
+// ErrSourceKeyOrder identifies an ordering failure without exposing source
+// properties or driver diagnostics to qualification receipts.
+var ErrSourceKeyOrder = errors.New("source keys are not strictly increasing")
+
 type rangeBuilder struct {
 	rangeRows int64
 	leaves    []Leaf
@@ -57,7 +61,7 @@ func (builder *rangeBuilder) add(key int64, canonical []byte) error {
 		return errors.New("canonical mapping was not started")
 	}
 	if builder.hasKey && key <= builder.previous {
-		return fmt.Errorf("%s %q source keys are not strictly increasing", builder.kind, builder.name)
+		return fmt.Errorf("%s %q: %w", builder.kind, builder.name, ErrSourceKeyOrder)
 	}
 	if builder.rows == 0 {
 		builder.startKey = key

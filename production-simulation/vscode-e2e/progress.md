@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r1 — inventory passed; migration submitted
+### AZ-COSMOS r1 — counts PASS; full verifier failed (not qualified)
 
 Workflow `7b79f05d-1dc1-40a6-b3dc-6c8129d4e0c1` selects the retained Cosmos
 P1 account through the installed GUI's subscription / resource-group Discover
@@ -22,7 +22,17 @@ was submitted once (D4ds_v5, 128 GiB, Japan East zone 1); deployment and
 AGE restart completed. The same runner is now D4s_v5, with disk/NIC/identity
 preserved. Post-boot health passed (3.5115% disk, no swap/OOM). The GUI started
 job `7fa558e4-8027-4335-9a2b-564f70b3df02` at `12:37:48.928Z` using the
-read-only Cosmos managed identity. Counts and full digest remain pending. Reviewed
+read-only Cosmos managed identity. Migration and all 24 complete-count checks
+passed in about 10m13s with zero rejects; the GUI imported the hash-verified
+report. Full P1 verifier operation `cb0c7805-5d5e-4ccd-bff8-1d39b6015b0f`
+failed without producing a comparison report. **This route is not qualified**;
+data mismatch versus verifier failure is not yet resolved. Evidence is retained,
+and no migration replay or graph patch was made. A local diagnostic-only change
+adds secret-free failure stages; its tests pass but it has not run on Azure.
+Route compute stop requests were issued while awaiting the new diagnostic run.
+At `13:04:29Z`, all twelve VMs are deallocated, nine Flexible Servers are
+Stopped and this route's server is Stopping. Cosmos/storage charges continue.
+Reviewed
 target/runner compute is USD 0.736/hour plus the USD 400 additional reserve;
 previously stopped compute was not restarted.
 Budget and September 16 deadline are unchanged; cost refresh returned 429 and

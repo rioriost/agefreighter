@@ -1,10 +1,52 @@
 package main
 
 import (
+	"errors"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestFailureReceiptIsPrivateRedactedAndImmutable(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "failure.json")
+	secret := "postgresql://afadmin:private-password@example.invalid/db"
+	if err := retainFailure(path, errors.New(secret)); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), secret) || !strings.Contains(string(data), `"outcome":"fail"`) {
+		t.Fatal("invalid redacted failure receipt")
+	}
+	info, _ := os.Stat(path)
+	if info.Mode().Perm() != 0600 {
+		t.Fatal("failure receipt must be private")
+	}
+	if err := retainFailure(path, &qualificationFailure{"target-digest", "source-key-order"}); !errors.Is(err, os.ErrExist) {
+		t.Fatal("overwrote retained failure", err)
+	}
+	retained, _ := os.ReadFile(path)
+	if string(retained) != string(data) {
+		t.Fatal("prior evidence changed")
+	}
+}
+
+func TestFailureReceiptDistinguishesOrderingFromMismatch(t *testing.T) {
+	for _, code := range []string{"source-key-order", "canonical-mismatch"} {
+		path := filepath.Join(t.TempDir(), "failure.json")
+		if err := retainFailure(path, &qualificationFailure{"target-digest", code}); err != nil {
+			t.Fatal(err)
+		}
+		data, _ := os.ReadFile(path)
+		if !strings.Contains(string(data), `"code":"`+code+`"`) {
+			t.Fatal("missing diagnostic code")
+		}
+	}
+}
 
 func TestReadOnlyConnection(t *testing.T) {
 	host := "afpg-test.postgres.database.azure.com"
