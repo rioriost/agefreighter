@@ -18,6 +18,12 @@ The merged tree passes all Go package tests, PostgreSQL/runner race tests and
 180 Extension unit tests. Live local PostgreSQL 18 / AGE tests preserve exact
 float serialization in COPY/cursor/keyset and both pre-encoding paths; native
 float arrays/domains and legacy-checkpoint refusal pass as well.
+The fixed VSIX is installed/reloaded on the Mac. New GUI workflow
+`c275d043-de93-4b0a-b2b0-59cddd13c84f` (`az-pgvm-p1-r3`) has all 18
+reviewed mappings and the existing validated CA. Its newly pinned Linux
+artifact is uploaded; private discovery VM deployment has been submitted.
+See [r3 execution sheet](az-pgvm-r3-execution-20260914.md). This is not yet a
+completed source inventory or migration.
 
 ### AZ-PGVM corrective attempt — counts PASS; full digest FAILED (numeric-type investigation)
 
