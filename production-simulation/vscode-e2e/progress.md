@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526 and AZ-PGVM qualified (4/9); five other branches remain unqualified**.
 
-### OP-PG r1 — fresh GUI draft; storage approval pending
+### OP-PG r1 — private runner ready; source password input pending
 
 Workflow `53625ae3-b155-4821-bfc3-910cc8cad6df` was created in the installed
 GUI with PostgreSQL / **on-premises**, IP and port, the retained read-only
@@ -15,12 +15,50 @@ Source CA SHA-256 remains
 
 The private runner placement is the existing trial group / runner subnet,
 Japan East zone 1, initially B2s_v2. Published 2.4.0 is unavailable, so the
-release prerequisite correctly submitted no VM deployment. The next step is
-dedicated transfer storage, then the previously reviewed pinned development
-artifact. The native confirmation is open for account
-`af53625ae3b1554821bfc391` and user-scoped Storage Blob Data Contributor on
-that new account only. It has not been submitted. No new Azure resources,
-source reads, job or target were created in this step; no route is promoted.
+release prerequisite correctly submitted no VM deployment before the reviewed
+development artifact was selected. The user explicitly approved the new
+account-only Storage Blob Data Contributor grant. Installed-GUI transfer
+deployment succeeded at `2026-09-14T06:50:00.598619Z`. Account
+`af53625ae3b1554821bfc391` received the previously authorized storage-only
+`SecurityControl=Ignore` exception; authenticated public HTTPS is enabled,
+anonymous access and shared keys are disabled, and TLS 1.2 remains required.
+The exact 37,056,164-byte archive uploaded successfully, SHA-256
+`10a27dd02b53f070ad2529b21c40c5d382a6e67cb59d9175f98cc29531ff8997`.
+The GUI reconnected to the draft, rechecked placement, and submitted private
+runner `af-53625ae3b1554821bfc3` once at USD 0.109/hour compute plus other
+charges. Its identity receives only this workflow container's Blob Reader
+role. Provisioning is not readiness or qualification.
+
+Deployment succeeded at `2026-09-14T06:54:44.021368Z`. The first guest check
+was too early: retained command `af-7082911a-b627-4f0e-b9e3-d9d2229b62cb`
+failed with exit 127 because `agefreighter-tools` was not yet installed.
+Read-only boot diagnostics subsequently confirmed cloud-init done, no fatal
+errors, and the installed tool. Recoverable Azure IMDS reprovision-data 404
+warnings were retained; they are not asserted to be a migration failure.
+After that evidence review, a new GUI readiness operation
+`7f1999cd-56a7-4f94-b45c-30dff7942ade` passed at 06:57:57 UTC. Version,
+commit and archive hash match; `postgresql-native-floats-v1` is present.
+Boot ID `2163fb28-cd1e-41e5-8f67-964c96395078`; idle=true, disk 3.508%,
+swap=0, OOM=0. The GUI imported this verified readiness.
+
+Only the retained PostgreSQL fixture VM was started for laboratory setup.
+That infrastructure operation is separate from the OP-PG discovery under
+test, which contains no source ARM reference and uses only IP/port/credentials.
+No source database reads, migration job or target exist for this route yet.
+Source guest checks confirmed its existing TLS chain and IP verification,
+certificate expiry September 20 (more than 96 hours remaining), disk 9%,
+swap=0 and OOM=0. The intentionally restart-disabled, retained PostgreSQL
+container was explicitly started without changing its data or credentials;
+its running/non-OOM state was confirmed. No source ARM discovery is used by
+the OP-PG workflow.
+
+The GUI re-reviewed the unchanged 18 mappings and accepted the complete
+inventory read approval (30 minutes / 4 GiB / no swap). It now displays
+**Read-only source password** for private operator entry and Enter. No
+inventory intent exists before that entry; no password is recorded here.
+Only the new B2s_v2 runner and the D8s_v5 fixture VM are running; old runners
+and all targets remain stopped. The next step is inventory and report import,
+then fresh target/resize, migration, exact counts and all 64 canonical ranges.
 
 Fresh baseline at 06:36–06:39 UTC confirms all nine VMs deallocated and all
 seven Flexible Servers Stopped. Recent external network writes were inspected:
