@@ -43,6 +43,24 @@ Review findings and disposition:
   `work/vscode-p1-portable-20260905`, then runs
   `go test ./production-simulation/internal/rangedigest -run TestCosmosTypedPortableCanonicalParity -v`.
 
+## Pinned artifacts and desktop installation
+
+Implementation commit pushed: `8a23a5109798ec906109532e4cc6c32308b3c824`.
+Built from its clean archived tree; no public release or Marketplace publication.
+
+| Artifact | SHA-256 | Bytes |
+| --- | --- | ---: |
+| Linux runner `2.4.0-dev.8a23a5109798` | `52e1d147a13b86a729f5a993e9e72848dd87a89d0ae50a61f26459f5632444f3` | 37079079 |
+| Read-only P1 verifier | `60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d` | 7248083 |
+| VSIX `agefreighter-2.4.0.vsix` | `ecff799b71e2a3a34bce6c15fde9ac93be622952ca178a0123f756857be965e4` | — |
+
+Local manifests are retained under `work/vscode-runner-build.GXKmVv/` and
+`work/vscode-p1-verifier.YxRRzz/`. VS Code CLI confirmed installation; the
+installed `dist/extension.js` and packaged build both hash to
+`9cb64155b59c2fa72d2481df86cdd6ea280a85b608f3b1958fcbd519331eff9a`.
+Window reload and actual updated UI are **not yet verified**, because the Mac
+remains locked. No Azure resource writes were performed during this preparation.
+
 ## Next live steps (not executed by this fix)
 
 1. Unlock this Mac manually, reload the installed extension, and confirm its
