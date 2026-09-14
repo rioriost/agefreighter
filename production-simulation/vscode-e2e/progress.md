@@ -2,6 +2,23 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
+### Development resumed with the released PostgreSQL fix
+
+Released v2.3.1 (`952b6b4`) is merged into this development tree (`43490f6`).
+It preserves native SQL float properties across COPY, cursor and keyset modes,
+including integral-valued floats and float arrays/domains, and rejects old
+PostgreSQL checkpoint fingerprints. The Extension remains 2.4.0 with its
+runner-first GUI and Azure Resources authentication integration intact.
+New PostgreSQL assessments/migrations now require the explicit
+`postgresql-native-floats-v1` Linux capability; old evidence controls still work.
+AZ-PGVM r1/r2 and their failed targets are retained without replay or repair.
+The next qualification uses a newly pinned fixed development runner and a
+fresh workflow, target and job. This repair is not yet a fourth qualified route.
+The merged tree passes all Go package tests, PostgreSQL/runner race tests and
+180 Extension unit tests. Live local PostgreSQL 18 / AGE tests preserve exact
+float serialization in COPY/cursor/keyset and both pre-encoding paths; native
+float arrays/domains and legacy-checkpoint refusal pass as well.
+
 ### AZ-PGVM corrective attempt — counts PASS; full digest FAILED (numeric-type investigation)
 
 The user approved the pinned full verifier. The first approval outlasted the

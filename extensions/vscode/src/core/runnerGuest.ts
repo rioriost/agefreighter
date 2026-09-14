@@ -18,6 +18,13 @@ export interface GuestRequest { version: 1; workflow: string; operation: string;
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 
+/** Do not reuse pre-fix PostgreSQL runners; read-only evidence controls remain available. */
+export function assertPostgreSQLTypePreservation(record: RunnerRecord): void {
+  if (record.input.source.type === "postgresql" && !record.guestReady?.capabilities?.includes("postgresql-native-floats-v1")) {
+    throw new Error("This PostgreSQL runner lacks native floating-point preservation. Use a reviewed fixed Linux artifact and a fresh workflow, target and job; retain old results without replay.");
+  }
+}
+
 // Constant script: credentials/configuration never occur in source, public
 // parameters, resource IDs, status records, or command-line arguments.
 export const guestDispatchScript = `#!/bin/bash
@@ -44,6 +51,7 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
     validateCSVManifest(request.import); csvCapability(request.import.url, record.id, request.import.file, request.import.sha256);
   } else if (request.import !== undefined) throw new Error("Unexpected CSV import capability.");
   const assessment = ["profile", "inventory", "migrate-csv", "migrate-source"].includes(request.action);
+  if (assessment) assertPostgreSQLTypePreservation(record);
   if(request.action==="migrate-csv" || request.action==="migrate-source"){
     assertIdleHealth(record);
     const type=object(record.sourceDraft?.configuration.source).type;

@@ -98,6 +98,12 @@ test("CSV inventory requires verified files and an advertised guest capability",
   const result = await startAssessment(f.control, f.record, "inventory", {});
   assert.equal(result.assessment?.action, "inventory");
 });
+test("PostgreSQL inventory refuses the legacy capability before any intent or cloud request", async () => {
+  const f=fixture();f.record.input.source.type="postgresql";
+  f.record.guestReady!.capabilities=["postgresql-inventory-v1","postgresql-migration-v1"];
+  for(const action of ["profile","inventory"] as const)await assert.rejects(startAssessment(f.control,f.record,action,{}),/native floating-point preservation/);
+  assert.equal(f.saved.length,0);assert.equal(f.requests.length,0);
+});
 
 function readinessFixture() {
   const f = fixture();

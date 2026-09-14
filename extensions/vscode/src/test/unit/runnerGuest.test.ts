@@ -33,6 +33,19 @@ test("ambiguous transport results reconcile with GET only",async()=>{
   const f=fixture();f.fail();const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
   assert.equal(next.guestCommand?.phase,"unknown");const before=f.events.length;await reconcileGuest(f.control,next);assert.ok(f.events.slice(before).every(e=>e.startsWith("GET:")));
 });
+test("PostgreSQL pre-fix guests cannot assess or migrate, but retained evidence remains readable",async()=>{
+  const f=fixture(),r=record();r.input.source.type="postgresql";
+  r.guestReady={bootId:op,cliVersion:"2.4.0",archiveSha256:r.artifact.sha256,commit:"commit",checkedAt:new Date().toISOString(),capabilities:["postgresql-inventory-v1","postgresql-migration-v1"]};
+  for(const action of ["profile","inventory","migrate-source"] as const){
+    await assert.rejects(dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action,configuration:{source:{type:"postgresql"}}}),/native floating-point preservation/);
+  }
+  assert.deepEqual(f.events,[]);
+  const status=await dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action:"status"});
+  assert.equal(status.guestCommand?.action,"status");
+  r.guestReady.capabilities!.push("postgresql-native-floats-v1");
+  const assessed=await dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action:"profile",configuration:{source:{type:"postgresql"}}});
+  assert.equal(assessed.guestCommand?.action,"profile");
+});
 test("managed command capacity fails before intent or PUT without deleting evidence",async()=>{
   const f=fixture();f.control.list=async()=>Array.from({length:25},()=>({}));
   await assert.rejects(dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"}),/25 managed Run Command limit/);

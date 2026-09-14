@@ -63,6 +63,7 @@ func (m Manager) Ready(ctx context.Context) (Readiness, error) {
 		"neo4j-inventory-v1", "neo4j-migration-v1",
 		"postgresql-inventory-v1", "postgresql-migration-v1",
 		"cosmos-nosql-inventory-v1", "cosmos-nosql-migration-v1",
+		"postgresql-native-floats-v1",
 	}, Health: health}, nil
 }
 

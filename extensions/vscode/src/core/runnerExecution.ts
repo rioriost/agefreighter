@@ -1,7 +1,7 @@
 import {createHash,randomUUID} from "node:crypto";
 import {object,RunnerRecord} from "./runner";
 import {RunnerControl} from "./runnerLifecycle";
-import {assertIdleHealth,dispatchGuest,reconcileGuest} from "./runnerGuest";
+import {assertIdleHealth,assertPostgreSQLTypePreservation,dispatchGuest,reconcileGuest} from "./runnerGuest";
 import {TargetEvidence,sourceTargetEvidence,targetBudget} from "./runnerTarget";
 import {assessCountsVerification,VerificationDecision} from "./runnerVerification";
 import {sourceSecrets} from "./runnerSource";
@@ -21,6 +21,7 @@ export function sameAzureLocation(actual:unknown,expected:string):boolean{
 export async function migrationPreflight(control:RunnerControl,r:RunnerRecord,report:string):Promise<TargetEvidence>{
   if(r.migration || r.target?.phase!=="provisioned" || r.resize?.phase!=="finished" || r.upgrade && r.upgrade.phase!=="finished")throw new Error("Complete the private target and same-VM resize; an existing migration must never be replayed.");
   targetBudget(r.target.input);assertIdleHealth(r);
+  assertPostgreSQLTypePreservation(r);
   if(!cosmosAccessReady(r))throw new Error("The retained Cosmos Data Reader grant is not ready.");
   await assertCosmosAccessCurrent(control,r);
   const capability=`${r.input.source.type}-migration-v1`;

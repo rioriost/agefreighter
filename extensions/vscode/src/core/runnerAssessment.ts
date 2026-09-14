@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { object, RunnerRecord } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
-import { assertIdleHealth, dispatchGuest, reconcileGuest } from "./runnerGuest";
+import { assertIdleHealth, assertPostgreSQLTypePreservation, dispatchGuest, reconcileGuest } from "./runnerGuest";
 import { csvAssessmentReady } from "./runnerCSV";
 import { assertCosmosAccessCurrent, cosmosAccessReady } from "./runnerCosmosAccess";
 
@@ -54,6 +54,7 @@ export function retainFailedAssessment(record: RunnerRecord, operation: string, 
 /** Caller holds the workflow lock, reviewed the form and approved source reads. */
 export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>): Promise<RunnerRecord> {
   if(record.migration)throw new Error("The retained migration freezes source evidence; reconcile it instead of starting another assessment.");
+  assertPostgreSQLTypePreservation(record);
   if (!record.sourceDraft?.canAssess || assessmentActive(record)) throw new Error("A reviewed source and a workflow without a retained assessment are required.");
   if (!cosmosAccessReady(record)) throw new Error("Grant and verify Cosmos Data Reader access for this runner first.");
   if (record.input.source.type === "csv" && !csvAssessmentReady(record)) throw new Error("Every mapped CSV requires an independently verified guest upload seal.");

@@ -2,6 +2,8 @@
 
 ## 2.4.0
 
+- Reject PostgreSQL assessment/migration on older Linux runners that do not advertise native SQL float preservation; retain read-only access to failed-run evidence.
+
 - Incorporate the 2.3.1 PostgreSQL floating-point preservation and gRPC security
   fixes without downgrading the runner-first guided UI or its dependencies.
 
