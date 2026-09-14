@@ -15,9 +15,10 @@ import (
 )
 
 type sourceRow struct {
-	raw       []byte
-	key       *keyValue
-	accounted bool
+	raw         []byte
+	key         *keyValue
+	accounted   bool
+	floatFields map[string]sqlFloatKind
 }
 
 type recordReader interface {
@@ -55,6 +56,12 @@ func openRecordReader(
 		telemetry.failure()
 		return nil, err
 	}
+	floatFields, err := describeFloatFields(ctx, reader, mapping)
+	if err != nil {
+		telemetry.failure()
+		_ = reader.Close()
+		return nil, err
+	}
 	var opened recordReader
 	switch mode {
 	case "copy":
@@ -70,7 +77,20 @@ func openRecordReader(
 		_ = reader.Close()
 		return nil, err
 	}
-	return opened, nil
+	return &typedRecordReader{recordReader: opened, floatFields: floatFields}, nil
+}
+
+// Keep wire JSON and identity/key spelling unchanged; SQL types apply only to
+// mapped properties, after the normal row-size and malformed-record gates.
+type typedRecordReader struct {
+	recordReader
+	floatFields map[string]sqlFloatKind
+}
+
+func (reader *typedRecordReader) Next(ctx context.Context) (sourceRow, error) {
+	row, err := reader.recordReader.Next(ctx)
+	row.floatFields = reader.floatFields
+	return row, err
 }
 
 type copyReader struct {

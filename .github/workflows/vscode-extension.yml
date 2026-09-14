@@ -11,7 +11,7 @@ on:
   push:
     branches:
       - main
-      - "2.3.0"
+      - "2.3.1"
     paths:
       - "extensions/vscode/**"
       - "internal/cli/config_commands.go"
@@ -99,7 +99,7 @@ jobs:
         run: |
           set -euo pipefail
           npm run package
-          vsix=dist/agefreighter-2.3.0.vsix
+          vsix=dist/agefreighter-2.3.1.vsix
           test -f "$vsix"
           unzip -l "$vsix" >dist/vsix-contents.txt
           grep -F 'extension/dist/extension.js' dist/vsix-contents.txt
@@ -110,10 +110,10 @@ jobs:
           sha256sum "$vsix" >"$vsix.sha256"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: agefreighter-vscode-2.3.0
+          name: agefreighter-vscode-2.3.1
           path: |
-            extensions/vscode/dist/agefreighter-2.3.0.vsix
-            extensions/vscode/dist/agefreighter-2.3.0.vsix.sha256
+            extensions/vscode/dist/agefreighter-2.3.1.vsix
+            extensions/vscode/dist/agefreighter-2.3.1.vsix.sha256
             extensions/vscode/dist/vsix-contents.txt
           if-no-files-found: error
           retention-days: 14

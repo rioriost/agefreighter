@@ -5,7 +5,7 @@ migration logic or credentials into an AI model.
 
 AGEFreighter migrates CSV, PostgreSQL, Neo4j, and Azure Cosmos DB graph data to
 Apache AGE or PostgreSQL 19 SQL/PGQ property graphs. This extension is a guided
-interface for the separately installed AGEFreighter 2.3.0 CLI; the Go CLI
+interface for the separately installed AGEFreighter 2.3.1 CLI; the Go CLI
 remains the deterministic migration engine and owner of durable checkpoints.
 
 ## Highlights
@@ -25,7 +25,7 @@ remains the deterministic migration engine and owner of durable checkpoints.
 ## Prerequisites
 
 Install [AGEFreighter from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rioriost.agefreighter),
-then install the AGEFreighter 2.3.0 CLI and ensure `agefreighter` is on `PATH`.
+then install the AGEFreighter 2.3.1 CLI and ensure `agefreighter` is on `PATH`.
 Alternatively, run **AGEFreighter: Select CLI Binary** and select the executable.
 
 On macOS, the Homebrew installation is:
@@ -36,7 +36,7 @@ brew install rioriost/cask/agefreighter
 
 Linux and Windows release archives are available from the
 [AGEFreighter releases](https://github.com/rioriost/agefreighter/releases).
-Windows CLI binaries in 2.3.0 are provided without an Authenticode signature;
+Windows CLI binaries in 2.3.1 are provided without an Authenticode signature;
 verify their checksum and GitHub build-provenance attestation before use.
 
 ## Start a migration

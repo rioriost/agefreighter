@@ -14,7 +14,7 @@ is Microsoft's managed PostgreSQL service and can enable the AGE extension.
 The PostgreSQL 19 target stores lossless properties in relational `jsonb`
 columns and exposes them through `GRAPH_TABLE`; it does not install AGE and it
 does not provide Cypher. This target remains experimental while PostgreSQL 19
-is pre-release. Version 2.3.0 is qualified against the digest-pinned official
+is pre-release. Version 2.3.1 is qualified against the digest-pinned official
 PostgreSQL 19 Beta 3 image; PostgreSQL 19 GA requires a fresh qualification.
 
 This branch does not preserve the Python API, CLI, configuration, or defaults
@@ -24,6 +24,15 @@ Follow the [1.x to 2.0 migration guide](docs/migration-1.x-to-2.0.md) before
 replacing an existing installation.
 
 ## Installation
+
+### 2.3.1 PostgreSQL correctness fix
+
+PostgreSQL `real`/`double precision` properties now retain their floating-point
+type even when their value is integral (for example, `74.0`). Integer precision
+is unchanged. PostgreSQL checkpoints from 2.3.0 and earlier cannot be resumed
+with 2.3.1: preserve the prior run and use a new job and fresh target. Existing
+loaded graphs are not automatically repaired. See the
+[2.3.1 release notes](docs/releases/2.3.1.md).
 
 Release archives contain `agefreighter`, `agefreighter-tools`, the project
 `LICENSE`, and `THIRD_PARTY_NOTICES.txt`. Verify the downloaded archive against
@@ -44,7 +53,7 @@ desired [GitHub release](https://github.com/rioriost/agefreighter/releases),
 extract it, and install both binaries:
 
 ```sh
-tar -xzf agefreighter_v2.3.0_darwin_arm64.tar.gz
+tar -xzf agefreighter_v2.3.1_darwin_arm64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
@@ -53,17 +62,17 @@ sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 Download the `linux_amd64` or `linux_arm64` archive for the host architecture:
 
 ```sh
-tar -xzf agefreighter_v2.3.0_linux_amd64.tar.gz
+tar -xzf agefreighter_v2.3.1_linux_amd64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
 ### Windows
 
-Download `agefreighter_v2.3.0_windows_amd64.zip`, extract
+Download `agefreighter_v2.3.1_windows_amd64.zip`, extract
 `agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
 `PATH`.
 
-> **Windows signing status:** The Windows binaries in v2.3.0 are intentionally
+> **Windows signing status:** The Windows binaries in v2.3.1 are intentionally
 > provided without an Authenticode signature. The SignPath Foundation
 > application was not approved, so Windows code signing remains planned for a
 > later release through a future eligible application or another signing
@@ -72,12 +81,12 @@ Download `agefreighter_v2.3.0_windows_amd64.zip`, extract
 > use. See the [code signing policy](docs/code-signing-policy.md).
 
 ```powershell
-Expand-Archive .\agefreighter_v2.3.0_windows_amd64.zip -DestinationPath .\agefreighter
+Expand-Archive .\agefreighter_v2.3.1_windows_amd64.zip -DestinationPath .\agefreighter
 Get-AuthenticodeSignature .\agefreighter\agefreighter.exe
 .\agefreighter\agefreighter.exe version
 ```
 
-For v2.3.0, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
+For v2.3.1, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
 
 ### Build from source
 
@@ -86,8 +95,8 @@ With the Go version declared in `go.mod` installed:
 ```sh
 git clone https://github.com/rioriost/agefreighter.git
 cd agefreighter
-git checkout v2.3.0
-make build VERSION=2.3.0
+git checkout v2.3.1
+make build VERSION=2.3.1
 ```
 
 See the [installation guide](docs/reference/installation.md) for archive names,
@@ -95,7 +104,7 @@ checksum and provenance verification, and source-build details.
 
 ### Visual Studio Code
 
-AGEFreighter 2.3.0 also provides the open-source **AGEFreighter** VS Code
+AGEFreighter 2.3.1 also provides the open-source **AGEFreighter** VS Code
 extension. It discovers migration jobs, guides deterministic CLI operations,
 renders bounded reports, and optionally lets the user's selected VS Code chat
 model explain redacted evidence. Migration execution, checkpoints, and every

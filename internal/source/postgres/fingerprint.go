@@ -12,7 +12,9 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 )
 
-const fingerprintVersion = 1
+// v2 preserves native SQL floating-point types. Never resume v1 checkpoints
+// into a target that may already contain integer-coerced floating properties.
+const fingerprintVersion = 2
 
 type fingerprintProperty struct {
 	Name  string `json:"name"`

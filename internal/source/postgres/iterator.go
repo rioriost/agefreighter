@@ -223,7 +223,7 @@ func (iterator *Iterator) Next(ctx context.Context) (sourcecontract.Item, error)
 			iterator.lastKey = row.key
 		}
 		mapping := iterator.mappings[iterator.mappingIndex]
-		record, size, err := iterator.decodeRecord(ctx, mapping, row.raw)
+		record, size, err := iterator.decodeRecord(ctx, mapping, row.raw, row.floatFields)
 		if err != nil {
 			if handledErr := iterator.handleMalformed(ctx, mapping, err); handledErr != nil {
 				return sourcecontract.Item{}, handledErr
@@ -346,6 +346,7 @@ func (iterator *Iterator) decodeRecord(
 	ctx context.Context,
 	mapping compiledMapping,
 	raw []byte,
+	floatFields ...map[string]sqlFloatKind,
 ) (model.Record, int64, error) {
 	if int64(len(raw)) > iterator.options.MaxRecordBytes {
 		return model.Record{}, 0, fmt.Errorf(
@@ -358,7 +359,7 @@ func (iterator *Iterator) decodeRecord(
 		return model.Record{}, 0, err
 	}
 	properties, encoded, propertySize, err := iterator.buildProperties(
-		ctx, document, mapping.properties,
+		ctx, document, mapping.properties, floatFields...,
 	)
 	if err != nil {
 		return model.Record{}, 0, err
@@ -430,6 +431,7 @@ func (iterator *Iterator) buildProperties(
 	ctx context.Context,
 	document map[string]any,
 	properties []compiledProperty,
+	floatFields ...map[string]sqlFloatKind,
 ) (model.Properties, []byte, int64, error) {
 	values := make(model.Properties, len(properties))
 	var size int64
@@ -443,7 +445,11 @@ func (iterator *Iterator) buildProperties(
 				"PostgreSQL row is missing property %q", property.name,
 			)
 		}
-		value, err := convertValue(raw, 0)
+		var kind sqlFloatKind
+		if len(floatFields) > 0 {
+			kind = floatFields[0][property.field]
+		}
+		value, err := convertSQLValue(raw, kind, 0)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf(
 				"PostgreSQL property %q: %w", property.name, err,
