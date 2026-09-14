@@ -1,7 +1,7 @@
 # AZ-COSMOS r1 installed-GUI qualification
 
-Status: **complete source inventory passed; private target deployment submitted**.
-Storage and runner deployment are complete; migration has not started.
+Status: **private target and same-VM resize complete; migration submitted**.
+Complete source inventory passed; migration and verification are in progress.
 Earlier handoffs below are retained as history.
 Overall qualification remains 6/9; the earlier headless Cosmos inventory is
 not a guided migration pass.
@@ -32,8 +32,8 @@ prepared; do not substitute an unreviewed build.
 
 ## Current GUI handoff
 
-Current action: reconcile the submitted private target, then verify AGE readiness
-and resize the same runner. The complete inventory was hash-verified and imported.
+Current action: monitor the retained migration without replay, then import counts
+verification and run the independent full P1 digest.
 The following paragraphs describe the previous storage-approval handoff.
 
 The source form has unsaved basic entries for `az-cosmos-p1-r1`, namespace
@@ -168,3 +168,27 @@ Combined target/runner compute estimate is USD 0.736/hour; USD 400 additional
 reserve, USD 800 ceiling and September 16 deadline are unchanged.
 The GUI reports target `submitted`; ARM completion, AGE readiness, migration
 and full canonical verification are separate remaining gates.
+
+## Target ready, same-VM resize complete; migration started
+
+The GUI reconciled the single target deployment to provisioned and separately
+completed the AGE preload restart (submitted `12:29:17.392Z`). The first resize
+attempt was correctly blocked by stale guest health, before any resize request.
+After refreshing readiness, the GUI explicitly deallocated, resized and started
+the same runner as Standard_D4s_v5, preserving its disk, NIC and system identity.
+Resize preservation SHA-256:
+`18f89135c466e5ce92b391b46d20a203310e6748446c12e408cad1623f6da04d`.
+Post-boot readiness at `2026-09-14T12:36:23.496Z` passed with the same pinned
+artifact, idle, 3.5115% disk, zero swap/OOM. New boot ID:
+`fd1127f2-d3f0-4183-a5cb-d577d20e3c4c`.
+The target is Ready with public access Disabled. No group locks were found;
+target policy deployIfNotExists activity was observed and retained as governance
+context, not treated as a user-requested policy change.
+
+The GUI submitted one Cosmos migration plus complete counts verification at
+`2026-09-14T12:37:48.928Z`: durable job/operation
+`7fa558e4-8027-4335-9a2b-564f70b3df02`. It is bound to the accepted inventory,
+same mappings and pinned Linux loader. Cosmos authentication uses the retained
+read-only managed identity; no source keys or passwords were requested. Target
+credentials remain in SecretStorage/protected transport. No migration replay,
+source modification or new authorization window was introduced.
