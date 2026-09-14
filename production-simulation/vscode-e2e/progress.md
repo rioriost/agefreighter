@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM corrective attempt — inventory PASS; target ready; runner resizing
+### AZ-PGVM corrective attempt — inventory PASS; target/runner ready; migration credential entry
 
 After manual unlock, the installed GUI created a separate draft
 `22f11b89-e943-4d56-9675-7331a78b6de7`, named `az-pgvm-p1-r2`. All 18
@@ -65,6 +65,11 @@ disk, NIC, identity and placement retained. Migration has not started. The
 credential-wait readiness repair also covers migration entry now, with 178
 passing tests and the updated extension installed/reloaded. Post-boot readiness,
 migration, strict counts and the full canonical digest remain required.
+The same-VM resize subsequently finished with preservation checks passed.
+Post-boot readiness at 02:58:03Z is idle, disk 3.50%, no swap/OOM, pinned
+runtime unchanged. GUI migration preflight passed and its covered confirmation
+was accepted; the secure source password is required before the first dispatch.
+No new migration is submitted or qualified at this checkpoint.
 
 Read-only reconciliation of the original verifier did not restart it. The
 deallocated VM's current ARM instance view reports Pending/exit 0 without the

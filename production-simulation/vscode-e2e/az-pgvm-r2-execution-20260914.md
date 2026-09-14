@@ -5,7 +5,8 @@ private Linux runner readiness and source health passed. The corrected GUI
 submitted complete inventory with the saved random credential. The fresh
 inventory passed all 5,600,000 rows and was hash-verified in the installed GUI.
 The earlier authentication failure remains retained. The new private target
-deployment and AGE preload restart are complete; same-VM resize is in progress.
+deployment, AGE preload restart and same-VM resize are complete. Post-boot
+readiness passed; the GUI is at migration credential entry.
 No migration qualification is claimed.
 
 ## Preserved original
@@ -295,3 +296,13 @@ Deallocation completed and the D4s_v5 size update was submitted. The retained
 disk/NIC/identity/placement fingerprint is
 `e98e6d4a15cc676e9db7b6da19fb5fb1523e61f2d6318c4110498c90aa0c16c8`.
 Source data and all prior failed graphs/evidence remain untouched.
+
+GUI reconciliation subsequently confirms resize finished with the same
+preservation fingerprint. Post-boot readiness at `2026-09-14T02:58:03.871Z`
+confirms boot `de2d194e-efa7-40f2-b350-839b2a60ea2e`, the unchanged pinned
+runtime, idle guest, storage 3.50%, swap 0 and OOM 0. Managed Run Command
+capacity is 17/25 before migration. The GUI migration preflight passed and
+the previously covered create-only 5,600,000-row migration/counts confirmation
+was accepted. The secure source-password field is required next; no migration
+job has been submitted at this checkpoint. Full property digest qualification
+is still a separate remaining step, and overall coverage remains 3/9.
