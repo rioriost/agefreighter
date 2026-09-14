@@ -2,6 +2,18 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM and OP-PG qualified (5/9); four other branches remain unqualified**.
 
+### AZ-PGFS r1 — GUI source configured; scoped storage approval pending
+
+The installed GUI discovered the retained private Flexible Server source from
+the approved subscription and resource group. Workflow
+`29558917-403e-4a76-aaa0-de07122ea9c6` now holds all 18 mappings, independently
+confirmed identical to the frozen P1 mapping fixture. The source was started;
+the trial runners and other databases were not restarted. No migration,
+assessment or new target has begun. The GUI is awaiting approval to create
+dedicated transfer storage and grant the signed-in user Blob Data Contributor
+on that new account only. This remains **unqualified**.
+[AZ-PGFS execution record](az-pgfs-r1-execution-20260914.md).
+
 ### OP-PG r1 — full installed-GUI qualification PASS
 
 The actual VS Code now displays **P1 full canonical digest: PASS**.
@@ -15,7 +27,7 @@ This qualifies the IP/port-only on-premises simulation separately from AZ-PGVM.
 It is P1 scope, not production-scale qualification or every PostgreSQL schema.
 
 Remaining routes: **AZ-PGFS, AZ-COSMOS, OP-N44, OP-N526**.
-All ten trial VMs are deallocated and all eight Flexible Servers are Stopped;
+At OP-PG completion, all ten trial VMs were deallocated and all eight Flexible Servers were Stopped;
 no resources/data/evidence were deleted. Retained storage charges continue.
 Latest returned trial cost: USD 36.7436452084183 (delayed, not final billing).
 [Redacted OP-PG evidence](evidence/op-pg-r1-p1-pass-20260914.json).
