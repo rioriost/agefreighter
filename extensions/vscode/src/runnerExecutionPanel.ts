@@ -12,6 +12,7 @@ import {targetComputeRate} from "./core/runnerTargetPreflight";
 import {renewTargetAuthorization} from "./core/runnerTarget";
 import {diagnoseTarget,archiveEmptyTargetFailure} from "./core/runnerDiagnostic";
 import {qualifyP1} from "./p1QualificationPanel";
+import {diagnoseP1} from "./p1DiagnosticPanel";
 import {inspectSourceCA} from "./core/runnerSource";
 import {ensureAssessmentReadiness} from "./core/runnerAssessment";
 
@@ -24,7 +25,7 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   let r=await store.read(selected.id);
   const startLabel=`Start new ${r.input.source.type} migration and counts verification`;
   const renewLabel="Review a new cost authorization (no Azure mutation)";
-  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
+  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)","Diagnose retained P1 failure (read only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
   if(!action)return;
   const confirm=(title:string,detail:string)=>vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");
   const price=async()=>{if(!r.target)throw new Error("No retained target plan.");const input=r.target.input;if(targetComputeRate(await azure.retailRates(r.input.region,[input.loaderSize,input.postgresSKU]),input)!==input.hourlyUSD)throw new Error("Compute price changed; review the cost plan before further mutation.");};
@@ -71,6 +72,8 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
     }); } finally { sourcePassword=undefined; }
   }else if(action==="Refresh retained migration (never replay)"){
     r=await store.exclusive(r.id,async()=>refreshMigration(control,await store.read(r.id)));
+  }else if(action==="Diagnose retained P1 failure (read only)"){
+    r=await diagnoseP1(context,control,store,azure,r.id);
   }else if(action==="Qualify / reconcile full P1 digest (development only)"){
     r=await qualifyP1(context,control,store,azure,r.id);
   }else if(action==="Archive empty-target preparation failure"){
