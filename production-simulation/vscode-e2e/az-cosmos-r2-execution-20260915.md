@@ -34,7 +34,41 @@ Overall GUI coverage remains **6/9**. Old r1 graph/jobs/evidence are unchanged.
   USD 24.25 through the deadline. This is an estimate, not current billing;
   retained Cosmos/storage charges remain separate.
 
-## Storage approval and current connectivity gate
+## Storage exception resolved; pinned upload and runner preview ready
+
+The user explicitly approved the new account's network exception. At about
+`2026-09-14T23:37Z`, only `afd138f4e4bcf340fea876ee` received merged tags
+`SecurityControl=Ignore` and `expiresAt=2026-09-16T07:14:35.311Z`, followed by
+Public Network Access Enabled. Anonymous access and shared keys remain disabled;
+TLS1.2 and existing ownership tags are unchanged. The expiry tag documents the
+authorized deadline; it is not proof of automatic revocation. An authenticated
+container read succeeded. Cosmos remains public Disabled / local keys disabled.
+
+The installed GUI selected and uploaded the reviewed development manifest from
+`work/vscode-runner-build.GXKmVv/manifest.json`, then reported the pinned archive
+prepared. Persisted upload is `ready`. Independent blob properties confirm
+37,079,079 bytes and SHA-256 metadata
+`52e1d147a13b86a729f5a993e9e72848dd87a89d0ae50a61f26459f5632444f3`.
+The uploader also validated local bytes against the pinned manifest. No new
+binary was built or substituted.
+
+After reconnecting the draft through the GUI, fresh VM preview passed at
+`2026-09-14T23:40:24.565Z`; hash
+`f310f187c0e8d3d0ffffa887586711562b3a562040d31da7a387bcc6f4423d64`.
+Preview expires at `23:55:24.565Z` and must be refreshed if stale. Proposed VM
+`af-d138f4e4bcf340fea876` is B2s_v2, Japan East zone 1, in the existing private
+runner subnet, USD 0.109/hour compute plus storage/network. No public IP,
+SSH ingress, peering or source firewall change is included.
+
+**Current handoff:** approve this fresh private VM and its managed identity's
+Storage Blob Data Reader grant scoped only to
+`af-d138f4e4-bcf3-40fe-a876-ee9ce062e08a` in the new transfer account.
+It installs/runs the reviewed unpublished `2.4.0-dev.8a23a5109798` artifact.
+No VM deployment has been submitted; state is `previewed`. Cosmos Data Reader
+is not part of this preview and remains a separate later access decision.
+No source inventory, migration or canonical verification has started.
+
+## Earlier storage approval and connectivity gate (resolved)
 
 At the user's explicit action-time approval, **Create storage and scoped role**
 was pressed at approximately `2026-09-14T22:48:47Z`. Deployment succeeded;

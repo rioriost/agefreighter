@@ -2,18 +2,20 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r2 — storage created; policy-disabled transfer connectivity
+### AZ-COSMOS r2 — transfer ready; fresh private VM approval pending
 
 Mac unlocked and installed extension reloaded. Fresh workflow
 `d138f4e4-bcf3-40fe-a876-ee9ce062e08a` discovers the retained Cosmos source
 through Azure subscription/RG selection. All 18 mappings entered in the GUI
 are independently identical to the typed P1 fixture. No source read or migration
 started. Following explicit user approval, the GUI created the dedicated transfer
-account and account-scoped user role. ARM deployment and role checks pass, but
-the GUI reports public networking Disabled. A successful policy modify event
-was observed during creation. Transfer remains blocked; no upload or new VM
-has begun. The new account's network exception has not been applied. Existing
-compute remains stopped; budget and deadline unchanged.
+account and account-scoped user role. Policy initially disabled networking;
+the user then explicitly approved the trial-account-only exception. Authenticated
+HTTPS is now enabled while anonymous access/shared keys remain disabled. GUI
+upload of the reviewed fixed Linux archive succeeded. Fresh private B2s_v2 VM
+preview passes, including the same-container Blob Reader grant for its new
+identity; deployment awaits action-time approval. No source read or new VM has
+started. Existing compute remains stopped; budget and deadline unchanged.
 [Current r2 execution handoff](az-cosmos-r2-execution-20260915.md).
 
 ### Earlier AZ-COSMOS r2 preparation — explicit numeric types
