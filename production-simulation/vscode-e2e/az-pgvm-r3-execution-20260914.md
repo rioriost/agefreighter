@@ -1,9 +1,9 @@
 # AZ-PGVM native-float corrective GUI attempt
 
 Status: fixed development artifact installed on the new private VM; installed-GUI
-readiness and source health pass. The GUI is awaiting the read-only source
-password for a new complete inventory. No source inventory, migration or full P1
-qualification has completed in this attempt.
+readiness and source health pass. After private credential entry, a new complete
+inventory has passed and its hash-verified report is imported. Private target
+deployment is running; no migration or full P1 qualification has completed.
 
 ## Scope and preserved evidence
 
@@ -101,3 +101,51 @@ Enter. No inventory intent exists yet; its operation is created only after
 credential entry and fresh health admission. No password is stored in this
 report, the source form or a generated LoadJob. The source and new runner remain
 running within the renewed trial window; old failed resources remain stopped.
+
+## New inventory started
+
+After operator input, the GUI refreshed idle readiness at
+`2026-09-14T05:04:42.136Z` and submitted new inventory
+`fe5812fd-f7c1-4035-9aeb-a4868a1980cd` at `05:04:52.004Z`. The guest accepted
+and started it on the same boot with configuration SHA-256
+`0ea9b7674c9e81f1c237a0856675113437be06970cea5ceebf992e45c01cb43e`.
+The GUI has reconciled `running`, not terminal success. No old job was replayed.
+Current running VMs are only the r3 runner and retained PostgreSQL source;
+no recent Policy-category events were returned by the resumption query.
+Cost Management was throttled on refresh (429); the prior lagged total and
+USD 400 reserve remain, with the unchanged USD 800 / September 16 deadline.
+
+## Inventory complete and imported
+
+The full source inventory completed at `2026-09-14T05:07:22.012078968Z`.
+All 18 mappings reached EOF in one repeatable-read snapshot: 1,600,000
+vertices and 4,000,000 edges. Outcome and both checks pass, with empty errors
+and incomplete checks. Estimated target storage range is 3,484,790,000 through
+9,900,772,000 bytes, before the plan's additional headroom.
+
+The GUI create-only export and subsequent import verified 2,947 bytes against
+SHA-256 `4ef1cbc69c6a5777fb3fb8de5503db66361bd4a347ffdbae7e02f7f55909a60a`.
+The installed UI displays **Hash-verified source report**. This is inventory
+success, not a migration pass. Initial target review correctly refused stale
+guest health without submitting a deployment; readiness is being refreshed.
+
+## Fresh private target submitted
+
+Fresh GUI readiness passed at `2026-09-14T05:14:40.132Z`. Target review and
+Azure preflight then passed. The GUI saved the secret-reference-only LoadJob
+and plan in the existing private trial output folder and submitted deployment
+`afpg-c275d043de934b0ab2b0` once. Azure reports Running at
+`2026-09-14T05:16:35.795248Z`; no deployment was replayed.
+
+- New server: `afpg-c275d043de934b0ab2b0`, PostgreSQL 18 / AGE.
+- Japan East, zone 1; Standard_D4ds_v5, 128 GiB; trial HA disabled.
+- New delegated subnet `10.246.11.0/24` in the existing trial VNet, private DNS,
+  public access disabled, no peering or source firewall changes.
+- Same runner will resize separately to Standard_D4s_v5; loader RSS bound 4 GiB.
+- Plan hash: `f0bdbedef7a152b630073cf9c62489d7f3e99b1e903294b2a803375e050ba18d`.
+- Combined target/runner compute quote USD 0.736/hour, USD 400 reserve,
+  unchanged USD 800 ceiling and September 16 deadline. Other retained/source
+  resource charges remain covered by the aggregate trial budget, not this quote.
+
+AGE preload readiness and same-VM resize are still required after provisioning.
+No migration job has been created. Previous failed graphs remain unchanged.

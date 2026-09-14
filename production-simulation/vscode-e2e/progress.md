@@ -24,10 +24,12 @@ reviewed mappings and the existing validated CA. Its newly pinned Linux
 artifact is uploaded; private discovery VM deployment and guest readiness pass.
 The guest advertises native-float preservation, with disk 3.48%, no swap/OOM.
 Source container health and current TLS validation pass. The installed GUI
-is now waiting at the private source-password input for a fresh full inventory;
-no new inventory or migration has started yet.
-See [r3 execution sheet](az-pgvm-r3-execution-20260914.md). This is not yet a
-completed source inventory or migration.
+completed the full inventory: 18 mappings, 1.6M vertices / 4M edges, with no
+errors or incomplete checks. Its 2,947-byte SHA-256-verified report is imported.
+Fresh private target deployment was submitted once at 05:16 UTC and is running;
+no migration has started yet. AGE readiness and same-VM resize are next.
+See [r3 execution sheet](az-pgvm-r3-execution-20260914.md). This source inventory
+pass is not a completed migration or P1 property-digest qualification.
 
 ### AZ-PGVM corrective attempt — counts PASS; full digest FAILED (numeric-type investigation)
 
