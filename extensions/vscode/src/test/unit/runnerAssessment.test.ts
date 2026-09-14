@@ -177,3 +177,20 @@ test("closing the panel during readiness prevents source dispatch", async () => 
   assert.equal(f.payloads.length, 1); assert.equal(f.payloads[0]!.action, "ready");
   assert.ok(f.saved.every(s => s.assessment === undefined));
 });
+
+test("post-inventory readiness refresh preserves the target and completed inventory for first migration", async () => {
+  const f = readinessFixture();
+  f.record.assessment = { operation: workflow, action: "inventory", phase: "finished", bootId: workflow,
+    configurationSHA256: "b".repeat(64), reportSHA256: "c".repeat(64), reportBytes: 100 };
+  f.record.target = { phase: "provisioned", hash: "plan-unchanged" } as RunnerRecord["target"];
+  f.record.resize = { phase: "finished" } as RunnerRecord["resize"];
+  const r = await ensureAssessmentReadiness(f.control, f.record);
+  assert.deepEqual(r.assessment, f.record.assessment);
+  assert.deepEqual(r.target, f.record.target);
+  assert.deepEqual(r.resize, f.record.resize);
+  assert.equal(r.migration, undefined);
+  assert.equal(f.payloads.length, 1); assert.equal(f.payloads[0]!.action, "ready");
+  const alreadyStarted = { ...r, migration: { phase: "submitted" } } as RunnerRecord;
+  await assert.rejects(ensureAssessmentReadiness(f.control, alreadyStarted), /retained source operation/);
+  assert.equal(f.payloads.length, 1);
+});

@@ -13,6 +13,7 @@ import {renewTargetAuthorization} from "./core/runnerTarget";
 import {diagnoseTarget,archiveEmptyTargetFailure} from "./core/runnerDiagnostic";
 import {qualifyP1} from "./p1QualificationPanel";
 import {inspectSourceCA} from "./core/runnerSource";
+import {ensureAssessmentReadiness} from "./core/runnerAssessment";
 
 /** Native choices are intentionally separate approvals. Reconnecting or closing
  * a panel cannot launch/resume a migration, resize, or repeat a lost operation. */
@@ -58,14 +59,16 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
       sourcePassword=await vscode.window.showInputBox({title:`Read-only ${r.input.source.type==="neo4j"?"Neo4j":"PostgreSQL"} source password`,prompt:"Sent only through the protected guest channel for this approved migration; not saved or sent to an AI model.",password:true,ignoreFocusOut:true});
       if(sourcePassword===undefined)return;
     }
-    r=await store.exclusive(r.id,async()=>{
-      const latest=await store.read(r.id);
+    try { r=await store.exclusive(r.id,async()=>{
+      let latest=await store.read(r.id);
       const key=`runner-target/${r.id}/${createHash("sha256").update(latest.target!.serverId).digest("hex")}`,password=await context.secrets.get(key);
       if(!password)throw new Error("The retained target credential is unavailable.");
       let sourceCAPEM:string|undefined;
       if(latest.sourceCA){const data=await readFile(latest.sourceCA.path),checked=inspectSourceCA(latest.sourceCA.path,latest.sourceCA.name,data);if(checked.bytes!==latest.sourceCA.bytes||checked.sha256!==latest.sourceCA.sha256||latest.sourceDraft?.sourceCASHA256!==checked.sha256)throw new Error("The selected source CA changed; select and review it again.");sourceCAPEM=data.toString("utf8");}
+      latest=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Checking Linux readiness before migration",cancellable:false},
+        ()=>ensureAssessmentReadiness(control,latest));
       return startMigration(control,latest,report,password,sourcePassword,sourceCAPEM);
-    });
+    }); } finally { sourcePassword=undefined; }
   }else if(action==="Refresh retained migration (never replay)"){
     r=await store.exclusive(r.id,async()=>refreshMigration(control,await store.read(r.id)));
   }else if(action==="Qualify / reconcile full P1 digest (development only)"){
