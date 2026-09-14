@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM corrective attempt — inventory PASS; target/runner ready; migration credential entry
+### AZ-PGVM corrective attempt — migration/counts PASS; full property digest pending
 
 After manual unlock, the installed GUI created a separate draft
 `22f11b89-e943-4d56-9675-7331a78b6de7`, named `az-pgvm-p1-r2`. All 18
@@ -70,6 +70,14 @@ Post-boot readiness at 02:58:03Z is idle, disk 3.50%, no swap/OOM, pinned
 runtime unchanged. GUI migration preflight passed and its covered confirmation
 was accepted; the secure source password is required before the first dispatch.
 No new migration is submitted or qualified at this checkpoint.
+
+After credential entry the GUI submitted job
+`f16b1aac-2b1b-41ee-888c-df7f2177575f` at 03:26:57Z. It finished and its
+strict counts report passed at 03:32:12Z: all 5.6M records, 18 exact label
+counts and 24 checks, zero rejects/errors/incomplete checks. The installed GUI
+imported and displayed the hash-verified 9,619-byte report. All previous graphs
+remain intact. The independent 64-range canonical-property comparison is still
+pending, so AZ-PGVM is not yet fully qualified and coverage remains 3/9.
 
 Read-only reconciliation of the original verifier did not restart it. The
 deallocated VM's current ARM instance view reports Pending/exit 0 without the

@@ -6,7 +6,8 @@ submitted complete inventory with the saved random credential. The fresh
 inventory passed all 5,600,000 rows and was hash-verified in the installed GUI.
 The earlier authentication failure remains retained. The new private target
 deployment, AGE preload restart and same-VM resize are complete. Post-boot
-readiness passed; the GUI is at migration credential entry.
+readiness passed. The corrected migration and strict counts now pass in the
+installed GUI; independent full property-digest qualification remains pending.
 No migration qualification is claimed.
 
 ## Preserved original
@@ -306,3 +307,40 @@ the previously covered create-only 5,600,000-row migration/counts confirmation
 was accepted. The secure source-password field is required next; no migration
 job has been submitted at this checkpoint. Full property digest qualification
 is still a separate remaining step, and overall coverage remains 3/9.
+
+## Corrected migration and strict counts PASS
+
+After the user entered the saved source password, idle readiness automatically
+refreshed at `2026-09-14T03:26:16.107Z`. The installed GUI submitted fresh job
+`f16b1aac-2b1b-41ee-888c-df7f2177575f` at `03:26:57.870Z`.
+The guest worker started at `03:27:07.657215718Z`; its configuration fingerprint
+is `4aa7ec38b42b4f70e14c4a092a27924777eab942a534ea4724feb08ec1384b3b`.
+No earlier job was resumed and no existing graph was replaced.
+
+The strict `--counts --require-complete` report generated at
+`03:32:12.211477816Z` passes all 24 checks, all 18 exact label counts,
+1,600,000 vertices and 4,000,000 edges, with zero rejects, errors, failed checks
+or incomplete checks. Submission-to-report duration is approximately 5m14s,
+not an isolated loader throughput measurement. The installed GUI reconciled
+the same finished job, transferred its 9,619-byte report, verified SHA-256
+`9bdd0044950e5dd0f0c83353c58f8cd0a23d0bf66406a02042f1ef63f592b0a6`,
+and displayed the exact-counts PASS result.
+
+During migration, guest disk use was 4% with no swap/OOM; target storage metrics
+peaked at 14.673% in the reviewed interval. No resource-group locks or failed/
+policy-modify events were returned since 03:00Z. Cost Management still returns
+HTTP 429; no fresh actual billed total is asserted. The existing USD 800 ceiling,
+USD 400 reserve and September 16 deadline remain unchanged. The full frozen-P1
+64-range typed-property/identity/endpoint comparison has not yet run for this
+job; count-only PASS does not change overall qualification from 3/9.
+
+Post-load GUI readiness at `03:35:23.762Z` passed before selecting the frozen
+P1 verifier manifest. The native full-verification confirmation names commit
+`19026db1930a7893ac4fb30f8647e1c277fe9920` and archive SHA-256
+`8e9bf7ec6c37aa06b5aa49fd204663c0abd723c06eda8655631e9d2f776d2c49`.
+It proposes read-only comparison for this new job, up to 4 GiB memory and
+approximately 1 GiB fixture space, capped at 25 minutes. No loader, graph,
+credential or network setting is replaced. This development executable's
+action-time confirmation is displayed for the user; no verifier has been
+submitted yet. Source VM, runner and target are still running at this
+checkpoint, within the retained budget/deadline; idle charges continue.
