@@ -5,7 +5,8 @@ private Linux runner readiness and source health passed. The corrected GUI
 submitted complete inventory with the saved random credential. The fresh
 inventory passed all 5,600,000 rows and was hash-verified in the installed GUI.
 The earlier authentication failure remains retained. The new private target
-deployment is running; no migration qualification is claimed.
+deployment and AGE preload restart are complete; same-VM resize is in progress.
+No migration qualification is claimed.
 
 ## Preserved original
 
@@ -268,3 +269,29 @@ Next, reconcile target deployment and AGE readiness, then same-VM resize,
 create-only migration,
 strict counts and independent full canonical verification. None of these
 later stages is complete; coverage remains 3/9.
+
+## Target readiness and migration-entry correction
+
+The installed GUI reconciled target provisioning and the AGE preload restart
+submitted at `2026-09-14T02:41:46.571Z`; both are finished. Independent ARM
+readback confirms Ready, D4ds_v5, zone 1, the intended delegated subnet and
+private DNS, and public network access Disabled. Resource-group locks are
+absent. Subsequent policy audit events include two failed subnet audits and
+a successful target deployIfNotExists event; these are not migration results
+or grounds to bypass policy. Effective target isolation remains unchanged.
+
+The credential-wait readiness correction now also covers migration entry.
+After the private source password input, the extension refreshes stale idle
+health before creating the first migration intent, preserving completed
+inventory, target and resize evidence. Existing migration intents still reject
+this path; credentials are not persisted and no source operation is replayed.
+All 178 tests and packaging pass. The installed extension bundle matches
+SHA-256 `d1fa4b61d344269baea8071939921e3de0300bd9596acd9df142e0c1dc3001ae`;
+VS Code was reloaded and reconnected to the same r2 workflow.
+
+GUI readiness at `02:49:47.486Z` confirms idle, disk 3.48%, no swap/OOM and
+the same pinned Linux build. GUI same-VM resize began at `02:51:22.074Z`.
+Deallocation completed and the D4s_v5 size update was submitted. The retained
+disk/NIC/identity/placement fingerprint is
+`e98e6d4a15cc676e9db7b6da19fb5fb1523e61f2d6318c4110498c90aa0c16c8`.
+Source data and all prior failed graphs/evidence remain untouched.

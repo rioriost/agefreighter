@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
-### AZ-PGVM corrective attempt — complete inventory PASS; private target deploying
+### AZ-PGVM corrective attempt — inventory PASS; target ready; runner resizing
 
 After manual unlock, the installed GUI created a separate draft
 `22f11b89-e943-4d56-9675-7331a78b6de7`, named `az-pgvm-p1-r2`. All 18
@@ -56,7 +56,15 @@ and submitted the separate private target at 02:31:21Z: PG18/AGE D4ds_v5,
 access or peering. The same runner is planned for D4s_v5. Combined compute is
 USD 0.736/hour plus USD 400 accrued/non-compute reserve under the unchanged
 USD 800 / September 16 deadline. Target readiness, resize, migration and full
-canonical qualification are pending; coverage remains 3/9.
+canonical qualification were pending at that checkpoint; coverage remains 3/9.
+
+The target deployment and AGE preload restart are now finished. Effective
+networking remains private and the target is Ready. GUI same-VM resize began
+at 02:51:22Z; deallocation completed and the D4s_v5 update was submitted with
+disk, NIC, identity and placement retained. Migration has not started. The
+credential-wait readiness repair also covers migration entry now, with 178
+passing tests and the updated extension installed/reloaded. Post-boot readiness,
+migration, strict counts and the full canonical digest remain required.
 
 Read-only reconciliation of the original verifier did not restart it. The
 deallocated VM's current ARM instance view reports Pending/exit 0 without the
