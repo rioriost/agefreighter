@@ -2,6 +2,25 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44 and AZ-N526 qualified; six other branches remain unqualified**.
 
+### AZ-PGVM corrective attempt — reviewed GUI draft; storage approval pending
+
+After manual unlock, the installed GUI created a separate draft
+`22f11b89-e943-4d56-9675-7331a78b6de7`, named `az-pgvm-p1-r2`. All 18
+corrected mappings were entered through the GUI and the existing custom CA was
+selected with TLS validation retained. Readback exactly matches the reviewed
+mapping fixture and passes frozen-P1 projection admission. No source read,
+storage, VM, target or new migration has been submitted. The native approval
+dialog is open for a new workflow-scoped transfer account and the signed-in
+user's Blob Data Contributor role on that account only.
+
+Read-only reconciliation of the original verifier did not restart it. The
+deallocated VM's current ARM instance view reports Pending/exit 0 without the
+old result, so the GUI correctly remains submitted; the prior terminal failure
+and guest logs are still retained. This is not success or permission to replay.
+All seven existing trial VMs and five Flexible Servers remain stopped. Cost
+refresh was again throttled (429); the USD 800 ceiling and September 16 deadline
+are unchanged. See the [corrective execution sheet](az-pgvm-r2-execution-20260914.md).
+
 ### AZ-PGVM — counts PASS; full verification FAILED, projection repair required
 
 The installed GUI selected the PostgreSQL VM through Azure discovery and saved
