@@ -1,7 +1,8 @@
 # AZ-COSMOS r1 installed-GUI qualification
 
-Status: **draft; paused at the new storage-account access confirmation**.
-No new Azure deployment, source inventory or migration has been submitted.
+Status: **private runner ready; paused at Cosmos Data Reader confirmation**.
+Storage and runner deployment are complete; no source inventory or migration
+has been submitted. The earlier handoff below is retained as history.
 Overall qualification remains 6/9; the earlier headless Cosmos inventory is
 not a guided migration pass.
 
@@ -31,6 +32,10 @@ prepared; do not substitute an unreviewed build.
 
 ## Current GUI handoff
 
+Current action: **Grant Data Reader** for the new Linux runner identity on the
+existing dedicated Cosmos source account. See the completed preparation below.
+The following paragraphs describe the previous storage-approval handoff.
+
 The source form has unsaved basic entries for `az-cosmos-p1-r1`, namespace
 `p1`, host `afcosmosp120260907.documents.azure.com`, database `p1`.
 All explicit P1 mappings still need to be entered and reviewed. No password or
@@ -59,3 +64,49 @@ It does not expose the Cosmos source. The agent paused without selecting
    P1 ranges / typed properties / identities / endpoints and canonical root.
 6. Only on full GUI qualification, update coverage and stop route compute;
    preserve all data and evidence. No P4, release or unrelated deletion.
+
+## Storage, pinned runner and reviewed mappings
+
+The user completed the storage approval in VS Code. Its deployment succeeded
+and the GUI reconciled it to ready. Policy initially disabled public network
+access; the previously authorized trial-storage-only `SecurityControl=Ignore`
+exception and the unchanged September 16 expiry tag were applied to this
+account, then authenticated HTTPS connectivity was enabled. TLS 1.2, disabled
+anonymous access and disabled shared keys were independently confirmed.
+No source firewall or Cosmos authentication setting changed.
+
+The GUI uploaded and verified the same 37,056,164-byte Linux archive used by
+the previous qualified route: version `2.4.0-dev.9ef16968363b`, commit
+`9ef16968363b31214324f392553f7c8e88150272`, SHA-256
+`10a27dd02b53f070ad2529b21c40c5d382a6e67cb59d9175f98cc29531ff8997`.
+No binary was rebuilt or substituted.
+
+The reviewed VM preview passed; hash
+`4ed3666c5240cffa4436ea437d06a65037108e8473062ef576f4bbb45fdc70b0`.
+The GUI submitted `af-7b79f05d1dc140a6b3dc` once: Japan East / zone 1,
+Standard_B2s_v2, compute USD 0.109/hour plus retained storage/network charges.
+It uses the existing private runner subnet, no public IP or SSH ingress, and
+Blob Reader on this workflow's synthetic-test artifact container only.
+The GUI reconciled ARM provisioning and then verified Linux readiness at
+`2026-09-14T12:00:25.914Z`: correct version, hash and Cosmos capabilities,
+idle, 3.4785% disk, zero swap and zero OOM events. The new VM is running;
+the earlier eleven trial VMs and nine Flexible Servers were not started.
+
+All nine vertex and nine edge mappings were entered through visible GUI fields
+and reviewed. An independent comparison confirms exact equality with
+[the Cosmos P1 mapping fixture](fixtures/cosmos-p1-mappings.json), derived from
+the frozen PostgreSQL P1 properties/endpoints with collection `graph` and no
+SQL schema. Database is `p1`; identities and endpoint fields are also explicitly
+preserved as graph properties where required. The saved configuration SHA-256
+is `f05eb6d79526a1d8284d7050579d3a173660666b8e984826f3ac0dba3e52007a`.
+
+Fresh source checks confirm actual data region Japan East, Private Endpoint
+Approved, public network Disabled and local/key authentication disabled. No
+group locks or recent policy activity were returned. No source data was changed.
+
+The next native GUI confirmation grants **Cosmos DB Built-in Data Reader**
+to runner identity `e654ffc2-5287-46d8-91a9-758c654002dc`, scoped only to
+`afcosmosp120260907`. Assignment intent
+`d203e078-1b89-4aa7-8654-1de59e8ac86c` is previewed, not submitted. It grants
+no writes, uses no account key and does not expose the source. The agent
+paused at this new access-grant type; source inventory has not started.
