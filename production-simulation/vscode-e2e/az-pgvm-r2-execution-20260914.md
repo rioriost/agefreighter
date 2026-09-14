@@ -131,6 +131,33 @@ the secure **Read-only source password** input. No password was copied to chat,
 no secret was persisted to the form and no inventory was submitted yet. User
 credential entry is required; this is not a repeated approval request.
 
+## Credential-wait readiness correction
+
+After the user entered the password, the dispatch admission rejected the stale
+five-minute readiness timestamp (`01:33:53.756Z`). The GUI displayed “Verify
+fresh guest readiness and review source configuration first”; no assessment
+intent or worker was created and the credential was discarded. This was an
+interaction-timing defect, not PostgreSQL authentication failure.
+
+The extension now rechecks idle health after interactive credential entry.
+If existing health is older than four minutes, it submits one source-free
+readiness command and performs bounded GET reconciliation, then applies the
+unchanged five-minute dispatch gate. A changed boot, installation mismatch,
+80% disk use, swap, OOM, busy worker, uncertain command or closed panel prevents
+source dispatch. It never extends an old timestamp, persists credentials,
+automatically retries a source read or bypasses a pending operation.
+
+Type checking, all 177 unit tests and packaging passed, including delayed
+input, unhealthy/changed boot, pending timeout and panel cancellation cases.
+The VSIX was installed and VS Code reloaded while no source operation was
+active. The current installed VS Code reports **1.137.0 arm64** (not the earlier
+1.136.1 observation). Built and installed extension bundle SHA-256 both equal
+`d024e319200752f485113d33f722936afe2aafe91df24760c51d4dc6eb85ff3b`.
+The installed GUI reconnected to the same r2 workflow, displayed the revised
+readiness guidance, and accepted the existing read approval. Its secure
+password field is open again; end-to-end delayed-entry qualification remains
+pending the new input and actual complete inventory result.
+
 The renewed USD 800 ceiling and `2026-09-16T07:14:35.311Z` deadline are unchanged.
 The read-only Cost Management refresh returned HTTP 429 again; no fresh actual
 total is claimed. Existing seven VMs are deallocated and five Flexible Servers

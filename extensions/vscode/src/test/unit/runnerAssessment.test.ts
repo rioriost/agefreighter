@@ -3,7 +3,7 @@ import test from "node:test";
 import { RunnerRecord } from "../../core/runner";
 import { RunnerControl } from "../../core/runnerLifecycle";
 import { buildSourceDraft } from "../../core/runnerSource";
-import { assessmentActive, refreshAssessment, startAssessment, retainFailedAssessment } from "../../core/runnerAssessment";
+import { assessmentActive, ensureAssessmentReadiness, refreshAssessment, startAssessment, retainFailedAssessment } from "../../core/runnerAssessment";
 import { workflow, sourceForm, csvFile } from "../sourceFixtures";
 
 function fixture() {
@@ -97,4 +97,83 @@ test("CSV inventory requires verified files and an advertised guest capability",
   f.record.csvTransfers[0]!.phase = "verified";
   const result = await startAssessment(f.control, f.record, "inventory", {});
   assert.equal(result.assessment?.action, "inventory");
+});
+
+function readinessFixture() {
+  const f = fixture();
+  f.record.guestReady!.checkedAt = new Date(Date.now() - 600000).toISOString();
+  f.record.guestReady!.health = { idle: true, storageUsedPercent: 4, swapUsedBytes: 0, oomEvents: 0 };
+  const result = { version: 1, ready: true, os: "linux", architecture: "amd64",
+    ...f.record.guestReady, health: { ...f.record.guestReady!.health } };
+  const payloads: Record<string, unknown>[] = [];
+  let reads = 0;
+  f.control.request = async (_sub, _path, method = "GET", body) => {
+    if (method === "PUT") {
+      const p = (body as { properties: { protectedParameters: { value: string }[] } }).properties.protectedParameters[0]!;
+      payloads.push(JSON.parse(Buffer.from(p.value, "base64").toString("utf8")));
+      return { status: 201, value: {} };
+    }
+    if (!payloads.length) return { status: 404, value: {} };
+    reads++;
+    return { status: 200, value: { properties: { instanceView: { executionState: "Succeeded", exitCode: 0, output: JSON.stringify(result) } } } };
+  };
+  return { ...f, result, payloads, reads: () => reads };
+}
+
+test("credential delay refreshes health once without any source payload, then permits original inventory", async () => {
+  const f = readinessFixture();
+  const r = await ensureAssessmentReadiness(f.control, f.record);
+  assert.equal(r.guestCommand?.phase, "finished");
+  assert.equal(r.guestReady?.bootId, f.record.guestReady?.bootId);
+  assert.ok(Date.parse(r.guestReady!.checkedAt) > Date.parse(f.record.guestReady!.checkedAt));
+  assert.equal(f.payloads.length, 1);
+  assert.deepEqual(Object.keys(f.payloads[0]!).sort(), ["action", "operation", "version", "workflow"]);
+  assert.equal(f.payloads[0]!.action, "ready");
+  assert.equal(r.assessment, undefined);
+  assert.ok(f.saved.every(s => s.assessment === undefined));
+});
+
+test("fresh idle readiness is reused, but unhealthy evidence is not bypassed", async () => {
+  const f = readinessFixture(); f.record.guestReady!.checkedAt = new Date().toISOString();
+  assert.equal(await ensureAssessmentReadiness(f.control, f.record), f.record);
+  assert.equal(f.payloads.length, 0);
+  f.record.guestReady!.health!.idle = false;
+  await assert.rejects(ensureAssessmentReadiness(f.control, f.record), /idle worker/);
+});
+
+test("readiness after input rejects changed boot, installation or unsafe health", async () => {
+  for (const change of [
+    (r: ReturnType<typeof readinessFixture>["result"]) => { r.bootId = "22222222-2222-4222-8222-222222222222"; },
+    (r: ReturnType<typeof readinessFixture>["result"]) => { r.archiveSha256 = "b".repeat(64); },
+    (r: ReturnType<typeof readinessFixture>["result"]) => { r.health.storageUsedPercent = 80; },
+    (r: ReturnType<typeof readinessFixture>["result"]) => { r.health.swapUsedBytes = 1; },
+    (r: ReturnType<typeof readinessFixture>["result"]) => { r.health.oomEvents = 1; },
+    (r: ReturnType<typeof readinessFixture>["result"]) => { r.health.idle = false; },
+  ]) {
+    const f = readinessFixture(); change(f.result);
+    await assert.rejects(ensureAssessmentReadiness(f.control, f.record));
+    assert.equal(f.payloads.length, 1); assert.equal(f.payloads[0]!.action, "ready");
+    assert.ok(f.saved.every(s => s.assessment === undefined));
+  }
+});
+
+test("pending readiness is bounded and never replayed after timeout or cancellation", async () => {
+  const f = readinessFixture(); let puts = 0, gets = 0;
+  f.control.request = async (_s, _p, method = "GET") => {
+    if (method === "PUT") { puts++; return { status: 201, value: {} }; }
+    gets++; return puts ? { status: 200, value: { properties: { instanceView: { executionState: "Pending" } } } } : { status: 404, value: {} };
+  };
+  await assert.rejects(ensureAssessmentReadiness(f.control, f.record), /still pending/);
+  assert.equal(puts, 1); assert.equal(gets, 21);
+  assert.equal(f.saved.at(-1)?.guestCommand?.phase, "submitted");
+  await assert.rejects(ensureAssessmentReadiness(f.control, f.saved.at(-1)!), /pending guest/);
+  await assert.rejects(ensureAssessmentReadiness(f.control, f.record, () => true), /cancelled/);
+  assert.equal(puts, 1);
+});
+
+test("closing the panel during readiness prevents source dispatch", async () => {
+  const f = readinessFixture();
+  await assert.rejects(ensureAssessmentReadiness(f.control, f.record, () => f.reads() > 0), /cancelled/);
+  assert.equal(f.payloads.length, 1); assert.equal(f.payloads[0]!.action, "ready");
+  assert.ok(f.saved.every(s => s.assessment === undefined));
 });

@@ -31,6 +31,13 @@ has been started for r2. Previously
 covered approvals need not be requested again; new kinds of authority remain
 separate decisions.
 
+The first password entry outlasted the five-minute readiness gate and no
+assessment was submitted. The extension now refreshes stale idle health after
+credential entry without replaying source operations or weakening health/boot
+checks. All 177 tests passed; the corrected VSIX is installed and reloaded in
+VS Code 1.137.0. The same corrected r2 draft is reopened at secure password
+entry. GUI inventory and full migration qualification remain pending.
+
 Read-only reconciliation of the original verifier did not restart it. The
 deallocated VM's current ARM instance view reports Pending/exit 0 without the
 old result, so the GUI correctly remains submitted; the prior terminal failure

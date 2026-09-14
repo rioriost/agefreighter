@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { object, RunnerRecord } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
-import { dispatchGuest, reconcileGuest } from "./runnerGuest";
+import { assertIdleHealth, dispatchGuest, reconcileGuest } from "./runnerGuest";
 import { csvAssessmentReady } from "./runnerCSV";
 import { assertCosmosAccessCurrent, cosmosAccessReady } from "./runnerCosmosAccess";
 
@@ -10,6 +10,33 @@ export interface Assessment {
   configurationSHA256: string; bootId: string; guestConfigurationSHA256?: string; reportSHA256?: string; reportBytes?: number;
 }
 const sha = /^[a-f0-9]{64}$/;
+/** After interactive credential entry, refresh only VM health, never source reads.
+ * Caller holds the workflow lock. Credentials are deliberately not an argument.
+ * Preserve an uncertain command for reconciliation; never resubmit it here.
+ */
+export async function ensureAssessmentReadiness(control: RunnerControl, record: RunnerRecord, cancelled: () => boolean = () => false): Promise<RunnerRecord> {
+  const checkCancelled = () => { if (cancelled()) throw new Error("Source assessment cancelled; no source read was submitted."); };
+  checkCancelled();
+  if (record.phase !== "provisioned" || !record.guestReady || assessmentActive(record) || record.migration) throw new Error("Review the provisioned runner and retained source operation first.");
+  if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command before source assessment.");
+  const boot = record.guestReady.bootId;
+  const age = Date.now() - Date.parse(record.guestReady.checkedAt);
+  // Leave a full minute for the following protected dispatch.
+  if (Number.isFinite(age) && age >= 0 && age <= 240000) { assertIdleHealth(record); return record; }
+  let current = await dispatchGuest(control, record, { version: 1, workflow: record.id, operation: randomUUID(), action: "ready" });
+  for (let attempt = 0; attempt < 20; attempt++) {
+    checkCancelled();
+    current = (await reconcileGuest(control, current)).record;
+    if (current.guestCommand?.phase === "failed") throw new Error("Linux readiness failed; no source read was submitted. Reconcile the runner.");
+    if (current.guestCommand?.phase === "finished") {
+      if (current.guestReady?.bootId !== boot) throw new Error("The runner rebooted while awaiting input. Review the new boot before source reads.");
+      assertIdleHealth(current); checkCancelled(); return current;
+    }
+    if (attempt < 19) await control.sleep(3000);
+  }
+  throw new Error("Linux readiness is still pending; reconcile it in the runner panel. No source read was submitted and credentials were not retained.");
+}
+
 export function assessmentActive(record: RunnerRecord): boolean {
   return record.assessment !== undefined && (record.assessment.phase !== "finished" || !record.assessment.reportSHA256);
 }
