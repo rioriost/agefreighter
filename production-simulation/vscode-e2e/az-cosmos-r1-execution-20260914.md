@@ -301,3 +301,54 @@ Final stopped state confirmed at `2026-09-14T13:24:11Z`: all twelve trial VMs
 deallocated and all ten Flexible Servers Stopped. No resources or data deleted.
 Cosmos provisioned throughput and retained storage charges continue; Flexible
 Server automatic restart after seven days still applies.
+
+## Corrected ordering and independent numeric-shape diagnosis
+
+Commit `252f14f1eb6dce4f4106b67fb29ba3b961447538` introduces P1-only bounded
+canonical sorting without changing P3 streaming. Go production-simulation tests,
+extension type checking and all 193 unit tests passed; the installed VS Code
+extension was updated. The new GUI action requires the reviewed original ordering
+diagnosis and fresh health, archives the failed qualification, retains its old
+marker under the original evidence directory, and submits one new verifier only.
+
+Only the same runner/target were restarted under the unchanged authorization.
+Fresh post-boot health at `13:35:40.106Z` showed 6.6845% disk and no swap/OOM.
+Operation `c1607b3e-32e6-42c6-a3b6-91be8d95e70f` was submitted at
+`13:38:05.565Z`, ran from `13:38:37Z` and produced its report at
+`13:40:40.575490334Z`. It reached all 5.6M records and 64 ranges. Every range's
+identity, key bounds and counts agree, but 63 hashes differ. Stage `comparison`,
+code `canonical-mismatch`; GUI reconciled the operation as failed. Both failed
+verifiers and the earlier diagnosis are preserved. No source or graph was edited.
+
+The 23,261-byte retained result has SHA-256
+`171a11e7f242de0b23bb017ced9d7fefe939fb10d72cca194cebbd4ded91e834`.
+The actual root is `33196eb1524a2310b74f5313a6fa64e96ad7704118eafefa895a33f533ae6cb1`.
+An optional local diagnostic test regenerated the canonical digest from the frozen
+fixture, encoding only integral-valued `score` / `distance_km` floats as integers.
+Exactly 40,175 values changed; the resulting root matches the actual target root.
+This is strong full-graph evidence for numeric type loss, not a tolerance or a
+passing qualification. It does not by itself identify whether normalization
+occurred during Cosmos storage, serialization, or source conversion. Code review
+confirms Cosmos currently infers int/float from the JSON number spelling and has
+no explicit property-type declaration equivalent to CSV.
+
+Next implementation must preserve explicit Cosmos numeric types, validate mapping
+declarations, include them in fingerprints, cover nulls/overflow/arrays/legacy
+inference, and surface declarations in the guided GUI. A fresh reviewed job/graph
+is required; the current committed graph must not be edited or resumed under a
+different fingerprint. No public release or new migration was performed here.
+
+[Redacted requalification evidence](evidence/az-cosmos-r1-ordering-requalification-20260914.json).
+
+Final GUI health (`13:48:29.719Z`) reports 8.2554% disk, zero swap/OOM. Idle is
+false only because the new failure marker remains; the read-only guest check
+confirmed no verifier process and normal exit status 1 (comparison failure).
+The runner now retains 25 managed ARM Run Commands, Azure's per-VM limit. Do not
+submit another managed command or remove old receipts without an evidence-safe
+review. Any subsequent qualification needs a fresh reviewed workflow, or a
+separately reviewed archive of completed control receipts, not data deletion.
+
+At `2026-09-14T13:55:07Z`, Azure confirms all 12 trial VMs deallocated and all
+10 Flexible Servers Stopped. Resources, source fixture, both failed results and
+diagnostic artifacts are retained. Cosmos throughput/storage charges continue;
+Flexible Servers auto-start after seven days. Budget/deadline were not extended.

@@ -2,7 +2,33 @@
 
 Updated: 2026-09-14 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r1 — counts PASS; verifier ordering failure identified (not qualified)
+### AZ-COSMOS r1 — ordering fixed; numeric type mismatch identified (not qualified)
+
+The installed corrected verifier (`252f14f`) read the same committed job in
+operation `c1607b3e-32e6-42c6-a3b6-91be8d95e70f` at `13:38:05.565Z`.
+All 5.6M records / 64 ranges were traversed, with identical range bounds and
+counts; 63 range hashes differ. The `13:40:40.575490334Z` report is **FAIL**,
+not qualification PASS. The original failed operation and diagnostic are retained.
+The original inactive marker is retained inside its original evidence directory.
+No migration, source, loader, graph or credential was changed.
+
+An independent, offline full-fixture counterfactual changed only integral-valued
+floats in `score` and `distance_km` to integers: 40,175 values. Its root exactly
+matches the actual target root `33196eb1524a2310b74f5313a6fa64e96ad7704118eafefa895a33f533ae6cb1`.
+This isolates the numeric type loss; **it is not an alternative acceptance root**.
+The frozen expected root and strict typed verification remain unchanged.
+Next: add reviewed explicit Cosmos property-type preservation, retain legacy
+inference for undeclared properties, include declarations in fingerprints, and
+qualify a separately approved fresh job/graph. Never patch this committed graph
+or resume it with a changed mapping. Overall coverage remains **6/9**.
+[Requalification and diagnostic evidence](evidence/az-cosmos-r1-ordering-requalification-20260914.json).
+
+At `2026-09-14T13:55:07Z`, all 12 trial VMs are deallocated and all 10 Flexible
+Servers are Stopped. No data or resources were deleted. The same USD 800 ceiling,
+USD 400 reserve and September 16 deadline apply. Cosmos/storage charges continue;
+Flexible Server's seven-day automatic restart remains relevant.
+
+#### Earlier AZ-COSMOS r1 evidence (historical state)
 
 Workflow `7b79f05d-1dc1-40a6-b3dc-6c8129d4e0c1` selects the retained Cosmos
 P1 account through the installed GUI's subscription / resource-group Discover
