@@ -1,7 +1,28 @@
 # AZ-COSMOS r2: typed mapping installed-GUI qualification
 
-Updated: 2026-09-15T00:08Z. Outcome: **pending**, not PASS.
+Updated: 2026-09-15T00:23Z. Outcome: **pending**, not PASS.
 Overall GUI coverage remains **6/9**. Old r1 graph/jobs/evidence are unchanged.
+
+## Active phase: fresh typed migration submitted
+
+Target provisioning completed without repair or replay. GUI AGE restart,
+submitted `2026-09-15T00:14:40.405Z`, is finished; live preload value is
+`pg_stat_statements,age`, restart pending false. Same-VM resize began at
+`00:16:28.250Z` and finished at D4s_v5. Preservation hash:
+`44e0e188183d68a1553fa70906deffef1dc40adfeb18e74bb7dd88d1356c3fab`.
+Post-resize GUI health at `00:21:19.630Z`: boot
+`ce0398d0-419f-459f-ab8f-d25708e22899`, matching pinned artifact/capability,
+idle, disk 3.482%, swap/OOM zero. The new target is private and Ready.
+Policy-created NSG/advanced-threat-protection changes were observed and
+preserved; the delegated subnet NSG has no custom rules. No group locks.
+
+The installed GUI approved and submitted fresh create-only migration job
+`d5edef98-bb51-4040-b6ed-0274e252de26` at `2026-09-15T00:22:21.554Z`.
+The same UUID identifies its retained operation. Typed configuration and
+complete inventory are unchanged. No source credentials were requested:
+Cosmos uses the approved managed identity. The GUI will migrate, then run
+strict complete counts verification. Neither counts nor independent canonical
+verification has yet passed; do not mark the route qualified.
 
 ## Completed
 
@@ -172,8 +193,8 @@ New security-sensitive access requires action-time confirmation.
 
 ## Next
 
-Reconcile the new private target, prepare AGE and resize the same idle runner,
-then start a fresh GUI migration and strict verification. Implementation commit:
+Monitor the submitted migration without replay, import complete counts evidence,
+then run the full independent P1 canonical verification. Implementation commit:
 `8a23a5109798ec906109532e4cc6c32308b3c824`; runner archive SHA-256:
 `52e1d147a13b86a729f5a993e9e72848dd87a89d0ae50a61f26459f5632444f3`.
 Retain old Run Command receipts and never replay the old job. A new runner's
