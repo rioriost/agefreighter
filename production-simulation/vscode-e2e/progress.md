@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS, AZ-COSMOS and OP-N44 qualified (8/9); OP-N526 remains unqualified**.
 
-### OP-N526 — private target ready; resized runner awaits GUI start
+### OP-N526 — installed-GUI migration active
 
 The user authorized completing the final route. A cold clone of the stopped
 qualified Neo4j 5.26 source is running privately, with original source/data/auth
@@ -39,11 +39,16 @@ and ARM agree: deployment `afpg-31ce478995344bd6bcac` succeeded at `06:00:24Z`.
 Private PG18/AGE D4ds_v5, 128 GiB, Japan East zone 1; same runner later resized
 to D4s_v5, target/runner USD 0.736/hour. No deployment replay or migration
 occurred. AGE preload is applied with no pending restart. GUI-approved runner
-resize reached `ready-to-start`; ARM confirms Standard_D4s_v5/deallocated with
-the disk/NIC/identity preserved. GUI input now returns intermittent
-`noWindowsAvailable`; operator foreground/unlock assistance is needed. Source
-and private target remain running; no migration has started. Runner start,
-new-boot readiness and migration/full verification remain.
+resize reached `ready-to-start`; ARM confirmed Standard_D4s_v5/deallocated with
+the disk/NIC/identity preserved. After operator foreground assistance, installed
+GUI start and read-only reconciliation completed both resize and AGE preload.
+Fresh new-boot readiness passed at `06:27:02Z`: idle, disk 3.5125%, swap/OOM zero,
+and the same pinned loader. GUI submitted new job
+`848306ac-628e-43ac-8af9-31dfdee2a804` at `06:29:11.668Z` for all 5.6M rows.
+The existing source credential was supplied from Keychain to the protected
+prompt without plaintext output. Source, runner and private target are running.
+Migration, strict counts and full P1 canonical verification remain in progress;
+this is not yet qualification PASS.
 Budget USD 800,
 reserve USD 400 and deadline `2026-09-16T07:14:35.311Z` are unchanged.
 [Reviewed execution and handoff](op-n526-execution-20260915.md).

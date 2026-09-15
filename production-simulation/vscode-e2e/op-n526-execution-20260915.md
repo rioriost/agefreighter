@@ -1,6 +1,6 @@
 # OP-N526 execution and qualification
 
-Status: preparation only; OP-N526 remains unqualified. Overall coverage is 8/9.
+Status: installed-GUI migration active; OP-N526 remains unqualified. Overall coverage is 8/9.
 
 ## Authorization and reviewed implementation
 
@@ -297,3 +297,26 @@ runner start, migration or verification has been performed. The source and
 private target remain running; the runner is deallocated. Preserve the existing
 budget/deadline and all evidence. Next: approve the retained start step, reconcile
 resize and AGE restart, establish new-boot readiness, then migrate and qualify.
+
+## 06:24–06:30Z — GUI recovered; new migration submitted
+
+After the user brought VS Code foreground, normal GUI actions worked again.
+The approved retained start step ran once, then read-only GUI reconciliation
+confirmed resize `finished` and AGE preload `finished`. ARM agrees: D4s_v5,
+Succeeded/running, with the retained disk/NIC/identity seal unchanged. New boot
+ID is `743ab17a-bf54-4a73-9017-bf99405fe38b`. GUI readiness at `06:27:02.010Z`
+confirmed the same pinned CLI/archive, idle state, disk 3.5125%, no swap or OOM.
+No RG locks were present. Recent external writes created/attached a target-subnet
+NSG with no custom rules; source restrictions and private target access remain
+unchanged. The existing USD 800 ceiling, USD 400 reserve and deadline still fit;
+no new authorization window was opened.
+
+Installed GUI migration preflight accepted all 5.6M mapped rows and the sealed
+inventory. After the routine preapproved confirmation, the existing OP-N526
+Keychain credential was supplied to the protected source prompt; no plaintext
+was emitted or saved in the repository. Target credentials remain in VS Code
+SecretStorage. New durable job/operation
+`848306ac-628e-43ac-8af9-31dfdee2a804` was retained at
+`2026-09-15T06:29:11.668Z`, before submission of the guest command. Do not replay
+this operation. Migration and strict complete counts are active; the separate
+full P1 digest is still required before qualification.
