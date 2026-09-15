@@ -780,3 +780,22 @@ dialog remains open; no approval click, credential creation, plan export,
 target deployment or migration has occurred at this checkpoint. Recheck guest
 freshness if approval takes longer than five minutes. Never recreate retired
 workflows or treat this preflight as recovery qualification.
+
+### Approved target submitted through the installed GUI
+
+The user approved the exact private target and SecretStorage action. The older
+dialog was cancelled only to refresh stale guest health; no deployment was
+submitted by that cancellation. Readiness command
+`af-79a6ca11-b1fe-4594-b52f-6697c4ce0a2c` completed successfully, with checkedAt
+`2026-09-15T19:42:27.474Z`. The same reviewed inputs were re-entered and the
+native approval was accepted. The secret-reference-only LoadJob and target
+plan were saved under the ignored `work/csv-recovery-p1-r2/` directory with
+0600 permissions. Plan hash:
+`667fc7add611a654df41c7d4514858b21e91aceece6f1776f16eb3bab7b4a2bc`.
+
+ARM independently reports deployment `afpg-54da6ddd27d245e0bb68` **Running**
+at `2026-09-15T19:45:47.523443Z`; the installed workflow retains **submitted**.
+This is an accepted deployment request, not target readiness or migration
+success. No load, resize, fault injection or resume has started. The observer
+regression suite remains 6/6 PASS. Continue by GET-only reconciliation of this
+deployment; never submit a duplicate target.

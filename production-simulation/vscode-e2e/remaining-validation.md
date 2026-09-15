@@ -37,8 +37,10 @@ this does not close B02/B09 or the recovery qualification.
 After the user requested continuation, the current runner was restarted and
 fresh GUI readiness passed. The exact same private-target preflight now passes
 with sufficient quota and USD 0.736/hour combined compute. The native final
-target/SecretStorage confirmation is awaiting user approval; target creation
-and recovery load have not begun. No other surviving VM or target was started.
+target/SecretStorage confirmation was approved by the user. After refreshing
+guest health, the installed GUI submitted the exact reviewed target; ARM
+reports Running at `2026-09-15T19:45:47Z`. Recovery load has not begun.
+No other surviving VM or retained target was started.
 
 ## Branch-to-evidence ledger
 
