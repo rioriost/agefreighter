@@ -180,3 +180,42 @@ requires confirming that the cause has been corrected. Because the correct
 credential has not yet been established, that dialog was cancelled; the failed
 assessment remains attached, with no new request or source read. Ask the user
 to confirm the correct AZ-N526 credential before preparing another attempt.
+
+## 05:30Z — authorized clone-only password recovery
+
+The user explicitly authorized password reset after the September 12 history
+confirmed the previous source password was temporary and not persisted. This
+supersedes the earlier no-native-credential-change constraint for the OP-N526
+clone only. Original `af-n526-source` remains deallocated and unchanged.
+
+Fresh gates confirmed the authorized subscription, no RG locks, only expected
+recent activity, source disk 6%, no swap/OOM, and no active source assessment.
+Only this source and its discovery runner were running. The existing deadline
+and budget are unchanged.
+
+A new random 32-byte password (64 hexadecimal characters) was stored and read
+back successfully using the macOS Keychain API before recovery was submitted.
+Keychain service/label: `agefreighter-op-n526-neo4j`; account: `neo4j`.
+It was passed to Azure as a protected parameter over stdin, not a command-line
+argument, console value or local request/password file. Do not rerun the
+create-only helper blindly; it refuses an existing Keychain item.
+
+Managed recovery `af-op-n526-password-reset-20260915` succeeded with exit 0.
+Guest evidence directory:
+`/var/lib/agefreighter/neo4j-password-recovery/20260915T053023Z`.
+The system database was backed up before alteration; recovery listened only on
+unpublished container loopback. Normal authenticated service was restored and
+the new credential returned exactly 1,600,000 vertices and 4,000,000 edges.
+The secret-bearing managed recovery command was removed after success. The
+Keychain item is retained for future private GUI entry; no secret is in Git.
+
+Completion `2026-09-15T05:31:08Z`; retained system backup SHA-256
+`1ceeb54f122df0ea591832ce67355cec5f165157b65950e7c526ae7163675417`;
+guest summary SHA-256
+`85c81166418513306f7722193e4d267b9b7739d53231f37f827aedeb06e88619`.
+Independent post-check confirms the normal container is running, the copied
+old container remains stopped, disk 6%, zero swap/OOM and zero restarts.
+
+This corrects source authentication only. The retained failed assessment has
+not been replayed and OP-N526 remains unqualified pending a fresh GUI inventory,
+migration and full canonical verification.

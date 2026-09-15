@@ -19,7 +19,10 @@ recovery procedure on an unpublished, loopback-only container. Authentication
 was restored, the original container resumed, authenticated reads returned the
 unchanged exact source counts, and a checksummed pre-change system-database
 backup remains on the guest. Temporary password material and the secret-bearing
-Azure command were removed after the VS Code SecretStorage handoff.
+Azure command were removed after private input into the VS Code migration
+prompt. Correction (2026-09-15): this was not a source SecretStorage handoff.
+The runner workflow retained only the target credential in SecretStorage;
+the Neo4j source password was not persisted for reuse.
 
 Fresh job `313f6dca-680b-4379-9eac-a7539cb95792` ran from
 2026-09-12T12:50:37.853654116Z to 2026-09-12T12:56:46.579313305Z. It committed

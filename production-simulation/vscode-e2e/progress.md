@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS, AZ-COSMOS and OP-N44 qualified (8/9); OP-N526 remains unqualified**.
 
-### OP-N526 — first inventory rejected by source authentication
+### OP-N526 — source authentication recovered; fresh GUI inventory pending
 
 The user authorized completing the final route. A cold clone of the stopped
 qualified Neo4j 5.26 source is running privately, with original source/data/auth
@@ -24,7 +24,12 @@ TLS/IP validation also passes. After private credential entry and automatic
 readiness refresh, inventory `0598b421-0ed1-4e77-8f16-8f2f15990614` was submitted
 at `05:14:55.114Z` and failed with Neo4j `Security.Unauthorized`. The 89-byte
 private guest stderr is retained and hash-sealed; no secret was exported or
-changed. Correct existing AZ-N526 credentials are required for a new attempt;
+changed during that failed attempt. On explicit user authorization, the clone's
+password was reset at `05:31:08Z`, following a system-database backup and
+unpublished-loopback recovery. New authentication returns exactly 1.6M nodes
+and 4M edges. The password is retained in macOS Keychain service
+`agefreighter-op-n526-neo4j`, account `neo4j`; original AZ-N526 is unchanged.
+The source is healthy, disk 6%, swap/OOM zero. A fresh GUI inventory is next;
 no replay, target or migration occurred. Budget USD 800,
 reserve USD 400 and deadline `2026-09-16T07:14:35.311Z` are unchanged.
 [Reviewed execution and handoff](op-n526-execution-20260915.md).
