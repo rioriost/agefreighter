@@ -158,3 +158,21 @@ No source inventory has been submitted before that entry. The user was asked
 only for private credential input, not another routine workflow approval.
 Runner and source are running (USD 0.109 + 0.496/hour compute); target is not
 created. Budget USD 800 / reserve USD 400 / September 16 deadline unchanged.
+
+## 01:54Z — first authenticated inventory rejected
+
+Following user password entry, the GUI refreshed idle guest readiness at
+`01:54:04.014Z`, then submitted complete inventory operation
+`4864b359-4e9b-477e-9c4e-163da4462f34`. It failed at
+`01:54:23.971296230Z` (exit 1). The operation identity and configuration hashes
+remain retained; no report was accepted and no target was created.
+
+A read-only guest diagnostic classified the 89-byte private stderr as Neo4j
+`Security.Unauthorized`. Its SHA-256 is
+`05a83f01f9f6a512030e8b3f8daac11c4a7ff44974bf62f1fec9df7d8fdadbe7`.
+Only the category, size and checksum were returned, not raw stderr or secrets.
+Runner disk was 4% (rounded), swap zero. This indicates rejected source
+credentials, not TLS/network failure or a successful assessment. Correct the
+existing credential privately; do not extract authentication files or change the
+source password. Retain the failure and explicitly prepare a fresh GUI attempt
+after refreshed idle readiness. Routine route approvals remain authorized.

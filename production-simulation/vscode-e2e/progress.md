@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS and AZ-COSMOS qualified (7/9); OP-N44 and OP-N526 remain unqualified**.
 
-### OP-N44 — private runner ready; source password entry pending
+### OP-N44 — authenticated inventory rejected; credential correction required
 
 A cold copy of the stopped qualified 4.4 source now has its own private VM and
 IP-SAN certificate. The original source/disk/certificate are unchanged. Live TLS
@@ -25,7 +25,13 @@ verified. First guest readiness ran before installation finished (retained failu
 after cloud-init completed, fresh GUI readiness passed at `01:45:59.825Z` with
 the pinned version/hash, idle state, 3.508% disk and zero swap/OOM. The separate
 source clone is running; its IP-SAN TLS handshake now passes after startup.
-The GUI approved complete source inventory and awaits private password entry.
+The user entered the source password. Fresh Linux readiness passed, then complete
+inventory `4864b359-4e9b-477e-9c4e-163da4462f34` failed immediately at
+`2026-09-15T01:54:23.971296230Z`. Read-only guest diagnostics identify Neo4j
+`Security.Unauthorized`, not a completed inventory. The private stderr is retained
+(89 bytes, SHA-256 `05a83f01f9f6a512030e8b3f8daac11c4a7ff44974bf62f1fec9df7d8fdadbe7`);
+no password or raw log was exported. Credentials must be corrected privately
+before a fresh GUI attempt; no automatic retry or source authentication change.
 No target or migration has started; all previous data/evidence are retained.
 [Reviewed preparation and handoff](op-neo4j-preparation-20260915.md).
 
