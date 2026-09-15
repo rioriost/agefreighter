@@ -605,3 +605,27 @@ remains an end-user lifecycle gap; it is not an implemented extension feature.
 The GUI then explicitly submitted Lot's first actual import. The remaining
 imports, complete inventory, private target, migration faults and same-job
 recovery still require execution. Neither B10 nor B11 is closed by this work.
+
+### Second trial: all CSV imports verified; complete inventory approved
+
+All **18** CSV imports are now GUI-reconciled as `verified` (1,168,576,671
+bytes). Independent Mac-side rehashing of all 18 original files matches every
+retained byte count and SHA-256; the nine vertex and nine edge mappings still
+match the frozen portable P1 schema. No failed/interrupted or pending CSV import
+remains. Linux readiness at `13:25:32.449Z` retained the exact boot/build,
+idle=true, disk 5.3148%, zero swap/OOM.
+
+The VM again reached 25 ARM command resources after transfer and readiness
+checks. A second archive retained 23 independently validated successful command
+definitions/results before deleting only those exact ARM resources. Its SHA-256
+is `fcace698846ce714794ff67d8824bef8a4b4f981421a2e3cb88830c4e3bb5400`.
+The first archive was not overwritten. ARM readback again confirms only latest
+readiness `af-b1feae37-6069-4faa-bf1a-40c65fbc08b0` and the initial bootstrap-race
+failure remain; all guest evidence and source files are preserved. This manual
+capacity intervention remains a release-readiness gap, not GUI qualification.
+
+The source form was reviewed again and the native GUI approved a complete CSV
+inventory: all mapped rows, before/after hashes, maximum 30 minutes / 4 GiB /
+no swap. The extension is rechecking Linux readiness before dispatch. Target
+creation, migration, injected faults and explicit same-job resumes have not
+started for this workflow. Full canonical qualification remains future work.
