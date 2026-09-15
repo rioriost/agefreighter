@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Guest-only P1 recovery observer; read-only unless --sigterm-at is explicit.
+"""Guest-only P1 observer; read-only unless an explicit fault option is given.
 
 Run as root on the exact reviewed runner through Azure Run Command. Credentials
 remain in the existing operation directory and child environment, never output.
 The operator must first check cloud ownership, governance, budget and deadline.
+--sigterm-at selects the first process fault; --reboot-at is only valid for a
+resumed operation and requests one guest reboot after sealing current evidence.
 This is qualification tooling, not a migration or automatic recovery mechanism.
 """
 import argparse
@@ -23,8 +25,9 @@ if not __debug__:
 
 def safe_fault(view, pid, threshold):
     """Fail closed on any changed, missing, or unhealthy fault prerequisite."""
-    assert threshold == 1_400_000
-    assert threshold <= view["CommittedRows"] < 2_500_000
+    assert threshold in (1_400_000, 3_360_000)
+    upper = 2_500_000 if threshold == 1_400_000 else 4_000_000
+    assert threshold <= view["CommittedRows"] < upper
     assert view["Status"] == "running" and pid
     assert view["RejectedRows"] == view["SourceRejectedRows"] == 0
     assert 0 <= view["checkpointAgeSeconds"] <= 900
@@ -66,12 +69,15 @@ def main():
         p.add_argument("--" + key, required=True)
     p.add_argument("--watch-seconds", type=int, default=0)
     p.add_argument("--sigterm-at", type=int, default=0)
+    p.add_argument("--reboot-at", type=int, default=0)
     a = p.parse_args()
     for value in (a.workflow, a.operation, a.job, a.boot):
         assert re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", value)
     assert re.fullmatch(r"[0-9a-f]{64}", a.config_sha256)
     assert os.geteuid() == 0 and 0 <= a.watch_seconds <= 600
     assert a.sigterm_at in (0, 1_400_000), "Only the reviewed P1 process fault"
+    assert a.reboot_at in (0, 3_360_000), "Only the reviewed P1 reboot fault"
+    assert not (a.sigterm_at and a.reboot_at), "One fault per invocation"
     deadline = timestamp(a.deadline)
     root = Path("/var/lib/agefreighter/workflows") / a.workflow
     directory = root / a.operation
@@ -97,6 +103,11 @@ def main():
             return {"ready": False, "reason": "status unavailable", "operationPhase": state["phase"]}, None
         job = json.loads(result.stdout)
         assert job["ID"] == a.job
+        if state["action"] == "resume-migration":
+            expected = state["resume"]
+            assert job["ConfigFingerprint"] == expected["fingerprint"]
+            assert str(job["GraphGenerationID"]) == expected["generationId"]
+            assert job["CommittedRows"] >= int(expected["committedRows"])
         view = {key: job[key] for key in ("ID", "Status", "ConfigFingerprint", "GraphGenerationID", "CommittedRows", "RejectedRows", "SourceRejectedRows", "UpdatedAt")}
         checkpoint = timestamp(job["UpdatedAt"])
         view["checkpointAgeSeconds"] = (dt.datetime.now(dt.timezone.utc) - checkpoint).total_seconds()
@@ -139,6 +150,27 @@ def main():
             if binding is None:
                 binding = current
             assert current == binding
+            if a.reboot_at and view["CommittedRows"] >= a.reboot_at:
+                assert state_action(directory) == "resume-migration"
+                safe_fault(view, pid, a.reboot_at)
+                again, current_pid = observe()
+                assert current_pid == pid
+                assert (again["ConfigFingerprint"], again["GraphGenerationID"]) == binding
+                safe_fault(again, current_pid, a.reboot_at)
+                evidence = directory / "qualification-reboot.json"
+                with evidence.open("x") as output:
+                    os.chmod(evidence, 0o600)
+                    json.dump({"before": again, "action": "loader-vm-reboot"}, output)
+                    output.flush()
+                    os.fsync(output.fileno())
+                descriptor = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+                try:
+                    os.fsync(descriptor)
+                finally:
+                    os.close(descriptor)
+                print(json.dumps({"rebootRequested": True, "evidenceSHA256": hashlib.sha256(evidence.read_bytes()).hexdigest()}), flush=True)
+                assert run("systemctl", "reboot").returncode == 0
+                return
             if a.sigterm_at and view["CommittedRows"] >= a.sigterm_at:
                 safe_fault(view, pid, a.sigterm_at)
                 # pidfd prevents a recycled PID from ever receiving the signal.
@@ -162,6 +194,10 @@ def main():
         if time.monotonic() >= stop:
             return
         time.sleep(3)
+
+
+def state_action(directory):
+    return json_read(directory / "state.json")["action"]
 
 
 if __name__ == "__main__":

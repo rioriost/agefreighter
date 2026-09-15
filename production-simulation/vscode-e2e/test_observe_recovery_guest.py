@@ -32,6 +32,14 @@ class FaultAdmission(unittest.TestCase):
     def test_accepts_reviewed_boundary(self):
         observer.safe_fault(self.view, 123, 1_400_000)
 
+    def test_reboot_boundary_is_bounded(self):
+        self.view["CommittedRows"] = 3_360_000
+        observer.safe_fault(self.view, 123, 3_360_000)
+        for rows in (3_359_999, 4_000_000):
+            self.view["CommittedRows"] = rows
+            with self.assertRaises(AssertionError):
+                observer.safe_fault(self.view, 123, 3_360_000)
+
     def test_rejects_every_unsafe_boundary(self):
         changes = [("CommittedRows", 1_399_999), ("CommittedRows", 2_500_000),
                    ("Status", "committed"), ("RejectedRows", 1),

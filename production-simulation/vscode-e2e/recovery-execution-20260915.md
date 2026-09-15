@@ -828,3 +828,50 @@ confirmation for executing the qualification build on this new target was
 requested. No new load/job, fault or resume has been submitted at this point.
 Refresh guest health if this confirmation outlives its five-minute freshness
 window. The existing accepted graphs remain untouched.
+
+### Live CSV process fault and loader reboot retained
+
+After the user approved execution and unlocked the Mac, fresh GUI readiness
+passed at `2026-09-15T22:23:58.225Z`. The externally created target-subnet NSG
+was inspected: no custom rules, private access unchanged. No governance
+configuration was removed or weakened. The original exact target and same
+runner remained Ready; the budget/deadline were unchanged.
+
+New job `eac665ff-a4fd-4543-8d97-142a396e41b4` started through the GUI at
+`2026-09-15T22:25:17.313Z`. Its retained configuration and fingerprint are
+`95ef09317a9dbbedddf41da0d8697eb65063ee6f9a76bdf41f6e05b8c24c273a`,
+graph generation 1. The bounded observer delivered SIGTERM to the exact loader
+PID 2633 at **1,465,000 committed rows** (26.16%) at 22:27:01 UTC, with
+checkpoint age 0.391 seconds, zero rejects/swap/OOM, disk 5.5793% and cgroup
+memory 1,225,023,488 bytes. Fault evidence SHA-256:
+`4b9356dafc95dd7ce8ee46fe35c46578584f8b7a1f648c0c8deaf00e6578dabb`.
+The installed GUI reconciled failure, refreshed recovery readiness and imported
+the read-only matching job/generation/fingerprint inspection. It explicitly
+resumed the **same job** at `2026-09-15T22:31:55.359Z`, continuation operation
+`5a42e454-f905-48bb-9a0f-e0d2b95fad01`; no new graph or load job was created.
+
+The resumed job reached **3,405,000 rows** (60.80%) at 22:34:12 UTC. A separately
+bounded guest observer sealed the evidence and requested a loader-VM reboot.
+Checkpoint age was 0.178 seconds, zero rejects/swap/OOM, disk 5.5828%, cgroup
+memory 50,810,880 bytes, same fingerprint and generation. Reboot evidence seal:
+`6ccaff475a1ac67ab8a6971df8e091338f5f941c9aa786e7022182e5a62bc1b1`.
+The boot changed from `684dd750-d5fb-4b6a-8fa8-8eb55f474e1b` to
+`a0c7113c-9969-479b-b9a5-95a317026dee`. GUI state remained failed rather than
+auto-resuming. Readiness at `2026-09-15T22:37:16.218Z` proves the new boot,
+idle=true, disk 5.6219%, zero swap/OOM and unchanged pinned CLI. Read-only
+checkpoint inspection precedes the next explicit continuation.
+
+Five completed readiness ARM definitions were archived before removal to keep
+command capacity available; all guest evidence remains. The first deletion
+attempt refused a transient ARM provisioning-state change and deleted nothing.
+After the command completed, exact readback matched and only those five archived
+definitions were removed. Private archive `work/csv-recovery-p1-r2/old-readiness-archive.json`
+SHA-256: `6260935fbf1e3d917c64d76acb11aeae603ce2feb47631ada349b76a63ec65fb`.
+This operator workaround does not qualify product-level automatic reconciliation.
+
+The observer regression suite is now 7/7 PASS, including the bounded reboot
+range. Reboot execution used observer SHA-256
+`e2951adad385311f5f4e882644c117d8b433cade1ff87dbccc1ca4035198af44`;
+the subsequent local docstring clarification does not change the guest artifact.
+These actual faults and first continuation are not yet full recovery qualification:
+the final continuation, complete counts and all canonical ranges remain required.
