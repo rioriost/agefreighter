@@ -39,7 +39,11 @@ import and independent local hashing agree (663 bytes, SHA-256
 `6373da2080e0ce7aea06404c4b6831d58e57308b27c6a8ee72409b0dd818753d`).
 The GUI reviewed and saved the private PG18/AGE D4ds_v5 / 128-GiB target and
 later same-VM D4s_v5 resize, Japan East zone 1, with the original deadline and
-USD 800 ceiling / USD 400 reserve. Migration and qualification remain pending.
+USD 800 ceiling / USD 400 reserve. Target deployment, AGE preload restart and
+same-VM resize are now complete. Post-resize readiness at `02:29:49.488Z` passes
+with the pinned build, idle state, 3.513% disk and zero swap/OOM. Migration and
+qualification remain pending; source credentials are requested privately again
+for the separately approved migration, rather than retained after inventory.
 All previous data/evidence are retained.
 [Reviewed preparation and handoff](op-neo4j-preparation-20260915.md).
 

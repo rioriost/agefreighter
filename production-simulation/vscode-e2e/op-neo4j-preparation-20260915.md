@@ -209,3 +209,23 @@ source is additional USD 0.496/hour. Ceiling USD 800, accrued/noncompute reserve
 USD 400, deadline `2026-09-16T07:14:35.311Z` unchanged. No automatic shutdown
 is implied by these metadata. Deployment/AGE readiness, resize, migration and
 both strict counts and the frozen full canonical digest are still separate gates.
+
+## 02:23–02:30Z — private target and same-VM resize complete
+
+GUI reconciliation accepted target provisioning at approximately 02:23Z.
+The reviewed AGE preload restart submitted at `02:23:40.333Z` subsequently
+completed; ARM is Ready with `pg_stat_statements,age`, no pending restart and
+public networking Disabled. A policy deployIfNotExists action and a separate
+advanced-threat-protection settings deployment were observed for this new target;
+no security control was disabled to proceed.
+
+The GUI performed and reconciled each same-runner step separately: deallocate
+(`02:25:34.356Z`), resize to D4s_v5, then start. Disk/NIC/system identity and
+placement invariants remain unchanged; principal is still
+`6b46cc50-edef-4a31-9454-0bdee640ce46`. GUI resize phase is finished.
+Fresh readiness at `02:29:49.488Z` proves new boot
+`34a6795d-179b-485f-96bd-03e1b0c160a9`, unchanged pinned version/hash/capabilities,
+idle, disk 3.512544759%, no swap/OOM. No source VM resize or credential change.
+The GUI is advancing to the separately approved migration; it requests the
+existing Neo4j credential privately again because inventory does not retain it.
+No migration is claimed before a durable job and its actual execution evidence.
