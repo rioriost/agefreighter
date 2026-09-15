@@ -562,3 +562,46 @@ reported `Running` with timestamp `2026-09-15T12:26:56.368496Z`. All other 18
 trial VMs and 14 Flexible Servers were confirmed stopped before this submission.
 VM readiness and the 18 Linux imports are still pending. The six observer unit
 tests passed again; this is not live fault-injection evidence.
+
+The new VM is running privately in zone 1 on the reviewed B2s_v2. Independent
+RBAC inspection confirms its sole returned grant is Blob Data Reader on the
+exact workflow container. A 07:00 UTC safety shutdown was enabled for this VM
+only, before the unchanged hard deadline.
+
+The first readiness request raced bootstrap: retained command
+`af-c2a15bb6-6ff3-42c7-aec6-b7b5ca4431ff` exited 127 because
+`/usr/local/bin/agefreighter-tools` was not yet present. Read-only guest evidence
+subsequently showed cloud-init finished at `12:28:38Z` with no errors and the
+binary present. No bootstrap rerun, alternate download or safety bypass was
+used. A new GUI readiness check at `12:29:38.430Z` passed with the exact pinned
+candidate, boot `489e1229-d666-4895-82bd-46dce8916445`, idle=true, disk 3.5086%,
+swap/OOM zero and both recovery capabilities. The first CSV import was then
+submitted through the GUI. ARM provisioning success alone was not treated as
+guest readiness. This exposes a startup-status UX gap for B09, not a recovered
+migration or completed bootstrap-failure qualification.
+
+### Second trial: nine Linux receipts and command capacity reconciled
+
+The installed GUI verified nine imports: CARRIED_BY, CONTAINS, Carrier,
+Customer, DESTINED_FOR, FULFILLS, Facility, INCLUDED_IN and Location. Each
+retained receipt matches the original file byte count and full SHA-256. Lot's
+first confirmation was rejected before submission because readiness expired;
+there was no failed import or partial generation to resume.
+
+Fresh GUI readiness at `12:55:03.237Z` retained the same boot and pinned build,
+idle state, disk below 80%, and zero swap/OOM. Fresh RG locks and bounded
+delete/deny/deploy-if-not-exists activity checks were empty. At that point 24
+ARM command resources occupied this VM's 25-command limit. Twenty-two successful
+commands were independently fetched and validated against the nine verified
+CSV operations or the matching idle readiness profile, then archived before
+exact-resource deletion. Latest readiness and the initial bootstrap-race failure
+were excluded. Archive SHA-256:
+`8675610513e07d10e018a454872cc7de4500dd0f527e563597472ff27aa8cc2c`.
+Raw definitions/results remain in private local trial evidence. Immediate
+readback confirmed precisely the two excluded commands remained in ARM. No CSV,
+operation directory, guest log, disk or graph was removed. This manual procedure
+remains an end-user lifecycle gap; it is not an implemented extension feature.
+
+The GUI then explicitly submitted Lot's first actual import. The remaining
+imports, complete inventory, private target, migration faults and same-job
+recovery still require execution. Neither B10 nor B11 is closed by this work.
