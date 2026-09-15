@@ -85,3 +85,32 @@ signed-in user on that account only, HTTPS endpoint network-public with anonymou
 access and shared keys disabled. Nothing has been submitted from that dialog.
 No new runner, target, inventory or migration exists yet. Source clone remains
 running within the existing deadline/budget; all prior resources remain retained.
+
+## Transfer ready; reviewed discovery VM awaiting execution confirmation
+
+Following the user's explicit confirmation, the installed GUI created transfer
+account `af31ce478995344bd6bcac62` and user role assignment
+`67b08b29-d372-4056-84cf-3c749d80dc67`. ARM and GUI confirm success; independent
+role inspection confirms Storage Blob Data Contributor on this account only.
+Azure changed networking to Disabled despite Enabled in the submitted template.
+The previously authorized trial-storage-only `SecurityControl=Ignore` exception
+and original deadline tag were merged into this account only. Authenticated
+HTTPS networking is now Enabled, anonymous and shared-key access remain false,
+HTTPS-only and TLS 1.2 remain enforced. Anonymous Blob HTTPS was rejected with
+409; no RG/source security exception or network relaxation was performed.
+
+The installed GUI selected the unchanged fixed development manifest and uploaded
+the reviewed archive through the authenticated transfer path. Independent local
+size and SHA-256 checks passed for both loader and P1-verifier archives. Loader
+upload is ready: commit `8a23a5109798ec906109532e4cc6c32308b3c824`, 37,079,079
+bytes, SHA-256 `52e1d147a13b86a729f5a993e9e72848dd87a89d0ae50a61f26459f5632444f3`.
+The verifier is not yet uploaded or executed in this workflow.
+
+After reconnecting to this draft, the installed GUI completed a fresh runner
+preview for Japan East zone 1 / B2s_v2, USD 0.109/hour plus additional charges.
+Quota after source creation is DSv5 88/100, regional total 90/101. The existing
+runner subnet and reviewed placement remain unchanged. The final
+`Create reviewed runner` dialog is pending action-time confirmation because it
+installs/runs the unpublished fixed build and grants the new VM identity Blob
+Reader on this workflow container only. VM `af-31ce478995344bd6bcac` has not
+been submitted. No target, authenticated inventory or migration exists yet.

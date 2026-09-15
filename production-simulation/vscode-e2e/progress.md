@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS, AZ-COSMOS and OP-N44 qualified (8/9); OP-N526 remains unqualified**.
 
-### OP-N526 — isolated source prepared; GUI transfer permission pending
+### OP-N526 — source and transfer ready; reviewed discovery VM pending
 
 The user authorized completing the final route. A cold clone of the stopped
 qualified Neo4j 5.26 source is running privately, with original source/data/auth
@@ -10,8 +10,14 @@ unchanged. Exact image/version, disk 6%, zero swap/OOM, and literal-IP TLS
 checks passed. The installed GUI draft `31ce4789-9534-4bd6-bcac-621f460d99cc`
 uses on-premises mode, host `10.246.5.5`, port 7687, stable `source_key` IDs,
 and the hash-bound public CA. No source ARM discovery was used.
-The dedicated transfer-account/scoped-user-role dialog is awaiting action-time
-confirmation; no runner/target or migration has been submitted. Budget USD 800,
+The user confirmed transfer-account/scoped-user-role creation; GUI and ARM agree
+on success. The approved trial-account-only security exception restored
+authenticated HTTPS while anonymous/shared-key access remain disabled. GUI
+upload of the unchanged pinned development archive is ready and its hash is
+independently verified. The fresh B2s_v2 / Japan East zone 1 VM preview passes at
+USD 0.109/hour plus other charges. The final runner-creation dialog, including
+unpublished fixed-build installation and container-only Blob Reader, awaits
+action-time confirmation; no runner/target or migration has been submitted. Budget USD 800,
 reserve USD 400 and deadline `2026-09-16T07:14:35.311Z` are unchanged.
 [Reviewed execution and handoff](op-n526-execution-20260915.md).
 
