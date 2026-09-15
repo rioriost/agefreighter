@@ -1,8 +1,23 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
+Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS and AZ-COSMOS qualified (7/9); OP-N44 and OP-N526 remain unqualified**.
 
-### AZ-COSMOS r2 — migration/counts PASS; independent verifier approval pending
+### AZ-COSMOS r2 — full installed-GUI qualification PASS
+
+The installed GUI displays **P1 full canonical digest: PASS** for fresh job
+`d5edef98-bb51-4040-b6ed-0274e252de26`. The final report generated at
+`2026-09-15T01:01:19.174440026Z` agrees for all 1.6M vertices / 4M edges /
+64 ranges, including typed properties, identities and endpoints. GUI transfer
+and independent local validation agree on the 23,220-byte report SHA-256
+`a5d14d4b2f18673ac2fe12d59d46e195f14f174ff4f435ef8deba427dda9efe9`.
+Recomputing both roots from all leaves gives the unchanged expected root
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+No old graph was patched and no acceptance criterion was weakened.
+By `2026-09-15T01:08Z`, all 13 trial VMs are deallocated and all 11 Flexible
+Servers Stopped. Old and new evidence/data are retained, not deleted.
+Cosmos/storage charges remain; Flexible Server has a seven-day automatic restart.
+
+#### Qualification sequence
 
 Mac unlocked and installed extension reloaded. Fresh workflow
 `d138f4e4-bcf3-40fe-a876-ee9ce062e08a` discovers the retained Cosmos source
@@ -32,11 +47,12 @@ The `00:36:07.826405692Z` counts report passes all 24 checks / 18 labels,
 1.6M vertices + 4M edges, zero rejects/errors/incomplete checks. GUI import and
 independent SHA agree:
 `f1824243ff13d1cc2f44493c47151a68d30be5d92b353dc87347b5326624c938`.
-The final independent typed 64-range comparison has **not started**: GUI is at
-the execution approval for the reviewed new verifier build. Post-load health
-passes (idle, 3.529% disk, swap/OOM zero). Full qualification remains pending.
-Old compute remains stopped;
-the new target/runner compute estimate is USD 0.736/hour plus other charges.
+After explicit user approval and fresh healthy guest checks, the installed GUI
+submitted the independent typed 64-range comparison at `2026-09-15T00:58:29.341Z`,
+operation `cde9e6fe-ab51-45e6-8427-c978a748321e`. It read only the existing
+qualified-counts job and subsequently passed the full canonical comparison above.
+The target/runner compute estimate while running was USD 0.736/hour plus
+other charges; both are now stopped/deallocated.
 Budget and deadline are unchanged.
 [Current r2 execution handoff](az-cosmos-r2-execution-20260915.md).
 

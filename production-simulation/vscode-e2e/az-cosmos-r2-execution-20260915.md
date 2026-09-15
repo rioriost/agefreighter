@@ -1,9 +1,46 @@
 # AZ-COSMOS r2: typed mapping installed-GUI qualification
 
-Updated: 2026-09-15T00:46Z. Outcome: **pending**, not PASS.
-Overall GUI coverage remains **6/9**. Old r1 graph/jobs/evidence are unchanged.
+Updated: 2026-09-15T01:08Z. Outcome: **PASS**.
+Overall GUI coverage is **7/9**. Old r1 graph/jobs/evidence are unchanged.
 
-## Current handoff: migration/counts PASS; independent verifier approval
+## Final full canonical qualification PASS
+
+The installed GUI displays **P1 full canonical digest: PASS**. Report generated
+at `2026-09-15T01:01:19.174440026Z`, operation
+`cde9e6fe-ab51-45e6-8427-c978a748321e`, job
+`d5edef98-bb51-4040-b6ed-0274e252de26`. All 1,600,000 vertices and 4,000,000
+edges agree across all 64 ranges, including typed properties, stable identities
+and endpoints. Expected and actual canonical root:
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+
+GUI export/import passed. Report: 23,220 bytes, SHA-256
+`a5d14d4b2f18673ac2fe12d59d46e195f14f174ff4f435ef8deba427dda9efe9`.
+An independent local check validated report bytes/hash, exact job/read-only
+identity, all 64 expected/actual leaves and 5.6M-row totals, and recomputed
+both canonical roots from every leaf. No alternate root, target patch,
+relaxed numeric comparison or failed-job replay was used. This qualifies the
+installed-GUI AZ-COSMOS route with explicit `float64` mappings; it does not
+claim production-scale coverage or qualify either remaining on-premises Neo4j
+route. Compute stop/deallocation is complete; all data is retained.
+
+Post-verification GUI health at `2026-09-15T01:04:22.920Z`: idle, disk 5.098%,
+swap/OOM zero, same boot and loader. After confirming resource ownership,
+only this route's runner and target received deallocate/stop requests.
+By `2026-09-15T01:08Z`, all 13 trial VMs were confirmed deallocated and all
+11 Flexible Servers Stopped. No data, disks, roles or evidence were deleted.
+Cosmos and retained storage can still incur charges; stopping compute is not
+zero billing. Flexible Server automatically restarts after seven days unless
+managed separately. The existing September 16 deadline is unchanged.
+
+## Earlier phase: migration/counts PASS; independent verifier execution
+
+The user explicitly approved the separate verifier. Stale guest health was
+refreshed through the GUI at `2026-09-15T00:56:11.184Z`: idle, disk 3.530%,
+swap/OOM zero, same boot and pinned loader. No group locks; returned governance
+events were policy audits, not control changes. Target storage is 14.043%.
+The unchanged verifier manifest and exact job were reviewed again, then the
+installed GUI submitted operation `cde9e6fe-ab51-45e6-8427-c978a748321e` once
+at `2026-09-15T00:58:29.341Z`. Full canonical results are still pending.
 
 Fresh job `d5edef98-bb51-4040-b6ed-0274e252de26` finished. The counts report
 generated at `2026-09-15T00:36:07.826405692Z` passes all 24 checks and all
@@ -22,17 +59,16 @@ installed-GUI health at `2026-09-15T00:42:48.219Z`: idle true, disk 3.529%,
 swap/OOM zero, matching binary and post-resize boot. Target storage was below
 13% during the observed load (80% gate unchanged). No failed run was replayed.
 
-The GUI now shows **Approve full P1 verification** for the independently built
+The GUI reviewed **Approve full P1 verification** for the independently built
 `2.4.0-dev.8a23a5109798` verifier, SHA-256
 `60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d`.
 Its manifest was selected from `work/vscode-p1-verifier.YxRRzz/manifest.json`;
-the execution confirmation has **not** been pressed. The separate unpublished
-verification artifact requires action-time approval before upload/run.
+execution was submitted only after the user's action-time approval.
 It reads this existing target only, regenerates the frozen fixture and compares
 all 5.6M records / 64 ranges; no graph, loader, credential or network changes.
 Bounds: 4 GiB RAM, about 1 GiB retained fixture, 25 minutes; private report
-return through existing storage. Refresh health if stale before submission.
-Both new compute resources remain running while awaiting approval; USD 800 /
+return through existing storage.
+Both new compute resources remain running for verification; USD 800 /
 USD 400 reserve / `2026-09-16T07:14:35.311Z` remain unchanged.
 Full typed canonical qualification is still pending, so coverage remains 6/9.
 
@@ -226,12 +262,8 @@ New security-sensitive access requires action-time confirmation.
 
 ## Next
 
-Monitor the submitted migration without replay, import complete counts evidence,
-then run the full independent P1 canonical verification. Implementation commit:
-`8a23a5109798ec906109532e4cc6c32308b3c824`; runner archive SHA-256:
-`52e1d147a13b86a729f5a993e9e72848dd87a89d0ae50a61f26459f5632444f3`.
-Retain old Run Command receipts and never replay the old job. A new runner's
-Cosmos Data Reader grant is a separate access decision. Continue GUI inventory,
-target/resize, fresh migration, complete counts and independent full 64-range
-canonical comparison. Expected root remains
-`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+AZ-COSMOS r2 is qualified; do not replay it. Retain all r1/r2 records and data.
+The two remaining GUI routes are OP-N44 and OP-N526: IP/port-only simulated
+on-premises Neo4j, without source discovery through Azure APIs. They require
+their own GUI source configuration, migration and complete canonical checks.
+The existing budget and deadline remain binding; do not reset them by route.
