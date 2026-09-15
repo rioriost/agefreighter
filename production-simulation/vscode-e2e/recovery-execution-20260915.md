@@ -714,3 +714,26 @@ shortened. The GUI entered USD 800 ceiling / USD 600 reserve and the same
 reviewed private target/subnet/SKUs. Final preflight/approval remains required.
 The recovery observer's six local regression tests pass; this is not a live
 injected-fault or recovery result.
+
+### Target preflight safely refused regional vCPU exhaustion
+
+The installed GUI returned **Regional or VM-family quota is insufficient or
+unavailable** before displaying final deployment approval. Independent Japan
+East Compute usage confirmed regional `cores` **100 / 101**, DSv5 **96 / 100**,
+and Bsv2 **2 / 100**. Even a net two-vCPU increase of this B2s_v2 runner to
+D4s_v5 does not fit the regional limit. Preserve other trial VMs/disks rather
+than deleting retained evidence to free quota. A new user decision was requested
+for a regional limit increase to 128, without changing budget, deadline or
+authorizing additional running VMs.
+
+Read-only workflow metadata after rejection confirms `target` and `migration`
+are absent; the only new command was completed readiness. No target deployment,
+subnet creation, credential creation, VM resize or load was submitted. This is
+live installed-GUI evidence of the insufficient-quota denial in B02/B09, not
+completion of their other negative branches or B10/B11 recovery qualification.
+
+While awaiting that new decision, the idle current runner was deallocated and
+ARM readback confirmed **VM deallocated**. Its disk, identity, imported CSV,
+inventory and all guest/command evidence are retained. The Quota API independently
+confirms Total Regional vCPUs limit 101 and applicable=true; no increase request
+has been submitted. Target creation and live recovery remain pending.

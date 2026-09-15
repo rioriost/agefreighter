@@ -24,6 +24,13 @@ after base-route completion, all 17 VMs were deallocated and all 13 Flexible
 Servers stopped. Local regression work has not restarted them. Storage and
 Cosmos charges continue; stopped PostgreSQL servers eventually auto-start.
 
+Latest live blocker (September 16 JST): renewed CSV recovery target preflight
+refused Japan East Compute quota `cores` 100/101 before creating any target,
+subnet, credentials or migration. DSv5 is 96/100. Regional increase to 128 was
+requested for user approval; do not submit it until approved. The inventory and
+18 verified transfers remain reusable, subject to fresh guest checks. This
+captures the insufficient-quota denial branch, not full B02/B09 qualification.
+
 ## Branch-to-evidence ledger
 
 "Not-run" means additional live qualification is not established by this audit,
