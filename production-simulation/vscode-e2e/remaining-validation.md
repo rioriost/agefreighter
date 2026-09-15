@@ -156,7 +156,8 @@ native installation/container-reader approval was subsequently received. ARM
 provisioning and separate pinned Linux readiness now pass, including both
 recovery capabilities, idle health, 3.4791% disk use and zero swap/OOM. All 18
 GUI mappings independently match the portable P1 schema. Guest CSV imports have
-started; the first full-hash receipt is verified. Inventory, migration and live
+started; nine of eighteen full-hash receipts are verified, with the remaining
+nine uploaded and not yet imported. Inventory, migration and live
 fault/recovery tests have not started. B08/B09 remain partial and B10/B11 open.
 
 ### Remaining sequence

@@ -198,3 +198,26 @@ No receipt or job state was manually repaired. A safety shutdown for this new
 VM only is enabled at 07:00 UTC, before the unchanged September 16 deadline.
 The target is still absent for this workflow. The new VM NIC remains private on
 the selected runner subnet; transfer storage remains authenticated-only.
+
+### CSV midpoint checkpoint
+
+At 08:55 UTC, nine of eighteen imports are GUI-reconciled as `verified`:
+CARRIED_BY, CONTAINS, Carrier, Customer, DESTINED_FOR, FULFILLS, Facility,
+INCLUDED_IN and Location. The remaining nine are `uploaded`, not imported.
+No import is failed/interrupted or currently outstanding at this checkpoint.
+Closing/reopening the source editor during the FULFILLS import preserved the
+18 mappings and the retained operation; later reconciliation completed its
+receipt. This is CSV-transfer reconnection evidence only, not assessment/load/
+verification phase qualification for B10.
+
+The most recent readiness refresh at 08:50 UTC retained the same boot/candidate,
+disk use 4.2686% and zero swap/OOM. A further stale-readiness rejection before
+Location import was resolved by that explicit refresh, without changing file
+identity. Before the next import, refresh readiness if expired. The repeated
+per-file approval, command reconciliation and five-minute readiness refresh
+are an observed usability limitation; a future reviewed improvement should
+retain all hash, health, ownership and no-replay gates, not remove them.
+
+The next step is to import/seal the remaining files, review the saved mappings,
+then start complete inventory. Do not mark migration/recovery or P1 canonical
+qualification complete from these transfer receipts.
