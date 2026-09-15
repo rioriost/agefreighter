@@ -1,7 +1,7 @@
 # Installed-GUI recovery qualification
 
 Status: private target and same-VM resize complete; first CSV migration and
-GUI-imported exact-count verification pass. Full canonical verification pending.
+GUI-imported exact-count verification and full canonical verification pass.
 The process-fault observation window was missed and no fault was injected.
 Live recovery qualification remains **not completed**.
 
@@ -466,3 +466,29 @@ saved CSV workflow. It retained the same verifier and migration operation IDs.
 This exercises panel reconnection during independent verification; it is not
 an Extension Host termination/reload or automatic recovery test. The retained
 command must finish and its report be reconciled without a second submission.
+
+### Full canonical qualification PASS; compute shutdown submitted
+
+The independent verifier finished successfully at `2026-09-15T11:57:03Z`
+(Azure start `11:54:58Z`, exit 0). The installed GUI reconciled the original
+operation, exported the exact report through command
+`667890a6-a0af-429d-8384-7345a21683fc`, imported it and displayed
+**P1 full canonical digest: PASS**. The retained report is 23,223 bytes,
+SHA-256 `a649dbecc3f0db163c2f4f6292b2a8b6b666bff6b454ff6fe955b5376d4dac6e`.
+An independent Mac-side check verified report bytes/hash, original job binding,
+read-only outcome, all **64 matching leaves**, and all **5,600,000 records**.
+Recomputing both roots from the leaf fields produced the frozen canonical root
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+No second verifier submission was used after panel reconnection.
+
+Post-verification guest observation confirms no active workflow marker, disk
+7% (`df` rounded), zero swap/OOM, and no SIGTERM evidence file. This closes the
+additional clean CSV trial only, **not B11**. B10 has panel-close/reconnect
+evidence across inventory/load/independent verification; actual host crash/reload
+and counts-verifier interruption remain separate gaps.
+
+After verifying exact workflow ownership and empty RG locks, deallocation of
+the trial VM and stopping its Flexible Server were submitted. No resource,
+graph, disk, report or failed-run evidence was deleted. Confirm terminal stopped
+states separately; Flexible Server warns it automatically starts after seven
+days. Retained storage/Cosmos charges are not eliminated by compute shutdown.

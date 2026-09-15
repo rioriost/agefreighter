@@ -186,7 +186,8 @@ restart reconciliation and same-VM resize completed. The new load committed
 all 5.6 million records with zero rejects, and its transferred counts report
 passes independently checked integrity. The fault observer missed its safe
 window and refused to signal; no fault or resume occurred. Full canonical
-verification is approved but not yet complete. See the
+verification now passes in the installed GUI: all 64 ranges / 5.6 million
+records and the frozen root independently match after report transfer. See the
 [execution record](recovery-execution-20260915.md) for exact boundaries and seals.
 This closes no live fault/recovery acceptance case. B10/B11 remain open.
 
