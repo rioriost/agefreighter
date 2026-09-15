@@ -252,3 +252,23 @@ Reviewed target/runner rate USD 0.736/hour, USD 400 reserve, USD 800 ceiling,
 unchanged deadline. Source D8 cost remains additional (prior estimate USD
 0.496/hour). No target plan files, credential or deployment have been created
 yet; folder selection follows confirmation. Do not treat this stage as migration.
+
+## 05:54Z — approved private target deployment active
+
+The user approved private target creation and SecretStorage retention. The first
+approved save created local plan/YAML files, but expired guest readiness blocked
+submission before any Azure target deployment. These files are retained, not
+overwritten. Fresh GUI readiness at `05:50:06.254Z` allowed a new review with
+identical source, sizing, permissions, price, budget and deadline. The GUI saved
+the final files under `production-simulation/work/op-n526-20260915/` with mode
+0600, using stem
+`agefreighter-31ce4789-9534-4bd6-bcac-621f460d99cc-272b8f5590aa`.
+YAML SHA-256 `d6753c6448eac2cbf25b22ad77c0c33ce1b850794d8ce64023a5d9898bbb5137`;
+target-plan SHA-256 `b67ccec5a6525bbd779c0d1ae5bf3034d16abbab46e2c758458cb13d26419ac3`.
+The files contain credential references, not source or target passwords.
+
+ARM accepted deployment `afpg-31ce478995344bd6bcac`, status Running at
+`2026-09-15T05:54:02.128028Z`; retained workflow phase is submitted. The dedicated
+subnet succeeded and private DNS creation is active. No migration was started.
+Reconcile this deployment only; never replay target creation. AGE readiness,
+same-runner resize, durable migration and full P1 digest remain required.

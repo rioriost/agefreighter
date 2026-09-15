@@ -33,11 +33,13 @@ The source is healthy, disk 6%, swap/OOM zero. Fresh GUI inventory
 `3f815040-a8ae-4756-9f48-6134ff1c661b` passed at `05:37:12Z`, exact 1.6M
 vertices / 4M edges, no errors or incomplete checks. GUI transfer and independent
 local SHA-256 validation agree on the 663-byte report. Private target planning
-passed after fresh readiness. The native final deployment/credential-storage
-confirmation is pending: private PG18/AGE D4ds_v5, 128 GiB, Japan East zone 1;
-same runner later resized to D4s_v5, target/runner USD 0.736/hour. No target
-files, credential or deployment were submitted before this confirmation;
-no replay, target or migration occurred. Budget USD 800,
+passed after fresh readiness. The user approved private target creation and
+SecretStorage retention. After another readiness refresh, GUI-saved plan/YAML
+and ARM agree: deployment `afpg-31ce478995344bd6bcac` is Running at `05:54:02Z`.
+Private PG18/AGE D4ds_v5, 128 GiB, Japan East zone 1; same runner later resized
+to D4s_v5, target/runner USD 0.736/hour. No deployment replay or migration
+occurred. AGE readiness, resize and migration/full verification remain.
+Budget USD 800,
 reserve USD 400 and deadline `2026-09-16T07:14:35.311Z` are unchanged.
 [Reviewed execution and handoff](op-n526-execution-20260915.md).
 
