@@ -112,6 +112,19 @@ Current dialog: **Approve pinned test artifact** for this workflow's container.
 No artifact upload or VM installation has been submitted yet; this unpublished
 executable requires the action-time confirmation shown by the GUI.
 
+At 01:38Z the user approved the fixed test artifact. The installed GUI completed
+authenticated upload and reports the archive prepared; durable developmentUpload
+phase is `ready` with the same hash, version and byte count. The account exception
+and disabled anonymous/shared-key settings were rechecked unchanged.
+
+The GUI reconnected to this draft and refreshed the VM preview at
+`2026-09-15T01:39:54.398Z`. B2s_v2 / Japan East zone 1 is USD 0.109/hour compute.
+The preview has no public IP or source firewall change. Its sole role assignment
+is Blob Reader on this workflow container for the new VM identity (not the RG,
+subscription or source database). Current dialog: **Create reviewed runner** for
+`af-75e4e5084f38467bb3c1`. This creation/grant has not been submitted. Revalidate
+preview expiry before confirming if the user responds later.
+
 The source clone is confirmed deallocated; no runner or target for this route
 has been deployed. After resolving transfer readiness, select the fixed artifact
 through the GUI and later restart only this clone before authenticated assessment.
