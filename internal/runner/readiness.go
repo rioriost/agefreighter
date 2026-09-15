@@ -66,6 +66,7 @@ func (m Manager) Ready(ctx context.Context) (Readiness, error) {
 		"postgresql-native-floats-v1",
 		"cosmos-explicit-property-types-v1",
 		"resume-inspection-v1",
+		"explicit-resume-v1",
 	}, Health: health}, nil
 }
 

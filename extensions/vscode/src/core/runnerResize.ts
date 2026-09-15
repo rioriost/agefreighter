@@ -39,6 +39,12 @@ async function inspect(control:RunnerControl,r:RunnerRecord){
   const power=Array.isArray(statuses)?statuses.map(x=>object(x).code).find(x=>typeof x==="string"&&x.startsWith("PowerState/")):undefined;
   return {preserved,legacyPreserved,power,size:String(object(p.hardwareProfile).vmSize),provisioning:p.provisioningState};
 }
+/** Recovery does not resize/start the VM: require the exact retained identity. */
+export async function assertRecoveryRunnerIdentity(control:RunnerControl,r:RunnerRecord):Promise<void>{
+  if(r.resize?.phase!=="finished" || !r.target)throw new Error("Retained completed runner resize is required.");
+  const v=await inspect(control,r);
+  if(v.preserved!==r.resize.preservedSHA256 || v.power!=="PowerState/running" || v.provisioning!=="Succeeded" || v.size!==r.target.input.loaderSize)throw new Error("Recovery runner disk/NIC/identity, size or ready state changed.");
+}
 function gate(r:RunnerRecord){
   if(r.target?.phase!=="provisioned" || r.migration || r.upgrade && r.upgrade.phase!=="finished" || r.guestCommand && ["submitted","unknown"].includes(r.guestCommand.phase))throw new Error("Reconcile target and guest operations before resizing the idle runner.");
   targetBudget(r.target.input);

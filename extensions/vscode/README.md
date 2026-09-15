@@ -207,9 +207,23 @@ verify their checksum and GitHub build-provenance attestation before use.
     checkpoint and rejects are checked; counters/identities remain lossless
     decimal strings. Re-select the action to reconcile a pending ARM response.
     The result is **review required**, never a successful migration or permission
-    to resume. No lease is cleared and no worker is started. Explicit guided
-    remote resume and live recovery qualification remain unfinished; existing
-    local-terminal resume commands are not equivalent to this guided path.
+    to resume. This inspection clears no lease and starts no worker.
+14. **Explicitly resume the retained job and counts verification** requires a
+    fresh recovery-readiness check, matching checkpoint inspection, separate
+    approval and an unchanged `explicit-resume-v1` pinned runner. Only jobs started
+    with the new recovery identity binding are eligible. The same source, target,
+    VM disk/NIC/identity, configuration, job and graph generation are preserved.
+    A new continuation operation retains separate logs, while the old evidence
+    and one-use continuation claim remain. The guest checks that the previous
+    systemd service is inactive, excludes competing submissions, rechecks target
+    identity/checkpoint and replaces only its predecessor's retained lease.
+    It calls `resume`, never `load` or AGE preparation, then checks the original
+    committed generation and runs complete counts verification. Lost responses
+    require reconciliation, not resubmission. New/changed jobs, active workers,
+    stale checkpoints, rejected rows and unhealthy guests block admission.
+    **Live GUI/Azure recovery qualification remains pending.** A retained desktop
+    crash lock still requires operator review; it is not automatically removed.
+    Counts verification is not the separate full P1 canonical qualification.
 
 Workflow metadata is held in extension global storage, without source passwords,
 before output-folder selection. The VM uses persistent managed OS storage and

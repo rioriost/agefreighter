@@ -29,10 +29,13 @@ type Manager struct {
 	Tools            string
 	BootID           func() (string, error)
 	Start            func(context.Context, string) error
-	blobTransport    http.RoundTripper                           // Test seam; production uses standard TLS validation.
-	healthProbe      func(context.Context) (*GuestHealth, error) // Test seam; nil uses local Linux evidence.
-	versionProbe     func(context.Context) (string, error)       // Test seam; nil executes the installed CLI.
-	migrationPrepare func(context.Context, []byte, string) error // Test seam; nil uses verified PostgreSQL TLS preparation.
+	blobTransport    http.RoundTripper                                        // Test seam; production uses standard TLS validation.
+	healthProbe      func(context.Context) (*GuestHealth, error)              // Test seam; nil uses local Linux evidence.
+	versionProbe     func(context.Context) (string, error)                    // Test seam; nil executes the installed CLI.
+	migrationPrepare func(context.Context, []byte, string) error              // Test seam; nil uses verified PostgreSQL TLS preparation.
+	resumeProbe      func(context.Context, Request) (ResumeInspection, error) // Test seam; nil reads retained target metadata.
+	workerInactive   func(context.Context, string) error                      // Test seam; nil checks systemd, never stops a worker.
+	resumeComplete   func(context.Context, State, []byte, string) error       // Test seam; nil validates final target generation read-only.
 }
 
 func (m Manager) paths(workflow, operation string) (string, string, error) {
@@ -44,6 +47,11 @@ func (m Manager) paths(workflow, operation string) (string, string, error) {
 }
 
 func (m Manager) Submit(ctx context.Context, request Request) (State, error) {
+	unlock, err := m.dispatchLock()
+	if err != nil {
+		return State{}, err
+	}
+	defer unlock()
 	if _, err := Arguments(request.Action, ""); err != nil {
 		return State{}, err
 	}
@@ -190,7 +198,7 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 	if err := replaceJSON(filepath.Join(dir, "state.json"), state); err != nil {
 		return err
 	}
-	if state.Action == "migrate-csv" || state.Action == "migrate-source" {
+	if state.Action == "migrate-csv" || state.Action == "migrate-source" || state.Action == "resume-migration" {
 		return m.workMigration(ctx, root, dir, state, configuration, secrets)
 	}
 	args, err := Arguments(state.Action, filepath.Join(dir, "job.json"))

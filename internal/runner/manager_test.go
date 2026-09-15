@@ -109,6 +109,10 @@ func TestMain(m *testing.M) {
 		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"jobId": os.Args[4], "status": "committed"})
 		os.Exit(0)
 	}
+	if len(os.Args) > 4 && os.Args[1] == "resume" {
+		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"jobId": os.Args[2], "status": "committed"})
+		os.Exit(0)
+	}
 	if len(os.Args) > 2 && os.Args[1] == "verify" {
 		doc := report.New("verify", time.Now().UTC())
 		doc.Outcome = report.OutcomePass
@@ -163,6 +167,7 @@ func TestReadinessRequiresBootstrapAndMatchingInstallation(t *testing.T) {
 		"postgresql-native-floats-v1",
 		"cosmos-explicit-property-types-v1",
 		"resume-inspection-v1",
+		"explicit-resume-v1",
 	}
 	if !slices.Equal(r.Capabilities, wantCapabilities) {
 		t.Fatalf("missing reviewed migration capability: %#v", r)

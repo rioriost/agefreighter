@@ -34,26 +34,28 @@ type Request struct {
 	Offset         int64             `json:"offset,omitempty"`
 	Export         *ReportExport     `json:"export,omitempty"`
 	Import         *CSVImport        `json:"import,omitempty"`
+	Resume         *ResumeBinding    `json:"resume,omitempty"`
 }
 
 type State struct {
-	Version      int    `json:"version"`
-	Workflow     string `json:"workflow"`
-	Operation    string `json:"operation"`
-	Action       string `json:"action"`
-	Phase        string `json:"phase"`
-	BootID       string `json:"bootId"`
-	ConfigSHA256 string `json:"configSha256"`
-	StartedAt    string `json:"startedAt,omitempty"`
-	FinishedAt   string `json:"finishedAt,omitempty"`
-	ExitCode     *int   `json:"exitCode,omitempty"`
-	ReportBytes  int64  `json:"reportBytes,omitempty"`
-	ReportSHA256 string `json:"reportSha256,omitempty"`
-	FileID       string `json:"fileId,omitempty"`
-	FileBytes    int64  `json:"fileBytes,omitempty"`
-	FileSHA256   string `json:"fileSha256,omitempty"`
-	JobID        string `json:"jobId,omitempty"`
-	Fingerprint  string `json:"fingerprint,omitempty"`
+	Version      int            `json:"version"`
+	Workflow     string         `json:"workflow"`
+	Operation    string         `json:"operation"`
+	Action       string         `json:"action"`
+	Phase        string         `json:"phase"`
+	BootID       string         `json:"bootId"`
+	ConfigSHA256 string         `json:"configSha256"`
+	StartedAt    string         `json:"startedAt,omitempty"`
+	FinishedAt   string         `json:"finishedAt,omitempty"`
+	ExitCode     *int           `json:"exitCode,omitempty"`
+	ReportBytes  int64          `json:"reportBytes,omitempty"`
+	ReportSHA256 string         `json:"reportSha256,omitempty"`
+	FileID       string         `json:"fileId,omitempty"`
+	FileBytes    int64          `json:"fileBytes,omitempty"`
+	FileSHA256   string         `json:"fileSha256,omitempty"`
+	JobID        string         `json:"jobId,omitempty"`
+	Fingerprint  string         `json:"fingerprint,omitempty"`
+	Resume       *ResumeBinding `json:"resume,omitempty"`
 }
 
 func Decode(input io.Reader) (Request, error) {
@@ -74,9 +76,21 @@ func Decode(input io.Reader) (Request, error) {
 		return Request{}, errors.New("invalid runner protocol version or operation identity")
 	}
 	switch request.Action {
-	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume":
+	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume", "resume-migration":
 	default:
 		return Request{}, errors.New("runner operation is not allowed")
+	}
+	if request.Action == "resume-migration" {
+		if !validResumeBinding(request.Resume) || request.Operation == request.Resume.PreviousOperation || len(request.Configuration) != 0 || request.Offset != 0 || request.Import != nil || request.Export != nil || !uuid.MatchString(request.ExpectedBootID) {
+			return Request{}, errors.New("resume requires an explicit original-job binding, fresh operation and boot, never a new configuration")
+		}
+		if _, err := migrationConnection(request.Secrets["AGEFREIGHTER_TARGET_DSN"]); err != nil {
+			return Request{}, err
+		}
+		return request, nil
+	}
+	if request.Resume != nil {
+		return Request{}, errors.New("unexpected resume binding")
 	}
 	if request.Action == "import-csv" {
 		if !safeCSVAction(request) {
@@ -125,7 +139,7 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 	if job.Trial != nil {
 		return nil, errors.New("trial writes are not supported by assessment")
 	}
-	if request.Action == "migrate-csv" || request.Action == "migrate-source" {
+	if request.Action == "migrate-csv" || request.Action == "migrate-source" || request.Action == "resume-migration" {
 		if job.Target.Type != config.TargetApacheAGE || job.Target.Mode != config.LoadCreate || job.Target.Connection.Env != "AGEFREIGHTER_TARGET_DSN" {
 			return nil, errors.New("remote migration requires a reviewed create-mode AGE job")
 		}
@@ -134,6 +148,9 @@ func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error)
 		}
 		if request.Action == "migrate-source" && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourcePostgreSQL && job.Source.Type != config.SourceCosmos {
 			return nil, errors.New("network migration requires a reviewed Neo4j, PostgreSQL, or Cosmos source")
+		}
+		if request.Action == "resume-migration" && job.Source.Type != config.SourceCSV && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourcePostgreSQL && job.Source.Type != config.SourceCosmos {
+			return nil, errors.New("unsupported recovery source")
 		}
 		if _, err := migrationConnection(request.Secrets["AGEFREIGHTER_TARGET_DSN"]); err != nil {
 			return nil, err

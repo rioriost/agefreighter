@@ -33,6 +33,8 @@ func NewRunnerCommand() *cobra.Command {
 			result, err = manager.Status(request.Workflow, request.Operation)
 		case "inspect-resume":
 			result, err = manager.InspectResume(ctx, request)
+		case "resume-migration":
+			result, err = manager.SubmitResume(ctx, request)
 		case "report":
 			result, err = manager.Report(request.Workflow, request.Operation, request.Offset)
 		case "export-report":

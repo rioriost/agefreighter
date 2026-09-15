@@ -75,6 +75,11 @@ func validateCSVImport(workflow string, source CSVImport, now time.Time) error {
 // SubmitCSV persists an operation before a disabled-at-boot worker is started.
 // The SAS stays only in its private transient capability file, never state/units.
 func (m Manager) SubmitCSV(ctx context.Context, r Request) (State, error) {
+	unlock, err := m.dispatchLock()
+	if err != nil {
+		return State{}, err
+	}
+	defer unlock()
 	if !safeCSVAction(r) {
 		return State{}, errors.New("invalid CSV import request")
 	}

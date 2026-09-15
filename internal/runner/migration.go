@@ -77,11 +77,13 @@ func prepareMigration(ctx context.Context, configuration []byte, dsn string) err
 }
 
 // One durable worker performs a fixed sequence. The operation UUID is the load
-// UUID and is sealed before target preparation. Failure never starts a new load
-// or resumes an old one. The final artifact is complete counts verification,
+// UUID and is sealed before target preparation. Failure never automatically
+// starts a new load or resumes an old one; continuation is separately admitted.
+// The final artifact is complete counts verification,
 // not a success inferred from the loader exit code.
 func (m Manager) workMigration(ctx context.Context, root, dir string, state State, configuration []byte, secrets map[string]string) error {
-	if state.JobID != state.Operation || !uuid.MatchString(state.JobID) {
+	resuming := state.Action == "resume-migration"
+	if !uuid.MatchString(state.JobID) || !resuming && state.JobID != state.Operation || resuming && (!validResumeBinding(state.Resume) || state.Resume.JobID != state.JobID || state.Resume.ConfigSHA256 != state.ConfigSHA256) {
 		return errors.New("migration identity is not retained")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
@@ -92,20 +94,29 @@ func (m Manager) workMigration(ctx context.Context, root, dir string, state Stat
 	if m.migrationPrepare != nil {
 		prepare = m.migrationPrepare
 	}
-	runErr := prepare(prepCtx, configuration, dsn)
+	var runErr error
+	if resuming {
+		runErr = m.checkResumeTarget(prepCtx, Request{Version: 1, Workflow: state.Workflow, Operation: state.Operation, Action: state.Action, ExpectedBootID: state.BootID, Resume: state.Resume, Secrets: secrets})
+	} else {
+		runErr = prepare(prepCtx, configuration, dsn)
+	}
 	prepCancel()
-	if runErr == nil {
+	if runErr == nil && !resuming {
 		runErr = writeNewJSON(filepath.Join(dir, "target-prepared.json"), map[string]any{"jobId": state.JobID, "preparedAt": time.Now().UTC(), "tls": "verify-full", "postgresqlMajor": 18})
 	}
 	var final []byte
 	exit := 1
 	if runErr == nil {
 		path := filepath.Join(dir, "job.json")
+		loadArgs := []string{"load", path, "--job-id", state.JobID}
+		if resuming {
+			loadArgs = []string{"resume", state.JobID, "--job", path}
+		}
 		for _, step := range []struct {
 			name string
 			args []string
 		}{
-			{"load", []string{"load", path, "--job-id", state.JobID}},
+			{"load", loadArgs},
 			{"verify", []string{"verify", state.JobID, "--target", path, "--counts", "--require-complete", "--format", "json"}},
 		} {
 			cmd := exec.CommandContext(ctx, m.CLI, step.args...)
@@ -139,10 +150,13 @@ func (m Manager) workMigration(ctx context.Context, root, dir string, state Stat
 				if json.Unmarshal(out.Bytes(), &result) != nil || result.JobID != state.JobID || result.Status != "committed" {
 					runErr = errors.New("load did not return the retained committed job identity")
 				}
+				if runErr == nil && resuming {
+					runErr = m.checkResumedGeneration(ctx, state, configuration, dsn)
+				}
 			}
 			if step.name == "verify" && !out.overflow {
 				doc, err := report.Decode(out.Bytes())
-				if err == nil && doc.Command == "verify" && doc.Job != nil && doc.Job.ID == state.JobID {
+				if err == nil && doc.Command == "verify" && doc.Job != nil && doc.Job.ID == state.JobID && (!resuming || doc.Job.ConfigFingerprint == state.Resume.Fingerprint) {
 					state.Fingerprint = doc.Job.ConfigFingerprint
 					final, err = redactedReport(out.Bytes(), secrets)
 					if err != nil {

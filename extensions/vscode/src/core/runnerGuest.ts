@@ -7,14 +7,14 @@ import { CSVManifest, validateCSVManifest } from "../guided/csvTransfer";
 export interface GuestCommand {
   id: string;
   operation: string;
-  action: "ready" | "profile" | "inventory" | "status" | "report" | "export-report" | "import-csv" | "migrate-csv" | "migrate-source" | "inspect-resume";
+  action: "ready" | "profile" | "inventory" | "status" | "report" | "export-report" | "import-csv" | "migrate-csv" | "migrate-source" | "inspect-resume" | "resume-migration";
   phase: "submitted" | "unknown" | "finished" | "failed";
   submittedAt: string;
   failure?: string;
 }
 export interface GuestHealth { idle:boolean; storageUsedPercent:number; swapUsedBytes:number; oomEvents:number }
 export interface GuestReadiness { bootId: string; cliVersion: string; archiveSha256: string; commit: string; checkedAt: string; capabilities?: string[]; health?:GuestHealth }
-export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number; export?: { url: string; sha256: string; bytes: number }; import?: CSVManifest & { url: string } }
+export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number; export?: { url: string; sha256: string; bytes: number }; import?: CSVManifest & { url: string }; resume?: import("./runnerExecution").RunnerMigration["resume"] }
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 
@@ -44,7 +44,13 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
   if (record.phase !== "provisioned") throw new Error("The runner VM must be provisioned first.");
   if (record.upgrade && record.upgrade.phase !== "finished") throw new Error("Reconcile the guest upgrade before any other operation.");
   if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command; do not resubmit it.");
-  if (request.version !== 1 || request.workflow !== record.id || !uuid.test(request.operation) || !["ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
+  if (request.version !== 1 || request.workflow !== record.id || !uuid.test(request.operation) || !["ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume", "resume-migration"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
+  if(request.action!=="resume-migration" && request.resume!==undefined)throw new Error("Unexpected recovery binding.");
+  if(request.action==="resume-migration"){
+    const m=record.migration;
+    if(!record.guestReady?.capabilities?.includes("explicit-resume-v1") || !m?.resume || JSON.stringify(m.resume)!==JSON.stringify(request.resume) || m.operation!==request.operation || m.phase!=="submitted" || m.operation===m.resume.previousOperation || m.jobId!==m.resume.jobId || request.configuration!==undefined || request.offset!==undefined)throw new Error("Resume requires an explicitly sealed new continuation for the original job.");
+    assertPostgreSQLTypePreservation(record);
+  }
   if (["ready", "status", "report", "export-report"].includes(request.action) && (request.configuration !== undefined || request.secrets !== undefined || request.expectedBootId !== undefined)) throw new Error("Read-only guest controls cannot contain source credentials.");
   if (request.action === "export-report") {
     if (!request.export || request.offset !== undefined) throw new Error("Invalid report export capability.");
@@ -64,7 +70,7 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
     if(!record.guestReady?.capabilities?.includes(capability) || record.migration?.operation!==request.operation || record.migration.phase!=="submitted" || record.target?.phase!=="provisioned" || record.resize?.phase!=="finished")throw new Error("Migration requires an approved retained execution intent and prepared target/runner.");
   }
   if(request.action==="inspect-resume" && (!record.guestReady?.capabilities?.includes("resume-inspection-v1") || record.migration?.operation!==request.operation || request.configuration!==undefined || request.offset!==undefined || Object.keys(request.secrets??{}).join()!=="AGEFREIGHTER_TARGET_DSN"))throw new Error("Resume inspection requires a capable runner, retained migration and only the protected target connection.");
-  const bootBound = assessment || request.action === "import-csv" || request.action === "inspect-resume";
+  const bootBound = assessment || request.action === "import-csv" || request.action === "inspect-resume" || request.action === "resume-migration";
   if (bootBound) {
     const ready = record.guestReady;
     const age = ready ? Date.now() - Date.parse(ready.checkedAt) : NaN;

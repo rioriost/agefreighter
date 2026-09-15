@@ -12,7 +12,10 @@ export interface RunnerMigration {
   startedAt:string; bootId:string; artifactSHA256:string; cliVersion:string;
   evidence:TargetEvidence; guestConfigurationSHA256?:string; fingerprint?:string;
   reportSHA256?:string; reportBytes?:number; exitCode?:number; verification?:VerificationDecision;
+  recoveryIdentitySHA256?:string;
+  resume?: {previousOperation:string;jobId:string;configSha256:string;fingerprint:string;generationId:string;committedRows:string};
 }
+export function recoveryIdentity(r:RunnerRecord):string{return createHash("sha256").update(JSON.stringify({vm:r.vmId,placement:r.input,runnerIdentity:r.resize?.preservedSHA256,target:r.target?.serverId,serverName:r.target?.input.serverName,subnet:r.target?.subnetId,dns:r.target?.dnsId,source:r.sourceDraft,ca:r.sourceCA})).digest("hex");}
 const sha=/^[a-f0-9]{64}$/;
 /** ARM may return a location display name instead of its canonical name. */
 export function sameAzureLocation(actual:unknown,expected:string):boolean{
@@ -82,7 +85,7 @@ export function targetDSN(r:RunnerRecord,password:string):string{
 export async function startMigration(control:RunnerControl,r:RunnerRecord,report:string,password:string,sourcePassword?:string,sourceCAPEM?:string):Promise<RunnerRecord>{
   if((r.input.source.type==="neo4j"||r.input.source.type==="postgresql") && !sourcePassword)throw new Error("Enter the read-only source password for this approved migration.");
   const evidence=await migrationPreflight(control,r,report),operation=randomUUID();
-  const migration:RunnerMigration={operation,jobId:operation,phase:"submitted",startedAt:new Date().toISOString(),bootId:r.guestReady!.bootId,artifactSHA256:r.artifact.sha256,cliVersion:r.artifact.version,evidence};
+  const migration:RunnerMigration={operation,jobId:operation,phase:"submitted",startedAt:new Date().toISOString(),bootId:r.guestReady!.bootId,artifactSHA256:r.artifact.sha256,cliVersion:r.artifact.version,evidence,recoveryIdentitySHA256:recoveryIdentity(r)};
   const action=r.input.source.type==="csv"?"migrate-csv":"migrate-source";
   const secrets:Record<string,string>={AGEFREIGHTER_TARGET_DSN:targetDSN(r,password)};
   if(r.input.source.type==="neo4j"||r.input.source.type==="postgresql")Object.assign(secrets,sourceSecrets(r.input.source.type,r.sourceDraft!.form,sourcePassword,sourceCAPEM));
@@ -92,10 +95,11 @@ export async function refreshMigration(control:RunnerControl,r:RunnerRecord):Pro
   const m=r.migration;if(!m)throw new Error("No retained migration.");
   const pending=r.guestCommand && ["submitted","unknown"].includes(r.guestCommand.phase);
   if(!pending)return dispatchGuest(control,r,{version:1,workflow:r.id,operation:m.operation,action:"status"});
-  if(r.guestCommand!.operation!==m.operation || !["migrate-csv","migrate-source","status"].includes(r.guestCommand!.action))throw new Error("Reconcile the other pending guest command first.");
+  if(r.guestCommand!.operation!==m.operation || !["migrate-csv","migrate-source","resume-migration","status"].includes(r.guestCommand!.action))throw new Error("Reconcile the other pending guest command first.");
   const checked=await reconcileGuest(control,r);if(!checked.result)return checked.record;
   const s=object(checked.result);
-  const expectedAction=r.input.source.type==="csv"?"migrate-csv":"migrate-source";
+  const expectedAction=m.resume?"resume-migration":r.input.source.type==="csv"?"migrate-csv":"migrate-source";
+  if(m.resume && JSON.stringify(s.resume)!==JSON.stringify(m.resume))throw new Error("Retained continuation binding changed.");
   if(s.jobId!==m.jobId || s.action!==expectedAction || s.bootId!==m.bootId || typeof s.configSha256!=="string" || !sha.test(s.configSha256) || m.guestConfigurationSHA256 && m.guestConfigurationSHA256!==s.configSha256 || !["accepted","running","finished","failed","interrupted"].includes(String(s.phase)))throw new Error("Retained migration identity changed.");
   const next:RunnerRecord={...checked.record,migration:{...m,phase:s.phase as RunnerMigration["phase"],guestConfigurationSHA256:s.configSha256}};
   if(s.reportBytes!==undefined || s.reportSha256!==undefined){

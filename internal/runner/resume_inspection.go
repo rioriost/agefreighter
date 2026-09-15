@@ -56,7 +56,7 @@ func (m Manager) InspectResume(ctx context.Context, request Request) (ResumeInsp
 		}
 	}
 	state, err := m.Status(request.Workflow, request.Operation)
-	if err != nil || state.JobID != request.Operation || (state.Action != "migrate-csv" && state.Action != "migrate-source") {
+	if err != nil || !uuid.MatchString(state.JobID) || (state.Action != "migrate-csv" && state.Action != "migrate-source" && state.Action != "resume-migration") {
 		return ResumeInspection{}, errors.New("retained migration identity unavailable")
 	}
 	boot, err := m.BootID()
@@ -126,7 +126,7 @@ func resumeInspectionEvidence(state State, job config.LoadJob, stored meta.Job, 
 	if stored.UpdatedAt.IsZero() || stored.UpdatedAt.After(now) || stored.CommittedRows < 0 || stored.RejectedRows != 0 || stored.SourceRejectedRows != 0 {
 		return ResumeInspection{}, errors.New("invalid checkpoint or rejected rows; review retained evidence")
 	}
-	result := ResumeInspection{Version: 1, Workflow: state.Workflow, Operation: state.Operation, JobID: state.JobID, BootID: boot, ConfigSHA256: state.ConfigSHA256, Fingerprint: stored.ConfigFingerprint, GenerationID: strconv.FormatInt(generation.ID, 10), CommittedRows: strconv.FormatInt(stored.CommittedRows, 10), CheckpointAt: stored.UpdatedAt.UTC().Format(time.RFC3339Nano), CheckedAt: now.Format(time.RFC3339Nano), Outcome: "review-required", Reasons: []string{"read-only inspection; explicit remote resume is not enabled"}, CanResume: false}
+	result := ResumeInspection{Version: 1, Workflow: state.Workflow, Operation: state.Operation, JobID: state.JobID, BootID: boot, ConfigSHA256: state.ConfigSHA256, Fingerprint: stored.ConfigFingerprint, GenerationID: strconv.FormatInt(generation.ID, 10), CommittedRows: strconv.FormatInt(stored.CommittedRows, 10), CheckpointAt: stored.UpdatedAt.UTC().Format(time.RFC3339Nano), CheckedAt: now.Format(time.RFC3339Nano), Outcome: "review-required", Reasons: []string{"read-only inspection; a separate explicit resume approval is required"}, CanResume: false}
 	if stored.Status != meta.JobFailed || (state.Phase != "failed" && state.Phase != "interrupted") {
 		result.Reasons = append(result.Reasons, "worker and target must be proven inactive before any resume")
 	}
@@ -146,4 +146,43 @@ func validDigest(value string) bool {
 		}
 	}
 	return true
+}
+
+func (m Manager) checkResumedGeneration(ctx context.Context, state State, data []byte, dsn string) error {
+	if m.resumeComplete != nil {
+		return m.resumeComplete(ctx, state, data, dsn)
+	}
+	job, err := config.Parse(data)
+	if err != nil {
+		return err
+	}
+	c, err := migrationConnection(dsn)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	conn, err := pgx.ConnectConfig(ctx, c)
+	if err != nil {
+		return errors.New("final recovery target unavailable")
+	}
+	defer conn.Close(context.Background())
+	tx, err := conn.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+	if err != nil {
+		return errors.New("final read-only recovery check unavailable")
+	}
+	defer tx.Rollback(context.Background())
+	store, _ := meta.New(tx)
+	stored, err := store.GetJob(ctx, state.JobID)
+	if err != nil {
+		return errors.New("final recovery job unavailable")
+	}
+	g, err := store.GraphGenerationForJob(ctx, state.JobID)
+	if err != nil {
+		return errors.New("final recovery generation unavailable")
+	}
+	if stored.ID != state.JobID || stored.Status != meta.JobCommitted || stored.ConfigFingerprint != state.Resume.Fingerprint || stored.TargetGraph != job.Target.Graph || stored.TargetBackend != meta.TargetBackendApacheAGE || strconv.FormatInt(stored.GraphGenerationID, 10) != state.Resume.GenerationID || g.ID != stored.GraphGenerationID || g.JobID != state.JobID || g.GraphName != job.Target.Graph || g.State != meta.GenerationActive {
+		return errors.New("recovery changed the original committed job or graph generation")
+	}
+	return nil
 }

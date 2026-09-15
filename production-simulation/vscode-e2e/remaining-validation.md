@@ -38,7 +38,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 passed; transfer tests cover changed files, verified receipts and matching existing blobs | Installed-GUI cancellation/partial transfer/reconciliation, with no load before complete receipts | not-run |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | New persisted-state/process-exit tests pass; no actual live window-close evidence yet | Close/reopen installed GUI in all three phases; retain same operation/job and prove no duplicate dispatch | not-run |
-| B11 | Loader/network interruption; explicit same-job recovery | Read-only guest/GUI recovery inspection implemented and locally tested; actual remote resume is still absent | Implement and review remote resume; test unchanged database/graph/job/generation/fingerprint, then complete P1 counts and canonical verification | blocked |
+| B11 | Loader/network interruption; explicit same-job recovery | Guest continuation and GUI explicit resume implemented; local tests pass, not live-qualified | Review/package candidate, run actual faults and unchanged database/graph/job/generation/fingerprint recovery, then full P1 verification | running |
 | B12 | Invalid verification must never be PASS | Verification/report unit tests cover mismatch, rejects, incomplete, wrong-job, stale, changed/truncated evidence | Installed-host presentation/interaction tests for representative rejected results; no forged success in retained base workflows | not-run |
 
 ## First local regression batch
@@ -92,11 +92,46 @@ advertise the new capability; it must reject inspection until a reviewed pinned
 candidate is installed. Actual remote resume, stale-lease/lock reconciliation and
 P1 fault/recovery execution are still prerequisites for closing B11.
 
+### Explicit continuation implementation — 2026-09-15
+
+The follow-on change adds an explicit `resume-migration` boundary and native GUI
+action. The new operation references the previous operation and original job,
+configuration hash, fingerprint, generation and committed-row checkpoint. It
+accepts no replacement configuration. Admission is kernel-lock serialized with
+other guest submissions; the previous systemd service must be loaded but inactive
+or failed, with no main/control PID. Existing operation state must be failed or
+boot-interrupted. Current health, other workflow leases and target evidence are
+checked before a one-use continuation claim is written. Old logs/configuration/
+state are not overwritten; only the proven predecessor lease is atomically
+replaced, and a fresh operation directory retains the exact original job bytes.
+Partial admission/lost start responses remain fail-closed for reconciliation.
+
+The worker rechecks the target binding before calling the actual CLI `resume`
+command, skips AGE preparation/new graph creation, and independently requires the
+same committed graph generation before counts verification. The verifier report
+must retain the original fingerprint. Host admission binds the source draft/CA,
+target/private placement, VM and preserved disk/NIC/identity, and original pinned
+artifact. Old unbound jobs are intentionally unsupported; the nine qualified
+base targets have not been upgraded or resumed. No cloud resources were started.
+
+Local validation: **206 extension unit tests PASS**, typecheck/build and host-test
+compilation PASS; Go runner/tools tests including race detection PASS. Controlled
+child-CLI worker tests cover preserved job/configuration, no preparation, refused
+replay, parallel continuation claims, unsafe gates, lost start acknowledgement and
+post-load generation mismatch. These use synthetic execution/metadata seams and
+do not establish live PostgreSQL, Neo4j, Cosmos or CSV recovery correctness.
+Actual installed-GUI fault/recovery/P1 digest qualification is still pending.
+Desktop crash-lock recovery remains a distinct B10 gap; no automatic lock removal
+was added. The installed qualifying VSIX/Linux archive is unchanged.
+Linux/amd64 CLI and tools cross-builds and `go vet` also passed. The isolated
+installed VS Code host smoke suite passed 3/3 after recompilation; it verifies
+activation/editor behavior, not the new resume action against Azure.
+
 ### Remaining sequence
 
 1. Complete the existing-evidence mapping and local/host negative tests (B01–B10,
    B12). Preserve separation between mocked and actual service evidence.
-2. Implement B11 remote resume, including allowlisted guest protocol, explicit
+2. Review and exercise B11 remote resume, including allowlisted guest protocol, explicit
    GUI approval, durable intent, credential handling, config and identity checks,
    no automatic replay, and safe reconciliation of interrupted control actions.
    Test both source and CSV behavior; unsupported combinations must block clearly.

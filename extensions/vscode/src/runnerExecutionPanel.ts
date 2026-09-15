@@ -15,7 +15,7 @@ import {qualifyP1} from "./p1QualificationPanel";
 import {diagnoseP1} from "./p1DiagnosticPanel";
 import {inspectSourceCA} from "./core/runnerSource";
 import {ensureAssessmentReadiness} from "./core/runnerAssessment";
-import {inspectResume} from "./core/runnerResume";
+import {inspectResume,recoveryReadiness,resumeAdmission,resumeMigration} from "./core/runnerResume";
 
 /** Native choices are intentionally separate approvals. Reconnecting or closing
  * a panel cannot launch/resume a migration, resize, or repeat a lost operation. */
@@ -27,7 +27,9 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   const startLabel=`Start new ${r.input.source.type} migration and counts verification`;
   const renewLabel="Review a new cost authorization (no Azure mutation)";
   const resumeInspectionLabel="Inspect same-job recovery (read only; does not resume)";
-  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)",resumeInspectionLabel,"Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)","Diagnose retained P1 failure (read only)","Requalify with reviewed P1 ordering fix (read only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
+  const resumeLabel="Explicitly resume the retained job and counts verification";
+  const recoveryReadyLabel="Refresh recovery readiness (read only)";
+  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)",recoveryReadyLabel,resumeInspectionLabel,resumeLabel,"Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)","Diagnose retained P1 failure (read only)","Requalify with reviewed P1 ordering fix (read only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
   if(!action)return;
   const confirm=(title:string,detail:string)=>vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");
   const price=async()=>{if(!r.target)throw new Error("No retained target plan.");const input=r.target.input;if(targetComputeRate(await azure.retailRates(r.input.region,[input.loaderSize,input.postgresSKU]),input)!==input.hourlyUSD)throw new Error("Compute price changed; review the cost plan before further mutation.");};
@@ -51,11 +53,13 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
     if(await confirm("Resize the existing idle Linux runner?",`${r.vmId}\n${r.resize?.phase??"Deallocate before resizing"} → ${r.target.input.loaderSize}. The same NIC, disk and system identity are preserved. No source VM is changed. Data and evidence remain. Deadline ${r.target.input.deadline}; total ceiling USD ${r.target.input.budgetUSD}. An uncertain response is reconciled, never replayed.`)!=="Approve this step")return;
     await price();
     r=await store.exclusive(r.id,async()=>{const latest=await store.read(r.id);return latest.resize?advanceResize(control,latest,true):startResize(control,latest);});
-  }else if(action===startLabel){
+  }else if(action===startLabel||action===resumeLabel){
     const a=r.assessment;if(!a?.reportSHA256 || !a.reportBytes)throw new Error("Import complete source inventory first.");
     const report=await store.readReport(r.id,{operation:a.operation,sha256:a.reportSHA256,bytes:a.reportBytes});
-    const evidence=await migrationPreflight(control,r,report);
-    if(await confirm(`Start this new ${r.input.source.type} migration on the Linux runner?`,`${evidence.rows} mapped rows. Inventory ${evidence.reportSHA256}. Linux ${r.artifact.version}, archive ${r.artifact.sha256}.\n${r.target!.serverId}\nPrepare AGE, create the new graph, migrate, then run complete counts verification. The new job UUID is retained before writes. No replace, delete, automatic resume or retry. Source and target credentials use protected transport; only the target secret is retained in SecretStorage. A counts pass is distinct from the independent P1 property digest.`)!=="Approve this step")return;
+    const resuming=action===resumeLabel;
+    const evidence=resuming?(resumeAdmission(r),r.migration!.evidence):await migrationPreflight(control,r,report);
+    const detail=resuming?`Resume job ${r.migration!.jobId}, generation ${r.resumeInspection!.generationId}, fingerprint ${r.resumeInspection!.fingerprint}, from ${r.resumeInspection!.committedRows} rows. Preserve the existing graph, configuration, previous operation and evidence. Create only a new continuation operation. The guest must prove the old service inactive before replacing its retained lease. No AGE preparation, replacement graph, automatic retry or new job. After resume, check the same generation and complete counts. Full P1 canonical verification remains separate.`:`${evidence.rows} mapped rows. Inventory ${evidence.reportSHA256}. Prepare AGE, create the new graph, migrate, then run complete counts verification. The new job UUID is retained before writes. No replace, delete, automatic resume or retry. A counts pass is distinct from the independent P1 property digest.`;
+    if(await confirm(resuming?"Explicitly resume this retained Linux migration?":`Start this new ${r.input.source.type} migration on the Linux runner?`,`${detail}\nLinux ${r.artifact.version}, archive ${r.artifact.sha256}.\n${r.target!.serverId}\nSource and target credentials use protected transport; only the target secret is retained in SecretStorage.`)!=="Approve this step")return;
     await price();
     let sourcePassword:string|undefined;
     if(r.input.source.type==="neo4j"||r.input.source.type==="postgresql"){
@@ -68,10 +72,13 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
       if(!password)throw new Error("The retained target credential is unavailable.");
       let sourceCAPEM:string|undefined;
       if(latest.sourceCA){const data=await readFile(latest.sourceCA.path),checked=inspectSourceCA(latest.sourceCA.path,latest.sourceCA.name,data);if(checked.bytes!==latest.sourceCA.bytes||checked.sha256!==latest.sourceCA.sha256||latest.sourceDraft?.sourceCASHA256!==checked.sha256)throw new Error("The selected source CA changed; select and review it again.");sourceCAPEM=data.toString("utf8");}
+      if(resuming)return resumeMigration(control,latest,password,sourcePassword,sourceCAPEM);
       latest=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Checking Linux readiness before migration",cancellable:false},
         ()=>ensureAssessmentReadiness(control,latest));
       return startMigration(control,latest,report,password,sourcePassword,sourceCAPEM);
     }); } finally { sourcePassword=undefined; }
+  }else if(action===recoveryReadyLabel){
+    r=await store.exclusive(r.id,async()=>recoveryReadiness(control,await store.read(r.id)));
   }else if(action===resumeInspectionLabel){
     if(await confirm("Inspect the retained checkpoint without resuming?","Reads the existing guest configuration and target metadata only. No source connection, worker start, lease removal, graph creation or data changes. A successful inspection is not permission to resume. Requires a reviewed runner advertising resume-inspection-v1 and fresh readiness.")!=="Approve this step")return;
     const checked=await store.exclusive(r.id,async()=>{
