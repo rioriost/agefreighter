@@ -493,3 +493,32 @@ graph, disk, report or failed-run evidence was deleted. Subsequent independent
 Azure reads confirm `PowerState/deallocated` and Flexible Server `Stopped`.
 Flexible Server warns it automatically starts after seven days. Retained
 storage/Cosmos charges are not eliminated by compute shutdown.
+
+### Second CSV recovery draft (not deployed)
+
+The user requested continuation after the clean trial. Fresh reads at about
+12:04 UTC confirm all trial VMs deallocated, all Flexible Servers stopped,
+the authorized subscription selected, empty RG locks, and no recent delete,
+deny or deploy-if-not-exists activity in the bounded check. The USD 800 ceiling,
+USD 400 reserve and `2026-09-16T07:14:35.311Z` deadline remain unchanged.
+
+The installed GUI opened a new CSV/local workflow
+`54da6ddd-27d2-45e0-bb68-cf5f352801db`, using the existing trial group, Japan East
+zone 1, B2s_v2 and the original runner subnet. The source editor displays
+`csv-recovery-p1-r2`, namespace `p1`, null marker `\N`, and all 18 original
+portable P1 files. Mappings still require GUI review. This is a new draft, not
+a modification of the prior accepted generation or workflow metadata.
+
+The native dialog awaits action-time approval to create storage account
+`af54da6ddd27d245e0bb68cf` and grant the signed-in user Blob Data Contributor on
+that account only. Independent Azure GET returns ResourceNotFound. No storage
+deployment, role grant, runner start, inventory or migration was submitted.
+
+For this attempt, validate the observer before starting the migration and start
+its bounded observation immediately after the GUI creates the exact job ID.
+Do not spend the short P1 load window on panel-close tests before the observer
+is watching. Require a current durable checkpoint and the exact loader child;
+stop without signalling on ambiguity or after the upper boundary. Panel
+reconnection already has separate evidence; it must not displace the planned
+fault. Any later reboot remains a separately gated same-job step, not an
+automatic consequence of starting this observer.
