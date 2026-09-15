@@ -467,7 +467,7 @@ This exercises panel reconnection during independent verification; it is not
 an Extension Host termination/reload or automatic recovery test. The retained
 command must finish and its report be reconciled without a second submission.
 
-### Full canonical qualification PASS; compute shutdown submitted
+### Full canonical qualification PASS; compute stopped
 
 The independent verifier finished successfully at `2026-09-15T11:57:03Z`
 (Azure start `11:54:58Z`, exit 0). The installed GUI reconciled the original
@@ -489,6 +489,7 @@ and counts-verifier interruption remain separate gaps.
 
 After verifying exact workflow ownership and empty RG locks, deallocation of
 the trial VM and stopping its Flexible Server were submitted. No resource,
-graph, disk, report or failed-run evidence was deleted. Confirm terminal stopped
-states separately; Flexible Server warns it automatically starts after seven
-days. Retained storage/Cosmos charges are not eliminated by compute shutdown.
+graph, disk, report or failed-run evidence was deleted. Subsequent independent
+Azure reads confirm `PowerState/deallocated` and Flexible Server `Stopped`.
+Flexible Server warns it automatically starts after seven days. Retained
+storage/Cosmos charges are not eliminated by compute shutdown.
