@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS and AZ-COSMOS qualified (7/9); OP-N44 and OP-N526 remain unqualified**.
 
-### OP-N44 — authenticated inventory rejected; credential correction required
+### OP-N44 — corrected credential accepted; complete inventory PASS
 
 A cold copy of the stopped qualified 4.4 source now has its own private VM and
 IP-SAN certificate. The original source/disk/certificate are unchanged. Live TLS
@@ -30,9 +30,17 @@ inventory `4864b359-4e9b-477e-9c4e-163da4462f34` failed immediately at
 `2026-09-15T01:54:23.971296230Z`. Read-only guest diagnostics identify Neo4j
 `Security.Unauthorized`, not a completed inventory. The private stderr is retained
 (89 bytes, SHA-256 `05a83f01f9f6a512030e8b3f8daac11c4a7ff44974bf62f1fec9df7d8fdadbe7`);
-no password or raw log was exported. Credentials must be corrected privately
-before a fresh GUI attempt; no automatic retry or source authentication change.
-No target or migration has started; all previous data/evidence are retained.
+no password or raw log was exported. The failed attempt remains retained.
+The user retrieved the existing credential from the Mac Keychain and entered it
+privately. Fresh inventory `0f3d9bcf-355c-41f1-a16f-68f4cf88ad4f` passed at
+`2026-09-15T02:09:00.145645164Z`: exact transactional count-store totals of
+1.6M vertices and 4M edges; no errors, warnings or incomplete checks. GUI report
+import and independent local hashing agree (663 bytes, SHA-256
+`6373da2080e0ce7aea06404c4b6831d58e57308b27c6a8ee72409b0dd818753d`).
+The GUI reviewed and saved the private PG18/AGE D4ds_v5 / 128-GiB target and
+later same-VM D4s_v5 resize, Japan East zone 1, with the original deadline and
+USD 800 ceiling / USD 400 reserve. Migration and qualification remain pending.
+All previous data/evidence are retained.
 [Reviewed preparation and handoff](op-neo4j-preparation-20260915.md).
 
 ### AZ-COSMOS r2 — full installed-GUI qualification PASS

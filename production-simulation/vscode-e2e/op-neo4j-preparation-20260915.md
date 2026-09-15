@@ -176,3 +176,36 @@ credentials, not TLS/network failure or a successful assessment. Correct the
 existing credential privately; do not extract authentication files or change the
 source password. Retain the failure and explicitly prepare a fresh GUI attempt
 after refreshed idle readiness. Routine route approvals remain authorized.
+
+## 02:09–02:16Z — corrected credential and complete inventory PASS
+
+The existing AZ-N44 credential is a generic-password item in the Mac Keychain:
+service `agefreighter-az-n44-neo4j`, account `agefreighter`, not a plaintext file
+in the repository. The user retrieved it and privately re-entered it into VS Code.
+No source credential was changed. The previous rejected operation remains in
+assessment history and on the guest.
+
+Fresh inventory `0f3d9bcf-355c-41f1-a16f-68f4cf88ad4f` passed at
+`2026-09-15T02:09:00.145645164Z`, after fresh readiness at `02:08:19.770Z`.
+It has exact transactional count-store totals: 1,600,000 vertices, 4,000,000 edges,
+5,600,000 records. Errors, warnings and incomplete checks are empty. Installed
+GUI transfer/import and independent local verification agree on 663 bytes and
+SHA-256 `6373da2080e0ce7aea06404c4b6831d58e57308b27c6a8ee72409b0dd818753d`.
+This is complete source inventory, not full property validation or qualification.
+
+The GUI refreshed healthy idle readiness at `02:12:53.078Z`: matching build and
+boot, disk 3.511%, no swap/OOM. All old Flexible Servers remain Stopped, and only
+the OP-N44 source and runner are running. No RG locks or unexpected successful
+non-audit/non-run-command actions were returned for the 02:00Z onward check.
+The reviewed fresh delegated subnet `10.246.16.0/24` is non-overlapping.
+
+At approximately 02:16Z the GUI saved secret-reference-only LoadJob and target
+plan under `production-simulation/work/op-n44-20260915`. Plan SHA-256:
+`250e812e6c4a3e7907e833dcf367ce6f4eab2e221af164c5fe965719f8eab25e`.
+Target `afpg-75e4e5084f38467bb3c1`: PostgreSQL 18 / AGE, D4ds_v5, 128 GiB,
+Japan East zone 1, private DNS/subnet, no public access, no HA for this trial.
+Same runner later resizes to D4s_v5. Target+runner compute is USD 0.736/hour;
+source is additional USD 0.496/hour. Ceiling USD 800, accrued/noncompute reserve
+USD 400, deadline `2026-09-16T07:14:35.311Z` unchanged. No automatic shutdown
+is implied by these metadata. Deployment/AGE readiness, resize, migration and
+both strict counts and the frozen full canonical digest are still separate gates.
