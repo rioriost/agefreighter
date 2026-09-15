@@ -1,7 +1,7 @@
 # Installed-GUI recovery qualification
 
-Status: all 18 CSV guest imports verified; GUI blocked by Mac lock before
-complete inventory; live fault tests **not started**.
+Status: all 18 CSV guest imports and complete inventory verified; private target
+preflight passed, native deployment approval pending; live fault tests **not started**.
 
 ## Candidate and preflight
 
@@ -263,3 +263,64 @@ The one CSV VM remains running under the existing safety shutdown/deadline;
 the previously accepted 17 VMs and 13 Flexible Servers remain stopped in the
 latest fleet observation. The next operator action is manual Mac unlock, then
 reconcile readiness, review mappings and explicitly start complete inventory.
+
+### Inventory started after manual unlock
+
+At 10:51 UTC the user unlocked the Mac. The old readiness request was reconciled
+by GET, without replay. A separate fresh check at `10:51:56.837Z` passed on the
+same boot/candidate: idle, disk 5.2846%, no swap/OOM. Fleet observation again
+found only the new B2s_v2 runner active; 17 older VMs and 13 Flexible Servers
+were stopped. Locks and the filtered recent governance activity list were empty.
+Cost Management returned 429 again, so fresh actual spend is unavailable; the
+USD 400 conservative accrued/noncompute reserve, USD 800 cap and original
+renewed deadline remain unchanged.
+
+The 21 older completed command resources were separately archived, independently
+revalidated and removed, excluding the current readiness reference. Archive
+SHA-256: `530a29c03725821fe7bacd2564011054d8164251964976a954fabf1a820a4f10`.
+Only that readiness command remained after cleanup. This preserves all guest
+files, operation evidence and accepted graphs; it does not resolve the product
+lifecycle gap recorded in the remaining-validation ledger.
+
+The reviewed installed GUI explicitly started complete inventory at
+`2026-09-15T10:54:51.569Z`, operation
+`c0480a91-78c1-42b9-9462-c1902029ffdd`, with source configuration SHA-256
+`d2a41048183cf4a4d8b9efb21a38086a7c812b09c210771f7b84902fdccccd9a`.
+The source panel was closed while submission was retained and reopened from
+the wizard. It displayed the same operation; explicit refresh reconciled it as
+accepted. Independent ARM listing showed one inventory submission, not a
+duplicate. This establishes source-panel reconnection during assessment, not
+an Extension Host crash/reload test or the remaining load/verify cases.
+
+The complete inventory report was generated at `10:55:18.177622407Z`, exported
+once and GUI-imported with its 3,219-byte SHA-256 seal
+`9f955488357ebe2ec05c7f29e209dd1eb3045faacb12765cbd2e53f2146c1d86`.
+An independent local recomputation matched. Outcome/read-only/source-counts/
+source-unchanged all pass, errors and incomplete checks are empty. Exact totals
+are **1,600,000 vertices + 4,000,000 edges**, all 18 mapped labels accounted for.
+Recommended target storage is an estimate of 9,848,627,370–27,719,516,636 bytes,
+not measured final database size or migration verification.
+
+### Private target preflight / action-time approval
+
+An initial target review was rejected before any Azure write because readiness
+had expired. A new GUI check at `11:00:37.797Z` passed (same boot/candidate,
+idle, disk 5.2859%, no swap/OOM). Re-entering the reviewed choices passed the
+live target preflight. The native final dialog proposes new private server
+`afpg-1b2c7189b77141e69086`, Japan East zone 1, PostgreSQL 18/AGE,
+Standard_D4ds_v5 with 128 GiB, single-server trial, new non-overlapping delegated
+subnet `10.246.18.0/24` and private DNS in the existing VNet. No public access or
+peering. Same-runner resize to D4s_v5 remains a separate later action.
+
+The displayed combined compute rate is USD 0.736/hour, plus the unchanged
+USD 400 accrued/noncompute reserve, within USD 800 through
+`2026-09-16T07:14:35.311Z` (roughly USD 415 conservative envelope at review,
+not a bill or automatic shutdown guarantee). Independent regional quota read:
+DSv5 92/100, regional 96/101 before resize. Existing shutdown remains 07:00 UTC.
+
+The final `Save plan and approve target deployment` dialog awaits action-time
+confirmation for the new database administrator credentials stored by the
+extension in SecretStorage. No target intent/deployment, credentials or output
+files have been created at this boundary. After approval, select a fresh local
+output folder, reconcile the exact deployment, and continue the reviewed
+same-VM recovery qualification. Do not mark this as migration completion.

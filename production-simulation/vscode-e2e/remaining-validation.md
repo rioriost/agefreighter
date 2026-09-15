@@ -157,8 +157,13 @@ provisioning and separate pinned Linux readiness now pass, including both
 recovery capabilities, idle health, 3.4791% disk use and zero swap/OOM. All 18
 GUI mappings independently match the portable P1 schema. Guest CSV imports have
 completed; all eighteen full-hash receipts are verified (1,168,576,671 bytes).
-Inventory, migration and live
-fault/recovery tests have not started. B08/B09 remain partial and B10/B11 open.
+Complete inventory now passes with exact 1.6M vertices / 4M edges, unchanged
+source files and a hash-verified imported report. Closing/reopening the source
+panel during its retained submission restored the same operation without a
+duplicate inventory dispatch. This is not an Extension Host crash/reload test.
+Private target preflight passed; its native deployment/credential approval is
+pending. Migration and live fault/recovery tests have not started. B08/B09 remain
+partial and B10/B11 open.
 
 The subsequent CSV trial reached the per-VM 25 managed Run Command ceiling
 after ten verified imports. An operator archived and independently reconciled
