@@ -95,6 +95,23 @@ confirmation of the trial-account-only `SecurityControl=Ignore` exception and
 authenticated HTTPS enablement, with the unchanged September 16 trial deadline.
 This must not apply to the resource group or any source database.
 
+At 01:35–01:36Z, following explicit user approval, `SecurityControl=Ignore` and
+the unchanged deadline tag were merged into **this account only**, and HTTPS
+public networking was enabled. ARM and GUI agree on Enabled; anonymous/shared
+keys remain false, HTTPS-only true, TLS 1.2. An unauthenticated HTTPS request
+reached Blob service and was rejected with `409 Public access is not permitted`.
+This demonstrates network reachability and anonymous denial, not authenticated
+upload success. The expiry tag is metadata, not automatic revocation.
+No resource-group or source exception was applied.
+
+The GUI selected the existing fixed development manifest, independently rehashed
+locally: `2.4.0-dev.8a23a5109798`, commit
+`8a23a5109798ec906109532e4cc6c32308b3c824`, 37,079,079 bytes, SHA-256
+`52e1d147a13b86a729f5a993e9e72848dd87a89d0ae50a61f26459f5632444f3`.
+Current dialog: **Approve pinned test artifact** for this workflow's container.
+No artifact upload or VM installation has been submitted yet; this unpublished
+executable requires the action-time confirmation shown by the GUI.
+
 The source clone is confirmed deallocated; no runner or target for this route
 has been deployed. After resolving transfer readiness, select the fixed artifact
 through the GUI and later restart only this clone before authenticated assessment.

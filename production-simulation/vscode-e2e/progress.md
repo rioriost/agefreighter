@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS and AZ-COSMOS qualified (7/9); OP-N44 and OP-N526 remain unqualified**.
 
-### OP-N44 — isolated IP-only fixture ready; transfer networking blocked
+### OP-N44 — transfer networking ready; pinned artifact confirmation pending
 
 A cold copy of the stopped qualified 4.4 source now has its own private VM and
 IP-SAN certificate. The original source/disk/certificate are unchanged. Live TLS
@@ -11,11 +11,14 @@ not authenticated inventory or qualification. Installed GUI workflow
 `75e4e508-4f38-467b-b3c1-07ed05607603` uses on-premises mode without source ARM
 discovery. The user approved dedicated transfer storage and the account-scoped
 user data role; GUI provisioning and independent role verification succeeded.
-The selected public CA hash and IP-only form are saved. Public networking is
+The selected public CA hash and IP-only form are saved. Public networking was
 Disabled despite Enabled in the submitted template; its changing actor is not
-yet established. The GUI correctly blocks transfer readiness. A trial-account-only
-security exception awaits confirmation; none has been applied. No runner, target
-or migration has started. Source compute is deallocated; all data are retained.
+yet established. Following explicit approval, the trial-account-only exception
+is applied: HTTPS is Enabled with anonymous/shared keys still disabled and TLS
+1.2 required. Anonymous access was independently rejected. The GUI selected the
+unchanged fixed Linux build and awaits its test-artifact confirmation;
+authenticated upload is not yet proven. No runner, target or migration has
+started. Source compute is deallocated; all data are retained.
 [Reviewed preparation and handoff](op-neo4j-preparation-20260915.md).
 
 ### AZ-COSMOS r2 — full installed-GUI qualification PASS
