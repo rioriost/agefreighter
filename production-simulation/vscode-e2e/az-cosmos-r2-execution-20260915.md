@@ -1,6 +1,6 @@
 # AZ-COSMOS r2: typed mapping installed-GUI qualification
 
-Updated: 2026-09-14T22:17:03Z (2026-09-15 JST). Outcome: **pending**, not PASS.
+Updated: 2026-09-15T00:08Z. Outcome: **pending**, not PASS.
 Overall GUI coverage remains **6/9**. Old r1 graph/jobs/evidence are unchanged.
 
 ## Completed
@@ -34,7 +34,49 @@ Overall GUI coverage remains **6/9**. Old r1 graph/jobs/evidence are unchanged.
   USD 24.25 through the deadline. This is an estimate, not current billing;
   retained Cosmos/storage charges remain separate.
 
-## Private runner ready; Cosmos read-only grant awaiting approval
+## Cosmos grant and complete typed inventory passed
+
+The user approved the new runner's Cosmos read-only grant. The installed GUI
+submitted assignment `0caf9405-337c-4b6f-879c-b40900c9c03b` once at
+`2026-09-14T23:47:50.199Z`, then reconciled it to ready. Independent ARM lookup
+confirms principal `0132a1ea-492d-41d3-b910-b5d978a5a06c`, Built-in Data Reader
+and scope exactly the test source account. No keys, writes or public access
+were added to Cosmos.
+
+After GUI mapping review and the normal source-read confirmation, complete
+inventory `5aabd41f-38bb-4b24-8623-27ae92a0ccc0` was submitted at
+`2026-09-14T23:48:31.379Z`. Fresh same-boot health passed before submission.
+GUI status advanced from accepted to running; no replay. Declared configuration
+hash `ce431d5d750b17a4b56d6a3c8f28f3b4cdc387cffaa90a4ecb8e3eff8ac40a14`,
+guest configuration hash
+`7f6908039e53e5e54eb75160f0733a5bb7a78611bd650648155e835f0c79b974`.
+Limits remain 30 minutes / 4 GiB / no swap; frozen source must remain unchanged.
+The complete inventory finished at `2026-09-14T23:57:35.722167732Z`: PASS,
+all 18 mappings reached EOF, 1,600,000 vertices plus 4,000,000 edges,
+no errors or incomplete checks. The GUI exported/imported the 2,940-byte report;
+independent SHA-256 agrees:
+`8327409449b181afca0b205a7760bf0f766b4b197ba08dd8c88fe57b8f7bf17e`.
+Mapped record bytes: 458,398,000; sizing high bound: 8,567,972,000 bytes.
+Inventory is not migration or canonical qualification.
+
+The first target preflight correctly rejected stale guest readiness without
+submitting a target. GUI readiness was refreshed at `2026-09-15T00:05:39.093Z`:
+same boot and pinned binary, idle true, disk 3.481%, swap/OOM zero.
+Fresh GUI target review passed: private PostgreSQL 18 / AGE, D4ds_v5,
+128 GiB, Japan East zone 1, new non-overlapping `10.246.15.0/24` subnet,
+same-runner D4s_v5 resize later. Combined compute USD 0.736/hour,
+USD 400 reserve, USD 800 ceiling and original September 16 deadline.
+Activity review showed expected test Run Commands and policy audits; no locks
+were returned. No controls were reverted. The GUI saved the reviewed LoadJob
+and target plan in the existing local Cosmos staging folder, without replacing
+r1 files. Plan hash:
+`d5c98c8baaf9e442d4ba8ac30e0aee73682a70e66d4182936913e3b25c68a7fe`.
+Target deployment was submitted once through the GUI. Independent ARM status
+is Running at `2026-09-15T00:08:02.748245Z`, without a reported error; GUI
+reconciliation shows submitted and does not replay it. Provisioning is the
+active step; no migration or canonical verification has begun.
+
+## Earlier private runner readiness and grant handoff (completed)
 
 The user approved the private VM and container-scoped Blob Reader grant.
 The unchanged fresh preview was confirmed and submitted once through the
@@ -52,7 +94,7 @@ advertises `cosmos-explicit-property-types-v1`. Boot ID
 `71e307e5-3f09-4b84-b989-2a1c4573f824`; idle true, disk 3.4784649594897576%,
 swap 0, OOM events 0. No source reads or migration have started.
 
-**Current GUI handoff:** the new runner's **Grant Data Reader** confirmation
+**Earlier GUI handoff (now completed):** the new runner's **Grant Data Reader** confirmation
 for `afcosmosp120260907` only is open and has not been accepted. The proposed
 Cosmos DB Built-in Data Reader assignment permits reads, not writes, does not
 enable public networking or keys, and does not start assessment. The new
@@ -87,7 +129,7 @@ Preview expires at `23:55:24.565Z` and must be refreshed if stale. Proposed VM
 runner subnet, USD 0.109/hour compute plus storage/network. No public IP,
 SSH ingress, peering or source firewall change is included.
 
-**Current handoff:** approve this fresh private VM and its managed identity's
+**Earlier handoff (now completed):** approve this fresh private VM and its managed identity's
 Storage Blob Data Reader grant scoped only to
 `af-d138f4e4-bcf3-40fe-a876-ee9ce062e08a` in the new transfer account.
 It installs/runs the reviewed unpublished `2.4.0-dev.8a23a5109798` artifact.
@@ -130,9 +172,8 @@ New security-sensitive access requires action-time confirmation.
 
 ## Next
 
-After confirmation, prepare/reconcile storage, select the reviewed Linux
-manifest `work/vscode-runner-build.GXKmVv/manifest.json`, upload and pin through
-the extension, then review a fresh runner deployment. Implementation commit:
+Reconcile the new private target, prepare AGE and resize the same idle runner,
+then start a fresh GUI migration and strict verification. Implementation commit:
 `8a23a5109798ec906109532e4cc6c32308b3c824`; runner archive SHA-256:
 `52e1d147a13b86a729f5a993e9e72848dd87a89d0ae50a61f26459f5632444f3`.
 Retain old Run Command receipts and never replay the old job. A new runner's

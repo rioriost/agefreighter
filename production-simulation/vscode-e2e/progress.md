@@ -2,13 +2,13 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r2 — private runner ready; Cosmos read-only grant pending
+### AZ-COSMOS r2 — typed full inventory PASS; private target reviewed
 
 Mac unlocked and installed extension reloaded. Fresh workflow
 `d138f4e4-bcf3-40fe-a876-ee9ce062e08a` discovers the retained Cosmos source
 through Azure subscription/RG selection. All 18 mappings entered in the GUI
-are independently identical to the typed P1 fixture. No source read or migration
-started. Following explicit user approval, the GUI created the dedicated transfer
+are independently identical to the typed P1 fixture. Following explicit user
+approval, the GUI created the dedicated transfer
 account and account-scoped user role. Policy initially disabled networking;
 the user then explicitly approved the trial-account-only exception. Authenticated
 HTTPS is now enabled while anonymous access/shared keys remain disabled. GUI
@@ -16,8 +16,16 @@ upload of the reviewed fixed Linux archive succeeded. Fresh private B2s_v2 VM
 preview passed and the user approved deployment. The new private VM is running;
 its pinned fixed binary/capability and Linux readiness pass: idle, disk 3.48%,
 swap/OOM zero. Its container-only Blob Reader grant is independently confirmed.
-The GUI now requests approval for Cosmos Data Reader on the test source account
-for this new VM identity. No source read or migration has started. Old compute
+The user approved Cosmos Data Reader on the test source for this new identity;
+GUI and independent ARM checks confirm the exact grant. Complete typed inventory
+`5aabd41f-38bb-4b24-8623-27ae92a0ccc0` started at `2026-09-14T23:48:31.379Z`
+and passed at `2026-09-14T23:57:35.722167732Z`: all 18 mappings / 5.6M records,
+zero errors and incomplete checks. GUI report import and independent SHA agree
+(`8327409449b181afca0b205a7760bf0f766b4b197ba08dd8c88fe57b8f7bf17e`).
+After refreshing stale guest health, the GUI reviewed/saved a private PG18/AGE
+D4ds_v5 / 128-GiB target and later same-VM D4s_v5 resize, Japan East zone 1.
+Target deployment is Running (ARM `2026-09-15T00:08:02.748245Z`), submitted
+once through the installed GUI. No migration has started. Old compute
 remains stopped; the new B2s_v2 runs at USD 0.109/hour plus other charges.
 Budget and deadline are unchanged.
 [Current r2 execution handoff](az-cosmos-r2-execution-20260915.md).
