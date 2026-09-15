@@ -522,3 +522,43 @@ stop without signalling on ambiguity or after the upper boundary. Panel
 reconnection already has separate evidence; it must not displace the planned
 fault. Any later reboot remains a separately gated same-job step, not an
 automatic consequence of starting this observer.
+
+### Second CSV trial: transfers and reviewed mapping ready
+
+Following the user's exact storage approval, deployment
+`af54da6ddd27d245e0bb68cf-transfer` succeeded. The signed-in user received Blob
+Data Contributor on that new account only (assignment
+`aca68832-c107-4fc2-90f4-a9cd1cc74282`). The previously approved trial-storage-only
+`SecurityControl=Ignore` exception and the unchanged expiry were applied to this
+account, then public network access was restored. Anonymous access and shared
+keys remain disabled, HTTPS and TLS 1.2 are required; anonymous listing returned
+HTTP 409. This did not change the resource group or any source firewall.
+
+The installed GUI uploaded all 18 portable P1 files (1,168,576,671 bytes) and
+prepared the pinned development archive for commit
+`7538981cf0fc6c1bed3a50e6476861e84647a003`, SHA-256
+`6f10538cc70c2125cc669a4d043352efdfce510131e1bec440af3674a4a48d21`.
+All nine vertex and nine edge mappings were entered and reviewed in the source
+form. An independent read-only comparison against `csv-source.json` passed for
+labels, identities, endpoints, property types, defaults and selected-file
+bindings, normalizing implicit string types. No workflow state was edited
+outside the extension.
+
+At 12:24 UTC the GUI prerequisite preview selected the same group/subnet,
+Japan East zone 1, `Standard_B2s_v2`, compute estimate USD 0.109/hour. Bounded
+governance checks found no RG locks or recent delete/deny/deploy-if-not-exists
+events. The final VM dialog is awaiting action-time approval for creation of
+`af-54da6ddd27d245e0bb68`, execution of the pinned development build, and its
+identity's Blob Reader grant on this workflow container only. No public IP,
+SSH ingress, peering or source firewall changes are proposed. No VM, target,
+guest import, assessment, migration or recovery fault has started for this draft.
+The USD 800 ceiling, USD 400 conservative reserve, and hard deadline remain
+unchanged. The first trial's canonical PASS remains a clean qualification;
+B11 is still open.
+
+The user subsequently approved the exact VM/build/container grant. The installed
+GUI submitted deployment `af-54da6ddd27d245e0bb68` once; ARM independently
+reported `Running` with timestamp `2026-09-15T12:26:56.368496Z`. All other 18
+trial VMs and 14 Flexible Servers were confirmed stopped before this submission.
+VM readiness and the 18 Linux imports are still pending. The six observer unit
+tests passed again; this is not live fault-injection evidence.
