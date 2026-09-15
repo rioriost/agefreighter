@@ -127,6 +127,18 @@ Linux/amd64 CLI and tools cross-builds and `go vet` also passed. The isolated
 installed VS Code host smoke suite passed 3/3 after recompilation; it verifies
 activation/editor behavior, not the new resume action against Azure.
 
+### Candidate installation and live handoff — 2026-09-15
+
+The reviewed commit was packaged with 206/206 tests passing, cross-built into a
+pinned Linux archive, and installed in the normal Mac VS Code profile. Installed
+JavaScript matches the package hash. Existing-host reload has not been confirmed:
+GUI input did not advance and View commands were disabled. The user was asked to
+unlock/focus/reload VS Code. All 17 VMs and 13 Flexible Servers remain stopped;
+the Linux candidate has not been deployed. Cost API returned 429, so the prior
+conservative reserve remains in force, not a new actual-spend claim. See the
+[candidate seals and reviewed live fault sequence](recovery-execution-20260915.md).
+B10/B11 remain open; no live recovery qualification is claimed.
+
 ### Remaining sequence
 
 1. Complete the existing-evidence mapping and local/host negative tests (B01–B10,
