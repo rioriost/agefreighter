@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS, AZ-COSMOS and OP-N44 qualified (8/9); OP-N526 remains unqualified**.
 
-### OP-N526 — Linux readiness PASS; source credential entry pending
+### OP-N526 — first inventory rejected by source authentication
 
 The user authorized completing the final route. A cold clone of the stopped
 qualified Neo4j 5.26 source is running privately, with original source/data/auth
@@ -20,10 +20,12 @@ created the private B2s_v2 runner; ARM and GUI agree on provisioning success.
 Container-only Blob Reader for its new identity is independently verified.
 Guest installation completed. Installed-GUI readiness passed at `05:06:16.311Z`:
 matching pinned build/capabilities, idle, 3.5082% disk, swap/OOM zero. Fresh source
-TLS/IP validation also passes. Exact Neo4j inventory was approved under the route
-authorization; VS Code now requests the existing AZ-N526 `neo4j` password in its
-private input. No password was extracted or changed. No target, authenticated
-inventory or migration exists yet. Budget USD 800,
+TLS/IP validation also passes. After private credential entry and automatic
+readiness refresh, inventory `0598b421-0ed1-4e77-8f16-8f2f15990614` was submitted
+at `05:14:55.114Z` and failed with Neo4j `Security.Unauthorized`. The 89-byte
+private guest stderr is retained and hash-sealed; no secret was exported or
+changed. Correct existing AZ-N526 credentials are required for a new attempt;
+no replay, target or migration occurred. Budget USD 800,
 reserve USD 400 and deadline `2026-09-16T07:14:35.311Z` are unchanged.
 [Reviewed execution and handoff](op-n526-execution-20260915.md).
 

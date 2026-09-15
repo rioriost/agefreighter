@@ -153,3 +153,30 @@ with Enter. This is the AZ-N526 credential inherited by the cold clone, not the
 AZ-N44 password. No secret was extracted, reset, or exported. Inventory has not
 been submitted yet, and no target/migration exists. Source and discovery runner
 remain running within the unchanged trial budget/deadline.
+
+## 05:14–05:19Z — first inventory rejected by source authentication
+
+The user entered a password privately. Automatic GUI freshness checking passed
+at `05:14:43.788Z` (same boot/build, idle, disk 3.5086%, zero swap/OOM). Exact
+inventory operation `0598b421-0ed1-4e77-8f16-8f2f15990614` was submitted once
+at `05:14:55.114Z` and accepted by the guest, then failed. Configuration SHA-256
+is `e257e61da77c7fa2900a951f278d17b2f62c206c8d6864e259ee6019536de610`;
+guest configuration SHA-256 is
+`a157b16c8d2061de920d07e1df3ec7b1415e125432bccbef9df47fcab5f8d37a`.
+
+Read-only guest classification at `05:18:44Z` identified Neo4j
+`Security.Unauthorized`. This is a credential rejection, not successful source
+inventory or migration. The private 89-byte stderr remains in the guest;
+SHA-256 `05a83f01f9f6a512030e8b3f8daac11c4a7ff44974bf62f1fec9df7d8fdadbe7`.
+No raw stderr, passwords or secret request data were exported. The operation,
+configuration and claim remain retained. No target deployment, password reset,
+source write or automatic retry occurred. Correct existing source credentials
+must be entered privately before a new attempt; the failed operation is never
+resumed.
+
+Fresh GUI readiness at `05:21:23.142Z` confirms the same boot/build, idle state,
+3.5095% disk, no swap/OOM after the failed read. The retry-preparation dialog
+requires confirming that the cause has been corrected. Because the correct
+credential has not yet been established, that dialog was cancelled; the failed
+assessment remains attached, with no new request or source read. Ask the user
+to confirm the correct AZ-N526 credential before preparing another attempt.
