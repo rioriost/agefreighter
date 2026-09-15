@@ -229,3 +229,51 @@ idle, disk 3.512544759%, no swap/OOM. No source VM resize or credential change.
 The GUI is advancing to the separately approved migration; it requests the
 existing Neo4j credential privately again because inventory does not retain it.
 No migration is claimed before a durable job and its actual execution evidence.
+
+## 02:35Z onward — first migration running
+
+After the user entered the existing source password privately, the GUI refreshed
+readiness (`02:34:10.543Z`, matching boot/build, idle, disk 3.514%, swap/OOM zero)
+and submitted migration job `6ad5c2d0-9d25-4ceb-a382-9516af0c22cc` once at
+`02:34:53.311Z`. Guest execution began at `02:35:24.720350577Z`; private target
+preparation completed. Guest configuration SHA-256 is
+`1d92b2e4e728f305bdaaa5a43461b41f18b6d85ed6157f84ff5befc75206e12a`.
+The pinned fixed CLI performs load followed by `verify --counts --require-complete`.
+Counts alone remain distinct from the subsequent frozen 64-range property digest.
+
+Read-only guest observation at `02:41:14Z`: same job running, loader RSS
+35,404 KiB, root disk 4% rounded, no swap or boot OOM messages. No completed
+load/verify artifact existed at that observation. Available target storage metrics
+through `02:36Z` showed 6.864% maximum. No mutation/replay was used to monitor.
+The verified existing P1 archive retains SHA-256
+`60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d`.
+It has not yet been executed for this job. Both previous failures and all original
+source/target evidence remain retained. Budget and deadline are unchanged.
+
+## 02:45–02:58Z — migration and strict counts PASS; full digest confirmation pending
+
+Guest execution finished at `02:44:54.736459959Z`, exit 0. The installed GUI
+imported the final report and displays migration finished / counts pass.
+Independent local hashing agrees on 9,619 bytes and SHA-256
+`f80bac38b0af32a553a2393b434615f5bc526bf589c52ef7a7b2071700747785`.
+The report generated at `02:44:53.578739467Z` passes all 24 checks and all
+18 label counters: 1,600,000 vertices, 4,000,000 edges, zero rejected rows,
+errors, warnings and incomplete checks. Durable job is unchanged;
+configuration fingerprint is
+`febb6f2ae5b5fd1a152bee4414bf8ca4b0fddc795c7b392f86bf934d2b99a4c5`.
+
+No loader process remains at the `02:45:10Z` guest observation. Fresh GUI
+readiness passed at `02:53:39.521Z`. Target storage through `02:53Z` peaks at
+13.8023%, below the 80% gate. The activity query returned policy audit records;
+no security protection was changed in this phase.
+
+The installed GUI selected the unchanged verifier manifest and shows the final
+`Approve full P1 verification` dialog for this existing job. It is deliberately
+not submitted yet: execution of an unpublished development verifier requires
+action-time confirmation. The dialog specifies read-only full comparison of
+5.6M records / 64 ranges, unchanged pinned commit/archive, no loader/graph/
+credential/network changes, up to 4 GiB RAM, approximately 1 GiB retained fixture
+and a 25-minute cap, with results returned privately through existing storage.
+Counts PASS is not full qualification. Compute remains running while awaiting
+confirmation; original budget/deadline remain in force. After full canonical
+PASS, stop the current two VMs and Flexible Server without deleting evidence.

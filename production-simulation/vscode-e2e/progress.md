@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS and AZ-COSMOS qualified (7/9); OP-N44 and OP-N526 remain unqualified**.
 
-### OP-N44 — corrected credential accepted; complete inventory PASS
+### OP-N44 — migration and strict counts PASS; full digest awaiting execution confirmation
 
 A cold copy of the stopped qualified 4.4 source now has its own private VM and
 IP-SAN certificate. The original source/disk/certificate are unchanged. Live TLS
@@ -41,9 +41,23 @@ The GUI reviewed and saved the private PG18/AGE D4ds_v5 / 128-GiB target and
 later same-VM D4s_v5 resize, Japan East zone 1, with the original deadline and
 USD 800 ceiling / USD 400 reserve. Target deployment, AGE preload restart and
 same-VM resize are now complete. Post-resize readiness at `02:29:49.488Z` passes
-with the pinned build, idle state, 3.513% disk and zero swap/OOM. Migration and
-qualification remain pending; source credentials are requested privately again
-for the separately approved migration, rather than retained after inventory.
+with the pinned build, idle state, 3.513% disk and zero swap/OOM. After private
+credential entry and another fresh healthy readiness check, the installed GUI
+submitted job `6ad5c2d0-9d25-4ceb-a382-9516af0c22cc` at `02:34:53.311Z`.
+Guest execution began at `02:35:24.720350577Z` and finished at
+`02:44:54.736459959Z` with exit 0. The installed GUI displays migration finished
+and counts pass. Independent report validation agrees: all 24 checks / 18 labels,
+1.6M vertices + 4M edges, zero rejects, errors, warnings or incomplete checks.
+The 9,619-byte report SHA-256 is
+`f80bac38b0af32a553a2393b434615f5bc526bf589c52ef7a7b2071700747785`.
+At `02:41:14Z`, loader RSS was 35,404 KiB, disk 4% rounded, swap/OOM zero.
+Fresh GUI guest readiness passed at `02:53:39.521Z`; target storage is at most
+13.803% through `02:53Z`. No replay or source credential change occurred.
+The frozen full-P1 verifier manifest is selected in the installed GUI. Its final
+execution dialog is awaiting action-time user confirmation because it runs an
+unpublished development verifier. Full digest execution has not begun and this
+route remains unqualified. Source, runner and target remain running within the
+unchanged USD 800 ceiling and `2026-09-16T07:14:35.311Z` deadline.
 All previous data/evidence are retained.
 [Reviewed preparation and handoff](op-neo4j-preparation-20260915.md).
 
