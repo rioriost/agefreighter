@@ -2,6 +2,18 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS and AZ-COSMOS qualified (7/9); OP-N44 and OP-N526 remain unqualified**.
 
+### OP-N44 — isolated IP-only fixture ready; GUI storage approval pending
+
+A cold copy of the stopped qualified 4.4 source now has its own private VM and
+IP-SAN certificate. The original source/disk/certificate are unchanged. Live TLS
+chain and literal-IP checks pass; disk is 6%, swap/OOM zero. This is preparation,
+not authenticated inventory or qualification. Installed GUI workflow
+`75e4e508-4f38-467b-b3c1-07ed05607603` uses on-premises mode without source ARM
+discovery. It awaits confirmation for its dedicated transfer account and
+account-scoped user data role. No runner/target/migration has started. Source
+compute is being deallocated during the approval wait; all data are retained.
+[Reviewed preparation and handoff](op-neo4j-preparation-20260915.md).
+
 ### AZ-COSMOS r2 — full installed-GUI qualification PASS
 
 The installed GUI displays **P1 full canonical digest: PASS** for fresh job
