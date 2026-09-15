@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS, AZ-COSMOS and OP-N44 qualified (8/9); OP-N526 remains unqualified**.
 
-### OP-N526 — source and transfer ready; reviewed discovery VM pending
+### OP-N526 — Linux readiness PASS; source credential entry pending
 
 The user authorized completing the final route. A cold clone of the stopped
 qualified Neo4j 5.26 source is running privately, with original source/data/auth
@@ -15,9 +15,15 @@ on success. The approved trial-account-only security exception restored
 authenticated HTTPS while anonymous/shared-key access remain disabled. GUI
 upload of the unchanged pinned development archive is ready and its hash is
 independently verified. The fresh B2s_v2 / Japan East zone 1 VM preview passes at
-USD 0.109/hour plus other charges. The final runner-creation dialog, including
-unpublished fixed-build installation and container-only Blob Reader, awaits
-action-time confirmation; no runner/target or migration has been submitted. Budget USD 800,
+USD 0.109/hour plus other charges. Following explicit approval, the installed GUI
+created the private B2s_v2 runner; ARM and GUI agree on provisioning success.
+Container-only Blob Reader for its new identity is independently verified.
+Guest installation completed. Installed-GUI readiness passed at `05:06:16.311Z`:
+matching pinned build/capabilities, idle, 3.5082% disk, swap/OOM zero. Fresh source
+TLS/IP validation also passes. Exact Neo4j inventory was approved under the route
+authorization; VS Code now requests the existing AZ-N526 `neo4j` password in its
+private input. No password was extracted or changed. No target, authenticated
+inventory or migration exists yet. Budget USD 800,
 reserve USD 400 and deadline `2026-09-16T07:14:35.311Z` are unchanged.
 [Reviewed execution and handoff](op-n526-execution-20260915.md).
 

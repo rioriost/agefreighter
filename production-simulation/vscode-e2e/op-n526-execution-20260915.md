@@ -114,3 +114,42 @@ runner subnet and reviewed placement remain unchanged. The final
 installs/runs the unpublished fixed build and grants the new VM identity Blob
 Reader on this workflow container only. VM `af-31ce478995344bd6bcac` has not
 been submitted. No target, authenticated inventory or migration exists yet.
+
+## 05:02Z onward — discovery VM provisioned
+
+The user explicitly approved the fixed-build installation and container-only
+reader grant. The installed GUI submitted the reviewed deployment once; ARM
+succeeded at `05:02:54.947Z` and GUI reconciliation accepted it at `05:03:06Z`.
+VM `af-31ce478995344bd6bcac` is running, B2s_v2, private IP `10.246.1.15`,
+no public IP. Its principal is `f33afa54-ec25-413e-8b65-664c3b192394`;
+independent role inspection confirms Storage Blob Data Reader scoped exactly to
+container `af-31ce4789-9534-4bd6-bcac-621f460d99cc` in this workflow's account.
+No account-wide or source role was granted to this VM.
+
+Storage remains network-Enabled with the trial-only exception/deadline, anonymous
+and shared-key access disabled. A later account write was observed; live settings
+were checked rather than assuming it disabled the authorized transfer path.
+Read-only guest observation at `05:03:46Z` shows cloud-init still running, 4%
+rounded root usage, 8-GiB nominal VM memory, zero swap and kernel OOM messages.
+No inventory is claimed before pinned-build GUI readiness and authenticated reads.
+
+## 05:06Z — pinned Linux readiness PASS; private password entry required
+
+Cloud-init completed and the guest archive seal matches the pinned build. The
+standalone diagnostic's `--version` flag is unsupported by this CLI; the actual
+installed GUI protocol check, not that diagnostic, confirmed version/capability
+readiness at `2026-09-15T05:06:16.311Z`. Boot ID is
+`795c9ef2-c47d-4328-8a1d-885a894a834e`, version `2.4.0-dev.8a23a5109798`,
+unchanged archive SHA, required Neo4j inventory/migration capabilities, idle,
+3.5082% disk use, swap/OOM zero.
+
+Source recheck at `05:06:35Z`: isolated container running, zero restart/OOM,
+TLS 1.3 with chain and literal-IP verification OK, disk 6%, swap zero.
+The installed GUI reopened the saved OP-N526 form, reviewed the same IP-only
+settings and CA hash, and approved exact Neo4j inventory under the user's route
+authorization. It is now at `Read-only source password`, requiring the existing
+Neo4j 5.26 `neo4j` credential to be entered privately by the user and confirmed
+with Enter. This is the AZ-N526 credential inherited by the cold clone, not the
+AZ-N44 password. No secret was extracted, reset, or exported. Inventory has not
+been submitted yet, and no target/migration exists. Source and discovery runner
+remain running within the unchanged trial budget/deadline.
