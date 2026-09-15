@@ -1,6 +1,6 @@
 # OP-N526 execution and qualification
 
-Status: migration and complete counts PASS; full canonical digest pending. OP-N526 remains unqualified. Overall coverage is 8/9.
+Status: installed-GUI migration, complete counts and full canonical digest PASS. Overall P1 base-route coverage is 9/9. Dated sections retain the execution history.
 
 ## Authorization and reviewed implementation
 
@@ -342,3 +342,37 @@ It has not been executed in this workflow. Fresh idle Linux readiness is being
 collected before this separate read-only qualification. TypeScript typecheck
 and all 195 extension unit tests pass; these are not a substitute for full
 live canonical verification. Keep overall coverage at 8/9 until that passes.
+
+## 06:47–06:53Z — full canonical qualification PASS
+
+The user explicitly approved the read-only verifier. GUI submitted operation
+`d90d8e7a-033f-49d4-b91b-466ed7b37816` at `06:47:01.866Z`, on the same
+runner and migration job. No new load, software replacement or graph changes.
+All 64 ranges / 5.6M typed records matched; result generated at
+`06:49:51.855460904Z`, ARM execution Succeeded / exit 0. Just-in-time private
+report export and installed-GUI import completed. GUI displays
+`P1 full canonical digest: PASS` and explicitly confirms typed properties,
+identities and endpoints agree.
+
+Report: 23,218 bytes, SHA-256
+`3d46ccd84d95252f8c4d6abf647ee9494309a5b57b9def3873a2a97c02d45875`.
+Independent local validation checked the job, read-only marker, full coverage,
+all leaf fields, byte hash and both recomputed roots. Both roots equal the frozen
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+Source post-check at `06:51:52Z`: running, no container OOM/restarts, 6% disk,
+zero swap. Runner post-check at `06:52:57Z`: verifier inactive, Result success,
+exit 0, 6% disk, zero swap/kernel OOM. Target observed maximum storage 13.7756%.
+One read-only health observation lost its transport response; a new bounded
+read succeeded. The verification itself was never replayed.
+
+No RG locks or unexpected active resources blocked shutdown. Deallocation of
+this source and runner, and stop of its private Flexible Server, were submitted
+after evidence validation. Nothing was deleted. Existing USD 800 / deadline
+authorization is unchanged. See the [redacted result](evidence/op-n526-r1-p1-pass-20260915.json).
+
+Final ARM inventory confirmed by `06:55:54Z`: all 17 trial VMs deallocated,
+all 13 Flexible Servers Stopped, no other compute states. Resources and evidence
+remain retained, so storage/Cosmos costs continue and Flexible Servers will
+automatically restart after seven days unless separately managed. OP-N526 is
+qualified, bringing the nine defined P1 GUI base routes to 9/9. This does not
+extend qualification to recovery, production scale, or untested configurations.

@@ -1,8 +1,42 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS, AZ-COSMOS and OP-N44 qualified (8/9); OP-N526 remains unqualified**.
+Updated: 2026-09-15 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-### OP-N526 — migration and complete counts PASS; full digest pending
+All routes completed the installed-GUI workflow, complete counts verification,
+and full P1 canonical comparison (1.6M vertices, 4M edges, 64 ranges). This is
+the defined P1 functional qualification, not production-scale certification,
+recovery qualification, or a claim that every possible configuration is covered.
+The dated sections below retain historical failures and intermediate states.
+
+| Route | Final evidence | Outcome |
+| --- | --- | --- |
+| CSV-MAC | [Local CSV](evidence/csv-mac-qualified-20260906.json) | PASS |
+| AZ-N44 | [Azure Neo4j 4.4](evidence/az-n44-qualified-20260906.json) | PASS |
+| AZ-N526 | [Azure Neo4j 5.26](evidence/az-n526-qualified-20260912.json) | PASS |
+| AZ-PGVM | [Azure PostgreSQL on VM](evidence/az-pgvm-r3-p1-pass-20260914.json) | PASS |
+| OP-PG | [IP-only PostgreSQL](evidence/op-pg-r1-p1-pass-20260914.json) | PASS |
+| AZ-PGFS | [Azure Flexible Server source](evidence/az-pgfs-r1-p1-pass-20260914.json) | PASS |
+| AZ-COSMOS | [Azure Cosmos DB, corrected r2](az-cosmos-r2-execution-20260915.md) | PASS |
+| OP-N44 | [IP-only Neo4j 4.4](evidence/op-n44-r1-p1-pass-20260915.json) | PASS |
+| OP-N526 | [IP-only Neo4j 5.26](evidence/op-n526-r1-p1-pass-20260915.json) | PASS |
+
+### OP-N526 — full installed-GUI qualification PASS
+
+GUI displays **P1 full canonical digest: PASS** for job
+`848306ac-628e-43ac-8af9-31dfdee2a804`. The result generated at
+`2026-09-15T06:49:51.855460904Z` matches all 5.6M records / 64 ranges,
+including typed properties, identities and endpoints. The 23,218-byte report
+SHA-256 is `3d46ccd84d95252f8c4d6abf647ee9494309a5b57b9def3873a2a97c02d45875`.
+Independent local recomputation of both sets of leaves agrees with frozen root
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+No loader, graph, credentials or network settings were changed by verification.
+Source and runner post-checks show 6% disk and no swap/OOM; target observed
+storage maximum is 13.7756%. By `06:55:54Z`, all 17 trial VMs are deallocated
+and all 13 Flexible Servers are Stopped. Data and all prior failure evidence
+are retained. Storage/Cosmos charges continue; Flexible Server automatically
+restarts after seven days if left stopped. No new budget/window was opened.
+
+#### Qualification sequence (historical)
 
 The user authorized completing the final route. A cold clone of the stopped
 qualified Neo4j 5.26 source is running privately, with original source/data/auth
