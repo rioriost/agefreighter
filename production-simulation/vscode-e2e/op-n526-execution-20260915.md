@@ -1,6 +1,6 @@
 # OP-N526 execution and qualification
 
-Status: installed-GUI migration active; OP-N526 remains unqualified. Overall coverage is 8/9.
+Status: migration and complete counts PASS; full canonical digest pending. OP-N526 remains unqualified. Overall coverage is 8/9.
 
 ## Authorization and reviewed implementation
 
@@ -320,3 +320,25 @@ SecretStorage. New durable job/operation
 `2026-09-15T06:29:11.668Z`, before submission of the guest command. Do not replay
 this operation. Migration and strict complete counts are active; the separate
 full P1 digest is still required before qualification.
+
+## 06:37–06:43Z — migration and strict complete counts PASS
+
+Guest job started at `06:29:21.237129156Z` and finished successfully at
+`06:37:42.440762618Z` (8m21s). Installed GUI reconciled this same operation,
+exported/imported its sealed result through existing storage, and displays
+`Exact source and target counts agree with no rejects.` All 24 checks pass for
+18 labels, no errors or incomplete checks. Counts result generated at
+`06:37:41.233171432Z`, 9,619 bytes, SHA-256
+`e9faf26ebdf8262cc2dfa77bd788ccd896c3fc39ad9f37eee2a95865e3dd6fc0`;
+independent local hashing agrees. Fingerprint
+`40a7cfa2818d1aeefd54a20cf5ccc18aa3147946220717689ff81ee4c6028f57`.
+Source remains running with zero OOM/restarts, 6% disk and no swap. Post-load
+runner has no active loader process and zero swap. No migration replay occurred.
+
+Full P1 verifier archive selected for the next stage is the same reviewed
+`8a23a5109798` build used for OP-N44, hash independently checked as
+`60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d`.
+It has not been executed in this workflow. Fresh idle Linux readiness is being
+collected before this separate read-only qualification. TypeScript typecheck
+and all 195 extension unit tests pass; these are not a substitute for full
+live canonical verification. Keep overall coverage at 8/9 until that passes.

@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS, AZ-COSMOS and OP-N44 qualified (8/9); OP-N526 remains unqualified**.
 
-### OP-N526 — installed-GUI migration active
+### OP-N526 — migration and complete counts PASS; full digest pending
 
 The user authorized completing the final route. A cold clone of the stopped
 qualified Neo4j 5.26 source is running privately, with original source/data/auth
@@ -46,9 +46,12 @@ Fresh new-boot readiness passed at `06:27:02Z`: idle, disk 3.5125%, swap/OOM zer
 and the same pinned loader. GUI submitted new job
 `848306ac-628e-43ac-8af9-31dfdee2a804` at `06:29:11.668Z` for all 5.6M rows.
 The existing source credential was supplied from Keychain to the protected
-prompt without plaintext output. Source, runner and private target are running.
-Migration, strict counts and full P1 canonical verification remain in progress;
-this is not yet qualification PASS.
+prompt without plaintext output. Guest processing completed at `06:37:42Z`
+(8m21s), and GUI report import confirms complete counts PASS: 1.6M vertices,
+4M edges, zero rejects, all 24 checks pass, no errors or incomplete checks.
+Independent local hashing agrees with the sealed 9,619-byte report.
+Source, runner and private target are running. Full P1 canonical verification
+remains pending; this is not yet qualification PASS.
 Budget USD 800,
 reserve USD 400 and deadline `2026-09-16T07:14:35.311Z` are unchanged.
 [Reviewed execution and handoff](op-n526-execution-20260915.md).
