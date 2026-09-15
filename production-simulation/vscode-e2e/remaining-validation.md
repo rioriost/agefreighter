@@ -39,8 +39,10 @@ fresh GUI readiness passed. The exact same private-target preflight now passes
 with sufficient quota and USD 0.736/hour combined compute. The native final
 target/SecretStorage confirmation was approved by the user. After refreshing
 guest health, the installed GUI submitted the exact reviewed target; ARM
-reports Running at `2026-09-15T19:45:47Z`. Recovery load has not begun.
-No other surviving VM or retained target was started.
+reports successful completion. AGE preload/restart and the same-VM D4s_v5
+resize are complete, with fresh post-resize health at `2026-09-15T19:59:47Z`.
+The installed GUI is at the new CSV load's final execution confirmation;
+recovery load has not begun. No other surviving VM or retained target was started.
 
 ## Branch-to-evidence ledger
 

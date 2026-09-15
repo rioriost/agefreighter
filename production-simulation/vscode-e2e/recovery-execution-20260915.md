@@ -799,3 +799,32 @@ This is an accepted deployment request, not target readiness or migration
 success. No load, resize, fault injection or resume has started. The observer
 regression suite remains 6/6 PASS. Continue by GET-only reconciliation of this
 deployment; never submit a duplicate target.
+
+### Target and same-VM sizing complete; new load at final confirmation
+
+The original deployment completed successfully. Independent ARM readback
+confirms PG18, D4ds_v5, 128 GiB, zone 1, private VNet/DNS and public access
+Disabled. No failed-preload repair or repeated deployment was needed.
+The installed GUI submitted the planned AGE preload restart at
+`2026-09-15T19:53:35.613Z`; `shared_preload_libraries=pg_stat_statements,age`
+then reported pendingRestart=false and the GUI retained restart **finished**.
+
+The GUI performed the separate deallocate/resize/start sequence on the same
+runner, beginning at `2026-09-15T19:55:29.700Z`. Its final size is D4s_v5 and
+resize state is **finished**. The disk/NIC/system-identity preservation digest
+remained `959b706bd7812e8c70dda1f09600339d1dcc60f57e4eaf04222e1709249a91c9`
+through every stage. No source VM was changed.
+
+Post-resize GUI readiness `af-6f55b162-96d9-4bbd-b6b2-63d9d9851cef` passed at
+`2026-09-15T19:59:47.678Z`, with boot
+`684dd750-d5fb-4b6a-8fa8-8eb55f474e1b`, the exact pinned archive/capabilities,
+idle=true, storage 5.4149%, and zero swap/OOM. Fresh RG inventory confirms only
+this runner and target are running; five source VMs remain deallocated and all
+14 older PostgreSQL servers remain stopped. RG locks are empty.
+
+The installed GUI passed the migration preflight and is displaying the native
+**Start this new csv migration on the Linux runner?** confirmation. Action-time
+confirmation for executing the qualification build on this new target was
+requested. No new load/job, fault or resume has been submitted at this point.
+Refresh guest health if this confirmation outlives its five-minute freshness
+window. The existing accepted graphs remain untouched.
