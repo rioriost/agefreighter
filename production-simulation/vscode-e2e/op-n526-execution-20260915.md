@@ -219,3 +219,36 @@ old container remains stopped, disk 6%, zero swap/OOM and zero restarts.
 This corrects source authentication only. The retained failed assessment has
 not been replayed and OP-N526 remains unqualified pending a fresh GUI inventory,
 migration and full canonical verification.
+
+## 05:37Z — fresh installed-GUI inventory PASS
+
+After fresh same-boot/build idle readiness, the GUI retained failed inventory
+`0598b421-0ed1-4e77-8f16-8f2f15990614` in history and prepared a new attempt.
+The recovered Keychain credential was supplied to the private password prompt
+without printing it. New operation `3f815040-a8ae-4756-9f48-6134ff1c661b` was
+submitted at `05:37:05.527Z` with unchanged reviewed connection configuration.
+It completed at `05:37:12.416728809Z`: exact Neo4j transactional count-store
+totals of 1,600,000 vertices and 4,000,000 edges, outcome pass, no errors,
+warnings or incomplete checks. The GUI exported/imported the report through
+the approved workflow storage and displayed the hash-verified result.
+Independent local validation agrees: 663 bytes, SHA-256
+`1fe2e0a44e62abc9906455cb60aaa86e5118e360619892f9049b8d2c9950fe4d`.
+Guest configuration SHA-256:
+`0ec1d697e4af3d055c95c18f170343fef18e0d8240be96c58262a55896ffc8c7`.
+
+Live transfer storage remains Enabled, anonymous/shared-key access false, with
+the existing trial-only exception and unchanged expiry. No new security
+exception was applied. ARM subnet inventory confirms `10.246.17.0/24` is unused.
+Target planning initially stopped safely because guest readiness expired while
+entering the form; no target intent or deployment was created by that attempt.
+
+After fresh GUI readiness at `05:41:49.333Z`, the second target preflight passed.
+The native final review dialog now awaits action-time confirmation of creating
+the private target and saving its generated credential in VS Code SecretStorage:
+`afpg-31ce478995344bd6bcac`, PG18/AGE, Standard_D4ds_v5, 128 GiB, Japan East
+zone 1; delegated subnet `10.246.17.0/24`, no public access or peering.
+Same-runner migration size Standard_D4s_v5 is a later idle-VM resize.
+Reviewed target/runner rate USD 0.736/hour, USD 400 reserve, USD 800 ceiling,
+unchanged deadline. Source D8 cost remains additional (prior estimate USD
+0.496/hour). No target plan files, credential or deployment have been created
+yet; folder selection follows confirmation. Do not treat this stage as migration.

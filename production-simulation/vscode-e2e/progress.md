@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS, AZ-COSMOS and OP-N44 qualified (8/9); OP-N526 remains unqualified**.
 
-### OP-N526 — source authentication recovered; fresh GUI inventory pending
+### OP-N526 — fresh GUI inventory PASS; private target planning
 
 The user authorized completing the final route. A cold clone of the stopped
 qualified Neo4j 5.26 source is running privately, with original source/data/auth
@@ -29,7 +29,14 @@ password was reset at `05:31:08Z`, following a system-database backup and
 unpublished-loopback recovery. New authentication returns exactly 1.6M nodes
 and 4M edges. The password is retained in macOS Keychain service
 `agefreighter-op-n526-neo4j`, account `neo4j`; original AZ-N526 is unchanged.
-The source is healthy, disk 6%, swap/OOM zero. A fresh GUI inventory is next;
+The source is healthy, disk 6%, swap/OOM zero. Fresh GUI inventory
+`3f815040-a8ae-4756-9f48-6134ff1c661b` passed at `05:37:12Z`, exact 1.6M
+vertices / 4M edges, no errors or incomplete checks. GUI transfer and independent
+local SHA-256 validation agree on the 663-byte report. Private target planning
+passed after fresh readiness. The native final deployment/credential-storage
+confirmation is pending: private PG18/AGE D4ds_v5, 128 GiB, Japan East zone 1;
+same runner later resized to D4s_v5, target/runner USD 0.736/hour. No target
+files, credential or deployment were submitted before this confirmation;
 no replay, target or migration occurred. Budget USD 800,
 reserve USD 400 and deadline `2026-09-16T07:14:35.311Z` are unchanged.
 [Reviewed execution and handoff](op-n526-execution-20260915.md).
