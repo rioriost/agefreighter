@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG and AZ-PGFS qualified (6/9); three other branches remain unqualified**.
 
-### AZ-COSMOS r2 — typed full inventory PASS; fresh migration submitted
+### AZ-COSMOS r2 — migration/counts PASS; independent verifier approval pending
 
 Mac unlocked and installed extension reloaded. Fresh workflow
 `d138f4e4-bcf3-40fe-a876-ee9ce062e08a` discovers the retained Cosmos source
@@ -28,7 +28,14 @@ Target provisioning, AGE restart and same-VM D4s_v5 resize are complete.
 Post-resize health passes with matching pinned binary, idle state, 3.482% disk,
 zero swap/OOM. Fresh typed job `d5edef98-bb51-4040-b6ed-0274e252de26`
 was submitted once through the installed GUI at `2026-09-15T00:22:21.554Z`.
-Migration and verification are not yet complete. Old compute remains stopped;
+The `00:36:07.826405692Z` counts report passes all 24 checks / 18 labels,
+1.6M vertices + 4M edges, zero rejects/errors/incomplete checks. GUI import and
+independent SHA agree:
+`f1824243ff13d1cc2f44493c47151a68d30be5d92b353dc87347b5326624c938`.
+The final independent typed 64-range comparison has **not started**: GUI is at
+the execution approval for the reviewed new verifier build. Post-load health
+passes (idle, 3.529% disk, swap/OOM zero). Full qualification remains pending.
+Old compute remains stopped;
 the new target/runner compute estimate is USD 0.736/hour plus other charges.
 Budget and deadline are unchanged.
 [Current r2 execution handoff](az-cosmos-r2-execution-20260915.md).

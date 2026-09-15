@@ -1,9 +1,42 @@
 # AZ-COSMOS r2: typed mapping installed-GUI qualification
 
-Updated: 2026-09-15T00:23Z. Outcome: **pending**, not PASS.
+Updated: 2026-09-15T00:46Z. Outcome: **pending**, not PASS.
 Overall GUI coverage remains **6/9**. Old r1 graph/jobs/evidence are unchanged.
 
-## Active phase: fresh typed migration submitted
+## Current handoff: migration/counts PASS; independent verifier approval
+
+Fresh job `d5edef98-bb51-4040-b6ed-0274e252de26` finished. The counts report
+generated at `2026-09-15T00:36:07.826405692Z` passes all 24 checks and all
+18 label counts: 1,600,000 vertices and 4,000,000 edges, zero rejects,
+no failed/incomplete checks or errors. Submission-to-report: about 13m46s.
+The installed GUI transferred and imported 9,619 bytes, displaying
+**Exact source and target counts agree with no rejects**. Independent local
+SHA-256 agrees:
+`f1824243ff13d1cc2f44493c47151a68d30be5d92b353dc87347b5326624c938`.
+Configuration fingerprint:
+`a72c1dc145815a22fea5e275cafaab4435d20a60995a99884d9343885199e37b`.
+
+A read-only guest diagnostic found no running loader, retained load/verify/report
+files, about 4% filesystem usage, no swap or kernel OOM messages. Post-load
+installed-GUI health at `2026-09-15T00:42:48.219Z`: idle true, disk 3.529%,
+swap/OOM zero, matching binary and post-resize boot. Target storage was below
+13% during the observed load (80% gate unchanged). No failed run was replayed.
+
+The GUI now shows **Approve full P1 verification** for the independently built
+`2.4.0-dev.8a23a5109798` verifier, SHA-256
+`60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d`.
+Its manifest was selected from `work/vscode-p1-verifier.YxRRzz/manifest.json`;
+the execution confirmation has **not** been pressed. The separate unpublished
+verification artifact requires action-time approval before upload/run.
+It reads this existing target only, regenerates the frozen fixture and compares
+all 5.6M records / 64 ranges; no graph, loader, credential or network changes.
+Bounds: 4 GiB RAM, about 1 GiB retained fixture, 25 minutes; private report
+return through existing storage. Refresh health if stale before submission.
+Both new compute resources remain running while awaiting approval; USD 800 /
+USD 400 reserve / `2026-09-16T07:14:35.311Z` remain unchanged.
+Full typed canonical qualification is still pending, so coverage remains 6/9.
+
+## Earlier fresh typed migration submission
 
 Target provisioning completed without repair or replay. GUI AGE restart,
 submitted `2026-09-15T00:14:40.405Z`, is finished; live preload value is
