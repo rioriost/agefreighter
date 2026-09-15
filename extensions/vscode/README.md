@@ -198,6 +198,18 @@ verify their checksum and GitHub build-provenance attestation before use.
     exported repeatable-read snapshot; Cosmos requires the disclosed source-
     immutability window. Failed runs
     require operator reconciliation; this preview never automatically resumes.
+13. **Inspect same-job recovery (read only; does not resume)** is an additional
+    development control for failed/interrupted migrations. It requires a pinned
+    guest advertising `resume-inspection-v1` and fresh guest readiness. It uses
+    the retained guest configuration and the protected target credential, never
+    a new source configuration or source password. Target metadata is read in a
+    read-only transaction. Job, graph generation, submitted configuration,
+    checkpoint and rejects are checked; counters/identities remain lossless
+    decimal strings. Re-select the action to reconcile a pending ARM response.
+    The result is **review required**, never a successful migration or permission
+    to resume. No lease is cleared and no worker is started. Explicit guided
+    remote resume and live recovery qualification remain unfinished; existing
+    local-terminal resume commands are not equivalent to this guided path.
 
 Workflow metadata is held in extension global storage, without source passwords,
 before output-folder selection. The VM uses persistent managed OS storage and

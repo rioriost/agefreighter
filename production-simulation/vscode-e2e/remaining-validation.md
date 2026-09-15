@@ -38,7 +38,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 passed; transfer tests cover changed files, verified receipts and matching existing blobs | Installed-GUI cancellation/partial transfer/reconciliation, with no load before complete receipts | not-run |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | New persisted-state/process-exit tests pass; no actual live window-close evidence yet | Close/reopen installed GUI in all three phases; retain same operation/job and prove no duplicate dispatch | not-run |
-| B11 | Loader/network interruption; explicit same-job recovery | CLI supports resume, but remote guided protocol and execution panel do not expose it | Implement and review remote resume; test unchanged database/graph/job/generation/fingerprint, then complete P1 counts and canonical verification | blocked |
+| B11 | Loader/network interruption; explicit same-job recovery | Read-only guest/GUI recovery inspection implemented and locally tested; actual remote resume is still absent | Implement and review remote resume; test unchanged database/graph/job/generation/fingerprint, then complete P1 counts and canonical verification | blocked |
 | B12 | Invalid verification must never be PASS | Verification/report unit tests cover mismatch, rejects, incomplete, wrong-job, stale, changed/truncated evidence | Installed-host presentation/interaction tests for representative rejected results; no forged success in retained base workflows | not-run |
 
 ## First local regression batch
@@ -65,6 +65,34 @@ behavior, not user-facing crash recovery. Safe stale-lock reconciliation needs
 review alongside B10/B11 rather than automatic lock deletion.
 
 ## Next execution order and gates
+
+### Recovery inspection implementation — 2026-09-15
+
+Added the allowlisted `inspect-resume` request and native GUI inspection action.
+The request accepts only the current checked boot and protected target connection;
+the original configuration is read from its hash-checked guest file. The database
+transaction explicitly uses `READ ONLY, REPEATABLE READ`; no source is connected,
+worker launched, lease removed or metadata changed. The result binds job, graph,
+generation and original submitted configuration. Missing or inconsistent evidence
+is rejected. Stale checkpoints and retained leases are review reasons, not silently
+repaired state. All results keep `canResume: false`. Lossless decimal counters and
+generation IDs are validated on both boundaries, and an uncertain dispatch is
+reconciled by GET only. Accepted inspection evidence is retained in local workflow
+metadata separately from migration verification.
+
+Validation: extension **204/204 unit tests PASS**, typecheck/build and host-test
+compilation PASS; Go runner/tools tests including `-race` PASS. New Go tests cover
+protocol restrictions, identity/mapping/generation mismatches, reject counts,
+stale/running checkpoints and local-file tampering without start/lease removal.
+New extension tests cover lossless IDs, invalid/false-success responses, incapable
+runner rejection, protected-only credentials, persisted intent and GET-only
+reconciliation. These are local tests, not installed-GUI/Azure qualification of
+the new control. The previously qualified Linux build is unchanged and does not
+advertise the new capability; it must reject inspection until a reviewed pinned
+candidate is installed. Actual remote resume, stale-lease/lock reconciliation and
+P1 fault/recovery execution are still prerequisites for closing B11.
+
+### Remaining sequence
 
 1. Complete the existing-evidence mapping and local/host negative tests (B01–B10,
    B12). Preserve separation between mocked and actual service evidence.

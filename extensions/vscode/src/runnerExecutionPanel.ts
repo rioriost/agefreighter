@@ -15,6 +15,7 @@ import {qualifyP1} from "./p1QualificationPanel";
 import {diagnoseP1} from "./p1DiagnosticPanel";
 import {inspectSourceCA} from "./core/runnerSource";
 import {ensureAssessmentReadiness} from "./core/runnerAssessment";
+import {inspectResume} from "./core/runnerResume";
 
 /** Native choices are intentionally separate approvals. Reconnecting or closing
  * a panel cannot launch/resume a migration, resize, or repeat a lost operation. */
@@ -25,7 +26,8 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   let r=await store.read(selected.id);
   const startLabel=`Start new ${r.input.source.type} migration and counts verification`;
   const renewLabel="Review a new cost authorization (no Azure mutation)";
-  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)","Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)","Diagnose retained P1 failure (read only)","Requalify with reviewed P1 ordering fix (read only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
+  const resumeInspectionLabel="Inspect same-job recovery (read only; does not resume)";
+  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve next same-VM resize step",startLabel,"Refresh retained migration (never replay)",resumeInspectionLabel,"Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)","Diagnose retained P1 failure (read only)","Requalify with reviewed P1 ordering fix (read only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
   if(!action)return;
   const confirm=(title:string,detail:string)=>vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");
   const price=async()=>{if(!r.target)throw new Error("No retained target plan.");const input=r.target.input;if(targetComputeRate(await azure.retailRates(r.input.region,[input.loaderSize,input.postgresSKU]),input)!==input.hourlyUSD)throw new Error("Compute price changed; review the cost plan before further mutation.");};
@@ -70,6 +72,19 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
         ()=>ensureAssessmentReadiness(control,latest));
       return startMigration(control,latest,report,password,sourcePassword,sourceCAPEM);
     }); } finally { sourcePassword=undefined; }
+  }else if(action===resumeInspectionLabel){
+    if(await confirm("Inspect the retained checkpoint without resuming?","Reads the existing guest configuration and target metadata only. No source connection, worker start, lease removal, graph creation or data changes. A successful inspection is not permission to resume. Requires a reviewed runner advertising resume-inspection-v1 and fresh readiness.")!=="Approve this step")return;
+    const checked=await store.exclusive(r.id,async()=>{
+      const latest=await store.read(r.id);
+      if(!latest.target)throw new Error("No retained target.");
+      const key=`runner-target/${r.id}/${createHash("sha256").update(latest.target.serverId).digest("hex")}`;
+      return inspectResume(control,latest,await context.secrets.get(key));
+    });
+    r=checked.record;
+    if(checked.inspection){
+      const view=vscode.window.createWebviewPanel("agefreighter.resumeInspection","AGEFreighter recovery inspection",vscode.ViewColumn.Beside,{enableScripts:false,localResourceRoots:[]});
+      view.webview.html=`<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'"><h1>Recovery review required — no job resumed</h1><pre>${escapeHTML(JSON.stringify(checked.inspection,null,2))}</pre>`;
+    }else void vscode.window.showInformationMessage("Inspection submitted or still pending. Select the same inspection action to reconcile; it never starts a migration.");
   }else if(action==="Refresh retained migration (never replay)"){
     r=await store.exclusive(r.id,async()=>refreshMigration(control,await store.read(r.id)));
   }else if(action==="Diagnose retained P1 failure (read only)"){

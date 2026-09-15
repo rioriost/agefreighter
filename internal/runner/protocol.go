@@ -74,7 +74,7 @@ func Decode(input io.Reader) (Request, error) {
 		return Request{}, errors.New("invalid runner protocol version or operation identity")
 	}
 	switch request.Action {
-	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source":
+	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume":
 	default:
 		return Request{}, errors.New("runner operation is not allowed")
 	}
@@ -95,6 +95,15 @@ func Decode(input io.Reader) (Request, error) {
 	}
 	if request.Export != nil {
 		return Request{}, errors.New("unexpected report export capability")
+	}
+	if request.Action == "inspect-resume" {
+		if len(request.Configuration) != 0 || request.Offset != 0 || !uuid.MatchString(request.ExpectedBootID) || len(request.Secrets) != 1 {
+			return Request{}, errors.New("resume inspection accepts only the checked boot and protected target connection")
+		}
+		if _, err := migrationConnection(request.Secrets["AGEFREIGHTER_TARGET_DSN"]); err != nil {
+			return Request{}, err
+		}
+		return request, nil
 	}
 	if request.Action == "ready" || request.Action == "status" || request.Action == "report" {
 		if len(request.Configuration) > 0 || len(request.Secrets) > 0 || request.ExpectedBootID != "" || request.Offset < 0 || request.Action != "report" && request.Offset != 0 {

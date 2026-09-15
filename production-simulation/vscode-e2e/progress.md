@@ -12,6 +12,9 @@ Remaining branch/failure/recovery qualification started on 2026-09-15;
 see the [case ledger](remaining-validation.md). Local regression results must
 not be read as additional live GUI/Azure passes. In particular, explicit remote
 same-job resume needs implementation before the guided recovery trial.
+The first recovery implementation increment adds read-only guest/GUI checkpoint
+inspection with 204 passing extension unit tests. It does not enable resume or
+change the installed qualifying Linux artifact; see the ledger for exact scope.
 
 | Route | Final evidence | Outcome |
 | --- | --- | --- |

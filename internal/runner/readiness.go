@@ -65,6 +65,7 @@ func (m Manager) Ready(ctx context.Context) (Readiness, error) {
 		"cosmos-nosql-inventory-v1", "cosmos-nosql-migration-v1",
 		"postgresql-native-floats-v1",
 		"cosmos-explicit-property-types-v1",
+		"resume-inspection-v1",
 	}, Health: health}, nil
 }
 
