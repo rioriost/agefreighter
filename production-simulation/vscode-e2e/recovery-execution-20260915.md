@@ -629,3 +629,34 @@ inventory: all mapped rows, before/after hashes, maximum 30 minutes / 4 GiB /
 no swap. The extension is rechecking Linux readiness before dispatch. Target
 creation, migration, injected faults and explicit same-job resumes have not
 started for this workflow. Full canonical qualification remains future work.
+
+### Second trial inventory PASS; target review paused at Mac lock
+
+Inventory operation `5bf5cb63-4614-4755-9fcc-9149d5a8f064` was submitted at
+`2026-09-15T13:28:59.107Z`. Its GUI-transferred report was generated at
+`13:29:36.916674761Z`, has 3,219 bytes and SHA-256
+`66394cc395f28307d90e7f34ab1097aff44937fe75e4612fe33cdb40857c2821`.
+The installed GUI displayed **Hash-verified source report**, and an independent
+local hash check matches the receipt. Outcome is pass, errors and incomplete
+checks are empty: read-only scan, complete mapped counts and before/after
+file immutability all pass. Counts are **1,600,000 vertices and 4,000,000 edges**
+across the expected 18 labels. The source fingerprint is
+`8e518228a9faa4c5c80a0764779b6712a628df907e9bc64d09b32494b09badfb`.
+This is source inventory, not target integrity or recovery qualification.
+
+The target review inputs selected new server `afpg-54da6ddd27d245e0bb68`,
+PostgreSQL 18 / AGE, D4ds_v5, 128 GiB, and the same runner resized later to
+D4s_v5. Independent VNet inspection found `10.246.19.0/24` non-overlapping;
+that subnet was entered without creating it. Existing Japan East/zone 1 placement
+is retained. The default 24-hour deadline was replaced with the authorized
+`2026-09-16T07:14:35.311Z`; ceiling USD 800 and reserve USD 400 were retained.
+
+Before the final target preview could be inspected, computer use explicitly
+reported the Mac locked and automatic unlock unsuccessful. GUI work stopped
+and manual unlock was requested; no lock bypass was attempted. Independent
+metadata confirms no target intent or migration exists; ARM GET for the proposed
+server returns ResourceNotFound. Target price/preflight/final approval must be
+rechecked after unlock, before saving a plan or creating any target resource.
+The sole new runner remains B2s_v2/running with the previously configured
+07:00 UTC safety shutdown. No inventory/transfer command is active. Prior
+qualified targets, source files, logs and both command archives remain retained.

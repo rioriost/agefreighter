@@ -191,6 +191,21 @@ records and the frozen root independently match after report transfer. See the
 [execution record](recovery-execution-20260915.md) for exact boundaries and seals.
 This closes no live fault/recovery acceptance case. B10/B11 remain open.
 
+### Second CSV recovery trial checkpoint (September 15)
+
+Fresh workflow `54da6ddd-27d2-45e0-bb68-cf5f352801db` now has all 18 Linux CSV
+hash receipts and a GUI-imported complete source inventory PASS: 1.6 million
+vertices / 4 million edges, zero rejected records, unchanged before/after files.
+Mac-side rehashing independently matches the receipts and original P1 mappings.
+The new private runner is ready on the unchanged pinned candidate; no target
+or migration has been created. Target review paused when computer use reported
+the Mac locked. Resume after manual unlock and fresh target preflight/approval.
+Two manual archive-first ARM command-capacity interventions were necessary;
+the extension's production command lifecycle remains a gap. The initial
+bootstrap/readiness race is retained separately. These are preparation and
+reconciliation observations, **not** B11 fault/recovery acceptance. See the
+[execution record](recovery-execution-20260915.md) for scope, seals and next steps.
+
 ### Remaining sequence
 
 1. Complete the existing-evidence mapping and local/host negative tests (B01–B10,
