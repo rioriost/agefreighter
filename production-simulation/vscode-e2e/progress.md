@@ -1,8 +1,24 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS and AZ-COSMOS qualified (7/9); OP-N44 and OP-N526 remain unqualified**.
+Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS, AZ-COSMOS and OP-N44 qualified (8/9); OP-N526 remains unqualified**.
 
-### OP-N44 — migration and strict counts PASS; full digest awaiting execution confirmation
+### OP-N44 — full installed-GUI qualification PASS
+
+The installed GUI displays **P1 full canonical digest: PASS** for job
+`6ad5c2d0-9d25-4ceb-a382-9516af0c22cc`. The result generated at
+`2026-09-15T03:39:56.226453231Z` agrees for 1.6M vertices / 4M edges / all
+64 ranges, including typed properties, identities and endpoints. Independent
+local validation agrees with the guest/GUI receipt: 23,217 bytes, SHA-256
+`c1ad1305e8cfcf5c8e2fa1f0a0ca9df37c8d1cd3baf1984d6918df1b54ed491c`.
+Recomputing both roots from all leaves gives the frozen canonical root
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+No acceptance criteria or committed graph were changed. By `03:47Z`, all 15
+trial VMs are deallocated and all 12 Flexible Servers are Stopped. All resources
+and previous failed-run evidence are retained. Storage/Cosmos charges continue;
+Flexible Server automatically restarts after seven days if left stopped.
+[Redacted qualification evidence](evidence/op-n44-r1-p1-pass-20260915.json).
+
+#### Qualification sequence
 
 A cold copy of the stopped qualified 4.4 source now has its own private VM and
 IP-SAN certificate. The original source/disk/certificate are unchanged. Live TLS
@@ -53,11 +69,12 @@ The 9,619-byte report SHA-256 is
 At `02:41:14Z`, loader RSS was 35,404 KiB, disk 4% rounded, swap/OOM zero.
 Fresh GUI guest readiness passed at `02:53:39.521Z`; target storage is at most
 13.803% through `02:53Z`. No replay or source credential change occurred.
-The frozen full-P1 verifier manifest is selected in the installed GUI. Its final
-execution dialog is awaiting action-time user confirmation because it runs an
-unpublished development verifier. Full digest execution has not begun and this
-route remains unqualified. Source, runner and target remain running within the
-unchanged USD 800 ceiling and `2026-09-16T07:14:35.311Z` deadline.
+After explicit execution approval and refreshed idle health at `03:35:42.043Z`
+(disk 3.5325%, zero swap/OOM), the installed GUI submitted frozen verifier
+operation `7200c95d-3450-4c93-a7a3-6db6b03f766c` at `03:37:23.152Z`.
+Guest execution ran from `03:37:46Z` to `03:39:56Z`, succeeded, then the GUI
+transferred and verified its report above. The unchanged USD 800 ceiling and
+`2026-09-16T07:14:35.311Z` deadline remain in force. OP-N526 was not started.
 All previous data/evidence are retained.
 [Reviewed preparation and handoff](op-neo4j-preparation-20260915.md).
 

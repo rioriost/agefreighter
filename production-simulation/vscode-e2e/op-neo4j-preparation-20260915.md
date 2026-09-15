@@ -277,3 +277,45 @@ and a 25-minute cap, with results returned privately through existing storage.
 Counts PASS is not full qualification. Compute remains running while awaiting
 confirmation; original budget/deadline remain in force. After full canonical
 PASS, stop the current two VMs and Flexible Server without deleting evidence.
+
+## 03:35–03:42Z — full canonical qualification PASS
+
+The user explicitly approved the isolated verifier execution. The first click
+correctly failed closed on stale health; no verifier ran until fresh GUI guest
+readiness at `03:35:42.043Z` proved the same boot/build, idle state, 3.5325% disk,
+zero swap and OOM. Target storage through `03:30Z` remained below 13.803%.
+External ARM writes at approximately `03:13Z` added/associated a target-subnet
+NSG. Read-only inspection found no custom rules; the VNet prefixes and source
+Bolt restrictions remain as expected. No policy or security control was disabled.
+
+GUI operation `7200c95d-3450-4c93-a7a3-6db6b03f766c` was submitted at
+`03:37:23.152Z`, using the unchanged verifier SHA and existing migration job.
+Guest execution `03:37:46Z`–`03:39:56Z` succeeded. The result generated at
+`03:39:56.226453231Z` is 23,217 bytes, SHA-256
+`c1ad1305e8cfcf5c8e2fa1f0a0ca9df37c8d1cd3baf1984d6918df1b54ed491c`.
+The installed GUI transferred/imported it and displays
+**P1 full canonical digest: PASS**. Independent local validation confirms both
+64-leaf manifests match exactly, with 1,600,000 vertices and 4,000,000 edges;
+recomputing both roots yields
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+Typed properties, identities and edge endpoints agree. Counts and full digest
+are now both qualified, bringing overall completion to 8/9 routes.
+
+Only the on-premises IP/port/TLS source configuration was used in the installed
+workflow. ARM observations belong to separate fixture/governance operations,
+not source discovery. Original AZ-N44 data/auth/certificate and both failed
+preparation attempts remain retained. No graph repair, password change or
+load replay occurred. OP-N526 remains unqualified and was not started.
+
+Post-verification read-only health at `03:42:27Z` confirms the verifier service
+inactive with result success / exit 0, root disk 6% rounded, no swap, and zero
+boot kernel OOM messages. Raw report remains in the guest and private local
+extension storage; the repository contains only the
+[redacted result summary](evidence/op-n44-r1-p1-pass-20260915.json).
+
+Cost-saving shutdown is confirmed by `03:47Z`: all 15 trial VMs deallocated,
+all 12 Flexible Servers Stopped, including this source, runner and private target.
+No resources were deleted. Disks, databases, logs, credentials and failure
+evidence remain retained. Storage and Cosmos charges continue; Flexible Server
+automatically restarts after seven days if left stopped. Budget and the original
+`2026-09-16T07:14:35.311Z` authorization deadline are unchanged.
