@@ -272,3 +272,28 @@ ARM accepted deployment `afpg-31ce478995344bd6bcac`, status Running at
 subnet succeeded and private DNS creation is active. No migration was started.
 Reconcile this deployment only; never replay target creation. AGE readiness,
 same-runner resize, durable migration and full P1 digest remain required.
+
+## 06:00–06:14Z — target provisioned; resized runner awaits GUI start
+
+ARM deployment succeeded at `06:00:24.161882Z`, including the server, database,
+AGE allowlist, preload configuration, subnet and private DNS/link. Installed
+GUI reconciliation confirms target provisioned. Live server is PG18, zone 1,
+Ready, public network Disabled. The approved AGE restart was submitted once at
+`06:02:55.611Z`; subsequent ARM observation shows `pg_stat_statements,age` and
+pending restart false. GUI `targetRestart` still needs read-only reconciliation.
+
+Fresh matching runner readiness at `06:03:56.269Z` preceded the approved GUI
+resize. Deallocation began at `06:05:26.066Z`; GUI reconciliation then permitted
+the size update to Standard_D4s_v5. ARM confirms Succeeded/deallocated with the
+new size; GUI retained phase is `ready-to-start`. Disk/NIC/identity seal remained
+`8ede536ede5f5147a3c8a5b65c3f0881415a1d7da1324be6d704ad16967ae385`.
+
+The current VS Code execution picker is at `ready-to-start`. Computer-control
+actions became unreliable (including `elementHasNoFrame` and
+`noWindowsAvailable`), despite a readable screenshot. No lock-state cause is
+asserted from that alone. Ask the operator to unlock if needed and bring VS Code
+to the foreground before continuing the GUI path. No headless substitution,
+runner start, migration or verification has been performed. The source and
+private target remain running; the runner is deallocated. Preserve the existing
+budget/deadline and all evidence. Next: approve the retained start step, reconcile
+resize and AGE restart, establish new-boot readiness, then migrate and qualify.
