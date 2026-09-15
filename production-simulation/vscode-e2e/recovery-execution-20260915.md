@@ -189,3 +189,12 @@ Typecheck and all **207 extension unit tests pass**, including a regression for
 failed-folder followed by successful file selection. This UI-only change is
 not installed during the ongoing pinned-candidate qualification; installed-GUI
 retest remains pending.
+
+At 08:39 UTC, four CSV receipts were GUI-verified and the fifth import had been
+submitted. An expired guest-readiness gate rejected the fourth import before
+dispatch; a new read-only readiness check passed at 08:37 UTC (same boot and
+candidate, disk 3.8959%, swap/OOM zero), after which the explicit import succeeded.
+No receipt or job state was manually repaired. A safety shutdown for this new
+VM only is enabled at 07:00 UTC, before the unchanged September 16 deadline.
+The target is still absent for this workflow. The new VM NIC remains private on
+the selected runner subnet; transfer storage remains authenticated-only.
