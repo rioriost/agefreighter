@@ -1,7 +1,9 @@
 # Installed-GUI recovery qualification
 
-Status: all 18 CSV guest imports and complete inventory verified; private target
-preflight passed, native deployment approval pending; live fault tests **not started**.
+Status: private target and same-VM resize complete; first CSV migration and
+GUI-imported exact-count verification pass. Full canonical verification pending.
+The process-fault observation window was missed and no fault was injected.
+Live recovery qualification remains **not completed**.
 
 ## Candidate and preflight
 
@@ -324,3 +326,143 @@ extension in SecretStorage. No target intent/deployment, credentials or output
 files have been created at this boundary. After approval, select a fresh local
 output folder, reconcile the exact deployment, and continue the reviewed
 same-VM recovery qualification. Do not mark this as migration completion.
+
+### Approved private target submitted
+
+The user approved the exact target/SecretStorage scope. Since the previous
+preview had expired during the wait, it was cancelled before creating files or
+resources; fresh readiness at `11:20:17.549Z` passed (same boot/candidate, disk
+5.2861%, idle, no swap/OOM). Re-entered choices and live preflight matched the
+approved sizing, network, price, reserve, deadline and ceiling. Locks and
+filtered recent governance activity remained empty.
+
+The native GUI saved a create-only LoadJob and target plan into the private
+local `work/csv-recovery-p1-r1` directory. Plan hash:
+`cd6cb86bf324759a674c8900cc99f9d23ba73cae80c8f8c4adbd073358a2058b`.
+The GUI retained `submitted` intent and ARM deployment
+`afpg-1b2c7189b77141e69086` was Running at `11:22:39.136164Z`.
+No credentials were displayed or copied into this report. Target creation is
+not yet proof of AGE readiness or migration success; reconcile by the exact
+deployment ID without resubmission.
+
+### Private target provisioned; GUI capture interruption before resize
+
+The installed GUI reconciled the target as `provisioned`. Independent ARM
+operation reads show successful server, database, extension allowlist, preload,
+delegated subnet, private DNS and VNet link creation. The server is PostgreSQL
+18, Standard_D4ds_v5, Japan East zone 1, with public access Disabled.
+
+Through the installed native execution control, the approved preload restart
+was submitted at `2026-09-15T11:29:52.677Z`. Subsequent independent Azure reads
+show Ready, `azure.extensions=AGE`,
+`shared_preload_libraries=pg_stat_statements,age`, and no pending restart for
+either parameter. This proves service configuration, not successful SQL AGE
+preparation or migration. Local `targetRestart` still says `submitted`; the
+next GUI action must reconcile it read-only, not submit another restart.
+
+Fresh GUI guest readiness at `11:30:13.738Z` passed with the same pinned build
+and boot, idle=true, disk 5.2866%, no swap/OOM. Immediately before these actions,
+RG locks and filtered recent delete/lock/policy activity were empty. The USD 800
+ceiling, USD 400 reserve and September 16 deadline are unchanged.
+
+Before selecting the resize action, native screen observation failed twice
+with ScreenCaptureKit error -3811. App inventory remained available, but it
+does not establish that the screen is unlocked or usable. No lock cause is
+asserted, no blind GUI input was sent, and no workflow metadata was edited to
+bypass the GUI. The user was asked to restore the visible VS Code session.
+Independent reads confirm the runner is still B2s_v2/running and local resize
+and migration intents are absent. Both new compute resources remain retained
+within the approved window; the existing VM-only shutdown does not stop the
+Flexible Server. Resume with GUI preload reconciliation, fresh readiness and
+the reviewed same-VM resize sequence before creating the new migration job.
+
+### GUI restored, resize complete and first migration submitted
+
+The user reported that the Mac was not locked. Reinitializing the UI connection
+restored VS Code capture. The native control reconciled preload as `finished`.
+The same-VM deallocate/resize/start sequence began at `11:33:18.951Z` and reached
+`finished` without changing its retained identity seal:
+`58c3f0d1181312faa13861b522785464ce88488659287c17a7fb71428855a560`.
+Readiness at `11:36:47.784Z` confirmed D4s_v5's new boot
+`13faacc0-4f69-490b-9afc-853f75d34b45`, the original pinned candidate, idle=true,
+disk 5.2873%, no swap/OOM and both recovery capabilities. Recent filtered
+governance and locks were empty; budget/deadline were not renewed.
+
+The installed GUI approved and submitted the new CSV migration at
+`2026-09-15T11:38:02.279Z`, job/operation
+`ea740a86-daaf-42b8-b92d-709312c9e067`. Retained guest configuration SHA-256 is
+`f06f545e6eec28752488415015c670b9b54933cde2d527bc3717a896845028e8`.
+Closing and reopening the wizard, selecting the original saved CSV workflow,
+and refreshing retained migration preserved that operation/job; no second load
+was submitted. This is load-phase panel-reconnection evidence, not an
+Extension Host crash/reload or completed B10/B11 qualification.
+
+### Process-fault window missed safely
+
+The new guest-only observer defaults to read-only. Its explicit P1 SIGTERM mode
+checks exact workflow/operation/job/configuration/boot and the load child,
+checkpoint age, rejects, memory, storage and swap/OOM. It seals evidence before
+signalling a PID-bound descriptor, refuses replay and stops at the reviewed
+upper window. Local admission tests cover unsafe/missing gates; they do not
+prove a live interruption.
+
+The first observer failed before signalling with a timestamp parser ValueError
+on the older guest Python. Nanosecond-to-microsecond normalization was added,
+with a regression test (five local tests pass). The second observed
+**3,815,000 committed rows** at `2026-09-15T11:41:29.327877Z`, generation 1,
+the retained fingerprint, zero source/target rejects, checkpoint age 0.883s,
+disk 5.2931%, zero swap/OOM and about 1.223 GB cgroup memory. Because it was
+already beyond the 2.5-million-row upper bound, it refused SIGTERM. No fault or
+resume success is claimed. Preserve this run through verification; do not
+modify a completed generation to manufacture recovery evidence. Observer
+process matching was also corrected to compare resolved executable paths.
+
+VS Code capture then failed again with -3811 while Finder remained readable;
+reinitializing the connection did not immediately resolve it. The user was
+asked to bring VS Code forward, not to unlock an already unlocked Mac. Azure
+read-only observation remains available. No invisible UI input or controller
+state bypass is allowed while capture is unavailable.
+
+### First load and imported counts verification complete
+
+GUI capture subsequently recovered. The guest completed the original job at
+`2026-09-15T11:43:13.281292701Z`, after starting at
+`11:38:29.956584016Z`: approximately 4 minutes 43 seconds for preparation, load
+and counts verification, excluding provisioning, inventory and full digest.
+All **5,600,000 rows** committed with zero rejects. The installed GUI reconciled
+the original operation, transferred the report and displayed counts PASS.
+Independent local hashing confirms the 9,619-byte report SHA-256:
+`9d1eb718b4227fe289d29458adffd9ca83239e226ea09d98dc8913714c24417d`.
+All 18 label counts agree; 24 checks pass with no errors or incomplete checks.
+This is counts acceptance, not full property equality or recovery acceptance.
+
+The guest's fault-evidence file is absent: no process fault, reboot or resume
+occurred. Preserve this completed generation as an additional clean trial.
+Any actual interruption trial requires a new reviewed job; do not resume or
+damage this completed job. The observer now checks children of all Go worker
+threads, with six local unit tests passing. Its earlier empty PID observation
+has not been causally reproduced or live-qualified; neither the resolved-path
+comparison nor thread enumeration is evidence of a successful fault injection.
+
+Fresh idle readiness at `11:47:13.356Z` retained the pinned candidate and boot,
+disk 5.3198%, swap/OOM zero. The user approved the independent full P1 verifier
+for this exact job: commit `8a23a5109798ec906109532e4cc6c32308b3c824`, archive
+SHA-256 `60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d`,
+7,248,083 bytes, read-only target checks, maximum 25 minutes / 4 GiB.
+The expired readiness was refreshed before dispatch: `11:52:53.472Z`, idle,
+5.3203% disk, no swap/OOM. Locks were empty; recent policy events were audits,
+not a detected enforcement mutation. Only this runner/target pair was running.
+Budget, deadline, graph and credential scope are unchanged.
+
+The native GUI submitted full verification once at `11:54:40.390Z`, operation
+`6d5b62a4-7f7a-45a0-9ad1-03a6eb9125e5`, bound to the original migration job.
+Azure independently reports Running, guest start `11:54:58Z`. Reconcile that
+exact operation and its export; do not replay verification. Canonical acceptance
+is still pending, and this does not turn the clean load into a recovery test.
+
+While ARM still reported the verifier Running, the migration wizard tab was
+closed, reopened through the command palette and reconnected to the original
+saved CSV workflow. It retained the same verifier and migration operation IDs.
+This exercises panel reconnection during independent verification; it is not
+an Extension Host termination/reload or automatic recovery test. The retained
+command must finish and its report be reconciled without a second submission.

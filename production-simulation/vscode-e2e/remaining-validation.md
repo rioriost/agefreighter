@@ -37,7 +37,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B07 | Same-VM resize; active-job/incompatible resize denied | Base routes resize same VM; resize/preflight unit tests pass | Bind identity preservation artifacts; exercise missing live denial branches without destructive resize | not-run |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 passed; transfer tests cover changed files, verified receipts and matching existing blobs | Installed-GUI cancellation/partial transfer/reconciliation, with no load before complete receipts | not-run |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
-| B10 | Close/reload during assessment/load/verification; no replay | New persisted-state/process-exit tests pass; no actual live window-close evidence yet | Close/reopen installed GUI in all three phases; retain same operation/job and prove no duplicate dispatch | not-run |
+| B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | Guest continuation and GUI explicit resume implemented; local tests pass, not live-qualified | Review/package candidate, run actual faults and unchanged database/graph/job/generation/fingerprint recovery, then full P1 verification | running |
 | B12 | Invalid verification must never be PASS | Verification/report unit tests cover mismatch, rejects, incomplete, wrong-job, stale, changed/truncated evidence | Installed-host presentation/interaction tests for representative rejected results; no forged success in retained base workflows | not-run |
 
@@ -175,6 +175,20 @@ command lifecycle without requiring routine manual cleanup: never remove an
 outstanding/uncertain or currently referenced request, preserve verified durable
 evidence before removal, and reconcile interrupted cleanup without replay.
 The existing fail-closed limit remains enabled during pinned-candidate testing.
+
+### CSV recovery private target checkpoint (September 15)
+
+The new CSV recovery workflow completed all 18 guest imports and full inventory
+(1.6 million vertices / 4 million edges). Its private PostgreSQL 18 target is
+GUI-reconciled as provisioned; independent Azure reads confirm AGE allowlist
+and preload applied after the approved restart. After GUI capture recovered,
+restart reconciliation and same-VM resize completed. The new load committed
+all 5.6 million records with zero rejects, and its transferred counts report
+passes independently checked integrity. The fault observer missed its safe
+window and refused to signal; no fault or resume occurred. Full canonical
+verification is approved but not yet complete. See the
+[execution record](recovery-execution-20260915.md) for exact boundaries and seals.
+This closes no live fault/recovery acceptance case. B10/B11 remain open.
 
 ### Remaining sequence
 
