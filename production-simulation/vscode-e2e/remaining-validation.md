@@ -1,6 +1,6 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-15 UTC. Status: **running; not release-qualified**.
+Updated: 2026-09-16 JST. Status: **running; not release-qualified**.
 
 The nine base P1 routes are [qualified](progress.md). This ledger covers the
 additional requirements in [the original plan](plan.md#branch-coverage-beyond-the-base-paths).
@@ -11,8 +11,12 @@ evidence levels. A test of a simulated failure is not a live recovery pass.
 ## Authorization and preservation
 
 Use only the already authorized dedicated trial environment. Current renewed
-ceiling: USD 800; retained reserve: USD 400; deadline:
-`2026-09-16T07:14:35.311Z`. Recheck conservative remaining cost, ownership,
+ceiling: USD 800 (no additional budget); deadline extended by the user for
+96 hours from the previous deadline to `2026-09-20T07:14:35.311Z`
+(September 20, 16:14 JST). The extended-retention planning reserve is USD 600;
+current actual billing is unavailable (HTTP 429). See the latest
+[execution record](recovery-execution-20260915.md) for inventory and assumptions.
+Recheck conservative remaining cost, ownership,
 health, governance, quota and time before any cloud mutation. The nine accepted
 targets and failure evidence must remain intact. Recovery trials require a
 separate job/graph; do not fault or overwrite a qualified graph. As observed

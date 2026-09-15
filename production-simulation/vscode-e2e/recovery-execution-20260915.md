@@ -660,3 +660,57 @@ rechecked after unlock, before saving a plan or creating any target resource.
 The sole new runner remains B2s_v2/running with the previously configured
 07:00 UTC safety shutdown. No inventory/transfer command is active. Prior
 qualified targets, source files, logs and both command archives remain retained.
+
+### September 16 JST: user-authorized 96-hour extension
+
+The user extended the existing deadline by 96 hours, to
+`2026-09-20T07:14:35.311Z` (September 20, 16:14 JST). The total ceiling stays
+USD 800; this is not an additional USD 800 authorization. Historical deadlines
+above remain evidence of their original approvals, not the current limit.
+
+At approximately `2026-09-15T19:03Z`, all 19 VMs were deallocated and all 14
+Flexible Servers stopped. The current workflow still has no target or migration.
+The 18 verified CSV transfers and complete inventory report remain retained.
+VS Code is now accessible. RG locks are absent; the current storage still has
+anonymous/shared-key access disabled and TLS 1.2. Its existing storage-only
+exception is unchanged. Subnet `10.246.19.0/24` remains unallocated.
+
+Activity evidence shows an external application deallocated the current runner
+at `15:47:12.865Z` (correlation `05fed01a-2c73-4abb-af9f-395f4c91ce91`) and
+changed disks around `15:55Z`. The current 64-GiB disk is Standard_LRS, not its
+original SSD profile. This is not our 07:00 UTC shutdown schedule, nor proof of
+a security-policy denial. Do not undo the external disk change or disable any
+governance control. Restart only the current approved runner and recheck guest
+health/boot identity before any source or target action. All other compute
+remains stopped; the enabled daily 07:00 UTC safety shutdown is retained.
+
+Cost Management returned HTTP 429 on refresh; a current actual bill is not
+claimed. Raise the planning reserve from USD 400 to USD 600, without increasing
+the USD 800 ceiling, to cover extended retention and billing uncertainty.
+Read-only inventory found 14 retained 128-GiB PostgreSQL servers, 14 64-GiB and
+five 128-GiB Standard HDD OS disks, one NAT gateway, 16 transfer accounts and
+one Cosmos container (autoscale maximum 4,000 RU/s). Retail storage rates read
+at this check were PostgreSQL USD 0.138/GiB-month, backup USD 0.095/GB-month,
+S4/S6 disks USD 1.536/3.008 per month and Cosmos base USD 0.009/100 RU/s-hour.
+The extra USD 200 reserve covers approximately 108 remaining hours of retained
+storage, Cosmos up to its autoscale maximum, NAT and ancillary/billing margin;
+new VM/PostgreSQL compute must still pass the separately refreshed price gate.
+This is a conservative operational estimate, not a guaranteed invoice. Recheck
+if retained servers auto-start or resource/rate/usage assumptions change.
+
+The current transfer account's ExpiresAt tag was merged to the new outer
+deadline and read back, retaining all other tags/security settings. Only
+`af-54da6ddd27d245e0bb68` was started. GUI readiness command
+`af-d62cc8af-0993-4527-b228-11e412a8a0dd` completed with exit 0 and the GUI
+reconciled it at `19:08:05.197Z`: new boot
+`009c2ad1-b942-4b24-98df-c740bee5cc07`, exact approved CLI/archive, idle=true,
+storage 5.3198%, no swap/OOM. No source scan, load or resume was replayed.
+
+The renewed target review uses a shorter per-run deadline
+`2026-09-16T19:00:00Z` within the extended outer authorization; the controller
+limits any individual reviewed remaining window to 96 hours. The extension
+does not silently relax that gate. The outer September 20 deadline is not
+shortened. The GUI entered USD 800 ceiling / USD 600 reserve and the same
+reviewed private target/subnet/SKUs. Final preflight/approval remains required.
+The recovery observer's six local regression tests pass; this is not a live
+injected-fault or recovery result.
