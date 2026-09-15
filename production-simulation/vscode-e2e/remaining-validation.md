@@ -34,6 +34,12 @@ The current recovery inventory and 18 verified transfers remain reusable,
 subject to fresh guest checks. Target deployment/recovery still need execution;
 this does not close B02/B09 or the recovery qualification.
 
+After the user requested continuation, the current runner was restarted and
+fresh GUI readiness passed. The exact same private-target preflight now passes
+with sufficient quota and USD 0.736/hour combined compute. The native final
+target/SecretStorage confirmation is awaiting user approval; target creation
+and recovery load have not begun. No other surviving VM or target was started.
+
 ## Branch-to-evidence ledger
 
 "Not-run" means additional live qualification is not established by this audit,

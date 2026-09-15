@@ -749,3 +749,34 @@ from Azure. All six surviving VMs and all 14 PostgreSQL servers remain stopped.
 See [exact targets, archive seals and recovery limits](vm-retirement-20260916.md).
 This supersedes earlier VM-object preservation for those 13 retired runners
 only; current same-job recovery data and accepted target graphs are unchanged.
+
+### CSV recovery resumed after quota release; target preflight PASS
+
+The user requested the remaining qualification work continue. Fresh checks
+confirmed empty RG locks, regional Compute 48/101 and DSv5 44/100, six stopped
+VMs and 14 stopped PostgreSQL servers. Only the current recovery runner was
+started. Its 07:00 UTC safety shutdown remains enabled; storage expiry is the
+extended September 20 deadline and anonymous/shared-key access remain disabled.
+Recent automatic shutdown-schedule deletions accompanied retired VMs; the
+current runner's schedule was independently checked and remains present.
+
+GUI readiness command `af-b2487abb-d32c-401b-8996-a34042f1f84f` completed with
+exit 0 and was reconciled at `2026-09-15T19:32:33.876Z`: new boot
+`2aa962a2-07d8-443d-ad29-fa5385d11ea2`, exact approved pinned CLI/archive,
+idle=true, disk 5.3331%, zero swap/OOM. All 18 CSV receipts remain verified;
+the retained complete inventory SHA-256 is unchanged. No repeated import or
+source scan was submitted. Observer local regression remains 6/6 PASS.
+
+The installed GUI now reaches the native final target-approval dialog after
+successful read-only preflight. It displays 5.6M mapped rows; private PG18/AGE
+D4ds_v5 / 128 GiB in Japan East zone 1, `10.246.19.0/24`, no public access or
+peering, and later same-runner D4s_v5 resize. Fresh combined compute price is
+USD 0.736/hour. USD 600 reserve / USD 800 ceiling and the bounded per-run
+`2026-09-16T19:00:00Z` deadline remain within the extended outer authorization.
+
+Action-time confirmation was requested for creating this new target and saving
+its generated administrator credential in VS Code SecretStorage. The native
+dialog remains open; no approval click, credential creation, plan export,
+target deployment or migration has occurred at this checkpoint. Recheck guest
+freshness if approval takes longer than five minutes. Never recreate retired
+workflows or treat this preflight as recovery qualification.
