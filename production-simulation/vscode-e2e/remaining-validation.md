@@ -139,6 +139,14 @@ conservative reserve remains in force, not a new actual-spend claim. See the
 [candidate seals and reviewed live fault sequence](recovery-execution-20260915.md).
 B10/B11 remain open; no live recovery qualification is claimed.
 
+After the user reloaded VS Code, installed-GUI preparation resumed with a fresh
+CSV workflow. File-selection cancellation and storage-approval cancellation
+returned without transfer/deployment; ARM independently confirmed the proposed
+storage does not exist. All 18 P1 CSVs are selected. The new storage/account-only
+role dialog now awaits action-time approval. A stale folder-error message after
+successful selection was observed and remains to fix/retest. See the execution
+record above for exact workflow and scope; B08/B09 are only partially exercised.
+
 ### Remaining sequence
 
 1. Complete the existing-evidence mapping and local/host negative tests (B01–B10,

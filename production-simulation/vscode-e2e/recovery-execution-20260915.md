@@ -1,6 +1,6 @@
 # Installed-GUI recovery qualification
 
-Status: candidate installed; live fault tests **not started**.
+Status: installed GUI preparation resumed; storage approval pending; live fault tests **not started**.
 
 ## Candidate and preflight
 
@@ -86,3 +86,36 @@ before and after the fault; the thresholds above are scheduling targets, not
 claims of precise fault timing. If a fast P1 load passes a target before a safe
 fault can be applied, preserve its result and use a new approved job. Do not
 damage a completed generation to manufacture recovery evidence.
+
+## GUI preparation after user reload
+
+The user confirmed Reload Window. At approximately 08:00 UTC the installed
+command palette successfully opened a workspace-free guided migration. The new
+draft is `1b2c7189-b771-41e6-9086-b26029c9d8a1`: CSV/local, authorized trial
+subscription/RG, Japan East zone 1, B2s_v2 and the existing `runner` subnet.
+The source editor displays `csv-recovery-p1-r1`, namespace `p1`, null marker
+`\N`. A local metadata read confirms 18 selected portable P1 CSV files and no
+storage, assessment, guest command or migration. No Linux artifact is selected
+in this draft yet; use the sealed candidate above when preparing the runner.
+
+Installed-GUI observations for B08/B09:
+
+- Cancelling initial file selection returned to the wizard without starting an
+  upload, assessment or deployment.
+- A folder without direct CSV files was rejected. Selecting the portable P1
+  folder then retained all 18 CSV files. The earlier error text remained visible
+  after successful selection: a presentation defect to correct/retest, not a
+  failure of the retained selection or a completed transfer test.
+- Cancelling the native storage/role confirmation returned `Not prepared`.
+  Independent ARM GET returned ResourceNotFound for the proposed account;
+  workflow metadata contains no storage intent or guest operation.
+- Reopening the same confirmation retained proposed account
+  `af1b2c7189b77141e69086b2`. The dialog is awaiting action-time approval to
+  create it and grant the signed-in user Storage Blob Data Contributor on this
+  new account only. No public source exposure or anonymous/shared-key access is
+  requested. No create/role request has been submitted.
+
+Read-only quota: DSv5 92/100, regional cores 94/101 before the new runner. Recheck
+capacity at deployment/resize and include target quota separately. These checks
+and cancellation observations do not close the remaining live transfer,
+assessment-reload, interruption/recovery or canonical verification cases.
