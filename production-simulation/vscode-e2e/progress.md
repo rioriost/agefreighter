@@ -8,6 +8,11 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
+Remaining branch/failure/recovery qualification started on 2026-09-15;
+see the [case ledger](remaining-validation.md). Local regression results must
+not be read as additional live GUI/Azure passes. In particular, explicit remote
+same-job resume needs implementation before the guided recovery trial.
+
 | Route | Final evidence | Outcome |
 | --- | --- | --- |
 | CSV-MAC | [Local CSV](evidence/csv-mac-qualified-20260906.json) | PASS |
