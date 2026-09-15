@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15 JST. Overall outcome: **CSV-MAC, AZ-N44, AZ-N526, AZ-PGVM, OP-PG, AZ-PGFS and AZ-COSMOS qualified (7/9); OP-N44 and OP-N526 remain unqualified**.
 
-### OP-N44 — pinned artifact uploaded; private runner confirmation pending
+### OP-N44 — private runner ready; source password entry pending
 
 A cold copy of the stopped qualified 4.4 source now has its own private VM and
 IP-SAN certificate. The original source/disk/certificate are unchanged. Live TLS
@@ -19,9 +19,14 @@ is applied: HTTPS is Enabled with anonymous/shared keys still disabled and TLS
 unchanged fixed Linux build; after explicit approval its authenticated 37,079,079-byte
 upload completed and the durable artifact phase is ready. Fresh GUI VM preview
 passes for B2s_v2 / Japan East zone 1 at USD 0.109/hour plus other charges.
-The current dialog requests creation of the private runner and its container-only
-Blob Reader grant. No runner, target or migration has started. Source compute
-is deallocated; all data are retained.
+The user approved runner creation and continuing routine actions for this route.
+GUI deployment completed; the container-only Blob Reader grant was independently
+verified. First guest readiness ran before installation finished (retained failure);
+after cloud-init completed, fresh GUI readiness passed at `01:45:59.825Z` with
+the pinned version/hash, idle state, 3.508% disk and zero swap/OOM. The separate
+source clone is running; its IP-SAN TLS handshake now passes after startup.
+The GUI approved complete source inventory and awaits private password entry.
+No target or migration has started; all previous data/evidence are retained.
 [Reviewed preparation and handoff](op-neo4j-preparation-20260915.md).
 
 ### AZ-COSMOS r2 — full installed-GUI qualification PASS

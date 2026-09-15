@@ -129,3 +129,32 @@ The source clone is confirmed deallocated; no runner or target for this route
 has been deployed. After resolving transfer readiness, select the fixed artifact
 through the GUI and later restart only this clone before authenticated assessment.
 All prior evidence remains retained. Qualification coverage remains 7/9.
+
+## 01:43–01:47Z — runner provisioned; protected password handoff
+
+The user approved this runner and continued routine actions for the route.
+The installed GUI submitted once at `2026-09-15T01:43:19.319Z`; deployment
+succeeded, then GUI reconciliation marked it provisioned at `01:44:10.356Z`.
+Identity `6b46cc50-edef-4a31-9454-0bdee640ce46` has independently verified Blob
+Reader only on the workflow container. The original sources remain stopped;
+only the isolated OP-N44 clone was restarted for this assessment.
+
+Initial ready operation `a7dd16c8-92c5-4aea-8f77-b938d0af0971` failed because
+installation was still finishing; its ARM command/evidence are retained.
+Cloud-init finished at `01:44:39Z`. Explicit fresh ready operation
+`2d58ed1c-da5e-4385-b0a1-d9a0555ded29` passed at `01:45:59.825Z`:
+boot `090640bd-8084-49b8-990c-605dbc085933`, matching pinned build/hash and
+Neo4j inventory/migration capabilities, idle, 3.508270134% disk, zero swap/OOM.
+Source startup also initially refused connections; at `01:45:27Z` logs confirmed
+4.4.48 started and the actual literal-IP TLS handshake passed. Neither early
+startup observation was accepted as readiness. The copied old container is still
+stopped, the isolated TLS container running with zero restarts/OOM.
+
+The installed GUI reopened/reviewed the saved IP-only source form and approved
+complete source inventory. Its protected **Read-only source password** input is
+waiting for the user to enter the existing AZ-N44 `neo4j` credential and Enter.
+No password was extracted from retained files or the copied auth database.
+No source inventory has been submitted before that entry. The user was asked
+only for private credential input, not another routine workflow approval.
+Runner and source are running (USD 0.109 + 0.496/hour compute); target is not
+created. Budget USD 800 / reserve USD 400 / September 16 deadline unchanged.
