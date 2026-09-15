@@ -156,9 +156,20 @@ native installation/container-reader approval was subsequently received. ARM
 provisioning and separate pinned Linux readiness now pass, including both
 recovery capabilities, idle health, 3.4791% disk use and zero swap/OOM. All 18
 GUI mappings independently match the portable P1 schema. Guest CSV imports have
-started; nine of eighteen full-hash receipts are verified, with the remaining
-nine uploaded and not yet imported. Inventory, migration and live
+completed; all eighteen full-hash receipts are verified (1,168,576,671 bytes).
+Inventory, migration and live
 fault/recovery tests have not started. B08/B09 remain partial and B10/B11 open.
+
+The subsequent CSV trial reached the per-VM 25 managed Run Command ceiling
+after ten verified imports. An operator archived and independently reconciled
+24 completed command definitions/results, then removed only those ARM command
+resources; guest CSVs and evidence remain intact. The current controller
+reference was preserved, and GUI import resumed after fresh readiness. See the
+execution record for the archive seal. Before release, B08/B09 must address
+command lifecycle without requiring routine manual cleanup: never remove an
+outstanding/uncertain or currently referenced request, preserve verified durable
+evidence before removal, and reconcile interrupted cleanup without replay.
+The existing fail-closed limit remains enabled during pinned-candidate testing.
 
 ### Remaining sequence
 

@@ -1,7 +1,7 @@
 # Installed-GUI recovery qualification
 
-Status: runner provisioned and pinned Linux readiness verified; CSV guest imports
-are in progress; live fault tests **not started**.
+Status: all 18 CSV guest imports verified; GUI blocked by Mac lock before
+complete inventory; live fault tests **not started**.
 
 ## Candidate and preflight
 
@@ -221,3 +221,45 @@ retain all hash, health, ownership and no-replay gates, not remove them.
 The next step is to import/seal the remaining files, review the saved mappings,
 then start complete inventory. Do not mark migration/recovery or P1 canonical
 qualification complete from these transfer receipts.
+
+### Managed command capacity reconciled
+
+After the tenth verified file (Lot), Azure's per-VM limit of 25 managed Run
+Commands blocked the next dispatch. No additional import was submitted by that
+rejection. All 24 older completed commands were independently retrieved with
+their definitions and instance views, bound to verified CSV receipts or the
+matching idle candidate readiness, and archived before exact-resource deletion.
+Archive SHA-256:
+`3a0b62272c76effe4d3c38c7815a2d12ad574f9f9fb5d47895b410633ea6a97d`.
+The retained archive is private trial evidence, not a checked-in credential or
+raw cloud-response file. The controller's current command was excluded; a fresh
+ARM list confirmed it was the sole remaining command. CSVs, guest operation
+directories/logs, VM disks and every previously accepted graph were untouched.
+
+At 09:10 UTC a new GUI readiness check passed on the same boot and sealed
+candidate: idle=true, disk 4.4494%, swap/OOM zero. The GUI then submitted
+ORIGINATES_AT import. This unblocks this trial, but manual command archival is
+an observed extension usability gap, not a scalable end-user transfer flow.
+No command-capacity or freshness gate was weakened; a production lifecycle
+improvement must preserve evidence, outstanding references and no-replay rules.
+
+### All CSV imports sealed
+
+At approximately 09:28 UTC all **18/18** CSV transfers are GUI-reconciled as
+`verified`, totaling **1,168,576,671 bytes**. No failed, interrupted, unknown or
+submitted import remains. The same reviewed schema and original selected-file
+identities are retained. Repeated explicit readiness refreshes passed on the
+same boot/candidate. These receipts prove local-to-storage-to-Linux byte
+integrity, not source inventory, migration, recovery or canonical graph equality.
+
+At 09:29 UTC computer use explicitly reported that the Mac was locked and
+automatic unlock was unavailable. No further GUI actions were attempted.
+A read-only guest readiness command submitted at `09:28:54.999Z` is retained
+for GET-only reconciliation after manual unlock; do not submit it again.
+Inventory and migration are still absent. ARM lists 21 command resources after
+the new imports/readiness; plan another evidence-preserving capacity review
+before later phases rather than allowing the 25-command cap to interrupt them.
+The one CSV VM remains running under the existing safety shutdown/deadline;
+the previously accepted 17 VMs and 13 Flexible Servers remain stopped in the
+latest fleet observation. The next operator action is manual Mac unlock, then
+reconcile readiness, review mappings and explicitly start complete inventory.
