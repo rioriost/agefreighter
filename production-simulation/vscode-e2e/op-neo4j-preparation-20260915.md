@@ -78,10 +78,24 @@ still need review/save with the CA selected. The release preview correctly stops
 because public 2.4.0 release/checksums do not exist; reuse the separately reviewed
 pinned development artifact through the GUI test-artifact flow, not a fake release.
 
-Current GUI confirmation is for new transfer account `af75e4e5084f38467bb3c107`
-and **Storage Blob Data Contributor on that account only** for the signed-in user.
-No storage creation or role grant has been submitted. This action needs scoped
-confirmation. The source clone is being deallocated while waiting; no runner or
-target for this route has been deployed. Resume by reconciling the dialog, selecting
-the public CA and fixed artifact, and later restarting only this clone before
-authenticated assessment. All prior evidence remains retained.
+The user approved transfer account `af75e4e5084f38467bb3c107` and **Storage Blob
+Data Contributor on that account only**. The installed GUI submitted creation;
+ARM and the GUI now agree that provisioning is complete. Independently verified
+assignment `c34d6722-62a1-4842-96aa-2ccfd9840f1f` has only that account scope.
+The public CA was selected through the GUI and source settings reviewed/saved.
+Its 1,517 bytes and SHA-256 match the guest export exactly.
+
+At approximately 01:27Z the account has public networking **Disabled**, although
+the submitted template requested Enabled. Anonymous/shared-key access remain
+false and minimum TLS is 1.2. The initial activity query returned no events, so
+this observation alone does not identify the actor/policy. The GUI explicitly
+reports that provisioning is not transfer readiness. No upload or source read
+was attempted and no security-exception tag was applied. The next action needs
+confirmation of the trial-account-only `SecurityControl=Ignore` exception and
+authenticated HTTPS enablement, with the unchanged September 16 trial deadline.
+This must not apply to the resource group or any source database.
+
+The source clone is confirmed deallocated; no runner or target for this route
+has been deployed. After resolving transfer readiness, select the fixed artifact
+through the GUI and later restart only this clone before authenticated assessment.
+All prior evidence remains retained. Qualification coverage remains 7/9.
