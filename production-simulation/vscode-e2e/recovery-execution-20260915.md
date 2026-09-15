@@ -737,3 +737,15 @@ ARM readback confirmed **VM deallocated**. Its disk, identity, imported CSV,
 inventory and all guest/command evidence are retained. The Quota API independently
 confirms Total Regional vCPUs limit 101 and applicable=true; no increase request
 has been submitted. Target creation and live recovery remain pending.
+
+### Quota blocker resolved by retiring unused VM objects
+
+On September 16 JST the user instead requested deletion of unused trial VMs,
+retaining OS disks. Thirteen completed/superseded runners were archived and
+deleted; their original OS disks and NICs remain. The current runner and five
+reusable source fixtures were excluded. Independent readback confirms regional
+usage 48/101 and DSv5 44/100; no quota increase is necessary or was requested
+from Azure. All six surviving VMs and all 14 PostgreSQL servers remain stopped.
+See [exact targets, archive seals and recovery limits](vm-retirement-20260916.md).
+This supersedes earlier VM-object preservation for those 13 retired runners
+only; current same-job recovery data and accepted target graphs are unchanged.

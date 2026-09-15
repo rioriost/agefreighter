@@ -24,12 +24,15 @@ after base-route completion, all 17 VMs were deallocated and all 13 Flexible
 Servers stopped. Local regression work has not restarted them. Storage and
 Cosmos charges continue; stopped PostgreSQL servers eventually auto-start.
 
-Latest live blocker (September 16 JST): renewed CSV recovery target preflight
-refused Japan East Compute quota `cores` 100/101 before creating any target,
-subnet, credentials or migration. DSv5 is 96/100. Regional increase to 128 was
-requested for user approval; do not submit it until approved. The inventory and
-18 verified transfers remain reusable, subject to fresh guest checks. This
-captures the insufficient-quota denial branch, not full B02/B09 qualification.
+The September 16 quota blocker is **resolved by user-authorized retirement**,
+not a quota increase. Preflight originally refused `cores` 100/101 before any
+target creation. Thirteen retired runner VMs were then deleted with their OS
+disks, NICs and archived evidence preserved; six reusable VMs remain stopped.
+Regional usage is now 48/101 and DSv5 44/100. No increase request was submitted
+or is currently needed. See [retirement evidence](vm-retirement-20260916.md).
+The current recovery inventory and 18 verified transfers remain reusable,
+subject to fresh guest checks. Target deployment/recovery still need execution;
+this does not close B02/B09 or the recovery qualification.
 
 ## Branch-to-evidence ledger
 
