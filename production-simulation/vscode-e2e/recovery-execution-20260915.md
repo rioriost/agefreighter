@@ -1,6 +1,6 @@
 # Installed-GUI recovery qualification
 
-Status: installed GUI preparation resumed; storage approval pending; live fault tests **not started**.
+Status: CSV and pinned archive uploaded; VM approval pending; live fault tests **not started**.
 
 ## Candidate and preflight
 
@@ -119,3 +119,41 @@ Read-only quota: DSv5 92/100, regional cores 94/101 before the new runner. Reche
 capacity at deployment/resize and include target quota separately. These checks
 and cancellation observations do not close the remaining live transfer,
 assessment-reload, interruption/recovery or canonical verification cases.
+
+## Storage and CSV transfer complete; VM approval pending
+
+After the user's action-time approval, the installed GUI submitted storage
+deployment `af1b2c7189b77141e69086b2-transfer`; ARM returned Succeeded.
+Account ownership/workflow tags match. The sole returned role assignment grants
+the signed-in user Storage Blob Data Contributor at this account's exact scope.
+Azure had changed networking to Disabled. Under the previously authorized
+trial-storage-only exception, `SecurityControl=Ignore` and the unchanged
+September 16 deadline were merged on this account only; network access was
+restored to Enabled. Anonymous/shared-key access remain false, HTTPS-only and
+TLS 1.2 remain enforced. Anonymous container-list HTTPS returned 409. No source
+firewall, VNet, existing qualified target or RG-wide exception was changed.
+
+The installed GUI reconciled storage as ready/Enabled. CSV upload confirmation
+displayed 18 files and 1,168,576,671 bytes at the exact new account endpoint.
+Cancelling this confirmation left zero transfer records, no assessment and no
+migration. On the subsequent approved upload, all 18 files reached `uploaded`,
+with the same total bytes. This is authenticated desktop-to-storage transfer,
+**not** Linux import/hash verification or graph qualification.
+
+The qualification control selected and locally verified the candidate manifest
+from the seal table, then uploaded the unchanged 37,117,370-byte Linux archive.
+Workflow metadata now has `developmentUpload: ready` and the exact candidate
+version/hash. GUI reconnection and prerequisites generated a new VM preview:
+`af-1b2c7189b77141e69086`, Japan East zone 1, Standard_B2s_v2, compute
+USD 0.109/hour plus disk/network and other charges. Existing network/quota checks
+passed. Prior compute remains stopped and no locks were returned. The previous
+conservative reserve/deadline is unchanged; target capacity/cost must be checked
+separately after complete inventory.
+
+The final native `Create reviewed runner` dialog is pending action-time approval
+for installation of this unpublished build and a new VM identity's Blob Reader
+grant on this workflow container only. No public IP or source firewall change
+is proposed. Metadata is `previewed`, with no submission, guest command or
+migration. No Linux CSV imports, inventory, target or fault test have started.
+The 18 mapping rows still need to be reviewed/entered before inventory; GUI-only
+name/namespace edits are not a sealed source configuration.

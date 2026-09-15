@@ -147,6 +147,15 @@ role dialog now awaits action-time approval. A stale folder-error message after
 successful selection was observed and remains to fix/retest. See the execution
 record above for exact workflow and scope; B08/B09 are only partially exercised.
 
+Subsequent user approval created the dedicated storage/account-scoped user role.
+The existing trial-only tag exception restored authenticated HTTPS transfer while
+anonymous/shared-key access stayed disabled. Upload-confirmation cancellation
+left zero transfer records; the next upload completed all 18 P1 CSVs (1,168,576,671
+bytes). The pinned Linux archive is also uploaded. Fresh VM preflight passed;
+native installation/container-reader approval is pending. No guest imports,
+inventory, migration, interruption or recovery test has started. B08/B09 remain
+partial and B10/B11 open.
+
 ### Remaining sequence
 
 1. Complete the existing-evidence mapping and local/host negative tests (B01–B10,
