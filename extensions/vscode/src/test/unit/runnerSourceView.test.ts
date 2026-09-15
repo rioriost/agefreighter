@@ -121,3 +121,16 @@ test("new inventory does not inherit the old sample report's imported label",()=
   v.send({kind:"assessment",assessment:{operation:"inventory",phase:"submitted"}});
   assert.equal(v.el("transferStatus").textContent,"No report transferred");
 });
+
+test("successful CSV selection clears the old folder error without clearing retained failures", () => {
+  const v = view();
+  v.send({ kind: "init", type: "csv", location: "local" });
+  v.send({ kind: "error", text: "No regular CSV files were found directly in this folder." });
+  v.send({ kind: "busy", value: false });
+  assert.match(v.el("error").textContent, /No regular CSV/);
+  v.send({ kind: "init", type: "csv", location: "local", files: [csvFile], csvTransfers: [{ file: csvFile.id, phase: "failed" }] });
+  assert.equal(v.el("error").textContent, "");
+  assert.equal(v.el("files").textContent, csvFile.name);
+  assert.match(v.el("csvStatus").textContent, /failed/);
+  assert.equal(v.el("inventory").disabled, true);
+});

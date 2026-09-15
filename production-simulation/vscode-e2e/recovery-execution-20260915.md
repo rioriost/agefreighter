@@ -1,6 +1,7 @@
 # Installed-GUI recovery qualification
 
-Status: CSV and pinned archive uploaded; VM approval pending; live fault tests **not started**.
+Status: runner provisioned and pinned Linux readiness verified; CSV guest imports
+are in progress; live fault tests **not started**.
 
 ## Candidate and preflight
 
@@ -157,3 +158,34 @@ is proposed. Metadata is `previewed`, with no submission, guest command or
 migration. No Linux CSV imports, inventory, target or fault test have started.
 The 18 mapping rows still need to be reviewed/entered before inventory; GUI-only
 name/namespace edits are not a sealed source configuration.
+
+## Approved runner and reviewed mappings
+
+Following the user's approval, the installed GUI submitted the reviewed runner
+once. ARM reported Succeeded at `2026-09-15T08:22:59.585858Z`; an independent VM
+read confirmed Standard_B2s_v2, zone 1, private IP only and running. Its managed
+identity has Storage Blob Data Reader on this workflow's container only.
+The GUI reconciled provisioned state and separately verified Linux readiness at
+`2026-09-15T08:30:21.496Z`: the exact candidate commit/archive above, both
+`resume-inspection-v1` and `explicit-resume-v1`, idle=true, storage 3.4791%,
+swap=0 and OOM=0. This does not establish actual recovery behavior.
+
+All nine vertex and nine edge mappings were entered and reviewed in the GUI.
+An independent comparison of the retained generated configuration against the
+portable P1 schema passed: file selection, null marker, IDs, endpoint labels and
+fields, all properties and normalized property types match. String types were
+declared explicitly where the reference relies on the default. No workflow
+metadata was manually edited.
+
+The GUI imported and reconciled CARRIED_BY.csv with a matching 70,714,348-byte
+full SHA-256 seal and began the next file. The remaining imports must all become
+verified before complete inventory. No target or migration has started, and no
+fault/recovery or canonical acceptance is claimed.
+
+While imports were pending, the stale folder-error presentation defect was
+fixed in source: a successful host initialization clears the transient error,
+without clearing retained failed-operation receipts or bypassing review gates.
+Typecheck and all **207 extension unit tests pass**, including a regression for
+failed-folder followed by successful file selection. This UI-only change is
+not installed during the ongoing pinned-candidate qualification; installed-GUI
+retest remains pending.

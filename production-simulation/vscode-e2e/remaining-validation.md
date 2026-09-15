@@ -152,9 +152,12 @@ The existing trial-only tag exception restored authenticated HTTPS transfer whil
 anonymous/shared-key access stayed disabled. Upload-confirmation cancellation
 left zero transfer records; the next upload completed all 18 P1 CSVs (1,168,576,671
 bytes). The pinned Linux archive is also uploaded. Fresh VM preflight passed;
-native installation/container-reader approval is pending. No guest imports,
-inventory, migration, interruption or recovery test has started. B08/B09 remain
-partial and B10/B11 open.
+native installation/container-reader approval was subsequently received. ARM
+provisioning and separate pinned Linux readiness now pass, including both
+recovery capabilities, idle health, 3.4791% disk use and zero swap/OOM. All 18
+GUI mappings independently match the portable P1 schema. Guest CSV imports have
+started; the first full-hash receipt is verified. Inventory, migration and live
+fault/recovery tests have not started. B08/B09 remain partial and B10/B11 open.
 
 ### Remaining sequence
 

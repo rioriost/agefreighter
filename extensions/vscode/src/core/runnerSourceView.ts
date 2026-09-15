@@ -56,6 +56,9 @@ if(m.kind==='review'){reviewed=true;canAssess=m.draft.canAssess;el('reviewSectio
 if(m.kind==='assessment'){retained=true;el('assessment').textContent=JSON.stringify(m.assessment,null,2);update();}});
 window.addEventListener('message',event=>{const m=event.data;if(m.kind==='init')el('csvStatus').textContent=JSON.stringify(m.csvTransfers||[],null,2);if(m.kind==='sourceCA'){el('sourceCA').textContent=m.sourceCA.name+' — '+m.sourceCA.bytes+' bytes — SHA-256 '+m.sourceCA.sha256;changed();}});
 window.addEventListener('message',event=>{const m=event.data;if(m.kind==='init'||m.assessment){failedAssessment=m.assessment?.phase==='failed';update();}});
+// A successful host reconciliation replaces a transient form error. Failed
+// operations remain visible in the separately retained assessment/CSV status.
+window.addEventListener('message',event=>{if(event.data.kind==='init')el('error').textContent='';});
 send('ready');
 </script></body></html>`;
 }
