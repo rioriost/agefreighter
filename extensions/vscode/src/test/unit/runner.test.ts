@@ -82,6 +82,24 @@ test("runner input rejects missing Azure identity, injection and unrelated subne
   assert.throws(() => parseRunnerInput({ ...input, subnetId: input.subnetId.replace(sub, id) }));
   assert.throws(() => parseRunnerInput({ ...input, source: { ...input.source, resourceId: `${base}/providers/x/y/z` } }));
 });
+for (const type of ["neo4j", "postgresql"] as const) {
+  for (const location of ["on-premises", "other-cloud"] as const) {
+    test(`${type} ${location} preflight reads runner infrastructure only, never source ARM identity`, async () => {
+      const f = fixture(), calls: string[] = [];
+      const request = f.control.request, list = f.control.list;
+      f.control.request = async (...args) => { calls.push(`request:${args[2] ?? "GET"}:${args[1]}`); return request(...args); };
+      f.control.list = async (...args) => { calls.push(`list:${args[1]}`); return list(...args); };
+      const parsed = parseRunnerInput({...input, source: {type, location}});
+      await preflightRunner(f.control, parsed);
+      assert.equal(parsed.source.resourceId, undefined);
+      assert.equal(calls.length, 5); // subnet, VNet, runner RG, SKU and quota only
+      assert.ok(calls.slice(0, 3).every(call => call.startsWith("request:GET:")));
+      assert.ok(calls.slice(3).every(call => call.startsWith("list:")));
+      assert.ok(!calls.some(call => /virtualMachines|flexibleServers|databaseAccounts|\/resources\?/.test(call)));
+      assert.equal(f.saved.length, 0);
+    });
+  }
+}
 test("only one matching released Linux artifact is accepted", () => {
   assert.equal(artifact.sha256, digest);
   assert.throws(() => releaseArtifact("2.3.0", ""));

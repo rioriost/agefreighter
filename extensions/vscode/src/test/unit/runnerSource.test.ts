@@ -31,6 +31,16 @@ test("PostgreSQL table mappings generate only quoted read queries and mapped end
   assert.deepEqual(pg.connection, { env: "AGEFREIGHTER_SOURCE_DSN" });
   assert.throws(() => buildSourceDraft({ type: "postgresql", location: "azure" }, { ...sourceForm, mappings: [{ ...sourceForm.mappings[0], collection: 'people; DROP TABLE secret' }] }, workflow), /PostgreSQL table/);
 });
+for (const type of ["neo4j", "postgresql"] as const) {
+  test(`${type} other-cloud and on-premises produce identical endpoint-only LoadJobs`, () => {
+    const form = {...sourceForm, port: type === "postgresql" ? 5432 : 7687};
+    const local = buildSourceDraft({type, location: "on-premises"}, form, workflow);
+    const cloud = buildSourceDraft({type, location: "other-cloud"}, form, workflow);
+    assert.deepEqual(cloud.configuration, local.configuration);
+    assert.equal(cloud.canAssess, local.canAssess);
+    assert.ok(!JSON.stringify(cloud.configuration).includes("resourceId"));
+  });
+}
 test("explicit mappings warn about identity-only fields without silently changing graph properties",()=>{
   const raw={...sourceForm,port:5432};
   const before=buildSourceDraft({type:"postgresql",location:"azure"},raw,workflow);

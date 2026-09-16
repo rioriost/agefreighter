@@ -21,10 +21,12 @@ function fixture() {
   const writes: runner.RunnerRecord[] = [];
   const panels: {messages: Record<string, any>[]; receive: (m: unknown) => Promise<void>; dispose: () => void}[] = [];
   let effects = 0;
+  let fileDialogs = 0;
   let refresh = async (_control: unknown, r: runner.RunnerRecord) => r;
   const modules: Record<string, unknown> = {
     "vscode": {ViewColumn: {One: 1}, workspace: {isTrusted: true}, commands: {registerCommand: (name: string, handler: () => unknown) => {commands.set(name, handler); return {}; }}, window: {
       showQuickPick: async () => ({record}),
+      showOpenDialog: async () => {fileDialogs++; return undefined;},
       createWebviewPanel: () => {
         const p = {messages: [] as Record<string, any>[], receive: async (_m: unknown) => {}, dispose: () => {}};
         panels.push(p);
@@ -51,8 +53,17 @@ function fixture() {
     throw Error("Unexpected dependency: " + name);
   }});
   output.exports.registerRunnerMigration({subscriptions: [], globalStorageUri: {fsPath: "unused-inert-store"}}, {});
-  return {record, panels, writes, effects: () => effects, setRefresh: (fn: typeof refresh) => {refresh = fn;}, open: () => {commands.get("agefreighter.newGuidedMigration")!(); return panels.at(-1)!;}};
+  return {record, panels, writes, fileDialogs: () => fileDialogs, effects: () => effects, setRefresh: (fn: typeof refresh) => {refresh = fn;}, open: () => {commands.get("agefreighter.newGuidedMigration")!(); return panels.at(-1)!;}};
 }
+
+test("canceling the new-wizard CSV picker neither persists nor uploads nor starts a runner", async () => {
+  const f = fixture(), panel = f.open();
+  await panel.receive({action: "csv"});
+  assert.equal(f.fileDialogs(), 1);
+  assert.equal(f.effects(), 0);
+  assert.equal(f.writes.length, 0);
+  assert.ok(!panel.messages.some(m => ["csv", "record", "error"].includes(m.kind)));
+});
 
 test("closing and opening a new wizard does not select the retained job", async () => {
   const f = fixture(), old = f.open();

@@ -34,6 +34,12 @@ B11 is complete for the defined CSV process/reboot and Neo4j network faults;
 other fault timings and sources are not implied. See the
 [network recovery record](network-recovery-20260916.md).
 
+The subsequent signed-in VS Code 1.138.0 [GUI branch audit](branch-gui-audit-20260916.md)
+confirmed source/location choices and three CSV picker-cancellation paths,
+preserving all 64 saved workflow/report files. Seven added regressions bring
+the unit suite to 227/227 PASS; nine real CLI configuration contracts also
+pass. B08 is partial; interrupted-upload and other open cases remain.
+
 | Route | Final evidence | Outcome |
 | --- | --- | --- |
 | CSV-MAC | [Local CSV](evidence/csv-mac-qualified-20260906.json) | PASS |

@@ -87,18 +87,28 @@ they prove a precise choice before scheduling redundant infrastructure work.
 |---|---|---|---|---|
 | B01 | Default/separate migration RG; independent network RG | Private base paths passed; `runner.test.ts` validates resource placement | Bind each selectable RG choice to an exact GUI artifact; exercise unrepresented choices | not-run |
 | B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Placement and preflight unit tests pass | GUI defaults/override evidence; invalid choices produce no write request | not-run |
-| B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; other-cloud generated configuration passes real CLI validation | Audit other-cloud selectable path; no inferred source ARM lookup | running |
+| B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes and full P1 canonical results pass | Map recommendation acceptance/edit branches and CSV choices to retained GUI evidence | running |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; both generated formats pass CLI validation | Prepare equivalent Gremlin P1 representation, then full installed-GUI migration and canonical verification | not-run |
 | B06 | Supported Cosmos authentication and RBAC propagation | Guided source currently fixes `default-azure` managed identity; base route passed | Document fixed GUI authentication scope; audit propagation/denial handling; do not claim other CLI modes GUI-tested | running |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Base routes resize same VM; resize/preflight unit tests pass | Bind identity preservation artifacts; exercise missing live denial branches without destructive resize | not-run |
-| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 passed; transfer tests cover changed files, verified receipts and matching existing blobs | Installed-GUI cancellation/partial transfer/reconciliation, with no load before complete receipts | not-run |
+| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 passed; installed signed-in GUI file/folder cancellations preserve all 18 mappings and all 64 retained JSON files; transfer unit tests cover changed files and reconciliation | Installed-GUI interrupted transfer, changed/hash mismatch and reconciliation; no load before complete receipts | partial |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Unit tests plus isolated real VS Code Extension Host panels cover complete counts, wrong-job, stale, missing counts, incomplete coverage, count mismatch, rejects, failed checks, truncated and hash-mismatched evidence; misleading verified tab title fixed | Signed-in installed-candidate retest and remaining digest/controller import failures; synthetic reports are not Azure fault evidence | partial |
 
 ## First local regression batch
+
+Latest non-mutating GUI audit: [source locations and CSV cancellation](branch-gui-audit-20260916.md).
+All eight allowed source/location selections were inspected in signed-in VS Code
+1.138.0. Neo4j/PostgreSQL endpoint-only selections hide source ARM discovery;
+Cosmos is Azure-only and CSV local-only. Four new preflight request-trace tests
+exclude source ARM reads, two prove equivalent endpoint-only configurations,
+and one checks new-wizard CSV cancellation. All 227 unit tests and nine real
+CLI-validator contracts pass. Three native file-dialog cancellations preserve
+all saved workflow/report bytes. This is not an additional cloud migration,
+interrupted-upload qualification or complete B03/B08 acceptance.
 
 September 16 network-trial preparation also reproduced and fixed a stale
 workflow-selection defect when reopening the new wizard. The signed-in Mac
