@@ -7,6 +7,14 @@ import {targetDSN} from "./runnerExecution";
 
 export interface TargetDiagnostic {commandId:string;operation:string;phase:"submitted"|"unknown"|"finished"|"failed";submittedAt:string;result?:unknown}
 
+/** A fresh read needs explicit approval; an uncertain submission is GET-only. */
+export function needsTargetDiagnosis(r:RunnerRecord,now=Date.now()):boolean{
+  const d=r.targetDiagnostic;
+  if(!d)return true;
+  const age=now-Date.parse(d.submittedAt);
+  return ["finished","failed"].includes(d.phase) && Number.isFinite(age) && age>900000;
+}
+
 /** Explicit operator reconciliation only for an empty target, never a resume or
  * a failed load with retained metadata. All previous evidence remains archived. */
 export async function archiveEmptyTargetFailure(control:RunnerControl,r:RunnerRecord):Promise<RunnerRecord>{
@@ -55,7 +63,7 @@ AF_DOCTOR
 `;
 export async function diagnoseTarget(control:RunnerControl,r:RunnerRecord,password?:string):Promise<RunnerRecord>{
   if(r.target?.phase!=="provisioned" || !r.migration || !["failed","finished"].includes(r.migration.phase))throw new Error("A terminal retained migration is required for target diagnosis.");
-  if(r.targetDiagnostic){
+  if(r.targetDiagnostic && !needsTargetDiagnosis(r)){
     const d=r.targetDiagnostic;
     if(!d.commandId.startsWith(r.vmId+"/runCommands/af-"))throw new Error("Diagnostic identity changed.");
     const response=await control.request(r.input.subscriptionId,`${d.commandId}?api-version=2024-07-01&$expand=instanceView`),view=object(object(object(response.value).properties).instanceView);
@@ -71,7 +79,7 @@ export async function diagnoseTarget(control:RunnerControl,r:RunnerRecord,passwo
   if((await control.list(r.input.subscriptionId,`${r.vmId}/runCommands?api-version=2024-07-01`)).length>=25)throw new Error("Archive completed command evidence before another diagnostic.");
   const operation=randomUUID(),commandId=`${r.vmId}/runCommands/af-${operation}`;
   if((await control.request(r.input.subscriptionId,`${commandId}?api-version=2024-07-01`)).status!==404)throw new Error("Diagnostic command already exists.");
-  const next:RunnerRecord={...r,targetDiagnostic:{operation,commandId,phase:"submitted",submittedAt:new Date().toISOString()}};await control.persist(next);
+  const next:RunnerRecord={...r,targetDiagnosticHistory:[...r.targetDiagnosticHistory??[],...r.targetDiagnostic?[r.targetDiagnostic]:[]],targetDiagnostic:{operation,commandId,phase:"submitted",submittedAt:new Date().toISOString()}};await control.persist(next);
   try{
     const response=await control.request(r.input.subscriptionId,`${commandId}?api-version=2024-07-01`,"PUT",{location:r.input.region,properties:{source:{script:targetDiagnosticScript},protectedParameters:[{name:"AF_DIAGNOSTIC",value:Buffer.from(JSON.stringify({workflow:r.id,operation,job:r.migration.jobId,dsn:targetDSN(r,password)})).toString("base64")}],timeoutInSeconds:180,asyncExecution:false}});
     if(response.status<200 || response.status>=300)throw new Error();

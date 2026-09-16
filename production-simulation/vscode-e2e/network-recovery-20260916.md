@@ -263,6 +263,40 @@ deliberately rejects all pre-existing migration operations, so it must not be
 blindly rearmed or have its checks bypassed. Review an evidence-bound retry
 procedure before a separately approved new load. B11 remains partial.
 
+### R2 retry preparation — September 16, 10:53 UTC
+
+The user confirmed the source credential. The previous diagnostic had expired,
+and the installed controller only reconciled the old diagnostic instead of
+providing a fresh read. The controller now requests explicit approval for a
+fresh read after a terminal diagnostic expires, preserves the original in
+`targetDiagnosticHistory`, and persists a new unique intent before submission.
+Uncertain/pending submissions remain GET-only and are never replayed. The
+15-minute empty-target and 5-minute guest freshness gates are unchanged.
+
+Typecheck, build and all 220 extension unit tests passed, including expiry,
+history preservation and lost-response cases. The updated VSIX was installed
+and the actual VS Code window reloaded. Installed bundle SHA-256 matches
+`f1468e18046b352d93706d8123a6c8b6a460751190f6ab7b0646e2033de885ea`;
+VSIX SHA-256 is `9f40418746d80e2d8175dc6da567769a227ccb77f76379f4a9079d298d98b53b`.
+The same R2 workflow was explicitly reconnected; no hidden metadata editing.
+
+The trial-only waiter also gained a narrowly bound empty-failure exclusion:
+only the exact retained authentication failure with matching configuration and
+stderr hashes can be excluded, and only with a fresh hash-bound doctor report
+proving the exact graph and metadata absent. Other pre-existing loads still
+prevent arming. This uses a new create-only arming filename, preserves all
+old evidence and fails promptly if a new job terminates before binding.
+Twenty observer tests and five binding/proof tests pass. This is not live
+network qualification or permission to reuse a graph containing data.
+
+Fresh ARM checks confirmed the same private D4s_v5 runner, Ready E8ds_v5 target,
+and no RG locks. Activity logs show a separate actor added an NSG to the target
+subnet at 10:13 UTC. Its custom rule list is empty, the delegated subnet remains
+`10.246.21.0/24`, and public target access remains disabled. No policy exception
+or network change was made here. Guest readiness at 10:53:17.471 UTC passed;
+the native fresh diagnosis was then approved, preserving the earlier diagnostic.
+Arming and a new migration remain subsequent steps.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source

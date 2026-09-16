@@ -74,6 +74,7 @@ export interface RunnerRecord {
   migrationContinuations?: RunnerMigration[];
   resumeInspection?: import("./runnerResume").ResumeInspection;
   targetDiagnostic?: TargetDiagnostic;
+  targetDiagnosticHistory?: TargetDiagnostic[];
   p1Qualification?: P1Qualification;
   p1QualificationHistory?: P1Qualification[];
   p1Diagnostic?: P1Diagnostic;

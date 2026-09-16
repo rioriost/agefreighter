@@ -1,10 +1,13 @@
 """Local binding tests, not live recovery evidence."""
 import copy
+import datetime as dt
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("watcher", Path(__file__).with_name("await-network-load.py"))
 watcher = importlib.util.module_from_spec(spec)
@@ -60,6 +63,48 @@ class Binding(unittest.TestCase):
                 else:
                     with self.assertRaises(AssertionError):
                         watcher.candidates(root)
+
+    def test_empty_failure_requires_fresh_bound_proof_and_retains_failed_operation(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            previous = root / watcher.EMPTY_FAILURE
+            previous.mkdir()
+            state = dict(workflow=watcher.WORKFLOW, operation=watcher.EMPTY_FAILURE,
+                         jobId=watcher.EMPTY_FAILURE, action="migrate-source", phase="failed",
+                         exitCode=1, finishedAt="2026-09-16T09:57:38+00:00",
+                         configSha256="19ce9281467d7969ae733bae303ae27471f961c2ecade0610b2e721cd42038f5")
+            (previous / "state.json").write_text(json.dumps(state))
+            (previous / "job.json").write_bytes(b"config")
+            (previous / "load.stderr.log").write_bytes(b"auth-error")
+            (previous / "load.json").write_bytes(b"")
+            proof = root / "diagnostic-11111111-1111-4111-8111-111111111111" / "doctor.json"
+            proof.parent.mkdir()
+            doc = dict(command="doctor", generatedAt="2026-09-16T10:00:00+00:00", errors=[], checks=[
+                dict(id="metadata-schema", status="unavailable", detail="installed=0 supported=21 pending=0; doctor does not migrate"),
+                dict(id="target-graph", status="pass", summary='target graph "' + watcher.GRAPH + '" is absent')])
+            proof.write_text(json.dumps(doc))
+            real_sha = hashlib.sha256
+            digest = real_sha(proof.read_bytes()).hexdigest()
+            class Digest:
+                def __init__(self, value): self.value = value
+                def hexdigest(self): return self.value
+            def synthetic_sha(data):
+                if data == b"config": return Digest(state["configSha256"])
+                if data == b"auth-error": return Digest("7cade80c58ef868a3d8b00a76bc73129025d8d798ff35e2dce68d472bc222875")
+                return real_sha(data)
+            now = dt.datetime.fromisoformat("2026-09-16T10:01:00+00:00")
+            with patch.object(watcher.hashlib, "sha256", synthetic_sha):
+                self.assertEqual(watcher.empty_failure(root, proof, digest, now, dt.datetime.fromisoformat), watcher.EMPTY_FAILURE)
+                for bad_digest, bad_now in [("0" * 64, now), (digest, now+dt.timedelta(minutes=16)), (digest, now-dt.timedelta(minutes=2))]:
+                    with self.assertRaises(AssertionError): watcher.empty_failure(root, proof, bad_digest, bad_now, dt.datetime.fromisoformat)
+                (root / "active").write_text("another")
+                with self.assertRaises(AssertionError): watcher.empty_failure(root, proof, digest, now, dt.datetime.fromisoformat)
+            self.assertEqual(len(watcher.candidates(root)), 1)
+            self.assertEqual(watcher.candidates(root, watcher.EMPTY_FAILURE), [])
+            self.assertTrue((previous / "state.json").exists())
+            state["phase"] = "running"
+            (previous / "state.json").write_text(json.dumps(state))
+            with self.assertRaises(AssertionError): watcher.candidates(root, watcher.EMPTY_FAILURE)
 
 
 if __name__ == "__main__":

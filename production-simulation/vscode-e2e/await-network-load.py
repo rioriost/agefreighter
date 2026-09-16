@@ -25,6 +25,33 @@ WORKFLOW = "b2c7214e-83f5-4613-b378-98d36e0cd97d"
 TARGET = "afpg-b2c7214e83f54613b378.postgres.database.azure.com"
 GRAPH = "neo4j526_network_recovery_p1_r2"
 UUID = r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}"
+EMPTY_FAILURE = "068ff3f1-41b5-4685-a3eb-e140543d3def"
+
+
+def empty_failure(root, proof, digest, now, timestamp):
+    """Only the reviewed pre-load authentication failure, with fresh empty DB proof."""
+    assert proof.parent.parent == root and re.fullmatch("diagnostic-" + UUID, proof.parent.name)
+    assert proof.name == "doctor.json" and not proof.is_symlink()
+    assert hashlib.sha256(proof.read_bytes()).hexdigest() == digest
+    doc = json.loads(proof.read_text())
+    assert doc["command"] == "doctor" and doc.get("errors") == []
+    assert 0 <= (now - timestamp(doc["generatedAt"])).total_seconds() <= 900
+    checks = {c["id"]: c for c in doc["checks"]}
+    assert checks["metadata-schema"]["status"] == "unavailable"
+    assert checks["metadata-schema"]["detail"] == "installed=0 supported=21 pending=0; doctor does not migrate"
+    assert checks["target-graph"]["status"] == "pass"
+    assert checks["target-graph"]["summary"] == 'target graph "' + GRAPH + '" is absent'
+    directory = root / EMPTY_FAILURE
+    state = json.loads((directory / "state.json").read_text())
+    assert state["workflow"] == WORKFLOW and state["operation"] == state["jobId"] == EMPTY_FAILURE
+    assert state["action"] == "migrate-source" and state["phase"] == "failed" and state["exitCode"] == 1
+    assert timestamp(doc["generatedAt"]) > timestamp(state["finishedAt"])
+    assert state["configSha256"] == hashlib.sha256((directory / "job.json").read_bytes()).hexdigest() == "19ce9281467d7969ae733bae303ae27471f961c2ecade0610b2e721cd42038f5"
+    assert hashlib.sha256((directory / "load.stderr.log").read_bytes()).hexdigest() == "7cade80c58ef868a3d8b00a76bc73129025d8d798ff35e2dce68d472bc222875"
+    assert (directory / "load.json").stat().st_size == 0
+    assert not (directory / "secrets.json").exists() and not list(directory.glob("qualification-network-*.json"))
+    assert not (root / "active").exists() and not (root / "qualification-network-selected.json").exists()
+    return EMPTY_FAILURE
 
 
 def binding(state, configuration, boot):
@@ -39,11 +66,14 @@ def binding(state, configuration, boot):
     assert configuration["target"]["graph"] == GRAPH
 
 
-def candidates(root):
+def candidates(root, excluded=None):
     found = []
     for path in root.glob("*/state.json"):
         state = json.loads(path.read_text())
         if state.get("action") in ("migrate-source", "migrate-csv", "resume-migration"):
+            if excluded is not None and path.parent.name == excluded:
+                assert state["operation"] == state["jobId"] == excluded and state["phase"] == "failed"
+                continue
             found.append((path.parent, state))
     assert len(found) <= 1, "More than one migration operation requires manual review"
     return found
@@ -54,6 +84,8 @@ def main():
     parser.add_argument("--boot", required=True)
     parser.add_argument("--deadline", required=True)
     parser.add_argument("--observer-sha256", required=True)
+    parser.add_argument("--empty-failure-proof")
+    parser.add_argument("--proof-sha256")
     args = parser.parse_args()
     assert __debug__ and os.geteuid() == 0 and re.fullmatch(UUID, args.boot)
     observer_path = Path(__file__).with_name("observe-recovery-guest.py")
@@ -62,19 +94,24 @@ def main():
     observer = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(observer)
     root = Path("/var/lib/agefreighter/workflows") / WORKFLOW
-    assert root.is_dir() and not candidates(root), "Never attach to a pre-existing load"
     started = dt.datetime.now(dt.timezone.utc)
+    assert bool(args.empty_failure_proof) == bool(args.proof_sha256)
+    excluded = empty_failure(root, Path(args.empty_failure_proof), args.proof_sha256, started, observer.timestamp) if args.empty_failure_proof else None
+    assert root.is_dir() and not candidates(root, excluded), "Never attach to a pre-existing load"
     deadline = observer.timestamp(args.deadline)
     assert started < deadline <= started + dt.timedelta(minutes=16)
-    observer.seal(root / "qualification-network-armed.json", {
+    armed_name = "qualification-network-armed-after-auth.json" if excluded else "qualification-network-armed.json"
+    observer.seal(root / armed_name, {
         "workflow": WORKFLOW, "boot": args.boot, "startedAt": started.isoformat(),
         "deadline": args.deadline, "observerSHA256": args.observer_sha256,
-        "target": TARGET, "graph": GRAPH, "startsMigration": False})
+        "target": TARGET, "graph": GRAPH, "startsMigration": False,
+        "excludedEmptyFailure": excluded, "emptyProofSHA256": args.proof_sha256})
     while dt.datetime.now(dt.timezone.utc) < deadline:
         assert Path("/proc/sys/kernel/random/boot_id").read_text().strip() == args.boot
-        found = candidates(root)
+        found = candidates(root, excluded)
         if found:
             directory, state = found[0]
+            assert state["phase"] in ("accepted", "running"), "New operation stopped before watcher binding"
             # The worker persists state before its config/secrets; wait only for
             # those create-only files, not for a different or replacement job.
             if not all((directory / name).is_file() for name in ("job.json", "secrets.json")):

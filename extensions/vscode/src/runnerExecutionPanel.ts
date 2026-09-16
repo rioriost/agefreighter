@@ -10,7 +10,7 @@ import {startReportExport,refreshReportExport,importReport} from "./core/runnerR
 import {escapeHTML} from "./core/report";
 import {targetComputeRate} from "./core/runnerTargetPreflight";
 import {renewTargetAuthorization} from "./core/runnerTarget";
-import {diagnoseTarget,archiveEmptyTargetFailure} from "./core/runnerDiagnostic";
+import {diagnoseTarget,archiveEmptyTargetFailure,needsTargetDiagnosis} from "./core/runnerDiagnostic";
 import {qualifyP1} from "./p1QualificationPanel";
 import {diagnoseP1} from "./p1DiagnosticPanel";
 import {inspectSourceCA} from "./core/runnerSource";
@@ -105,11 +105,13 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
     if(await confirm("Archive this preparation failure without deleting or resuming anything?",`Requires fresh read-only proof that the target graph and metadata schema are absent. Retains the failed job and diagnostic in history and all guest evidence. This permits a separately approved runner repair and a new create-only job, not replay or replacement of existing data.`)!=="Approve this step")return;
     r=await store.exclusive(r.id,async()=>archiveEmptyTargetFailure(control,await store.read(r.id)));
   }else if(action==="Diagnose retained target (read only)"){
-    if(!r.targetDiagnostic && await confirm("Read-only diagnosis of the retained target?",`Run the pinned Linux CLI doctor without --persist against the existing target. No load, resume, AGE preparation or resource changes. Private credentials remain in SecretStorage/protected transport. Raw redacted evidence stays on the guest.`)!=="Approve this step")return;
+    const newRead=needsTargetDiagnosis(r);
+    if(newRead && await confirm("Read-only diagnosis of the retained target?",`Run the pinned Linux CLI doctor without --persist against the existing target. No load, resume, AGE preparation or resource changes. Prior expired diagnostics remain in history. Private credentials remain in SecretStorage/protected transport. Raw redacted evidence stays on the guest.`)!=="Approve this step")return;
     r=await store.exclusive(r.id,async()=>{
       const latest=await store.read(r.id);
       const key=`runner-target/${r.id}/${createHash("sha256").update(latest.target!.serverId).digest("hex")}`;
-      return diagnoseTarget(control,latest,latest.targetDiagnostic?undefined:await context.secrets.get(key));
+      if(needsTargetDiagnosis(latest)&&!newRead)throw new Error("Diagnostic expired; select diagnosis again to approve a fresh read.");
+      return diagnoseTarget(control,latest,needsTargetDiagnosis(latest)?await context.secrets.get(key):undefined);
     });
     if(r.targetDiagnostic?.result){
       const view=vscode.window.createWebviewPanel("agefreighter.targetDiagnostic","AGEFreighter target diagnostic",vscode.ViewColumn.Beside,{enableScripts:false,localResourceRoots:[]});
