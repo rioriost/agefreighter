@@ -297,6 +297,26 @@ or network change was made here. Guest readiness at 10:53:17.471 UTC passed;
 the native fresh diagnosis was then approved, preserving the earlier diagnostic.
 Arming and a new migration remain subsequent steps.
 
+Fresh diagnostic `945aecc1-87ef-4f9f-8478-ebae27c032e1`, submitted 10:54:20.200
+UTC, completed with exit 0 and no errors. SHA-256 is
+`81d4be4f37b71b5254ff7a3332fe875c772f41620c1572faf99a0df9017e28bd`.
+It again proves the exact graph and metadata schema absent. The installed GUI
+then archived only the empty-target failure into `migrationHistory`, retaining
+its original job and this diagnostic; the older diagnostic remains separately
+in `targetDiagnosticHistory`. No guest file was removed or altered.
+
+After fresh cloud and guest gates, the revised waiter was installed create-only
+beside the unchanged observer in `qualification-network-tools-arm3` and its
+fresh proof was independently validated on the actual Linux guest. Waiter
+SHA-256 is `2294e5d23e9ac6daf3ea2b51772c329b3eb2e3be7c42ed65bbdb8e89dec6d6b1`.
+The one-shot `af-network-watch-20260916-b2c7214e-arm3` is active with deadline
+**2026-09-16T11:12:09.856267Z**. Only the exact proven empty authentication
+failure is excluded; there is no other pre-existing migration. Both earlier
+watch units are inactive, no fault rule exists, and all earlier records/logs
+are preserved. The GUI's new-load preflight/review passed and the protected
+source-password input is the next user action. No migration or fault is claimed
+by this preparation, and no budget/deployment deadline changed.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source
