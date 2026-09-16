@@ -64,3 +64,36 @@ connectivity fault with automatic restoration before injecting anything.
 Retain the USD 800 ceiling and September 20 07:14:35.311 UTC outer deadline;
 do not disable the existing daily shutdown implicitly. B09/B10/B11/B12 remain
 partial/open according to their individual acceptance requirements.
+
+## Next network-source draft
+
+The installed GUI subsequently created a new local draft, separate from all
+accepted jobs:
+
+- Workflow: `8a9ae99e-c621-4a94-afd1-a30ff210a201`.
+- Name: `neo4j526-network-recovery-p1-r1`; namespace: `n526_recovery`.
+- Azure candidate: existing `af-n526-source`, selected from the trial group's
+  actual resource list. The GUI defaulted placement to Japan East / zone 1.
+- Existing runner subnet; initial proposed size B2s_v2. No deployment preview,
+  price approval or runner creation has occurred yet.
+- Stable vertex/edge key: `source_key`; TLS CA selected through the file dialog,
+  1,513 bytes, SHA-256
+  `0b196d1e310a5a68732879c7bf0aa8c9f1fc67bbfe436fe560a31de7afa05b68`.
+- Source settings reviewed locally; no password entered, discovery run, target,
+  migration or fault injection. A local `canAssess` draft flag is not proof of
+  guest readiness or source reachability.
+
+The native final storage confirmation is awaiting action-time approval for
+`af8a9ae99ec6214a94afd1a3` and signed-in-user Blob Data Contributor on this
+new account only. The endpoint is HTTPS network-public, authenticated, with
+anonymous access/shared keys disabled; no source exposure is added. No storage
+or role request has been submitted. The GUI permissions boundary was presented
+to the user; it must not be bypassed through another control path.
+
+An independent metadata read confirms the new record is only `draft`, with no
+storage intent, guest command, target or migration. Excluding this new record,
+the original 14 workflow records still have the exact aggregate hash above.
+RG locks were empty and the CLI subscription ID matches the authorized trial.
+Recheck health, deadline, budget and external governance before later cloud
+mutations. Existing compute remains stopped; this is preparation, not recovery
+qualification.
