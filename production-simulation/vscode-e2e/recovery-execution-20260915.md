@@ -1,9 +1,11 @@
 # Installed-GUI recovery qualification
 
-Status: private target and same-VM resize complete; first CSV migration and
-GUI-imported exact-count verification and full canonical verification pass.
-The process-fault observation window was missed and no fault was injected.
-Live recovery qualification remains **not completed**.
+Current status (2026-09-16): CSV recovery r2 **PASS**, including actual SIGTERM,
+loader reboot, two explicit same-job continuations, complete counts and the full
+64-range canonical digest. Its runner and target are stopped; all evidence is
+retained. Network-source recovery remains open. The chronological sections
+below preserve the earlier r1 missed-fault trial and superseded intermediate
+states; they are not the current outcome.
 
 ## Candidate and preflight
 

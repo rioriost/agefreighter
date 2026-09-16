@@ -1,10 +1,12 @@
 # VS Code guided migration P1 qualification
 
-Status (2026-09-15): all nine P1 base GUI routes qualified. Additional branch,
+Status (2026-09-16): all nine P1 base GUI routes and CSV process/reboot recovery qualified. Additional branch,
 failure and recovery qualification is in progress, not complete. See the
 [remaining-case ledger](remaining-validation.md) and [progress](progress.md).
-The renewed authorized window expires at 2026-09-16T07:14:35.311Z; its ceiling
-is USD 800. The original September 9 deadline is historical, not current authority.
+The user extended the authorized window to 2026-09-20T07:14:35.311Z; its ceiling
+remains USD 800 (not another USD 800). Earlier September 9 and September 16
+deadlines are historical, not current authority. Individual run plans may retain
+shorter deadlines; do not silently extend those plans.
 Branch: `codex/2.4.0-guided-migration`. Date: 2026-09-05.
 
 ## Authorization and stop conditions

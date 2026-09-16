@@ -71,9 +71,16 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 live SIGTERM + VM reboot, both same-job GUI resumes, counts and 64-range digest PASS; network-source fault not yet qualified | Qualify the separate network-source interruption and explicit same-job recovery with full P1 verification | partial |
-| B12 | Invalid verification must never be PASS | Verification/report unit tests cover mismatch, rejects, incomplete, wrong-job, stale, changed/truncated evidence | Installed-host presentation/interaction tests for representative rejected results; no forged success in retained base workflows | not-run |
+| B12 | Invalid verification must never be PASS | Unit tests plus isolated real VS Code Extension Host panels cover complete counts, wrong-job, stale, missing counts, incomplete coverage, count mismatch, rejects, failed checks, truncated and hash-mismatched evidence; misleading verified tab title fixed | Signed-in installed-candidate retest and remaining digest/controller import failures; synthetic reports are not Azure fault evidence | partial |
 
 ## First local regression batch
+
+The subsequent September 16 B12 presentation batch found and corrected an
+unconditional verified-tab title for failed/incomplete reports. Unit tests are
+211/211 PASS; isolated VS Code 1.105.0, 1.136.1 and current 1.137.0 hosts each
+pass 13 tests.
+See [scope, negative cases and review](verification-presentation-20260916.md).
+This is not a signed-in profile installation or an Azure fault result.
 
 Code baseline: `73aa6d690cad947a5d5d6a7371dc7adf7f191627`, plus the new
 `extensions/vscode/src/test/unit/runnerReconnect.test.ts` in this change.

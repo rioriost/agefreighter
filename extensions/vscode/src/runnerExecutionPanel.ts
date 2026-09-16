@@ -16,6 +16,7 @@ import {diagnoseP1} from "./p1DiagnosticPanel";
 import {inspectSourceCA} from "./core/runnerSource";
 import {ensureAssessmentReadiness} from "./core/runnerAssessment";
 import {inspectResume,recoveryReadiness,resumeAdmission,resumeMigration} from "./core/runnerResume";
+import {showMigrationVerification} from "./migrationVerificationPanel";
 
 /** Native choices are intentionally separate approvals. Reconnecting or closing
  * a panel cannot launch/resume a migration, resize, or repeat a lost operation. */
@@ -127,8 +128,8 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
       const text=await store.readReport(latest.id,manifest),next=verifyMigrationReport(latest,text);await control.persist(next);return next;
     });
     if(r.migration?.verification){
-      const text=await store.readReport(r.id,manifest),view=vscode.window.createWebviewPanel("agefreighter.verifiedMigration","Verified AGEFreighter migration",vscode.ViewColumn.Beside,{enableScripts:false,localResourceRoots:[]});
-      view.webview.html=`<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'"><h1>${escapeHTML(r.migration.verification.summary)}</h1><pre>${escapeHTML(text)}</pre>`;
+      const text=await store.readReport(r.id,manifest);
+      showMigrationVerification(r.migration.verification,text);
     }
   }
   void vscode.window.showInformationMessage(`Target preload: ${r.targetRestart?.phase??"not checked"}; runner resize: ${r.resize?.phase??"not started"}; migration: ${r.migration?.phase??"not started"}; counts: ${r.migration?.verification?.outcome??"not verified"}. Independent P1 property digest is a separate qualification gate.`);
