@@ -1,6 +1,6 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **r1 retained without a network fault; fresh r2 storage/artifact ready; network recovery not qualified**.
+Status: **r1 retained without a network fault; r2 stopped at source authentication before loading; network recovery not qualified**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -227,6 +227,41 @@ The unchanged waiter/observer were rearmed at 09:55:41.608015 UTC as
 operator review. This remains preparation, not network-recovery acceptance.
 The same 5,600,000-row new-load review was accepted in the installed GUI;
 protected password entry remains the user's next step.
+
+### R2 source authentication rejected before loading — September 16, 09:57 UTC
+
+Following protected user input, the installed GUI submitted fresh operation/job
+`068ff3f1-41b5-4685-a3eb-e140543d3def` at 09:57:28.815 UTC. Guest configuration
+SHA-256 is `19ce9281467d7969ae733bae303ae27471f961c2ecade0610b2e721cd42038f5`.
+The worker started at 09:57:38.464198576 and failed at 09:57:38.829911173 UTC,
+exit 1. Target preparation completed, but the loader's 125-byte stderr contains
+`Neo.ClientError.Security.Unauthorized`. Its SHA-256 is
+`7cade80c58ef868a3d8b00a76bc73129025d8d798ff35e2dce68d472bc222875`.
+Only the allowlisted error code was exported; raw credentials/stderr were not.
+This proves authentication rejection, not which password-entry mistake or
+credential-state change caused it. No credential was reset.
+
+The waiter had not selected this short-lived operation: no selection or fault
+files and no `af-network-` rule were present. It was explicitly stopped after
+checking the failed operation, and inactive/dead was confirmed. All arming,
+failure and configuration evidence remains retained. No automatic load retry,
+checkpoint resume, graph replacement or fault injection occurred.
+
+GUI reconciliation now shows failed. Read-only recovery readiness at
+10:01:32.912 UTC passed: idle, disk 3.5280%, zero swap/OOM. The installed GUI
+submitted and reconciled target diagnostic
+`5b417b5c-f752-4b67-8db9-cbd49c5840f5` (submitted 10:02:53.974 UTC). Its 4,779-byte
+report SHA-256 is `7807491aea7b78b86a12d0e799590b3842cfab3b95e67808a1495b33b0e39fba`.
+AGE installation/loadability/preload pass; the target graph and metadata schema
+are absent (installed=0, supported=21), with no errors. Diagnostic outcome is
+incomplete as expected for an empty target, not migration PASS.
+
+Next: confirm the original source credential through protected user entry.
+If retrying, first use the product's explicit empty-target archival gate while
+its diagnostic is fresh; preserve the failed operation. The existing waiter
+deliberately rejects all pre-existing migration operations, so it must not be
+blindly rearmed or have its checks bypassed. Review an evidence-bound retry
+procedure before a separately approved new load. B11 remains partial.
 
 ## Scope and boundaries
 

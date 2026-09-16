@@ -61,6 +61,13 @@ The completed graph and original watcher evidence are preserved; B11 remains
 partial and requires a fresh, separately bound fault trial, explicit same-job
 recovery and canonical verification. See [network execution record](network-recovery-20260916.md).
 
+R2 subsequently reached private-target readiness but its initial load was
+rejected by Neo4j authentication before graph/metadata creation. The installed
+GUI reconciled failure and a read-only diagnostic proved the target empty.
+No network fault was injected; the watcher is stopped and evidence preserved.
+Source-credential confirmation and a reviewed, evidence-bound retry are needed;
+this does not change B11's partial status.
+
 ## Branch-to-evidence ledger
 
 "Not-run" means additional live qualification is not established by this audit,
