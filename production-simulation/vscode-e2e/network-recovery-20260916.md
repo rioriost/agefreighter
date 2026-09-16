@@ -11,8 +11,10 @@ base routes and CSV recovery r2 retain their existing acceptance evidence.
 - Existing dedicated trial group, Japan East / zone 1, existing runner subnet.
 - Current user ceiling USD 800, outer deadline
   `2026-09-20T07:14:35.311Z`; conservative reserve USD 600, not measured billing.
-- Existing daily 07:00 UTC VM shutdown remains unchanged. Do not start a fault
-  trial that cannot safely reach a retained checkpoint before that boundary.
+- The new runner's daily shutdown is 07:00 UTC. A direct schedule read on
+  September 16 confirmed the existing source's shutdown is **16:00 UTC**, not
+  07:00 UTC; the source schedule was not changed. Do not start a fault trial
+  that cannot safely reach a retained checkpoint before the runner boundary.
 - No accepted graph may be reused, faulted or overwritten. Preserve all
   failed-run evidence, original identity/configuration and explicit GUI resume.
 
@@ -92,9 +94,7 @@ protected password input; no source inventory, target deployment, migration
 or network fault has started. Credentials must be supplied directly in VS Code,
 not in a report or chat. Previously accepted targets remain untouched.
 
-## Observer preparation
-
-### Inventory attempt 1 — authentication rejected
+## Inventory attempt 1 — authentication rejected
 
 After the user confirmed private password entry, the installed GUI refreshed
 readiness and submitted operation `10645afd-82c6-464c-a181-f57348609cbd`.
@@ -114,7 +114,55 @@ Keychain item `agefreighter-op-n526-neo4j` belongs only to the separately reset
 OP-N526 clone. It must not be represented as the original source credential.
 The next attempt requires the correct original credential, or explicit approval
 for original-source credential recovery. Clone-only reset approval does not
-authorize resetting this source. Running VMs retain the 07:00 UTC shutdown.
+authorize resetting this source. The schedules are recorded in Scope above.
+
+## Authorized original-source password recovery
+
+The user explicitly approved resetting **this original AZ-N526 source** and
+saving the new password before proceeding. Fresh checks confirmed the exact
+subscription/resource/container, no RG locks, no intervening write/delete
+governance events in the queried window, disk 6%, no swap/OOM and no active
+assessment. The trial's USD 800 ceiling and outer deadline are unchanged.
+
+A random 32-byte password was saved and read back through the macOS Keychain
+API before cloud mutation. **Service/label: `agefreighter-az-n526-neo4j`;
+account: `neo4j`.** This is separate from the OP-N526 item; that clone and its
+credential were not modified. The new secret was supplied as an Azure protected
+parameter through stdin, never as command-line arguments, chat output or a
+local request/password file. The local helper refuses to replace an existing
+Keychain item and must not be blindly rerun.
+
+Managed command `af-az-n526-password-reset-20260916` ran 05:36:00–05:36:57 UTC
+and finished Succeeded / exit 0. The reviewed recovery script SHA-256 is
+`c219538e7c55eed23de0d2cf449eba7f37d4b312bcf0fbb8060f04d43852a8e6`.
+It stopped the normal container, backed up the system database, used an
+unpublished loopback-only recovery container, reset only the native account,
+and restored normal authenticated service. Authenticated reads returned
+**1,600,000 vertices and 4,000,000 edges**. This is a count check, not a new
+canonical digest qualification.
+
+Guest evidence remains at
+`/var/lib/agefreighter/neo4j-password-recovery/20260916T053600Z`:
+
+- System backup SHA-256:
+  `27f09ec9d078999745c5505da1a9e96cdb4a893a88248f0733bf8a04f0362786`;
+  independent checksum verification passed.
+- Summary SHA-256:
+  `84e260bc8e6d01c60a242c37d67b710d5490107a03e86c149177d7726d5d0465`.
+- Independent post-check: normal container running, same image and port
+  bindings, zero restarts/OOM, disk 6%, swap 0.
+
+After success and independent evidence verification, the temporary managed
+command containing the protected credential was deleted; a fresh list confirms
+it is absent. The guest backup/logs and Keychain item are retained.
+
+The installed GUI refreshed same-boot idle readiness at 05:36:38 UTC, retained
+failed inventory `10645afd-82c6-464c-a181-f57348609cbd` in history, and prepared
+a new inventory without replaying it. The next inventory is waiting for the
+new Keychain credential at the protected VS Code password prompt. No target
+deployment, migration or network fault has started.
+
+## Observer preparation
 
 The retained guest observer now supports explicit **read-only** Neo4j
 observation. It binds the hashed configuration's actual source type and exact
