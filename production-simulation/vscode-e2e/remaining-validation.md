@@ -41,8 +41,13 @@ target/SecretStorage confirmation was approved by the user. After refreshing
 guest health, the installed GUI submitted the exact reviewed target; ARM
 reports successful completion. AGE preload/restart and the same-VM D4s_v5
 resize are complete, with fresh post-resize health at `2026-09-15T19:59:47Z`.
-The installed GUI is at the new CSV load's final execution confirmation;
-recovery load has not begun. No other surviving VM or retained target was started.
+The installed GUI started the CSV recovery load, retained a real SIGTERM at
+1,465,000 rows and a loader reboot at 3,405,000 rows, and explicitly resumed
+the same job after each fault. The final continuation and complete counts
+passed in the installed GUI (1.6M vertices, 4M edges, no rejects). Full
+64-range canonical verification awaits its action-time execution approval.
+See the execution record for immutable operation and evidence identities.
+No other surviving VM or retained target was started.
 
 ## Branch-to-evidence ledger
 

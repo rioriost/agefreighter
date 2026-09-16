@@ -875,3 +875,30 @@ range. Reboot execution used observer SHA-256
 the subsequent local docstring clarification does not change the guest artifact.
 These actual faults and first continuation are not yet full recovery qualification:
 the final continuation, complete counts and all canonical ranges remain required.
+
+The second explicit GUI continuation was submitted at
+`2026-09-15T22:40:58.680Z`, operation
+`a2e37bfa-dee0-4c36-8f84-fae39de6be84`. Its retained ARM receipt completed at
+22:41:14 UTC with exit 0 and `phase=accepted`, preserving the same durable job,
+generation 1, fingerprint and 3,405,000-row checkpoint. This is acceptance,
+not load or verification completion. After the Mac was unlocked again, the
+installed GUI reconciled acceptance and requested read-only status on
+September 16; no third resume or additional fault was submitted.
+
+At approximately `2026-09-16T00:50Z`, the installed GUI reconciled the final
+continuation as `finished`, exit 0. It transferred and imported the exact
+9,619-byte complete-counts report, SHA-256
+`ca78ef04a0976865667acc2e71ad4756b264dc22381f3b11cbcebf626f25eb31`.
+The GUI decision is **PASS: 1,600,000 vertices, 4,000,000 edges, no rejects**.
+This is still not full property-digest qualification. Fresh guest readiness at
+`2026-09-16T00:51:45.756Z` reports the same post-reboot boot ID, idle=true,
+disk 5.6266%, swap/OOM zero; target storage is 14.4366%, private access remains
+disabled and the server is Ready. RG locks are empty. The activity-log sample
+since the final resume showed only its expected Run Command write (activity
+logs may lag). Budget/deadlines remain unchanged.
+
+The GUI is at the independent verifier's action-time confirmation. Selected
+artifact commit `8a23a5109798ec906109532e4cc6c32308b3c824`, SHA-256
+`60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d`,
+matches the previously reviewed verifier. Approval was requested for executing
+it against this new recovery job; no P1 verification has been submitted yet.
