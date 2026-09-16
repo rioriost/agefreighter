@@ -130,6 +130,56 @@ Do not replay the submission. AGE readiness, same-VM resize, new load and
 network recovery remain subsequent gates. The local watcher regressions were
 re-run: 4 binding plus 20 observer tests pass; this is not live fault evidence.
 
+The reviewed observer and R2 waiter were placed create-only in the new runner's
+`qualification-network-tools` directory, after asserting no active operation
+and no existing migration. Guest byte hashes match local:
+
+- Observer: `eff22e0f7770c40343addba53328b2dbed548065db7a6182f071aff2beac2035`.
+- R2 waiter: `128a09d1e5f0672dd3c20143f4b1ff240c3bdb149e1f342d2eba77eaf66d3735`.
+
+Actual guest timestamp normalization passed all fractional precisions 1–9.
+The watcher was not armed, and no network rule or fault timer was created.
+ARM subsequently confirmed the new PG18 / E8ds_v5 server Ready with public
+access Disabled, while the deployment was still applying AGE configuration.
+Reconcile the entire deployment before treating the target as provisioned.
+
+### R2 target and same-VM resize complete
+
+Installed-GUI target reconciliation reached provisioned. The separate approved
+AGE restart was submitted at 09:17:38.701 UTC and reconciled finished. A direct
+parameter read confirms `pg_stat_statements,age` with no pending restart.
+The source and accepted targets were untouched. The observed Azure policy
+deployment applied this new server's advanced-threat-protection setting;
+it was inspected and retained, not bypassed.
+
+The native same-VM resize began at 09:18:21.794 UTC, then separately reconciled
+deallocation, applied D4s_v5, and restarted the same VM. The product confirmed
+finished with preserved disk/NIC/identity digest
+`57fdc161fa0ed0bc2d0f626f14b6af7509b24efda0516b3123ecd38d82211dba`.
+The private IP remains `10.246.1.19`; there is no public IP. Post-boot readiness
+is being explicitly refreshed. No migration or network fault has started.
+
+Post-resize GUI readiness at 09:21:40.678 UTC passed on boot
+`3c50ec8b-3ca1-4997-907c-0ed6e2c013dc`, unchanged pinned CLI/commit/hash,
+idle guest, 3.5114% storage, zero swap/OOM. The target FQDN matches the R2
+waiter's exact binding and its ARM state is Ready / public access Disabled.
+Fresh lock and activity checks found no lock or unexplained scope change.
+
+After the fresh cloud and guest gates, the R2-only watcher was armed with
+deadline **2026-09-16T09:38:32.437Z**. Transient service
+`af-network-watch-20260916-b2c7214e.service` reported active/running,
+RuntimeMaxSec 960, memory 256 MiB and no swap. Guest admission verified the
+new boot, exact helper hashes, no previous migration, no active operation,
+storage/swap/OOM gates and exact source DNS. This starts no migration itself.
+The independent 45-second rule-removal timer is created only immediately before
+any eventual fault. No fault is claimed merely from arming the watcher.
+
+The installed GUI passed migration preflight and reviewed the same new target
+and 5,600,000-row inventory. The previously authorized new-load step was accepted;
+source credentials must still be provided through the protected GUI. Do not
+submit after the watcher deadline without inspecting its retained state and
+rechecking admission; never attach to a pre-existing load or overwrite evidence.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source
