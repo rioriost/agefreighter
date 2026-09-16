@@ -24,6 +24,15 @@ class Binding(unittest.TestCase):
     def test_exact_binding(self):
         watcher.binding(self.state, self.config, "boot")
 
+    def test_completed_r1_is_never_a_new_fault_target(self):
+        previous = "8a9ae99e-c621-4a94-afd1-a30ff210a201"
+        with self.assertRaises(AssertionError):
+            watcher.binding({**self.state, "workflow": previous}, self.config, "boot")
+        changed = copy.deepcopy(self.config)
+        changed["target"]["graph"] = "neo4j526_network_recovery_p1_r1"
+        with self.assertRaises(AssertionError):
+            watcher.binding(self.state, changed, "boot")
+
     def test_refuses_changed_operation_source_or_graph(self):
         for key, value in (("workflow", "other"), ("jobId", "other"), ("phase", "finished"),
                            ("bootId", "other"), ("operation", "../../other"), ("action", "resume-migration")):

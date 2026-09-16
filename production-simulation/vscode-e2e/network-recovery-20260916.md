@@ -1,8 +1,56 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **load finished; fault watcher failed closed before injection; network recovery not qualified**.
+Status: **r1 retained without a network fault; fresh r2 storage/artifact ready; network recovery not qualified**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
+
+## R2 checkpoint — September 16, 08:54 UTC
+
+The installed GUI created a fresh draft `b2c7214e-83f5-4613-b378-98d36e0cd97d`,
+named `neo4j526-network-recovery-p1-r2`, namespace `n526_recovery_r2`, graph
+`neo4j526_network_recovery_p1_r2`. The source remains the original
+`af-n526-source`; its reviewed CA and stable `source_key` mappings are unchanged.
+No local workflow metadata was edited and no completed graph was reused.
+
+Following the user's exact storage/role approval, the installed GUI submitted
+and reconciled `afb2c7214e83f54613b37898`. Independent ARM reads confirmed
+Succeeded, matching workflow ownership, and one User Blob Data Contributor
+assignment scoped to this account. Initially its public network access was
+Disabled; the existing trial-storage-only exception and outer expiry were
+merged only onto this account before restoring authenticated HTTPS access.
+Anonymous access/shared keys remain false, HTTPS-only and TLS 1.2 enforced.
+The GUI subsequently displayed ready / Enabled. The exact previously reviewed
+37,117,370-byte loader archive (commit `7538981cf0fc6c1bed3a50e6476861e84647a003`,
+SHA-256 `6f10538cc70c2125cc669a4d043352efdfce510131e1bec440af3674a4a48d21`)
+was uploaded through the installed GUI; persisted development upload is ready.
+Uploading an archive is not installation, source assessment or migration.
+
+No RG locks were present. The activity window showed the expected storage
+deployment/role operations and policy modify actions. Separate failed TLS
+configuration writes concerned older PostgreSQL servers, not this new draft;
+no actor attribution or changes to those retained servers were made. R1's
+Flexible Server was independently confirmed Stopped at 08:38 UTC; its runner
+and source had already been confirmed deallocated. All R1 evidence is retained.
+
+The local watcher is now bound only to R2 and rejects R1's workflow/graph.
+Observer tests passed 20/20 and binding tests 4/4. It has not been uploaded or
+armed: confirm the planned target hostname against the final target review,
+then recheck all cloud/guest/time/cost gates. No new VM/target/load has yet been
+submitted. The same USD 800 ceiling, USD 600 conservative reserve (not measured
+billing), and September 20 07:14:35.311 UTC outer deadline apply.
+
+Runner preflight subsequently passed. The GUI generated a fresh review at
+08:52:36.651 UTC for `af-b2c7214e83f54613b378`, B2s_v2 in Japan East / zone 1,
+USD 0.109/hour compute plus additional charges. The final native creation
+dialog is waiting for action-time approval of the pinned test installation and
+this new identity's exact-container Blob Reader grant. No VM was submitted.
+If the preview expires while waiting, regenerate it through the product and
+recheck that identity, artifact and scope are unchanged before proceeding.
+
+Next: obtain the action-time installation/scoped-identity approval,
+provision and assess, review a fresh target and same-VM resize, then
+exercise the corrected watcher and explicit same-job GUI recovery. Require
+exact counts plus all 64 canonical ranges before claiming network recovery.
 
 ## Scope and boundaries
 

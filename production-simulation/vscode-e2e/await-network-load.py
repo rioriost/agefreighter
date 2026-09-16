@@ -18,9 +18,12 @@ import sys
 import time
 from urllib.parse import urlsplit
 
-WORKFLOW = "8a9ae99e-c621-4a94-afd1-a30ff210a201"
-TARGET = "afpg-8a9ae99ec6214a94afd1.postgres.database.azure.com"
-GRAPH = "neo4j526_network_recovery_p1_r1"
+# R2 is a new installed-GUI draft. R1 completed without a fault and must never
+# be rearmed. Confirm these planned identities against the final target review
+# before uploading/arming; the original R1 guest files remain immutable.
+WORKFLOW = "b2c7214e-83f5-4613-b378-98d36e0cd97d"
+TARGET = "afpg-b2c7214e83f54613b378.postgres.database.azure.com"
+GRAPH = "neo4j526_network_recovery_p1_r2"
 UUID = r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}"
 
 
