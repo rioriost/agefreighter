@@ -1,6 +1,6 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-15 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+Updated: 2026-09-16 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
 All routes completed the installed-GUI workflow, complete counts verification,
 and full P1 canonical comparison (1.6M vertices, 4M edges, 64 ranges). This is
@@ -18,6 +18,13 @@ change the installed qualifying Linux artifact; see the ledger for exact scope.
 The subsequent increment implements explicit continuations and the native resume
 action with 206 passing extension tests and race-tested guest controls. These
 local results are not a live recovery pass; no retained base target was resumed.
+
+CSV recovery r2 is now separately **live-qualified**: actual SIGTERM and
+loader-VM reboot, two explicit installed-GUI same-job continuations, complete
+counts and all 64 canonical ranges PASS. The frozen root was independently
+recomputed locally. [Evidence](evidence/csv-recovery-r2-p1-pass-20260916.json).
+Network-source recovery and the other remaining branch cases are still open;
+this is not overall release qualification.
 
 | Route | Final evidence | Outcome |
 | --- | --- | --- |

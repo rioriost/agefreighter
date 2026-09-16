@@ -45,7 +45,10 @@ The installed GUI started the CSV recovery load, retained a real SIGTERM at
 1,465,000 rows and a loader reboot at 3,405,000 rows, and explicitly resumed
 the same job after each fault. The final continuation and complete counts
 passed in the installed GUI (1.6M vertices, 4M edges, no rejects). Full
-64-range canonical verification awaits its action-time execution approval.
+64-range canonical verification also **PASS**: all properties, identities and
+endpoints agree, with independent local recomputation of both roots. See
+[CSV recovery r2 evidence](evidence/csv-recovery-r2-p1-pass-20260916.json).
+This qualifies the CSV process/reboot recovery path, not network-source recovery.
 See the execution record for immutable operation and evidence identities.
 No other surviving VM or retained target was started.
 
@@ -67,7 +70,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 passed; transfer tests cover changed files, verified receipts and matching existing blobs | Installed-GUI cancellation/partial transfer/reconciliation, with no load before complete receipts | not-run |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
-| B11 | Loader/network interruption; explicit same-job recovery | Guest continuation and GUI explicit resume implemented; local tests pass, not live-qualified | Review/package candidate, run actual faults and unchanged database/graph/job/generation/fingerprint recovery, then full P1 verification | running |
+| B11 | Loader/network interruption; explicit same-job recovery | CSV r2 live SIGTERM + VM reboot, both same-job GUI resumes, counts and 64-range digest PASS; network-source fault not yet qualified | Qualify the separate network-source interruption and explicit same-job recovery with full P1 verification | partial |
 | B12 | Invalid verification must never be PASS | Verification/report unit tests cover mismatch, rejects, incomplete, wrong-job, stale, changed/truncated evidence | Installed-host presentation/interaction tests for representative rejected results; no forged success in retained base workflows | not-run |
 
 ## First local regression batch

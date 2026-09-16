@@ -902,3 +902,38 @@ artifact commit `8a23a5109798ec906109532e4cc6c32308b3c824`, SHA-256
 `60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d`,
 matches the previously reviewed verifier. Approval was requested for executing
 it against this new recovery job; no P1 verification has been submitted yet.
+
+The user then explicitly approved that exact verifier. The first attempt
+correctly refused stale idle-health evidence before submitting anything.
+GUI readiness was refreshed (same boot, disk 5.6271%, no swap/OOM, idle).
+The same approved verification was submitted at `2026-09-16T01:06:05.372Z`,
+operation `eedab7ff-8e0c-4cce-8a71-913c7beb6ca0`, against the unchanged job.
+The earlier confirmation was not treated as a load replay or a new target.
+
+### CSV recovery r2 full qualification PASS — September 16
+
+The verifier completed at `2026-09-16T01:08:44.198181977Z`. The installed GUI
+imported the 23,223-byte result and displays **P1 full canonical digest: PASS**.
+Report SHA-256: `f393908d0e34677b8c55473a38d94087e6698dd2017b8407e48648b45ef3c5d7`.
+All 5,600,000 records / 64 ranges agree, including typed properties, identities
+and endpoints. Independent local checks verified receipt size/hash/job and
+compared every expected/actual leaf; recomputed roots both equal
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+This closes the actual CSV SIGTERM/reboot recovery trial, not network-source
+recovery or all remaining GUI branches.
+
+Final GUI readiness at `2026-09-16T01:10:50.300Z` is idle, disk 7.2091%, no
+swap/OOM, unchanged boot and installed loader. Target storage is approximately
+14.3866%. Current local typecheck and 207 extension unit tests pass; the bounded
+observer tests are 7/7 PASS and the verifier/rangedigest Go tests pass (cached).
+Those regressions do not imply a new extension or loader was installed.
+
+After fresh ownership checks, deallocation of only this runner and stopping of
+only its Flexible Server were requested. Existing data, OS disk, guest evidence,
+private reports and all earlier failed operations are preserved.
+
+By `2026-09-16T01:16Z`, ARM readback confirmed this VM **deallocated** and its
+Flexible Server **Stopped**. The other five source VMs and fourteen PostgreSQL
+servers were already stopped in the same final inventory. No resource or disk
+was deleted by this qualification completion. Storage/Cosmos charges continue;
+Flexible Server warns that it automatically restarts after seven days.
