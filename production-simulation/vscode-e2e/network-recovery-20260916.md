@@ -52,6 +52,37 @@ provision and assess, review a fresh target and same-VM resize, then
 exercise the corrected watcher and explicit same-job GUI recovery. Require
 exact counts plus all 64 canonical ranges before claiming network recovery.
 
+### R2 runner ready — September 16, 09:00 UTC
+
+On continuation, the native GUI already showed the approved deployment
+submitted at 08:54:48.810 UTC. No duplicate deployment was submitted. GUI
+reconciliation at 08:55:22.719 confirmed provisioning. Independent ARM reads
+confirmed B2s_v2 / zone 1, matching workflow ownership, private IP `10.246.1.19`
+on the existing runner subnet and no public IP. Its new managed identity has
+one observed Blob Data Reader assignment on only the R2 workflow container.
+
+The first readiness operation `3919ad79-b7c1-466b-b579-de10d773cdaa` exited 127
+at 08:55:39: `/usr/local/bin/agefreighter-tools` was not yet installed. That
+failure is retained, not treated as readiness. A bounded guest inspection at
+08:57:03 found cloud-init done, the tool present, root disk 4%, zero swap and
+zero kernel OOM matches. A separate explicit GUI readiness read
+`8097ffad-db4a-4d44-973a-b1072a03e7e3`, submitted at 08:57:36.391, then passed:
+the pinned archive/commit match, boot `d393b504-1347-4656-b40d-fa881747d535`,
+Neo4j inventory/migration and explicit-resume capabilities, idle health,
+3.5087% storage, zero swap and OOM. This is readiness, not migration acceptance.
+
+The new runner has a verified Enabled daily 07:00 UTC shutdown. Only the
+existing original `af-n526-source` was started among fixtures, with its unchanged
+16:00 UTC shutdown, private `10.246.5.4`, no public IP and unchanged source
+network/credentials. The pre-start inventory confirmed seven existing VMs
+deallocated and all sixteen Flexible Servers Stopped. No target was created.
+
+The installed GUI reviewed the same R2 source/CA/identity mappings and approved
+the read-only count inventory (30 minutes / 4 GiB / no swap). It is now waiting
+at the protected source password input; no inventory or migration has been
+submitted. Password entry is direct in VS Code, never chat or a result file.
+The watcher remains unarmed and all R1 evidence remains preserved.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source
