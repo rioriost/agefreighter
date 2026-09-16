@@ -11,6 +11,21 @@ spec.loader.exec_module(observer)
 
 
 class FaultAdmission(unittest.TestCase):
+    def test_network_observation_binds_source_and_initial_command(self):
+        actual = observer.loader_arguments("neo4j", {"source": {"type": "neo4j"}}, {"action": "migrate-source"}, "/exact/job.json", "job-id")
+        self.assertEqual(actual, ["/usr/local/bin/agefreighter", "load", "/exact/job.json", "--job-id", "job-id"])
+
+    def test_resume_observation_uses_exact_original_job(self):
+        for kind in ("csv", "neo4j"):
+            actual = observer.loader_arguments(kind, {"source": {"type": kind}}, {"action": "resume-migration"}, "/exact/job.json", "job-id")
+            self.assertEqual(actual, ["/usr/local/bin/agefreighter", "resume", "job-id", "--job", "/exact/job.json"])
+
+    def test_observation_rejects_wrong_source_and_action(self):
+        for kind, configured, action in [("neo4j", "csv", "migrate-source"), ("neo4j", "neo4j", "migrate-csv"), ("csv", "csv", "migrate-source"), ("neo4j", "neo4j", "inventory"), ("postgresql", "postgresql", "migrate-source")]:
+            with self.subTest(kind=kind, configured=configured, action=action):
+                with self.assertRaises(AssertionError):
+                    observer.loader_arguments(kind, {"source": {"type": configured}}, {"action": action}, "job.json", "job-id")
+
     def test_go_nanosecond_timestamp(self):
         self.assertEqual(observer.timestamp("2026-09-15T11:38:02.123456789Z").microsecond, 123456)
 

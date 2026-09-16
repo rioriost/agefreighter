@@ -90,6 +90,12 @@ pass 13 tests.
 See [scope, negative cases and review](verification-presentation-20260916.md).
 This is not a signed-in profile installation or an Azure fault result.
 
+Independent network-source recovery now has a separate Neo4j 5.26 draft,
+confirmed transfer storage and a hash-verified copy of the pinned Linux build.
+Its new runner preview passed, but creation/identity access is awaiting the
+exact native confirmation. No source or migration is active. See
+[network-recovery preparation](network-recovery-20260916.md); B11 remains partial.
+
 Code baseline: `73aa6d690cad947a5d5d6a7371dc7adf7f191627`, plus the new
 `extensions/vscode/src/test/unit/runnerReconnect.test.ts` in this change.
 No new Linux artifact is installed by these tests.

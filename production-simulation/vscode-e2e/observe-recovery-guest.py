@@ -7,6 +7,8 @@ The operator must first check cloud ownership, governance, budget and deadline.
 --sigterm-at selects the first process fault; --reboot-at is only valid for a
 resumed operation and requests one guest reboot after sealing current evidence.
 This is qualification tooling, not a migration or automatic recovery mechanism.
+--source-kind neo4j enables read-only observation of a network-source job;
+process/reboot faults remain restricted to the reviewed CSV trial.
 """
 import argparse
 import datetime as dt
@@ -63,6 +65,18 @@ def run(*args, **kwargs):
     return subprocess.run(args, capture_output=True, text=True, timeout=20, **kwargs)
 
 
+def loader_arguments(source_kind, configuration, state, config_path, job_id):
+    """Bind observation to an explicit source and an exact supported action."""
+    assert source_kind in ("csv", "neo4j")
+    assert configuration["source"]["type"] == source_kind
+    action = state["action"]
+    initial = "migrate-csv" if source_kind == "csv" else "migrate-source"
+    assert action in (initial, "resume-migration")
+    if action == "resume-migration":
+        return ["/usr/local/bin/agefreighter", "resume", job_id, "--job", str(config_path)]
+    return ["/usr/local/bin/agefreighter", "load", str(config_path), "--job-id", job_id]
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     for key in ("workflow", "operation", "job", "config-sha256", "boot", "deadline"):
@@ -70,6 +84,7 @@ def main():
     p.add_argument("--watch-seconds", type=int, default=0)
     p.add_argument("--sigterm-at", type=int, default=0)
     p.add_argument("--reboot-at", type=int, default=0)
+    p.add_argument("--source-kind", choices=("csv", "neo4j"), default="csv")
     a = p.parse_args()
     for value in (a.workflow, a.operation, a.job, a.boot):
         assert re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", value)
@@ -78,6 +93,7 @@ def main():
     assert a.sigterm_at in (0, 1_400_000), "Only the reviewed P1 process fault"
     assert a.reboot_at in (0, 3_360_000), "Only the reviewed P1 reboot fault"
     assert not (a.sigterm_at and a.reboot_at), "One fault per invocation"
+    assert a.source_kind == "csv" or not (a.sigterm_at or a.reboot_at), "Network-source observation is read-only"
     deadline = timestamp(a.deadline)
     root = Path("/var/lib/agefreighter/workflows") / a.workflow
     directory = root / a.operation
@@ -95,9 +111,9 @@ def main():
         assert Path("/proc/sys/kernel/random/boot_id").read_text().strip() == a.boot
         state = json_read(directory / "state.json")
         assert (state["workflow"], state["operation"], state["jobId"]) == (a.workflow, a.operation, a.job)
-        assert state["action"] in ("migrate-csv", "resume-migration")
         assert state["configSha256"] == a.config_sha256
         assert hashlib.sha256(config.read_bytes()).hexdigest() == a.config_sha256
+        expected_args = loader_arguments(a.source_kind, json_read(config), state, config, a.job)
         result = run("/usr/local/bin/agefreighter", "status", a.job, "--target", str(config), env=env)
         if result.returncode:
             return {"ready": False, "reason": "status unavailable", "operationPhase": state["phase"]}, None
@@ -125,8 +141,7 @@ def main():
                 proc = Path("/proc") / str(child)
                 try:
                     args = proc.joinpath("cmdline").read_bytes().rstrip(b"\0").decode().split("\0")
-                    expected = (["/usr/local/bin/agefreighter", "load", str(config), "--job-id", a.job] if state["action"] == "migrate-csv" else ["/usr/local/bin/agefreighter", "resume", a.job, "--job", str(config)])
-                    if args == expected and proc.joinpath("exe").resolve() == Path("/usr/local/bin/agefreighter").resolve():
+                    if args == expected_args and proc.joinpath("exe").resolve() == Path("/usr/local/bin/agefreighter").resolve():
                         match.append(int(child))
                 except FileNotFoundError:
                     continue
