@@ -106,5 +106,9 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as error:
-        print(json.dumps({"stopped": True, "errorType": type(error).__name__}), flush=True)
+        # Retain source locations, never exception text, arguments or locals.
+        import traceback
+        frame = traceback.extract_tb(error.__traceback__)[-1]
+        print(json.dumps({"stopped": True, "errorType": type(error).__name__,
+                          "line": frame.lineno, "function": frame.name}), flush=True)
         raise SystemExit(1)

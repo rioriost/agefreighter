@@ -52,6 +52,15 @@ This qualifies the CSV process/reboot recovery path, not network-source recovery
 See the execution record for immutable operation and evidence identities.
 No other surviving VM or retained target was started.
 
+The September 16 independent Neo4j network attempt completed normal migration
+and installed-GUI counts verification (5.6M records, zero rejects), but its
+fault watcher failed closed with `ValueError` before injection. No network
+rule or applied-fault evidence exists. Python 3.10 fractional-timestamp parsing
+was reproduced and fixed (23 local tests plus guest precision probes pass).
+The completed graph and original watcher evidence are preserved; B11 remains
+partial and requires a fresh, separately bound fault trial, explicit same-job
+recovery and canonical verification. See [network execution record](network-recovery-20260916.md).
+
 ## Branch-to-evidence ledger
 
 "Not-run" means additional live qualification is not established by this audit,

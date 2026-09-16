@@ -49,8 +49,11 @@ def json_read(path):
 
 
 def timestamp(value):
-    # Ubuntu's Python 3.10 accepts microseconds, while Go emits nanoseconds.
-    value = re.sub(r"\.(\d{6})\d+(?=Z|[+-])", r".\1", value)
+    # Python 3.10 accepts only 3 or 6 fractional digits; Go trims trailing
+    # zeroes and may emit any precision from 1 through 9. Normalize every
+    # fraction, not just nanoseconds, before invoking the platform parser.
+    value = re.sub(r"\.(\d{1,9})(?=Z|[+-])",
+                   lambda match: "." + match[1][:6].ljust(6, "0"), value)
     return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 

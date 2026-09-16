@@ -31,6 +31,23 @@ class FaultAdmission(unittest.TestCase):
     def test_go_nanosecond_timestamp(self):
         self.assertEqual(observer.timestamp("2026-09-15T11:38:02.123456789Z").microsecond, 123456)
 
+    def test_all_go_fraction_precisions_are_python310_compatible(self):
+        real_parser = observer.dt.datetime.fromisoformat
+        def strict_parser(value):
+            fraction = value.split(".")[1].split("+")[0]
+            self.assertEqual(len(fraction), 6)
+            return real_parser(value)
+        for digits in range(1, 10):
+            fraction = "123456789"[:digits]
+            for zone in ("Z", "+00:00"):
+                with self.subTest(digits=digits, zone=zone), \
+                     patch.object(observer, "dt", SimpleNamespace(datetime=SimpleNamespace(fromisoformat=strict_parser))):
+                    parsed = observer.timestamp("2026-09-16T07:22:04." + fraction + zone)
+                    self.assertEqual(parsed.microsecond, int(fraction[:6].ljust(6, "0")))
+
+    def test_timestamp_without_fraction(self):
+        self.assertEqual(observer.timestamp("2026-09-16T07:22:04Z").microsecond, 0)
+
     def test_child_of_nonleader_thread(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)

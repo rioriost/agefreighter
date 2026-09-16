@@ -1,6 +1,6 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **ready / bounded watcher armed / private GUI password pending / not qualified**.
+Status: **load finished; fault watcher failed closed before injection; network recovery not qualified**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -329,6 +329,77 @@ explicit same-job resume and canonical verification remain separate live gates.
 No network fault has yet occurred.
 
 ## Remaining admission and acceptance
+
+### September 16 first load — no network fault injected
+
+The user entered the protected source password. The installed GUI submitted
+operation/job `ced480a1-bf31-4306-af56-ce3c0bccc525` at
+`2026-09-16T07:18:53.824Z`. Guest execution ran from
+`07:19:00.176920875Z` to `07:24:52.602400022Z` and finished with exit 0.
+It used the unchanged pinned loader, boot
+`8c9dcd46-c99f-4dd5-8966-4cf737d2e485`, configuration SHA-256
+`1d9121fc4e5353c1c6e9eccebebe9bfcf505859890b5397ddd7af3ed2790fe4e`,
+generation 1 and fingerprint
+`18e99afaba9ac69155dc66e99ed69721f53f5ac48242fa105dcd8d49e4ed93dc`.
+
+The independent watcher recorded 1,085,000 committed rows at
+`07:22:00.922562Z`, zero rejects, checkpoint age 0.087 seconds, disk 4.071%,
+memory 31,956,992 bytes and zero swap/OOM, then exited with `ValueError`.
+Its original outer handler retained no stack location, so the exact failing
+input cannot be reconstructed from that log. No fault threshold was reached
+by the observer. An independent guest read found no before/applied/restored
+fault files and no `af-network-` OUTPUT rule (iptables read exit 0).
+No network interruption, restoration or recovery success is claimed.
+The migration was left uninterrupted; no fault was injected into its now
+completed graph and no load was replayed.
+
+Retained hashes:
+
+- Watcher log: `27a7795b23d1b201064081c0709646989adcbb438f24bf5d3fe9712ce9cd064b`.
+- Armed evidence: `899a5d2b84c57ed8123932211736166cbfe6df325399b3163f3383c8b82c6a0a`.
+- Selected job: `26e0f440a0ad47e9a6895509eb8673a8286fa5dc0e0c15385459af335c80aa06`.
+- Finished state: `9000d9fc2c1f7a13fe40d283163fc21f6119b4882c95c431dbd58ce28f720ed1`.
+
+The local observer now normalizes all 1–9 fractional timestamp digits to six
+digits before Python 3.10 parsing, rather than only truncating nanoseconds.
+The waiter now retains sanitized error source locations without exception
+text, secrets or locals. Local observer tests are 20/20 PASS, watcher binding
+tests 3/3 PASS. These are tooling regressions, not a live recovery pass.
+Original deployed helper bytes/logs remain untouched. Before another live
+trial, verify the fix on the guest runtime, use a fresh job/graph with reviewed
+GUI binding, and recheck all gates. Do not rearm against this completed job.
+
+An actual Python **3.10.12** guest read subsequently reproduced `ValueError`
+with the original parser for fractional precision **1, 2, 4 and 5**; the fixed
+normalization passed all precisions **1 through 9** on that same runtime.
+This proves the compatibility defect and its fix, while the original failing
+timestamp is unavailable and therefore remains an inferred cause of this exit.
+
+Installed-GUI export/import now displays **Counts verification: PASS**.
+Independent local hashing of its imported, redacted 9,619-byte report gives
+`e9aebd92bdddc9f97700159dd93185fc20615d4269ea7112324d47157472c0f2`.
+All 24 checks pass, with no errors/incomplete checks and exact 1,600,000
+vertices / 4,000,000 edges with zero rejects. The guest's pre-redaction
+`verify.json` is 11,601 bytes, SHA-256
+`c4314ec44e474b3c5f4ba5fa1c0a597c9d44905b00c87364cd7305a46196fbb4`;
+its different hash is expected. The committed `load.json` is 469 bytes,
+SHA-256 `7e8cb82aec4deeee3722e0e73a1db06e18fce0cca48916a7d061a0d5182bf4d7`.
+Full canonical digest verification was not performed for this non-faulted
+attempt; neither counts success nor these observer tests close B11.
+
+After report import, fresh ARM reads confirmed exact trial ownership and no RG
+locks; the queried activity window contained only expected guest command writes.
+The per-run and outer deadlines and USD 800 ceiling / USD 600 conservative
+reserve remain unchanged. Cost-saving deallocation was requested only for
+`af-8a9ae99ec6214a94afd1` and `af-n526-source`, and stop only for
+`afpg-8a9ae99ec6214a94afd1`. Both VMs are independently confirmed deallocated;
+the server is currently stopping. No resource, disk, graph, credential,
+schedule or evidence was deleted. Storage charges continue, and a stopped
+Flexible Server automatically starts after seven days unless acted on sooner.
+
+The historical admission checklist below is superseded by these checkpoints;
+the remaining live acceptance gate is still independent network recovery and
+full canonical verification.
 
 Runner approval, readiness and selected-source start are now recorded above.
 Next: reconcile the submitted target and complete AGE readiness and same-VM
