@@ -1,6 +1,7 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **not started / not qualified**. This is a separate B11 trial; the nine
+Status: **runner ready / source inventory awaiting credentials / not qualified**.
+This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
 ## Scope and boundaries
@@ -58,8 +59,38 @@ final creation dialog is pending action-time approval of the pinned unpublished
 installation and the new VM identity's Blob Reader grant on this workflow's
 container only. No VM deployment has been submitted. Recheck/renew the preview
 through product controls if it expires; never bypass expiry or edit saved state.
-All six retained VMs and fifteen Flexible Servers were still stopped at the
-fresh preflight inventory. The source fixture has not been started.
+All six retained VMs and fifteen Flexible Servers were still stopped at that
+preflight inventory. The following checkpoint supersedes the pending-dialog
+and source-stopped state above.
+
+## September 16 runner readiness and source start
+
+At the next GUI observation, the workflow already showed deployment submitted
+at 05:20:37 UTC. No duplicate deployment was submitted. Independent ARM reads
+confirmed deployment/VM success at 05:21:19 UTC: the exact new B2s_v2 runner,
+zone 1, no public IP. Its managed identity has one observed Blob Data Reader
+assignment, scoped only to this workflow's container.
+
+The installed GUI reconciled provisioning and executed Linux readiness at
+05:23:32 UTC. The retained report confirms the reviewed archive SHA/commit,
+Neo4j inventory/migration and explicit-resume capabilities, idle guest,
+3.48% storage use, zero swap and zero OOM events. ARM success alone was not
+used as readiness evidence.
+
+A daily 07:00 UTC safety shutdown was enabled for the new VM. Only
+`af-n526-source` was started among existing fixtures. Its bounded read-only
+guest check at 05:25:11 UTC found the retained Neo4j container running,
+6% root-disk use, no swap and no kernel OOM messages since this start window.
+The source firewall, credentials and graph were not changed. The USD 800
+ceiling, USD 600 conservative reserve and outer deadline remain unchanged;
+the reserve is not a measured bill. Existing daily shutdowns remain effective.
+
+The source form still binds the exact hostname, TLS CA, `source_key` identities
+and new workflow. The complete-inventory read was approved in the installed
+GUI, bounded to 30 minutes / 4 GiB / no swap. Execution is waiting at the
+protected password input; no source inventory, target deployment, migration
+or network fault has started. Credentials must be supplied directly in VS Code,
+not in a report or chat. Previously accepted targets remain untouched.
 
 ## Observer preparation
 
@@ -73,10 +104,10 @@ These tests do not prove a live network fault or resumed migration.
 
 ## Remaining admission and acceptance
 
-Before starting: approve the exact new runner identity/container access and
-pinned installation, verify guest readiness, start only the selected fixture
-source after cloud/guest gates pass, and obtain its password through the
-protected GUI. Complete source inventory and target/resize review are required.
+Runner approval, readiness and selected-source start are now recorded above.
+Next: obtain the source password through the protected GUI and reconcile the
+complete source inventory. Target/resize review remains required; recheck
+cloud/guest/time/cost gates before subsequent mutations.
 
 Before fault injection: review the exact destination and job scope, an
 independent bounded automatic restoration path, and retained before/after
