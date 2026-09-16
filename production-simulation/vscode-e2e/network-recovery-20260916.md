@@ -1,6 +1,6 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **source inventory PASS / target provisioning / not qualified**.
+Status: **target and AGE ready / resized runner running / GUI locked / not qualified**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -231,6 +231,24 @@ target plan permissions are 0600; structural inspection found no literal secret
 fields. Source ARM NIC readback also confirms the observed `10.246.5.4` has
 no public IP. No RG locks or delete/stop/deallocate activity was found in the
 queried deployment window.
+
+The GUI reconciled AGE restart to finished; independent readback confirms
+`shared_preload_libraries=pg_stat_statements,age` with no pending restart. With
+fresh idle health at 06:17:28 UTC, the installed GUI performed each explicit
+same-VM resize step: deallocate, reconcile, change to D4s_v5, reconcile, start.
+The retained disk/NIC/identity/placement seal is
+`bbb092b27493316992059c86a7fc00651f6e8bf894447a8aed38d61cc1ac99ac`.
+At 06:21 UTC, independent ARM inspection confirmed D4s_v5 / Succeeded /
+Running. The Mac then reported locked, so no further GUI interaction was
+attempted. The local workflow correctly remains `resize.phase=starting`
+until a read-only GUI reconciliation; it was not manually advanced.
+
+Next after manual unlock: reconcile resize, acquire fresh post-boot Linux
+readiness, review migration and request the source password privately. There
+is **no migration job, network fault, or automatic resume** yet. The new
+runner's daily 07:00 UTC shutdown remains unchanged. If the interaction is
+delayed beyond that boundary, recheck actual state and scope before proceeding;
+this document is not a background monitor or a permission to bypass health gates.
 
 ## Observer preparation
 
