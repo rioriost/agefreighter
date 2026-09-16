@@ -202,6 +202,32 @@ rearming, fresh admission checks and coordinated protected password entry;
 never attach the watcher to an already-started job. No watcher has been rearmed
 and network recovery remains unqualified.
 
+### R2 second arming — September 16, 09:55 UTC
+
+After the user confirmed availability for password entry, GUI readiness at
+09:53:32.232 UTC passed on the same boot, idle, disk 3.5127%, zero swap/OOM.
+ARM ownership, private addresses, Ready target, locks and recent governance
+actions were rechecked. The existing USD 600 reserve plus remaining planned
+compute stays below USD 800; this is a conservative gate, not measured billing.
+No cost authorization or infrastructure deadline changed.
+
+The reviewed one-time `rearm-expired-network-watch.py` verified the original
+unit's successful inactive state, exact expired-without-load log, zero migration
+states, no fault/selection record or network rule, original arming hash, helper
+hashes, boot, source DNS and guest health. It moved both original files into
+create-only `qualification-expired-arming1/`, preserving their bytes and sealing
+a manifest. Original log SHA-256 is
+`8eb9288a01409c8bae49dfa61d912ad3b2f92c74a362426859bb47d23de3f05a`.
+No evidence or completed graph was deleted, and ambiguous reruns fail closed.
+
+The unchanged waiter/observer were rearmed at 09:55:41.608015 UTC as
+`af-network-watch-20260916-b2c7214e-arm2`, with a separate log and deadline
+**2026-09-16T10:10:41.608015Z**. Service active was confirmed. The local observer
+20 tests and binding 4 tests passed; the one-time helper passed syntax and
+operator review. This remains preparation, not network-recovery acceptance.
+The same 5,600,000-row new-load review was accepted in the installed GUI;
+protected password entry remains the user's next step.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source
