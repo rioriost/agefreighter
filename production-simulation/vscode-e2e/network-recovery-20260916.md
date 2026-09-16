@@ -1,6 +1,6 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **target and AGE ready / resized runner ready / preparing network trial / not qualified**.
+Status: **ready / bounded watcher armed / private GUI password pending / not qualified**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -272,6 +272,34 @@ selected job/config hash, then calls the reviewed bounded observer. It is not
 a recurring monitor or extension product feature. Three additional local tests
 pass for exact binding and refusal of changed/multiple jobs. Actual deployment,
 arming, fault and recovery evidence must be recorded separately.
+
+At the next fresh installed-GUI check (07:14:54 UTC), the same boot and pinned
+artifact were idle with 4.095% storage and zero swap/OOM. Read-only cloud checks
+confirmed the correct subscription, D4s_v5 / Succeeded / workflow ownership,
+no RG locks and only the expected readiness command writes in the new window.
+The conservative reserve and unchanged per-run deadline still admit the run.
+
+The two reviewed helper files were placed only in this workflow's private
+guest `qualification-network-tools` directory; guest byte hashes matched local:
+
+- Observer: `29e255bcda941d1c871db2fe9daf68e97cc318bf52520261e552e57b9d59be73`.
+- Waiter: `cf4eba9306284bff1f6dfb4c8e7194554c7b6d22319f6ad5297c8a5bfc8e8983`.
+
+Transient unit `af-network-watch-20260916-8a9ae99e.service` reported active /
+running with RuntimeMaxSec 960, memory 256 MiB and no swap. Its explicit wait
+deadline is **2026-09-16T07:30:54.919Z**; no recurring monitor was created.
+The original 45-second independent rule-removal timer remains separate from
+the watcher's own lifetime. Its output/evidence are retained under this one
+workflow and do not contain passwords.
+
+The installed GUI passed new-load preflight, displayed the exact new target and
+5,600,000-row inventory, and accepted the already authorized migration step.
+It is now at **Read-only Neo4j source password**. The user was asked to enter
+the AZ-N526 Keychain item directly and not to submit after the watcher deadline
+without rechecking. No migration job or fault is claimed at this checkpoint.
+After entry, inspect the selected operation and sealed fault/restoration
+evidence; if the waiter expired or refused a gate, do not claim a network
+recovery test or blindly rearm it against an existing/completed job.
 
 ## Observer preparation
 
