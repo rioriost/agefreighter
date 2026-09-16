@@ -75,6 +75,14 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 ## First local regression batch
 
+September 16 network-trial preparation also reproduced and fixed a stale
+workflow-selection defect when reopening the new wizard. The signed-in Mac
+GUI now starts a genuinely independent panel, while explicit reconnect still
+works and all 14 retained workflow records remain byte-identical. Unit tests
+are 218/218 PASS; current isolated host tests are 13/13 PASS. See
+[panel isolation evidence](panel-isolation-20260916.md). This is not a completed
+network fault or desktop crash-recovery qualification.
+
 The subsequent September 16 B12 presentation batch found and corrected an
 unconditional verified-tab title for failed/incomplete reports. Unit tests are
 211/211 PASS; isolated VS Code 1.105.0, 1.136.1 and current 1.137.0 hosts each
