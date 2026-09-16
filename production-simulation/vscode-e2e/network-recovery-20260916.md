@@ -349,6 +349,19 @@ then explicit same-job resume within the checkpoint/freshness gates. Preserve
 the original job/graph/generation/fingerprint and all failed-run evidence.
 Complete counts and all 64 canonical ranges are still required for B11.
 
+GUI reconciliation confirmed the migration failed, then fresh recovery readiness
+passed at 11:16:59 UTC (same boot/build, idle, disk 3.5345%, zero swap/OOM).
+The retained checkpoint inspection at 11:18:37.468428886 UTC found **1,415,000**
+durable rows, checkpoint 11:10:51.660693 UTC, with the exact same configuration,
+job, generation 1 and fingerprint. This final checkpoint differs from the
+1,405,000-row fault-observation snapshot because work advanced before stopping.
+No RG locks or additional non-run-command/non-audit activity was returned for
+the subsequent 10:54 UTC onward governance window. The native same-job resume
+review was approved. Following protected input, the GUI submitted continuation
+`cbb6455a-d3aa-4ffc-9839-fa863b6dd9ed` at 11:20:03.639 UTC for the same durable
+job, configuration, generation and fingerprint, from 1,415,000 rows. This is a
+submitted resume request, not proof of successful resumed work or recovery PASS.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source
