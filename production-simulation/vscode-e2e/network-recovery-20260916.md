@@ -83,6 +83,40 @@ at the protected source password input; no inventory or migration has been
 submitted. Password entry is direct in VS Code, never chat or a result file.
 The watcher remains unarmed and all R1 evidence remains preserved.
 
+### R2 source inventory PASS — September 16
+
+After protected password entry, the installed GUI submitted inventory
+`e2a61e33-7dff-4bf1-a501-40a505a3e11f` on the same accepted boot. Its guest
+configuration SHA-256 is
+`57d4f2a3682c7b6e99aac32a43be9947673baf475617953b545001a7d4218a7d`.
+The create-only export/import completed in the GUI. Independent local hashing
+confirmed the 663-byte report SHA-256
+`da7881faba550835775b2da89b3776cb3ba2fa750f047549b70e46edd164a2cb`,
+generated at 09:01:01.779990223 UTC: PASS, no errors/incomplete checks,
+1,600,000 vertices and 4,000,000 edges from the transactional count store.
+This qualifies inventory only, not the recovery migration.
+
+The original source's bounded guest inspection at 08:59:50 UTC confirmed its
+retained container running with the same pinned image, disk 6%, zero swap
+and no OOM matches. A fresh VNet read found `10.246.21.0/24` unused. PostgreSQL
+quota is 70/196 regional cores, DDSv5 62/64 and EDSv5 8/256, so the proposed
+fresh target uses E8ds_v5 / 128 GiB and D4s_v5 on the existing runner.
+The first target preflight correctly refused stale readiness; no target plan,
+credential, subnet, resize or deployment was created. Repeat an explicit
+readiness check and the native review without bypassing freshness. The proposed
+per-run deadline remains September 17 07:00 UTC (earlier than outer permission),
+with USD 800 ceiling and USD 600 conservative reserve.
+
+Fresh same-boot GUI readiness at 09:05:34.601 UTC resolved the freshness gate.
+The repeated target preflight passed, and the native final review displays
+5,600,000 mapped rows, matching inventory SHA, E8ds_v5 / 128 GiB, D4s_v5 runner,
+`10.246.21.0/24`, no public access/peering, USD 1.448/hour combined compute,
+the unchanged USD 600 reserve and USD 800 ceiling, and September 17 07:00 UTC
+deadline. It is waiting for action-time approval to create the new target and
+its SecretStorage-held connection credential. No target plan was saved and no
+target deployment or resize was submitted. If approval is delayed, repeat
+readiness/preflight through the GUI; never edit retained state to bypass gates.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source
