@@ -94,6 +94,28 @@ not in a report or chat. Previously accepted targets remain untouched.
 
 ## Observer preparation
 
+### Inventory attempt 1 — authentication rejected
+
+After the user confirmed private password entry, the installed GUI refreshed
+readiness and submitted operation `10645afd-82c6-464c-a181-f57348609cbd`.
+Its configuration SHA-256 is
+`4fc54297f4d7f845bc85abb5db554ada335252ddbb515ad5f8542ae8993f382e`;
+guest configuration SHA-256 is
+`e6bb0389e4c31e6fd91021da701c7ddf3ad7153555fc5bad3deede3bd7a3851a`.
+It failed with exit 1 between `2026-09-16T05:26:40.136772960Z` and
+`2026-09-16T05:26:40.461270949Z`. A guest-side classification of retained stderr
+identified `Unauthorized`, not DNS, TLS, connection-refused or timeout errors.
+No raw stderr or credential was exported. The exact operation remains retained;
+no automatic retry, target creation, data load or fault was performed.
+
+The September 12 AZ-N526 execution sheet explicitly records that the original
+source credential was temporary and not persisted for reuse. The September 15
+Keychain item `agefreighter-op-n526-neo4j` belongs only to the separately reset
+OP-N526 clone. It must not be represented as the original source credential.
+The next attempt requires the correct original credential, or explicit approval
+for original-source credential recovery. Clone-only reset approval does not
+authorize resetting this source. Running VMs retain the 07:00 UTC shutdown.
+
 The retained guest observer now supports explicit **read-only** Neo4j
 observation. It binds the hashed configuration's actual source type and exact
 `migrate-source`/`resume-migration` command arguments, retaining existing boot,
