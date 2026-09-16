@@ -117,6 +117,19 @@ its SecretStorage-held connection credential. No target plan was saved and no
 target deployment or resize was submitted. If approval is delayed, repeat
 readiness/preflight through the GUI; never edit retained state to bypass gates.
 
+At the user's explicit target approval, the final native review was accepted.
+The macOS folder dialog initially did not accept Return; raising that dialog
+and using keypad Enter selected the intended R2-only local folder. No hidden
+workflow edits or alternative deployment path were used. The GUI saved both
+the secret-reference-only LoadJob and target plan with mode 0600 under
+`production-simulation/work/network-recovery-r2-20260916/` (ignored local
+evidence). The product's repeated preflight passed and submitted deployment
+`afpg-b2c7214e83f54613b378` at 09:10:28 UTC, correlation
+`3bb2a480-5024-41c6-bf6f-e46154e56ad1`. ARM currently reports Running.
+Do not replay the submission. AGE readiness, same-VM resize, new load and
+network recovery remain subsequent gates. The local watcher regressions were
+re-run: 4 binding plus 20 observer tests pass; this is not live fault evidence.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source
