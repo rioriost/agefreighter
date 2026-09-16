@@ -12,15 +12,13 @@ import { openRunnerSource } from "./runnerSourcePanel";
 import { developmentEnabled, prepareDevelopmentRunner, upgradeDevelopmentRunner } from "./developmentRunner";
 import { reviewRunnerTarget } from "./runnerTargetPanel";
 import { continueRunnerExecution } from "./runnerExecutionPanel";
+import { requirePanelWorkflow } from "./core/runnerPanelBinding";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
 export function registerRunnerMigration(context: vscode.ExtensionContext, output: vscode.LogOutputChannel): void {
   const azure = new AzureSession();
   let panel: vscode.WebviewPanel | undefined;
-  let current: RunnerRecord | undefined;
-  let busy = false;
-  let pendingCSV: { id: string; name: string; path: string }[] = [];
   const store = new RunnerStore(join(context.globalStorageUri.fsPath, "runner-v2"));
   const catalog = async (subscription: string) => {
     const [groups, regions] = await Promise.all([
@@ -29,58 +27,74 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
     ]);
     return placementCatalog(groups, regions);
   };
-  const control: RunnerControl = {
+  const sharedControl: RunnerControl = {
     request: (...args) => azure.runnerRequest(...args),
     list: (...args) => azure.runnerList(...args),
     sleep: ms => new Promise(resolve => setTimeout(resolve, ms)),
     persist: async record => {
       await store.write(record);
-      current = record;
     }
   };
-  const post = (value: unknown) => panel?.webview.postMessage(value);
-  const display = (record: RunnerRecord) => post({ kind: "record", record: {
-    id: record.id, phase: record.phase, input: record.input, vmId: record.vmId,
-    deploymentId: record.deploymentId, version: record.artifact.version, sha256: record.artifact.sha256,
-    hourlyComputeUSD: record.hourlyComputeUSD, expiresAt: record.expiresAt, updatedAt: record.updatedAt,
-    previewHash: record.previewHash, guestCommand: record.guestCommand, guestReady: record.guestReady
-  } });
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.prepareDevelopmentRunner", async () => {
-    try { await azure.subscriptions(); await prepareDevelopmentRunner(control, store, azure, message => output.info(message)); }
+    try { await azure.subscriptions(); await prepareDevelopmentRunner(sharedControl, store, azure, message => output.info(message)); }
     catch (error) {
       output.error("Development artifact preparation failed", error);
       await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Development artifact preparation failed.");
     }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.upgradeDevelopmentRunner", async () => {
-    try { await azure.subscriptions(); await upgradeDevelopmentRunner(control, store, azure); }
+    try { await azure.subscriptions(); await upgradeDevelopmentRunner(sharedControl, store, azure); }
     catch (error) { await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Runner upgrade requires evidence review."); }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.reviewRunnerTarget", async () => {
-    try { await azure.subscriptions(); await reviewRunnerTarget(context,control,store,azure); }
+    try { await azure.subscriptions(); await reviewRunnerTarget(context,sharedControl,store,azure); }
     catch(error){ await vscode.window.showErrorMessage(error instanceof Error?error.message:"Target review could not complete. No automatic retry was made."); }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.continueRunnerExecution", async () => {
-    try { await azure.subscriptions(); await continueRunnerExecution(context,control,store,azure); }
+    try { await azure.subscriptions(); await continueRunnerExecution(context,sharedControl,store,azure); }
     catch(error){ await vscode.window.showErrorMessage(error instanceof Error?error.message:"Execution requires evidence review; no automatic retry was made."); }
   }));
   context.subscriptions.push(azure, vscode.commands.registerCommand("agefreighter.newGuidedMigration", () => {
     if (panel) { panel.reveal(); return; }
+    // Each new panel starts empty. An old panel's pending operation may still
+    // persist evidence, but must never select a workflow in a later panel.
+    let current: RunnerRecord | undefined;
+    let busy = false;
+    let disposed = false;
+    let pendingCSV: { id: string; name: string; path: string }[] = [];
+    const control: RunnerControl = { ...sharedControl, persist: async record => {
+      await sharedControl.persist(record);
+      current = record;
+    } };
     panel = vscode.window.createWebviewPanel("agefreighter.runnerMigration", "New AGEFreighter migration", vscode.ViewColumn.One,
       { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [] });
-    panel.webview.html = runnerHTML(panel.webview.cspSource);
-    panel.onDidDispose(() => { panel = undefined; });
-    panel.webview.onDidReceiveMessage(async raw => {
-      if (busy) return;
+    const owner = panel;
+    const post = (value: unknown) => disposed ? undefined : owner.webview.postMessage(value);
+    const display = (record: RunnerRecord) => post({ kind: "record", record: {
+      id: record.id, phase: record.phase, input: record.input, vmId: record.vmId,
+      deploymentId: record.deploymentId, version: record.artifact.version, sha256: record.artifact.sha256,
+      hourlyComputeUSD: record.hourlyComputeUSD, expiresAt: record.expiresAt, updatedAt: record.updatedAt,
+      previewHash: record.previewHash, guestCommand: record.guestCommand, guestReady: record.guestReady
+    } });
+    owner.webview.html = runnerHTML(owner.webview.cspSource);
+    owner.onDidDispose(() => { disposed = true; if (panel === owner) panel = undefined; });
+    owner.webview.onDidReceiveMessage(async raw => {
+      if (busy || disposed) return;
       busy = true;
       await post({ kind: "busy", value: true });
       try {
         const message = object(raw);
+        if (["deploy", "refresh", "guestReady", "guestRefresh", "reviewTarget", "continueExecution"].includes(String(message.action))) {
+          requirePanelWorkflow(current, message.workflow);
+        }
         switch (message.action) {
           case "ready":
           case "accounts":
             await post({ kind: "subscriptions", values: await azure.subscriptions() });
-            if (current) await display(current);
+            if (current) {
+              await post({ kind: "restoreInput", input: current.input, files: current.sourceFiles?.map(file => file.name) ?? [] });
+              await display(current);
+            }
             break;
           case "groups": {
             const subscription = selection(message.subscription);
@@ -205,6 +219,9 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             break;
           }
           case "configureSource": {
+            if (current && message.workflow === current.id && JSON.stringify(parseRunnerInput(message.input)) !== JSON.stringify(current.input)) {
+              throw new Error("Source or placement changed. Review a new draft or reconnect to the saved workflow.");
+            }
             if (!current || message.workflow !== current.id) {
               const input = parseRunnerInput(message.input);
               const draft = sourceWorkflowDraft(randomUUID(), input);

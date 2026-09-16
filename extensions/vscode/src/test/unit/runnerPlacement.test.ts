@@ -71,6 +71,23 @@ function view() {
   return { el: (id: string) => elements.get(id)!, choose, fillCatalog, receive, messages };
 }
 
+test("changing a retained source clears readiness and blocks old workflow controls", () => {
+  const v = view();
+  const record = {id: subscription, phase: "provisioned", input: {source: {type: "csv"}}, guestReady: {checkedAt: "old-check"}, guestCommand: {phase: "finished"}};
+  v.receive({kind: "record", record});
+  assert.match(v.el("guestStatus").textContent, /old-check/);
+  assert.equal(v.el("continueExecution").disabled, false);
+  v.el("guestReady").trigger("click");
+  assert.deepEqual(v.messages.at(-1), {action: "guestReady", workflow: subscription});
+  v.receive({kind: "busy", value: false});
+  v.choose("type", "neo4j");
+  assert.doesNotMatch(v.el("guestStatus").textContent, /old-check|verified/);
+  for (const id of ["guestReady", "guestRefresh", "reviewTarget", "continueExecution", "refresh", "deploy"]) assert.equal(v.el(id).disabled, true, id);
+  // Even a synthetic stale click cannot send the previous workflow ID.
+  v.el("continueExecution").trigger("click");
+  assert.deepEqual(v.messages.at(-1), {action: "continueExecution"});
+});
+
 test("CSV and external source paths independently load runner RG/region dropdowns", () => {
   const v = view();
   v.choose("type", "csv");
