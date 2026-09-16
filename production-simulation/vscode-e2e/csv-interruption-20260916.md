@@ -1,7 +1,8 @@
 # B08 CSV interruption qualification
 
-Status: implementation/local regression and installed network-disabled refusal
-PASS; live interrupted transfer awaits the trial storage network decision.
+Status: installed network-disabled refusal, upload cancellation, changed-file
+refusal and explicit retry with full Blob readback **PASS**. B08 remains partial
+for the separate guest-import/hash-mismatch and lost-commit-acknowledgement cases.
 
 ## Change and review
 
@@ -74,7 +75,58 @@ about 184 MiB. The RG's older expiry tag still reads September 16; the explicit
 user extension to September 20 is authoritative for this test, not permission
 to remove external governance or silently update old resource tags.
 
-## Next live steps and constraints
+## Authorized exception and installed transfer results
+
+The user explicitly requested `SecurityControl=Ignore` on this exact account,
+then separately approved enabling its public endpoint and resuming this trial.
+Both changes were narrowly applied and re-read from ARM. Public access is
+Enabled, HTTPS required, anonymous access and shared keys remain disabled;
+minimum TLS remains 1.2. No other account or source firewall was changed.
+
+The first three frozen P1 copies uploaded successfully, but the transfer was too
+fast to cancel. That attempt is **not** counted as interruption evidence. To
+make a real native Cancel reproducible, the GUI selected two additional files:
+one header plus eight repetitions of the frozen CONTAINS rows (1,638,118,385
+bytes), and a Supplier copy as the trailing file. These are **transport-only**
+fixtures with intentional duplicate identities; never import/migrate them or
+claim them as another P1 graph qualification. The local generator uses exclusive
+file creation and enforces the 2 GiB per-file bound.
+
+On the next explicit upload, the actual VS Code notification showed the large
+file at 15%; Cancel was then clicked. The panel reported cancellation and no
+automatic retry/migration. A subsequent Blob BlockList GET proved **0 committed
+blocks and 57 uncommitted 8 MiB blocks** (478,150,656 bytes). The percentage at
+the observation is not the exact cancellation boundary: transfer continued
+between observing and clicking. Durable state retained the original three
+`uploaded` entries, the large file `prepared`, and no transfer entry for the
+trailing file. There was no assessment or migration.
+
+The independent Supplier copy's header was then deliberately changed (not the
+frozen source); SHA-256 became
+`10c62d8063a416f3bfc80cf8732231bea01be0ef12fa342e94723daf93185287`.
+An installed-GUI explicit retry refused it with "A previously reviewed CSV
+changed". Listing the committed blobs showed only the original three, with
+unchanged ETags. The trial copy was restored and its SHA-256 again matched the
+frozen Supplier file. No saved workflow JSON was edited to manufacture a result.
+
+A fresh native upload confirmation then retried the **same** large-file UUID,
+size, digest and content-addressed destination, followed by the previously
+unattempted trailing file. All five entries became `uploaded`. The panel cleared
+its old error and still displayed "No assessment started"/"No report transferred".
+This retry re-sends the bounded blocks; it is not byte-offset resume.
+
+Independent authenticated GETs streamed and hashed **all 1,840,125,623 bytes**;
+all five hashes and sizes matched the reviewed manifests, finishing at
+`2026-09-16T13:36:17.109Z`. No sensitive token or file contents were retained in
+the public evidence. The original three ETags were unchanged. The earlier 64
+workflow/report JSON files also retain the exact aggregate hash above.
+See [structured evidence](evidence/csv-interruption-20260916.json).
+
+Final read-only Azure inventory again confirms **8/8 VMs deallocated** and
+**17/17 Flexible Servers stopped**. Storage/evidence are retained; no cleanup
+or source/target mutation was performed by this transfer trial.
+
+## Remaining live steps and constraints
 
 Use a new CSV-only workflow and copies of frozen P1 files. Do not change accepted
 source paths, manifests, blobs, graphs or reports. Start with transfer-only work:
@@ -83,7 +135,9 @@ deadline and governance before provisioning a workflow-owned storage account.
 Any new scoped access grant is separately confirmed at the actual approval
 surface. The outer deadline remains September 20 16:14 JST and the ceiling USD800.
 
-Capture actual Cancel, retained prepared state, explicit retry/reconciliation,
-changed-file rejection and no assessment/load before complete guest receipts.
-Do not count simulated HTTP responses as live evidence. Retain aborted blocks
-and all trial evidence; do not fault the already qualified CSV workflow.
+The desktop cancellation/retry and changed-manifest cases above are complete.
+Do not confuse Blob readback with Linux import sealing or graph verification.
+The guest receipt/hash-mismatch gate still needs its own live case using a
+valid isolated source. A lost *committed* acknowledgement currently has unit
+evidence, not an injected installed-GUI result. Preserve all evidence and the
+transport-only fixture; do not fault the already qualified CSV workflow.

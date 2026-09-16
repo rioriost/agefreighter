@@ -92,7 +92,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; both generated formats pass CLI validation | Prepare equivalent Gremlin P1 representation, then full installed-GUI migration and canonical verification | not-run |
 | B06 | Supported Cosmos authentication and RBAC propagation | Guided source currently fixes `default-azure` managed identity; base route passed | Document fixed GUI authentication scope; audit propagation/denial handling; do not claim other CLI modes GUI-tested | running |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Base routes resize same VM; resize/preflight unit tests pass | Bind identity preservation artifacts; exercise missing live denial branches without destructive resize | not-run |
-| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 passed; installed signed-in GUI file/folder cancellations preserve all 18 mappings and all 64 retained JSON files; transfer unit tests cover changed files and reconciliation | Installed-GUI interrupted transfer, changed/hash mismatch and reconciliation; no load before complete receipts | partial |
+| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 and picker cancellation passed; installed transfer Cancel retains 57 uncommitted blocks; changed-manifest retry refused; explicit retry and full 1.84 GB Blob readback pass without overwriting earlier blobs | Live guest hash-mismatch/receipt denial and lost committed-acknowledgement reconciliation; desktop transfer is not guest verification | partial |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
@@ -102,9 +102,12 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 CSV upload cancellation is now implemented and locally regression-tested:
 **235/235 unit tests**, typecheck/build and **13/13 isolated VS Code 1.138.0 host
-tests** pass. Explicit retry retains destination identity; cancellation does not
-advance assessment or migration. Live transfer interruption is still pending,
-so B08 remains partial. See [B08 execution record](csv-interruption-20260916.md).
+tests** pass. The installed signed-in candidate subsequently passed real Cancel,
+changed-manifest refusal and explicit same-destination retry. All five blobs
+(1,840,125,623 bytes) were independently streamed and hashed; prior blob ETags
+and all 64 earlier JSON artifacts are unchanged. No assessment/migration started.
+B08 remains partial for the distinct guest receipt/hash-mismatch and lost
+committed-acknowledgement cases. See [B08 execution record](csv-interruption-20260916.md).
 
 Latest non-mutating GUI audit: [source locations and CSV cancellation](branch-gui-audit-20260916.md).
 All eight allowed source/location selections were inspected in signed-in VS Code

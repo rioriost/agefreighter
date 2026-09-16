@@ -38,7 +38,11 @@ The subsequent signed-in VS Code 1.138.0 [GUI branch audit](branch-gui-audit-202
 confirmed source/location choices and three CSV picker-cancellation paths,
 preserving all 64 saved workflow/report files. Seven added regressions bring
 the unit suite to 227/227 PASS; nine real CLI configuration contracts also
-pass. B08 is partial; interrupted-upload and other open cases remain.
+pass. The subsequent [CSV transfer trial](csv-interruption-20260916.md) passed
+real Cancel, changed-manifest refusal and explicit retry, with full 1.84 GB Blob
+readback matching every reviewed hash. Earlier blobs/artifacts are unchanged.
+B08 remains partial for guest hash/receipt denial and lost-commit-acknowledgement
+cases; this transport-only fixture must never be treated as a migrated P1 graph.
 
 | Route | Final evidence | Outcome |
 | --- | --- | --- |
