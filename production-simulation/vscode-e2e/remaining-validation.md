@@ -68,9 +68,14 @@ No network fault was injected; the watcher is stopped and evidence preserved.
 The evidence-bound retry subsequently authenticated, received the actual
 one-job network fault at 1,405,000 rows, restored connectivity and explicitly
 resumed the same job from its final 1,415,000-row checkpoint. The continuation
-finished and installed-GUI complete counts passed with zero rejects. Full
-64-range canonical verification awaits action-time approval, so B11 remains
-partial. All initial authentication/watcher failures are retained.
+finished and installed-GUI complete counts passed with zero rejects. Following
+the user's exact-verifier approval, full 64-range canonical verification also
+passed at 12:47:13 UTC and was imported through the installed GUI. Independent
+local recomputation of both roots and every leaf agrees with the frozen P1
+fixture. B11 now passes for its defined CSV process/reboot and Neo4j network
+fault scenarios; other fault timings/sources are not implied. All initial
+authentication/watcher failures are retained. See
+[network recovery evidence](evidence/network-r2-p1-pass-20260916.json).
 
 ## Branch-to-evidence ledger
 
@@ -90,7 +95,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 passed; transfer tests cover changed files, verified receipts and matching existing blobs | Installed-GUI cancellation/partial transfer/reconciliation, with no load before complete receipts | not-run |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
-| B11 | Loader/network interruption; explicit same-job recovery | CSV r2 live SIGTERM + VM reboot, both same-job GUI resumes, counts and 64-range digest PASS; Neo4j network r2 actual fault + same-job resume and counts PASS | Complete network r2 full P1 canonical verification; counts alone do not qualify recovery | partial |
+| B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Unit tests plus isolated real VS Code Extension Host panels cover complete counts, wrong-job, stale, missing counts, incomplete coverage, count mismatch, rejects, failed checks, truncated and hash-mismatched evidence; misleading verified tab title fixed | Signed-in installed-candidate retest and remaining digest/controller import failures; synthetic reports are not Azure fault evidence | partial |
 
 ## First local regression batch

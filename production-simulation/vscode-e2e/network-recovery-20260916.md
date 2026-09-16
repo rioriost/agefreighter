@@ -1,6 +1,6 @@
-# Independent Neo4j network recovery — preparation
+# Independent Neo4j network recovery — execution and qualification
 
-Status: **r1 retained without a network fault; r2 planned fault and explicit same-job resume completed, installed-GUI counts PASS; full canonical verification awaiting action-time approval**.
+Status: **r1 retained without a network fault; r2 actual network fault, explicit same-job resume, installed-GUI counts and full canonical verification PASS**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -399,6 +399,44 @@ rechecked (`60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d`,
 commit `8a23a5109798ec906109532e4cc6c32308b3c824`). The native full-verification
 dialog is awaiting action-time approval: same job only, read-only, 4 GiB,
 25 minutes, 64 canonical ranges. No verifier has yet been submitted.
+
+The user subsequently approved this exact verifier. Fresh GUI readiness at
+12:41:55.624 UTC passed (same boot/build, idle, 3.5536% disk, zero swap/OOM).
+The installed GUI submitted qualification `d2c7ea1f-3b37-469c-9eac-7c311afb6ea4`
+at 12:44:03.340 UTC against job `f848fa34-5134-4f10-845a-7d25356ca851`.
+Three old successful readiness ARM receipts were first archived and pushed,
+then removed with ResourceNotFound readback to retain command/export capacity;
+no guest evidence or data was removed. See the two `network-r2-readiness-archive`
+JSON records. Qualification was running at that observation.
+
+### R2 final canonical verification — PASS
+
+The approved read-only qualification finished successfully at
+`2026-09-16T12:47:13.366384437Z`. Reconciliation imported the retained result
+through the installed GUI, which displays **P1 full canonical digest: PASS**.
+Its 23,236 bytes match SHA-256
+`84cb1f27baad425c1192fe89f82b84ccd9a40d2abe2987ae9d8cf8cb25f0d97e`.
+Independent local hashing of both ordered leaf sets produced frozen root
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`;
+all 64 leaf records agree exactly, covering 1,600,000 vertices and 4,000,000
+edges including typed properties, identities and endpoints. The job is the
+same `f848fa34-5134-4f10-845a-7d25356ca851`; rejects remain zero.
+The observed verifier memory during execution was 1,368,723,456 bytes, below
+4 GiB; disk was 6%, with no swap or kernel OOM. This completes the defined
+network-recovery portion of B11, not every extension branch or release
+qualification. Earlier failed attempts and all guest evidence remain retained.
+Machine-readable evidence: [network r2](evidence/network-r2-p1-pass-20260916.json).
+
+Final guest readback at 12:53:42 UTC confirms verifier inactive/dead/success,
+disk 6%, no swap or kernel OOM, and no remaining lease files in the inspected
+guest paths. Recent ARM activity contains only the reviewed qualification,
+readiness/export and audit operations; no locks were present. After result
+import and independent validation, the trial runner and original Neo4j source
+were deallocated and the current Flexible Server stopped. By 12:56:59 UTC,
+all eight surviving trial VMs were deallocated and all 17 Flexible Servers
+were Stopped. No graph, disk, credential or guest evidence was deleted.
+Storage and Cosmos charges continue; the stopped Flexible Servers may
+automatically restart after seven days. Budget and deadlines were not extended.
 
 ## Scope and boundaries
 

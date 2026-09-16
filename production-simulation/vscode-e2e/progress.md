@@ -23,13 +23,15 @@ CSV recovery r2 is now separately **live-qualified**: actual SIGTERM and
 loader-VM reboot, two explicit installed-GUI same-job continuations, complete
 counts and all 64 canonical ranges PASS. The frozen root was independently
 recomputed locally. [Evidence](evidence/csv-recovery-r2-p1-pass-20260916.json).
-Network-source recovery and the other remaining branch cases are still open;
-this is not overall release qualification.
+Network-source recovery is now also qualified below; the other remaining branch
+cases are still open. This is not overall release qualification.
 
 Neo4j network recovery r2 has now completed its actual fault, connectivity
 restoration, explicit same-job resume and installed-GUI counts verification
-(5.6M records, zero rejects). Full 64-range canonical verification is awaiting
-action-time approval; B11 is still partial. See the
+(5.6M records, zero rejects). The installed GUI now also displays full canonical
+PASS: all 64 ranges match, with both roots independently recomputed locally.
+B11 is complete for the defined CSV process/reboot and Neo4j network faults;
+other fault timings and sources are not implied. See the
 [network recovery record](network-recovery-20260916.md).
 
 | Route | Final evidence | Outcome |
