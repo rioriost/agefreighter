@@ -1,6 +1,6 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **r1 retained without a network fault; r2 stopped at source authentication before loading; network recovery not qualified**.
+Status: **r1 retained without a network fault; r2 retry reached the planned network fault, connectivity restored; explicit same-job resume and full verification pending**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -317,6 +317,38 @@ are preserved. The GUI's new-load preflight/review passed and the protected
 source-password input is the next user action. No migration or fault is claimed
 by this preparation, and no budget/deployment deadline changed.
 
+### R2 retry reached the network fault — September 16, 11:10 UTC
+
+Protected input started fresh job/operation
+`f848fa34-5134-4f10-845a-7d25356ca851` at 11:07:28.174 UTC. Configuration SHA-256
+is `49943c6c22f59aa77d9c5419182de34b7af6f435058578aac691610ba282633a`.
+The watcher bound the exact new job and observed fingerprint
+`b65c8e332898eb71450c41fb2e4b5ac111015757581a323a13826a2ce4319e88`, generation 1.
+Initial status reads were unavailable while setup ran; these were not treated
+as progress or authentication success. Later 1,325,000 and 1,405,000 committed
+rows prove the source credential worked for this attempt.
+
+At 11:10:51.242682 UTC the checkpoint had 1,405,000 committed rows, zero source
+or target rejects, age 0.514 seconds, disk 3.509%, cgroup memory 43,524,096 bytes,
+zero swap and no host/cgroup OOM. The one-job cgroup rule blocked only the
+reviewed Neo4j address/port; five seconds later restoration was sealed and rule
+absence proved. No source/NSG/credential change or process-kill substitute.
+The worker failed at 11:10:51.678517333 UTC, exit 1, consistent with the injected
+network loss. A later inspection confirmed no fault rule remains and the
+watcher inactive with successful result. No recovery is yet claimed.
+
+Retained evidence SHA-256:
+
+- Before: `44c3851656ba11ea86184b957fb949d77cc9a392511b0fbeacbfded4e7a2373b`.
+- Applied: `ecece938f476da73f978d72e55189f860b306687a0302f2a88809765096e60b6`.
+- Restored: `9c0c14bf905c55b7479c6a867c82178157abbc0b8ee90d8d45075036a0d7682c`.
+- Private load stderr (not exported): `13e20cc4a68e4e7a8c9f58e9bfa6cf9ba9bb0d6d9ca31dad31eb86757eaa3384`.
+
+Next: fresh GUI recovery readiness, read-only retained checkpoint inspection,
+then explicit same-job resume within the checkpoint/freshness gates. Preserve
+the original job/graph/generation/fingerprint and all failed-run evidence.
+Complete counts and all 64 canonical ranges are still required for B11.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source
@@ -430,6 +462,27 @@ for original-source credential recovery. Clone-only reset approval does not
 authorize resetting this source. The schedules are recorded in Scope above.
 
 ## Authorized original-source password recovery
+
+### Operator credential selection
+
+For this original AZ-N526 source, select Keychain **service/label
+`agefreighter-az-n526-neo4j`, account `neo4j`**, created September 16 at 05:35:57
+UTC. The actual connection is `neo4j526.azn526.internal:7687`, database/user
+`neo4j`, Azure VM `af-n526-source`. Do not infer a credential from a similar name.
+
+| Keychain service | Intended use / evidence |
+|---|---|
+| `agefreighter-az-n526-neo4j` | Current original AZ-N526 database credential, recovered September 16; use for this trial |
+| `agefreighter-az-n44-neo4j` | Neo4j 4.4 source; recorded Keychain account is `agefreighter`, not this 5.26 credential |
+| `agefreighter-op-n526-neo4j` | Separate on-premises-simulation 5.26 clone; not the original Azure source |
+| `agefreighter-az-n526-source` | Older September 6 item, Keychain account `agefreighter`; purpose/current validity not established by the present evidence; do not use for this trial |
+
+Only Keychain metadata was inspected to disambiguate these entries. Values were
+not printed, compared or copied into the repository; no item was renamed or
+deleted. A successful earlier password reset does not prove a later user entry
+matches it. Confirm the live authentication/load result separately.
+
+### Reset evidence
 
 The user explicitly approved resetting **this original AZ-N526 source** and
 saving the new password before proceeding. Fresh checks confirmed the exact
