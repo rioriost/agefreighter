@@ -180,6 +180,28 @@ source credentials must still be provided through the protected GUI. Do not
 submit after the watcher deadline without inspecting its retained state and
 rechecking admission; never attach to a pre-existing load or overwrite evidence.
 
+### R2 first arming expired without a load — September 16, 09:49 UTC
+
+The user reported the short watcher deadline had passed. The stale protected
+password prompt was cancelled through the installed GUI, not submitted.
+At 09:49:53 UTC, a bounded guest read confirmed the watcher inactive/dead,
+Result=success and exit 0, with `expired: true, migrationStarted: false`.
+There are no migration-source/CSV/resume operation states, no selected-job or
+fault evidence, and no `af-network-` firewall rule. Only the original create-only
+arming record exists, SHA-256
+`9dbfffd9b4b42a264fa2a6218a65ee766cba5bd59144942a11c0a1b86fb8e80e`.
+Local product metadata likewise has no migration. The target remains Ready
+with public network access Disabled; provisioning is retained, not replayed.
+
+This was the 15-minute fault-watcher expiry, not the September 17 07:00 UTC
+per-run deadline or the September 20 outer permission. No deadline or budget
+was extended. The expired arming record and log must remain intact. Do not
+blindly restart the existing helper: its create-only arming record deliberately
+prevents that. A subsequent attempt requires reviewed evidence-preserving
+rearming, fresh admission checks and coordinated protected password entry;
+never attach the watcher to an already-started job. No watcher has been rearmed
+and network recovery remains unqualified.
+
 ## Scope and boundaries
 
 - Workflow `8a9ae99e-c621-4a94-afd1-a30ff210a201`, source
