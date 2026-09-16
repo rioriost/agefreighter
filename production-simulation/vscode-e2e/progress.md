@@ -26,6 +26,12 @@ recomputed locally. [Evidence](evidence/csv-recovery-r2-p1-pass-20260916.json).
 Network-source recovery and the other remaining branch cases are still open;
 this is not overall release qualification.
 
+Neo4j network recovery r2 has now completed its actual fault, connectivity
+restoration, explicit same-job resume and installed-GUI counts verification
+(5.6M records, zero rejects). Full 64-range canonical verification is awaiting
+action-time approval; B11 is still partial. See the
+[network recovery record](network-recovery-20260916.md).
+
 | Route | Final evidence | Outcome |
 | --- | --- | --- |
 | CSV-MAC | [Local CSV](evidence/csv-mac-qualified-20260906.json) | PASS |

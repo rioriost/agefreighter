@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "workflow": "b2c7214e-83f5-4613-b378-98d36e0cd97d",
   "purpose": "Archive completed read-only ARM readiness receipts before freeing command capacity; no guest/data/failed-run evidence is deleted.",
-  "deletionStatus": "not yet deleted",
+  "deletionStatus": "Both exact completed ARM readiness receipts deleted after archive was committed and pushed; subsequent GET returned ResourceNotFound for each. Guest evidence and data retained.",
   "commands": [
     {
       "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b2c7214e83f54613b378/runCommands/af-284b3c32-b947-4080-af44-9e57b626f2f1",

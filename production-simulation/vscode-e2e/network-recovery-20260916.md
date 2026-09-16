@@ -1,6 +1,6 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **r1 retained without a network fault; r2 retry reached the planned network fault, connectivity restored; explicit same-job resume and full verification pending**.
+Status: **r1 retained without a network fault; r2 planned fault and explicit same-job resume completed, installed-GUI counts PASS; full canonical verification awaiting action-time approval**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -361,6 +361,44 @@ review was approved. Following protected input, the GUI submitted continuation
 `cbb6455a-d3aa-4ffc-9839-fa863b6dd9ed` at 11:20:03.639 UTC for the same durable
 job, configuration, generation and fingerprint, from 1,415,000 rows. This is a
 submitted resume request, not proof of successful resumed work or recovery PASS.
+
+### R2 continuation finished and counts PASS — September 16, 12:36 UTC
+
+On continuation, VS Code was 1.138.0 with a new window; the installed candidate
+bundle still matched SHA-256
+`f1468e18046b352d93706d8123a6c8b6a460751190f6ab7b0646e2033de885ea`.
+The operator reconnected through the GUI to the exact saved R2 workflow and
+reconciled existing operations without resubmitting the migration. This is
+reconnection evidence, not a deliberately injected Extension Host crash test.
+
+Independent guest evidence confirms the continuation ran from
+11:20:31.154262798 to 11:23:23.814149033 UTC, exit 0, same job, configuration,
+generation and fingerprint. Both load/verification stderr files are empty.
+The retained state SHA-256 is
+`cf558f9a23991d9a831915dd45b4fd498a5596ee1d317bbe757c77d1473fb05a`;
+load result SHA-256 is
+`e2f90f0e28b90f8ac196046660fe815096ea08f829ba3f1432311b52b6cb4fff`.
+The 9,619-byte counts report SHA-256 is
+`f31b8bcd89342a67f57809c30eb6ed12ccbb277993e17feeaad74c34c1929968`.
+Its first download could not be verified; explicit reconciliation of the same
+export then imported the matching bytes and displayed **Counts verification:
+PASS**. No source operation or migration was replayed. Exact source/target
+counts agree with zero rejects; this is not yet full property verification.
+
+Fresh installed-GUI readiness at 12:36:21.399 UTC confirms the same boot/build,
+idle guest, storage 3.5516%, zero swap/OOM. Independent guest inspection at
+12:34 UTC also found the continuation inactive/success, disk 4%, no swap or
+kernel OOM. Target storage metrics were 12.923%, below the 80% gate. ARM
+confirmed Ready/private, no locks or intervening non-run-command/non-audit
+operations in the reviewed window. The USD 800 ceiling, USD 600 conservative
+reserve and September 17 07:00 UTC per-run deadline remain unchanged; the
+reserve is not a measured billing total.
+
+The fixed P1 verifier manifest was selected and its archive hash independently
+rechecked (`60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d`,
+commit `8a23a5109798ec906109532e4cc6c32308b3c824`). The native full-verification
+dialog is awaiting action-time approval: same job only, read-only, 4 GiB,
+25 minutes, 64 canonical ranges. No verifier has yet been submitted.
 
 ## Scope and boundaries
 
