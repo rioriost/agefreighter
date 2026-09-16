@@ -1,6 +1,6 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **runner ready / source inventory awaiting credentials / not qualified**.
+Status: **source inventory PASS / target review in progress / not qualified**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -162,7 +162,49 @@ a new inventory without replaying it. The next inventory is waiting for the
 new Keychain credential at the protected VS Code password prompt. No target
 deployment, migration or network fault has started.
 
-## Observer preparation
+## Fresh installed-GUI inventory PASS
+
+After the user supplied the new AZ-N526 Keychain password, the GUI refreshed
+Linux readiness and submitted new operation
+`b9f584c1-fbdd-427e-bfa4-68aa19ce1de5` without replaying the retained failure.
+The accepted boot and public source configuration are unchanged; guest
+configuration SHA-256 is
+`103e58a065b1455bf553815f55cf0eadda6e5cf33e74ffc5d1f7c2b4d782165d`.
+
+The GUI completed its create-only export/import flow and displayed the
+hash-verified inventory. Independent local readback confirms 663 bytes,
+SHA-256 `ade134ea10f84f25573b88cb38cfcc86df10763334cb72f62686b16711688509`,
+report generated at `2026-09-16T05:42:48.019759695Z`, outcome PASS, no errors
+or incomplete checks, and exact transactional count-store totals of 1,600,000
+vertices plus 4,000,000 edges. This remains source inventory, not migration
+qualification.
+
+Target review selects a fresh private PG18 / AGE server
+`afpg-8a9ae99ec6214a94afd1`, D4ds_v5 / 128 GiB, and later same-runner D4s_v5
+resize. Fresh VNet inspection found `10.246.20.0/24` non-overlapping; no subnet
+has been created. The outer deadline initially exceeded the product's maximum
+96-hour per-plan horizon. The review therefore uses the shorter per-run deadline
+`2026-09-17T07:00:00Z`, with the USD 800 ceiling and USD 600 conservative reserve
+unchanged. This does not alter the outer authorization or auto-shutdown settings.
+A subsequent freshness check correctly refused stale guest readiness; refresh
+and complete the native review before saving or deploying. No target credential,
+target deployment, resize or migration has been created at this checkpoint.
+
+Fresh readiness at `2026-09-16T05:49:48.095Z` resolved that gate. The next
+preflight rejected DDSv5 quota. Independent PostgreSQL quota reads confirmed
+regional 62/196 cores, DDSv5 62/64 (only 2 free), and EDSv5 0/256. This is a
+real family-quota limit, not the separate Compute quota. Existing accepted
+servers were not deleted or resized to free quota. Review is being repeated
+with E8ds_v5 / 128 GiB in the same region/zone, retaining the D4s_v5 runner,
+shorter deadline, ceiling and reserve. The alternative passed native preflight
+and its final confirmation displays **USD 1.448/hour combined compute** plus
+the USD 600 reserve. The new target/credential creation was presented for
+action-time approval; the native dialog remains pending. No target credential,
+saved target plan, deployment or resize exists yet. If approval is delayed,
+recheck readiness and price through the product before submission; do not
+modify workflow state to bypass freshness.
+
+## Observer preparation (unchanged)
 
 The retained guest observer now supports explicit **read-only** Neo4j
 observation. It binds the hashed configuration's actual source type and exact
