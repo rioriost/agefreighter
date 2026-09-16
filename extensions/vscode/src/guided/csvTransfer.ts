@@ -14,6 +14,16 @@ export interface CSVTransfer extends CSVManifest {
 const blockBytes = 8 * 1024 * 1024;
 export const maxCSVBytes = 2 * 1024 * 1024 * 1024;
 
+export class CSVTransferCancelledError extends Error {
+  constructor() {
+    super("CSV transfer canceled. Remote acknowledgement may be uncertain. Explicit retry reconciles the same destination; no automatic retry or migration starts.");
+    this.name = "CSVTransferCancelledError";
+  }
+}
+function checkCancelled(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new CSVTransferCancelledError();
+}
+
 export function validateCSVManifest(value: CSVManifest): CSVManifest {
   if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value.file) ||
     !/^[a-f0-9]{64}$/.test(value.sha256) || !Number.isSafeInteger(value.bytes) || value.bytes < 1 || value.bytes > maxCSVBytes) throw new Error("CSV transfer requires a file UUID, SHA-256 and size between 1 byte and 2 GiB.");
@@ -42,9 +52,9 @@ export async function inspectCSV(file: string, path: string): Promise<CSVManifes
  * A remote metadata match is only upload reconciliation, never guest verification.
  * Retries require another explicit call; tokens and diagnostics are not retained. */
 export async function uploadCSV(record: RunnerRecord, path: string, manifest: CSVManifest, credential: TokenCredential,
-  fetcher: typeof fetch = fetch, progress: (bytes: number) => void = () => {}): Promise<void> {
+  fetcher: typeof fetch = fetch, progress: (bytes: number) => void = () => {}, signal?: AbortSignal): Promise<void> {
   validateCSVManifest(manifest);
-  return uploadImmutable(record, path, manifest, credential, `uploads/${manifest.file}/${manifest.sha256}.csv`, "text/csv; charset=utf-8", fetcher, progress);
+  return uploadImmutable(record, path, manifest, credential, `uploads/${manifest.file}/${manifest.sha256}.csv`, "text/csv; charset=utf-8", fetcher, progress, signal);
 }
 
 export async function uploadRunnerArchive(record: RunnerRecord, path: string, manifest: CSVManifest, credential: TokenCredential,
@@ -55,15 +65,19 @@ export async function uploadRunnerArchive(record: RunnerRecord, path: string, ma
 }
 
 async function uploadImmutable(record: RunnerRecord, path: string, manifest: CSVManifest, credential: TokenCredential, suffix: string, contentType: string,
-  fetcher: typeof fetch, progress: (bytes: number) => void): Promise<void> {
+  fetcher: typeof fetch, progress: (bytes: number) => void, signal?: AbortSignal): Promise<void> {
+  checkCancelled(signal);
   const names = reportStorageNames(record), url = `${names.origin}/${names.container}/${suffix}`;
   const request = async (suffix: string, method: string, body?: Uint8Array | string, extra: Record<string, string> = {}) => {
     try {
-      const token = await credential.getToken("https://storage.azure.com/.default"); if (!token) throw new Error();
-      const response = await fetcher(url + suffix, { method, body: body as NonNullable<Parameters<typeof fetch>[1]>["body"], redirect: "error", signal: AbortSignal.timeout(60000),
+      checkCancelled(signal);
+      const token = await credential.getToken("https://storage.azure.com/.default", {abortSignal: signal}); if (!token) throw new Error();
+      checkCancelled(signal);
+      const timeout = AbortSignal.timeout(60000);
+      const response = await fetcher(url + suffix, { method, body: body as NonNullable<Parameters<typeof fetch>[1]>["body"], redirect: "error", signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
         headers: { authorization: `Bearer ${token.token}`, "x-ms-version": "2023-11-03", "x-ms-date": new Date().toUTCString(), ...extra } });
       await response.body?.cancel(); return response;
-    } catch { throw new Error("CSV transfer acknowledgement is uncertain. Explicit retry reconciles the same content-addressed destination without overwriting a committed file."); }
+    } catch { checkCancelled(signal); throw new Error("CSV transfer acknowledgement is uncertain. Explicit retry reconciles the same content-addressed destination without overwriting a committed file."); }
   };
   const same = (response: Response) => response.status === 200 && response.headers.get("content-length") === String(manifest.bytes) && response.headers.get("x-ms-meta-sha256") === manifest.sha256;
   const handle = await regular(path);
@@ -72,6 +86,7 @@ async function uploadImmutable(record: RunnerRecord, path: string, manifest: CSV
     if (head.status !== 404 && !same(head)) throw new Error(`CSV destination is unavailable or conflicts with the approved manifest (HTTP ${head.status}).`);
     const hash = createHash("sha256"), buffer = Buffer.alloc(blockBytes), blocks: string[] = []; let offset = 0;
     while (offset < manifest.bytes) {
+      checkCancelled(signal);
       const count = Math.min(buffer.length, manifest.bytes - offset), part = await handle.read(buffer, 0, count, offset);
       if (part.bytesRead !== count) throw new Error("Local CSV changed after review; no block list was committed.");
       const data = buffer.subarray(0, count); hash.update(data);
@@ -79,6 +94,7 @@ async function uploadImmutable(record: RunnerRecord, path: string, manifest: CSV
       if (head.status === 404 && (await request(`?comp=block&blockid=${encodeURIComponent(id)}`, "PUT", data)).status !== 201) throw new Error("CSV block was not acknowledged; retry requires explicit approval.");
       offset += count; progress(offset);
     }
+    checkCancelled(signal);
     if ((await handle.stat()).size !== manifest.bytes || hash.digest("hex") !== manifest.sha256) throw new Error("Local CSV changed after review; no block list was committed.");
     if (head.status === 200) return;
     const response = await request("?comp=blocklist", "PUT", `<?xml version="1.0" encoding="utf-8"?><BlockList>${blocks.map(id => `<Latest>${id}</Latest>`).join("")}</BlockList>`,

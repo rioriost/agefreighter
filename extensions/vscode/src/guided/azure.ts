@@ -140,10 +140,10 @@ export class AzureSession implements vscode.Disposable {
     return uploadRunnerArchive(record, path, manifest, this.storageCredential(subscription));
   }
 
-  public async uploadCSV(record: RunnerRecord, path: string, manifest: CSVManifest, progress: (bytes: number) => void): Promise<void> {
+  public async uploadCSV(record: RunnerRecord, path: string, manifest: CSVManifest, progress: (bytes: number) => void, signal?: AbortSignal): Promise<void> {
     const subscription = await this.subscription(record.input.subscriptionId);
     if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("CSV transfer currently requires public Azure cloud.");
-    return uploadCSV(record, path, manifest, this.storageCredential(subscription), fetch, progress);
+    return uploadCSV(record, path, manifest, this.storageCredential(subscription), fetch, progress, signal);
   }
 
   private storageCredential(subscription: AzureSubscription) {

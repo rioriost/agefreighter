@@ -100,6 +100,12 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 ## First local regression batch
 
+CSV upload cancellation is now implemented and locally regression-tested:
+**235/235 unit tests**, typecheck/build and **13/13 isolated VS Code 1.138.0 host
+tests** pass. Explicit retry retains destination identity; cancellation does not
+advance assessment or migration. Live transfer interruption is still pending,
+so B08 remains partial. See [B08 execution record](csv-interruption-20260916.md).
+
 Latest non-mutating GUI audit: [source locations and CSV cancellation](branch-gui-audit-20260916.md).
 All eight allowed source/location selections were inspected in signed-in VS Code
 1.138.0. Neo4j/PostgreSQL endpoint-only selections hide source ARM discovery;

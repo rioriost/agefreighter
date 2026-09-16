@@ -4,7 +4,7 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { inspectCSV, uploadCSV, validateCSVManifest } from "../../guided/csvTransfer";
+import { CSVTransferCancelledError, inspectCSV, uploadCSV, validateCSVManifest } from "../../guided/csvTransfer";
 import { sourceWorkflowDraft } from "../../core/runner";
 import { csvAssessmentReady } from "../../core/runnerCSV";
 import { buildSourceDraft } from "../../core/runnerSource";
@@ -52,4 +52,59 @@ test("CSV assessment requires every mapped path to have an independent verified 
  assert.equal(csvAssessmentReady(r),false);r.csvTransfers=[{file,bytes:5,sha256:"a".repeat(64),phase:"uploaded"}];assert.equal(csvAssessmentReady(r),false);
  r.csvTransfers[0]!.phase="verified";assert.equal(csvAssessmentReady(r),true);
  r.csvTransfers[0]!.file=id;assert.equal(csvAssessmentReady(r),false);
+});
+
+test("pre-canceled CSV transfer does not open the file or request a token",async()=>{
+ const abort=new AbortController();abort.abort();let calls=0;
+ await assert.rejects(uploadCSV(record(),"/nonexistent.csv",{file,bytes:1,sha256:"a".repeat(64)},
+  {getToken:async()=>{calls++;throw Error("secret");}},async()=>{calls++;throw Error("network");},()=>{},abort.signal),CSVTransferCancelledError);
+ assert.equal(calls,0);
+});
+
+test("cancel after one block leaves no committed blob; explicit retry uses the same destination",async()=>{
+ const dir=await mkdtemp(join(tmpdir(),"af-csv-cancel-"));try{
+  const path=join(dir,"input.csv"),data=Buffer.alloc(9*1024*1024,65);await writeFile(path,data);
+  const manifest=await inspectCSV(file,path),abort=new AbortController(),urls:string[]=[];let blocks=0,commits=0;
+  const remote:typeof fetch=async(url,init)=>{urls.push(String(url));if(init?.method==="HEAD")return new Response(null,{status:404});
+   if(String(url).includes("comp=block&"))blocks++;else commits++;
+   return new Response(null,{status:201});};
+  await assert.rejects(uploadCSV(record(),path,manifest,credential,remote,()=>abort.abort(),abort.signal),CSVTransferCancelledError);
+  assert.equal(blocks,1);assert.equal(commits,0);assert.equal(urls.length,2);
+  const firstBlock=urls[1];
+  await uploadCSV(record(),path,manifest,credential,remote);
+  assert.equal(urls[3],firstBlock);assert.equal(blocks,3);assert.equal(commits,1);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test("cancel aborts an in-flight fetch and redacts its underlying error",async()=>{
+ const dir=await mkdtemp(join(tmpdir(),"af-csv-abort-"));try{
+  const path=join(dir,"input.csv");await writeFile(path,"id\n1\n");const manifest=await inspectCSV(file,path),abort=new AbortController();let calls=0;
+  await assert.rejects(uploadCSV(record(),path,manifest,credential,async(_url,init)=>{
+   calls++;assert.ok(init?.signal);
+   return new Promise<Response>((_resolve,reject)=>{init!.signal!.addEventListener("abort",()=>reject(Error("private-token")),{once:true});abort.abort();});
+  },()=>{},abort.signal),error=>error instanceof CSVTransferCancelledError&&!error.message.includes("private-token"));
+  assert.equal(calls,1);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test("lost commit acknowledgement requires explicit retry and reconciles with HEAD without another PUT",async()=>{
+ const dir=await mkdtemp(join(tmpdir(),"af-csv-commit-"));try{
+  const path=join(dir,"input.csv");await writeFile(path,"id\n1\n");const manifest=await inspectCSV(file,path);let committed=false,puts=0,heads=0;
+  const remote:typeof fetch=async(url,init)=>{
+   if(init?.method==="HEAD"){heads++;return committed?new Response(null,{status:200,headers:{"content-length":String(manifest.bytes),"x-ms-meta-sha256":manifest.sha256}}):new Response(null,{status:404});}
+   puts++;if(String(url).includes("comp=blocklist")){committed=true;throw Error("private-token: lost acknowledgement");}return new Response(null,{status:201});
+  };
+  await assert.rejects(uploadCSV(record(),path,manifest,credential,remote),/acknowledgement is uncertain/);
+  assert.equal(puts,2);assert.equal(heads,1);
+  await uploadCSV(record(),path,manifest,credential,remote);
+  assert.equal(puts,2);assert.equal(heads,2);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test("cancellation after token acquisition prevents a new HTTP request",async()=>{
+ const dir=await mkdtemp(join(tmpdir(),"af-csv-token-"));try{
+  const path=join(dir,"input.csv");await writeFile(path,"id\n1\n");const manifest=await inspectCSV(file,path),abort=new AbortController();let requests=0;
+  await assert.rejects(uploadCSV(record(),path,manifest,{getToken:async()=>{abort.abort();return {token:"private-token",expiresOnTimestamp:Date.now()+60000};}},async()=>{requests++;throw Error("unexpected request");},()=>{},abort.signal),CSVTransferCancelledError);
+  assert.equal(requests,0);
+ }finally{await rm(dir,{recursive:true,force:true});}
 });

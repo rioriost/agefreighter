@@ -12,7 +12,7 @@ import { refreshStorage, storageDraft, submitStorage } from "./core/runnerStorag
 import { reportStorageNames, verifyReportStorage, verifyTransferStorage } from "./core/runnerReportStorage";
 import { importReport, refreshReportExport, startReportExport } from "./core/runnerReport";
 import { escapeHTML } from "./core/report";
-import { CSVManifest, inspectCSV } from "./guided/csvTransfer";
+import { CSVManifest, CSVTransferCancelledError, inspectCSV } from "./guided/csvTransfer";
 import { csvAssessmentReady, refreshCSVImport, startCSVImport } from "./core/runnerCSV";
 import { csvFilesInFolder } from "./guided/csvSelection";
 import { previewCosmosAccess, refreshCosmosAccess, submitCosmosAccess } from "./core/runnerCosmosAccess";
@@ -21,7 +21,7 @@ export interface RunnerSourceServices {
   storagePrincipal(subscription: string): Promise<string>;
   reportCapability(record: RunnerRecord, operation: string, permission: "r" | "c"): Promise<string>;
   csvCapability(record: RunnerRecord, manifest: CSVManifest): Promise<string>;
-  uploadCSV(record: RunnerRecord, path: string, manifest: CSVManifest, progress: (bytes: number) => void): Promise<void>;
+  uploadCSV(record: RunnerRecord, path: string, manifest: CSVManifest, progress: (bytes: number) => void, signal?: AbortSignal): Promise<void>;
 }
 
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -90,8 +90,16 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
               if (previous && previous.phase !== "prepared") continue;
               if (!previous) { current = { ...current, csvTransfers: [...current.csvTransfers ?? [], { ...manifest, phase: "prepared" }] }; await control.persist(current); }
               const file = current.sourceFiles!.find(item => item.id === manifest.file)!;
-              await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Uploading ${file.name}`, cancellable: false }, async progress => {
-                await services.uploadCSV(current, file.path, manifest, bytes => progress.report({ message: `${Math.round(100 * bytes / manifest.bytes)}%` }));
+              await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Uploading ${file.name}`, cancellable: true }, async (progress, token) => {
+                const abort = new AbortController();
+                const cancellation = token.onCancellationRequested(() => abort.abort());
+                if (token.isCancellationRequested) abort.abort();
+                try {
+                  await services.uploadCSV(current, file.path, manifest, bytes => progress.report({ message: `${Math.round(100 * bytes / manifest.bytes)}%` }), abort.signal);
+                  // Cancellation at an acknowledged-commit boundary still leaves
+                  // this file prepared, for an explicit HEAD/hash reconciliation.
+                  if (abort.signal.aborted) throw new CSVTransferCancelledError();
+                } finally { cancellation.dispose(); }
               });
               current = { ...current, csvTransfers: current.csvTransfers!.map(item => item.file === manifest.file ? { ...item, phase: "uploaded" } : item) }; await control.persist(current);
             }
