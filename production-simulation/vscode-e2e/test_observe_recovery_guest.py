@@ -4,6 +4,8 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 spec = importlib.util.spec_from_file_location("observer", Path(__file__).with_name("observe-recovery-guest.py"))
 observer = importlib.util.module_from_spec(spec)
@@ -87,6 +89,128 @@ class FaultAdmission(unittest.TestCase):
             del view["memoryEvents"][key]
             with self.assertRaises(KeyError):
                 observer.safe_fault(view, 123, 1_400_000)
+
+
+class NetworkFault(unittest.TestCase):
+    operation = "11111111-1111-4111-8111-111111111111"
+
+    def setUp(self):
+        self.config = {"source": {"type": "neo4j", "neo4j": {"uri": "neo4j+s://source.internal:7687"}}}
+        self.group = "/system.slice/agefreighter-assessment-" + self.operation + ".service"
+        self.view = dict(CommittedRows=1_400_000, Status="running", RejectedRows=0,
+                         SourceRejectedRows=0, checkpointAgeSeconds=1,
+                         diskUsedPercent=6, swapUsedKiB=0, hostOOMKills=0,
+                         memoryBytes=100_000_000, memoryEvents={"oom": 0, "oom_kill": 0},
+                         ID="job", ConfigFingerprint="fingerprint", GraphGenerationID="generation",
+                         bootId="boot", configSha256="hash", unit={"ControlGroup": self.group})
+        self.commands = []
+        self.present = False
+        self.timer = False
+
+    def fake_run(self, *args, **kwargs):
+        self.commands.append(args)
+        if args[0] == "systemd-run":
+            self.timer = True
+            return SimpleNamespace(returncode=0, stdout="")
+        if args[0] == "systemctl":
+            return SimpleNamespace(returncode=0, stdout="active\n")
+        self.assertEqual(args[0], "/usr/sbin/iptables")
+        action = args[3]
+        if action == "-C":
+            return SimpleNamespace(returncode=0 if self.present else 1, stdout="")
+        if action == "-I":
+            self.assertTrue(self.timer, "Independent restoration must be armed first")
+            self.present = True
+        elif action == "-D":
+            self.present = False
+        else:
+            self.fail("Unexpected firewall action")
+        return SimpleNamespace(returncode=0, stdout="")
+
+    def invoke(self, directory, observed=None):
+        with patch.object(observer, "run", side_effect=self.fake_run), \
+             patch.object(observer.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("10.246.5.4", 7687))]), \
+             patch.object(observer.shutil, "which", return_value="/usr/sbin/iptables"), \
+             patch.object(observer.time, "sleep"):
+            observer.network_fault(directory, self.config, "10.246.5.4", self.operation,
+                                   self.view, 123, lambda: (observed or self.view, 123))
+
+    def test_rule_only_matches_exact_source_and_operation(self):
+        rule = observer.network_rule(self.config, "10.246.5.4", self.operation, self.group)
+        self.assertEqual(rule[:7], ["OUTPUT", "-d", "10.246.5.4", "-p", "tcp", "--dport", "7687"])
+        self.assertIn(self.group.lstrip("/"), rule)
+        for address, group in [("1.1.1.1", self.group), ("10.246.20.4", self.group),
+                               ("10.246.5.5", self.group), ("10.246.5.4", "/system.slice/other.service")]:
+            with self.assertRaises(AssertionError):
+                observer.network_rule(self.config, address, self.operation, group)
+
+    def test_rejects_wrong_source_transport_port_and_credentials(self):
+        for uri in ("bolt://source:7687", "neo4j+s://source:5432", "neo4j+s://user:secret@source:7687"):
+            self.config["source"]["neo4j"]["uri"] = uri
+            with self.assertRaises(AssertionError):
+                observer.network_rule(self.config, "10.246.5.4", self.operation, self.group)
+
+    def test_armed_before_rule_and_removed_with_evidence(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            self.invoke(directory)
+            self.assertFalse(self.present)
+            self.assertTrue((directory / "qualification-network-applied.json").is_file())
+            self.assertTrue(observer.json_read(directory / "qualification-network-restored.json")["ruleAbsent"])
+            count = len(self.commands)
+            with self.assertRaises(FileExistsError):
+                self.invoke(directory)
+            self.assertFalse(any("-I" in c for c in self.commands[count:]))
+
+    def test_changed_identity_refuses_insertion(self):
+        changed = copy.deepcopy(self.view)
+        changed["ConfigFingerprint"] = "other"
+        with tempfile.TemporaryDirectory() as name:
+            with self.assertRaises(AssertionError):
+                self.invoke(Path(name), changed)
+            self.assertFalse(any("-I" in c for c in self.commands))
+
+    def test_post_insert_failure_still_removes_rule(self):
+        original = observer.seal
+        def failing(path, value):
+            if path.name == "qualification-network-applied.json":
+                raise OSError("simulated evidence write failure")
+            return original(path, value)
+        with tempfile.TemporaryDirectory() as name, patch.object(observer, "seal", side_effect=failing):
+            with self.assertRaises(OSError):
+                self.invoke(Path(name))
+            self.assertFalse(self.present)
+            self.assertTrue(any("-D" in c for c in self.commands))
+
+    def test_timer_failure_never_inserts(self):
+        original = self.fake_run
+        def fail_timer(*args, **kwargs):
+            if args[0] == "systemd-run":
+                return SimpleNamespace(returncode=1, stdout="")
+            return original(*args, **kwargs)
+        with tempfile.TemporaryDirectory() as name, patch.object(self, "fake_run", side_effect=fail_timer):
+            with self.assertRaises(AssertionError):
+                self.invoke(Path(name))
+            self.assertFalse(any("-I" in c for c in self.commands))
+
+    def test_expired_restore_margin_never_inserts(self):
+        with tempfile.TemporaryDirectory() as name, patch.object(observer.time, "monotonic", side_effect=[0, 16]):
+            with self.assertRaises(AssertionError):
+                self.invoke(Path(name))
+            self.assertFalse(any("-I" in c for c in self.commands))
+
+    def test_removal_failure_is_not_reported_restored(self):
+        original = self.fake_run
+        def fail_delete(*args, **kwargs):
+            if args[0] == "/usr/sbin/iptables" and args[3] == "-D":
+                return SimpleNamespace(returncode=2, stdout="")
+            return original(*args, **kwargs)
+        with tempfile.TemporaryDirectory() as name, patch.object(self, "fake_run", side_effect=fail_delete):
+            with self.assertRaises(AssertionError):
+                self.invoke(Path(name))
+            self.assertTrue(self.timer)
+            self.assertTrue(self.present)
+            self.assertFalse((Path(name) / "qualification-network-restored.json").exists())
 
 
 if __name__ == "__main__":

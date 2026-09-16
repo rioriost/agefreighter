@@ -1,6 +1,6 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **source inventory PASS / target review in progress / not qualified**.
+Status: **source inventory PASS / target provisioning / not qualified**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -204,21 +204,67 @@ saved target plan, deployment or resize exists yet. If approval is delayed,
 recheck readiness and price through the product before submission; do not
 modify workflow state to bypass freshness.
 
-## Observer preparation (unchanged)
+## Authorized target submission
+
+The user's continuation approved the exact alternative target/credential plan.
+The first save correctly stopped before Azure submission because guest freshness
+expired during folder selection. Its secret-reference-only files are retained;
+the deployment was not replayed. Linux readiness was refreshed at
+`2026-09-16T06:06:58.593Z`, and the same native review was completed with a new
+create-only output directory. Plan SHA-256:
+`6675b2b57e3cd95e492e9519843379fd54aafa2f52cb8d92bcd015723193c552`.
+
+The installed GUI submitted deployment `afpg-8a9ae99ec6214a94afd1` at
+approximately `2026-09-16T06:09:33Z`. Independent ARM reads show Running,
+with the dedicated subnet/private DNS/link succeeded and server provisioning
+active. This is E8ds_v5 / 128 GiB / PG18, private-only, zone 1; the approved
+USD 1.448/hour combined compute, USD 600 reserve, USD 800 ceiling and September
+17 07:00 UTC per-run deadline are unchanged. No load, fault or runner resize
+has started. Creation status is not AGE readiness or qualification.
+
+ARM completed Succeeded at `2026-09-16T06:16:24.376887Z` after 6m51s. The
+installed GUI reconciled the exact deployment to provisioned without replay.
+Independent server inspection confirmed version 18, E8ds_v5, 128 GiB, zone 1
+and public access Disabled. The reviewed AGE preload restart was submitted
+at `2026-09-16T06:17:02.998Z`; migration remains unstarted. Saved LoadJob and
+target plan permissions are 0600; structural inspection found no literal secret
+fields. Source ARM NIC readback also confirms the observed `10.246.5.4` has
+no public IP. No RG locks or delete/stop/deallocate activity was found in the
+queried deployment window.
+
+## Observer preparation
 
 The retained guest observer now supports explicit **read-only** Neo4j
 observation. It binds the hashed configuration's actual source type and exact
 `migrate-source`/`resume-migration` command arguments, retaining existing boot,
 job, fingerprint, checkpoint, memory, disk, swap and OOM checks. Its process and
-reboot fault switches remain CSV-only; no network fault is implemented or
-implicitly authorized by this change. All **10 local observer tests PASS**.
-These tests do not prove a live network fault or resumed migration.
+reboot fault switches remain CSV-only. An explicit `--network-source-ip`
+option now prepares a narrowly scoped Neo4j connection-rejection trial:
+
+- Only the exact operation cgroup, the resolved private fixture address
+  `10.246.5.4`, and TLS Neo4j port 7687; no source/NSG/firewall flush changes.
+- First fresh load only, 1.4M to less than 2.5M committed rows, with matching
+  job/generation/fingerprint/config/boot, healthy resource bounds and checkpoint.
+- Create-only pre-fault evidence prevents retry of an ambiguous attempt.
+- An independent systemd timer is armed before insertion to remove the exact
+  rule at 45 seconds. The normal path removes it after 5 seconds in `finally`.
+  Admission refuses an expired timer margin; both applied and absent-rule
+  evidence are sealed. No automatic migration resume is performed.
+
+All **18 local observer tests PASS**, including refusal of wrong destination,
+cgroup, transport, identity and replay, and restoration after an evidence-write
+failure and expired/unavailable restoration timers. A read-only guest check at
+06:13:39 UTC confirmed cgroup2, iptables cgroup path support, source DNS
+`10.246.5.4`, disk 4% and zero swap. Actual kernel rule installation, fault,
+explicit same-job resume and canonical verification remain separate live gates.
+No network fault has yet occurred.
 
 ## Remaining admission and acceptance
 
 Runner approval, readiness and selected-source start are now recorded above.
-Next: obtain the source password through the protected GUI and reconcile the
-complete source inventory. Target/resize review remains required; recheck
+Next: reconcile the submitted target and complete AGE readiness and same-VM
+resize. Fresh source inventory is accepted above; the later load still requires
+source credentials through the protected GUI. Recheck
 cloud/guest/time/cost gates before subsequent mutations.
 
 Before fault injection: review the exact destination and job scope, an

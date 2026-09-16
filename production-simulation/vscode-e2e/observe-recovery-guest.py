@@ -7,19 +7,24 @@ The operator must first check cloud ownership, governance, budget and deadline.
 --sigterm-at selects the first process fault; --reboot-at is only valid for a
 resumed operation and requests one guest reboot after sealing current evidence.
 This is qualification tooling, not a migration or automatic recovery mechanism.
---source-kind neo4j enables read-only observation of a network-source job;
+--source-kind neo4j enables observation of a network-source job. Only the
+explicit --network-source-ip switch requests a narrowly scoped network fault;
 process/reboot faults remain restricted to the reviewed CSV trial.
 """
 import argparse
 import datetime as dt
 import hashlib
+import ipaddress
 import json
 import os
 from pathlib import Path
 import re
 import signal
+import shutil
+import socket
 import subprocess
 import time
+from urllib.parse import urlsplit
 
 if not __debug__:
     raise SystemExit("Do not disable qualification assertions with -O")
@@ -77,6 +82,103 @@ def loader_arguments(source_kind, configuration, state, config_path, job_id):
     return ["/usr/local/bin/agefreighter", "load", str(config_path), "--job-id", job_id]
 
 
+def network_rule(configuration, address, operation, control_group):
+    """One private Neo4j destination, from only this operation's cgroup."""
+    assert configuration["source"]["type"] == "neo4j"
+    uri = urlsplit(configuration["source"]["neo4j"]["uri"])
+    assert uri.scheme == "neo4j+s" and uri.port == 7687
+    assert uri.hostname and not uri.username and not uri.password
+    ip = ipaddress.ip_address(address)
+    assert ip.version == 4 and ip == ipaddress.ip_address("10.246.5.4")
+    assert re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", operation)
+    expected = "/system.slice/agefreighter-assessment-" + operation + ".service"
+    assert control_group == expected
+    return ["OUTPUT", "-d", address, "-p", "tcp", "--dport", "7687",
+            "-m", "cgroup", "--path", control_group.lstrip("/"),
+            "-m", "comment", "--comment", "af-network-" + operation,
+            "-j", "REJECT", "--reject-with", "tcp-reset"]
+
+
+def seal(path, value):
+    with path.open("x") as output:
+        os.chmod(path, 0o600)
+        json.dump(value, output)
+        output.flush()
+        os.fsync(output.fileno())
+    descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def network_fault(directory, configuration, address, operation, before, pid, observe):
+    """Five-second source loss; an independent 45-second timer also removes it.
+
+    Does not alter the source/NSG or stop any process. A preserved before file
+    prevents replay even after an ambiguous command response. Never flush rules.
+    """
+    safe_fault(before, pid, 1_400_000)
+    rule = network_rule(configuration, address, operation, before["unit"]["ControlGroup"])
+    host = urlsplit(configuration["source"]["neo4j"]["uri"]).hostname
+    resolved = {x[4][0] for x in socket.getaddrinfo(host, 7687, type=socket.SOCK_STREAM)}
+    assert resolved == {address}, "Review changed or multi-address source DNS"
+    executable = shutil.which("iptables")
+    assert executable in ("/usr/sbin/iptables", "/sbin/iptables")
+    def command(action):
+        return [executable, "-w", "5", action, *rule]
+    assert run(*command("-C")).returncode == 1, "Rule exists or support is unavailable"
+    unit = "af-network-restore-" + operation
+    checksum = seal(directory / "qualification-network-before.json", {
+        "before": before, "action": "neo4j-connection-reject", "sourceIP": address,
+        "sourcePort": 7687, "rule": rule, "restoreUnit": unit,
+        "plannedHoldSeconds": 5, "independentRestoreSeconds": 45})
+    # The independent service owns only this exact rule. Exit 1 means absent;
+    # other check errors fail, rather than silently claiming restoration.
+    cleanup = "\n".join([
+        "import subprocess, sys",
+        "check = " + repr(command("-C")),
+        "delete = " + repr(command("-D")),
+        "r = subprocess.run(check, capture_output=True, timeout=10)",
+        "if r.returncode == 0:",
+        "    r = subprocess.run(delete, capture_output=True, timeout=10)",
+        "    sys.exit(r.returncode)",
+        "sys.exit(0 if r.returncode == 1 else 1)"])
+    armed_at = time.monotonic()
+    assert run("systemd-run", "--quiet", "--unit=" + unit, "--on-active=45s",
+               "--timer-property=AccuracySec=1s", "/usr/bin/python3", "-c", cleanup).returncode == 0
+    assert run("systemctl", "is-active", unit + ".timer").stdout.strip() == "active"
+    applied = False
+    try:
+        again, current_pid = observe()
+        safe_fault(again, current_pid, 1_400_000)
+        assert current_pid == pid
+        for key in ("ID", "ConfigFingerprint", "GraphGenerationID", "bootId", "configSha256"):
+            assert again[key] == before[key]
+        assert again["unit"]["ControlGroup"] == before["unit"]["ControlGroup"]
+        assert time.monotonic() - armed_at < 15, "Restoration timer safety margin expired"
+        assert run(*command("-I")).returncode == 0
+        assert run(*command("-C")).returncode == 0
+        applied = True
+        seal(directory / "qualification-network-applied.json", {
+            "observedAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "beforeSHA256": checksum, "checkpoint": again})
+        time.sleep(5)
+    finally:
+        found = run(*command("-C"))
+        assert found.returncode in (0, 1)
+        if found.returncode == 0:
+            assert run(*command("-D")).returncode == 0
+        assert run(*command("-C")).returncode == 1
+        restored = seal(directory / "qualification-network-restored.json", {
+            "observedAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "beforeSHA256": checksum, "applied": applied, "ruleAbsent": True,
+            "independentRestoreUnit": unit})
+        print(json.dumps({"networkFaultApplied": applied, "ruleAbsent": True,
+                          "restoredSHA256": restored}), flush=True)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     for key in ("workflow", "operation", "job", "config-sha256", "boot", "deadline"):
@@ -85,6 +187,7 @@ def main():
     p.add_argument("--sigterm-at", type=int, default=0)
     p.add_argument("--reboot-at", type=int, default=0)
     p.add_argument("--source-kind", choices=("csv", "neo4j"), default="csv")
+    p.add_argument("--network-source-ip", default="")
     a = p.parse_args()
     for value in (a.workflow, a.operation, a.job, a.boot):
         assert re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", value)
@@ -94,6 +197,7 @@ def main():
     assert a.reboot_at in (0, 3_360_000), "Only the reviewed P1 reboot fault"
     assert not (a.sigterm_at and a.reboot_at), "One fault per invocation"
     assert a.source_kind == "csv" or not (a.sigterm_at or a.reboot_at), "Network-source observation is read-only"
+    assert not a.network_source_ip or a.source_kind == "neo4j" and not (a.sigterm_at or a.reboot_at)
     deadline = timestamp(a.deadline)
     root = Path("/var/lib/agefreighter/workflows") / a.workflow
     directory = root / a.operation
@@ -165,6 +269,11 @@ def main():
             if binding is None:
                 binding = current
             assert current == binding
+            if a.network_source_ip and view["CommittedRows"] >= 1_400_000:
+                assert state_action(directory) == "migrate-source", "One fresh network trial only"
+                network_fault(directory, json_read(config), a.network_source_ip,
+                              a.operation, view, pid, observe)
+                return
             if a.reboot_at and view["CommittedRows"] >= a.reboot_at:
                 assert state_action(directory) == "resume-migration"
                 safe_fault(view, pid, a.reboot_at)
