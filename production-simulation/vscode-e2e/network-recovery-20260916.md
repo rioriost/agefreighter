@@ -1,6 +1,6 @@
 # Independent Neo4j network recovery — preparation
 
-Status: **target and AGE ready / resized runner running / GUI locked / not qualified**.
+Status: **target and AGE ready / resized runner ready / preparing network trial / not qualified**.
 This is a separate B11 trial; the nine
 base routes and CSV recovery r2 retain their existing acceptance evidence.
 
@@ -249,6 +249,29 @@ is **no migration job, network fault, or automatic resume** yet. The new
 runner's daily 07:00 UTC shutdown remains unchanged. If the interaction is
 delayed beyond that boundary, recheck actual state and scope before proceeding;
 this document is not a background monitor or a permission to bypass health gates.
+
+## Unlock and scheduled-stop reconciliation
+
+After the user unlocked the Mac, the 07:00 UTC daily shutdown had taken effect.
+Activity Log confirms deallocation completed at 07:01:19 UTC by the service
+principal independently identified as **Azure Lab Services**; the exact enabled
+schedule is 07:00 UTC. No unexpected stop/delete/write or RG lock was found in
+the checked windows. Under the unchanged trial authorization, only the same
+runner was restarted. The daily schedule was not disabled or changed.
+
+The installed GUI reconciled resize to finished and verified new boot
+`8c9dcd46-c99f-4dd5-8966-4cf737d2e485` at 07:09:32 UTC: the same pinned
+CLI/commit/archive, idle guest, 4.094% disk, zero swap/OOM. Source VM remains
+running and the private target remains Ready. There is still no migration job.
+
+`await-network-load.py` is a one-workflow, 15-minute guest test helper to avoid
+missing a fast P1 boundary during private password entry. It cannot start or
+resume a migration; it refuses any pre-existing load, binds only the next fresh
+operation to this exact workflow/source/graph/boot and private target, seals the
+selected job/config hash, then calls the reviewed bounded observer. It is not
+a recurring monitor or extension product feature. Three additional local tests
+pass for exact binding and refusal of changed/multiple jobs. Actual deployment,
+arming, fault and recovery evidence must be recorded separately.
 
 ## Observer preparation
 
