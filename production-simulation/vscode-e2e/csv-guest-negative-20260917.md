@@ -1,6 +1,7 @@
 # B08 Linux CSV integrity negative trial
 
-Status: preparation only; no guest result claimed.
+Status: storage and uploads ready; Linux VM creation approval pending. No guest
+result claimed.
 
 ## Scope and acceptance
 
@@ -57,7 +58,8 @@ only and separately authorized, not silently inferred from account creation.
   qualified cancellation candidate `eb453a1bca36ec7a9f6e1b3dd3cb5c9cc9bf2b78d2cc63c6d74b1dcbdc9243c7`.
 - Local `go test ./internal/runner -run 'CSV|Seal' -count=1`: PASS.
 - Existing pinned archive was independently rehashed and matches the manifest.
-- No Azure resource creation, guest execution or fault injection has occurred.
+- At that preparation checkpoint, no Azure resource creation, guest execution
+  or fault injection had occurred; see the subsequent authorized steps below.
 
 The ordinary signed-in VS Code profile opened the new workflow through the GUI:
 `bd3b6680-1e18-4d78-8f36-f43467a09a0a`, CSV/local, existing trial group,
@@ -70,10 +72,38 @@ saved two file identities without uploading either:
 | Valid-Supplier.csv | `4f5121c6-07d7-4c21-9820-78c9b473ea87` | unchanged positive control |
 
 The native storage approval names `afbd3b66801e184d788f36f4` and an exact-account
-Blob Data Contributor grant. A user confirmation is pending for that account,
-including its trial-only security tag/network exception; it has not been
-submitted. The old trial/account is not reused. No VM preview or deployment is
-approved by this preparatory step.
+Blob Data Contributor grant. The user confirmed this account and its trial-only
+security tag/network exception. The old trial/account is not reused.
+
+## September 17 storage and upload checkpoint
+
+- The GUI-created storage deployment succeeded at 01:31 UTC. Read-only live
+  inspection first found public networking disabled. The explicitly approved
+  account-only `SecurityControl=Ignore` tag and public HTTPS access were then
+  applied at 01:34 UTC. Existing ownership tags were preserved. HTTPS-only,
+  TLS 1.2, anonymous access disabled and shared keys disabled were confirmed.
+- The GUI reconciled storage to ready and uploaded both selected files;
+  each retained manifest reports 8,797,607 bytes, the expected SHA-256 and
+  `uploaded`. Independent authenticated Blob listing agrees with both lengths:
+  negative copy ETag `0x8DF145BE5D9B1D8`, positive control ETag
+  `0x8DF145BE6178AC9`. No full guest verification is inferred from upload.
+- The existing development archive was rehashed, selected through the native
+  file chooser, and uploaded using the installed extension. The workflow records
+  development upload ready; authenticated listing reports 37,117,370 bytes and
+  ETag `0x8DF145C18BBC621` for its SHA-addressed artifact.
+- The saved draft was reconnected through the GUI, and fresh prerequisites/VM
+  preview completed at approximately 01:38 UTC: B2s_v2, Japan East, zone 1,
+  compute USD0.109/hour plus disk/network. Preview expiry is 01:53:00 UTC;
+  regenerate it if expired rather than reusing stale approval state.
+- All eight retained VMs were independently confirmed deallocated. The recent
+  activity log includes the expected storage creation, scoped role assignment,
+  governance actions and authorized tag/network updates; it is not evidence
+  that future governance cannot intervene.
+- The native confirmation for `af-bd3b66801e184d788f36` is open. The separate
+  action-time approval covers executing the pinned unpublished build and
+  granting that VM identity Blob Reader on this workflow container only.
+  No VM submission, fault injection, target creation or guest import has yet
+  occurred. The planned active trial remains bounded to two hours.
 
 Fresh extension regression: **235/235 tests PASS**, no skipped/cancelled tests.
 The pinned build and current tree have no changes in `internal/runner/csv.go`
