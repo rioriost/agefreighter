@@ -3,7 +3,7 @@
 # Never invoke the historical prepare-p1-cosmos.sh against the accepted graph.
 set -euo pipefail
 umask 077
-readonly work=/var/lib/agefreighter-gremlin-p1-20260917
+readonly work=/var/lib/agefreighter-gremlin-p1-20260917-r2
 readonly target_container=graph-gremlin-p1-20260917
 readonly endpoint=https://afcosmosp120260907.documents.azure.com:443/
 test "$(date -u +%s)" -lt 1789888475
@@ -27,7 +27,7 @@ work = pathlib.Path(sys.argv[1])
 base = ('https://afbd3b66801e184d788f36f4.blob.core.windows.net/'
         'af-bd3b6680-1e18-4d78-8f36-f43467a09a0a/gremlin-p1-20260917/')
 archive_hash = 'f01f2044429b3a8cb2f1d123d0b2e41ec20bc1610c022e949ae5ec087219dcc6'
-loader_hash = '93570ccebac744503e94775614cc50befb9ef2fea032d79a851a6fa6afd0cfb9'
+loader_hash = '36728bf71e9124c5db290091d01824463e7b5712024d76b7b9477bcca10af5e0'
 manifest_hash = '7cb9642cd3c3a85fb6503b727697a3178ed43269156086590eea1ca211936860'
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -44,7 +44,7 @@ with imds.open(req, timeout=30) as response:
 https = urllib.request.build_opener(NoRedirect())
 for name, expected, size in [
     ('p1-gremlin-documents.tar.gz', archive_hash, 246433349),
-    ('cosmosfixtureload', loader_hash, 11502980),
+    ('cosmosfixtureload', loader_hash, 11503156),
 ]:
     request = urllib.request.Request(base + expected + '/' + name,
         headers={'Authorization': 'Bearer ' + token, 'x-ms-version': '2023-11-03'})
