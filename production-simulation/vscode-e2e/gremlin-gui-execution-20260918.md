@@ -298,3 +298,24 @@ During this September 17 23:20 UTC local-validation checkpoint, fresh ARM readba
 it or changed any cloud resource. New pinned Linux artifact approval, real
 service inventory, GUI migration, all 64 target digest ranges and active-operation
 reload remain pending. B05/B10 are **not** qualified by these tests.
+
+### Replacement candidate (local only, not yet approved or installed)
+
+Built from the clean committed fix
+`290c6efa3b3e08423d35bf004485dfd6e0f1fd98` using the existing local packaging script.
+Both executables are Linux x86-64 ELF. Retained manifest:
+`production-simulation/work/vscode-runner-build.gR5UPC/manifest.json`.
+
+- Version: `2.4.0-dev.290c6efa3b3e`.
+- Archive: `agefreighter-2.4.0-dev.290c6efa3b3e-linux-amd64.tar.gz`.
+- Size: **37,132,538 bytes**.
+- Independently rehashed SHA-256:
+  `00b66081e7629ecd4b7ad378cc4b134987d0b892d91b751b789354158e63432e`.
+
+Next approval is for upgrading only the existing idle runner with this candidate
+through the installed GUI and explicitly retrying source inventory. Preserve the
+old installation, workflow and failed operation. No new resource, target,
+permission or network change is included. Proposed runner bound: two hours,
+including the existing 30-minute inventory limit; compute at 0.109 USD/hour,
+within the unchanged USD 800/September 20 deadline. Refresh cost/health/governance
+and guest-readiness gates before mutations. No live inventory outcome is claimed.
