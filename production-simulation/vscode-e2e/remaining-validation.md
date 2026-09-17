@@ -89,7 +89,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | All retained paths bind Japan East/zone 1; placement/preflight tests and missing SKU/quota resize rejection pass | Defaults versus overrides, unknown zone and invalid choices still need precise GUI/no-write evidence | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes and full P1 canonical results pass | Map recommendation acceptance/edit branches and CSV choices to retained GUI evidence | running |
-| B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin numeric schema gap reproduced/fixed locally; declarations survive discovery/snapshots and bind resume fingerprints; typed GUI configuration passes real CLI validation | Prepare partition-preserving Gremlin P1 fixture/oracle, pin corrected runner, then full installed-GUI migration and canonical verification; local fix not installed/deployed | not-run |
+| B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin numeric declarations bind discovery/snapshots/resume; independent partition-preserving fixture/oracle and full offline P1 (5.6M records, all 64 ranges) now pass with corruption negatives | Extend target/GUI verification for actual composite IDs and endpoint bindings, pin corrected runner, then full installed-GUI migration and canonical verification; local fix not installed/deployed | not-run |
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
@@ -99,6 +99,15 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass; 20 production P1 controller tests cover full-digest identity/coverage/forgery, transfer failures, retained identity changes and corrupted reopen; signed-in installed candidate refuses retained P1 failure without retry/new PASS | Other invalid-import/transfer cases still lack installed-GUI evidence; synthetic reports and inert adapters are not live GUI/Azure fault evidence | partial |
 
 ## First local regression batch
+
+September 17 06:31–06:47 UTC: [Gremlin offline P1 preparation](gremlin-offline-p1-20260917.md)
+completed the create-only export and independently derived partition-preserving
+oracle. All 5.6M records and 64 ranges agree through the production Cosmos
+decoder, including a read-only rerun simulating integral-float spelling loss.
+The original raw-ID CSV root is unchanged. Tiny corruption negatives, full Go
+tests and simulation race/vet checks pass. No cloud/GUI mutation or new installed
+candidate; nine VMs and 17 Flexible Servers remain stopped. B05 remains not-run
+for the live Gremlin path; target composite-identity verification is next.
 
 September 17 06:12–06:24 UTC: [Gremlin type-preservation prerequisite](gremlin-types-preflight-20260917.md)
 reproduced integral-float inference loss and added explicit, bounded Gremlin

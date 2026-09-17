@@ -37,14 +37,25 @@ type Table struct {
 }
 
 type Manifest struct {
-	Version     int          `json:"version"`
-	FixtureRoot string       `json:"fixtureRoot"`
-	Plan        fixture.Plan `json:"plan"`
-	Tables      []Table      `json:"tables"`
+	DocumentFormat string       `json:"documentFormat,omitempty"`
+	Version        int          `json:"version"`
+	FixtureRoot    string       `json:"fixtureRoot"`
+	Plan           fixture.Plan `json:"plan"`
+	Tables         []Table      `json:"tables"`
 }
 
 // Export writes only to a new directory, retaining partial output on failure.
 func Export(ctx context.Context, manifestPath, output string) (Manifest, error) {
+	return export(ctx, manifestPath, output, false)
+}
+
+// ExportGremlin keeps ordinary CSV unchanged and emits Gremlin backing documents
+// instead of explicit Cosmos documents. Existing output is never overwritten.
+func ExportGremlin(ctx context.Context, manifestPath, output string) (Manifest, error) {
+	return export(ctx, manifestPath, output, true)
+}
+
+func export(ctx context.Context, manifestPath, output string, gremlin bool) (Manifest, error) {
 	if ctx == nil || output == "" {
 		return Manifest{}, errors.New("context and new output directory are required")
 	}
@@ -59,6 +70,9 @@ func Export(ctx context.Context, manifestPath, output string) (Manifest, error) 
 		return Manifest{}, err
 	}
 	result := Manifest{Version: 1, FixtureRoot: input.RootSHA256, Plan: input.Plan}
+	if gremlin {
+		result.DocumentFormat = GremlinDocumentFormat
+	}
 	vertices := map[string]fixture.VertexSpec{}
 	for _, v := range input.Plan.VertexSpecs {
 		vertices[v.Label] = v
@@ -74,7 +88,7 @@ func Export(ctx context.Context, manifestPath, output string) (Manifest, error) 
 			Types:   map[string]string{"source_key": "int64", "quantity": "int64", "distance_km": "float64"}})
 	}
 	for index := range result.Tables {
-		if err := exportTable(ctx, filepath.Dir(manifestPath), output, input.Files, &result.Tables[index], vertices); err != nil {
+		if err := exportTable(ctx, filepath.Dir(manifestPath), output, input.Files, &result.Tables[index], vertices, gremlin); err != nil {
 			return Manifest{}, err
 		}
 	}
@@ -111,7 +125,7 @@ func (manifest Manifest) CSVSource() config.CSVSource {
 	return source
 }
 
-func exportTable(ctx context.Context, root, output string, entries []fixture.FileEntry, table *Table, vertices map[string]fixture.VertexSpec) error {
+func exportTable(ctx context.Context, root, output string, entries []fixture.FileEntry, table *Table, vertices map[string]fixture.VertexSpec, gremlin bool) error {
 	table.CSV = table.Name + ".csv"
 	table.Documents = table.Name + ".jsonl"
 	cf, err := os.OpenFile(filepath.Join(output, table.CSV), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
@@ -196,6 +210,13 @@ func exportTable(ctx context.Context, root, output string, entries []fixture.Fil
 					}
 				}
 				doc[name] = value
+			}
+			if gremlin {
+				var err error
+				doc, err = gremlinDocument(*table, doc)
+				if err != nil {
+					return err
+				}
 			}
 			if err := dw.Encode(doc); err != nil {
 				return err

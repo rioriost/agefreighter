@@ -8,6 +8,12 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
+September 17 follow-up: [Gremlin fixture and offline full-P1 verification](gremlin-offline-p1-20260917.md)
+now pass for all 5.6M records/64 ranges, retaining partitions, typed properties
+and endpoints. This source-decoder-only result does not add a live qualified
+route. B05 still needs target composite-identity verification and a fresh
+installed-GUI/Azure migration; no existing target or installed candidate changed.
+
 Remaining branch/failure/recovery qualification started on 2026-09-15;
 see the [case ledger](remaining-validation.md). Local regression results must
 not be read as additional live GUI/Azure passes. In particular, explicit remote
