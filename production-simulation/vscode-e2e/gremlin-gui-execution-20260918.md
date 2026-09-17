@@ -1,7 +1,7 @@
 # Gremlin installed-GUI migration — fresh draft
 
-September 18, 2026 JST (September 17 21:42–21:48 UTC). **Draft prepared;
-storage approval pending; no migration or new Azure deployment submitted.**
+September 18, 2026 JST. **Transfer storage created after approval; desktop
+access blocked, account-only exception approval pending. No migration submitted.**
 
 The [source preparation](gremlin-source-execution-20260917.md) passed separately.
 Its 5.6M Gremlin-shaped NoSQL documents are not a GUI/target qualification.
@@ -61,3 +61,27 @@ target, resize the same runner, load, verify counts, and compare all 64 target
 ranges with the Gremlin root. Include active-operation reload/no-replay evidence
 for B10. Each approval remains bound to its actual artifact/resource/scope.
 B05/B10 remain open; this checkpoint is not source assessment or migration PASS.
+
+## Approved storage deployment — 21:50–21:54 UTC
+
+The user approved the new account and scoped Blob access. The installed GUI
+submitted deployment `af4043e008b86e47b887221e-transfer`, which ARM reports
+Succeeded at `21:50:49Z`. The local workflow retains `submitted` until its
+normal reconciliation and safety checks succeed; it has not been edited by hand.
+The new container's ownership metadata matches the workflow and anonymous access
+is None. The user-only assignment is `f1794e35-cebd-4298-9070-5b28908816de`.
+
+Fresh ARM inspection found **publicNetworkAccess=Disabled**, although the reviewed
+template requested Enabled. TLS 1.2, HTTPS-only, shared-key disabled and anonymous
+access disabled remain the intended controls. A read-only authenticated Blob
+listing failed with a network-rules error. Activity Log separately records a
+successful `Microsoft.Authorization/policies/modify/action` on this exact account
+at `21:50:49.4292566Z`; timing is recorded without asserting the unreturned policy
+definition or modification payload.
+
+No network setting or tag was changed in response. Requested action-time approval
+for this exact trial account's official `SecurityControl=Ignore` tag and public
+HTTPS enablement, preserving existing ownership tags, TLS and data authentication.
+No exception for a different account is reused. Fixed runner upload, VM creation,
+Cosmos Reader grant, assessment and target migration remain pending. Existing
+sources, accepted graphs, preparation evidence and stopped compute are untouched.

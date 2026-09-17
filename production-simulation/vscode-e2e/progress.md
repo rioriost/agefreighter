@@ -10,8 +10,10 @@ The dated sections below retain historical failures and intermediate states.
 
 September 18 JST: a [fresh installed-GUI Gremlin draft](gremlin-gui-execution-20260918.md)
 selected the prepared source and private runner placement with the existing Azure
-session. New transfer-storage approval is pending; no source assessment, VM,
-target or migration has been dispatched. B05/B10 remain open.
+session. The approved new transfer storage was created, but its public HTTPS
+access is disabled and an authenticated Blob listing is blocked. Exact-account
+exception approval is pending; no source assessment, VM, target or migration
+has been dispatched. B05/B10 remain open.
 
 The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
 passed at September 17 13:50:12 UTC: all 5,600,000 successful writes and
