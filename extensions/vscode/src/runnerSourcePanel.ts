@@ -60,14 +60,22 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           reviewedHash = undefined; await initialize(next); break;
         }
         case "cosmosAccess": {
+          if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before reviewing or granting Cosmos data access.");
           let record = await store.read(workflow);
           if (record.input.source.type !== "cosmos-nosql" || assessmentActive(record)) throw new Error("Cosmos read access is unavailable for this workflow.");
           if (!record.cosmosAccess) record = await store.exclusive(workflow, async () => previewCosmosAccess(control, await store.read(workflow)));
           if (record.cosmosAccess?.phase === "previewed") {
+            const binding = (r: RunnerRecord) => hash({ subscription: r.input.subscriptionId, vm: r.vmId, source: r.input.source, access: r.cosmosAccess });
+            const reviewedGrant = binding(record);
             const confirmed = await vscode.window.showWarningMessage("Grant this Linux runner read-only Cosmos data access?", { modal: true,
               detail: `Principal: ${record.cosmosAccess.principalId}\nScope: ${record.cosmosAccess.scope}\nRole: Cosmos DB Built-in Data Reader\nOnly this new assignment is created. It does not expose the account, grant writes, use keys, start assessment or migrate data. An uncertain PUT is reconciled by GET and never replayed.` }, "Grant Data Reader");
             if (confirmed !== "Grant Data Reader" || disposed) { await initialize(record); break; }
-            record = await store.exclusive(workflow, async () => submitCosmosAccess(control, await store.read(workflow)));
+            record = await store.exclusive(workflow, async () => {
+              if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before granting Cosmos data access.");
+              const current = await store.read(workflow);
+              if (binding(current) !== reviewedGrant || assessmentActive(current)) throw new Error("The reviewed Cosmos grant or source operation changed; review it again. No grant was submitted.");
+              return submitCosmosAccess(control, current);
+            });
           } else record = await store.exclusive(workflow, async () => refreshCosmosAccess(control, await store.read(workflow)));
           await initialize(record); break;
         }

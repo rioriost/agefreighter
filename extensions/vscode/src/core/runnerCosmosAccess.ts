@@ -35,13 +35,22 @@ function matches(value: unknown, access: CosmosAccess): boolean {
     String(properties.scope).toLowerCase() === access.scope.toLowerCase();
 }
 
-export async function previewCosmosAccess(control: RunnerControl, record: RunnerRecord): Promise<RunnerRecord> {
-  if (record.phase !== "provisioned" || record.cosmosAccess) throw new Error("Cosmos access can be previewed once after runner provisioning.");
+async function currentRunnerPrincipal(control: RunnerControl, record: RunnerRecord): Promise<string> {
+  if (record.phase !== "provisioned") throw new Error("The owned runner managed identity is unavailable.");
   const response = await control.request(record.input.subscriptionId, `${record.vmId}?api-version=2024-07-01`), vm = object(response.value), identity = object(vm.identity), tags = object(vm.tags);
   if (response.status !== 200 || tags.workflow !== record.id || tags.application !== "agefreighter" || identity.type !== "SystemAssigned" || typeof identity.principalId !== "string" || !uuid.test(identity.principalId)) throw new Error("The owned runner managed identity is unavailable.");
-  const scope = account(record), assignmentId = `${scope}/sqlRoleAssignments/${randomUUID()}`;
+  return identity.principalId;
+}
+
+async function assertRunnerPrincipal(control: RunnerControl, record: RunnerRecord, access: CosmosAccess): Promise<void> {
+  if ((await currentRunnerPrincipal(control, record)).toLowerCase() !== access.principalId.toLowerCase()) throw new Error("The runner managed identity changed after Cosmos access review; no grant or source operation was submitted.");
+}
+
+export async function previewCosmosAccess(control: RunnerControl, record: RunnerRecord): Promise<RunnerRecord> {
+  if (record.phase !== "provisioned" || record.cosmosAccess) throw new Error("Cosmos access can be previewed once after runner provisioning.");
+  const scope = account(record), principalId = await currentRunnerPrincipal(control, record), assignmentId = `${scope}/sqlRoleAssignments/${randomUUID()}`;
   if ((await control.request(record.input.subscriptionId, `${assignmentId}?api-version=2024-05-15`)).status !== 404) throw new Error("The proposed Cosmos role assignment already exists.");
-  const cosmosAccess: CosmosAccess = { phase: "previewed", assignmentId, scope, principalId: identity.principalId, roleDefinitionId: `${scope}/sqlRoleDefinitions/${readerRole}` };
+  const cosmosAccess: CosmosAccess = { phase: "previewed", assignmentId, scope, principalId, roleDefinitionId: `${scope}/sqlRoleDefinitions/${readerRole}` };
   const next = { ...record, cosmosAccess };
   await control.persist(next); return next;
 }
@@ -49,6 +58,7 @@ export async function previewCosmosAccess(control: RunnerControl, record: Runner
 export async function submitCosmosAccess(control: RunnerControl, record: RunnerRecord): Promise<RunnerRecord> {
   const access = record.cosmosAccess;
   if (!access || access.phase !== "previewed" || !valid(access, record)) throw new Error("Review the retained Cosmos read-only grant first.");
+  await assertRunnerPrincipal(control, record, access);
   if ((await control.request(record.input.subscriptionId, `${access.assignmentId}?api-version=2024-05-15`)).status !== 404) throw new Error("Cosmos role assignment collision; no write was attempted.");
   const next: RunnerRecord = { ...record, cosmosAccess: { ...access, phase: "submitted", submittedAt: new Date().toISOString() } };
   await control.persist(next);
@@ -78,6 +88,7 @@ export async function assertCosmosAccessCurrent(control: RunnerControl, record: 
   if (record.input.source.type !== "cosmos-nosql") return;
   const access = record.cosmosAccess;
   if (!access || access.phase !== "ready" || !valid(access, record)) throw new Error("The retained Cosmos Data Reader grant is not ready.");
+  await assertRunnerPrincipal(control, record, access);
   const response = await control.request(record.input.subscriptionId, `${access.assignmentId}?api-version=2024-05-15`);
   if (response.status !== 200 || !matches(response.value, access)) throw new Error("The Cosmos Data Reader assignment is missing or changed; no source operation was submitted.");
 }

@@ -47,6 +47,12 @@ test("custom source CA uses a host file action and exposes only metadata to the 
   assert.match(v.el("sourceCA").textContent, /root\.pem.*1234.*SHA-256/); assert.doesNotMatch(v.el("sourceCA").textContent, /Users|private|path/);
   v.el("sourceCAButton").trigger("click"); assert.deepEqual(v.messages.at(-1), { action: "sourceCA" });
 });
+test("Cosmos view distinguishes ARM role readiness from data-plane access and states fixed authentication", () => {
+  const v = view();
+  assert.match(v.html, /does not accept Cosmos account keys/);
+  assert.match(v.html, /not that data-plane permissions have propagated/);
+  assert.match(v.html, /denied assessment is retained for review, not automatically retried/);
+});
 test("edits invalidate review, CSV cannot assess, and Gremlin toggles mapping controls", () => {
   const v = view(); v.send({ kind: "init", type: "csv", location: "local", form: sourceForm, files: [csvFile] }); v.send({ kind: "busy", value: false });
   v.send({ kind: "review", draft: { canAssess: false, warnings: [], configuration: {} } });

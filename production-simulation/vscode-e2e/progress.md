@@ -66,6 +66,13 @@ approval cancellation. Eighteen added regressions bring the unit suite to
 273/273 PASS. Alternative placement and live active-job/layout rejection are
 still open; no infrastructure was started or changed.
 
+A [Cosmos access and approval audit](cosmos-access-approval-audit-20260917.md)
+then reproduced and corrected missing workspace-trust, reviewed-grant binding
+and VM-principal revalidation guards. The 292-test suite and normal package
+build pass. Existing Cosmos scope/security were independently read-only checked;
+no roles or cloud resources changed. Corrected-candidate installation approval
+and installed-GUI retesting are pending; B06/B09 remain partial.
+
 | Route | Final evidence | Outcome |
 | --- | --- | --- |
 | CSV-MAC | [Local CSV](evidence/csv-mac-qualified-20260906.json) | PASS |
