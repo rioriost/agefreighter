@@ -10,8 +10,11 @@ The dated sections below retain historical failures and intermediate states.
 
 The [Gremlin live preparation checkpoint](gremlin-live-preparation-20260917.md)
 rechecked stopped compute, private Cosmos access, preserved workflow state and
-all 18 source-file hashes, and packaged the source transfer capsule. Candidate
-installation approval is pending; no new Azure mutation or live qualification.
+all 18 source-file hashes, and packaged the source transfer capsule. Following
+explicit approval, the pinned candidate was installed/reloaded, existing Azure
+sign-in and saved workflow reconnection passed, and the new Gremlin type field
+was confirmed without saving changes. No new Azure mutation or live migration
+qualification; all 66 saved workflow/report JSON files remain unchanged.
 
 The [Gremlin target/profile follow-up](gremlin-target-preflight-20260917.md)
 adds stored composite-ID and physical-endpoint verification. Tiny tests pass

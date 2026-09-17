@@ -95,3 +95,29 @@ aggregate SHA-256
 
 No new budget window, target, role, network exception or cloud artifact was
 created by this checkpoint.
+
+## Approved installation follow-up — 07:49–07:53 UTC
+
+The user explicitly approved the pinned unpublished extension installation and
+window reload. The VS Code CLI successfully installed the exact VSIX above;
+the installed bundle matches the candidate SHA-256
+`073232d2528ed59271ed33d5a43dba9e77235a4a5757e1555fefdee1b980e618`.
+Developer: Reload Window completed in the actual desktop. The existing Azure
+session loaded without another sign-in, and the accepted Cosmos workflow
+`d138f4e4-bcf3-40fe-a876-ee9ce062e08a` reconnected without replay.
+
+The actual source configuration screen showed the retained nine vertex/nine
+edge mappings and imported terminal inventory. Switching only the unsaved
+Document format selector to **Cosmos Gremlin documents over NoSQL API** exposed
+the new **Property types across all labels (optional)** field, the
+`score=float64,distance_km=float64` example and the partition-preserving identity
+warning. The panel was closed without Review/save, assessment, permission grant
+or any guest action. The retained source configuration was not converted.
+
+All 66 workflow/report JSON files retain aggregate SHA-256
+`819cdcd7c1bae30b57cb669fcd0f7a2d45172c912072e05219f9197b33c28e9f`
+before/after installation, reload, reconnection and the unsaved display check.
+This closes the candidate-installation gate only. It is not active-operation
+B10, a source read, cloud deployment, migration or full P1 target qualification.
+The next gate remains the separately isolated Gremlin source preparation with
+fresh cost/time/security checks. No Azure mutation occurred in this follow-up.
