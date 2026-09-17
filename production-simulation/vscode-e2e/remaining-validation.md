@@ -100,6 +100,12 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 ## First local regression batch
 
+September 17: the separate [Linux CSV negative trial](csv-guest-negative-20260917.md)
+is prepared with two valid frozen-P1 copies in a new GUI-created workflow.
+Its exact-account storage/access confirmation is pending; no new cloud resource,
+VM, import, fault or migration has started. The local CSV/Seal regression and
+all 235 extension unit tests pass again. B08's live guest gate is not yet passed.
+
 CSV upload cancellation is now implemented and locally regression-tested:
 **235/235 unit tests**, typecheck/build and **13/13 isolated VS Code 1.138.0 host
 tests** pass. The installed signed-in candidate subsequently passed real Cancel,
