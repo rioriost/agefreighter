@@ -9,9 +9,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/report"
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
+	sourcecosmos "github.com/rioriost/agefreighter/internal/source/cosmos"
 	sourceneo4j "github.com/rioriost/agefreighter/internal/source/neo4j"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
@@ -104,7 +106,7 @@ func networkSourceInventory(ctx context.Context, job config.LoadJob, options Inv
 	defer cancel()
 	resolved, err := resolveSource(ctx, job)
 	if err != nil {
-		return report.Document{}, errors.New("network inventory mapping resolution failed")
+		return report.Document{}, inventoryResolutionError(err)
 	}
 	// Inventory never quarantines malformed rows. A single malformed mapped
 	// record invalidates exact evidence even if the eventual LoadJob has a
@@ -116,6 +118,37 @@ func networkSourceInventory(ctx context.Context, job config.LoadJob, options Inv
 		return report.Document{}, errors.New("network inventory initialization failed")
 	}
 	return consumeNetworkInventory(ctx, resolved, iterator, options)
+}
+
+// Emit only fixed categories. SDK errors can contain endpoints, query values,
+// response bodies and credentials; neither their text nor their cause is exposed.
+func inventoryResolutionError(err error) error {
+	category := "unclassified"
+	var response *azcore.ResponseError
+	switch {
+	case errors.Is(err, context.Canceled):
+		category = "canceled"
+	case errors.Is(err, context.DeadlineExceeded):
+		category = "deadline-exceeded"
+	case errors.Is(err, sourcecosmos.ErrDiscoveryLimit):
+		category = "discovery-limit"
+	case errors.As(err, &response):
+		switch response.StatusCode {
+		case 400:
+			category = "request-rejected"
+		case 401, 403:
+			category = "access-denied"
+		case 404:
+			category = "not-found"
+		case 408, 504:
+			category = "service-timeout"
+		case 429:
+			category = "throttled"
+		case 500, 502, 503:
+			category = "service-unavailable"
+		}
+	}
+	return fmt.Errorf("network inventory mapping resolution failed [%s]", category)
 }
 
 func consumeNetworkInventory(ctx context.Context, job config.LoadJob, iterator sourcecontract.Iterator, options InventoryOptions) (report.Document, error) {

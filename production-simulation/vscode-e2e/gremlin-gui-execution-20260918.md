@@ -251,3 +251,50 @@ inventory, read-only role and workflow evidence are preserved. No storage, sourc
 document, graph or permission was deleted. Final ARM instance-view readback
 confirmed `ProvisioningState/succeeded` and **`PowerState/deallocated`**.
 B05 and active-operation B10 remain unqualified.
+
+## Local discovery correction and review — September 18 JST
+
+Implemented an exact catalog enumeration that requests a one-item page and
+excludes previously observed entries with a parameterized `NOT ARRAY_CONTAINS`
+filter. Vertex labels and complete `(label, startLabel, endLabel)` combinations
+are enumerated separately. Query values are parameters, not interpolated source
+text. Continuation is reset only when the exclusion predicate changes; empty
+pages are drained, and completion requires an exhausted query. Existing
+source-immutability requirements remain in force.
+
+The earlier DISTINCT proposal was rejected during review: pinned `azcosmos`
+1.5.0 `ContainerClient.NewQueryItemsPager` documents gateway cross-partition
+support for projections/filtering only, not distributed sorting/aggregation.
+The new approach needs no index, data, permission or network change. It bounds
+returned discovery rows, total pages and catalog entries (including ignored
+endpoint combinations). It does **not** establish a bound on server-side scanned
+rows or request units; real-service latency/RU behavior remains to be measured
+within the existing timeout/budget. The bounded profiling path is unchanged and
+is not relabeled as complete inventory.
+
+Review covered missed late labels, endpoint combinations sharing one edge label,
+empty-page EOF confusion, continuation reuse after query changes, parameter
+aliasing, repeated tokens, ignored-entry memory growth and secret-bearing SDK
+errors. Added fixed resolution-error categories for limits, cancellation,
+deadlines and recognized HTTP status classes; raw errors, response bodies,
+endpoints and credentials are never included or exposed as wrapped causes.
+The original opaque failure remains unattributed.
+
+Local validation:
+
+- Duplicate-heavy modeled source: 30,300 vertex and 30,300 edge records with
+  late catalog entries behind 10,100 duplicates; all three labels and all three
+  endpoint combinations discovered in eight requests including EOF queries.
+- Empty-page draining, fresh predicate continuations, frozen parameters,
+  row/page/catalog limits, invalid JSON, visitor/request failures, cancellation,
+  token cycles and secret-canary redaction tests pass.
+- `go test ./... -count=1` passes; focused Cosmos/app race tests pass.
+- Extension typecheck, all **300** unit tests and compilation pass. No extension
+  source change is required; its existing pinned idle-runner upgrade flow retains
+  old binaries and failed-operation evidence.
+
+During this September 17 23:20 UTC local-validation checkpoint, fresh ARM readback again showed the exact runner
+`af-4043e008b86e47b88722` **deallocated**. This local correction has not restarted
+it or changed any cloud resource. New pinned Linux artifact approval, real
+service inventory, GUI migration, all 64 target digest ranges and active-operation
+reload remain pending. B05/B10 are **not** qualified by these tests.

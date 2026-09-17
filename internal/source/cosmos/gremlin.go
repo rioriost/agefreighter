@@ -2,6 +2,7 @@ package cosmos
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -15,6 +16,9 @@ import (
 )
 
 const maxGremlinMappings = 1_024
+
+// ErrDiscoveryLimit is safe to classify without exposing source values or SDK errors.
+var ErrDiscoveryLimit = errors.New("Cosmos Gremlin discovery limit exceeded")
 
 const gremlinVertexLabelsQuery = `SELECT VALUE c.label
 FROM c
@@ -282,15 +286,14 @@ func discoverGremlinLabels(
 		}}
 	}
 	values := make(map[string]struct{})
-	err := visitGremlinDiscovery(
+	err := visitExactGremlinCatalog(
 		ctx,
 		client,
 		options.Container,
 		query,
 		parameters,
-		source.PageSize,
 		options.MaxDiscoveryDocuments,
-		nil,
+		"c.label",
 		func(raw []byte) error {
 			value, err := decodeDocument(raw)
 			if err != nil {
@@ -305,7 +308,7 @@ func discoverGremlinLabels(
 			values[label] = struct{}{}
 			if len(values) > options.MaxLabels {
 				return fmt.Errorf(
-					"Cosmos Gremlin discovery found more than %d vertex labels",
+					"%w: found more than %d vertex labels", ErrDiscoveryLimit,
 					options.MaxLabels,
 				)
 			}
@@ -352,15 +355,14 @@ func discoverGremlinEdges(
 	}
 	mappings := make(map[gremlinEdgeMapping]struct{})
 	relationshipTypes := make(map[string]struct{})
-	err := visitGremlinDiscovery(
+	err := visitExactGremlinCatalog(
 		ctx,
 		client,
 		options.Container,
 		query,
 		parameters,
-		source.PageSize,
 		options.MaxDiscoveryDocuments,
-		nil,
+		`{"label":c.label,"startLabel":c._vertexLabel,"endLabel":c._sinkLabel}`,
 		func(raw []byte) error {
 			value, err := decodeDocument(raw)
 			if err != nil {
@@ -385,14 +387,14 @@ func discoverGremlinEdges(
 			relationshipTypes[mapping.label] = struct{}{}
 			if len(relationshipTypes) > options.MaxLabels {
 				return fmt.Errorf(
-					"Cosmos Gremlin discovery found more than %d relationship types",
+					"%w: found more than %d relationship types", ErrDiscoveryLimit,
 					options.MaxLabels,
 				)
 			}
 			mappings[mapping] = struct{}{}
 			if len(labels)+len(mappings) > maxGremlinMappings {
 				return fmt.Errorf(
-					"Cosmos Gremlin discovery exceeds %d generated mappings",
+					"%w: exceeds %d generated mappings", ErrDiscoveryLimit,
 					maxGremlinMappings,
 				)
 			}
@@ -416,6 +418,90 @@ func discoverGremlinEdges(
 		return strings.Compare(left.end, right.end)
 	})
 	return result, nil
+}
+
+// The Go SDK gateway supports cross-partition projections/filters, not distributed
+// DISTINCT/ORDER BY. Exclude every catalog entry already observed and request one
+// more. An empty page is not EOF: drain its continuation before declaring the
+// catalog complete. Reset continuation only when the query predicate changes.
+// Keep the source immutable; this is exact enumeration, never a label sample.
+func visitExactGremlinCatalog(ctx context.Context, client QueryClient, container, query string,
+	parameters []Parameter, maxDocuments int, projection string, visit func([]byte) error,
+) error {
+	known := []any{}
+	seen := map[string]bool{}
+	rows, pages := 0, 0
+	for {
+		currentQuery := query
+		currentParameters := append([]Parameter(nil), parameters...)
+		if len(known) > 0 {
+			currentQuery += " AND NOT ARRAY_CONTAINS(@afKnownCatalog, " + projection + ")"
+			currentParameters = append(currentParameters, Parameter{Name: "@afKnownCatalog", Value: append([]any(nil), known...)})
+		}
+		token, hasToken := "", false
+		tokens := map[string]bool{}
+		for {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			pages++
+			// Bound empty-page chains too, without treating them as successful EOF.
+			if pages > maxDocuments+1 {
+				return fmt.Errorf("%w: catalog page bound", ErrDiscoveryLimit)
+			}
+			pager, err := client.NewQueryPager(container, currentQuery, currentParameters, QueryOptions{
+				PageSizeHint: 1, ContinuationToken: token, HasContinuationToken: hasToken,
+				ContinuationTokenLimitKB: defaultContinuationTokenLimitKB,
+			})
+			if err != nil {
+				return fmt.Errorf("open Cosmos Gremlin catalog query: %w", err)
+			}
+			page, err := pager.NextPage(ctx)
+			if err != nil {
+				return fmt.Errorf("fetch Cosmos Gremlin catalog page: %w", err)
+			}
+			added := false
+			for _, raw := range page.Items {
+				rows++
+				if rows > maxDocuments {
+					return fmt.Errorf("%w: scanned more than %d documents", ErrDiscoveryLimit, maxDocuments)
+				}
+				value, err := decodeDocument(raw)
+				if err != nil {
+					return err
+				}
+				key, err := json.Marshal(value)
+				if err != nil {
+					return err
+				}
+				if seen[string(key)] {
+					continue
+				}
+				if err := visit(raw); err != nil {
+					return err
+				}
+				// Include ignored/out-of-scope mappings in this bound too: the
+				// exclusion predicate must never grow with source row cardinality.
+				if len(known) >= maxGremlinMappings {
+					return fmt.Errorf("%w: catalog entry bound", ErrDiscoveryLimit)
+				}
+				seen[string(key)] = true
+				known = append(known, value)
+				added = true
+			}
+			if !page.HasContinuation {
+				return nil
+			}
+			if added {
+				break
+			}
+			if page.ContinuationToken == "" || tokens[page.ContinuationToken] {
+				return errors.New("Cosmos Gremlin discovery returned a repeated continuation token")
+			}
+			token, hasToken = page.ContinuationToken, true
+			tokens[token] = true
+		}
+	}
 }
 
 func visitGremlinDiscovery(

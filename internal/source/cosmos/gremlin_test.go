@@ -207,6 +207,10 @@ func TestInterpretGremlinDocumentsBuildsSortedMappings(t *testing.T) {
 			hasContinuation:   true,
 			continuationToken: "next-labels",
 		},
+	)
+	client.script(
+		source.Gremlin.Container,
+		labelQuery+" AND NOT ARRAY_CONTAINS(@afKnownCatalog, c.label)",
 		fakePage{items: [][]byte{jsonItem(`"AppOrganization"`)}},
 	)
 	client.script(
@@ -262,8 +266,9 @@ func TestInterpretGremlinDocumentsBuildsSortedMappings(t *testing.T) {
 		t.Fatalf("generated mappings do not compile: %v", err)
 	}
 	if client.callCount() != 3 ||
-		!client.callAt(1).options.HasContinuationToken ||
-		client.callAt(1).options.ContinuationToken != "next-labels" {
+		client.callAt(1).options.HasContinuationToken ||
+		client.callAt(1).options.ContinuationToken != "" ||
+		client.callAt(1).options.PageSizeHint != 1 {
 		t.Fatalf("discovery calls = %#v", client.calls)
 	}
 }
@@ -376,12 +381,10 @@ func TestGremlinDiscoveryRejectsRepeatedContinuation(t *testing.T) {
 		gremlinVertexLabelsQuery+
 			" AND STARTSWITH(c.label, @labelPrefix)",
 		fakePage{
-			items:             [][]byte{jsonItem(`"AppPerson"`)},
 			hasContinuation:   true,
 			continuationToken: "same",
 		},
 		fakePage{
-			items:             [][]byte{jsonItem(`"AppPerson"`)},
 			hasContinuation:   true,
 			continuationToken: "same",
 		},

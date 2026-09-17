@@ -24,6 +24,14 @@ the exact original error is not proven. The runner is verified deallocated to
 avoid idle compute; evidence is retained. No target or migration was dispatched.
 B05/B10 remain open.
 
+The subsequent local correction uses bounded exclusion-based exact catalog
+enumeration, preserving empty-page continuation and keeping sampled profiling
+distinct. Safe inventory diagnostics now emit fixed failure categories only.
+The Go suite, focused race tests and all 300 extension tests/build pass; see
+the [correction/review record](gremlin-gui-execution-20260918.md#local-discovery-correction-and-review--september-18-jst).
+The runner remains deallocated. A newly pinned artifact and real-service GUI
+retry are still required; no additional route is qualified.
+
 The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
 passed at September 17 13:50:12 UTC: all 5,600,000 successful writes and
 independently drained remote rows match, and all 18 file counts match the pinned
