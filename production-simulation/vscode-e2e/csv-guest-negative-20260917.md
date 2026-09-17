@@ -1,7 +1,8 @@
 # B08 Linux CSV integrity negative trial
 
-Status: storage and uploads ready; Linux VM creation approval pending. No guest
-result claimed.
+Status: **PASS for live Linux full-hash rejection, receipt gating, positive
+control and no implicit replay**. Runner deallocated; evidence retained.
+This is not a graph migration or complete B08/release qualification.
 
 ## Scope and acceptance
 
@@ -104,6 +105,59 @@ security tag/network exception. The old trial/account is not reused.
   granting that VM identity Blob Reader on this workflow container only.
   No VM submission, fault injection, target creation or guest import has yet
   occurred. The planned active trial remains bounded to two hours.
+
+## Live result (September 17, 01:40–01:52 UTC)
+
+The user approved the exact new VM, pinned executable and container-only Blob
+Reader grant. The installed GUI submitted the deployment once. The first
+readiness command ran before bootstrap installed `agefreighter-tools` and
+failed with exit 127; its command evidence remains. Independent inspection
+subsequently found cloud-init done, and a fresh GUI check passed at
+01:45:21 UTC with the expected version/hash, idle health, disk 3.51%, no swap
+and no OOM. No source or target database was started.
+
+Both original Blobs were independently downloaded, fully hashed and preserved
+as separate local evidence before injection. A conditional, exact-ETag PUT
+changed only byte zero of the new negative Blob, preserving its 8,797,607-byte
+length. Its new SHA-256 is
+`328e8adedcc92ffe20b969893088cae49038f16a3612311540f5136238fc2fbb`;
+the normal control's hash and ETag stayed unchanged. No accepted Blob, local
+frozen fixture or saved GUI manifest was changed.
+
+| Check | Observed result |
+|---|---|
+| Negative import `4ab7ac69-a679-4af1-81cc-bcbc984aab94` | Failed, exit 1, 01:46:45–01:46:46 UTC |
+| Retained partial | Exactly 8,797,607 bytes, corrupted SHA above, mode 0600 |
+| Failed file publication | No final CSV and no seal; transient capability absent |
+| GUI reconciliation | Same operation remains `failed`; no implicit retry |
+| Negative mapping | Review with actual `source_key` column leaves both assessment approvals disabled |
+| Positive import `9b2d4d1e-6975-4a2f-8e6e-0398702e40dd` | Finished, exit 0, 01:48:30 UTC; GUI `verified` |
+| Positive seal | Independent full-file SHA and 8,797,607-byte length match reviewed manifest; capability absent |
+| Positive mapping | Reviewing only the verified file enables assessment approvals and displays full-hash-seal confirmation; no assessment submitted |
+| Repeat import action | Refused: no uploaded file awaiting import; failed operations are not replayed |
+
+The final GUI form is deliberately left on the failed mapping with approvals
+disabled. No assessment, target or migration exists in this workflow. Both
+operation identities and their evidence remain. The two copies were used only
+for the CSV import gate; empty property mappings are not a P1 graph test.
+
+At 01:49:47 UTC the independent final guest inspection confirmed both outcomes,
+no active lease and zero swap. The raw, bounded read-only inspection is retained
+locally with SHA-256
+`9808225d1e3711de3fbd6a9638032b45dd05d1967c174cf0dc589bb464309474`.
+All 64 earlier workflow/report JSON files retain aggregate SHA-256
+`917a29e7457ef2b6f235970141cdc4c262c10543329aa04d189e7c18ee4fc8f8`.
+The new VM was explicitly deallocated after evidence collection, and Azure
+confirmed `VM deallocated` before 01:53 UTC. Disk, failed bytes and storage
+remain; no deletion was performed. Compute ran for approximately 12 minutes,
+well below the two-hour bound. This is not an actual billing measurement.
+
+During review, the obsolete warning claiming CSV upload was unavailable was
+found. Source now explains that upload alone is insufficient and every mapped
+file needs a Linux full-content seal. Typecheck and all 235 unit tests pass.
+The installed bundle was **not** replaced during this qualification; this
+wording-only change still needs packaging/installed presentation verification.
+Lost committed-upload-acknowledgement qualification remains a distinct B08 gap.
 
 Fresh extension regression: **235/235 tests PASS**, no skipped/cancelled tests.
 The pinned build and current tree have no changes in `internal/runner/csv.go`

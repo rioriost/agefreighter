@@ -1,6 +1,6 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-16 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+Updated: 2026-09-17 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
 All routes completed the installed-GUI workflow, complete counts verification,
 and full P1 canonical comparison (1.6M vertices, 4M edges, 64 ranges). This is
@@ -41,8 +41,13 @@ the unit suite to 227/227 PASS; nine real CLI configuration contracts also
 pass. The subsequent [CSV transfer trial](csv-interruption-20260916.md) passed
 real Cancel, changed-manifest refusal and explicit retry, with full 1.84 GB Blob
 readback matching every reviewed hash. Earlier blobs/artifacts are unchanged.
-B08 remains partial for guest hash/receipt denial and lost-commit-acknowledgement
-cases; this transport-only fixture must never be treated as a migrated P1 graph.
+The September 17 [Linux CSV negative trial](csv-guest-negative-20260917.md)
+now also passes same-size corruption rejection, no final-file/seal publication,
+verified positive control, mapping receipt gating and no implicit retry. Its
+isolated VM is deallocated; evidence and all previous qualification files are
+preserved. B08 remains partial for lost committed-upload acknowledgement;
+neither transfer/import trial is a migrated P1 graph. The source warning was
+corrected with 235 passing unit tests, but the installed bundle was unchanged.
 
 | Route | Final evidence | Outcome |
 | --- | --- | --- |

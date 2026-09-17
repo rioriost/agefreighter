@@ -1,6 +1,6 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-16 JST. Status: **running; not release-qualified**.
+Updated: 2026-09-17 JST. Status: **running; not release-qualified**.
 
 The nine base P1 routes are [qualified](progress.md). This ledger covers the
 additional requirements in [the original plan](plan.md#branch-coverage-beyond-the-base-paths).
@@ -92,7 +92,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; both generated formats pass CLI validation | Prepare equivalent Gremlin P1 representation, then full installed-GUI migration and canonical verification | not-run |
 | B06 | Supported Cosmos authentication and RBAC propagation | Guided source currently fixes `default-azure` managed identity; base route passed | Document fixed GUI authentication scope; audit propagation/denial handling; do not claim other CLI modes GUI-tested | running |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Base routes resize same VM; resize/preflight unit tests pass | Bind identity preservation artifacts; exercise missing live denial branches without destructive resize | not-run |
-| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1 and picker cancellation passed; installed transfer Cancel retains 57 uncommitted blocks; changed-manifest retry refused; explicit retry and full 1.84 GB Blob readback pass without overwriting earlier blobs | Live guest hash-mismatch/receipt denial and lost committed-acknowledgement reconciliation; desktop transfer is not guest verification | partial |
+| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; September 17 Linux same-size corruption is rejected without publication/seal, normal control verifies, mapping gate and no-replay checks pass | Lost committed-upload-acknowledgement reconciliation remains; CSV import gates are not graph migration | partial |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
@@ -101,10 +101,13 @@ they prove a precise choice before scheduling redundant infrastructure work.
 ## First local regression batch
 
 September 17: the separate [Linux CSV negative trial](csv-guest-negative-20260917.md)
-is prepared with two valid frozen-P1 copies in a new GUI-created workflow.
-Its exact-account storage/access confirmation is pending; no new cloud resource,
-VM, import, fault or migration has started. The local CSV/Seal regression and
-all 235 extension unit tests pass again. B08's live guest gate is not yet passed.
+passes live same-size hash-mismatch rejection, absence of final file/seal,
+capability removal, positive full-hash control, mapping receipt gate and no
+implicit retry. The new VM is deallocated and all evidence retained; no target,
+assessment or migration was created. The obsolete CSV-upload warning was
+corrected in source; typecheck and all 235 unit tests pass. The installed
+candidate was not changed during this trial. B08 remains partial only for the
+separate lost committed-upload-acknowledgement case listed here.
 
 CSV upload cancellation is now implemented and locally regression-tested:
 **235/235 unit tests**, typecheck/build and **13/13 isolated VS Code 1.138.0 host
@@ -112,8 +115,9 @@ tests** pass. The installed signed-in candidate subsequently passed real Cancel,
 changed-manifest refusal and explicit same-destination retry. All five blobs
 (1,840,125,623 bytes) were independently streamed and hashed; prior blob ETags
 and all 64 earlier JSON artifacts are unchanged. No assessment/migration started.
-B08 remains partial for the distinct guest receipt/hash-mismatch and lost
-committed-acknowledgement cases. See [B08 execution record](csv-interruption-20260916.md).
+That September 16 transfer-only trial did not establish guest receipt/hash
+behavior; the September 17 trial above now supplies it. Lost committed-upload
+acknowledgement remains open. See [B08 transfer record](csv-interruption-20260916.md).
 
 Latest non-mutating GUI audit: [source locations and CSV cancellation](branch-gui-audit-20260916.md).
 All eight allowed source/location selections were inspected in signed-in VS Code

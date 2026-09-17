@@ -65,6 +65,8 @@ test("CSV mappings use selected identities and explicit types, but cannot run be
   const csv = (draft.configuration.source as any).csv;
   assert.equal(draft.canAssess, false); assert.deepEqual({ ...csv.vertices[0].propertyTypes }, { age: "int64", active: "boolean", tags: "string[]" });
   assert.equal(csv.defaults.nullValue, "\\N");
+  assert.ok(draft.warnings.some(w => w.includes("CSV upload alone") && w.includes("full-content verification seal")));
+  assert.ok(!draft.warnings.some(w => w.includes("upload is not enabled")));
   assert.equal(csv.vertices[0].path, `/var/lib/agefreighter/workflows/${workflow}/uploads/${csvFile.id}.csv`);
   assert.throws(() => buildSourceDraft({ type: "csv", location: "local" }, form, workflow, []), /picker/);
 });

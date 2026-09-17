@@ -140,7 +140,7 @@ export function buildSourceDraft(selection: SourceSelection, raw: unknown, workf
     const vertexLabels = new Set(form.mappings.filter(m => m.kind === "vertex").map(m => m.label));
     if (!vertexLabels.size || form.mappings.some(m => m.kind === "edge" && (!vertexLabels.has(m.startLabel) || !vertexLabels.has(m.endLabel)))) throw new Error("Every edge endpoint must reference a configured vertex label.");
     if (type === "postgresql") source.postgresql = { connection: { env: "AGEFREIGHTER_SOURCE_DSN" }, readMode: "cursor", fetchRows: 5000, vertices, edges };
-    else if (type === "csv") { source.csv = { defaults: { delimiter: ",", quote: '"', escape: '"', header: true, encoding: "utf-8", nullValue: form.nullValue }, vertices, edges }; warnings.push("CSV upload is not enabled yet. These guest paths are planned only, not evidence that files exist."); }
+    else if (type === "csv") { source.csv = { defaults: { delimiter: ",", quote: '"', escape: '"', header: true, encoding: "utf-8", nullValue: form.nullValue }, vertices, edges }; warnings.push("CSV upload alone does not enable assessment. Import every mapped file on the Linux runner and confirm its full-content verification seal, then review these settings again. Planned guest paths are not proof of verified files."); }
     else Object.assign(object(source.cosmos), { vertices, edges });
   }
   return { form, warnings, canAssess: type !== "csv", ...(sourceCA ? { sourceCASHA256: sourceCA.sha256 } : {}), configuration: {
