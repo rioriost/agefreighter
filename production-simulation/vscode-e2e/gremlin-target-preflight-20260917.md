@@ -93,7 +93,7 @@ go test -race ./production-simulation/internal/rangedigest \
 After committing the reviewed tree, build the separately identified artifact:
 
 ```sh
-production-simulation/vscode-e2e/build-p1-verifier.sh gremlin-partition64
+bash production-simulation/vscode-e2e/build-p1-verifier.sh gremlin-partition64
 ```
 
 No installed extension, guest, Azure permission/network, accepted graph or
@@ -109,3 +109,24 @@ new Gremlin source/container placement, refresh all authorization/cost/security
 gates, then run the isolated installed-GUI/Azure path and full target digest.
 Include active-operation reload/no-replay testing for B10. Neither B05 nor B10
 is promoted to PASS by this local work.
+
+## Pinned local artifacts
+
+Built from clean committed implementation
+`e70e02068c6865cd701e7ef99afb150dd64ca01f`. Packaging reran all 300 extension
+unit tests and typecheck/build successfully. These are unpublished test-only
+artifacts: **not installed, uploaded or executed on a guest**.
+
+| Artifact | Retained location relative to repository | SHA-256 |
+|---|---|---|
+| Linux runner archive | `production-simulation/work/vscode-runner-build.eWuRW3/agefreighter-2.4.0-dev.e70e02068c68-linux-amd64.tar.gz` | `1746ef42794468c90e034cbbe527c1489cb7f8df42eb7646d254929b9f0d4cd8` |
+| Gremlin P1 verifier archive | `production-simulation/work/vscode-p1-verifier.p8vXjs/p1-verifier-e70e02068c68-linux-amd64.tar.gz` | `ecce5c6c105f786fe17fc698408312512fe11d786d4dcf5f076ad5f84687d0de` |
+| VSIX | `production-simulation/work/vscode-gremlin-vsix.guvrIo/agefreighter-e70e020-gremlin.vsix` | `c09b768fe420e987a6fa7d34d9ef5156b81773fa8c3c5ecc709699049d1387bb` |
+
+Packaged JavaScript SHA-256:
+`073232d2528ed59271ed33d5a43dba9e77235a4a5757e1555fefdee1b980e618`.
+Each Linux directory contains its version/commit/size/hash manifest; the
+verifier manifest additionally binds the Gremlin profile/version/root and
+passes the extension's actual manifest admission function. Both binaries are
+Linux x86-64 ELF, not host binaries. Preserve these files for the next trial;
+do not rebuild a mutable branch on a guest or replace an accepted loader.
