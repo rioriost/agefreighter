@@ -59,6 +59,13 @@ transport failures and corrupted retained-report reopening. B12 remains partial
 pending signed-in GUI interaction; this batch does not start cloud compute or
 replace the installed candidate.
 
+A subsequent [placement and resize audit](placement-resize-audit-20260917.md)
+confirmed same-RG/Japan-East/zone-1 coverage, live identity preservation on three
+stopped runners, installed-GUI completed-migration resize refusal and actual
+approval cancellation. Eighteen added regressions bring the unit suite to
+273/273 PASS. Alternative placement and live active-job/layout rejection are
+still open; no infrastructure was started or changed.
+
 | Route | Final evidence | Outcome |
 | --- | --- | --- |
 | CSV-MAC | [Local CSV](evidence/csv-mac-qualified-20260906.json) | PASS |

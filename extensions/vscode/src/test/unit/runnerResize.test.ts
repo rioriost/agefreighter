@@ -72,3 +72,59 @@ test("AGE preload restart is once-only and requires owned configuration to recon
   r=await applyTargetPreload(f.control,r,true);assert.equal(events.filter(x=>x==="POST").length,1);
   pending=false;r=await applyTargetPreload(f.control,r);assert.equal(r.targetRestart?.phase,"finished");
 });
+
+for(const phase of ["submitted","running","finished","failed"] as const)test(`resize refuses retained ${phase} migration before Azure access`,async()=>{
+  const f=fixture();f.r.migration={phase} as RunnerRecord["migration"];
+  await assert.rejects(startResize(f.control,f.r),/Reconcile/);
+  await assert.rejects(advanceResize(f.control,f.r,true),/Reconcile/);
+  assert.deepEqual(f.events,[]);assert.equal(f.saved.length,0);
+});
+
+for(const phase of ["submitted","unknown"] as const)test(`resize refuses ${phase} guest command before Azure access`,async()=>{
+  const f=fixture();f.r.guestCommand={phase} as RunnerRecord["guestCommand"];
+  await assert.rejects(startResize(f.control,f.r),/Reconcile/);
+  assert.deepEqual(f.events,[]);assert.equal(f.saved.length,0);
+});
+
+for(const field of ["disk","nic","principal","tenant","controller","security"] as const)test(`resize refuses changed ${field} without a further write`,async()=>{
+  const f=fixture();const r=await startResize(f.control,f.r),before=f.saved.length;
+  if(field==="disk")f.vm.properties.storageProfile.osDisk.managedDisk.id+="-other";
+  if(field==="nic")f.vm.properties.networkProfile.networkInterfaces[0]!.id+="-other";
+  if(field==="principal")f.vm.identity.principalId="22222222-2222-4222-8222-222222222222";
+  if(field==="tenant")f.vm.identity.tenantId="22222222-2222-4222-8222-222222222222";
+  if(field==="controller")f.vm.properties.storageProfile.diskControllerType="NVMe";
+  if(field==="security")(f.vm.properties as any).securityProfile={securityType:"TrustedLaunch"};
+  f.events.length=0;
+  await assert.rejects(advanceResize(f.control,r,true),/changed/);
+  assert.deepEqual(f.events,["GET"]);assert.equal(f.saved.length,before);
+});
+
+for(const incompatible of ["ephemeral","data-disk","multiple-nics"] as const)test(`resize rejects ${incompatible} layout before deallocation`,async()=>{
+  const f=fixture();
+  if(incompatible==="ephemeral")(f.vm.properties.storageProfile.osDisk as any).diffDiskSettings={option:"Local"};
+  if(incompatible==="data-disk")(f.vm.properties.storageProfile.dataDisks as unknown[]).push({lun:0});
+  if(incompatible==="multiple-nics")f.vm.properties.networkProfile.networkInterfaces.push({id:"other"});
+  await assert.rejects(startResize(f.control,f.r),/persistent disk/);
+  assert.deepEqual(f.events,["GET"]);assert.equal(f.saved.length,0);
+});
+
+for(const missing of ["sku","quota"] as const)test(`resize rejects unavailable ${missing} before deallocation`,async()=>{
+  const f=fixture(),list=f.control.list;
+  f.control.list=async(s,p)=>p.includes(missing==="sku"?"/skus?":"/usages?")?[]:list(s,p);
+  await assert.rejects(startResize(f.control,f.r),/not available|quota/);
+  assert.ok(f.events.every(e=>e==="GET"));assert.equal(f.saved.length,0);
+});
+
+test("ready resize and start phases remain read-only without a new explicit approval",async()=>{
+  const f=fixture();let r=await startResize(f.control,f.r);
+  f.vm.properties.instanceView.statuses[0]!.code="PowerState/deallocated";
+  r=await advanceResize(f.control,r);assert.equal(r.resize?.phase,"ready-to-resize");
+  f.events.length=0;const before=f.saved.length;
+  assert.equal(await advanceResize(f.control,r),r);
+  assert.deepEqual(f.events,["GET"]);assert.equal(f.saved.length,before);
+  r=await advanceResize(f.control,r,true);f.vm.properties.hardwareProfile.vmSize="Standard_D4s_v5";
+  r=await advanceResize(f.control,r);assert.equal(r.resize?.phase,"ready-to-start");
+  f.events.length=0;const saved=f.saved.length;
+  assert.equal(await advanceResize(f.control,r),r);
+  assert.deepEqual(f.events,["GET"]);assert.equal(f.saved.length,saved);
+});

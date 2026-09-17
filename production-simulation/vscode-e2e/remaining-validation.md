@@ -85,20 +85,28 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 | ID | Required branch | Existing evidence / current limitation | Remaining acceptance | State |
 |---|---|---|---|---|
-| B01 | Default/separate migration RG; independent network RG | Private base paths passed; `runner.test.ts` validates resource placement | Bind each selectable RG choice to an exact GUI artifact; exercise unrepresented choices | not-run |
-| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Placement and preflight unit tests pass | GUI defaults/override evidence; invalid choices produce no write request | not-run |
+| B01 | Default/separate migration RG; independent network RG | Retained workflow audit binds all accepted base paths to same source/runner/network RG | Separate migration/network RG GUI choices remain unrepresented | partial |
+| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | All retained paths bind Japan East/zone 1; placement/preflight tests and missing SKU/quota resize rejection pass | Defaults versus overrides, unknown zone and invalid choices still need precise GUI/no-write evidence | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes and full P1 canonical results pass | Map recommendation acceptance/edit branches and CSV choices to retained GUI evidence | running |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; both generated formats pass CLI validation | Prepare equivalent Gremlin P1 representation, then full installed-GUI migration and canonical verification | not-run |
 | B06 | Supported Cosmos authentication and RBAC propagation | Guided source currently fixes `default-azure` managed identity; base route passed | Document fixed GUI authentication scope; audit propagation/denial handling; do not claim other CLI modes GUI-tested | running |
-| B07 | Same-VM resize; active-job/incompatible resize denied | Base routes resize same VM; resize/preflight unit tests pass | Bind identity preservation artifacts; exercise missing live denial branches without destructive resize | not-run |
+| B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
-| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
+| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation; actual native resize approval Cancel preserves all prior records | Other approval surfaces and unrepresented faults still require bounded GUI/no-write evidence | partial |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass; 20 production P1 controller tests now cover full-digest identity/coverage/forgery, transfer failures, retained identity changes and corrupted reopen with no new PASS | Signed-in installed-candidate retest; synthetic reports and inert adapters are not live GUI/Azure fault evidence | partial |
 
 ## First local regression batch
+
+September 17 05:34–05:41 UTC: [placement/mapping/resize audit](placement-resize-audit-20260917.md)
+bound existing coverage to exact retained records, verified unchanged identities
+of three surviving resized VMs through live ARM reads, and exercised installed
+GUI completed-migration resize refusal and native resize approval cancellation.
+No compute start or cloud write; prior 64 artifacts unchanged. Eighteen new
+resize regressions bring the full unit suite to 273/273 PASS. Missing live
+placement/active-job/layout branches remain open; these are partial cases.
 
 September 17 follow-up: [remaining-work sequence and B12 controller results](remaining-next-batch-20260917.md).
 Twenty additional tests exercise the actual full-P1 import controller with
