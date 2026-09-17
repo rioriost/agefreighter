@@ -45,7 +45,18 @@ export function assessmentActive(record: RunnerRecord): boolean {
 export function retainFailedAssessment(record: RunnerRecord, operation: string, now = Date.now()): RunnerRecord {
   const a = record.assessment, ready = record.guestReady, command = record.guestCommand;
   if (record.phase !== "provisioned" || record.target || record.migration || !a || a.operation !== operation || a.phase !== "failed") throw new Error("Only this failed pre-target assessment can be retained for a fresh attempt.");
-  if (command?.action !== "ready" || command.phase !== "finished" || !ready || ready.bootId !== a.bootId || !Number.isFinite(Date.parse(ready.checkedAt)) || now - Date.parse(ready.checkedAt) < 0 || now - Date.parse(ready.checkedAt) > 300000 || ready.health?.idle !== true || ready.health.swapUsedBytes !== 0 || ready.health.oomEvents !== 0 || !Number.isFinite(ready.health.storageUsedPercent) || ready.health.storageUsedPercent >= 80) throw new Error("Refresh successful idle Linux guest readiness on the same boot before retaining the failure.");
+  // A terminal failure belongs to its historical boot. Deallocation/restart or
+  // an approved idle upgrade must not make its evidence impossible to archive.
+  // Require a newly reconciled, idle *current* installation instead. This does
+  // not resume the old worker or permit unknown/interrupted operations to retry.
+  if (command?.action !== "ready" || command.phase !== "finished" || !ready ||
+      !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(ready.bootId) ||
+      ready.checkedAt !== command.submittedAt ||
+      (record.upgrade && record.upgrade.phase !== "finished") ||
+      (record.artifact.development && ready.commit !== record.artifact.development.commit)) {
+    throw new Error("Refresh successful Linux readiness for the current installation before retaining the failure.");
+  }
+  assertIdleHealth(record, now);
   const assessmentHistory = [...record.assessmentHistory ?? [], a];
   if (assessmentHistory.length > 16) throw new Error("Assessment history limit reached; retain evidence and review the workflow before continuing.");
   return { ...record, assessmentHistory, assessment: undefined };

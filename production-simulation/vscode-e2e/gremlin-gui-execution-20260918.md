@@ -3,7 +3,9 @@
 September 18, 2026 JST. **Approved transfer-storage exception applied; authenticated
 access and pinned runner upload pass. VM provisioned and Linux readiness verified;
 Cosmos read access verified; first inventory failed and evidence is retained.
-Discovery-limit correction required before retry. No migration submitted.**
+Corrected Linux runner installed; retry blocked by the installed extension's
+same-boot failure-retention gate. Extension correction tested locally; no new
+inventory or migration submitted. VM deallocated.**
 
 The [source preparation](gremlin-source-execution-20260917.md) passed separately.
 Its 5.6M Gremlin-shaped NoSQL documents are not a GUI/target qualification.
@@ -319,3 +321,76 @@ permission or network change is included. Proposed runner bound: two hours,
 including the existing 30-minute inventory limit; compute at 0.109 USD/hour,
 within the unchanged USD 800/September 20 deadline. Refresh cost/health/governance
 and guest-readiness gates before mutations. No live inventory outcome is claimed.
+
+### Approved replacement attempt — September 17 23:25 UTC onward
+
+The user explicitly approved the exact `290c6efa3b3e`/`00b66081e762...`
+replacement, same-VM upgrade and complete inventory retry. Fresh checks found
+all ten VMs deallocated, all 17 Flexible Servers Stopped, no RG lock, unchanged
+private/key-disabled Cosmos and the exact previously approved VM Data Reader.
+The workflow's transfer account still has its approved tag/public HTTPS setting,
+with anonymous/shared-key access disabled. Recent activity returned the previous
+diagnostic/deallocation operations and resource-health events; no new security
+or governance mutation was identified in that bounded query.
+
+Cost Management again returned HTTP 429. The existing below-USD-650 conservative
+planning envelope is retained, not represented as a fresh bill. This bounded
+same-VM retry adds at most USD 0.218 compute (two hours at USD 0.109/hour), plus
+already-reserved storage/network and existing capped Cosmos throughput. No target
+compute is started. USD 800 and the September 20 outer deadline are unchanged.
+
+Started only `af-4043e008b86e47b88722` and requested new readiness from the installed
+GUI at `23:27:06.447Z`. Stop/deallocate it no later than **September 18 01:26 UTC**,
+even if this attempt is incomplete. Do not overwrite the old installation or
+failed inventory evidence; the normal pinned-upgrade flow archives them.
+
+#### Linux replacement succeeded; retry preparation blocked before source reads
+
+The installed GUI uploaded the approved archive and submitted exactly one
+upgrade at `2026-09-17T23:29:29.837Z`, operation
+`59115851-d876-40fb-ac4c-d0e32e2e2272`. Its Run Command completed Succeeded,
+exit 0, at `23:29:42Z`. The returned version, full commit and archive SHA-256
+match the pinned replacement. The GUI then reconciled `upgrade.phase=finished`.
+The normal upgrade script preserved previous executables and installation
+evidence under `/var/lib/agefreighter/upgrades/59115851-d876-40fb-ac4c-d0e32e2e2272`.
+
+Separate post-upgrade readiness (`23:30:35.159Z`) verified the current boot
+`62fafaf5-90cd-46ce-89f1-76e14e0e674f`, matching installation, idle worker,
+disk **3.7966%**, zero swap and zero OOM. The upgrade's own readiness had correctly
+reported non-idle while its installation lease was held; it was not reused as
+permission to read source data.
+
+In the actual source panel, **Retain failed assessment / prepare fresh attempt**
+refused before the confirmation dialog or any source dispatch: “Refresh successful
+idle Linux guest readiness on the same boot before retaining the failure.”
+Inspection confirmed that `retainFailedAssessment` required the current healthy
+boot to equal the historical failed operation's boot
+`df841056-5cdf-4cce-b528-24977fc5b793`. Consequently a cost-saving deallocation
+followed by restart permanently blocked that explicit retry flow. This is an
+extension workflow defect, not a new Cosmos query failure.
+
+No workflow JSON was manually edited and no old operation was replayed. The
+failed operation/configuration digests are unchanged; assessment history is
+still empty, and target/migration remain absent. Deallocated the exact runner
+again; fresh ARM readback confirms **PowerState/deallocated**. Corrected binaries,
+old installation and guest evidence remain on its retained disk.
+
+#### Extension correction (local only)
+
+The failure-retention gate now checks a freshly reconciled current readiness
+command, matching installed version/archive/commit, valid boot identity, idle
+worker, disk below 80%, and zero swap/OOM. It no longer requires a terminal
+failure to have occurred on the current boot. The original operation and boot
+are copied unchanged into history; no worker is dispatched or resumed. Unknown,
+running, interrupted, unfinished-upgrade, stale/unhealthy and post-target states
+still fail closed. The modal displays both boots and the current version; the
+handler rechecks trust, VM, boot and installation after confirmation.
+
+Regression includes the production panel handler in an inert test environment:
+approved cross-boot retention succeeds without an Azure dispatcher; changed
+boot/artifact/VM/trust, busy state, cancellation and disposal cannot archive the
+failure. Typecheck, all **309** extension unit tests and compilation pass. This
+candidate is not yet installed, and the original installed-GUI failure remains
+the live result. Review/install the pinned VSIX before resuming the already
+approved same-VM inventory retry. Do not rebuild or replace the Linux artifact
+again for this TypeScript-only correction. B05 and active-operation B10 remain open.

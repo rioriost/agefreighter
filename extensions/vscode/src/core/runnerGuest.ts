@@ -162,8 +162,8 @@ export async function reconcileGuest(control: RunnerControl, record: RunnerRecor
   return { record: next, result };
 }
 
-export function assertIdleHealth(record:RunnerRecord):void{
-  const r=record.guestReady,h=r?.health,age=r?Date.now()-Date.parse(r.checkedAt):NaN;
+export function assertIdleHealth(record:RunnerRecord,now=Date.now()):void{
+  const r=record.guestReady,h=r?.health,age=r?now-Date.parse(r.checkedAt):NaN;
   if(!r || r.archiveSha256!==record.artifact.sha256 || r.cliVersion!==record.artifact.version || !Number.isFinite(age) || age<0 || age>300000 || !h || h.idle!==true || !Number.isFinite(h.storageUsedPercent) || h.storageUsedPercent<0 || h.storageUsedPercent>=80 || h.swapUsedBytes!==0 || h.oomEvents!==0)throw new Error("Refresh Linux readiness: idle worker, disk below 80%, no swap/OOM and matching installation are required.");
 }
 

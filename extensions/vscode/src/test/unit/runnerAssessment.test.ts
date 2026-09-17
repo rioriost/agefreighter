@@ -47,6 +47,10 @@ test("failed source reconciliation is explicit, idle-gated and retains evidence 
     (r: RunnerRecord) => { r.guestCommand!.action = "status"; },
     (r: RunnerRecord) => { r.guestReady!.checkedAt = new Date(now - 300001).toISOString(); },
     (r: RunnerRecord) => { r.guestReady!.bootId = "changed"; },
+    (r: RunnerRecord) => { r.guestReady!.archiveSha256 = "b".repeat(64); },
+    (r: RunnerRecord) => { r.guestReady!.cliVersion = "old"; },
+    (r: RunnerRecord) => { r.guestCommand!.submittedAt = new Date(now - 1).toISOString(); },
+    (r: RunnerRecord) => { r.guestReady!.health!.storageUsedPercent = -1; },
     (r: RunnerRecord) => { r.guestReady!.health!.idle = false; },
     (r: RunnerRecord) => { r.guestReady!.health!.oomEvents = 1; },
     (r: RunnerRecord) => { r.guestReady!.health!.swapUsedBytes = 1; },
@@ -55,6 +59,41 @@ test("failed source reconciliation is explicit, idle-gated and retains evidence 
     (r: RunnerRecord) => { r.migration = {} as NonNullable<RunnerRecord["migration"]>; },
   ]) { const r = structuredClone(f.record); mutate(r); assert.throws(() => retainFailedAssessment(r, workflow, now)); }
   assert.throws(() => retainFailedAssessment(f.record, "different", now));
+  for (const delta of [-300001, 1]) {
+    const r = structuredClone(f.record);
+    r.guestReady!.checkedAt = r.guestCommand!.submittedAt = new Date(now + delta).toISOString();
+    assert.throws(() => retainFailedAssessment(r, workflow, now));
+  }
+  const full = structuredClone(f.record); full.assessmentHistory = Array(16).fill(a);
+  assert.throws(() => retainFailedAssessment(full, workflow, now), /history limit/);
+});
+
+test("terminal failure survives a reboot and approved upgrade without dispatch or history rewriting", () => {
+  const f = fixture(), now = Date.now(), boot = "62fafaf5-90cd-46ce-89f1-76e14e0e674f";
+  const a = { operation: workflow, action: "inventory" as const, phase: "failed" as const,
+    bootId: workflow, configurationSHA256: "c".repeat(64), guestConfigurationSHA256: "d".repeat(64) };
+  f.record.assessment = a;
+  f.record.guestCommand = { id: "ready-command", operation: "ready-op", action: "ready", phase: "finished", submittedAt: new Date(now).toISOString() };
+  const previous = structuredClone(f.record.artifact);
+  f.record.artifact = { ...previous, version: "2.4.0-dev.fixed", sha256: "b".repeat(64), development: { commit: "1".repeat(40), bytes: 100 } };
+  f.record.upgrade = { operation: workflow, commandId: "upgrade-command", phase: "finished", previous, artifact: f.record.artifact, bootId: boot, submittedAt: new Date(now - 1000).toISOString() };
+  f.record.guestReady = { ...f.record.guestReady!, bootId: boot, cliVersion: f.record.artifact.version,
+    archiveSha256: f.record.artifact.sha256, commit: "1".repeat(40), checkedAt: new Date(now).toISOString(),
+    health: { idle: true, storageUsedPercent: 4, swapUsedBytes: 0, oomEvents: 0 } };
+  const before = structuredClone(f.record);
+  const next = retainFailedAssessment(f.record, workflow, now);
+  assert.equal(next.assessment, undefined);
+  assert.deepEqual(next.assessmentHistory, [a]);
+  assert.equal(next.assessmentHistory![0]!.bootId, workflow);
+  assert.equal(next.guestReady!.bootId, boot);
+  assert.deepEqual(f.record, before);
+  assert.equal(f.requests.length, 0);
+  for (const phase of ["submitted", "unknown", "failed"] as const) {
+    const r = structuredClone(f.record); r.upgrade!.phase = phase;
+    assert.throws(() => retainFailedAssessment(r, workflow, now));
+  }
+  f.record.guestReady.commit = "old";
+  assert.throws(() => retainFailedAssessment(f.record, workflow, now));
 });
 test("lost assessment acknowledgement is reconciled without duplicate source reads", async () => {
   const f = fixture(); f.fail(); const r = await startAssessment(f.control, f.record, "profile", {});

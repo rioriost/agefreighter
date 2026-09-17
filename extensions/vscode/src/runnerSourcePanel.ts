@@ -51,10 +51,13 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before reconciling source operations.");
           const current = await store.read(workflow), operation = current.assessment?.operation ?? "";
           retainFailedAssessment(current, operation);
-          const choice = await vscode.window.showWarningMessage("Retain failed source assessment and prepare a fresh attempt?", { modal: true, detail: `Operation ${operation}. Confirm you reviewed its guest failure evidence and corrected the cause. The failed operation and files remain retained. This action performs no source reads, credential changes, or target writes. Review the source again and separately approve a new operation; the old operation is never resumed.` }, "Retain failure and review source");
+          const choice = await vscode.window.showWarningMessage("Retain failed source assessment and prepare a fresh attempt?", { modal: true, detail: `Operation ${operation}. Confirm you reviewed its guest failure evidence and the changes for a fresh attempt. Previous boot: ${current.assessment!.bootId}. Verified current boot: ${current.guestReady!.bootId}. Current runner: ${current.artifact.version}. The failed operation and files remain retained. This action performs no source reads, credential changes, or target writes. Review the source again and separately approve a new operation; the old operation is never resumed.` }, "Retain failure and review source");
           if (choice !== "Retain failure and review source" || disposed) break;
           const next = await store.exclusive(workflow, async () => {
-            const updated = retainFailedAssessment(await store.read(workflow), operation);
+            if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before reconciling source operations.");
+            const latest = await store.read(workflow);
+            if (latest.vmId !== current.vmId || latest.guestReady?.bootId !== current.guestReady?.bootId || latest.artifact.sha256 !== current.artifact.sha256 || latest.artifact.version !== current.artifact.version) throw new Error("The reviewed runner boot or installation changed; review the retained failure again.");
+            const updated = retainFailedAssessment(latest, operation);
             await store.write(updated); return updated;
           });
           reviewedHash = undefined; await initialize(next); break;
