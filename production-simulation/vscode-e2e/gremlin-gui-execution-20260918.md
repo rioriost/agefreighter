@@ -394,3 +394,18 @@ candidate is not yet installed, and the original installed-GUI failure remains
 the live result. Review/install the pinned VSIX before resuming the already
 approved same-VM inventory retry. Do not rebuild or replace the Linux artifact
 again for this TypeScript-only correction. B05 and active-operation B10 remain open.
+
+Pinned extension candidate from committed tree
+`007d47d1c86f4eef5a270e3a2ba72cdddfbd9f18`:
+
+- VSIX: `production-simulation/work/vscode-gremlin-retry-vsix.AD7yOp/agefreighter-007d47d-gremlin-retry.vsix`.
+- VSIX SHA-256: `123ec15dd3f568b82764307464dc8ddde2ccd5f22093012ba17a82f2f8259e03`.
+- Packaged JavaScript SHA-256: `8be218f0c16c922ec0f38a53cdf8d9eb1a40cdb92952c5538a861c4e99c8de0f`,
+  independently extracted and matched to the local build.
+- Packaging reran all 309 tests/typecheck/build successfully. Requested specific
+  approval to install/reload this unpublished extension; no installation yet.
+
+Azure records successful deallocation at `2026-09-17T23:32:39.4152949Z`.
+No inventory retry, new permission, network change, target creation or migration
+occurred in this attempt. The approved corrected Linux runner stays installed on
+the preserved disk for the next explicitly reviewed GUI continuation.
