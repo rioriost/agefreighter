@@ -92,7 +92,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; both generated formats pass CLI validation | Prepare equivalent Gremlin P1 representation, then full installed-GUI migration and canonical verification | not-run |
 | B06 | Supported Cosmos authentication and RBAC propagation | Guided source currently fixes `default-azure` managed identity; base route passed | Document fixed GUI authentication scope; audit propagation/denial handling; do not claim other CLI modes GUI-tested | running |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Base routes resize same VM; resize/preflight unit tests pass | Bind identity preservation artifacts; exercise missing live denial branches without destructive resize | not-run |
-| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; live Azure response-loss transport test reconciles with HEAD only and full readback | Installed-GUI committed-acknowledgement-loss trial pending temporary test-extension approval; transport evidence is not GUI interaction or graph migration | partial |
+| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
@@ -100,13 +100,23 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 ## First local regression batch
 
+September 17 05:10–05:14 UTC: user-approved temporary installed extension
+completed the [GUI lost-acknowledgement trial](csv-lost-ack-20260917.md).
+Real commit 201, visible uncertain error and saved `prepared` state were
+followed by explicit GUI retry: one HEAD 200, zero PUTs, same ETag and
+`uploaded` state. Independent full readback matched before/after retry.
+The normal candidate was restored and reloaded; GUI reconnection retained the
+result. Prior four Blob ETags and 64 other saved artifacts were unchanged.
+All 9 retained VMs and 17 Flexible Servers are stopped. B08's defined cases
+pass; the other ledger cases and overall release qualification remain open.
+
 September 17 04:00 UTC: the [lost-acknowledgement transport trial](csv-lost-ack-20260917.md)
 used the actual production uploader against the existing isolated Azure account.
 After an actual commit 201, the injected adapter dropped only its response.
 An explicit second invocation issued HEAD only, no PUT, and independently
 matched the complete Blob with unchanged ETag. GUI state and compute are
-unchanged. A tightly scoped temporary extension is packaged for the remaining
-installed-GUI check; its installation/execution approval is pending.
+unchanged. The later approved installed-GUI result above closes the remaining
+GUI interaction case; this earlier transport result alone did not.
 
 September 17: the separate [Linux CSV negative trial](csv-guest-negative-20260917.md)
 passes live same-size hash-mismatch rejection, absence of final file/seal,
@@ -114,8 +124,8 @@ capability removal, positive full-hash control, mapping receipt gate and no
 implicit retry. The new VM is deallocated and all evidence retained; no target,
 assessment or migration was created. The obsolete CSV-upload warning was
 corrected in source; typecheck and all 235 unit tests pass. The installed
-candidate was not changed during this trial. B08 remains partial only for the
-separate lost committed-upload-acknowledgement case listed here.
+candidate was not changed during that Linux trial. The later lost-acknowledgement
+trial and normal-candidate restoration are recorded above.
 
 CSV upload cancellation is now implemented and locally regression-tested:
 **235/235 unit tests**, typecheck/build and **13/13 isolated VS Code 1.138.0 host
@@ -124,8 +134,8 @@ changed-manifest refusal and explicit same-destination retry. All five blobs
 (1,840,125,623 bytes) were independently streamed and hashed; prior blob ETags
 and all 64 earlier JSON artifacts are unchanged. No assessment/migration started.
 That September 16 transfer-only trial did not establish guest receipt/hash
-behavior; the September 17 trial above now supplies it. Lost committed-upload
-acknowledgement remains open. See [B08 transfer record](csv-interruption-20260916.md).
+behavior; the September 17 trial above now supplies it. The separate September 17
+GUI trial closes lost committed-upload acknowledgement. See [B08 transfer record](csv-interruption-20260916.md).
 
 Latest non-mutating GUI audit: [source locations and CSV cancellation](branch-gui-audit-20260916.md).
 All eight allowed source/location selections were inspected in signed-in VS Code

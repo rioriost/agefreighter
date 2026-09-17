@@ -45,9 +45,13 @@ The September 17 [Linux CSV negative trial](csv-guest-negative-20260917.md)
 now also passes same-size corruption rejection, no final-file/seal publication,
 verified positive control, mapping receipt gating and no implicit retry. Its
 isolated VM is deallocated; evidence and all previous qualification files are
-preserved. B08 remains partial for lost committed-upload acknowledgement;
-neither transfer/import trial is a migrated P1 graph. The source warning was
-corrected with 235 passing unit tests, but the installed bundle was unchanged.
+preserved. The subsequent [installed-GUI lost-acknowledgement trial](csv-lost-ack-20260917.md)
+also passed: a real Azure commit followed by injected response loss, explicit
+HEAD-only reconciliation, unchanged ETag and full readback. The temporary test
+extension was removed by restoring/reloading the normal candidate (including
+the corrected warning), with the saved result visibly preserved. B08's defined
+cases now pass; neither transfer/import trial is a migrated P1 graph or overall
+release qualification. All 9 retained VMs and 17 Flexible Servers remain stopped.
 
 | Route | Final evidence | Outcome |
 | --- | --- | --- |

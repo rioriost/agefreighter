@@ -1,7 +1,45 @@
 # B08 committed CSV acknowledgement-loss qualification
 
-Status: **live Azure production-transport test PASS; installed-GUI fault trial
-pending approval of its isolated temporary extension**. B08 is still partial.
+Status: **live Azure production-transport and installed-GUI fault trials PASS**.
+B08's defined cases are complete. This is not overall release qualification.
+
+## Installed-GUI result — September 17, 05:10–05:14 UTC
+
+The user approved the isolated unpublished extension at action time. The
+temporary VSIX was installed, its bundle hash checked, and the window reloaded.
+The signed-in GUI reconnected to the existing isolated workflow without replay.
+The native picker added only `Ack-Supplier.csv`, assigning file UUID
+`672664ee-8b22-47cd-8bcd-b30966f47135`. Earlier selections were preserved.
+
+- 05:10:44.118 UTC: Azure returned BlockList **201**, ETag
+  `0x8DF147A06B67A0E`. The adapter recorded that success and dropped the response.
+  GUI displayed acknowledgement-uncertain; independently read saved state was
+  `prepared`. No automatic retry followed. This is an injected client response
+  loss after real Azure success, not an actual Azure service outage.
+- 05:11:13 UTC: independent GET matched all 8,797,607 bytes and the expected
+  SHA-256. The native upload confirmation was explicitly accepted again.
+- 05:11:25.954 UTC: the retry issued **one HEAD 200, zero PUTs**, kept the
+  same ETag and changed the saved phase to `uploaded`; the GUI error cleared.
+  This is not `verified` (Linux import/sealing was intentionally not performed).
+- The regular candidate VSIX was restored successfully, its exact installed
+  bundle hash verified and fault marker confirmed absent. After Reload Window
+  and reconnection, the normal GUI visibly retained `uploaded`, the earlier
+  negative `failed`, and positive `verified` states. No assessment had started.
+- 05:13:38 UTC: independent full GET again matched the expected bytes/hash and
+  ETag. All four pre-existing Blob ETags were unchanged. All 64 other saved
+  workflow/report JSON artifacts retained aggregate SHA-256
+  `917a29e7457ef2b6f235970141cdc4c262c10543329aa04d189e7c18ee4fc8f8`.
+- Fresh Azure inventory showed **9 VMs deallocated and 17 Flexible Servers
+  stopped**. No compute start, role/network change, Linux import, assessment,
+  target creation, migration or deletion occurred. Storage retention continues.
+
+Structured result: [GUI evidence](evidence/csv-gui-lost-ack-20260917.json).
+The temporary VSIX was not published. Its archive SHA-256 is
+`402afc8097a0cc04daa8ac018375b40428448cdad6d75c8176c99a2a83c8196a`.
+The retained GUI transport trace SHA-256 is
+`13de087b222d289de6428fe9b2b1108e738c73a5304834a1a6d8ea3b96e4780e`;
+the create-only commit witness SHA-256 is
+`b5a40fe8c4beaeebbe08ec02f2f4467423ba272f58a43edc33d9056f3a2bdff4`.
 
 ## Scope and review
 
@@ -53,7 +91,7 @@ Retained evidence hashes:
 This closes the live transport question, not the installed-GUI/controller
 interaction. Existing controller tests remain simulated evidence.
 
-## Installed-GUI trial design and prepared artifacts
+## Installed-GUI trial design and prepared artifacts (pre-execution record)
 
 Use the same isolated workflow/account and select the independent
 `Ack-Supplier.csv` copy through the native file picker, creating a fresh file

@@ -1,5 +1,10 @@
 # B08 CSV interruption qualification
 
+September 17 follow-up: the separate [Linux integrity trial](csv-guest-negative-20260917.md)
+and [installed-GUI lost-acknowledgement trial](csv-lost-ack-20260917.md) now pass.
+B08's defined cases are complete. The September 16 intermediate status below
+is retained as historical evidence; it is not the current branch ledger.
+
 Status: installed network-disabled refusal, upload cancellation, changed-file
 refusal and explicit retry with full Blob readback **PASS**. B08 remains partial
 for the separate guest-import/hash-mismatch and lost-commit-acknowledgement cases.

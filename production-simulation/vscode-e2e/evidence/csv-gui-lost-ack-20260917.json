@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "outcome": "pass",
+  "scope": "B08 installed-GUI committed CSV acknowledgement loss and explicit reconciliation",
+  "notQualified": ["Azure service outage", "Linux import of this copy", "graph migration by this trial", "all remaining branches", "release"],
+  "workflow": "bd3b6680-1e18-4d78-8f36-f43467a09a0a",
+  "file": "672664ee-8b22-47cd-8bcd-b30966f47135",
+  "bytes": 8797607,
+  "sha256": "0ecaaca3879b11a4bc76835c23f37cda9bfac7d5ed457ad50937170876d861fe",
+  "fault": {
+    "at": "2026-09-17T05:10:44.118Z",
+    "actualAzureBlockListStatus": 201,
+    "etag": "0x8DF147A06B67A0E",
+    "mechanism": "Scoped temporary transport drops successful response after recording actual Azure commit",
+    "guiAcknowledgementUncertain": true,
+    "persistedPhase": "prepared",
+    "automaticRetry": false
+  },
+  "explicitGUIRetry": {
+    "at": "2026-09-17T05:11:25.954Z",
+    "headRequests": 1,
+    "headStatus": 200,
+    "putRequests": 0,
+    "etagUnchanged": true,
+    "persistedPhase": "uploaded",
+    "guiErrorCleared": true
+  },
+  "independentFullReadback": {
+    "beforeRetry": "2026-09-17T05:11:13.369Z",
+    "afterRestore": "2026-09-17T05:13:38.019Z",
+    "bytesAndSHA256Match": true,
+    "etagUnchanged": true
+  },
+  "temporaryVSIXSHA256": "402afc8097a0cc04daa8ac018375b40428448cdad6d75c8176c99a2a83c8196a",
+  "temporaryBundleSHA256": "005253bf0f614d56d66c2ce7c293c9247c31656d02f8668f6bfb83a37038594c",
+  "restoredVSIXSHA256": "11e8c511656d502dfb868c56e7691322c0a05c94aaa312436fc4abd4e46a759a",
+  "restoredInstalledBundleSHA256": "3061aea43c315113f47df3ad1da31dc68ad73c27b47a18571ddfb66bf742e929",
+  "faultMarkerAbsentAfterRestore": true,
+  "normalGUIReloadReconnectRetainsUploaded": true,
+  "transportTraceSHA256": "13de087b222d289de6428fe9b2b1108e738c73a5304834a1a6d8ea3b96e4780e",
+  "commitWitnessSHA256": "b5a40fe8c4beaeebbe08ec02f2f4467423ba272f58a43edc33d9056f3a2bdff4",
+  "priorFourBlobETagsUnchanged": true,
+  "prior64ArtifactsSHA256": "917a29e7457ef2b6f235970141cdc4c262c10543329aa04d189e7c18ee4fc8f8",
+  "earlierFailedAndVerifiedTransfersPreserved": true,
+  "finalComputeInventory": {"deallocatedVMs": 9, "stoppedFlexibleServers": 17},
+  "computeStarted": false,
+  "assessmentStarted": false,
+  "migrationStarted": false,
+  "limits": {"budgetUSD": 800, "outerDeadline": "2026-09-20T07:14:35.311Z"}
+}
