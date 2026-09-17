@@ -1,7 +1,7 @@
 # Gremlin installed-GUI migration — fresh draft
 
-September 18, 2026 JST. **Transfer storage created after approval; desktop
-access blocked, account-only exception approval pending. No migration submitted.**
+September 18, 2026 JST. **Approved transfer-storage exception applied; authenticated
+access and pinned runner upload pass. New VM approval pending. No migration submitted.**
 
 The [source preparation](gremlin-source-execution-20260917.md) passed separately.
 Its 5.6M Gremlin-shaped NoSQL documents are not a GUI/target qualification.
@@ -21,7 +21,8 @@ Its 5.6M Gremlin-shaped NoSQL documents are not a GUI/target qualification.
 - The installed extension bundle remains
   `073232d2528ed59271ed33d5a43dba9e77235a4a5757e1555fefdee1b980e618`.
   Both [pinned runner/verifier archives](gremlin-target-preflight-20260917.md#pinned-local-artifacts)
-  retain their recorded hashes. Neither was rebuilt or dispatched.
+  retain their recorded hashes. Neither was rebuilt or executed; the runner
+  archive was subsequently uploaded as recorded below.
 
 ## Actual GUI steps
 
@@ -44,12 +45,13 @@ container `graph-gremlin-p1-20260917`, Gremlin-over-NoSQL format,
 `partitionKey`, and `score=float64,distance_km=float64`. No source assessment
 has started. The accepted explicit-document workflow was not reused.
 
-The native approval dialog is open for **new** transfer account
+The initial native approval dialog requested **new** transfer account
 `af4043e008b86e47b887221e`, Japan East / Standard LRS, with a Blob Data Contributor
 grant to the signed-in user on that new account only. Anonymous/shared-key access
 is disabled; the HTTPS endpoint is network-public, not a private endpoint. A
 specific action-time approval was requested before creating the access grant.
-`storageDeployment` is still absent; no account/role was created by this turn.
+At that initial checkpoint `storageDeployment` was absent. The later approved
+deployment and access recovery are recorded below.
 
 ## Next gates
 
@@ -85,3 +87,42 @@ HTTPS enablement, preserving existing ownership tags, TLS and data authenticatio
 No exception for a different account is reused. Fixed runner upload, VM creation,
 Cosmos Reader grant, assessment and target migration remain pending. Existing
 sources, accepted graphs, preparation evidence and stopped compute are untouched.
+
+## Approved account-only exception and pinned upload
+
+The user explicitly authorized adding the tag and continuing. Applied
+`SecurityControl=Ignore` to **only** `af4043e008b86e47b887221e`, preserving its
+application/purpose/workflow ownership tags, and enabled public HTTPS access.
+Readback confirmed Enabled, HTTPS-only, minimum TLS 1.2, anonymous access disabled
+and shared keys disabled. An authenticated Blob listing succeeded. No source
+firewall, Cosmos networking or other account was changed. The tag is not treated
+as a guarantee against future policy changes; actual resource state was checked.
+
+The installed source-assessment GUI reconciled transfer storage to `ready`.
+Its pinned-development-artifact command selected the exact workflow and reviewed
+the retained manifest, archive size, commit and SHA-256. The immutable upload
+completed and the GUI displayed “Pinned development archive is prepared”.
+The saved workflow records `developmentUpload.phase=ready`:
+
+- Commit: `e70e02068c6865cd701e7ef99afb150dd64ca01f`.
+- SHA-256: `1746ef42794468c90e034cbbe527c1489cb7f8df42eb7646d254929b9f0d4cd8`.
+- Blob length: **37,124,976 bytes**, independently read back through authenticated
+  Blob metadata; its SHA metadata matches the reviewed archive.
+- ETag: `0x8DF1506C741116B`.
+
+This proves an authenticated write and subsequent metadata read, not an independent
+full-byte download or Linux execution. Reconnected to this draft in the installed
+GUI and requested a fresh runner preview. The future VM's scoped Blob Reader and
+unpublished executable remain separate action-time approval gates. No VM, Cosmos
+Reader grant, assessment, target, or migration has yet been submitted.
+
+Fresh GUI preflight passed at `2026-09-17T21:59:17.778Z`: exact VM
+`af-4043e008b86e47b88722`, Japan East / zone 1 / B2s_v2, compute
+**USD 0.109/hour** plus disk/network costs. Its identity would receive only Blob
+Reader on this workflow's transfer container. Requested action-time confirmation
+for that grant and execution of the pinned development binary. No deployment
+approval button was pressed. At this rate even retaining this VM until the outer
+deadline adds less than USD 6.3 compute (under 58 hours); disk/network remain
+additional and covered by the trial reserve, not silently treated as free.
+The 15-minute preview expiry is a preflight freshness limit, not a VM shutdown
+timer. Refresh the preview and safety gates if it expires before approval.
