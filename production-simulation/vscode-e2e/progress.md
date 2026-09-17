@@ -53,6 +53,12 @@ the corrected warning), with the saved result visibly preserved. B08's defined
 cases now pass; neither transfer/import trial is a migrated P1 graph or overall
 release qualification. All 9 retained VMs and 17 Flexible Servers remain stopped.
 
+The next [remaining-branch batch](remaining-next-batch-20260917.md) has started:
+20 additional P1 report-controller regressions cover invalid digest imports,
+transport failures and corrupted retained-report reopening. B12 remains partial
+pending signed-in GUI interaction; this batch does not start cloud compute or
+replace the installed candidate.
+
 | Route | Final evidence | Outcome |
 | --- | --- | --- |
 | CSV-MAC | [Local CSV](evidence/csv-mac-qualified-20260906.json) | PASS |

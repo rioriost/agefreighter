@@ -96,9 +96,16 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
-| B12 | Invalid verification must never be PASS | Unit tests plus isolated real VS Code Extension Host panels cover complete counts, wrong-job, stale, missing counts, incomplete coverage, count mismatch, rejects, failed checks, truncated and hash-mismatched evidence; misleading verified tab title fixed | Signed-in installed-candidate retest and remaining digest/controller import failures; synthetic reports are not Azure fault evidence | partial |
+| B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass; 20 production P1 controller tests now cover full-digest identity/coverage/forgery, transfer failures, retained identity changes and corrupted reopen with no new PASS | Signed-in installed-candidate retest; synthetic reports and inert adapters are not live GUI/Azure fault evidence | partial |
 
 ## First local regression batch
+
+September 17 follow-up: [remaining-work sequence and B12 controller results](remaining-next-batch-20260917.md).
+Twenty additional tests exercise the actual full-P1 import controller with
+production download/hash/canonical checks and inert external adapters. Invalid
+evidence never creates a success panel or new PASS state; failed transfers do
+not retain invalid bytes or retry automatically. Installed candidate and Azure
+resources are unchanged. Signed-in interaction remains open in B12.
 
 September 17 05:10–05:14 UTC: user-approved temporary installed extension
 completed the [GUI lost-acknowledgement trial](csv-lost-ack-20260917.md).
