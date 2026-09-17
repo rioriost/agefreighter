@@ -8,12 +8,20 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
-The [Gremlin live preparation checkpoint](gremlin-live-preparation-20260917.md)
+The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
+is now running on the one explicitly approved retained VM. The first attempt
+failed before writes on a gateway-unsupported preflight query; the reviewed
+correction runs in a separate retained directory/unit. New-container-only
+temporary write access and 4,000-RU/s maximum are verified. Exact remote counts,
+writer removal, VM deallocation and the subsequent GUI migration/full target
+digest remain pending. The other eight VMs and all 17 Flexible Servers are stopped.
+
+The earlier [Gremlin live preparation checkpoint](gremlin-live-preparation-20260917.md)
 rechecked stopped compute, private Cosmos access, preserved workflow state and
 all 18 source-file hashes, and packaged the source transfer capsule. Following
 explicit approval, the pinned candidate was installed/reloaded, existing Azure
 sign-in and saved workflow reconnection passed, and the new Gremlin type field
-was confirmed without saving changes. No new Azure mutation or live migration
+was confirmed without saving changes. That checkpoint made no Azure mutation or live migration
 qualification; all 66 saved workflow/report JSON files remain unchanged.
 
 The [Gremlin target/profile follow-up](gremlin-target-preflight-20260917.md)

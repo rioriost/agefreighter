@@ -1,7 +1,7 @@
 # Gremlin source preparation — live execution
 
 September 17, 2026. **First preparation failed before writes; corrected retry
-being prepared. Not a qualified migration.**
+is running. Not a qualified migration.**
 Continuation of [candidate/source preparation](gremlin-live-preparation-20260917.md).
 
 ## Authorization and fresh gates
@@ -117,6 +117,47 @@ An explicit, reviewed retry will use a newly pinned corrected loader and fresh
 The original budget, outer deadline, 16:00 UTC shutdown and maximum preparation
 window remain unchanged. The first binary in the table is historical and must
 not be used for the retry.
+
+## Corrected retry r2 — active, not yet a completed source
+
+The corrected loader was built from clean commit
+`462d8ec3722cf70dd3689c793011abbfd2440f8a` (which contains query fix `26b935b`).
+Its SHA-256 is
+`36728bf71e9124c5db290091d01824463e7b5712024d76b7b9477bcca10af5e0`,
+11,503,156 bytes, immutable Blob ETag `0x8DF1496897611A3`.
+The r2 wrapper is commit `076f87c`, SHA-256
+`0dec5cb4697ce3b4098cc79f54ee482214d835b6462e5aaa04f93abab44ec577`.
+The archive, manifest, target container and narrow access bindings are unchanged.
+
+Unit `af-gremlin-p1-r2-20260917.service` started at `08:35:26Z`, with fresh
+guest directory `/var/lib/agefreighter-gremlin-p1-20260917-r2`. The original
+unit/directory/log remain retained. Artifact and all source-file checks passed
+at `08:36:06Z`. The retry retains the same eight-hour service limit, seven-hour
+loader timeout, 2-GiB cgroup limit, no swap, no automatic restart, and existing
+16:00 UTC shutdown schedule; no additional permission or budget was granted.
+
+At `08:39:39Z`, the service and loader were running. Loader RSS was 19,524 KiB,
+disk 14%, available host memory 7,363 MiB, swap zero, cgroup OOM/kill counters
+zero and no kernel OOM line. Approximately 2 GiB of cgroup usage was predominantly
+reclaimable file cache, not loader RSS. The first 100,000-document progress line
+and final result had not yet appeared: do not infer a committed-row count from
+process liveness. The temporary writer still has the exact new-container scope.
+The other eight VMs are deallocated and all 17 Flexible Servers are Stopped.
+Recent bounded governance checks returned no delete/deny/lock event.
+
+At `08:41:06Z`, the still-active r2 service reported **100,000 successful
+document writes**. This confirms progress beyond the empty-container preflight;
+the 5,600,000-document final remote count and successful unit exit remain pending.
+
+Thread heartbeat `gremlin-p1-preparation-completion` is ACTIVE every 15 minutes,
+limited to observing this preparation and its authorized terminal writer-removal
+and VM-deallocation steps. It must not restart/retry the loader, begin migration,
+delete evidence, extend the deadline or broaden permissions. It disables itself
+after the exact writer's absence and VM deallocation are verified, and reports
+meaningful transitions/failure/action needs rather than unchanged observations.
+Local scheduled follow-up depends on this computer and desktop app remaining
+running; the guest timeout and existing Azure shutdown schedule remain separate
+controls, not proof that final verification or access removal already happened.
 
 ## Remaining acceptance
 
