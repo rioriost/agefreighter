@@ -36,6 +36,10 @@ type workItem struct {
 	partitionKey string
 }
 
+// The gateway cannot serve cross-partition TOP/aggregate queries directly.
+// Reuse the plain projection for both the empty preflight and final count.
+const countProjection = "SELECT VALUE 1 FROM c"
+
 type result struct {
 	SchemaVersion int            `json:"schemaVersion"`
 	FinishedAt    string         `json:"finishedAt"`
@@ -99,7 +103,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("open container: %w", err)
 	}
 	if *requireEmpty {
-		pager := containerClient.NewQueryItemsPager("SELECT TOP 1 VALUE 1 FROM c", azcosmos.NewPartitionKey(), &azcosmos.QueryOptions{PageSizeHint: 1})
+		pager := containerClient.NewQueryItemsPager(countProjection, azcosmos.NewPartitionKey(), &azcosmos.QueryOptions{PageSizeHint: 1})
 		if err := requireEmptyPages(ctx, pager); err != nil {
 			return err
 		}
@@ -290,7 +294,7 @@ func countRemote(ctx context.Context, container *azcosmos.ContainerClient) (int6
 	// cross-partition projection. Drain every continuation page and count the
 	// projected rows locally so verification remains exact.
 	pager := container.NewQueryItemsPager(
-		"SELECT VALUE 1 FROM c",
+		countProjection,
 		azcosmos.NewPartitionKey(),
 		&azcosmos.QueryOptions{PageSizeHint: 10000},
 	)
