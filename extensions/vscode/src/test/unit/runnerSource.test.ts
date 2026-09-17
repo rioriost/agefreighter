@@ -3,6 +3,24 @@ import test from "node:test";
 import { buildSourceDraft, sourceSecrets } from "../../core/runnerSource";
 import { csvFile, sourceForm, workflow } from "../sourceFixtures";
 
+test("Gremlin GUI declarations survive review without changing undeclared source configuration",()=>{
+  const selection={type:"cosmos-nosql",location:"azure"} as const;
+  const form={...sourceForm,host:"account.documents.azure.com",cosmosFormat:"gremlin"};
+  const before=buildSourceDraft(selection,form,workflow);
+  const after=buildSourceDraft(selection,{...form,gremlinPropertyTypes:"score=float64,distance_km=float64"},workflow);
+  assert.equal((before.configuration.source as any).cosmos.gremlin.propertyTypes,undefined);
+  assert.deepEqual({...((after.configuration.source as any).cosmos.gremlin.propertyTypes)},{score:"float64",distance_km:"float64"});
+  assert.equal(after.form.gremlinPropertyTypes,"score=float64,distance_km=float64");
+  assert.ok(after.warnings.some(w=>w.includes("all discovered labels")));
+  assert.notDeepEqual(before.configuration,after.configuration);
+});
+test("Gremlin GUI rejects structural, duplicate, unsupported and oversized type declarations",()=>{
+  const form={...sourceForm,host:"account.documents.azure.com",cosmosFormat:"gremlin"};
+  for(const gremlinPropertyTypes of ["id=string","label=string","partitionKey=string","_sink=string","score=date","score=float64,score=int64","score",Array.from({length:129},(_,i)=>`field${i}=float64`).join(",")]) {
+    assert.throws(()=>buildSourceDraft({type:"cosmos-nosql",location:"azure"},{...form,gremlinPropertyTypes},workflow));
+  }
+});
+
 test("Cosmos explicit numeric declarations survive the GUI mapping and draft fingerprint",()=>{
   const selection={type:"cosmos-nosql",location:"azure"} as const;
   const form={...sourceForm,host:"account.documents.azure.com",cosmosFormat:"explicit",labelField:"label"};

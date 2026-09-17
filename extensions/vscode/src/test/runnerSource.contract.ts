@@ -10,7 +10,7 @@ import { buildSourceDraft } from "../core/runnerSource";
 import { sourceForm, workflow, csvFile } from "./sourceFixtures";
 import { SourceKind, SourceLocation } from "../core/runner";
 
-const paths: readonly { name: string; type: SourceKind; location: SourceLocation; cosmosFormat?: "gremlin" }[] = [
+const paths: readonly { name: string; type: SourceKind; location: SourceLocation; cosmosFormat?: "gremlin"; gremlinPropertyTypes?: string }[] = [
   { name: "azure-neo4j", type: "neo4j", location: "azure" },
   { name: "on-premises-neo4j", type: "neo4j", location: "on-premises" },
   { name: "other-cloud-neo4j", type: "neo4j", location: "other-cloud" },
@@ -19,6 +19,7 @@ const paths: readonly { name: string; type: SourceKind; location: SourceLocation
   { name: "other-cloud-postgresql", type: "postgresql", location: "other-cloud" },
   { name: "azure-cosmos-explicit", type: "cosmos-nosql", location: "azure" },
   { name: "azure-cosmos-gremlin", type: "cosmos-nosql", location: "azure", cosmosFormat: "gremlin" },
+  { name: "azure-cosmos-gremlin-typed", type: "cosmos-nosql", location: "azure", cosmosFormat: "gremlin", gremlinPropertyTypes: "score=float64,distance_km=float64" },
   { name: "local-csv", type: "csv", location: "local" }
 ];
 
@@ -29,6 +30,7 @@ for (const path of paths) {
     const type: SourceKind = path.type;
     const form = { ...sourceForm, ...(type === "cosmos-nosql" ? { host: "account.documents.azure.com" } : {}),
       ...(path.cosmosFormat ? { cosmosFormat: path.cosmosFormat } : {}),
+      ...(path.gremlinPropertyTypes ? { gremlinPropertyTypes: path.gremlinPropertyTypes } : {}),
       ...(type === "csv" ? { mappings: sourceForm.mappings.map(m => ({ ...m, collection: csvFile.id, properties: m.kind === "vertex" ? "age=age:int64,tags=tags:string[]" : "" })) } : {}) };
     const draft = buildSourceDraft({ type, location: path.location }, form, workflow, [csvFile]);
     const directory = await mkdtemp(join(tmpdir(), "af-source-contract-")), file = join(directory, "generated.json");

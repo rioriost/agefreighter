@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
+	"github.com/rioriost/agefreighter/internal/config"
 )
 
 // fingerprintParameter is the canonical, order-preserving JSON shape used
@@ -83,6 +85,9 @@ func bindFingerprint(
 			DocumentFormat:       string(mapping.documentFormat),
 			PartitionKeyProperty: mapping.partitionKeyProperty,
 			MaxProperties:        mapping.maxProperties,
+		}
+		if mapping.documentFormat == config.CosmosDocumentGremlin {
+			entry.PropertyTypes = mapping.propertyTypes
 		}
 		if len(mapping.parameters) > 0 {
 			entry.Parameters = make([]fingerprintParameter, len(mapping.parameters))

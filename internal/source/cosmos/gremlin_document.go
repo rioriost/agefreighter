@@ -252,7 +252,7 @@ func (iterator *Iterator) gremlinProperties(
 				)
 			}
 		}
-		value, err := convertValue(raw, 0)
+		value, err := convertDeclaredValue(raw, mapping.propertyTypes[name])
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf(
 				"Cosmos Gremlin property %q: %w",

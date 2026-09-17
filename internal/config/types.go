@@ -202,14 +202,16 @@ type CosmosSource struct {
 }
 
 type CosmosGremlin struct {
-	Enabled                bool   `json:"enabled" yaml:"enabled"`
-	Container              string `json:"container" yaml:"container"`
-	PartitionKeyProperty   string `json:"partitionKeyProperty" yaml:"partitionKeyProperty"`
-	LabelPrefix            string `json:"labelPrefix,omitempty" yaml:"labelPrefix,omitempty"`
-	RelationshipTypePrefix string `json:"relationshipTypePrefix,omitempty" yaml:"relationshipTypePrefix,omitempty"`
-	MaxLabels              int    `json:"maxLabels" yaml:"maxLabels"`
-	MaxProperties          int    `json:"maxProperties" yaml:"maxProperties"`
-	MaxDiscoveryDocuments  int    `json:"maxDiscoveryDocuments" yaml:"maxDiscoveryDocuments"`
+	// PropertyTypes applies to matching user properties on all discovered labels.
+	PropertyTypes          map[string]string `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
+	Enabled                bool              `json:"enabled" yaml:"enabled"`
+	Container              string            `json:"container" yaml:"container"`
+	PartitionKeyProperty   string            `json:"partitionKeyProperty" yaml:"partitionKeyProperty"`
+	LabelPrefix            string            `json:"labelPrefix,omitempty" yaml:"labelPrefix,omitempty"`
+	RelationshipTypePrefix string            `json:"relationshipTypePrefix,omitempty" yaml:"relationshipTypePrefix,omitempty"`
+	MaxLabels              int               `json:"maxLabels" yaml:"maxLabels"`
+	MaxProperties          int               `json:"maxProperties" yaml:"maxProperties"`
+	MaxDiscoveryDocuments  int               `json:"maxDiscoveryDocuments" yaml:"maxDiscoveryDocuments"`
 }
 
 type CosmosDocumentFormat string

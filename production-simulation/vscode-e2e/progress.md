@@ -90,6 +90,14 @@ unrepresented cases; terminal-state reload is not active-operation B10 coverage.
 | OP-N44 | [IP-only Neo4j 4.4](evidence/op-n44-r1-p1-pass-20260915.json) | PASS |
 | OP-N526 | [IP-only Neo4j 5.26](evidence/op-n526-r1-p1-pass-20260915.json) | PASS |
 
+The next [Gremlin prerequisite batch](gremlin-types-preflight-20260917.md)
+reproduced a missing numeric-schema declaration path and corrected the core
+adapter plus guided form. Full Go tests, relevant race tests, 295 extension
+unit tests and ten real CLI configuration contracts pass. The correction is
+local source/build evidence, not an installed GUI or Azure P1 Gremlin pass.
+Preparing its partition-preserving canonical fixture/oracle remains necessary.
+No saved workflow, accepted target or cloud running state changed.
+
 ### OP-N526 — full installed-GUI qualification PASS
 
 GUI displays **P1 full canonical digest: PASS** for job

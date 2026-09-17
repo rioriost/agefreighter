@@ -440,6 +440,9 @@ source:
       maxLabels: 256
       maxProperties: 1024
       maxDiscoveryDocuments: 100000
+      propertyTypes:             # optional; matching properties on all labels
+        score: float64
+        distance_km: float64
 ```
 
 The adapter queries the container through the Cosmos DB for NoSQL endpoint
@@ -465,6 +468,26 @@ configured partition-key property are excluded from AGE properties.
 Meta-properties in `_meta` are not migrated. Other top-level backing-document
 fields, including user properties named `type`, `outE`, or `properties`, are
 preserved.
+
+Optional `gremlin.propertyTypes` declares types after property-wrapper decoding,
+for matching user properties on **all** discovered vertex and edge labels.
+Supported types are `string`, `int64`, `float64`, `boolean`, and their `[]`
+arrays. This preserves schema intent when JSON returns `1` for a floating-point
+`1.0`. Unlisted properties keep JSON inference; missing properties are not
+created and null remains null. Incompatible values fail, without string-to-number
+coercion or precision-losing integer conversion. Declarations cannot target
+`id`, `label`, underscore-prefixed fields or the partition-key property, and
+their count must not exceed `maxProperties`. They do not rename, filter or
+flatten properties. A singleton wrapper still decodes to its one value; an
+array declaration requires that decoded value to be an array.
+
+Use uniform declarations only when the same property name has the same intended
+type across labels. Declarations are retained in resolved discovery snapshots
+and source fingerprints. Adding or changing them invalidates old resume tokens;
+start a separately reviewed job. Omitted/empty declarations preserve the prior
+inference and fingerprint. The guided form accepts entries such as
+`score=float64,distance_km=float64`; this requires a runner build supporting the
+new Gremlin field, not an already retained older executable.
 
 Cosmos Gremlin IDs are unique only within a logical partition. The adapter
 therefore encodes every vertex and edge identity as a JSON pair containing the

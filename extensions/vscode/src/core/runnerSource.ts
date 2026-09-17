@@ -11,6 +11,7 @@ export interface SourceForm {
   name: string; namespace: string; host: string; port: number; database: string; username: string;
   vertexKey: string; edgeKey: string; cosmosFormat: "explicit" | "gremlin";
   container: string; partitionKey: string; labelField: string; nullValue: string; mappings: SourceMapping[];
+  gremlinPropertyTypes?: string;
 }
 export interface SelectedCSV { id: string; name: string }
 export interface SourceCA { path: string; name: string; bytes: number; sha256: string }
@@ -98,6 +99,16 @@ export function buildSourceDraft(selection: SourceSelection, raw: unknown, workf
     if (form.cosmosFormat === "gremlin") {
       form.container = text(value.container, "container"); form.partitionKey = text(value.partitionKey, "partition key property");
       object(source.cosmos).gremlin = { enabled: true, container: form.container, partitionKeyProperty: form.partitionKey, maxLabels: 64, maxProperties: 128, maxDiscoveryDocuments: 10000 };
+      form.gremlinPropertyTypes = text(value.gremlinPropertyTypes ?? "", "Gremlin property types", 8192, true);
+      const types: Record<string,string> = Object.create(null);
+      for (const entry of form.gremlinPropertyTypes.split(",").map(s=>s.trim()).filter(Boolean)) {
+        const match = /^([A-Za-z][A-Za-z0-9_]*)\s*=\s*((?:string|int64|float64|boolean)(?:\[\])?)$/.exec(entry);
+        if (!match || ["id","label",form.partitionKey].includes(match[1]!) || Object.hasOwn(types,match[1]!)) throw new Error("Gremlin types use unique user_property=type entries; identity, label and partition fields cannot be overridden.");
+        types[match[1]!] = match[2]!;
+      }
+      if (Object.keys(types).length>128) throw new Error("Use at most 128 Gremlin property type declarations.");
+      if (Object.keys(types).length) object(object(source.cosmos).gremlin).propertyTypes = types;
+      warnings.push("Gremlin type declarations apply to matching properties on all discovered labels after wrapper decoding. Missing properties stay missing. Partition-qualified IDs are preserved. Changed declarations require a new job, not an old checkpoint.");
     } else form.labelField = text(value.labelField, "label field");
   }
   if (type === "postgresql" || type === "csv" || type === "cosmos-nosql" && form.cosmosFormat === "explicit") {

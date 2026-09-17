@@ -1038,6 +1038,11 @@
         "partitionKeyProperty"
       ],
       "properties": {
+        "propertyTypes": {
+          "$ref": "#/$defs/csvPropertyTypes",
+          "maxProperties": 1024,
+          "description": "Optional type declarations for matching user properties across all discovered vertex and edge labels, after Gremlin wrapper decoding. Structural and partition-key fields are excluded."
+        },
         "enabled": {
           "const": true
         },

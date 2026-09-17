@@ -580,7 +580,7 @@ func validateCosmos(source CosmosSource, namespace string, errs *ValidationError
 		validateJSONPointer(path+".idField", vertex.IDField, errs)
 		validateCosmosParameters(vertex.Parameters, path+".parameters", errs)
 		validateCosmosPropertyMapping(vertex.Properties, path+".properties", errs)
-		if err := ValidateCosmosPropertyTypes(vertex.Properties, vertex.PropertyTypes); err != nil {
+		if err := validateCosmosDocumentPropertyTypes(vertex.DocumentFormat, vertex.PartitionKeyProperty, vertex.MaxProperties, vertex.Properties, vertex.PropertyTypes); err != nil {
 			add(false, path+".propertyTypes", "format", err.Error())
 		}
 		validateCosmosDocumentFormat(
@@ -604,7 +604,7 @@ func validateCosmos(source CosmosSource, namespace string, errs *ValidationError
 		validateCosmosEndpoint(edge.End, namespace, path+".end", errs)
 		validateCosmosParameters(edge.Parameters, path+".parameters", errs)
 		validateCosmosPropertyMapping(edge.Properties, path+".properties", errs)
-		if err := ValidateCosmosPropertyTypes(edge.Properties, edge.PropertyTypes); err != nil {
+		if err := validateCosmosDocumentPropertyTypes(edge.DocumentFormat, edge.PartitionKeyProperty, edge.MaxProperties, edge.Properties, edge.PropertyTypes); err != nil {
 			add(false, path+".propertyTypes", "format", err.Error())
 		}
 		validateCosmosDocumentFormat(
@@ -647,6 +647,9 @@ func validateCosmosGremlin(
 	errs *ValidationErrors,
 ) {
 	add := validationAdder(errs)
+	if err := ValidateCosmosGremlinPropertyTypes(gremlin.PartitionKeyProperty, gremlin.MaxProperties, gremlin.PropertyTypes); err != nil {
+		add(false, "source.cosmos.gremlin.propertyTypes", "format", err.Error())
+	}
 	add(gremlin.Enabled, "source.cosmos.gremlin.enabled", "required",
 		"must be true when Gremlin interpretation is configured")
 	add(len(source.Vertices) == 0 && len(source.Edges) == 0,

@@ -47,6 +47,17 @@ test("custom source CA uses a host file action and exposes only metadata to the 
   assert.match(v.el("sourceCA").textContent, /root\.pem.*1234.*SHA-256/); assert.doesNotMatch(v.el("sourceCA").textContent, /Users|private|path/);
   v.el("sourceCAButton").trigger("click"); assert.deepEqual(v.messages.at(-1), { action: "sourceCA" });
 });
+
+test("Gremlin type controls restore, serialize and invalidate previous review",()=>{
+  const v=view();v.send({kind:"init",type:"cosmos-nosql",location:"azure",form:{...sourceForm,cosmosFormat:"gremlin",gremlinPropertyTypes:"score=float64"},canStart:true});v.send({kind:"busy",value:false});
+  assert.equal(v.el("gremlinPropertyTypes").value,"score=float64");
+  assert.equal(v.el("gremlin").hidden,false);
+  v.send({kind:"review",draft:{canAssess:true,warnings:[],configuration:{}}});
+  v.el("gremlinPropertyTypes").value="score=int64";v.el("gremlinPropertyTypes").trigger("change");
+  assert.equal(v.el("assess").disabled,true);assert.equal(v.el("reviewSection").hidden,true);
+  v.el("review").trigger("click");assert.equal(v.messages.at(-1).form.gremlinPropertyTypes,"score=int64");
+  assert.match(v.html,/IDs retain both partition key and ID/);
+});
 test("Cosmos view distinguishes ARM role readiness from data-plane access and states fixed authentication", () => {
   const v = view();
   assert.match(v.html, /does not accept Cosmos account keys/);

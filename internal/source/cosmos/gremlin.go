@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"unicode"
@@ -79,6 +80,9 @@ func InterpretGremlinDocumentsBounded(
 		}()
 	}
 	options := *source.Gremlin
+	if err := config.ValidateCosmosGremlinPropertyTypes(options.PartitionKeyProperty, options.MaxProperties, options.PropertyTypes); err != nil {
+		return config.CosmosSource{}, err
+	}
 	if budget != nil {
 		return interpretGremlinCatalogBounded(ctx, source, client, options, budget)
 	}
@@ -544,6 +548,7 @@ func gremlinVertexQuery(
 		DocumentFormat:       config.CosmosDocumentGremlin,
 		PartitionKeyProperty: options.PartitionKeyProperty,
 		MaxProperties:        options.MaxProperties,
+		PropertyTypes:        maps.Clone(options.PropertyTypes),
 	}, nil
 }
 
@@ -588,6 +593,7 @@ func gremlinEdgeQuery(
 		DocumentFormat:       config.CosmosDocumentGremlin,
 		PartitionKeyProperty: options.PartitionKeyProperty,
 		MaxProperties:        options.MaxProperties,
+		PropertyTypes:        maps.Clone(options.PropertyTypes),
 	}, nil
 }
 
