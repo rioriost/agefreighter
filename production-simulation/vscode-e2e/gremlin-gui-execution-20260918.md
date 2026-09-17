@@ -1,7 +1,8 @@
 # Gremlin installed-GUI migration — fresh draft
 
 September 18, 2026 JST. **Approved transfer-storage exception applied; authenticated
-access and pinned runner upload pass. New VM approval pending. No migration submitted.**
+access and pinned runner upload pass. VM provisioned and Linux readiness verified;
+Cosmos read-access approval pending. No migration submitted.**
 
 The [source preparation](gremlin-source-execution-20260917.md) passed separately.
 Its 5.6M Gremlin-shaped NoSQL documents are not a GUI/target qualification.
@@ -55,10 +56,8 @@ deployment and access recovery are recorded below.
 
 ## Next gates
 
-After approval, create/reconcile this workflow's transfer storage and validate
-its actual access. Prepare the pinned `e70e02068c68` development runner archive,
-then review its new VM and exact Blob Reader grant. Review the Cosmos Data Reader
-scope before granting it. Obtain complete inventory, privately deploy/review the
+Storage, pinned upload and VM readiness have passed as recorded below. Obtain
+approval for the Cosmos Data Reader scope before granting it. Obtain complete inventory, privately deploy/review the
 target, resize the same runner, load, verify counts, and compare all 64 target
 ranges with the Gremlin root. Include active-operation reload/no-replay evidence
 for B10. Each approval remains bound to its actual artifact/resource/scope.
@@ -126,3 +125,50 @@ deadline adds less than USD 6.3 compute (under 58 hours); disk/network remain
 additional and covered by the trial reserve, not silently treated as free.
 The 15-minute preview expiry is a preflight freshness limit, not a VM shutdown
 timer. Refresh the preview and safety gates if it expires before approval.
+
+## Approved runner deployment — 22:08 UTC
+
+The user explicitly approved the reviewed VM, pinned development executable and
+container-only Blob Reader. Before submission, the RG still had no lock; the
+transfer account retained its exact workflow tags, public HTTPS enabled and both
+anonymous/shared-key access disabled. Activity Log includes a signed-in user
+storage write at `22:04:35Z` and policy audits; no other changes were inferred.
+The preview remained within its 15-minute validity period and existing cost and
+deadline limits remained unchanged.
+
+The installed GUI's network/cost checkboxes and matching native confirmation were
+accepted. Durable workflow state records `deployment-submitted` at
+`2026-09-17T22:08:18.659Z`, with deployment name `af-4043e008b86e47b88722`.
+ARM initially reports Running with no error; the GUI refresh retained this same
+deployment rather than replaying it. Linux readiness is still pending. No source
+Data Reader grant, assessment or target migration has been started.
+
+ARM deployment completed successfully at `22:08:55.898809Z`; the installed GUI
+reconciled it to `provisioned`. The actual NIC has no public IP and uses the
+reviewed existing runner subnet. The new system identity is
+`5abb7ef3-ee29-4bdc-abf5-dc667cc1d7e7`; its only returned Azure role assignment is
+Storage Blob Data Reader on the exact workflow container.
+
+The first GUI readiness check ran before bootstrap finished. Retained RunCommand
+`af-2fcabb93-4578-442b-8919-f80c9dd55922` exited 127 at `22:09:32Z` because
+`/usr/local/bin/agefreighter-tools` was not yet present. A separate read-only
+diagnostic at `22:10:34Z` found cloud-init done without errors, both expected
+binaries and `bootstrap.complete` present, root disk 4% used, about 288 MiB used
+memory and zero swap. No installer, VM or source operation was restarted. After
+reviewing that evidence, explicitly requested a fresh GUI readiness check; the
+failed initial RunCommand remains retained.
+
+The fresh GUI readiness command `af-4695a9bb-5d89-4019-9736-b4156d107ffc`
+finished successfully. The GUI displays “Pinned Linux guest verified” and the
+durable readiness evidence matches the exact approved commit, version and archive
+SHA-256. Health: idle, disk **3.5095%**, swap **0**, OOM events **0**.
+Boot ID: `df841056-5cdf-4cce-b528-24977fc5b793`.
+
+Opened the source form and reviewed the next permission gate. Proposed Cosmos
+assignment `5311b64f-1c2c-4f8f-b2f7-485b01e1bc44` remains **previewed only**.
+Its role is Built-in Data Reader for the new VM identity on the **whole trial
+Cosmos account**, not just the Gremlin container. Requested explicit action-time
+approval for that broader read scope; no grant was submitted. The configured
+assessment remains bound to `p1/graph-gremlin-p1-20260917`, with no source writes,
+keys or network exposure. The VM remains running at the approved USD 0.109/hour
+while awaiting this next gate; no new deadline or automatic shutdown is implied.

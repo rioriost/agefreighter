@@ -13,8 +13,11 @@ selected the prepared source and private runner placement with the existing Azur
 session. The approved new transfer storage's exact-account `SecurityControl=Ignore`
 tag and public HTTPS access are now applied; anonymous/shared-key access remain
 disabled. Authenticated listing and the installed-GUI pinned runner upload pass.
-The fresh VM preview passed and awaits its scoped access/software approval; no source assessment, VM, target or migration
-has been dispatched. B05/B10 remain open.
+The approved VM is provisioned with no public IP and container-scoped Blob Reader;
+its pinned Linux readiness passes with idle worker, disk 3.51%, zero swap/OOM.
+The initial too-early readiness failure is retained. Cosmos account-wide Data
+Reader approval is now pending; no source assessment, target or migration has
+been dispatched. B05/B10 remain open.
 
 The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
 passed at September 17 13:50:12 UTC: all 5,600,000 successful writes and
