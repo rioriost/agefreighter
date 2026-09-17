@@ -9,6 +9,7 @@ export interface P1Diagnostic {
 }
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 export function diagnosticGate(r:RunnerRecord):void {
+  if(r.p1Qualification?.profile==="gremlin-partition64")throw new Error("Gremlin qualification failure requires a profile-specific evidence review; the legacy raw-ID diagnostic must not run.");
   const g=r.guestReady,h=g?.health,age=Date.now()-Date.parse(g?.checkedAt??"");
   if(r.p1Qualification?.phase!=="failed" || r.migration?.phase!=="finished" || r.migration.verification?.outcome!=="pass" || r.p1Qualification.jobId!==r.migration.jobId || r.target?.phase!=="provisioned")throw new Error("Retained failed P1 verification and passing counts are required.");
   targetBudget(r.target.input);
@@ -23,6 +24,7 @@ export function diagnosticReceipt(value:unknown,r:RunnerRecord,d:P1Diagnostic):R
   return {workflow:r.id,operation:d.operation,jobId:d.jobId,failedOperation:d.failedOperation,readOnly:true,exitCode:1,bytes:v.bytes,sha256:v.sha256,failure:{version:1,outcome:"fail",stage:f.stage,code:f.code}};
 }
 export function p1DiagnosticScript(r:RunnerRecord,d:P1Diagnostic):string {
+  if(r.p1Qualification?.profile==="gremlin-partition64")throw new Error("Legacy raw-ID diagnostic cannot inspect the Gremlin profile.");
   if(![r.id,d.operation,d.jobId,d.failedOperation,r.guestReady?.bootId].every(x=>typeof x==="string"&&uuid.test(x)) || d.operation===d.failedOperation || d.jobId!==r.migration?.jobId || d.failedOperation!==r.p1Qualification?.operation || !r.target || !/^[a-z][a-z0-9-]+$/.test(r.target.input.serverName))throw new Error("Invalid diagnostic identity.");
   return `#!/bin/bash
 set -euo pipefail

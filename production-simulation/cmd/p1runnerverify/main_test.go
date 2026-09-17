@@ -65,3 +65,20 @@ func TestReadOnlyConnection(t *testing.T) {
 		}
 	}
 }
+
+func TestQualificationProfileIsExplicitAndFailClosed(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{{[]string{"job", "host"}, "raw-id"}, {[]string{"job", "host", "raw-id"}, "raw-id"}, {[]string{"job", "host", "gremlin-partition64"}, "gremlin-partition64"}} {
+		got, err := qualificationProfile(tc.args)
+		if err != nil || got != tc.want {
+			t.Fatalf("profile %s %v", got, err)
+		}
+	}
+	for _, args := range [][]string{nil, {"job"}, {"job", "host", "auto"}, {"job", "host", "gremlin-partition64", "extra"}} {
+		if _, err := qualificationProfile(args); err == nil {
+			t.Fatal("invalid profile accepted")
+		}
+	}
+}

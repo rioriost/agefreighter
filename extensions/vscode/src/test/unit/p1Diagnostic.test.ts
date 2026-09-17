@@ -17,6 +17,12 @@ test("diagnostic requires failed qualifier, complete counts, fresh pinned health
   const {r}=fixture();assert.doesNotThrow(()=>diagnosticGate(r));
   for(const change of [(x:any)=>x.migration.verification.outcome="incomplete",(x:any)=>x.p1Qualification.phase="submitted",(x:any)=>x.guestReady.checkedAt="2000-01-01",(x:any)=>x.guestReady.health.swapUsedBytes=1,(x:any)=>x.guestReady.health.oomEvents=1,(x:any)=>x.guestReady.health.storageUsedPercent=80,(x:any)=>x.guestReady.archiveSha256="changed",(x:any)=>x.target.input.deadline="2000-01-01"]){const bad=structuredClone(r);change(bad);assert.throws(()=>diagnosticGate(bad));}
 });
+test("legacy diagnostics cannot silently fall back for a retained Gremlin qualification",()=>{
+  const {r,d}=fixture();r.p1Qualification!.profile="gremlin-partition64";
+  assert.throws(()=>diagnosticGate(r),/profile-specific/);
+  assert.throws(()=>p1DiagnosticScript(r,d),/Gremlin profile/);
+  assert.throws(()=>requalificationGate(r));
+});
 test("diagnosis is separate, protected, non-replaying and preserves active failure marker",()=>{
   const {r,d}=fixture(),s=p1DiagnosticScript(r,d);
   assert.match(s,/flock -n 9/);assert.match(s,/pgrep -x agefreighter/);assert.match(s,/pgrep -x p1runnerverify/);

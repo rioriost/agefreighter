@@ -20,6 +20,7 @@ import (
 
 const fixtureRoot = "f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f"
 const canonicalRoot = "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70"
+const gremlinCanonicalRoot = "8a048faa36fad90404c263d3ce75073d117e5d96a15f8a614a42347cbd7a0ef4"
 
 type qualificationFailure struct{ stage, code string }
 
@@ -68,7 +69,11 @@ func readonlyDSN(raw, host string) (string, error) {
 }
 
 func run(ctx context.Context, args []string, input io.Reader) error {
-	if len(args) != 2 || !regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`).MatchString(args[0]) {
+	profile, err := qualificationProfile(args)
+	if err != nil {
+		return err
+	}
+	if !regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`).MatchString(args[0]) {
 		return errors.New("expected committed job ID and target hostname")
 	}
 	secret, err := io.ReadAll(io.LimitReader(input, 8193))
@@ -87,11 +92,15 @@ func run(ctx context.Context, args []string, input io.Reader) error {
 	if err != nil || f.RootSHA256 != fixtureRoot {
 		return &qualificationFailure{"fixture-generation", "fixture-generation-or-root"}
 	}
-	expected, err := rangedigest.FixtureManifest(ctx, filepath.Join("fixture", "manifest.json"), 100000)
-	if err != nil || expected.RootSHA256 != canonicalRoot || expected.RecordCount != 5600000 || len(expected.Leaves) != 64 {
+	expectedDigest, targetDigest, compare, wantRoot := rangedigest.FixtureManifest, rangedigest.P1TargetManifest, rangedigest.Compare, canonicalRoot
+	if profile == "gremlin-partition64" {
+		expectedDigest, targetDigest, compare, wantRoot = rangedigest.GremlinFixtureManifest, rangedigest.P1GremlinTargetManifest, rangedigest.CompareGremlinTarget, gremlinCanonicalRoot
+	}
+	expected, err := expectedDigest(ctx, filepath.Join("fixture", "manifest.json"), 100000)
+	if err != nil || expected.RootSHA256 != wantRoot || expected.RecordCount != 5600000 || len(expected.Leaves) != 64 {
 		return &qualificationFailure{"fixture-digest", "fixture-digest-or-coverage"}
 	}
-	actual, err := rangedigest.P1TargetManifest(ctx, dsn, filepath.Join("fixture", "manifest.json"), args[0], 100000)
+	actual, err := targetDigest(ctx, dsn, filepath.Join("fixture", "manifest.json"), args[0], 100000)
 	if err != nil {
 		code := "target-read-or-canonicalization"
 		if errors.Is(err, rangedigest.ErrSourceKeyOrder) {
@@ -99,16 +108,17 @@ func run(ctx context.Context, args []string, input io.Reader) error {
 		}
 		return &qualificationFailure{"target-digest", code}
 	}
-	comparison, compareErr := rangedigest.Compare(expected, actual)
+	comparison, compareErr := compare(expected, actual)
 	result := struct {
-		Version     int                    `json:"version"`
-		JobID       string                 `json:"jobId"`
-		GeneratedAt string                 `json:"generatedAt"`
-		ReadOnly    bool                   `json:"readOnly"`
-		Expected    rangedigest.Manifest   `json:"expected"`
-		Actual      rangedigest.Manifest   `json:"actual"`
-		Comparison  rangedigest.Comparison `json:"comparison"`
-	}{1, args[0], time.Now().UTC().Format(time.RFC3339Nano), true, expected, actual, comparison}
+		Version              int                    `json:"version"`
+		JobID                string                 `json:"jobId"`
+		GeneratedAt          string                 `json:"generatedAt"`
+		ReadOnly             bool                   `json:"readOnly"`
+		Expected             rangedigest.Manifest   `json:"expected"`
+		Actual               rangedigest.Manifest   `json:"actual"`
+		Comparison           rangedigest.Comparison `json:"comparison"`
+		QualificationProfile string                 `json:"qualificationProfile"`
+	}{1, args[0], time.Now().UTC().Format(time.RFC3339Nano), true, expected, actual, comparison, profile}
 	file, err := os.OpenFile("result.json", os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return err
@@ -125,6 +135,16 @@ func run(ctx context.Context, args []string, input io.Reader) error {
 		return &qualificationFailure{"comparison", "canonical-mismatch"}
 	}
 	return nil
+}
+
+func qualificationProfile(args []string) (string, error) {
+	if len(args) == 2 {
+		return "raw-id", nil
+	}
+	if len(args) == 3 && (args[2] == "raw-id" || args[2] == "gremlin-partition64") {
+		return args[2], nil
+	}
+	return "", errors.New("expected job ID, target hostname and optional frozen qualification profile")
 }
 
 func main() {

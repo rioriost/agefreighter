@@ -8,6 +8,12 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
+The [Gremlin target/profile follow-up](gremlin-target-preflight-20260917.md)
+adds stored composite-ID and physical-endpoint verification. Tiny tests pass
+on real AGE 1.7/PostgreSQL 18.1, and the GUI controller rejects profile mixing.
+The signed-in Azure Gremlin migration and full target P1 digest are still open;
+no new route is qualified by these local verifier tests.
+
 September 17 follow-up: [Gremlin fixture and offline full-P1 verification](gremlin-offline-p1-20260917.md)
 now pass for all 5.6M records/64 ranges, retaining partitions, typed properties
 and endpoints. This source-decoder-only result does not add a live qualified

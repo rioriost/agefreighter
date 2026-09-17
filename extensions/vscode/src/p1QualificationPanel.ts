@@ -14,7 +14,7 @@ import {developmentArtifact} from "./core/runnerDevelopment";
 import {inspectCSV} from "./guided/csvTransfer";
 import {verifyTransferStorage} from "./core/runnerReportStorage";
 import {downloadReport,reportCapability,reportManifest} from "./core/runnerBlob";
-import {p1Root,p1FixtureRoot,p1Script,p1ExportScript,verifyP1,assertP1Projection,parseP1Receipt,P1Qualification,requalificationGate} from "./core/p1Qualification";
+import {p1ProfileForConfiguration,assertP1VerifierManifest,p1Script,p1ExportScript,verifyP1,assertP1Projection,parseP1Receipt,P1Qualification,requalificationGate} from "./core/p1Qualification";
 import {escapeHTML} from "./core/report";
 
 export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerControl,store:RunnerStore,azure:AzureSession,id:string,requalify=false):Promise<RunnerRecord>{
@@ -25,6 +25,8 @@ export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerCo
   if(r.p1Qualification&&!requalify){
     return store.exclusive(id,async()=>{
       r=await store.read(id);let q=r.p1Qualification!;
+      const profile=q.profile??"raw-id";
+      if(profile!==p1ProfileForConfiguration(r.sourceDraft?.configuration))throw new Error("Retained P1 profile differs from reviewed source; no replay.");
       if(q.jobId!==r.migration!.jobId || q.commandId!==`${r.vmId}/runCommands/af-${q.operation}`)throw new Error("Qualification job identity changed.");
       if(["submitted","unknown"].includes(q.phase)){
         const response=await control.request(r.input.subscriptionId,`${q.commandId}?api-version=2024-07-01&$expand=instanceView`),view=object(object(object(response.value).properties).instanceView);
@@ -55,7 +57,7 @@ export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerCo
       const manifest=reportManifest({operation:q.operation,sha256:q.sha256!,bytes:q.bytes!});
       await verifyTransferStorage(control,r);
       const text=q.phase==="pass"?await store.readReport(id,manifest):await downloadReport(await azure.reportCapability(r,q.operation,"r"),id,manifest);
-      await store.retainReport(id,manifest,text);verifyP1(text,q.jobId);
+      await store.retainReport(id,manifest,text);verifyP1(text,q.jobId,profile);
       r={...r,p1Qualification:{...q,phase:"pass"}};await control.persist(r);
       const panel=vscode.window.createWebviewPanel("agefreighter.p1Qualification","Verified P1 migration",vscode.ViewColumn.Beside,{enableScripts:false,localResourceRoots:[]});
       panel.webview.html=`<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'"><h1>P1 full canonical digest: PASS</h1><p>1,600,000 vertices and 4,000,000 edges. All 64 ranges, typed properties, identities and endpoints agree.</p><pre>${escapeHTML(text)}</pre>`;
@@ -63,25 +65,28 @@ export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerCo
     });
   }
   assertP1Projection(r.sourceDraft?.configuration);
+  const profile=p1ProfileForConfiguration(r.sourceDraft?.configuration);
   if(requalify)requalificationGate(r);else assertIdleHealth(r);targetBudget(r.target!.input);
   const selected=await vscode.window.showOpenDialog({canSelectMany:false,filters:{"P1 verifier manifest":["json"]},openLabel:"Review pinned P1 verifier"});
   if(!selected?.[0]||selected[0].scheme!=="file")return r;
   const file=await open(selected[0].fsPath,"r");let raw:Record<string,unknown>;
   try{const stat=await file.stat();if(!stat.isFile()||stat.size>16384)throw new Error("Invalid manifest size.");raw=object(JSON.parse(await file.readFile("utf8")));}finally{await file.close();}
-  if(raw.purpose!=="p1-read-only-verifier"||raw.fixtureRoot!==p1FixtureRoot||raw.canonicalRoot!==p1Root||typeof raw.archive!=="string"||!/^[A-Za-z0-9_.-]+\.tar\.gz$/.test(raw.archive))throw new Error("Not the frozen P1 verifier manifest.");
-  const artifact=developmentArtifact(r,raw),path=join(dirname(selected[0].fsPath),raw.archive),manifest=await inspectCSV(id,path);
+  assertP1VerifierManifest(raw,profile);
+  const artifact=developmentArtifact(r,raw),path=join(dirname(selected[0].fsPath),raw.archive as string),manifest=await inspectCSV(id,path);
   if(manifest.sha256!==artifact.sha256||manifest.bytes!==artifact.development!.bytes)throw new Error("Verifier archive changed.");
   if(requalify&&[r.p1Qualification!.artifact.sha256,r.p1Diagnostic!.artifact.sha256].includes(artifact.sha256))throw new Error("Select the reviewed corrected verifier, not a retained failed artifact.");
   if(await vscode.window.showWarningMessage("Run independent full P1 verification on the existing Linux VM?",{modal:true,detail:`Read-only target job ${r.migration.jobId}. Regenerate the exact frozen P1 fixture; compare all 5.6M records and 64 canonical ranges. Commit ${artifact.development!.commit}, archive ${artifact.sha256}. This isolated verifier does not change the installed loader, graph, credentials or networking. Uses up to 4 GiB RAM and approximately 1 GiB retained fixture space; 25-minute execution cap. Results return privately to this Mac via the existing storage.`},"Approve full P1 verification")!=="Approve full P1 verification")return r;
   return store.exclusive(id,async()=>{
     const latest=await store.read(id);if(requalify)requalificationGate(latest);else assertIdleHealth(latest);targetBudget(latest.target!.input);
+    if(profile!==p1ProfileForConfiguration(latest.sourceDraft?.configuration))throw new Error("Reviewed P1 source profile changed before submission.");
+    assertP1Projection(latest.sourceDraft?.configuration);
     if((requalify?latest.p1Qualification?.operation!==r.p1Qualification?.operation:!!latest.p1Qualification)||latest.migration?.jobId!==r.migration!.jobId||latest.migration.verification?.outcome!=="pass"||latest.guestCommand&&["submitted","unknown"].includes(latest.guestCommand.phase))throw new Error("Qualification state changed; reconcile before submission.");
     const s=await control.request(latest.input.subscriptionId,`${latest.target!.serverId}?api-version=2024-08-01`),v=object(s.value),t=object(v.tags);
     if(s.status!==200||t.workflow!==id||t.application!=="agefreighter"||!["migration-target","csv-migration-target"].includes(String(t.purpose))||object(v.properties).state!=="Ready")throw new Error("Target ownership/readiness changed.");
     await verifyTransferStorage(control,latest);
     if((await control.list(latest.input.subscriptionId,`${latest.vmId}/runCommands?api-version=2024-07-01`)).length>=25)throw new Error("Archive completed ARM receipts before qualification.");
     await azure.uploadRunnerArchive(latest,path,manifest);
-    const operation=randomUUID(),q:P1Qualification={operation,commandId:`${latest.vmId}/runCommands/af-${operation}`,jobId:latest.migration.jobId,artifact,startedAt:new Date().toISOString(),phase:"submitted",...(requalify?{replacesFailedOperation:latest.p1Qualification!.operation}:{})};
+    const operation=randomUUID(),q:P1Qualification={profile,operation,commandId:`${latest.vmId}/runCommands/af-${operation}`,jobId:latest.migration.jobId,artifact,startedAt:new Date().toISOString(),phase:"submitted",...(requalify?{replacesFailedOperation:latest.p1Qualification!.operation}:{})};
     if((await control.request(latest.input.subscriptionId,`${q.commandId}?api-version=2024-07-01`)).status!==404)throw new Error("Qualification command already exists.");
     const key=`runner-target/${id}/${createHash("sha256").update(latest.target!.serverId).digest("hex")}`,password=await context.secrets.get(key);
     if(!password)throw new Error("Retained target credentials unavailable.");

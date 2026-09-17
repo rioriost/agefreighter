@@ -164,7 +164,9 @@ func targetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeR
 
 func resolveLabelGeneration(
 	ctx context.Context,
-	connection *pgx.Conn,
+	connection interface {
+		Query(context.Context, string, ...any) (pgx.Rows, error)
+	},
 	graphGeneration int64,
 	name string,
 	kind string,

@@ -101,3 +101,19 @@ test("reopening previously passing but hash-corrupted retained bytes cannot disp
   const before=structuredClone(f.record());await assert.rejects(f.run(),/length or SHA-256/);
   assert.deepEqual(f.record(),before);assert.equal(f.panels.length,0);assert.equal(f.snapshots.length,0);assert.equal(f.retained.length,0);assert.deepEqual(f.requests,[]);
 });
+
+test("P1 controller rejects changed Gremlin source/profile before transfer or mutation",async()=>{
+  const f=fixture();f.record().sourceDraft={configuration:{source:{type:"cosmos-nosql",cosmos:{gremlin:{enabled:true}}}}} as any;
+  const before=structuredClone(f.record());await assert.rejects(f.run(),/profile differs/);
+  assert.deepEqual(f.record(),before);assert.deepEqual(f.requests,[]);assert.equal(f.panels.length,0);assert.equal(f.snapshots.length,0);
+});
+
+test("P1 controller imports only the bound Gremlin profile and reopens without redownload",async()=>{
+  // The controller is real; transport/target envelope is a local synthetic test.
+  const offline=JSON.parse(readFileSync("../../production-simulation/vscode-e2e/evidence/gremlin-offline-p1-20260917.json","utf8"));
+  const f=fixture(d=>{d.qualificationProfile="gremlin-partition64";d.expected=offline.expected;d.actual={...offline.actual,source:"apache-age",jobId:id};});
+  f.record().sourceDraft={configuration:{source:{type:"cosmos-nosql",cosmos:{gremlin:{enabled:true}}}}} as any;
+  f.record().p1Qualification!.profile="gremlin-partition64";
+  await f.run();assert.equal(f.record().p1Qualification?.phase,"pass");assert.equal(f.panels.length,1);assert.deepEqual(f.requests,["GET"]);
+  await f.run();assert.deepEqual(f.requests,["GET"]);assert.equal(f.panels.length,2);
+});

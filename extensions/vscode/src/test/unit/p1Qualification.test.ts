@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {readFileSync} from "node:fs";
-import {verifyP1,p1Script,p1ExportScript,assertP1Projection,parseP1Receipt,P1Qualification} from "../../core/p1Qualification";
+import {verifyP1,p1Script,p1ExportScript,assertP1Projection,parseP1Receipt,P1Qualification,p1ProfileForConfiguration,p1ProfileSpec,assertP1VerifierManifest,p1FixtureRoot} from "../../core/p1Qualification";
 import {sourceWorkflowDraft} from "../../core/runner";
 import {buildSourceDraft} from "../../core/runnerSource";
 import {sourceForm,workflow} from "../sourceFixtures";
@@ -11,6 +11,23 @@ test("terminal P1 command errors without a JSON object are admitted to failure r
   assert.deepEqual(parseP1Receipt('{"verified":true,"jobId":"job"}'),{verified:true,jobId:"job"});
 });
 function report(){const expected=JSON.parse(readFileSync("../../production-simulation/vscode-e2e/evidence/p1-canonical-expected-20260906.json","utf8"));return {version:1,jobId:id,readOnly:true,expected,actual:{...structuredClone(expected),source:"apache-age",jobId:id},comparison:{status:"pass"}};}
+const gremlinConfig={source:{type:"cosmos-nosql",cosmos:{gremlin:{enabled:true,partitionKeyProperty:"partitionKey",propertyTypes:{score:"float64",distance_km:"float64"}}}}};
+test("Gremlin P1 requires a separately reviewed profile, typed projection and verifier artifact",()=>{
+  assert.equal(p1ProfileForConfiguration(gremlinConfig),"gremlin-partition64");assert.equal(p1ProfileForConfiguration(undefined),"raw-id");
+  assertP1Projection(gremlinConfig);
+  for(const field of ["score","distance_km"]){const c=structuredClone(gremlinConfig);delete (c.source.cosmos.gremlin.propertyTypes as any)[field];assert.throws(()=>assertP1Projection(c));}
+  const spec=p1ProfileSpec("gremlin-partition64"),m={purpose:"p1-read-only-verifier",fixtureRoot:p1FixtureRoot,canonicalRoot:spec.root,canonicalVersion:spec.version,qualificationProfile:"gremlin-partition64",archive:"verifier.tar.gz"};
+  assertP1VerifierManifest(m,"gremlin-partition64");assert.throws(()=>assertP1VerifierManifest(m,"raw-id"));
+  for(const field of ["qualificationProfile","canonicalVersion","canonicalRoot"]){const bad:any={...m};delete bad[field];assert.throws(()=>assertP1VerifierManifest(bad,"gremlin-partition64"));}
+});
+test("Gremlin report validates every partition-preserving range and rejects offline or raw-ID substitutions",()=>{
+  // Synthetic target-role envelope for parser testing, not live target evidence.
+  const offline=JSON.parse(readFileSync("../../production-simulation/vscode-e2e/evidence/gremlin-offline-p1-20260917.json","utf8"));
+  const d={version:1,jobId:id,readOnly:true,qualificationProfile:"gremlin-partition64",expected:offline.expected,actual:{...offline.actual,source:"apache-age",jobId:id},comparison:{status:"pass"}};
+  verifyP1(JSON.stringify(d),id,"gremlin-partition64");assert.throws(()=>verifyP1(JSON.stringify(d),id));
+  for(const change of [(r:any)=>r.actual.source="cosmos-gremlin-offline",(r:any)=>delete r.qualificationProfile,(r:any)=>r.actual.leaves[0].sha256="0".repeat(64),(r:any)=>r.actual.leaves.reverse(),(r:any)=>r.actual.canonicalVersion="agefreighter-production-simulation-v1"]){const bad=structuredClone(d);change(bad);assert.throws(()=>verifyP1(JSON.stringify(bad),id,"gremlin-partition64"));}
+  assert.throws(()=>verifyP1(JSON.stringify(report()),id,"gremlin-partition64"));
+});
 function projection(type="postgresql"):any{
   const vertices="Supplier Facility Product PurchaseOrder Shipment Lot Location Carrier Customer".split(" ").map(label=>({label,idField:"external_id",properties:Object.fromEntries("source_key external_id name region created_at status score active tags quantities description".split(" ").map(p=>[p,p]))}));
   const edges="SUPPLIES PRODUCED_AT PLACED_WITH CONTAINS FULFILLS ORIGINATES_AT DESTINED_FOR CARRIED_BY INCLUDED_IN".split(" ").map(label=>({label,externalIdField:"relationship_id",properties:Object.fromEntries("source_key relationship_id occurred_at quantity status distance_km notes".split(" ").map(p=>[p,p]))}));
@@ -46,6 +63,10 @@ test("P1 execution and just-in-time export are separate and preserve the pinned 
   const q:P1Qualification={operation:id,commandId:r.vmId+"/runCommands/af-"+id,jobId:id,artifact:{version:"dev",sha256:"a".repeat(64),url:`https://af${id.replaceAll("-","").slice(0,22)}.blob.core.windows.net/af-${id}/artifacts/${"a".repeat(64)}.tar.gz`,development:{commit:"b".repeat(40),bytes:100}},startedAt:new Date().toISOString(),phase:"submitted"};
   q.artifact.version="2.4.0-dev.bbbbbbbbbbbb";
   const run=p1Script(r,q);
+  r.sourceDraft={configuration:gremlinConfig} as any;
+  assert.throws(()=>p1Script(r,q),/profile differs/);
+  const gremlinRun=p1Script(r,{...q,profile:"gremlin-partition64"});assert.match(gremlinRun,/'gremlin-partition64'/);
+  r.sourceDraft=undefined;
   assert.ok(run.includes("MemoryMax=4G"));assert.ok(run.includes("MemorySwapMax=0"));
   assert.ok(!run.includes("AF_P1_REPORT"));assert.ok(!run.includes("/usr/local/bin"));
   assert.throws(()=>p1ExportScript(r,q));
