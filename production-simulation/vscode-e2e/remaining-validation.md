@@ -92,13 +92,21 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; both generated formats pass CLI validation | Prepare equivalent Gremlin P1 representation, then full installed-GUI migration and canonical verification | not-run |
 | B06 | Supported Cosmos authentication and RBAC propagation | Guided source currently fixes `default-azure` managed identity; base route passed | Document fixed GUI authentication scope; audit propagation/denial handling; do not claim other CLI modes GUI-tested | running |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Base routes resize same VM; resize/preflight unit tests pass | Bind identity preservation artifacts; exercise missing live denial branches without destructive resize | not-run |
-| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; September 17 Linux same-size corruption is rejected without publication/seal, normal control verifies, mapping gate and no-replay checks pass | Lost committed-upload-acknowledgement reconciliation remains; CSV import gates are not graph migration | partial |
+| B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; live Azure response-loss transport test reconciles with HEAD only and full readback | Installed-GUI committed-acknowledgement-loss trial pending temporary test-extension approval; transport evidence is not GUI interaction or graph migration | partial |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Controller unit tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation | Enumerate every actual approval surface and safely inject unrepresented faults; capture zero unauthorized writes | not-run |
 | B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification, preserving operation IDs | Finish verification reconciliation and retain no-replay evidence; actual Extension Host crash/reload is still distinct and untested | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Unit tests plus isolated real VS Code Extension Host panels cover complete counts, wrong-job, stale, missing counts, incomplete coverage, count mismatch, rejects, failed checks, truncated and hash-mismatched evidence; misleading verified tab title fixed | Signed-in installed-candidate retest and remaining digest/controller import failures; synthetic reports are not Azure fault evidence | partial |
 
 ## First local regression batch
+
+September 17 04:00 UTC: the [lost-acknowledgement transport trial](csv-lost-ack-20260917.md)
+used the actual production uploader against the existing isolated Azure account.
+After an actual commit 201, the injected adapter dropped only its response.
+An explicit second invocation issued HEAD only, no PUT, and independently
+matched the complete Blob with unchanged ETag. GUI state and compute are
+unchanged. A tightly scoped temporary extension is packaged for the remaining
+installed-GUI check; its installation/execution approval is pending.
 
 September 17: the separate [Linux CSV negative trial](csv-guest-negative-20260917.md)
 passes live same-size hash-mismatch rejection, absence of final file/seal,
