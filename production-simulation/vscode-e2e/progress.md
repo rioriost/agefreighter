@@ -8,6 +8,11 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
+The [Gremlin live preparation checkpoint](gremlin-live-preparation-20260917.md)
+rechecked stopped compute, private Cosmos access, preserved workflow state and
+all 18 source-file hashes, and packaged the source transfer capsule. Candidate
+installation approval is pending; no new Azure mutation or live qualification.
+
 The [Gremlin target/profile follow-up](gremlin-target-preflight-20260917.md)
 adds stored composite-ID and physical-endpoint verification. Tiny tests pass
 on real AGE 1.7/PostgreSQL 18.1, and the GUI controller rejects profile mixing.

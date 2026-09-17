@@ -100,6 +100,12 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 ## First local regression batch
 
+September 17 07:42–07:50 UTC: [Gremlin live preparation](gremlin-live-preparation-20260917.md)
+rechecked stopped compute/private Cosmos and all 18 fixture hashes, then packaged
+the isolated source capsule. Billing refresh returned 429; no cloud mutation
+was made. Installing/reloading the pinned candidate awaits action-time approval.
+All 66 saved JSON files remain unchanged. B05/B10 are still open.
+
 September 17 06:50–07:12 UTC: [Gremlin target/profile preflight](gremlin-target-preflight-20260917.md)
 adds the read-only target verifier and binds the source, artifact, persisted
 operation and imported report to the partition-preserving profile. A 560-record
