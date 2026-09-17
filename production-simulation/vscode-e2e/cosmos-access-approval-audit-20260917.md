@@ -82,7 +82,7 @@ Persisting a local preview before approval is distinct from an Azure write.
 Reconcile buttons may persist observations but must not replay an uncertain
 mutation. ARM role existence must never be used as proof of source-read success.
 
-## Prepared candidate; installed GUI still pending
+## Prepared candidate (historical; subsequent installation recorded below)
 
 The normal candidate was packaged, not published or installed in this batch:
 
@@ -95,3 +95,8 @@ Action-time approval was requested to install this unpublished candidate and
 reload VS Code for display/refusal/Cancel checks only. That request does not
 authorize a new Azure role, VM start or migration. Until installation and the
 specific UI observations finish, do not call the fixes installed-GUI qualified.
+
+Following the user's continuation, the exact candidate was installed and the
+desktop reloaded. The [06:01–06:10 UTC follow-up](cosmos-guard-gui-20260917.md)
+records the actual wording, four native cancellations and retained-failure
+refusal. It does not convert simulated guard/propagation cases into live passes.

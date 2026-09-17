@@ -70,8 +70,13 @@ A [Cosmos access and approval audit](cosmos-access-approval-audit-20260917.md)
 then reproduced and corrected missing workspace-trust, reviewed-grant binding
 and VM-principal revalidation guards. The 292-test suite and normal package
 build pass. Existing Cosmos scope/security were independently read-only checked;
-no roles or cloud resources changed. Corrected-candidate installation approval
-and installed-GUI retesting are pending; B06/B09 remain partial.
+no roles or cloud resources changed. Following the user's continuation, the
+[corrected candidate was installed and reloaded](cosmos-guard-gui-20260917.md).
+The actual signed-in GUI displays the corrected Cosmos distinction, refuses
+replay of a retained P1 failure without creating PASS, and cancels four more
+native execution confirmations without changing any of 66 saved JSON files.
+All nine VMs and 17 Flexible Servers remain stopped. B06/B09/B12 still have
+unrepresented cases; terminal-state reload is not active-operation B10 coverage.
 
 | Route | Final evidence | Outcome |
 | --- | --- | --- |
