@@ -8,6 +8,11 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
+September 18 JST: a [fresh installed-GUI Gremlin draft](gremlin-gui-execution-20260918.md)
+selected the prepared source and private runner placement with the existing Azure
+session. New transfer-storage approval is pending; no source assessment, VM,
+target or migration has been dispatched. B05/B10 remain open.
+
 The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
 passed at September 17 13:50:12 UTC: all 5,600,000 successful writes and
 independently drained remote rows match, and all 18 file counts match the pinned
