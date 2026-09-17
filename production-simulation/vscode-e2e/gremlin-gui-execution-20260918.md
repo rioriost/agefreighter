@@ -2,7 +2,8 @@
 
 September 18, 2026 JST. **Approved transfer-storage exception applied; authenticated
 access and pinned runner upload pass. VM provisioned and Linux readiness verified;
-Cosmos read-access approval pending. No migration submitted.**
+Cosmos read access verified; first inventory failed and evidence is retained.
+Discovery-limit correction required before retry. No migration submitted.**
 
 The [source preparation](gremlin-source-execution-20260917.md) passed separately.
 Its 5.6M Gremlin-shaped NoSQL documents are not a GUI/target qualification.
@@ -56,8 +57,9 @@ deployment and access recovery are recorded below.
 
 ## Next gates
 
-Storage, pinned upload and VM readiness have passed as recorded below. Obtain
-approval for the Cosmos Data Reader scope before granting it. Obtain complete inventory, privately deploy/review the
+Storage, pinned upload, VM readiness and approved Cosmos Reader have passed as
+recorded below. Correct and qualify complete Gremlin discovery without suppressing
+its safety bounds, then explicitly retain/retry the failed inventory. Next, privately deploy/review the
 target, resize the same runner, load, verify counts, and compare all 64 target
 ranges with the Gremlin root. Include active-operation reload/no-replay evidence
 for B10. Each approval remains bound to its actual artifact/resource/scope.
@@ -172,3 +174,80 @@ approval for that broader read scope; no grant was submitted. The configured
 assessment remains bound to `p1/graph-gremlin-p1-20260917`, with no source writes,
 keys or network exposure. The VM remains running at the approved USD 0.109/hour
 while awaiting this next gate; no new deadline or automatic shutdown is implied.
+
+## Approved Reader and complete source inventory — 22:53–22:56 UTC
+
+The user approved the account-scoped Reader. On resuming, the saved GUI workflow
+already recorded the exact assignment submitted at `22:53:49.638Z`; no duplicate
+PUT was performed. GUI reconciliation and independent ARM GET agree on assignment
+`5311b64f-1c2c-4f8f-b2f7-485b01e1bc44`, VM identity
+`5abb7ef3-ee29-4bdc-abf5-dc667cc1d7e7`, Built-in Data Reader and the reviewed
+trial account. Cosmos remains network-private with local/key auth disabled;
+the RG has no lock. The queried activity-log interval returned no additional
+successful non-audit entries; this is a time-specific observation, not assurance
+against ingestion lag. Budget/window and bounded compute reserve are unchanged.
+
+Fresh GUI readiness at `22:54:59.463Z` preserved the same boot and pinned
+installation: idle, disk 3.5095%, swap/OOM zero. Reviewed the exact Gremlin form
+and explicitly approved complete inventory, bounded to **30 minutes / 4 GiB /
+no swap**, reading only `p1/graph-gremlin-p1-20260917` without writes or target.
+The GUI submitted operation `e2d85f21-96e0-40a0-a73c-b529e91016be` at
+`22:56:05.313Z`, RunCommand `af-690e3787-26d6-4edd-896a-564e6e80510f`.
+It reconciled to `accepted`; successful dispatch is not inventory completion.
+Configuration SHA-256: `ccfef301d9431c039ce3cbe8cbe2e1e776e721be4f26d6c0009024f87a1f598c`;
+guest configuration SHA-256: `a6d11000837a6f1cbe37ba38fa123024d2e84c436e61441950023e3217aa8048`.
+The report and active-operation reload evidence remain pending.
+
+## Failed inventory and bounded read-only diagnosis
+
+The retained worker started at `22:56:11.564828809Z` and failed at
+`22:56:12.727945990Z`, exit 1. GUI and the retained status RunCommand
+`af-976bbb09-e466-4a4b-8d93-5214868dc782` agree on failure for the same operation,
+boot and configuration. Guest `stderr.log` contains only:
+`inventory: network inventory mapping resolution failed`.
+`internal/app/inventory.go` deliberately removes the underlying resolution error;
+the precise initial cause cannot be recovered from that message. Do not attribute
+it conclusively to RBAC propagation or the discovery limit below. No retry or
+active-operation reload was performed, and no target exists.
+
+Read-only diagnostics on the same VM used its identity, TLS and the same source
+container, without logging tokens or source values:
+
+- One page of the generated vertex-label query returned HTTP 200, 100 rows,
+  continuation present, **5.63 RU**. This proves current data-plane read access,
+  not that it was already propagated at the earlier failing worker's instant.
+- A separate **101-page / 60-second** bounded probe of that same query returned
+  **10,100 rows**, only **2 distinct labels**, continuation still present,
+  **524.61 RU**, in **3.904 seconds**. It stopped without draining the source.
+- The reviewed GUI configuration has `maxDiscoveryDocuments=10000`. The current
+  unsampled discovery query does not deduplicate on the server; its visitor counts
+  every returned document before deduplicating labels locally. Thus that path
+  necessarily exceeds the configured limit on this fixture, independently of
+  whether it caused the first opaque failure. The configured maximum is not a
+  sample that can safely be promoted to complete discovery.
+- Existing local `TestInterpretGremlin*` tests pass, including deliberate rejection
+  of repeated labels beyond the document cap. That is a guard regression result,
+  not evidence that the current implementation supports this P1 size.
+
+### Required correction and acceptance before another run
+
+Preserve the failed operation and fix exact catalog discovery rather than raising
+or removing its cap, accepting an incomplete label sample, or replacing the GUI
+with manually prepared mappings. Prefer a bounded, fully drained distinct-label
+and edge-endpoint catalog with pagination proved on the real service. Do not
+assume plain DISTINCT or GROUP BY is continuation-safe: the
+[official pagination documentation](https://learn.microsoft.com/ja-jp/cosmos-db/query/pagination)
+requires ORDER BY with DISTINCT for continuation support. Review index/query
+requirements without silently mutating source indexing or broadening access.
+Tests must cover duplicate-heavy input above 10,000 records, late labels/endpoint
+combinations, multiple pages, exhausted/unchanged tokens and cap/error handling.
+Retain typed, non-sensitive resolution failure categories rather than returning
+raw SDK errors with credentials or values. Any changed runner requires new pinned
+artifact review; no alternative executable has been deployed.
+
+Requested deallocation of **only** `af-4043e008b86e47b88722` after diagnostics to
+avoid idle compute charges. Its OS disk, original failed readiness command, failed
+inventory, read-only role and workflow evidence are preserved. No storage, source
+document, graph or permission was deleted. Final ARM instance-view readback
+confirmed `ProvisioningState/succeeded` and **`PowerState/deallocated`**.
+B05 and active-operation B10 remain unqualified.
