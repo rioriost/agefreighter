@@ -10,7 +10,52 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos"
 )
+
+type testItemPager struct {
+	pages []azcosmos.QueryItemsResponse
+	err   error
+	read  int
+}
+
+func (p *testItemPager) More() bool { return p.read < len(p.pages) }
+func (p *testItemPager) NextPage(context.Context) (azcosmos.QueryItemsResponse, error) {
+	page := p.pages[p.read]
+	p.read++
+	return page, p.err
+}
+
+func TestRequireEmptyPages(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		pages   []azcosmos.QueryItemsResponse
+		err     error
+		wantErr bool
+	}{
+		{"empty", []azcosmos.QueryItemsResponse{{}}, nil, false},
+		{"empty continuations", []azcosmos.QueryItemsResponse{{}, {}, {}}, nil, false},
+		{"later document", []azcosmos.QueryItemsResponse{{}, {Items: [][]byte{[]byte("1")}}}, nil, true},
+		{"denied", []azcosmos.QueryItemsResponse{{}}, errors.New("403"), true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := &testItemPager{pages: tc.pages, err: tc.err}
+			err := requireEmptyPages(context.Background(), p)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("error=%v", err)
+			}
+			if err == nil && p.read != len(tc.pages) {
+				t.Fatal("did not reach EOF")
+			}
+		})
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	p := &testItemPager{pages: []azcosmos.QueryItemsResponse{{}}}
+	if !errors.Is(requireEmptyPages(ctx, p), context.Canceled) || p.read != 0 {
+		t.Fatal("cancel did not fail closed")
+	}
+}
 
 func TestStreamFiles(t *testing.T) {
 	dir := t.TempDir()

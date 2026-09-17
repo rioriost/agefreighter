@@ -61,6 +61,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	containerName := flags.String("container", "graph", "container name")
 	input := flags.String("input", "", "directory containing JSONL files")
 	workers := flags.Int("workers", 64, "concurrent upsert workers")
+	requireEmpty := flags.Bool("require-empty", false, "refuse writes unless the entire target container is empty")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -96,6 +97,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	containerClient, err := databaseClient.NewContainer(*containerName)
 	if err != nil {
 		return fmt.Errorf("open container: %w", err)
+	}
+	if *requireEmpty {
+		pager := containerClient.NewQueryItemsPager("SELECT TOP 1 VALUE 1 FROM c", azcosmos.NewPartitionKey(), &azcosmos.QueryOptions{PageSizeHint: 1})
+		if err := requireEmptyPages(ctx, pager); err != nil {
+			return err
+		}
 	}
 
 	started := time.Now()
@@ -156,6 +163,31 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		Workers:       *workers,
 		ElapsedSecs:   time.Since(started).Seconds(),
 	})
+}
+
+type itemPager interface {
+	More() bool
+	NextPage(context.Context) (azcosmos.QueryItemsResponse, error)
+}
+
+// Empty pages can carry continuations. Do not begin writes before EOF, and
+// never treat denied or incomplete reads as proof that a container is empty.
+// This is a preflight, not a distributed writer lock; the operator must retain
+// exclusive fixture-writer access throughout preparation.
+func requireEmptyPages(ctx context.Context, pager itemPager) error {
+	for pager.More() {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		page, err := pager.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("empty-container preflight: %w", err)
+		}
+		if len(page.Items) != 0 {
+			return errors.New("empty-container preflight: existing documents; refusing all writes")
+		}
+	}
+	return ctx.Err()
 }
 
 func upsertWithRetry(ctx context.Context, container *azcosmos.ContainerClient, item workItem) error {
