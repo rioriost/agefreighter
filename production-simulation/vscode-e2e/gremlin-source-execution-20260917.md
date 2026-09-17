@@ -1,7 +1,7 @@
 # Gremlin source preparation — live execution
 
-September 17, 2026. **First preparation failed before writes; corrected retry
-is running. Not a qualified migration.**
+September 17, 2026. **Source preparation PASS; temporary writer removed and
+preparation VM deallocated. Not a qualified migration.**
 Continuation of [candidate/source preparation](gremlin-live-preparation-20260917.md).
 
 ## Authorization and fresh gates
@@ -159,13 +159,52 @@ Local scheduled follow-up depends on this computer and desktop app remaining
 running; the guest timeout and existing Azure shutdown schedule remain separate
 controls, not proof that final verification or access removal already happened.
 
-## Remaining acceptance
+## Terminal acceptance — source preparation PASS
 
-1. Observe unit health, progress, swap/OOM and storage. Do not rerun the
-   create-only wrapper or silently retry a failed/partial source preparation.
-2. Require successful unit exit, checksummed load report, all 18 file counts
-   and an independently drained remote total of 5,600,000 documents.
-3. Remove only role `879de73d-ab1b-4d10-97b6-b822ce8c5a55`, verify absence,
-   then deallocate the preparation VM and retain its disk/evidence.
-4. Proceed to a fresh installed-GUI Gremlin migration and all 64 target ranges;
-   B05/B10 remain open until their actual acceptance evidence is complete.
+The corrected loader finished at **2026-09-17T13:50:12Z** (22:50:12 JST),
+after 18,845.31572339 seconds (approximately 5 hours 14 minutes). The completion
+marker has the same timestamp. Its 592-byte report records `rows=5600000` and
+`remoteRows=5600000`; the latter is the independently drained remote projection,
+not a copy of the successful-write counter. All 18 report file counts agree
+exactly with the pinned manifest and sum to 5,600,000.
+
+At `13:59:37Z`, a separate read-only guest check revalidated the manifest SHA-256,
+all 18 count mappings, both totals, completion marker, and the retained report
+checksum. Result SHA-256:
+`b0313595ac684240511be0e59b5f595443fd5e75456a0d6337cb23c02070ce3e`.
+The journal records the wrapper's acceptance message and systemd
+`Deactivated successfully` at `13:50:12Z`; no loader process remains.
+The first failed attempt's log still has its recorded `9f618de4…` checksum.
+
+The retained journal also contains transient-unit parse warnings at `09:54:18Z`
+and a missing transient-unit file message on later inspection. These are not
+erased or interpreted as a fresh successful restart: repeated observations
+retained the same process ID, and acceptance relies on its final journal event and
+independently checked output. The unit was not restarted or repaired.
+
+Final guest health at `13:58:33Z`: disk 14%, available memory 7,305 MiB, swap
+zero, no kernel OOM line. The last live cgroup observation at `13:41:49Z` had
+zero OOM/kill counters. Autoscale maximum remains 4,000 RU/s. Recent activity
+returned only the monitoring Run Commands and the RG had no lock. The latest
+successful billed-cost observation was USD 130.907800241434 at approximately
+12:04 UTC for September 12–17; later bounded refreshes, including this terminal
+check, returned 429 and were not repeatedly retried. Billing lag remains; the
+existing under-USD-650 planning envelope and USD-800 ceiling are unchanged.
+
+After rechecking its exact principal, container scope and Contributor definition,
+only temporary role `879de73d-ab1b-4d10-97b6-b822ce8c5a55` was removed. A fresh
+assignment list confirmed absence before VM deallocation. At approximately
+14:00 UTC, Azure returned **PowerState/deallocated** for
+`af-bd3b66801e184d788f36`. Its OS disk `af-bd3b66801e184d788f36-os` remains
+Reserved/Succeeded; both guest evidence directories, source documents, accepted
+graph and storage artifacts are retained. No network controls were changed.
+Heartbeat `gremlin-p1-preparation-completion` was then verified PAUSED at
+`14:00:59Z` after these terminal safety steps.
+
+## Remaining migration acceptance
+
+This fixture is **Gremlin-shaped documents in a Cosmos DB for NoSQL container**;
+this result is not Gremlin API protocol qualification or a GUI migration pass.
+A fresh installed-GUI migration, complete post-load checks and all 64 target
+canonical ranges are still required. B05/B10 remain open. This preparation-only
+monitor did not create a target, dispatch migration or change GUI state.

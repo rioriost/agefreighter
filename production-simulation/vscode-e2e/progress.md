@@ -9,12 +9,14 @@ recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
 The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
-is now running on the one explicitly approved retained VM. The first attempt
-failed before writes on a gateway-unsupported preflight query; the reviewed
-correction runs in a separate retained directory/unit. New-container-only
-temporary write access and 4,000-RU/s maximum are verified. Exact remote counts,
-writer removal, VM deallocation and the subsequent GUI migration/full target
-digest remain pending. The other eight VMs and all 17 Flexible Servers are stopped.
+passed at September 17 13:50:12 UTC: all 5,600,000 successful writes and
+independently drained remote rows match, and all 18 file counts match the pinned
+manifest. The checksummed result and failed first-attempt evidence are retained.
+The exact temporary writer was removed and its absence verified; the preparation
+VM was deallocated with its OS disk retained. The preparation-only heartbeat is
+paused. The other eight VMs and all 17 Flexible Servers were already stopped.
+This is a Gremlin-shaped NoSQL fixture, not Gremlin API qualification. The fresh
+installed-GUI migration and full target canonical digest remain pending.
 
 The earlier [Gremlin live preparation checkpoint](gremlin-live-preparation-20260917.md)
 rechecked stopped compute, private Cosmos access, preserved workflow state and
