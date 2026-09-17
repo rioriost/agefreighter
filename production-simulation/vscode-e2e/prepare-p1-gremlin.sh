@@ -108,10 +108,15 @@ timeout --signal=TERM --kill-after=30s 7h "$work/cosmosfixtureload" \
   -endpoint "$endpoint" -database p1 -container "$target_container" \
   -input "$work/documents" -workers 96 -require-empty \
   > "$work/evidence/load.json" 2> "$work/evidence/load-progress.log"
-jq -e --slurpfile manifest "$work/portable-manifest.json" '
-  . as $result | $result.rows == 5600000 and $result.remoteRows == 5600000 and
-  all($manifest[0].tables[]; . as $table | $result.files[$table.documents] == $table.rows)
-' "$work/evidence/load.json" >/dev/null
+python3 - "$work" <<'PY'
+import json, pathlib, sys
+work = pathlib.Path(sys.argv[1])
+result = json.loads((work/'evidence/load.json').read_text())
+manifest = json.loads((work/'portable-manifest.json').read_text())
+expected = {t['documents']: t['rows'] for t in manifest['tables']}
+if result['rows'] != 5600000 or result['remoteRows'] != 5600000 or result['files'] != expected:
+    raise RuntimeError('Full fixture count verification failed')
+PY
 sha256sum "$work/evidence/load.json" > "$work/evidence/load.sha256"
 date -u +%FT%TZ > "$work/evidence/completed-at.txt"
 echo 'Gremlin source preparation and exact remote count passed; not migration qualification.'
