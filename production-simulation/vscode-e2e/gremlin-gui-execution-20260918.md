@@ -591,3 +591,53 @@ The conservative USD 650 reserve remains a planning allowance, not an invoice.
 **Current result:** installed-GUI label-admission correction passes; full target
 preflight awaits a running, freshly checked guest. B05 migration/digest and B10
 active migration/verification reload remain open. No cloud mutation this turn.
+
+### Approved bounded readiness session — September 18 02:10 UTC onward
+
+The user approved restarting the same runner within a new bound ending
+`2026-09-18T06:00:00Z` (15:00 JST), keeping the USD 800 ceiling. This does not
+extend the outer September 20 deadline or approve a new target implicitly.
+Fresh ownership/identity/private-placement checks passed, with no RG lock or
+activity returned since 01:40 UTC. Cost Management returned USD
+**220.808334109599** for the dedicated RG (September 5–18 query); billing remains
+delayed. Keep the conservative USD 650 accrued/non-compute planning reserve.
+
+Started only `af-4043e008b86e47b88722`, still B2s_v2. Installed-GUI readiness
+operation `ec1408fb-d7d6-411a-9534-0f0962513950`, submitted at
+`02:11:19.634Z`, finished. Fresh boot is
+`2b92af56-b33b-46fa-8368-f972d8bf5752`; pinned CLI/archive remain unchanged.
+Worker idle, disk **3.90265%**, swap **0**, OOM events **0**. The successful
+source inventory/report was reused without rediscovery or replay.
+
+The D4ds_v5 target attempt correctly failed quota preflight before any target
+intent or deployment: PostgreSQL DDSv5 usage **62/64** leaves fewer than four
+vCores. Regional usage is **78/196**; EDSv5 **16/256** has headroom. No resources
+were deleted and no quota increase was requested.
+
+Re-ran the actual GUI review for E8ds_v5 / 128 GiB storage, same-VM D4s_v5,
+Japan East / zone 1, new private server `afpg-4043e008b86e47b88722` and subnet
+`10.246.22.0/24`. The subnet is free inside the existing `10.246.0.0/16` VNet.
+All target preflight checks passed and the native final confirmation displayed
+**USD 1.448/hour** combined compute, plus USD 650 reserve, USD 800 ceiling and
+06:00 UTC deadline. Requested specific approval for the new private target,
+delegated subnet and generated SecretStorage-only credentials. No target was
+submitted at this checkpoint; migration, resize and full verification are still
+separate steps. No source/network/RBAC changes were made.
+
+Selected **Save plan only** in the native confirmation and saved through the
+normal folder dialog. GUI explicitly confirms no Azure resources deployed.
+The retained target phase is `previewed`, plan hash
+`c03975cfcf9ec4346e11ec8c38899396a6489027e45148514c63c7294cbbc47c`.
+Create-only exports under `production-simulation/work/`:
+
+- `agefreighter-4043e008-b86e-47b8-8722-1efe637ae12a-c03975cfcf9e.yaml`,
+  SHA-256 `620b070344e3b7dff4e0d52e5fbadfa28595fa66d5f917fd1ec3470b646ab203`.
+- `agefreighter-4043e008-b86e-47b8-8722-1efe637ae12a-c03975cfcf9e.target.json`,
+  SHA-256 `9a3f1cbf3286d79975fd1ea9f082ac667cde5568468a1c4aa9e88a4c5cb4327e`.
+
+After readiness/preview completed, deallocated only the same runner while
+awaiting the separate target approval. Fresh ARM readback confirms **VM
+deallocated / provisioning Succeeded**. OS disk and all evidence are preserved.
+No active worker, source operation or monitor was started. Continuation must
+refresh boot/guest health and target preflight; the native preview is not a
+durable authorization to skip freshness gates. The 06:00 UTC bound still applies.

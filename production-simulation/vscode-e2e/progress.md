@@ -64,6 +64,17 @@ its old 01:26 UTC bound; a new bounded readiness session is awaiting approval.
 No target intent, credentials or deployment were created. Latest billing refresh
 returned 429; the previous USD 218.41 total is delayed evidence, not current cost.
 
+The user subsequently approved a bounded same-VM session until September 18
+15:00 JST. Actual GUI readiness passes: idle, disk 3.90%, zero swap/OOM, same
+pinned Linux artifact. Fresh delayed billing is USD 220.81. D4ds_v5 correctly
+failed PostgreSQL family quota (62/64 vCores used); E8ds_v5 passes full target
+preflight without deleting resources or raising quota. The GUI saved the
+reviewed LoadJob/private-target plan only: E8ds_v5 / 128 GiB storage, later
+same-VM D4s_v5, USD 1.448/hour compute, USD 650 reserve, USD 800 ceiling.
+Specific new target/subnet/credential approval is pending. No target deployment,
+source replay or migration occurred; runner deallocation was verified after
+the completed readiness/preview session to avoid idle approval-wait costs.
+
 The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
 passed at September 17 13:50:12 UTC: all 5,600,000 successful writes and
 independently drained remote rows match, and all 18 file counts match the pinned
