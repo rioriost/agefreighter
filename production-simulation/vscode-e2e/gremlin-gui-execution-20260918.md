@@ -756,3 +756,53 @@ OS disk, source, migrated graph and all reports remain retained. The scoped
 heartbeat is paused after both stopped states were verified. PostgreSQL may
 auto-start after its platform stop-retention period; this is not deletion or
 a promise of zero storage charges. The full verifier approval remains pending.
+
+### Approved full-verifier session — September 18 04:45 UTC onward
+
+The user specifically approved restarting this exact VM/target and running the
+pinned `e70e02068c68` Gremlin verifier, read-only / 25 minutes / 4 GiB. Its local
+archive hash still matches the approved `ecce5c6c…87d0de`; no artifact was
+rebuilt or replaced. Fresh ownership/identity and private-placement checks
+matched, with VM deallocated and target Stopped before restart. No RG locks;
+activity since 03:34 UTC contained the preceding stop and resource-health
+events, not unrelated resource mutation. Cost refresh remains HTTP 429; the
+USD 650 conservative reserve plus at most the remaining 1.25 hours of USD
+1.448/hour compute stays below the USD 800 ceiling, without claiming real-time
+billing. Hard stop remains **06:00 UTC / 15:00 JST today**.
+
+Started only this VM and target, restored the same saved workflow through the
+installed GUI, and requested fresh Linux readiness. The five-minute safety
+monitor is active for this bounded verifier session, with no automatic replay,
+retry, source mutation or scope expansion. Full verification remains pending.
+
+Fresh GUI readiness passed on boot `0f5d92ea-d4b7-432f-b9a1-d3a25b0f362e`,
+operation `24bb3d4a-7f2f-49b7-970b-cad469331589` at 04:48:14 UTC:
+idle, disk 3.93894%, zero swap/OOM, unchanged pinned loader. Target returned
+Ready. The GUI selected and hash-checked the exact approved verifier manifest
+and accepted its native final confirmation, but **refused before uploading or
+dispatching verification**: `Archive completed ARM receipts before qualification.`
+ARM has exactly **25** managed Run Command records; this is the extension's
+retained-receipt safety guard, not a claim of an Azure service quota. No
+`p1Qualification` operation was persisted and no verifier was run.
+
+Three older, successful, read-only readiness records were identified for a
+separately approved archive/removal: `af-157990d3-b0a8-41a6-ac85-3ed78a9bf7c8`,
+`af-21d089df-b53e-49cd-b9fb-0e561fe15b8e`, and
+`af-8c89c79b-d347-4ec1-823d-7e8dc5da656a`. Their pre-stop execution results
+were Succeeded / exit 0 and are preserved in the
+[redacted readiness archive](evidence/gremlin-readiness-archive-20260918.json).
+No record was deleted. After stopping the VM, ARM InstanceView became Pending
+without output while provisioningState remained Succeeded; do not interpret
+that volatile view as command replay. A future authorized removal must first
+recheck exact records after restart and retain complete sanitized receipts.
+
+Requested approval to remove **only those three completed ARM control records**
+after evidence commit/push; data, job, guest evidence and the current readiness
+record are excluded. Submitted exact VM deallocation and target stop while
+awaiting this new approval. Existing verifier approval remains bound to its
+unchanged binary/job and 06:00 UTC deadline; neither the guard nor deadline
+was bypassed.
+
+At **04:53:52 UTC**, fresh ARM reads verify this VM **deallocated / provisioning
+Succeeded** and target **Stopped**. The scoped heartbeat is paused. No other
+resources, source documents, permissions or networking changed.

@@ -2,10 +2,17 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 04:53 UTC follow-up: pinned Gremlin verifier is now specifically
+approved, but GUI dispatch is blocked by its 25-retained-ARM-receipt guard.
+No qualification operation or verifier execution occurred. Exact archival/
+removal of three historical successful readiness records awaits new approval;
+no data/guest evidence deletion is proposed. At 04:53:52 UTC the exact VM/target
+are verified deallocated / Stopped again and the scoped monitor is paused.
+
 Latest Gremlin B05 checkpoint, September 18 03:32 UTC: installed-GUI migration
 and complete counts **PASS** for 5.6M rows / 18 labels, zero rejects. Full
-64-range Gremlin canonical digest is not run; its pinned verifier awaits
-specific approval. B10 active migration Reload Window/reconnect preserved the
+64-range Gremlin canonical digest is not run; see the latest receipt-cap blocker
+above. B10 active migration Reload Window/reconnect preserved the
 same job through successful completion without replay; active verification
 reload and forced Extension Host crash remain open. The idle exact VM/target
 are verified deallocated / Stopped by 03:34:36 UTC with evidence retained;
