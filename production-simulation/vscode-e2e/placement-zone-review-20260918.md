@@ -60,3 +60,13 @@ source co-location and does not override backend rejection.
 - B01/B02 stay partial. Next step is approval/install of the pinned correction,
   then actual known/unknown zone and override interaction checks without cloud
   mutation. Live provisioning/active-worker and removal acceptance are separate.
+
+## Pinned candidate for installation approval
+
+- Source commit: `1b929bd`.
+- VSIX: `production-simulation/work/vscode-zone-review.U303jI/agefreighter-1b929bd-zone-review.vsix`.
+- VSIX SHA-256: `ccf2d695c1bc34e18b77de423c9357f867bc56f5df4510b50adfe91240b4e49f`.
+- Bundle SHA-256: `141b1e1bf2181bb76fe61194ba609d7edd2c7a34b3143ab4d0288f648d2cd763`,
+  matching the extracted package member and local build.
+- Packaging reran typechecking, all 389 unit tests and build successfully.
+  No Marketplace publication or installation of this candidate has occurred.
