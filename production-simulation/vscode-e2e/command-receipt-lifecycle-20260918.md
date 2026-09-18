@@ -126,7 +126,7 @@ installation or removal has been performed for this change.
 - `git diff --check` passed. These are local/inert-adapter tests, not a live
   Windows/macOS signed-in GUI or Azure service result.
 
-### Pinned candidate (not installed)
+### Pinned candidate (before installation)
 
 - Source commit: `dbf017d0dd80835360cc4d6f032708b7ed3aca5c`.
 - VSIX: `production-simulation/work/vscode-receipt-removal.X1nhbl/agefreighter-dbf017d-readiness-removal.vsix`.
@@ -138,3 +138,47 @@ installation or removal has been performed for this change.
 - No VSIX installation, Marketplace publication or Azure operation performed.
   Installation/live qualification must preserve current accepted workflows and
   use separate action-time approval for the exact removal target, if eligible.
+
+### Approved installation and native empty-state check — September 18
+
+The user explicitly approved installing the above exact unpublished candidate
+and reloading VS Code, limited to GUI checks without Azure mutations.
+
+- Actual host: VS Code **1.138.0**, commit
+  `7debcd0e2acdea1c52de81bf9ee1620444407dda`, Apple Silicon. The earlier
+  1.136.1 host version is not the version observed for this checkpoint.
+- Before installation, private backups retained the existing extension and
+  runner store under `production-simulation/work/vscode-receipt-backup.SknrNo`.
+  Extension archive SHA-256:
+  `bb7e51e165c4516c636d99f361b92c6f4a45cb07b2431bcb9165a8e52608aea2`;
+  runner-store archive SHA-256:
+  `89ba27ba15c87c48a876bb8a24a80d283603873a3c7e7f069689ec7f2fb70ac0`.
+  These local private archives are not committed.
+- Native **Extensions: Install from VSIX** reported completed installation;
+  **Developer: Reload Window** completed. Installed bundle SHA-256 matches
+  the pinned candidate: `965a4c4422ff2816668611d937123f9f05377b59bb2cd848f72a29222e74f6a3`.
+- Both new Command Palette actions are present and activate. Archive reports
+  “No sealed readiness receipts are available. Legacy ARM commands are not
+  automatically adopted or removed.” Reviewed removal displays an empty
+  workflow selector (0 results); it was cancelled without selecting a target.
+  An explanatory empty-state message would improve this selector's UX.
+- Before/after store inventory is identical: **70 files, 19 workflows, zero
+  sealed-receipt workflows, no lock files**. SHA-256 of the sorted filename/file
+  SHA-256 pairs remains
+  `fcc85c6021b1191d9207a9fe93eb661cd1665edebbf83e5d33a4602d87f248ef`.
+  The Gremlin record retains migration `finished` / qualification `pass` and
+  operation `b0530700-ccd4-4f33-84fa-0854c8f4037b` unchanged.
+- The existing P1 PASS panel was visible before reload. Reload closed its
+  non-restored webview; the accepted report/state remain unchanged on disk.
+  Reopening via the qualification handler was not attempted: even its retained
+  PASS path performs a storage-control check and persists the record. This
+  checkpoint does not claim a newly rendered PASS panel after reload.
+- Read-only ARM checks reconfirmed the exact Gremlin VM `deallocated` and target
+  `Stopped`. No Azure start, stop, deletion, RBAC, credential, network or storage
+  policy change was made. No migration or verification worker was submitted.
+
+Installed activation, legacy non-adoption and evidence preservation are proven.
+Successful eligible-receipt archiving/removal in the installed GUI, live Azure
+removal/GET-only recovery and actual forced Extension Host crash are **not**
+proven. Existing legacy workflows do not provide a sealed eligible test receipt;
+do not fabricate/adopt one or start cloud resources just to close this gap.

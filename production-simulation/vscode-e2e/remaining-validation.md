@@ -2,10 +2,20 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
-September 18 next local follow-up: added explicit single-readiness-control removal
+September 18 installed-candidate follow-up: after explicit approval, candidate
+`dbf017d` was installed from the pinned VSIX and Reload Window completed in
+VS Code **1.138.0 arm64**. Both native receipt commands activate. The archive
+command explains that no sealed receipts exist; the removal selector has zero
+eligible workflows and was cancelled. All 70 retained files / 19 workflows
+are byte-for-byte unchanged, including Gremlin's retained full PASS. No Azure
+mutation occurred; exact Gremlin VM/target remain deallocated/Stopped.
+This is installed empty-state/preservation evidence, **not live removal or
+forced-crash qualification**. See the [installation checkpoint](command-receipt-lifecycle-20260918.md#approved-installation-and-native-empty-state-check--september-18).
+
+Historical September 18 local follow-up: added explicit single-readiness-control removal
 admission, archive-before-intent-before-DELETE ordering and GET-only recovery.
 Only already-deallocated VMs and fresh successful ARM evidence are admitted;
-Pending/Updating blocks. This code is **not installed or live-qualified** and no
+Pending/Updating blocks. At this checkpoint the code was **not installed or live-qualified** and no
 Azure resource was removed/restarted. B08/B09 live lifecycle and B10 real forced
 Extension Host crash remain open. See the stage 2 limits in the
 [lifecycle record](command-receipt-lifecycle-20260918.md).
