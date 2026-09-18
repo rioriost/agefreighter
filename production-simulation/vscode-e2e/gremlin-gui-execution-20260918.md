@@ -409,3 +409,62 @@ Azure records successful deallocation at `2026-09-17T23:32:39.4152949Z`.
 No inventory retry, new permission, network change, target creation or migration
 occurred in this attempt. The approved corrected Linux runner stays installed on
 the preserved disk for the next explicitly reviewed GUI continuation.
+
+### Approved extension installation and inventory retry — September 18 00:10 UTC onward
+
+The user explicitly approved the pinned `007d47d` VSIX installation/reload and
+continuation of the same-VM inventory retry. Installed it through VS Code's
+Install from VSIX dialog and reloaded the window. The installed JavaScript
+SHA-256 is `8be218f0c16c922ec0f38a53cdf8d9eb1a40cdb92952c5538a861c4e99c8de0f`,
+matching the reviewed package. The existing Azure session and saved workflow
+reconnected without new credentials or permissions.
+
+Fresh ARM checks confirmed the exact VM was deallocated, its identity/size and
+previously approved Cosmos Reader assignment were unchanged, and no RG lock
+existed. The bounded activity query contained prior diagnostic/deallocation and
+resource-health events, not a newly identified governance mutation. A fresh
+Cost Management query succeeded: RG ActualCost/PreTaxCost for September 5–18
+returned **USD 218.409872486324**. This is delayed billing, not a final bill;
+the conservative planning reserve and USD 800 ceiling remain unchanged.
+
+Started only the existing runner. The original **01:26 UTC September 18** hard
+deallocation bound is unchanged. GUI readiness requested at `00:12:23.225Z`
+returned boot `854014f3-e967-4317-a6be-d236ce91a74f`, correct installed Linux
+artifact, idle worker, disk **3.8055%**, swap 0 and OOM 0. The corrected native
+retention confirmation displayed the historical and current boots. Accepting it
+retained the original failed operation unchanged in `assessmentHistory`, without
+dispatching source work or editing persisted JSON outside the extension.
+
+Reviewed the same source and explicitly approved complete inventory in the GUI:
+
+- Operation: `c5ce0e77-ac49-472a-a112-b10e5d375b0f`.
+- Submitted: `2026-09-18T00:14:15.070Z`.
+- Worker started: `2026-09-18T00:14:18.633607065Z`.
+- Configuration SHA-256: `ccfef301d9431c039ce3cbe8cbe2e1e776e721be4f26d6c0009024f87a1f598c` (unchanged).
+- Guest configuration SHA-256: `998df731018e1997ff2e01bcdddd7d12be48e11802824ccb3a5612e077b24082`.
+- Submit Run Command: `af-3adeacec-9c5f-4525-8936-c3a08f7c733f`, Succeeded/exit 0.
+
+After a guest status response proved **running**, performed actual Developer:
+Reload Window, reconnected through the installed wizard, and reopened the source
+panel. The same operation/boot/configuration remained running. A fresh status
+request at `00:17:35.190Z` (`af-d6b508e4-6cc6-4540-85a8-a6b56eb3f590`) returned
+the same original worker start time. This qualifies the active-assessment
+reload/reconnect portion of B10, not active migration/verification reload or a
+forced crash. No inventory was replayed. Read-only guest health at `00:18:48Z`
+found the same service active/running, PID 1319, cgroup MemoryCurrent 15,122,432
+bytes, disk 4%, swap 0 and no kernel OOM match.
+
+Inventory remains **running, not yet accepted as complete**. Its existing
+30-minute runtime ends around `00:44:19Z`. The five-minute thread heartbeat
+`gremlin-inventory-retry-completion` monitors only this operation: retain/import
+terminal evidence, deallocate this exact VM on terminal outcome or no later than
+01:26 UTC, and disable itself after verified deallocation. No target creation,
+new role, network change, migration or automatic retry is included. The earlier
+source-preparation heartbeat stays paused. B05 still needs complete inventory,
+installed-GUI migration and all 64 target digest ranges.
+
+Local follow-up: extension typecheck and all **309 tests** pass again. Focused
+Cosmos and app Go tests pass. The additional runner package rerun is **not a
+pass**: CSV tests stop at the real filesystem's 80% capacity gate; the Mac data
+volume reports 81% used. No files were deleted and no gate was bypassed. This
+local test-environment limitation is separate from the Azure runner's 4% disk.

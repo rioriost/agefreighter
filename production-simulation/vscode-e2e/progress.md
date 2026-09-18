@@ -33,9 +33,16 @@ The approved pinned Linux correction was subsequently installed and verified
 in the actual GUI (commit `290c6efa3b3e`). Retry preparation then exposed an
 extension defect: failure retention required the old boot even after a healthy
 restart. No new source operation was submitted. The TypeScript correction and
-all **309** extension tests/build pass locally; installing its reviewed VSIX and
-retrying real-service inventory remain pending. The runner is again verified
-deallocated. No additional route is qualified.
+all **309** extension tests/build pass locally. Following specific approval,
+the reviewed VSIX is now installed/reloaded and cross-boot failure retention
+passes in the actual GUI. Fresh inventory `c5ce0e77-ac49-472a-a112-b10e5d375b0f`
+started September 18 at `00:14:18Z`; it is running, not complete. Actual active
+assessment Reload Window/reconnect preserved its operation and original start
+time without replay. Disk 4%, swap/OOM zero; latest delayed RG cost USD 218.41.
+Five-minute monitoring retains the original 01:26 UTC VM stop bound. No target or
+migration is started and no additional route is qualified. A supplemental local
+runner-test rerun hit the Mac's real 81%-used disk capacity gate; Cosmos/app and
+309 extension tests pass. See the execution record for exact scope.
 
 The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
 passed at September 17 13:50:12 UTC: all 5,600,000 successful writes and
