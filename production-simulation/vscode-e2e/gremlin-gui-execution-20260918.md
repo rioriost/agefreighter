@@ -671,3 +671,44 @@ Hard stop remains **September 18 06:00 UTC / 15:00 JST**. USD 800 ceiling,
 USD 650 conservative reserve and USD 1.448/hour combined planned compute
 remain unchanged; the latest refresh was throttled, so USD 220.808334109599
 is delayed prior billing evidence, not a real-time total.
+
+### New migration running and active Reload Window — September 18 03:11–03:19 UTC
+
+AGE preload reconciliation finished. The installed GUI completed each separate
+same-VM step (deallocate, size change, start, read-only reconciliation) to
+**D4s_v5**. Preserved NIC/disk/identity binding SHA-256 is
+`52a1faeced2ef41a5c33e0f3243e18aba799abcab563c84f34f6f4adf01dffda`.
+Post-resize readiness `f9382afd-3e11-4c5c-8ef9-54a4784f3c71` passed with
+boot `14b6b096-e4ce-4014-b98b-cc27c45cc93d`, idle worker, disk **3.91945%**,
+swap/OOM zero, unchanged pinned CLI. The initial start preflight correctly
+required this refreshed readiness; it did not dispatch a load prematurely.
+
+Using the installed GUI's explicit new-migration action and native confirmation,
+started job/operation **`c257a458-be95-44be-a3ad-54e2318b1856`** at
+**`2026-09-18T03:13:38.751Z`**, against only the new private target. Expected
+counts remain **1.6M vertices + 4M edges / 18 labels**. Managed identity reads
+the prepared source; the existing target secret uses protected transport.
+Guest configuration SHA-256:
+`d1b014dfbf8c160173d5510594e84368f7de8c0063294bdb78ce8de168b476b2`.
+
+GUI status progressed submitted → accepted → **running**. While running,
+executed actual **Developer: Reload Window**, reopened the migration panel,
+selected the same saved workflow and used only **Refresh retained migration**.
+The GUI and persisted record retain the same job/operation, original start,
+boot and configuration; no new migration, resume, discovery or target deployment
+was submitted. This records the active migration reload/reconnect portion of
+B10, not a forced Extension Host crash or active full-verifier reload pass.
+
+The load/complete-counts service retains its existing **30-minute** bound
+(approximately 03:44 UTC); do not extend or automatically retry it. The scoped
+monitor now tracks this exact job and the earlier 06:00 UTC infrastructure
+stop bound. Full Gremlin verifier installation/execution still requires its
+specific action-time approval after successful counts. Counts and the full
+64-range target digest remain **pending**, not qualification PASS.
+
+Read-only guest inspection after reload confirms the same unit is active/running,
+with its original `03:13:57 UTC` activation, current cgroup memory **25,346,048
+bytes**, disk **4%**, swap **0**, kernel OOM events **0**. The active unit's
+`ExecMainStatus=0` is not a terminal-success receipt. A subsequent GUI status
+reconciliation still reports running; no committed-row count or completion
+claim is inferred from this health sample.
