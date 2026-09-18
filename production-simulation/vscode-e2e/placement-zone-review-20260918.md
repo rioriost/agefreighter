@@ -153,3 +153,14 @@ The display correction is not installed or live-GUI-qualified yet; installation
 requires approval of its pinned VSIX. B01/B02 remain partial: unknown-zone VM
 candidate transitions, cross-subscription/invalid placement preflight, separate
 RG/network and live provisioning branches are not closed by these checks.
+
+### Pinned wording-fix candidate
+
+- Source commit: `f9e456e`.
+- VSIX: `production-simulation/work/region-guidance.l66gfm/agefreighter-f9e456e-region-guidance.vsix`.
+- VSIX SHA-256: `c6b2ec5cc2d5a54b96a506625fe055f03d07c0f1d110d60956a334bae60e8b04`.
+- Bundle SHA-256: `e3a8fb0aa518b8d8c339aef8aa1d3d861ccfdc82baa7fec32fc2afeef9964ac1`,
+  identical in the package and local build.
+- Packaging reran typecheck, all 391 unit tests and build successfully.
+  Not installed or published; next action is approval to install/reload and
+  repeat the same read-only GUI checks, without Azure starts or mutations.
