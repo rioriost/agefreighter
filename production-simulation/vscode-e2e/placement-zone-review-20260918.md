@@ -70,3 +70,37 @@ source co-location and does not override backend rejection.
   matching the extracted package member and local build.
 - Packaging reran typechecking, all 389 unit tests and build successfully.
   No Marketplace publication or installation of this candidate has occurred.
+
+## Approved installed-GUI checkpoint — September 18, 08:09 UTC
+
+After explicit user approval, the exact VSIX above was installed through the
+native **Extensions: Install from VSIX** picker. VS Code reported completed
+installation; **Developer: Reload Window** was executed. Installed bundle hash
+now matches `141b1e1bf2181bb76fe61194ba609d7edd2c7a34b3143ab4d0288f648d2cd763`.
+This supersedes the earlier not-installed checkpoint, not its historical facts.
+
+Before replacement, private backups were retained under
+`production-simulation/work/zone-install-backup.aOJOCs` (not committed):
+
+- Store archive SHA-256: `89ba27ba15c87c48a876bb8a24a80d283603873a3c7e7f069689ec7f2fb70ac0`.
+- Extension archive SHA-256: `3cdbc8d4967151eba60cff6f5e18c16818437d8fc97bd85b3921c87a1590a83e`.
+
+Actual signed-in GUI checks:
+
+1. New wizard has **Select a zone after reviewing placement**, not zone 1,
+   with explicit unknown-placement guidance and disabled preview.
+2. Explicitly select zone 2; change Neo4j location from Azure to on-premises.
+   Zone returns to the placeholder, with review-required wording.
+3. Select zone 3; change source type to CSV. Location becomes local and zone
+   returns to the placeholder. No CSV picker, upload or draft save is invoked.
+4. Reconnect to retained Gremlin workflow
+   `4043e008-b86e-47b8-8722-1efe637ae12a`. Japan East and saved zone 1 are restored,
+   with wording distinguishing a saved zone from newly inferred source placement.
+   Reconnection uses the retained record only; no refresh/worker action is clicked.
+
+The 70 retained files / 19 workflows remain byte-identical, with the same
+aggregate SHA-256 recorded above. No preview, deployment, worker, cloud control
+mutation, credential or permission change was performed. These UI cases pass;
+known/unknown Azure candidate transitions, region overrides, separate RG/network
+and remaining live branches are not closed by this checkpoint. No new full P1
+verification was run or claimed. Marketplace publication is unchanged.

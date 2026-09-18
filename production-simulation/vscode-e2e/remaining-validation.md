@@ -2,6 +2,13 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 08:09 UTC: approved placement correction `1b929bd` is installed
+and reloaded. Actual signed-in GUI passes initial empty-zone guidance, zone
+clearing on on-premises/CSV changes, and restoration of the accepted Gremlin
+workflow's saved zone 1. All 70 saved files remain unchanged; no Azure mutation
+or worker action. This closes those precise interaction cases, not all B02
+candidate/region/placement branches. See the [installed checkpoint](placement-zone-review-20260918.md#approved-installed-gui-checkpoint--september-18-0809-utc).
+
 September 18 placement follow-up: signed-in candidate selection confirmed source
 ARM identity/Japan East and same-RG default. Manual region selection was
 interrupted, so override acceptance is not claimed. A real webview-script
