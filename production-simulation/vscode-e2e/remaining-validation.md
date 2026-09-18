@@ -2,15 +2,17 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
-September 18 05:04 UTC follow-up: specifically approved archival/removal of only
-three old successful readiness control records is complete (archive pushed first).
-Installed GUI submitted full Gremlin qualification operation
-`b0530700-ccd4-4f33-84fa-0854c8f4037b` at 05:04:42.871 UTC after fresh health.
-The unchanged pinned verifier has 25-minute/4-GiB limits; full digest remains
-pending. VM/target are running under the unchanged 06:00 UTC hard-stop monitor.
-Data/disks and guest evidence are retained; no migration was replayed.
+September 18 05:11 UTC follow-up: **B05 Gremlin-shaped NoSQL full PASS** in the
+installed GUI and independent Mac validation: 5.6M records / 18 labels / all 64
+ranges and canonical root agree. Actual active-verifier Reload Window/reconnect
+preserved the same operation through completion/export/import without replay.
+B10 forced Extension Host crash remains separate/open. Exactly three historical
+readiness control records were specifically approved, archived/pushed then removed;
+all guest evidence/data/disks remain. At **05:13:54 UTC**, exact VM **deallocated**
+and target **Stopped** are verified; scoped safety monitor paused.
+[Full receipt](evidence/gremlin-full-pass-20260918.json).
 
-Latest Gremlin B05 checkpoint, September 18 03:32 UTC: installed-GUI migration
+Historical Gremlin checkpoint, September 18 03:32 UTC: installed-GUI migration
 and complete counts **PASS** for 5.6M rows / 18 labels, zero rejects. Full
 64-range Gremlin canonical digest is not run; see the latest receipt-cap blocker
 above. B10 active migration Reload Window/reconnect preserved the
@@ -109,12 +111,12 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | All retained paths bind Japan East/zone 1; placement/preflight tests and missing SKU/quota resize rejection pass | Defaults versus overrides, unknown zone and invalid choices still need precise GUI/no-write evidence | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes and full P1 canonical results pass | Map recommendation acceptance/edit branches and CSV choices to retained GUI evidence | running |
-| B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; offline P1/source preparation pass; target verifier checks composite IDs/endpoints; corrected Linux and VSIX installed; cross-boot failure retention passed; actual GUI full inventory finished in 11m 6.63s, hash-verified report passes with 5.6M records and all 18 manifest label counts; 314 tests pass; installed-GUI label admission/readiness pass; D-family quota refusal verified; E8ds_v5 full preflight passes and LoadJob/target plan saved without deployment | New private target/subnet/credential approval pending; full migration/all 64 target ranges remain pending; Gremlin-shaped NoSQL is not Gremlin API qualification | partial |
+| B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin-shaped NoSQL installed-GUI inventory, private target/resize, migration and complete counts pass; independent full digest generated 05:08:24 UTC and GUI-imported, all 5.6M records / 18 labels / 64 ranges and root match, including typed properties, composite IDs and endpoints | Complete for the defined document-format branch; not native Gremlin API qualification | pass |
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory recorded; Cosmos cross-window/trust guards corrected and tested; controller tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation; native resize, checkpoint inspection, target diagnosis, empty-target archival and report-transfer Cancel preserve prior records | Other approval surfaces and unrepresented faults still require bounded GUI/no-write evidence | partial |
-| B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification; terminal-state reload preserves records; actual active Gremlin inventory Reload Window/reconnect preserves operation, boot, configuration and original start time, then finishes and imports its exact report without replay; active Gremlin migration Reload Window/reconnect preserves the operation through successful completion and GUI counts PASS | Active verification reload and forced Extension Host crash remain distinct and unqualified | partial |
+| B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened; actual active Gremlin inventory, migration and full verifier Reload Window/reconnect preserve exact operations through successful report import without replay; verifier full canonical GUI PASS and independent Mac recomputation agree | Forced Extension Host crash remains distinct and unqualified | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass; 20 production P1 controller tests cover full-digest identity/coverage/forgery, transfer failures, retained identity changes and corrupted reopen; signed-in installed candidate refuses retained P1 failure without retry/new PASS | Other invalid-import/transfer cases still lack installed-GUI evidence; synthetic reports and inert adapters are not live GUI/Azure fault evidence | partial |
 

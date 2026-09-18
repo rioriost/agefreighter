@@ -1,11 +1,11 @@
-# Gremlin installed-GUI migration — fresh draft
+# Gremlin installed-GUI migration — full canonical PASS
 
-September 18, 2026 JST. **Approved transfer-storage exception applied; authenticated
-access and pinned runner upload pass. VM provisioned and Linux readiness verified;
-Cosmos read access verified; first inventory failed and evidence is retained.
-Corrected Linux runner installed; retry blocked by the installed extension's
-same-boot failure-retention gate. Extension correction tested locally; no new
-inventory or migration submitted. VM deallocated.**
+Latest: September 18 05:13 UTC. **Installed-GUI migration, complete counts and
+full canonical verification PASS: 1.6M vertices + 4M edges / 18 labels / 64 ranges.
+Active assessment/load/verifier Reload Window trials preserve operations without
+replay. Exact runner deallocated and target Stopped are verified.**
+This is Gremlin-shaped Cosmos NoSQL, not native Gremlin API qualification.
+Earlier failures and approvals are retained chronologically below.
 
 The [source preparation](gremlin-source-execution-20260917.md) passed separately.
 Its 5.6M Gremlin-shaped NoSQL documents are not a GUI/target qualification.
@@ -837,3 +837,54 @@ accepted the reviewed native confirmation. Qualification was submitted once at
 `gremlin-partition64`, for existing job `c257a458-be95-44be-a3ad-54e2318b1856`.
 Its 25-minute service limit and 4-GiB/no-swap limits remain; the infrastructure
 hard stop is 06:00 UTC. No completed digest or B05 PASS is claimed yet.
+
+ARM reported this verifier **Running**, original start **05:05:14 UTC**, before
+actual Developer: Reload Window. Reopened the installed wizard, reconnected to
+the same saved workflow and reconciled the existing qualification only. Operation,
+job, original submission and boot remained unchanged; no second verifier was
+submitted. A concurrent guest health sample at **05:06:37 UTC** found the same
+service active/running, service start **05:05:15 UTC**, cgroup memory
+**1,572,036,608 bytes**, disk **6%**, zero swap and kernel OOM events.
+
+The original ARM command completed **Succeeded / exit 0 at 05:08:24 UTC** with
+a sealed result of **23,309 bytes**, SHA-256
+`cca08711f12ff96007db94001308729ba83c6ab0473166d72b5f22001f5af804`.
+The installed GUI reconciled that exact receipt and submitted only the normal
+result export `af-d94bc0c0-48fb-4994-8168-8895a4fc36d5`; Mac import and independent
+root validation remain pending at this checkpoint. The verifier was not replayed.
+
+### Full canonical GUI qualification PASS — September 18 05:11 UTC
+
+The normal export completed and the installed GUI imported the exact sealed report,
+then displayed **P1 full canonical digest: PASS**. Report generated at
+**05:08:24.606577967 UTC**, 23,309 bytes / SHA-256
+`cca08711f12ff96007db94001308729ba83c6ab0473166d72b5f22001f5af804`.
+Independent Mac validation checked the private report byte length/hash, job,
+read-only flag, every expected/actual leaf, and recomputed both canonical roots:
+
+- **1,600,000 vertices + 4,000,000 edges**, all **18 labels / 64 ranges**.
+- Typed properties, composite identities and physical endpoints agree.
+- Root **`8a048faa36fad90404c263d3ce75073d117e5d96a15f8a614a42347cbd7a0ef4`**.
+- Guest verifier execution was approximately **3m 10s** by ARM timestamps;
+  submission/upload/export/GUI import are separate from that duration.
+- Active-verifier Reload Window/reconnect retained the original operation, then
+  reached full GUI PASS without replay. Forced Extension Host crash is not tested.
+- [Redacted full receipt](evidence/gremlin-full-pass-20260918.json); full private
+  report is retained in extension storage and the VM evidence directory.
+
+This completes **B05's Gremlin-shaped NoSQL document branch**, not native Cosmos
+Gremlin API qualification, production-scale certification or every remaining GUI
+branch. All nine base routes remain qualified. At 05:10:48 UTC the verifier unit
+was inactive/dead; disk 6%, swap zero and kernel OOM events zero. No migration,
+source read or verification was replayed. Recent successful activities match the
+approved starts/readiness/three control-record removals/verifier and diagnostics.
+Submitted deallocation of only this VM and stop of only its target immediately
+after retaining/importing success; all data, disks, source and evidence remain.
+Final stopped-state readback is pending; no deadline extension is used.
+
+At **05:13:54 UTC / 14:13:54 JST**, fresh ARM readback confirms the exact VM
+**ProvisioningState/succeeded + PowerState/deallocated**, and exact target
+**Stopped**, before the 15:00 JST bound. The scoped safety heartbeat is paused
+after verified shutdown. Resources/data/disks and all retained reports remain;
+storage charges continue and the platform may auto-start PostgreSQL after seven
+days. No other resources were stopped or deleted in this session.

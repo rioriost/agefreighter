@@ -8,16 +8,20 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
-**Latest Gremlin state (September 18 05:04 UTC):** after specific approval,
-archived/pushed and removed only three old successful readiness control records.
-Fresh GUI health passed; unchanged pinned full verifier was submitted through the
-installed GUI at **05:04:42.871 UTC**, operation
-`b0530700-ccd4-4f33-84fa-0854c8f4037b`, on the same migrated job. Full digest
-is **pending**, not PASS. Exact VM/target are running with the scoped safety
-monitor active, 25-minute/4-GiB verifier cap and unchanged 06:00 UTC hard stop.
-All data/disks and archived/guest evidence are preserved.
+**Latest Gremlin state (September 18 05:13 UTC): FULL CANONICAL PASS.** Installed
+GUI imported the sealed result for `b0530700-ccd4-4f33-84fa-0854c8f4037b` and
+displayed **P1 full canonical digest: PASS**. Independent Mac recomputation agrees:
+**1.6M vertices + 4M edges, 18 labels, all 64 ranges**, typed properties, composite
+identities and endpoints. Root:
+`8a048faa36fad90404c263d3ce75073d117e5d96a15f8a614a42347cbd7a0ef4`.
+The active verifier survived actual Reload Window/reconnect without replay.
+B05 is pass for **Gremlin-shaped NoSQL**, not a native Gremlin API claim; B10
+forced Extension Host crash remains open. At **05:13:54 UTC**, exact VM
+**deallocated** and target **Stopped** are verified, preserving all data/disks/
+evidence; this safety monitor is paused. See
+[full result receipt](evidence/gremlin-full-pass-20260918.json).
 
-Previous completed checkpoint: migration
+Historical completed checkpoint: migration
 `c257a458-be95-44be-a3ad-54e2318b1856` and complete counts **PASS** in the
 installed GUI. Report generated at **03:27:12 UTC**, approximately 13m 34s
 after submission: exact **1.6M vertices + 4M edges / 18 labels**, zero rejects,
