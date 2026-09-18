@@ -2,6 +2,16 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 08:27 UTC: installed GUI confirms actual Neo4j candidate-derived
+Japan East/zone 1, manual Japan West clearing the zone and disabling preview,
+empty-subnet preview rejection before cloud dispatch, and Cosmos metadata not
+being used as region/zone evidence. All 70 operator files remain unchanged.
+The interaction exposed stale inferred-region explanatory text; two failing
+regressions are corrected locally, with **391 unit / 13 isolated host tests**
+passing. This follow-up wording fix is not installed yet. No Azure mutation or
+new workflow occurred; B01/B02 remain partial. See the
+[candidate/override checkpoint](placement-zone-review-20260918.md#candidate-and-override-checkpoint--september-18-0827-utc).
+
 September 18 08:09 UTC: approved placement correction `1b929bd` is installed
 and reloaded. Actual signed-in GUI passes initial empty-zone guidance, zone
 clearing on on-premises/CSV changes, and restoration of the accepted Gremlin

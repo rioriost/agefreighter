@@ -184,6 +184,31 @@ test("initial placement never silently chooses zone 1", () => {
   assert.equal(v.el('preview').disabled,true);
 });
 
+test("manual region override replaces inferred guidance and survives catalog refresh", () => {
+  const v = view(); v.choose('subscription',subscription); v.fillCatalog('both'); v.choose('sourceGroup','source-rg');
+  const id = 'known-source';
+  v.receive({kind:'sources',subscription,group:'source-rg',type:'neo4j',values:[{id,region:'japaneast',zone:'1',type:'Microsoft.Compute/virtualMachines'}]});
+  v.choose('candidate',id); assert.match(v.el('regionNote').textContent,/Source region selected/);
+  v.choose('region','japanwest');
+  assert.match(v.el('regionNote').textContent,/explicitly selected/);
+  assert.doesNotMatch(v.el('regionNote').textContent,/Source region selected/);
+  v.fillCatalog(); assert.match(v.el('regionNote').textContent,/explicitly selected/);
+  assert.equal(v.el('region').value,'japanwest'); assert.equal(v.el('zone').value,'');
+  v.choose('region',''); assert.doesNotMatch(v.el('regionNote').textContent,/explicitly selected/);
+});
+
+test("source and placement identity changes remove stale inferred region guidance", () => {
+  for (const [field,value] of [['type','csv'],['location','other-cloud'],['sourceGroup','migration-rg'],['runnerSubscription',otherSubscription],['sourceId','manual-id'],['candidate','']]) {
+    const v = view(); v.choose('subscription',subscription); v.fillCatalog('both'); v.choose('sourceGroup','source-rg');
+    v.receive({kind:'sources',subscription,group:'source-rg',type:'neo4j',values:[{id:'known',region:'japaneast',zone:'1',type:'Microsoft.Compute/virtualMachines'}]});
+    v.choose('candidate','known'); assert.match(v.el('regionNote').textContent,/Source region selected/);
+    v.choose(field!,value!);
+    assert.doesNotMatch(v.el('regionNote').textContent,/Source region selected/,field);
+    assert.match(v.el('regionNote').textContent,/Review/,field);
+    assert.equal(v.el('preview').disabled,true,field);
+  }
+});
+
 for (const scenario of ['cosmos','unknown-zone','unsupported-zone','unavailable-region','deselected']) test(`candidate ${scenario} requires reviewed zone`, () => {
   const v = view();
   if (scenario === 'cosmos') v.choose('type','cosmos-nosql');

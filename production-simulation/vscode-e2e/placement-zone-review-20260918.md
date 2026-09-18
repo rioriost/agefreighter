@@ -104,3 +104,52 @@ mutation, credential or permission change was performed. These UI cases pass;
 known/unknown Azure candidate transitions, region overrides, separate RG/network
 and remaining live branches are not closed by this checkpoint. No new full P1
 verification was run or claimed. Marketplace publication is unchanged.
+
+## Candidate and override checkpoint — September 18, 08:27 UTC
+
+Continued in the installed `1b929bd` candidate, using a fresh unsaved wizard
+and the signed-in approved subscription. Read-only catalogs and candidates were
+loaded from the dedicated trial group. Native menu actions initially lost their
+accessibility handles; fresh observation and keyboard selection recovered the
+interaction. Only the following visibly confirmed outcomes are accepted:
+
+1. Selecting the trial source RG also proposes that same migration RG.
+2. Selecting actual `af-n44-source` fills its ARM identity, Japan East and
+   zone 1, with **Known source logical zone selected in the same subscription
+   and region**. This time the wizard started with an empty zone, so the result
+   establishes candidate-derived proposal rather than the previous default.
+3. Manually select Japan West. The zone clears and preview becomes disabled.
+   This is UI override/invalidation evidence, not backend permission to deploy
+   outside the source region or proof of regional capacity.
+4. Explicitly select zone 2 and click prerequisite preview with the subnet
+   deliberately left empty. **Invalid subnetId.** is displayed. Inspection of
+   the installed matching source confirms input parsing rejects this before
+   catalog/release/preflight/what-if requests or a persisted preview record.
+5. Switch to Cosmos NoSQL, discover and select actual `afcosmosp120260907`.
+   The zone stays empty; account metadata is explicitly not used to infer the
+   data region. The previously selected Japan West remains an unvalidated
+   manual choice. No source assessment, preview or target operation is started.
+
+The unsaved wizard was closed. All 70 operator files remain byte-identical
+(same aggregate SHA-256 above). Installed bundle remains
+`141b1e1bf2181bb76fe61194ba609d7edd2c7a34b3143ab4d0288f648d2cd763`.
+No cloud mutation, credential entry, worker or new workflow occurred. Cloud
+power/billing were not refreshed in this GUI-only batch.
+
+### Follow-up display correction, not yet installed
+
+The region override exposed another misleading explanation: **Source region
+selected** remained visible after switching to Japan West and after changing
+source type. Zone clearing/backend guards worked, but the explanation was stale.
+Two added actual-webview-script regression tests failed before correction.
+The local fix now replaces inferred-region wording on manual region, source
+identity/type/location/group, subscription and candidate deselection changes.
+A catalog refresh preserves the explicit-choice explanation. Saved workflow
+restoration still uses saved-placement wording.
+
+Typecheck/build, **391/391 unit tests**, and **13/13 isolated native host tests**
+pass. No deployment, placement validation or authorization logic changed.
+The display correction is not installed or live-GUI-qualified yet; installation
+requires approval of its pinned VSIX. B01/B02 remain partial: unknown-zone VM
+candidate transitions, cross-subscription/invalid placement preflight, separate
+RG/network and live provisioning branches are not closed by these checks.
