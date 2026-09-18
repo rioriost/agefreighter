@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { object, RunnerRecord } from "./runner";
+import { catalogActive, object, RunnerRecord } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
 import { assertIdleHealth, assertPostgreSQLTypePreservation, dispatchGuest, reconcileGuest } from "./runnerGuest";
 import { csvAssessmentReady } from "./runnerCSV";
@@ -38,7 +38,7 @@ export async function ensureAssessmentReadiness(control: RunnerControl, record: 
 }
 
 export function assessmentActive(record: RunnerRecord): boolean {
-  return record.assessment !== undefined && (record.assessment.phase !== "finished" || !record.assessment.reportSHA256);
+  return catalogActive(record) || record.assessment !== undefined && (record.assessment.phase !== "finished" || !record.assessment.reportSHA256);
 }
 
 /** Explicit operator reconciliation only; preserves evidence and never starts a worker. */

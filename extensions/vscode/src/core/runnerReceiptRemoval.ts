@@ -43,7 +43,7 @@ function eligible(r: RunnerRecord, commandId: string): ReadinessReceipt {
   readinessArchive(r, receipt);
   if (r.readinessRemovals?.some(x => x.commandId === commandId)) throw new Error("A removal intent already exists. Reconcile it; never replay removal.");
   if (readinessReceiptReferenced(r, receipt)) throw new Error("Readiness is still referenced; retain this command.");
-  const operations = [r.guestCommand, r.assessment, r.migration, r.upgrade, r.resize, r.targetDiagnostic,
+  const operations = [r.guestCommand, r.assessment, r.postgresCatalog, r.migration, r.upgrade, r.resize, r.targetDiagnostic,
     r.p1Qualification, r.p1Diagnostic, r.targetRestart, ...r.reportTransfers ?? [], ...r.csvTransfers ?? []];
   if (operations.some(x => x && (!terminal.has(x.phase) || object(x).unknown === true))) throw new Error("Reconcile all active or uncertain operations before receipt removal.");
   return receipt;

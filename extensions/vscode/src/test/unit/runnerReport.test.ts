@@ -11,6 +11,8 @@ import { RunnerControl } from "../../core/runnerLifecycle";
 import { reportStorageNames, verifyReportStorage } from "../../core/runnerReportStorage";
 import { RunnerStore } from "../../guided/runnerStore";
 import { verifyPrivateWindowsPath } from "../../guided/privateDirectory";
+import { catalogFixture, catalogForm, catalogText, catalogSHA } from "../catalogFixtures";
+import { catalogConfiguration, startCatalog, catalogRecommendations } from "../../core/runnerCatalog";
 
 const workflow = "11111111-1111-4111-8111-111111111111", operation = "22222222-2222-4222-8222-222222222222";
 const payload = '{"command":"profile","integer":9223372036854775807,"name":"工場 🏭","padding":"' + "x".repeat(100000) + '"}';
@@ -41,6 +43,27 @@ const validFetch: typeof fetch = async (_url, init) => {
   assert.ok(!JSON.stringify(init?.headers).includes("authorization"));
   return new Response(payload, { headers: { "content-length": String(manifest.bytes) } });
 };
+
+test("catalog export/import uses its own sealed operation rather than an assessment fallback", async () => {
+  const c=catalogFixture(), started=await startCatalog(c.control,c.record,catalogConfiguration(c.record,catalogForm,["public"]),{});
+  const f=fixture();Object.assign(f.record,started);
+  f.record.guestCommand=undefined;
+  f.record.assessment=undefined;
+  f.record.postgresCatalog={...started.postgresCatalog!,operation,phase:"finished",reportSHA256:catalogSHA,reportBytes:Buffer.byteLength(catalogText)};
+  await assert.rejects(startReportExport(f.control,f.record,capability("c"),workflow));
+  assert.equal(f.bodies.length,0);
+  const exported=await startReportExport(f.control,f.record,capability("c"),operation);
+  assert.equal(exported.reportTransfers![0]!.sha256,catalogSHA);
+  let retained=false;
+  const imported=await importReport(f.control,exported,operation,capability("r"),async (_id,m,text)=>{
+    assert.equal(m.sha256,catalogSHA);assert.equal(catalogRecommendations(exported,text).proposals.length,1);retained=true;
+  },async()=>new Response(catalogText));
+  assert.equal(retained,true);assert.equal(imported.reportTransfers![0]!.phase,"imported");
+  assert.equal(imported.sourceDraft,undefined);assert.equal(imported.assessment,undefined);
+  const tampered=structuredClone(exported);tampered.postgresCatalog!.reportSHA256="b".repeat(64);
+  await assert.rejects(importReport(f.control,tampered,operation,capability("r"),async()=>assert.fail("unbound import")));
+  assert.ok(!JSON.stringify(f.saved).includes("SECRET-CAPABILITY"));
+});
 
 test("blob capabilities bind host, workflow, operation, expiry and one user-delegation permission", () => {
   const now = Date.now(), valid = capability("c", now);

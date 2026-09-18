@@ -58,6 +58,7 @@ export interface RunnerRecord {
   cosmosAccess?: CosmosAccess;
   sourceFiles?: (SelectedCSV & { path: string })[];
   assessment?: Assessment;
+  postgresCatalog?: import("./runnerCatalog").PostgresCatalog;
   assessmentHistory?: Assessment[];
   reportTransfers?: ReportTransfer[];
   storageDeployment?: StorageDeployment;
@@ -82,6 +83,10 @@ export interface RunnerRecord {
   p1Diagnostic?: P1Diagnostic;
   migrationHistory?: {migration:RunnerMigration;diagnostic:TargetDiagnostic;archivedAt:string;reason:"empty-target-preparation-failure"}[];
   targetRestart?: {phase:"submitted"|"unknown"|"finished";submittedAt:string};
+}
+
+export function catalogActive(record: RunnerRecord): boolean {
+  return !!record.postgresCatalog && (record.postgresCatalog.phase !== "finished" || !record.postgresCatalog.reportSHA256);
 }
 
 /** Carry source trust and transfer evidence into a new, separately reviewed VM preview. */

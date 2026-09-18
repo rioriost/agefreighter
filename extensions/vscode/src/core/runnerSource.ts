@@ -163,7 +163,7 @@ export function buildSourceDraft(selection: SourceSelection, raw: unknown, workf
 }
 
 /** Password is supplied by a native secret prompt, never the webview/config. */
-export function sourceSecrets(type: SourceKind, form: SourceForm, password?: string, sourceCAPEM?: string): Record<string, string> {
+export function sourceSecrets(type: SourceKind, form: Pick<SourceForm, "host" | "port" | "username" | "database">, password?: string, sourceCAPEM?: string): Record<string, string> {
   if (type !== "postgresql" && type !== "neo4j") return {};
   if (!password || password.length > 16000 || /[\x00\r\n]/.test(password)) throw new Error("Enter a nonempty source password without control characters.");
   if (sourceCAPEM !== undefined && (!sourceCAPEM || Buffer.byteLength(sourceCAPEM) > 64 * 1024 || sourceCAPEM.includes("\x00"))) throw new Error("The protected source CA bundle is invalid.");

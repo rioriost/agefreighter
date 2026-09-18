@@ -20,10 +20,10 @@ are preserved and do not qualify automatic schema recommendations.
    trial. No old guest advertises the new capability until its implementation
    and installation are actually complete.
 
-Stage 1 and the guest execution half of stage 2 are implemented and locally
-tested. Extension-side operation persistence/provenance/import and stages 3–4
-remain pending. No GUI button or installed remote capability is enabled by these
-local source changes alone.
+Stages 1–3 are implemented and locally tested, including extension-side operation
+persistence/provenance/import and explicit GUI adoption. Stage 4's signed-in
+GUI/Linux qualification remains pending. The installed operator extension and
+remote artifacts have not been upgraded by these local changes.
 
 Review decisions: only single-column, non-null, supported-type primary keys
 are automatic vertex candidates. Foreign keys produce optional directed
@@ -158,9 +158,63 @@ operator-store digest above and installed extension bundle SHA-256
 `e3a8fb0aa518b8d8c339aef8aa1d3d861ccfdc82baa7fec32fc2afeef9964ac1`
 remain unchanged.
 
-Next: add a separate extension-side catalog intent/controller, capability and
-fresh-readiness gates, exact reviewed-configuration/boot/artifact/report binding,
-and sealed report import. Then expose explicit schema discovery and selected
-recommendation adoption without overwriting manual/unsaved mappings. Counts
-inventory must still be rerun after accepted mapping changes. B04 remains
-**partial**, not a new installed-GUI or Azure qualification.
+At this checkpoint, extension-side operation/import and GUI adoption were next;
+the following section records that local implementation. B04 remains **partial**.
+
+## Stage 3 extension controller and explicit GUI adoption
+
+The source editor now offers separate PostgreSQL schema discovery, status
+reconciliation, sealed report transfer/import and selected mapping adoption.
+These controls are in the development tree, not the installed operator extension.
+
+- A connection-only request is reviewed before the private password prompt.
+  Fresh idle/storage/swap/OOM readiness and `postgresql-catalog-v1` are mandatory.
+  Approval-time source, artifact, boot and existing draft changes block submission.
+  The exact operation, canonical request SHA, source/runner binding, artifact,
+  boot and readiness snapshot are persisted before protected dispatch. Referenced
+  readiness evidence is protected from control removal.
+- One catalog is retained per fresh pre-assessment workflow. Unknown delivery is
+  reconciled without worker replay. Failure requires a new workflow; this version
+  deliberately has no catalog retry/replacement action. Active or unresolved
+  catalog work blocks assessment, migration and runner upgrade.
+- Terminal evidence must match the original operation/action/boot/request and a
+  successful exit with an immutable report SHA/length. Export uses the existing
+  workflow-owned, create-only protected transfer; imported bytes are checked
+  against the separately retained manifest and exact schema scope before private
+  local retention. Import never creates an inventory or migration pass.
+- Metadata stays outside model prompts. Recommendation labels use text-only
+  rendering. Nothing is selected automatically. Explicit adoption preserves manual
+  mappings, checks endpoint dependencies and refuses connection/scope drift or
+  any existing assessment/target/migration. Native confirmation is rechecked under
+  the workflow lock; unsaved webview edits are not replaced by status/import or a
+  concurrently completed adoption. Adoption invalidates source review and still
+  requires complete inventory before sizing.
+- Database, username and schema names use the current bounded ASCII identifier
+  contract. Nonstandard names need manual mappings; discovery does not imply
+  whole-database visibility or copy all properties.
+
+Validation on September 18 (local only):
+
+- **428/428 extension unit tests**, typecheck and build pass. This adds 24 cases
+  over the previous 404-test checkpoint: real controller/protected-dispatch and
+  export/import logic against mocked ARM/transport, native panel handlers against
+  an inert VS Code API, and execution of the actual webview script against a DOM
+  fixture. Cases include cancellation, disposal, changed trust/boot/source/artifact/
+  mappings, old guests, unsafe readiness, lost responses, changed seals, explicit
+  selection and concurrent edits. These are not live Azure proofs.
+- **13/13 isolated Extension Host smoke tests** pass using MacStudio's VS Code,
+  a new disposable user/extension profile and no signed-in Azure account. These
+  cover activation and opening source editors, not an actual connected catalog
+  discovery/adoption session or visual sign-off. The host emitted a blocked
+  webview-request diagnostic; exit status and all smoke assertions passed.
+- The installed extension bundle still hashes to
+  `e3a8fb0aa518b8d8c339aef8aa1d3d861ccfdc82baa7fec32fc2afeef9964ac1`.
+  All 70 operator files still match aggregate filename/content SHA-256
+  `fcc85c6021b1191d9207a9fe93eb661cd1665edebbf83e5d33a4602d87f248ef`.
+  No Azure operation, guest/extension installation, migration, source write,
+  Marketplace publication or local fixture restart occurred in this stage.
+
+Next: review and pin a matching extension/Linux build for separately approved
+installed-GUI qualification: discovery, retained-operation reconnect, exact report
+import, selective adoption/editing, complete inventory and compatibility with
+accepted manual mappings. Do not treat this local implementation as B04 PASS.

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { object, RunnerRecord } from "./runner";
+import { catalogActive, object, RunnerRecord } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
 import { csvCapability, reportCapability, reportManifest } from "./runnerBlob";
 import { CSVManifest, validateCSVManifest } from "../guided/csvTransfer";
@@ -8,7 +8,7 @@ import { commandCapacityMessage, retainReadinessReceipt } from "./runnerReceipts
 export interface GuestCommand {
   id: string;
   operation: string;
-  action: "ready" | "profile" | "inventory" | "status" | "report" | "export-report" | "import-csv" | "migrate-csv" | "migrate-source" | "inspect-resume" | "resume-migration";
+  action: "ready" | "profile" | "inventory" | "postgres-catalog" | "status" | "report" | "export-report" | "import-csv" | "migrate-csv" | "migrate-source" | "inspect-resume" | "resume-migration";
   phase: "submitted" | "unknown" | "finished" | "failed";
   submittedAt: string;
   failure?: string;
@@ -45,7 +45,13 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
   if (record.phase !== "provisioned") throw new Error("The runner VM must be provisioned first.");
   if (record.upgrade && record.upgrade.phase !== "finished") throw new Error("Reconcile the guest upgrade before any other operation.");
   if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command; do not resubmit it.");
-  if (request.version !== 1 || request.workflow !== record.id || !uuid.test(request.operation) || !["ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume", "resume-migration"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
+  if (request.version !== 1 || request.workflow !== record.id || !uuid.test(request.operation) || !["ready", "profile", "inventory", "postgres-catalog", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume", "resume-migration"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
+  if (catalogActive(record) && !["ready", "status", "report", "export-report", "postgres-catalog"].includes(request.action)) throw new Error("Reconcile the retained catalog before other source work.");
+  if (request.action === "postgres-catalog") {
+    const c = record.postgresCatalog;
+    if (record.input.source.type !== "postgresql" || record.assessment || record.target || record.migration || !record.guestReady?.capabilities?.includes("postgresql-catalog-v1") || !c || c.phase !== "submitted" || c.operation !== request.operation || c.bootId !== record.guestReady.bootId || c.configurationSHA256 !== createHash("sha256").update(JSON.stringify(request.configuration)).digest("hex")) throw new Error("Catalog requires its reviewed, boot-bound execution intent.");
+    assertIdleHealth(record);
+  }
   if(request.action!=="resume-migration" && request.resume!==undefined)throw new Error("Unexpected recovery binding.");
   if(request.action==="resume-migration"){
     const m=record.migration;
@@ -71,7 +77,7 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
     if(!record.guestReady?.capabilities?.includes(capability) || record.migration?.operation!==request.operation || record.migration.phase!=="submitted" || record.target?.phase!=="provisioned" || record.resize?.phase!=="finished")throw new Error("Migration requires an approved retained execution intent and prepared target/runner.");
   }
   if(request.action==="inspect-resume" && (!record.guestReady?.capabilities?.includes("resume-inspection-v1") || record.migration?.operation!==request.operation || request.configuration!==undefined || request.offset!==undefined || Object.keys(request.secrets??{}).join()!=="AGEFREIGHTER_TARGET_DSN"))throw new Error("Resume inspection requires a capable runner, retained migration and only the protected target connection.");
-  const bootBound = assessment || request.action === "import-csv" || request.action === "inspect-resume" || request.action === "resume-migration";
+  const bootBound = assessment || request.action === "postgres-catalog" || request.action === "import-csv" || request.action === "inspect-resume" || request.action === "resume-migration";
   if (bootBound) {
     const ready = record.guestReady;
     const age = ready ? Date.now() - Date.parse(ready.checkedAt) : NaN;

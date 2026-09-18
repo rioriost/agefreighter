@@ -5,6 +5,7 @@ import { runnerSourceHTML } from "../../core/runnerSourceView";
 import { sourceForm, csvFile } from "../sourceFixtures";
 
 class Element {
+  type=""; checked=false;
   children: Element[] = []; handlers = new Map<string, (() => void)[]>(); value = ""; textContent = ""; hidden = false; disabled = false; className = "";
   constructor(readonly tag: string) {}
   append(element: Element) { this.children.push(element); }
@@ -25,8 +26,35 @@ function view() {
     window: { addEventListener: (_event: string, callback: (event: {data: unknown}) => void) => { receivers.push(callback); } },
     acquireVsCodeApi: () => ({ postMessage: (value: unknown) => messages.push(JSON.parse(JSON.stringify(value))) })
   });
-  return { html, el: (id: string) => elements.get(id)!, send: (data: unknown) => receivers.forEach(receive => receive({ data })), messages };
+  return { html, el: (id: string) => elements.get(id)!, all, send: (data: unknown) => receivers.forEach(receive => receive({ data })), messages };
 }
+
+test("catalog UI gates old guests, preserves unsaved forms during status/import and requires explicit selection",()=>{
+  const v=view();v.send({kind:"init",type:"postgresql",canStart:true,transferEnabled:true,form:{...sourceForm,mappings:[]}});v.send({kind:"busy",value:false});
+  v.send({kind:"catalog",available:false,frozen:false});assert.equal(v.el("catalogStart").disabled,true);
+  v.send({kind:"catalog",available:true,frozen:false});assert.equal(v.el("catalogStart").disabled,false);
+  v.el("host").value="unsaved.example";v.el("name").value="unsaved-name";v.el("catalogSchemas").value="public, other";
+  v.el("catalogStart").trigger("click");const sent=v.messages.at(-1);assert.equal(sent.action,"catalogStart");assert.equal(sent.form.host,"unsaved.example");assert.deepEqual(sent.schemas,["public","other"]);
+  const catalog={operation:"catalog",phase:"running",configuration:{schemas:["public","other"]}};
+  v.send({kind:"catalog",catalog,available:true,frozen:false});v.send({kind:"busy",value:false});assert.equal(v.el("review").disabled,true);assert.equal(v.el("host").value,"unsaved.example");
+  const proposal={id:"v:example",mapping:{...sourceForm.mappings[0],label:"<untrusted>"},reason:"metadata <script>"};
+  v.send({kind:"catalog",catalog:{...catalog,phase:"finished",reportSHA256:"sealed"},available:true,frozen:false,recommendations:{reportSHA256:"sealed",proposals:[proposal],warnings:["Not row counts"]}});
+  assert.equal(v.el("host").value,"unsaved.example");assert.equal(v.el("name").value,"unsaved-name");assert.equal(v.el("catalogAdopt").disabled,true);
+  const choice=v.all.find(x=>x.type==="checkbox")!;assert.equal(choice.checked,false);choice.checked=true;choice.trigger("change");assert.equal(v.el("catalogAdopt").disabled,false);
+  v.el("catalogAdopt").trigger("click");assert.deepEqual(v.messages.at(-1).selected,["v:example"]);assert.equal(v.messages.at(-1).form.host,"unsaved.example");
+  assert.ok(v.all.some(x=>x.textContent.includes("metadata <script>")));assert.doesNotMatch(v.html,/innerHTML/);
+});
+
+test("catalog adoption invalidates source review and refuses to overwrite a concurrently edited webview",()=>{
+  const v=view();v.send({kind:"init",type:"postgresql",canStart:true,form:{...sourceForm,mappings:[]}});v.send({kind:"busy",value:false});
+  v.el("review").trigger("click");const original=v.messages.at(-1).form;
+  v.send({kind:"review",draft:{canAssess:true,warnings:[],configuration:{}}});v.send({kind:"busy",value:false});
+  v.send({kind:"catalogAdopted",original,form:sourceForm});assert.equal(v.el("reviewSection").hidden,true);
+  v.el("review").trigger("click");assert.equal(v.messages.at(-1).form.mappings.length,2);
+  const before=v.messages.at(-1).form;v.el("name").value="new-unsaved-name";
+  v.send({kind:"catalogAdopted",original:before,form:{...sourceForm,mappings:[]}});
+  assert.match(v.el("error").textContent,/unsaved edits were preserved/);assert.equal(v.el("name").value,"new-unsaved-name");
+});
 
 test("all source form branches render and submit fields without passwords or YAML input", () => {
   for (const type of ["neo4j", "postgresql", "cosmos-nosql", "csv"]) {

@@ -16,6 +16,7 @@ import { CSVManifest, CSVTransferCancelledError, inspectCSV } from "./guided/csv
 import { csvAssessmentReady, refreshCSVImport, startCSVImport } from "./core/runnerCSV";
 import { csvFilesInFolder } from "./guided/csvSelection";
 import { previewCosmosAccess, refreshCosmosAccess, submitCosmosAccess } from "./core/runnerCosmosAccess";
+import { adoptCatalog, assertCatalogCurrent, catalogBinding, catalogConfiguration, catalogRecommendations, refreshCatalog, startCatalog } from "./core/runnerCatalog";
 
 export interface RunnerSourceServices {
   storagePrincipal(subscription: string): Promise<string>;
@@ -24,7 +25,7 @@ export interface RunnerSourceServices {
   uploadCSV(record: RunnerRecord, path: string, manifest: CSVManifest, progress: (bytes: number) => void, signal?: AbortSignal): Promise<void>;
 }
 
-const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value ?? null)).digest("hex");
 
 export function openRunnerSource(context: vscode.ExtensionContext, control: RunnerControl, store: RunnerStore, workflow: string, services?: RunnerSourceServices): void {
   const panel = vscode.window.createWebviewPanel("agefreighter.runnerSource", "AGEFreighter source assessment", vscode.ViewColumn.One,
@@ -32,14 +33,23 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
   panel.webview.html = runnerSourceHTML();
   let busy = false, disposed = false, reviewedHash: string | undefined;
   const post = (value: unknown) => disposed ? Promise.resolve(false) : panel.webview.postMessage(value);
-  const initialize = (record: RunnerRecord) => post({ kind: "init", type: record.input.source.type, location: record.input.source.location,
-    files: record.sourceFiles?.map(({ id, name }) => ({ id, name })), form: record.sourceDraft?.form, assessment: record.assessment,
+  const postCatalog = async (record: RunnerRecord) => {
+    const c = record.postgresCatalog;
+    const transfer = record.reportTransfers?.find(x => x.operation === c?.operation);
+    const recommendations = c?.phase === "finished" && c.reportSHA256 && c.reportBytes && transfer?.phase === "imported"
+      ? catalogRecommendations(record, await store.readReport(workflow, { operation: c.operation, sha256: c.reportSHA256, bytes: c.reportBytes })) : undefined;
+    await post({ kind: "catalog", catalog: c, transfer: transfer?.phase, recommendations,
+      available: record.phase === "provisioned" && record.guestReady?.capabilities?.includes("postgresql-catalog-v1") === true,
+      frozen: !!record.assessment || !!record.target || !!record.migration });
+  };
+  const initialize = async (record: RunnerRecord) => { await post({ kind: "init", type: record.input.source.type, location: record.input.source.location,
+    files: record.sourceFiles?.map(({ id, name }) => ({ id, name })), form: record.sourceDraft?.form ?? (record.postgresCatalog ? { name: "graph-migration", namespace: "migration", ...record.postgresCatalog.configuration, mappings: [] } : undefined), assessment: record.assessment,
     sourceCA: record.sourceCA ? { name: record.sourceCA.name, bytes: record.sourceCA.bytes, sha256: record.sourceCA.sha256 } : undefined,
     cosmosAccess: record.cosmosAccess?.phase,
     storage: record.storageDeployment ? `${record.storageDeployment.phase}${record.storageDeployment.networkAccess ? ` — public network: ${record.storageDeployment.networkAccess} (provisioning is not transfer readiness)` : ""}` : undefined,
     transferEnabled: !!services, csvTransfers: record.csvTransfers, transfer: record.reportTransfers?.find(item => item.operation === record.assessment?.operation)?.phase,
     inventoryReady: record.guestReady?.capabilities?.includes(`${record.input.source.type}-inventory-v1`) === true,
-    canStart: record.phase === "provisioned" && !!record.guestReady });
+    canStart: record.phase === "provisioned" && !!record.guestReady }); await postCatalog(record); };
   const listener = panel.webview.onDidReceiveMessage(async raw => {
     if (busy) return;
     busy = true; await post({ kind: "busy", value: true });
@@ -47,6 +57,81 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
       const message = object(raw);
       switch (message.action) {
         case "ready": await initialize(await store.read(workflow)); break;
+        case "catalogStart": {
+          if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before catalog discovery.");
+          const record = await store.read(workflow);
+          if (record.postgresCatalog || record.assessment || record.target || record.migration) throw new Error("Retain existing operations; catalog discovery requires a fresh pre-assessment workflow.");
+          if (!record.guestReady?.capabilities?.includes("postgresql-catalog-v1")) throw new Error("Install a reviewed catalog-capable Linux artifact before discovery.");
+          const configuration = catalogConfiguration(record, message.form, message.schemas), binding = catalogBinding(record);
+          const confirmed = await vscode.window.showWarningMessage("Read PostgreSQL schema metadata on this Linux runner?", { modal: true,
+            detail: `${configuration.host}:${configuration.port}/${configuration.database} as ${configuration.username}\nSchemas: ${configuration.schemas.join(", ")}\nRunner: ${record.vmId}\nRead-only catalog transaction: 2 minutes, 64 tables, 128 columns and 64 key constraints per table; 4 MiB output. No row values, exact counts, target writes or migration. TLS verification is required. This is a single retained operation, never an automatic retry.` }, "Approve catalog read");
+          if (confirmed !== "Approve catalog read" || disposed) break;
+          let password = await vscode.window.showInputBox({ title: "Read-only PostgreSQL source password", password: true, ignoreFocusOut: true, prompt: "Protected Linux channel only; not stored with the catalog or sent to an AI model." });
+          if (password === undefined || disposed) break;
+          try {
+            let pem: string | undefined;
+            if (record.sourceCA) {
+              const data = await readFile(record.sourceCA.path), checked = inspectSourceCA(record.sourceCA.path, record.sourceCA.name, data);
+              if (checked.sha256 !== configuration.sourceCASHA256 || checked.bytes !== record.sourceCA.bytes) throw new Error("Source CA changed; review it again.");
+              pem = data.toString("utf8");
+            }
+            const secrets = sourceSecrets("postgresql", configuration, password, pem);
+            const next = await store.exclusive(workflow, async () => {
+              if (!vscode.workspace.isTrusted || disposed) throw new Error("Catalog approval cancelled.");
+              let current = await store.read(workflow);
+              if (catalogBinding(current) !== binding || current.guestReady?.bootId !== record.guestReady?.bootId || hash(current.sourceDraft) !== hash(record.sourceDraft)) throw new Error("The reviewed source or runner changed in another window.");
+              current = await ensureAssessmentReadiness(control, current, () => disposed || !vscode.workspace.isTrusted);
+              if (!vscode.workspace.isTrusted || disposed) throw new Error("Catalog approval cancelled.");
+              return startCatalog(control, current, configuration, secrets);
+            });
+            reviewedHash = undefined; await postCatalog(next);
+          } finally { password = undefined; }
+          break;
+        }
+        case "catalogRefresh": {
+          if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before refreshing catalog evidence.");
+          await postCatalog(await store.exclusive(workflow, async () => refreshCatalog(control, await store.read(workflow)))); break;
+        }
+        case "catalogReport": {
+          if (!services || !vscode.workspace.isTrusted) throw new Error("Trusted Azure access is required for catalog transfer.");
+          const record = await store.read(workflow), c = assertCatalogCurrent(record);
+          if (c.phase !== "finished" || !c.reportSHA256 || !c.reportBytes) throw new Error("Reconcile a successful catalog and its sealed manifest first.");
+          if (record.reportTransfers?.find(x => x.operation === c.operation)?.phase === "imported") { await postCatalog(record); break; }
+          if (record.storageDeployment?.phase !== "ready") throw new Error("Prepare transfer storage first.");
+          const names = reportStorageNames(record);
+          const confirmed = await vscode.window.showWarningMessage("Transfer this sealed PostgreSQL catalog?", { modal: true,
+            detail: `Operation ${c.operation}\n${c.reportBytes} bytes; SHA-256 ${c.reportSHA256}\nDestination: ${names.origin}/${names.container}\nSchema/table/key names may be sensitive. Stored privately on this computer; no AI upload, source re-read or mapping adoption.` }, "Transfer catalog report");
+          if (confirmed !== "Transfer catalog report" || disposed) break;
+          const next = await store.exclusive(workflow, async () => {
+            if (!vscode.workspace.isTrusted || disposed) throw new Error("Catalog transfer cancelled.");
+            let current = await store.read(workflow);
+            if (hash(assertCatalogCurrent(current)) !== hash(c)) throw new Error("Catalog manifest changed; review again.");
+            if (!current.reportTransfers?.some(x => x.operation === c.operation)) return startReportExport(control, current, await services.reportCapability(current, c.operation, "c"), c.operation);
+            if (current.guestCommand?.action === "export-report" && current.guestCommand.operation === c.operation) current = await refreshReportExport(control, current);
+            return importReport(control, current, c.operation, await services.reportCapability(current, c.operation, "r"), async (id, manifest, text) => {
+              catalogRecommendations(current, text); await store.retainReport(id, manifest, text);
+            });
+          });
+          await postCatalog(next); break;
+        }
+        case "catalogAdopt": {
+          if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before adopting source mappings.");
+          const record = await store.read(workflow), c = assertCatalogCurrent(record);
+          if (!c.reportSHA256 || !c.reportBytes || record.reportTransfers?.find(x => x.operation === c.operation)?.phase !== "imported") throw new Error("Import the sealed catalog first.");
+          const text = await store.readReport(workflow, { operation: c.operation, sha256: c.reportSHA256, bytes: c.reportBytes });
+          const proposed = adoptCatalog(record, text, message.form, message.schemas, message.selected);
+          const confirmed = await vscode.window.showWarningMessage("Add these selected PostgreSQL mappings?", { modal: true,
+            detail: `Catalog ${c.operation}\nSelected: ${(message.selected as string[]).join(", ")}\n${proposed.sourceDraft!.form.mappings.length} total mappings. Existing manual mappings are preserved, never overwritten. Only identity properties are proposed; review other properties and relationship direction. Review source settings and run a new complete inventory before sizing.` }, "Adopt selected mappings");
+          if (confirmed !== "Adopt selected mappings" || disposed) break;
+          const next = await store.exclusive(workflow, async () => {
+            if (!vscode.workspace.isTrusted || disposed) throw new Error("Mapping adoption cancelled.");
+            const current = await store.read(workflow);
+            if (hash(current.postgresCatalog) !== hash(c) || hash(current.sourceDraft) !== hash(record.sourceDraft)) throw new Error("Mappings or catalog changed in another window; nothing was overwritten.");
+            const updated = adoptCatalog(current, text, message.form, message.schemas, message.selected);
+            await store.write(updated); return updated;
+          });
+          reviewedHash = undefined; await post({ kind: "catalogAdopted", form: next.sourceDraft!.form, original: message.form }); break;
+        }
         case "retainFailure": {
           if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before reconciling source operations.");
           const current = await store.read(workflow), operation = current.assessment?.operation ?? "";
@@ -236,7 +321,7 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
         case "review": {
           const next = await store.exclusive(workflow, async () => {
             const current = await store.read(workflow);
-            if (assessmentActive(current)) throw new Error("Retain the existing assessment configuration; it cannot be replaced here.");
+            if (assessmentActive(current) || current.target || current.migration) throw new Error("Retain the existing assessment configuration; it cannot be replaced here.");
             const sourceDraft = buildSourceDraft(current.input.source, message.form, workflow, current.sourceFiles, current.sourceCA);
             const next = { ...current, sourceDraft };
             if (current.input.source.type === "csv" && csvAssessmentReady(next)) {

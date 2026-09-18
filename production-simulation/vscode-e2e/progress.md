@@ -8,15 +8,17 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
-September 18 local PostgreSQL catalog follow-up: a distinct guest operation now
-validates the reviewed connection, TLS/custom-CA digest and complete metadata
-report, then retains the operation/configuration/boot/report seals. Real local
-PostgreSQL 18.6 TLS CLI and metadata tests pass, as do focused race/vet checks,
-repository-wide Go tests, Linux AMD64 cross-builds and 404 extension tests.
-This is not installed or Azure-qualified: extension-side catalog
-intent/provenance/import and GUI recommendation adoption remain next. B04 stays
-partial; operator records and installed extension are unchanged. See
-[execution boundaries and evidence](postgres-recommendations-20260918.md#stage-2-guest-boundary-and-local-tls-qualification).
+September 18 local PostgreSQL catalog follow-up: extension-side retained intent,
+capability/fresh-readiness checks, sealed report import and explicit GUI mapping
+selection/adoption are now connected to the bounded Linux catalog operation.
+Existing manual and unsaved mappings are preserved; adoption requires a fresh
+source review and complete inventory before sizing. All **428 extension unit
+tests / 13 isolated host smoke tests**, typecheck and build pass. Earlier real
+local PostgreSQL 18.6 TLS CLI/metadata evidence remains applicable to the unchanged
+guest implementation. This is **not installed or Azure-qualified**: B04 stays
+partial, with signed-in GUI/Linux qualification next. Operator records and the
+installed extension are unchanged. See
+[execution boundaries and evidence](postgres-recommendations-20260918.md#stage-3-extension-controller-and-explicit-gui-adoption).
 
 **Latest Gremlin state (September 18 05:13 UTC): FULL CANONICAL PASS.** Installed
 GUI imported the sealed result for `b0530700-ccd4-4f33-84fa-0854c8f4037b` and
@@ -1274,8 +1276,8 @@ Windows unit tests, source contracts, Extension Host and packaging.
   Complete CSV inventory has now passed local P1 testing, and prefix-scaled
   estimates no longer pass the capacity gate even with exact total counts.
 - The form requires explicit reviewed mappings. PostgreSQL schema/FK catalog,
-  recommendation foundations and the guest execution/sealing path are locally
-  tested; extension-side operation/import and GUI adoption are still pending
+  guest execution/sealing, extension-side operation/import and explicit GUI
+  recommendation adoption are locally tested; installed-GUI/Linux qualification remains pending
   (see [implementation evidence](postgres-recommendations-20260918.md)). Current table/column/graph identifiers
   are limited to ASCII letters/digits/underscores. Cosmos explicit mappings use
   a top-level label field; only the public Azure NoSQL endpoint is supported.
