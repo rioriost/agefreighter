@@ -516,3 +516,35 @@ passes. B05 still requires separate target/capacity review, migration and all
 64 canonical target ranges. Active-assessment reload/reconnect passed; active
 migration/verification reload and forced crash remain open under B10. No new
 base migration route is counted as qualified by this inventory result.
+
+### Target-review admission correction — September 18 JST
+
+On continuation, the installed GUI's **Review / reconcile private target**
+stopped with `Mapped labels do not cover the whole approved inventory.` before
+target inputs, credentials or deployment. Gremlin automatic discovery correctly
+has no manually entered mappings; the extension incorrectly required its full
+18-label inventory to match that empty manual list. No Azure mutation occurred.
+
+The local correction admits the discovered catalog only from the existing
+complete, hash-verified imported inventory, bound to the reviewed configuration,
+operation and Linux artifact version. It checks Gremlin mode, container,
+partition property, discovery bounds, label validity/uniqueness and exact
+vertex/edge/total coverage. Explicit PostgreSQL/Cosmos mappings still require
+their exact manual label set. Capacity totals must agree, and integer summation
+uses BigInt. No sampled profile or synthetic persisted mappings are accepted.
+
+All **314** extension tests, typecheck, compilation and whitespace validation
+pass. Five new tests cover the retained report, private-target preview, malformed
+or incomplete catalogs, mismatched configuration and altered receipt/bytes.
+Read-only evaluation against the actual private workflow/report accepts
+5,600,000 rows, 18 labels and storage high estimate 13,444,452,070 bytes, with
+the original report SHA and unchanged workflow state. The checked-in count-only
+regression fixture is JSON-equivalent to the retained report; its additional
+trailing newline gives it a separate SHA-256
+`f61d5011e0266d6700ed8ee5f853a693911faaffd4ff30af2d10b94e5d952c5b`.
+
+This is a **local correction, not an installed-GUI target-review pass**. The
+runner remains deallocated. Installation/reload of the new pinned unpublished
+VSIX needs action-time approval; private-target provisioning and a new bounded
+runner session require their own review. Existing report, failure evidence,
+Linux artifact, credentials and cloud resources are unchanged.

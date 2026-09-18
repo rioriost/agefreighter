@@ -81,7 +81,7 @@ export function mappedNetworkTargetEvidence(record: RunnerRecord, reportJSON: st
     assessment.configurationSHA256!==hash(record.sourceDraft.configuration) || !record.reportTransfers?.some(x=>x.operation===assessment.operation && x.phase==="imported" && x.sha256===assessment.reportSHA256) ||
     Buffer.byteLength(reportJSON)!==assessment.reportBytes || createHash("sha256").update(reportJSON).digest("hex")!==assessment.reportSHA256)throw new Error("Import a complete, matching network-source inventory before planning the target.");
   const doc=object(JSON.parse(reportJSON)),counts=extractInventoryEvidence(doc),capacity=extractCapacityEvidence(doc),expectedMethod=type==="postgresql"?"postgresql-repeatable-read-complete-stream":"cosmos-nosql-complete-stream";
-  if(doc.schemaVersion!==1 || doc.command!=="inventory" || doc.agefreighterVersion!==record.artifact.version || !counts.exact || counts.method!==expectedMethod || !capacity.deployable || capacity.recommendedStorageHigh===undefined || !Array.isArray(doc.errors) || doc.errors.length ||
+  if(doc.schemaVersion!==1 || doc.command!=="inventory" || doc.agefreighterVersion!==record.artifact.version || !counts.exact || counts.method!==expectedMethod || !capacity.deployable || capacity.recommendedStorageHigh===undefined || counts.totalRows!==capacity.targetRows || !Array.isArray(doc.errors) || doc.errors.length ||
     !Array.isArray(doc.incompleteChecks) || doc.incompleteChecks.length || !Array.isArray(doc.checks) || !["source-counts","read-only"].every(id=>(doc.checks as unknown[]).some(x=>object(x).id===id&&object(x).status==="pass")))throw new Error("Whole-source network inventory evidence is incomplete.");
   if(!Array.isArray(doc.sections) || (doc.sections as unknown[]).map(object).some(s=>!Array.isArray(s.fields)||s.fields.some(x=>object(x).status!=="pass")))throw new Error("A required source evidence field is not complete.");
   const section=(doc.sections as unknown[]).map(object).filter(s=>s.title==="Mapped record counts");
@@ -89,9 +89,24 @@ export function mappedNetworkTargetEvidence(record: RunnerRecord, reportJSON: st
   const labels:Record<string,number>=Object.create(null);
   for(const raw of section[0]!.fields){const f=object(raw);if(typeof f.name!=="string"||!/^(vertex|edge):[A-Za-z_][A-Za-z0-9_]*$/.test(f.name)||typeof f.value!=="string"||!/^\d+$/.test(f.value)||f.status!=="pass"||!Number.isSafeInteger(Number(f.value)))throw new Error("Invalid mapped label count.");
     const key=f.name.replace(/^vertex:/,"v.").replace(/^edge:/,"e.");if(Object.hasOwn(labels,key))throw new Error("Duplicate mapped label count.");labels[key]=Number(f.value);}
-  const expectedLabels=new Set(record.sourceDraft.form.mappings.map(mapping=>`${mapping.kind==="vertex"?"v":"e"}.${mapping.label}`));
-  if(!Object.keys(labels).length||Object.values(labels).reduce((a,b)=>a+b,0)!==Number(counts.totalRows)||Object.entries(labels).filter(([key])=>key.startsWith("v.")).reduce((n,[,v])=>n+v,0)!==Number(counts.vertices)||
-    expectedLabels.size!==Object.keys(labels).length||Object.keys(labels).some(label=>!expectedLabels.has(label)))throw new Error("Mapped labels do not cover the whole approved inventory.");
+  const keys=Object.keys(labels),vertices=keys.filter(key=>key.startsWith("v."));
+  if(!keys.length || keys.length>255 || keys.reduce((n,key)=>n+BigInt(labels[key]!),0n)!==counts.totalRows ||
+    vertices.reduce((n,key)=>n+BigInt(labels[key]!),0n)!==counts.vertices)throw new Error("Mapped labels do not cover the whole approved inventory.");
+  const source=object(record.sourceDraft.configuration.source),cosmos=object(source.cosmos??{}),gremlin=object(cosmos.gremlin??{}),form=record.sourceDraft.form;
+  const discovered=type==="cosmos-nosql" && gremlin.enabled===true;
+  if(type==="cosmos-nosql" && (form.cosmosFormat==="gremlin")!==discovered)throw new Error("Gremlin discovery differs from the reviewed source configuration.");
+  if(discovered){
+    // Gremlin has no manually entered mappings. The hash-bound complete guest
+    // inventory is the discovered catalog reviewed by the target approval.
+    // Never use a sampled profile or synthesize mappings in persisted state.
+    if(source.type!==type || form.mappings.length || cosmos.vertices!==undefined || cosmos.edges!==undefined ||
+      typeof gremlin.container!=="string" || !gremlin.container || gremlin.container!==form.container ||
+      typeof gremlin.partitionKeyProperty!=="string" || !gremlin.partitionKeyProperty || gremlin.partitionKeyProperty!==form.partitionKey ||
+      !Number.isInteger(gremlin.maxLabels) || Number(gremlin.maxLabels)<1 || !vertices.length || vertices.length>Number(gremlin.maxLabels) || keys.length-vertices.length>Number(gremlin.maxLabels))throw new Error("Gremlin catalog differs from the reviewed discovery bounds.");
+  }else{
+    const expectedLabels=new Set(form.mappings.map(mapping=>`${mapping.kind==="vertex"?"v":"e"}.${mapping.label}`));
+    if(expectedLabels.size!==keys.length || keys.some(label=>!expectedLabels.has(label)))throw new Error("Mapped labels do not cover the whole approved inventory.");
+  }
   return {operation:assessment.operation,reportSHA256:assessment.reportSHA256!,configurationSHA256:assessment.configurationSHA256,artifactSHA256:record.artifact.sha256,
     sourceType:type as "postgresql"|"cosmos-nosql",rows:counts.totalRows.toString(),vertices:counts.vertices.toString(),edges:counts.edges.toString(),storageHighBytes:capacity.recommendedStorageHigh!.toString(),labels};
 }

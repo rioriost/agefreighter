@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { sourceWorkflowDraft, RunnerRecord } from "../../core/runner";
 import { csvTargetEvidence, mappedNetworkTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, renewTargetAuthorization, submitTarget, refreshTarget, targetResourceIds, TargetInput, repairBusyTargetPreload } from "../../core/runnerTarget";
 import { RunnerControl } from "../../core/runnerLifecycle";
+import { buildSourceDraft } from "../../core/runnerSource";
 const id="11111111-1111-4111-8111-111111111111",op="22222222-2222-4222-8222-222222222222",file="33333333-3333-4333-8333-333333333333";
 const sha=(v:string)=>createHash("sha256").update(v).digest("hex");
 function fixture(){
@@ -62,6 +63,65 @@ test("PostgreSQL and Cosmos target evidence requires a complete mapped stream fo
     r.sourceDraft.form.mappings[1]!.label="OTHER";
     assert.throws(()=>mappedNetworkTargetEvidence(r,text),/approved inventory/);
   }
+});
+function gremlinFixture(){
+  const {r,input}=fixture();r.input.source={type:"cosmos-nosql",location:"azure"};
+  r.sourceDraft=buildSourceDraft(r.input.source,{name:"gremlin-test",namespace:"migration",host:"source.documents.azure.com",database:"p1",cosmosFormat:"gremlin",container:"graph",partitionKey:"partitionKey",gremlinPropertyTypes:"score=float64,distance_km=float64"},id);
+  const doc=JSON.parse(readFileSync("../../production-simulation/vscode-e2e/evidence/gremlin-inventory-20260918.json","utf8"));
+  r.artifact.version=doc.agefreighterVersion;
+  const seal=()=>{const text=JSON.stringify(doc),h=sha(text);r.assessment={operation:op,action:"inventory",phase:"finished",bootId:file,configurationSHA256:sha(JSON.stringify(r.sourceDraft!.configuration)),reportSHA256:h,reportBytes:Buffer.byteLength(text)};r.reportTransfers=[{operation:op,sha256:h,bytes:Buffer.byteLength(text),blob:"retained",phase:"imported"}];return text;};
+  return {r,input,doc,seal};
+}
+test("real complete Gremlin inventory sizes a private target without synthetic manual mappings",()=>{
+  const {r,input,doc,seal}=gremlinFixture(),text=seal(),before=JSON.stringify(r),e=mappedNetworkTargetEvidence(r,text);
+  assert.equal(e.rows,"5600000");assert.equal(e.vertices,"1600000");assert.equal(e.edges,"4000000");
+  assert.equal(Object.keys(e.labels).length,18);assert.equal(e.labels["v.Supplier"],40000);assert.equal(e.labels["e.SUPPLIES"],400000);
+  assert.equal(e.storageHighBytes,"13444452070");assert.equal(e.sourceType,"cosmos-nosql");
+  assert.equal(JSON.stringify(r),before);assert.deepEqual(r.sourceDraft!.form.mappings,[]);
+  const p=targetPreview(r,input,e);r.target=p;assert.equal(assertTargetFresh(r),p);
+  assert.equal(p.evidence.reportSHA256,sha(text));assert.equal(doc.errors.length,0);
+});
+test("Gremlin inventory cannot bypass complete-report, label-count or capacity gates",()=>{
+  for(const mutate of [
+    (d:any)=>{d.outcome="incomplete";},(d:any)=>{d.command="profile";},(d:any)=>{d.agefreighterVersion="other";},
+    (d:any)=>{d.incompleteChecks=["source-counts"];},(d:any)=>{d.errors=["failed"];},
+    (d:any)=>{d.checks[1].status="fail";},
+    (d:any)=>{d.sections.find((s:any)=>s.title==="Capacity indicators").fields.find((f:any)=>f.name==="estimatedTargetRows").value="1";},
+    (d:any)=>{d.sections.find((s:any)=>s.title==="Mapped record counts").fields.pop();},
+    (d:any)=>{const f=d.sections.find((s:any)=>s.title==="Mapped record counts").fields;f.push(f[0]);},
+    (d:any)=>{d.sections.find((s:any)=>s.title==="Mapped record counts").fields[0].value="9007199254740992";},
+    (d:any)=>{d.sections.find((s:any)=>s.title==="Mapped record counts").fields[0].name="edge:bad-label";},
+    (d:any)=>{d.sections.find((s:any)=>s.title==="Mapped record counts").fields[0].status="unknown";},
+  ]){const {r,doc,seal}=gremlinFixture();mutate(doc);assert.throws(()=>mappedNetworkTargetEvidence(r,seal()));}
+});
+test("Gremlin auto-discovery is admitted only for the matching bounded source configuration",()=>{
+  for(const mutate of [
+    (r:RunnerRecord)=>{r.sourceDraft!.form.cosmosFormat="explicit";},
+    (r:RunnerRecord)=>{r.sourceDraft!.form.container="different";},
+    (r:RunnerRecord)=>{r.sourceDraft!.form.partitionKey="other";},
+    (r:RunnerRecord)=>{r.sourceDraft!.form.mappings=[{kind:"vertex",label:"Injected"}] as any;},
+    (r:RunnerRecord)=>{(r.sourceDraft!.configuration.source as any).cosmos.gremlin.enabled=false;},
+    (r:RunnerRecord)=>{(r.sourceDraft!.configuration.source as any).cosmos.gremlin.maxLabels=8;},
+    (r:RunnerRecord)=>{(r.sourceDraft!.configuration.source as any).cosmos.vertices=[];},
+    (r:RunnerRecord)=>{(r.sourceDraft!.configuration.source as any).type="postgresql";},
+  ]){const {r,seal}=gremlinFixture();mutate(r);assert.throws(()=>mappedNetworkTargetEvidence(r,seal()),/Gremlin/);}
+});
+test("Gremlin report bytes, configuration and imported operation stay bound",()=>{
+  for(const mutate of [
+    (r:RunnerRecord)=>{r.reportTransfers![0]!.phase="submitted";},
+    (r:RunnerRecord)=>{r.reportTransfers![0]!.operation=file;},
+    (r:RunnerRecord)=>{r.assessment!.configurationSHA256="b".repeat(64);},
+    (r:RunnerRecord)=>{(r.sourceDraft!.configuration.source as any).cosmos.gremlin.container="changed";},
+  ]){const {r,seal}=gremlinFixture(),text=seal();mutate(r);assert.throws(()=>mappedNetworkTargetEvidence(r,text),/Import/);}
+  const {r,seal}=gremlinFixture(),text=seal();assert.throws(()=>mappedNetworkTargetEvidence(r,text+" "),/Import/);
+});
+test("Gremlin catalog admission remains bounded even when extra zero-count labels preserve totals",()=>{
+  const {r,doc,seal}=gremlinFixture(),fields=doc.sections.find((s:any)=>s.title==="Mapped record counts").fields;
+  (r.sourceDraft!.configuration.source as any).cosmos.gremlin.maxLabels=9;
+  fields.push({name:"edge:EXTRA",status:"pass",value:"0"});
+  assert.throws(()=>mappedNetworkTargetEvidence(r,seal()),/discovery bounds/);
+  for(let i=0;i<256;i++)fields.push({name:`edge:EXTRA_${i}`,status:"pass",value:"0"});
+  assert.throws(()=>mappedNetworkTargetEvidence(r,seal()),/approved inventory/);
 });
 test("incomplete, wrong version, duplicate and wrong-source reports cannot size a target",()=>{
   for(const mutate of [(d:any)=>{d.outcome="incomplete";},(d:any)=>{d.agefreighterVersion="other";},(d:any)=>{d.command="profile";},(d:any)=>{d.sections.find((s:any)=>s.title==="Mapped record counts").fields.push(d.sections.find((s:any)=>s.title==="Mapped record counts").fields[0]);}]){

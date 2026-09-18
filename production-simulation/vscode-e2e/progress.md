@@ -47,6 +47,15 @@ migration is started and no additional route is qualified. A supplemental local
 runner-test rerun hit the Mac's real 81%-used disk capacity gate; Cosmos/app and
 309 extension tests pass. See the execution record for exact scope.
 
+The subsequent installed-GUI target review exposed an admission defect: Gremlin
+auto-discovered labels were incorrectly compared with an empty manual mapping
+list. It stopped before target planning or deployment. The narrow local fix
+accepts the sealed complete catalog with configuration/count/bounds checks;
+**314** extension tests and compilation pass, including the real retained
+5.6M-row report. A new VSIX installation/reload is pending specific approval;
+installed-GUI target review and migration remain unqualified. No Azure resource
+was started or changed for this correction.
+
 The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
 passed at September 17 13:50:12 UTC: all 5,600,000 successful writes and
 independently drained remote rows match, and all 18 file counts match the pinned
