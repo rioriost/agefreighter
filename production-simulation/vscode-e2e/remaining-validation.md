@@ -2,6 +2,16 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 09:19 UTC: installed GUI passes separate migration-RG selection
+and preservation across source-RG reselection, plus malformed-subnet,
+cross-subscription-subnet and malformed-source-ID rejection before dispatch.
+All 70 operator files are unchanged; no Azure mutation. Review also identifies
+two **implementation gaps**, not merely missing tests: independent network-RG
+target deployment is explicitly unsupported, and PostgreSQL key/FK recommendation
+discovery is not connected to the runner GUI. Existing manual mappings and
+same-group P1 PASS do not close those requirements. See
+[exact cases and next implementation boundaries](placement-negative-gui-20260918.md).
+
 September 18 08:37 UTC: after explicit approval, `f9e456e` is installed/reloaded
 and its bundle hash matches the pinned package. Actual signed-in GUI passes
 known-source proposal, manual-region explanation replacement, catalog-refresh
@@ -176,10 +186,10 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 | ID | Required branch | Existing evidence / current limitation | Remaining acceptance | State |
 |---|---|---|---|---|
-| B01 | Default/separate migration RG; independent network RG | Retained workflow audit binds all accepted base paths to same source/runner/network RG | Separate migration/network RG GUI choices remain unrepresented | partial |
-| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | All retained paths bind Japan East/zone 1; placement/preflight tests and missing SKU/quota resize rejection pass | Defaults versus overrides, unknown zone and invalid choices still need precise GUI/no-write evidence | partial |
+| B01 | Default/separate migration RG; independent network RG | Base P1 paths use same RG; installed GUI now proves separate migration-RG selection/default preservation | Separate-RG provisioning unqualified; independent network-RG target deployment requires implementation, not only testing | partial |
+| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review and early malformed/cross-subscription input rejection; placement/preflight tests pass | Unknown-zone VM transition and live invalid region/SKU/subnet/delegation/quota admission remain unqualified | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
-| B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes and full P1 canonical results pass | Map recommendation acceptance/edit branches and CSV choices to retained GUI evidence | running |
+| B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes and reviewed manual mappings have full P1 canonical PASS | PostgreSQL key/FK recommendation discovery/adoption/editing requires runner/GUI implementation; not established by manual mappings. Finish exact CSV choice bindings | partial |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin-shaped NoSQL installed-GUI inventory, private target/resize, migration and complete counts pass; independent full digest generated 05:08:24 UTC and GUI-imported, all 5.6M records / 18 labels / 64 ranges and root match, including typed properties, composite IDs and endpoints | Complete for the defined document-format branch; not native Gremlin API qualification | pass |
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
