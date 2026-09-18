@@ -8,13 +8,14 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
-**Latest Gremlin state (September 18 04:53 UTC):** the user approved the pinned
-full verifier; restarted only the same VM/target and fresh GUI readiness passed.
-The installed GUI then refused before dispatch because 25 ARM control receipts
-are retained. Full digest is **not run**. Three old successful readiness receipts
-are archived, not deleted; their exact-record removal awaits separate approval.
-At 04:53:52 UTC the exact VM/target are verified deallocated / Stopped again,
-preserving all evidence; the scoped monitor is paused.
+**Latest Gremlin state (September 18 05:04 UTC):** after specific approval,
+archived/pushed and removed only three old successful readiness control records.
+Fresh GUI health passed; unchanged pinned full verifier was submitted through the
+installed GUI at **05:04:42.871 UTC**, operation
+`b0530700-ccd4-4f33-84fa-0854c8f4037b`, on the same migrated job. Full digest
+is **pending**, not PASS. Exact VM/target are running with the scoped safety
+monitor active, 25-minute/4-GiB verifier cap and unchanged 06:00 UTC hard stop.
+All data/disks and archived/guest evidence are preserved.
 
 Previous completed checkpoint: migration
 `c257a458-be95-44be-a3ad-54e2318b1856` and complete counts **PASS** in the

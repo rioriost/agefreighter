@@ -806,3 +806,34 @@ was bypassed.
 At **04:53:52 UTC**, fresh ARM reads verify this VM **deallocated / provisioning
 Succeeded** and target **Stopped**. The scoped heartbeat is paused. No other
 resources, source documents, permissions or networking changed.
+
+### Approved receipt archival and removal — September 18 05:00 UTC onward
+
+The user approved removal of only the three named historical successful readiness
+control records and continuation of the already approved full verifier. Fresh
+ownership/private-placement/lock checks passed; recent activity contained the
+preceding target stop. Billing refresh remains 429, so the USD 650 conservative
+reserve and USD 1.448/hour compute allowance are retained, not called live billing.
+Started only the same VM and target; hard stop remains **06:00 UTC / 15:00 JST**.
+
+After boot, the exact three records again returned their original successful
+execution timestamps, exit 0 and complete readiness outputs. Saved selected
+non-sensitive ARM fields and complete outputs in the
+[ARM readiness archive](evidence/gremlin-readiness-arm-archive-20260918.json),
+committed and pushed as `de7b3db` **before deletion**. Then removed only these
+three control records. Fresh ARM listing has **22** records and none of those
+three names. Current readiness, failed operations, inventory/migration/export
+records, guest evidence, all data and disks remain intact. This control-record
+removal is permanent in Azure; the archived evidence remains available in Git.
+The full verifier is not yet submitted; fresh GUI readiness is in progress.
+
+Fresh readiness `24d93dab-0743-471d-97d7-d3a51d48ded1` at **05:02:35.416 UTC**
+passed on boot `d50634d9-f933-44d3-838c-2daf1292ed5f`: idle, disk **3.94291%**,
+swap/OOM zero and unchanged loader. Independent guest diagnostic found no active
+worker and about 288 MB used memory. Target is Ready. The GUI selected the exact
+already-approved verifier manifest, recomputed its matching archive hash and
+accepted the reviewed native confirmation. Qualification was submitted once at
+**05:04:42.871 UTC**, operation `b0530700-ccd4-4f33-84fa-0854c8f4037b`, profile
+`gremlin-partition64`, for existing job `c257a458-be95-44be-a3ad-54e2318b1856`.
+Its 25-minute service limit and 4-GiB/no-swap limits remain; the infrastructure
+hard stop is 06:00 UTC. No completed digest or B05 PASS is claimed yet.

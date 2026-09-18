@@ -3,7 +3,7 @@
   "scope": "Redacted completed readiness receipts observed before September 18 stop; not full ARM resource exports",
   "workflow": "4043e008-b86e-47b8-8722-1efe637ae12a",
   "vm": "af-4043e008b86e47b88722",
-  "deletionStatus": "Not deleted; specific approval pending. Recheck exact completion after authorized restart before deletion.",
+  "deletionStatus": "User approved; original successful outputs rechecked after restart and archived in gremlin-readiness-arm-archive-20260918.json, committed/pushed as de7b3db before deleting only these three ARM records. Fresh list confirmed 22 records and absence of all three. Guest evidence and data retained.",
   "postStopObservation": "InstanceView became Pending with no retained output while provisioningState stayed Succeeded. This is not evidence that an old command was replayed.",
   "commonReadiness": {
     "version": 1,
