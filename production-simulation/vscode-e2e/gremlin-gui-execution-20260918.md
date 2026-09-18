@@ -559,3 +559,35 @@ Pinned replacement package (not installed):
 - Next gate: specifically approve installation/reload of this unpublished VSIX,
   reconnect the same workflow and retry target review using the retained report.
   No Linux artifact replacement or repeated source inventory is required.
+
+### Approved target-review VSIX installed — September 18 01:42–01:49 UTC
+
+Following specific user approval, installed the pinned `60ea712` VSIX through
+the native Install from VSIX dialog and ran Developer: Reload Window. VS Code
+reported successful installation. The installed `dist/extension.js` hash is
+`90497cab435a6f2082d08cf4097ef77daf5d69e1dc78c5067ca21a33effc0617`, exactly
+the reviewed package. Existing Azure sign-in and workflow reconnection worked.
+The saved report remains imported with operation `c5ce0e77-ac49-472a-a112-b10e5d375b0f`
+and unchanged SHA `c4ec98b8adb7e3a70d5b00d0914a66c6f3e5ca28244958edf4b62d0fe438dba6`.
+
+The installed GUI now passes Gremlin label admission and opens target inputs.
+Reviewed provisional values: server `afpg-4043e008b86e47b88722`, free subnet
+`10.246.22.0/24`, PostgreSQL D4ds_v5 with 128 GiB storage, later same-VM D4s_v5,
+USD 800 ceiling and USD 650 accrued/non-compute reserve. An execution deadline
+of September 18 06:00 UTC was proposed, not granted or applied to a running VM.
+The next safety gate correctly refuses: **Check the running guest before
+approving target deployment.** No target preview was persisted, folder selected,
+credentials generated, source inventory replayed or Azure deployment submitted.
+
+Fresh ARM readback confirms the runner remains deallocated / provisioning
+Succeeded. The original 01:26 UTC inventory VM bound has passed and was not
+extended. Request a new bounded same-VM readiness session before starting it;
+new target/security approval remains separate. Read-only subnet inventory shows
+the proposed /24 unallocated. Recent activity returned only prior deallocation
+and a resource-health update, with no RG lock returned. Billing refresh returned
+429: USD 218.41 is delayed prior evidence, not a newly confirmed current total.
+The conservative USD 650 reserve remains a planning allowance, not an invoice.
+
+**Current result:** installed-GUI label-admission correction passes; full target
+preflight awaits a running, freshly checked guest. B05 migration/digest and B10
+active migration/verification reload remain open. No cloud mutation this turn.

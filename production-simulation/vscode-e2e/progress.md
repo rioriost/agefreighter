@@ -56,6 +56,14 @@ accepts the sealed complete catalog with configuration/count/bounds checks;
 installed-GUI target review and migration remain unqualified. No Azure resource
 was started or changed for this correction.
 
+Following specific approval, the pinned `60ea712` VSIX is now installed and
+reloaded; its installed-code hash matches. The actual GUI restores the same
+sealed report and passes Gremlin label admission. Target preflight now correctly
+requires a running/freshly checked guest. The runner remains deallocated after
+its old 01:26 UTC bound; a new bounded readiness session is awaiting approval.
+No target intent, credentials or deployment were created. Latest billing refresh
+returned 429; the previous USD 218.41 total is delayed evidence, not current cost.
+
 The [isolated Gremlin source preparation](gremlin-source-execution-20260917.md)
 passed at September 17 13:50:12 UTC: all 5,600,000 successful writes and
 independently drained remote rows match, and all 18 file counts match the pinned
