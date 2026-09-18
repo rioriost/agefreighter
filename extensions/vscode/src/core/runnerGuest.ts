@@ -3,6 +3,7 @@ import { object, RunnerRecord } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
 import { csvCapability, reportCapability, reportManifest } from "./runnerBlob";
 import { CSVManifest, validateCSVManifest } from "../guided/csvTransfer";
+import { commandCapacityMessage, retainReadinessReceipt } from "./runnerReceipts";
 
 export interface GuestCommand {
   id: string;
@@ -80,7 +81,7 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
   const payload = JSON.stringify(bootBound ? { ...request, expectedBootId: record.guestReady!.bootId } : request);
   if (Buffer.byteLength(payload) > 1024 * 1024) throw new Error("Guest request is too large.");
   const commands = await control.list(record.input.subscriptionId, `${record.vmId}/runCommands?api-version=2024-07-01`);
-  if (commands.length >= 25) throw new Error("This VM has reached Azure's 25 managed Run Command limit. Archive and reconcile completed command evidence before removing old command resources. No new request was submitted; source data must not be deleted.");
+  if (commands.length >= 25) throw new Error(commandCapacityMessage);
   const command: GuestCommand = { id: `${record.vmId}/runCommands/af-${randomUUID()}`, operation: request.operation, action: request.action, phase: "submitted", submittedAt: new Date().toISOString() };
   if ((await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01`)).status !== 404) throw new Error("Guest command resource already exists.");
   const submitted: RunnerRecord = { ...record, guestCommand: command };
@@ -158,6 +159,7 @@ export async function reconcileGuest(control: RunnerControl, record: RunnerRecor
     } catch { result = undefined; }
   }
   if (command.action === "ready" && next.guestCommand?.phase !== "finished") delete next.guestReady;
+  if (command.action === "ready" && next.guestCommand?.phase === "finished") next = retainReadinessReceipt(next);
   await control.persist(next);
   return { record: next, result };
 }

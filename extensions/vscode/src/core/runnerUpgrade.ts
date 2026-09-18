@@ -88,7 +88,7 @@ cat "$work/readiness.json"
 export async function submitUpgrade(control: RunnerControl, record: RunnerRecord, artifact: RunnerArtifact): Promise<RunnerRecord> {
   assertUpgradeIdle(record);
   if (artifact.sha256 === record.artifact.sha256) throw new Error("This artifact is already installed.");
-  if ((await control.list(record.input.subscriptionId, `${record.vmId}/runCommands?api-version=2024-07-01`)).length >= 25) throw new Error("Archive completed command evidence before upgrading: Azure command limit reached.");
+  if ((await control.list(record.input.subscriptionId, `${record.vmId}/runCommands?api-version=2024-07-01`)).length >= 25) throw new Error("Archive completed command evidence before upgrading: this extension's retained-command limit was reached. Nothing is removed automatically.");
   const operation = randomUUID();
   const upgrade: RunnerUpgrade = { operation, commandId: `${record.vmId}/runCommands/af-${operation}`, phase: "submitted", previous: record.artifact, artifact,
     bootId: record.guestReady!.bootId, submittedAt: new Date().toISOString() };

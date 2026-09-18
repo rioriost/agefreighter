@@ -82,6 +82,10 @@
     },
     "commands": [
       {
+        "command": "agefreighter.archiveRunnerReadiness",
+        "title": "AGEFreighter: Archive runner readiness receipts"
+      },
+      {
         "command": "agefreighter.continueRunnerExecution",
         "title": "AGEFreighter: Continue / Verify Linux Migration"
       },

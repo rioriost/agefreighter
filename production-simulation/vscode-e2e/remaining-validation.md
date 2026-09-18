@@ -2,6 +2,13 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 local follow-up: successful readiness controls now retain sealed
+receipts, with a native local-only archive action and negative tests. This is
+stage 1 of command lifecycle work, **not slot reclamation or live qualification**.
+No cloud operation or installed extension change was performed. B08/B09's
+archive-before-removal lifecycle gate remains open, as does B10 forced Extension
+Host crash. See [scope and remaining stages](command-receipt-lifecycle-20260918.md).
+
 September 18 05:11 UTC follow-up: **B05 Gremlin-shaped NoSQL full PASS** in the
 installed GUI and independent Mac validation: 5.6M records / 18 labels / all 64
 ranges and canonical root agree. Actual active-verifier Reload Window/reconnect

@@ -13,6 +13,7 @@ import { developmentEnabled, prepareDevelopmentRunner, upgradeDevelopmentRunner 
 import { reviewRunnerTarget } from "./runnerTargetPanel";
 import { continueRunnerExecution } from "./runnerExecutionPanel";
 import { requirePanelWorkflow } from "./core/runnerPanelBinding";
+import { archiveRunnerReadiness } from "./runnerReceiptsPanel";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -20,6 +21,10 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
   const azure = new AzureSession();
   let panel: vscode.WebviewPanel | undefined;
   const store = new RunnerStore(join(context.globalStorageUri.fsPath, "runner-v2"));
+  context.subscriptions.push(vscode.commands.registerCommand("agefreighter.archiveRunnerReadiness", async () => {
+    try { await archiveRunnerReadiness(store); }
+    catch (error) { await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Readiness evidence could not be archived. Nothing was removed."); }
+  }));
   const catalog = async (subscription: string) => {
     const [groups, regions] = await Promise.all([
       azure.runnerList(subscription, `/subscriptions/${subscription}/resourcegroups?api-version=2021-04-01`),

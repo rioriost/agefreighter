@@ -306,6 +306,33 @@ Virtual workspaces are not supported because the CLI requires filesystem paths.
 
 ## Support
 
+### Retained runner readiness evidence
+
+The guided runner currently stops new submissions at 25 managed Run Command
+records. This is the extension's admission threshold, not a claim about an
+Azure service quota. Repeated readiness checks can consume these slots.
+
+New successful readiness reconciliations retain a hash-sealed, field-allowlisted
+receipt in the private workflow store before a later command can replace the
+current control. Failed, pending, or uncertain results never produce successful
+receipts. Protected parameters, raw ARM responses, source configuration and
+credentials are not copied into these receipts.
+
+Run **AGEFreighter: Archive runner readiness receipts** from the Command Palette
+to publish one retained receipt as a create-only, hash-verified local evidence
+file and display it. This works before target creation and without Azure login,
+a VM restart, or a desktop CLI. The archive is retained under the extension's
+private `runner-v2` storage as `<workflow>.report-<ARM-command-UUID>.json`.
+The picker marks receipts still referenced by workflow state. Legacy records
+without a sealed receipt are not adopted automatically.
+
+**Archiving does not free command slots or authorize deletion.** No Azure
+resource or guest evidence is removed. Reviewable selective removal and its
+interrupted-operation reconciliation remain follow-up work; do not delete
+unknown, running, referenced, migration, or verification commands to bypass the
+threshold. A stopped VM may temporarily expose a pending instance view, which
+must not be treated as a confirmed terminal result.
+
 - [AGEFreighter documentation](https://github.com/rioriost/agefreighter/tree/main/docs)
 - [Configuration reference](https://github.com/rioriost/agefreighter/blob/main/docs/reference/configuration.md)
 - [Operations guide](https://github.com/rioriost/agefreighter/blob/main/docs/reference/operations.md)
