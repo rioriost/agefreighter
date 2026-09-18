@@ -2,6 +2,15 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 PostgreSQL recommendation foundation: bounded read-only catalog
+reader and deterministic, explicit non-overwriting mapping adoption are locally
+implemented. All **404 extension unit tests**, typecheck/build and PostgreSQL
+connector race tests pass, including the dedicated local PostgreSQL 18.6
+catalog integration fixture. This is a library/pure-engine slice, not a remote
+operation or GUI feature yet; B04 remains partial. Runner report provenance,
+GUI discovery/import/adoption and live qualification are next. See
+[implementation boundaries and evidence](postgres-recommendations-20260918.md).
+
 September 18 local implementation follow-up: independent same-subscription
 network-RG target deployment now has a scoped subnet-only nested template,
 two-scope preflight/what-if, explicit approval scope and read-only child-operation
@@ -197,7 +206,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B01 | Default/separate migration RG; independent network RG | Base P1 paths use same RG; installed GUI proves separate migration-RG selection/default preservation; scoped network-RG target implementation and local tests now exist | Separate-RG provisioning and independent network-RG deployment still need installed GUI/Azure qualification; no live two-scope receipt yet | partial |
 | B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review and early malformed/cross-subscription input rejection; placement/preflight tests pass | Unknown-zone VM transition and live invalid region/SKU/subnet/delegation/quota admission remain unqualified | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
-| B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes and reviewed manual mappings have full P1 canonical PASS | PostgreSQL key/FK recommendation discovery/adoption/editing requires runner/GUI implementation; not established by manual mappings. Finish exact CSV choice bindings | partial |
+| B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes and reviewed manual mappings have full P1 canonical PASS; bounded PG catalog/recommendation foundations pass local tests | Connect hash-bound Linux catalog operation and explicit GUI discovery/import/adoption/editing, then qualify live. Foundations/manual mappings do not close this. Finish exact CSV choice bindings | partial |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin-shaped NoSQL installed-GUI inventory, private target/resize, migration and complete counts pass; independent full digest generated 05:08:24 UTC and GUI-imported, all 5.6M records / 18 labels / 64 ranges and root match, including typed properties, composite IDs and endpoints | Complete for the defined document-format branch; not native Gremlin API qualification | pass |
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |

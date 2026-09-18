@@ -1263,8 +1263,9 @@ Windows unit tests, source contracts, Extension Host and packaging.
   or explicitly representative assessment remains an R4 acceptance gate.
   Complete CSV inventory has now passed local P1 testing, and prefix-scaled
   estimates no longer pass the capacity gate even with exact total counts.
-- The form requires explicit reviewed mappings; automatic PostgreSQL schema/FK
-  recommendations are not implemented. Current table/column/graph identifiers
+- The form requires explicit reviewed mappings. PostgreSQL schema/FK catalog and
+  recommendation foundations are locally tested, but not yet connected to the
+  Linux runner or GUI (see [stage 1 evidence](postgres-recommendations-20260918.md)). Current table/column/graph identifiers
   are limited to ASCII letters/digits/underscores. Cosmos explicit mappings use
   a top-level label field; only the public Azure NoSQL endpoint is supported.
 - TLS validation remains mandatory. A custom Neo4j/PostgreSQL source CA can now
