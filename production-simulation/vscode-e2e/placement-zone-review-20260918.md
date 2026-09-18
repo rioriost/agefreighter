@@ -164,3 +164,47 @@ RG/network and live provisioning branches are not closed by these checks.
 - Packaging reran typecheck, all 391 unit tests and build successfully.
   Not installed or published; next action is approval to install/reload and
   repeat the same read-only GUI checks, without Azure starts or mutations.
+
+## Approved wording-fix installation — September 18, 08:37 UTC
+
+The user approved this exact candidate. Native **Install from VSIX** reported
+completed installation and **Developer: Reload Window** completed. The installed
+bundle SHA-256 is now
+`e3a8fb0aa518b8d8c339aef8aa1d3d861ccfdc82baa7fec32fc2afeef9964ac1`,
+matching the pinned `f9e456e` package. This supersedes the preceding
+not-installed checkpoint.
+
+Private pre-installation archives are retained, not committed, under
+`production-simulation/work/region-install-backup.VgAOk2`:
+
+- Store archive SHA-256: `89ba27ba15c87c48a876bb8a24a80d283603873a3c7e7f069689ec7f2fb70ac0`.
+- Previous extension archive SHA-256: `c9a4771875391832789dea21c23ada3856a5b9ff64342b01f577e49bc812a725`.
+
+Actual signed-in GUI checks in a new unsaved wizard:
+
+1. Selecting `af-n44-source` in the dedicated trial group proposes Japan East,
+   zone 1 and the known-source region/zone explanations.
+2. Changing to Japan West clears the zone, disables preview and replaces
+   inferred-region wording with **Runner region explicitly selected**, including
+   the warning that source co-location and capacity still require preflight.
+3. Refreshing the resource-group/region catalog preserves Japan West and the
+   explicit-choice explanation; the zone stays empty and preview disabled.
+4. Deselecting the candidate clears its ARM identity and replaces the explanation
+   with review-required guidance; no retained region is presented as source proof.
+5. Reselecting `af-n44-source` restores the known-source proposal. Changing
+   location to **other-cloud** clears the zone and replaces inferred guidance.
+   Switching source type to **CSV files** fixes location to **local** and retains
+   review-required guidance. No CSV picker or upload was invoked.
+
+Native menu selection occasionally lost focus; only the final visibly confirmed
+states above count as results. The unsaved wizard was closed afterward.
+All 70 operator files remain byte-identical to the pre-install baseline, aggregate
+SHA-256 `fcc85c6021b1191d9207a9fe93eb661cd1665edebbf83e5d33a4602d87f248ef`.
+No preview, assessment, workflow save, deployment, migration, credentials or
+Azure control mutation occurred. Read-only catalog/candidate requests were the
+only Azure operations; no fresh cloud power/cost claim is made.
+
+The observed explanatory-text regression is closed in the installed GUI.
+B01/B02/B03 remain partial for their untested branches; this checkpoint is not
+full placement, cross-subscription, network, provisioning or migration qualification.
+No new code change or Marketplace publication was required in this batch.

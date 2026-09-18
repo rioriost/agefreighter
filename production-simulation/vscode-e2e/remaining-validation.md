@@ -2,6 +2,15 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 08:37 UTC: after explicit approval, `f9e456e` is installed/reloaded
+and its bundle hash matches the pinned package. Actual signed-in GUI passes
+known-source proposal, manual-region explanation replacement, catalog-refresh
+preservation, candidate deselection, and other-cloud/CSV changes without stale
+inferred-region wording. All 70 operator files remain byte-identical; no Azure
+mutation, workflow save or worker was submitted. The observed wording defect is
+closed; B01/B02/B03's remaining branches are not. See the
+[installed wording-fix checkpoint](placement-zone-review-20260918.md#approved-wording-fix-installation--september-18-0837-utc).
+
 September 18 08:27 UTC: installed GUI confirms actual Neo4j candidate-derived
 Japan East/zone 1, manual Japan West clearing the zone and disabling preview,
 empty-subnet preview rejection before cloud dispatch, and Cosmos metadata not
