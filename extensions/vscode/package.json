@@ -364,6 +364,7 @@
     "test:source-contract": "tsx --test src/test/runnerSource.contract.ts",
     "test:host:compile": "tsc -p tsconfig.test.json",
     "test:host": "npm run compile && npm run test:host:compile && node out-test/test/runTest.js",
+    "test:host:crash": "npm run compile && npm run test:host:compile && node out-test/test/runCrashTest.js",
     "test": "npm run typecheck && npm run test:unit",
     "check": "npm run test && npm run compile",
     "vscode:prepublish": "npm run check",

@@ -182,3 +182,12 @@ Successful eligible-receipt archiving/removal in the installed GUI, live Azure
 removal/GET-only recovery and actual forced Extension Host crash are **not**
 proven. Existing legacy workflows do not provide a sealed eligible test receipt;
 do not fabricate/adopt one or start cloud resources just to close this gap.
+
+### Later isolated forced-exit evidence
+
+The [September 18 crash batch](extension-host-crash-20260918.md) subsequently
+passed two actual development Extension Host SIGKILL boundaries with real
+archive/intent persistence. A reopened host refuses the retained crash lock;
+separate inert recovery-controller checks are GET-only. This strengthens local
+crash evidence but does not establish live deletion, signed-in active-operation
+crash recovery, or permission to clear a crash lock.

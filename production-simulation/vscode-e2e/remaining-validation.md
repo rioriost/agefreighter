@@ -2,6 +2,15 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 06:23 UTC follow-up: **two isolated actual Extension Host SIGKILL
+cases pass**, before dispatch and after synthetic dispatch. Real archive/intent
+hashes survive a new host process; the retained crash lock blocks native access
+before requests. Separately, the recovery controller uses fixture GET only and
+never replays deletion. Existing 13 native-host tests and 380 unit tests pass;
+operator records and installed bundle remain unchanged. Azure is not contacted
+by this harness. This is not active-cloud/signed-in crash qualification; B09/B10
+remain partial. See [evidence and limits](extension-host-crash-20260918.md).
+
 September 18 installed-candidate follow-up: after explicit approval, candidate
 `dbf017d` was installed from the pinned VSIX and Reload Window completed in
 VS Code **1.138.0 arm64**. Both native receipt commands activate. The archive
@@ -141,7 +150,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory recorded; Cosmos cross-window/trust guards corrected and tested; controller tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation; native resize, checkpoint inspection, target diagnosis, empty-target archival and report-transfer Cancel preserve prior records | Other approval surfaces and unrepresented faults still require bounded GUI/no-write evidence | partial |
-| B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened; actual active Gremlin inventory, migration and full verifier Reload Window/reconnect preserve exact operations through successful report import without replay; verifier full canonical GUI PASS and independent Mac recomputation agree | Forced Extension Host crash remains distinct and unqualified | partial |
+| B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and full canonical PASS remain accepted; actual isolated Extension Host SIGKILL now preserves archive/intent and crash lock at two control-removal boundaries, with inert Azure adapters and GET-only controller checks | Forced crash during signed-in active Azure operation and native operator-reviewed crash-lock recovery remain unqualified | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass; 20 production P1 controller tests cover full-digest identity/coverage/forgery, transfer failures, retained identity changes and corrupted reopen; signed-in installed candidate refuses retained P1 failure without retry/new PASS | Other invalid-import/transfer cases still lack installed-GUI evidence; synthetic reports and inert adapters are not live GUI/Azure fault evidence | partial |
 
