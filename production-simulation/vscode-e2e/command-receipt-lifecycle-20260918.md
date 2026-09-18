@@ -125,3 +125,16 @@ installation or removal has been performed for this change.
   the Azure transport adapter rejects other scopes/accounts and missing trust.
 - `git diff --check` passed. These are local/inert-adapter tests, not a live
   Windows/macOS signed-in GUI or Azure service result.
+
+### Pinned candidate (not installed)
+
+- Source commit: `dbf017d0dd80835360cc4d6f032708b7ed3aca5c`.
+- VSIX: `production-simulation/work/vscode-receipt-removal.X1nhbl/agefreighter-dbf017d-readiness-removal.vsix`.
+- VSIX SHA-256: `a1139aad6e6eec7f55312fc0394e6697701422cbaf96e382809880e942b66866`.
+- Bundled JavaScript SHA-256: `965a4c4422ff2816668611d937123f9f05377b59bb2cd848f72a29222e74f6a3`;
+  exact match between the compiled local file and the extracted VSIX member.
+- Packaging reran all 380 tests and build successfully. Package manifest is
+  version 2.4.0 and contains both archive and reviewed-removal native commands.
+- No VSIX installation, Marketplace publication or Azure operation performed.
+  Installation/live qualification must preserve current accepted workflows and
+  use separate action-time approval for the exact removal target, if eligible.
