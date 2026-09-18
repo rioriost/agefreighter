@@ -2,6 +2,14 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 local implementation follow-up: independent same-subscription
+network-RG target deployment now has a scoped subnet-only nested template,
+two-scope preflight/what-if, explicit approval scope and read-only child-operation
+reconciliation. All **398 unit / 13 isolated host tests**, typecheck and build pass. This is not
+installed or Azure-qualified; B01 remains partial. PostgreSQL key/FK
+recommendations remain an implementation gap. See
+[design, checks and live qualification boundary](independent-network-group-20260918.md).
+
 September 18 09:19 UTC: installed GUI passes separate migration-RG selection
 and preservation across source-RG reselection, plus malformed-subnet,
 cross-subscription-subnet and malformed-source-ID rejection before dispatch.
@@ -186,7 +194,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 | ID | Required branch | Existing evidence / current limitation | Remaining acceptance | State |
 |---|---|---|---|---|
-| B01 | Default/separate migration RG; independent network RG | Base P1 paths use same RG; installed GUI now proves separate migration-RG selection/default preservation | Separate-RG provisioning unqualified; independent network-RG target deployment requires implementation, not only testing | partial |
+| B01 | Default/separate migration RG; independent network RG | Base P1 paths use same RG; installed GUI proves separate migration-RG selection/default preservation; scoped network-RG target implementation and local tests now exist | Separate-RG provisioning and independent network-RG deployment still need installed GUI/Azure qualification; no live two-scope receipt yet | partial |
 | B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review and early malformed/cross-subscription input rejection; placement/preflight tests pass | Unknown-zone VM transition and live invalid region/SKU/subnet/delegation/quota admission remain unqualified | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes and reviewed manual mappings have full P1 canonical PASS | PostgreSQL key/FK recommendation discovery/adoption/editing requires runner/GUI implementation; not established by manual mappings. Finish exact CSV choice bindings | partial |

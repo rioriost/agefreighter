@@ -24,6 +24,9 @@ export interface RunnerTarget {
   input: TargetInput; evidence: TargetEvidence; template: Record<string,unknown>;
   deploymentId: string; serverId: string; subnetId: string; dnsId: string;
   hash: string; expiresAt: string; generatedAt: string;
+  reviewedRunnerInputSHA256?: string;
+  /** Present only for a same-subscription VNet in a different existing group. */
+  networkDeployment?: { deploymentId: string; resourceGroup: string; vnetId: string; template: Record<string,unknown> };
   configurationRepair?: {phase:"submitted"|"unknown"|"finished";submittedAt:string;originalDeploymentState:"Failed";failureCode:"ServerIsBusy";resourceId:string;previousValue:string;desiredValue:string};
 }
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -156,7 +159,7 @@ export function targetPreview(record: RunnerRecord, input: TargetInput, evidence
   cidr(input.subnetCIDR);targetBudget(input);
   if(!/^\d+$/.test(evidence.storageHighBytes) || BigInt(evidence.storageHighBytes)*125n>BigInt(input.storageGiB)*1024n**3n*100n)throw new Error("Target storage does not cover the high estimate plus 25% headroom.");
   const base=`/subscriptions/${record.input.subscriptionId}/resourceGroups/${record.input.resourceGroup}`, vnetId=record.input.subnetId.replace(/\/subnets\/[^/]+$/i,"");
-  if(!vnetId.toLowerCase().startsWith(`${base}/providers/Microsoft.Network/virtualNetworks/`.toLowerCase()))throw new Error("This initial target path requires the runner VNet in the migration resource group; no cross-group deployment is inferred.");
+  const networkGroup=targetNetworkGroup(record);
   const suffix=record.id.replaceAll("-","").slice(0,20), subnetName=`afpg-${suffix}`, dnsName=`af-${suffix}.postgres.database.azure.com`;
   const serverId=`${base}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${input.serverName}`, subnetId=`${vnetId}/subnets/${subnetName}`, dnsId=`${base}/providers/Microsoft.Network/privateDnsZones/${dnsName}`;
   const tags={application:"agefreighter",workflow:record.id,purpose:"migration-target"};
@@ -172,14 +175,37 @@ export function targetPreview(record: RunnerRecord, input: TargetInput, evidence
       // can still contend, so a failed deployment must never be auto-replayed.
       ...[["azure.extensions","AGE",`${serverId}/databases/agefreighter`],["shared_preload_libraries","pg_stat_statements,age",`${serverId}/configurations/azure.extensions`]].map(([name,value,after])=>({type:"Microsoft.DBforPostgreSQL/flexibleServers/configurations",apiVersion:"2024-08-01",name:`${input.serverName}/${name}`,dependsOn:[after],properties:{value,source:"user-override"}}))
     ]};
+  let networkDeployment:RunnerTarget["networkDeployment"];
+  if(networkGroup.toLowerCase()!==record.input.resourceGroup.toLowerCase()){
+    const resources=template.resources as Record<string,unknown>[];
+    const networkTemplate={$schema:template.$schema,contentVersion:"1.0.0.0",resources:[resources[0]!]};
+    const deploymentName=`afpg-net-${suffix}`,deploymentId=`/subscriptions/${record.input.subscriptionId}/resourceGroups/${networkGroup}/providers/Microsoft.Resources/deployments/${deploymentName}`;
+    networkDeployment={deploymentId,resourceGroup:networkGroup,vnetId,template:networkTemplate};
+    resources[0]={type:"Microsoft.Resources/deployments",apiVersion:"2022-09-01",name:deploymentName,resourceGroup:networkGroup,
+      properties:{mode:"Incremental",expressionEvaluationOptions:{scope:"inner"},template:networkTemplate}};
+    // The server depends on the scoped deployment, not a child declared in
+    // another template. Only ARM executes it; the client never replays it.
+    resources[3]!.dependsOn=[deploymentId,`${dnsId}/virtualNetworkLinks/runner`];
+  }
   const generatedAt=new Date().toISOString(), expiresAt=new Date(Date.now()+900000).toISOString();
-  const plan={phase:"previewed" as const,input,evidence,template,deploymentId:`${base}/providers/Microsoft.Resources/deployments/afpg-${suffix}`,serverId,subnetId,dnsId,generatedAt,expiresAt};
+  const plan={phase:"previewed" as const,input,evidence,template,deploymentId:`${base}/providers/Microsoft.Resources/deployments/afpg-${suffix}`,serverId,subnetId,dnsId,generatedAt,expiresAt,reviewedRunnerInputSHA256:hash(record.input),...networkDeployment?{networkDeployment}:{}};
   return {...plan,hash:hash(plan)};
+}
+
+export function targetNetworkGroup(record:RunnerRecord):string{
+  const match=/^\/subscriptions\/([^/]+)\/resourceGroups\/([A-Za-z0-9_.()-]+)\/providers\/Microsoft\.Network\/virtualNetworks\/([A-Za-z0-9_.-]+)\/subnets\/([A-Za-z0-9_.-]+)$/i.exec(record.input.subnetId);
+  if(!match || match[1]!.toLowerCase()!==record.input.subscriptionId.toLowerCase())throw new Error("Target network must be an exact subnet in the runner subscription.");
+  return match[2]!;
 }
 
 export function assertTargetFresh(record:RunnerRecord): RunnerTarget {
   const p=record.target;if(!p)throw new Error("Review a target preview first.");
   const {hash:retained,...original}=p;
+  if(p.reviewedRunnerInputSHA256 && p.reviewedRunnerInputSHA256!==hash(record.input))throw new Error("Reviewed runner input changed; review a new target plan.");
+  const networkGroup=targetNetworkGroup(record),vnetId=record.input.subnetId.replace(/\/subnets\/[^/]+$/i,"");
+  if(!p.subnetId.toLowerCase().startsWith(`${vnetId}/subnets/`.toLowerCase()) ||
+    !p.serverId.toLowerCase().startsWith(`/subscriptions/${record.input.subscriptionId}/resourceGroups/${record.input.resourceGroup}/providers/`.toLowerCase()) ||
+    (networkGroup.toLowerCase()!==record.input.resourceGroup.toLowerCase())!==Boolean(p.networkDeployment))throw new Error("Reviewed target network or migration group changed.");
   if(record.phase!=="provisioned" || record.upgrade && record.upgrade.phase!=="finished" || record.guestCommand && ["submitted","unknown"].includes(record.guestCommand.phase) || record.assessment?.phase!=="finished")throw new Error("Reconcile active or uncertain guest operations before target deployment.");
   if(p.phase!=="previewed" || hash(original)!==retained || Date.now()>=Date.parse(p.expiresAt) || !Number.isFinite(Date.parse(p.expiresAt)) || record.artifact.sha256!==p.evidence.artifactSHA256 ||
     !record.sourceDraft || hash(record.sourceDraft.configuration)!==p.evidence.configurationSHA256 ||
@@ -193,15 +219,32 @@ export function targetResourceIds(plan:RunnerTarget):string[]{
 }
 export async function whatIfTarget(control:RunnerControl,record:RunnerRecord,password:string):Promise<void>{
   const plan=assertTargetFresh(record), sub=record.input.subscriptionId;
-  for(const id of [...targetResourceIds(plan),plan.deploymentId]){
-    const api=id.includes("/Microsoft.Network/")?(id.includes("/privateDnsZones/")?"2024-06-01":"2024-05-01"):id.includes("/deployments/")?"2022-09-01":"2024-08-01";
+  for(const id of [...targetResourceIds(plan),plan.deploymentId,...plan.networkDeployment?[plan.networkDeployment.deploymentId]:[]]){
+    const lower=id.toLowerCase(),api=lower.includes("/microsoft.network/")?(lower.includes("/privatednszones/")?"2024-06-01":"2024-05-01"):lower.includes("/deployments/")?"2022-09-01":"2024-08-01";
     if((await control.request(sub,`${id}?api-version=${api}`)).status!==404)throw new Error("A target resource already exists. No resource will be overwritten.");
   }
   const existing=await existingGroupResources(control,record);
-  let response=await control.request(sub,`${plan.deploymentId}/whatIf?api-version=2022-09-01`,"POST",{properties:{mode:"Incremental",template:plan.template,parameters:{administratorPassword:{value:password}},whatIfSettings:{resultFormat:"ResourceIdOnly"}}});
+  if(plan.networkDeployment){
+    const n=plan.networkDeployment;
+    const networkExisting=await existingGroupResources(control,{...record,input:{...record.input,resourceGroup:n.resourceGroup}});
+    existing.push(...networkExisting);
+    // Separate scope preview proves the delegated subnet without passing any
+    // database credential to the network deployment.
+    await pollTargetWhatIf(control,sub,n.deploymentId,n.template,{},[plan.subnetId],networkExisting);
+  }
+  await pollTargetWhatIf(control,sub,plan.deploymentId,plan.template,{administratorPassword:{value:password}},targetResourceIds(plan),existing,plan.networkDeployment?.deploymentId);
+}
+async function pollTargetWhatIf(control:RunnerControl,sub:string,deploymentId:string,template:Record<string,unknown>,parameters:Record<string,unknown>,ids:string[],existing:string[],nestedId?:string):Promise<void>{
+  let response=await control.request(sub,`${deploymentId}/whatIf?api-version=2022-09-01`,"POST",{properties:{mode:"Incremental",template,parameters,whatIfSettings:{resultFormat:"ResourceIdOnly"}}});
   for(let i=0;i<30;i++){
     const value=object(response.value);
-    if(value.status==="Succeeded"){validateWhatIf(value,targetResourceIds(plan),existing);return;}
+    if(value.status==="Succeeded"){
+      // ARM may include the nested deployment wrapper, but never substitute it
+      // for proof of all leaf resources. Reject ignored/unexpanded child plans.
+      const changes=object(value.properties).changes;
+      const hasWrapper=nestedId && Array.isArray(changes) && changes.some(x=>String(object(x).resourceId).toLowerCase()===nestedId.toLowerCase());
+      validateWhatIf(value,hasWrapper?[...ids,nestedId!]:ids,existing);return;
+    }
     if(["Failed","Canceled"].includes(String(value.status)) || !response.poll)throw new Error("Target what-if did not produce a complete change review.");
     await control.sleep(2000);const poll=response.poll;response=await control.request(sub,poll);response.poll??=poll;
   }
@@ -224,8 +267,42 @@ export async function refreshTarget(control:RunnerControl,record:RunnerRecord):P
   if(p.configurationRepair)return repairBusyTargetPreload(control,record);
   const response=await control.request(record.input.subscriptionId,`${p.deploymentId}?api-version=2022-09-01`);
   const state=response.status===404?undefined:object(object(response.value).properties).provisioningState;
-  const phase=state==="Succeeded"?"provisioned":["Failed","Canceled"].includes(String(state))?"failed":["Running","Accepted"].includes(String(state))?"submitted":"unknown";
+  let phase:RunnerTarget["phase"]=state==="Succeeded"?"provisioned":["Failed","Canceled"].includes(String(state))?"failed":["Running","Accepted"].includes(String(state))?"submitted":"unknown";
+  if(p.networkDeployment && phase==="provisioned"){
+    // Parent status alone is insufficient for the newly supported scope.
+    // Failed/missing/inconsistent child evidence is never repaired by replay.
+    try{
+      const operations=await targetDeploymentOperations(control,record);
+      if(operations.some(x=>object(object(x).properties).provisioningState!=="Succeeded"))phase="unknown";
+    }catch{phase="unknown";}
+  }
   const next:RunnerRecord={...record,target:{...p,phase}};await control.persist(next);return next;
+}
+
+/** Flatten only the exact reviewed child after proving its operation identities.
+ * Used for cross-group completion and the narrow preload-only repair gate. */
+async function targetDeploymentOperations(control:RunnerControl,record:RunnerRecord):Promise<unknown[]>{
+  const p=record.target!,sub=record.input.subscriptionId;
+  const operations=await control.list(sub,`${p.deploymentId}/operations?api-version=2022-09-01`);
+  if(!p.networkDeployment)return operations;
+  const n=p.networkDeployment;
+  const expected=new Set([...targetResourceIds(p).filter(id=>id!==p.subnetId),n.deploymentId].map(id=>id.toLowerCase()));
+  if(operations.length!==expected.size)throw new Error("Incomplete parent deployment operations.");
+  const leaves:unknown[]=[];
+  for(const entry of operations){
+    const op=object(object(entry).properties),id=String(object(op.targetResource).id).toLowerCase();
+    if(!expected.delete(id))throw new Error("Unexpected or duplicate parent deployment operation.");
+    if(id===n.deploymentId.toLowerCase()){
+      if(op.provisioningState!=="Succeeded")throw new Error("Network deployment has not succeeded.");
+    }else leaves.push(entry);
+  }
+  const child=await control.request(sub,`${n.deploymentId}?api-version=2022-09-01`);
+  if(child.status!==200 || object(object(child.value).properties).provisioningState!=="Succeeded")throw new Error("Network deployment success evidence is missing.");
+  const children=await control.list(sub,`${n.deploymentId}/operations?api-version=2022-09-01`);
+  if(children.length!==1)throw new Error("Unexpected network deployment operations.");
+  const op=object(object(children[0]).properties);
+  if(String(object(op.targetResource).id).toLowerCase()!==p.subnetId.toLowerCase() || op.provisioningState!=="Succeeded")throw new Error("Delegated subnet creation is not proven.");
+  return [...leaves,...children];
 }
 
 /** Narrow operator recovery, not deployment retry. Only the single failed
@@ -243,7 +320,7 @@ export async function repairBusyTargetPreload(control:RunnerControl,r:RunnerReco
   if(configurationRepair && (configurationRepair.resourceId!==resourceId || configurationRepair.desiredValue!==desired || configurationRepair.failureCode!=="ServerIsBusy" || configurationRepair.originalDeploymentState!=="Failed"))throw new Error("Retained repair identity changed.");
   const deployment=await control.request(sub,`${p.deploymentId}?api-version=2022-09-01`);
   if(deployment.status!==200 || object(object(deployment.value).properties).provisioningState!=="Failed")throw new Error("Original failed deployment evidence changed or is unavailable.");
-  const operations=await control.list(sub,`${p.deploymentId}/operations?api-version=2022-09-01`),expected=new Set(targetResourceIds(p).map(x=>x.toLowerCase())),seen=new Set<string>();
+  const operations=await targetDeploymentOperations(control,r),expected=new Set(targetResourceIds(p).map(x=>x.toLowerCase())),seen=new Set<string>();
   if(operations.length!==expected.size)throw new Error("Review all original target deployment operations before repair.");
   for(const entry of operations){
     const op=object(object(entry).properties),id=String(object(op.targetResource).id).toLowerCase();

@@ -182,15 +182,121 @@ test("target children serialize database, AGE allow-list and preload writes",()=
   assert.deepEqual(bySuffix("shared_preload_libraries").dependsOn,[`${p.serverId}/configurations/azure.extensions`]);
 });
 
-function repairFixture(){
-  const {r,text,input}=fixture();r.target=targetPreview(r,input,csvTargetEvidence(r,text));r.target.phase="failed";
+function crossGroupFixture(){
+  const f=fixture();f.r.input.subnetId=f.r.input.subnetId.replace("/resourceGroups/test/","/resourceGroups/network-only/");
+  f.r.target=targetPreview(f.r,f.input,csvTargetEvidence(f.r,f.text));return f;
+}
+
+test("independent network group scopes only a new subnet with a retained child identity",()=>{
+  const {r}=crossGroupFixture(),p=r.target!,n=p.networkDeployment!,resources=p.template.resources as any[];
+  assert.equal(n.resourceGroup,"network-only");assert.equal((n.template.resources as any[]).length,1);
+  assert.equal((n.template.resources as any[])[0].type,"Microsoft.Network/virtualNetworks/subnets");
+  assert.equal(resources[0].resourceGroup,"network-only");assert.equal(resources[0].properties.mode,"Incremental");
+  assert.equal(resources[0].properties.expressionEvaluationOptions.scope,"inner");
+  assert.equal(resources[0].properties.template,n.template);
+  assert.deepEqual(resources[3].dependsOn,[n.deploymentId,`${p.dnsId}/virtualNetworkLinks/runner`]);
+  assert.ok(p.serverId.includes("/resourceGroups/test/"));assert.ok(p.dnsId.includes("/resourceGroups/test/"));
+  assert.ok(p.subnetId.startsWith(n.vnetId+"/subnets/"));assert.ok(n.deploymentId.includes("/resourceGroups/network-only/"));
+  assert.equal(JSON.stringify(n).includes("administratorPassword"),false);assert.equal(assertTargetFresh(r),p);
+  for(const patch of [{region:"japanwest"},{zone:"2"},{resourceGroup:"other"},{subnetId:r.input.subnetId.replace("/net/","/other/")}])
+    assert.throws(()=>assertTargetFresh({...r,input:{...r.input,...patch}}),/changed/);
+  const f=fixture();f.r.input.subnetId=f.r.input.subnetId.replace(id,op);
+  assert.throws(()=>targetPreview(f.r,f.input,csvTargetEvidence(f.r,f.text)),/runner subscription/);
+});
+
+function crossGroupControl(r:RunnerRecord){
+  const p=r.target!,n=p.networkDeployment!,calls:{path:string;method:string;body?:unknown}[]=[],saved:RunnerRecord[]=[];
+  const changes=(ids:string[])=>({status:"Succeeded",properties:{changes:ids.map(resourceId=>({resourceId,changeType:"Create"}))}});
+  const state={terminal:false,loseAck:false,childStatus:"Succeeded",existingId:"",wrapper:true,
+    networkWhatIf:changes([p.subnetId]),parentWhatIf:changes(targetResourceIds(p)),childOperations:[{properties:{targetResource:{id:p.subnetId},provisioningState:"Succeeded"}}],
+    parentOperations:[...targetResourceIds(p).filter(x=>x!==p.subnetId),n.deploymentId].map(id=>({properties:{targetResource:{id},provisioningState:"Succeeded"}}))};
+  const control:RunnerControl={sleep:async()=>{},persist:async x=>{calls.push({path:"persist",method:"persist"});saved.push(structuredClone(x));},
+    request:async(_s,path,method="GET",body)=>{
+      calls.push({path,method,body});
+      if(method==="POST"){
+        if(path.startsWith(n.deploymentId+"/whatIf")){
+          assert.deepEqual((body as any).properties.parameters,{});return {status:200,value:state.networkWhatIf};
+        }
+        const value=structuredClone(state.parentWhatIf);
+        if(state.wrapper)value.properties.changes.push({resourceId:n.deploymentId,changeType:"Create"});
+        return {status:200,value};
+      }
+      if(method==="PUT"){
+        assert.equal(path,`${p.deploymentId}?api-version=2022-09-01`);
+        if(state.loseAck)throw new Error("lost acknowledgement");return {status:202,value:{}};
+      }
+      if(state.existingId && path.startsWith(state.existingId+"?"))return {status:200,value:{}};
+      if(state.terminal && path.startsWith(p.deploymentId+"?"))return {status:200,value:{properties:{provisioningState:"Succeeded"}}};
+      if(state.terminal && path.startsWith(n.deploymentId+"?"))return {status:200,value:{properties:{provisioningState:state.childStatus}}};
+      return {status:404,value:{}};
+    },list:async(_s,path)=>{calls.push({path,method:"LIST"});
+      if(path.startsWith(p.deploymentId+"/operations"))return state.parentOperations;
+      if(path.startsWith(n.deploymentId+"/operations"))return state.childOperations;
+      return [];
+    }};
+  return {control,calls,state,saved};
+}
+
+test("cross-group deployment previews both scopes before a single persisted parent PUT and GET-only reconciliation",async()=>{
+  for(const wrapper of [false,true]){
+    const {r}=crossGroupFixture(),f=crossGroupControl(r);f.state.wrapper=wrapper;f.state.loseAck=true;
+    const next=await submitTarget(f.control,r,"Q9!".repeat(12),async()=>{});
+    assert.equal(next.target?.phase,"unknown");
+    assert.equal(f.calls.filter(x=>x.method==="POST").length,2);assert.equal(f.calls.filter(x=>x.method==="PUT").length,1);
+    assert.ok(f.calls.findIndex(x=>x.method==="persist")<f.calls.findIndex(x=>x.method==="PUT"));
+    assert.ok(f.calls.some(x=>x.path.includes("/resourceGroups/network-only/resources?")));
+    assert.ok(f.calls.some(x=>x.path.includes("/resourceGroups/test/resources?")));
+    assert.ok(!JSON.stringify(f.saved).includes("Q9!"));
+    await assert.rejects(submitTarget(f.control,next,"Q9!".repeat(12),async()=>{}));
+    f.state.terminal=true;f.calls.length=0;
+    assert.equal((await refreshTarget(f.control,next)).target?.phase,"provisioned");
+    assert.ok(f.calls.every(x=>["GET","LIST","persist"].includes(x.method)));
+  }
+});
+
+test("cross-group deployment fails closed on occupied identities, missing leaves or unsafe what-if changes",async()=>{
+  for(const mutate of [
+    (f:ReturnType<typeof crossGroupControl>,r:RunnerRecord)=>{f.state.existingId=r.target!.networkDeployment!.deploymentId;},
+    (f:ReturnType<typeof crossGroupControl>,r:RunnerRecord)=>{f.state.existingId=r.target!.subnetId;},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.networkWhatIf.properties.changes[0]!.changeType="Modify";},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.parentWhatIf.properties.changes.shift();},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.parentWhatIf.properties.changes[0]!.changeType="Ignore";},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.networkWhatIf.properties.changes.push({resourceId:"/foreign",changeType:"Create"});},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.parentWhatIf.properties.changes.push({resourceId:"/foreign",changeType:"Delete"});}
+  ]){
+    const {r}=crossGroupFixture(),f=crossGroupControl(r);mutate(f,r);
+    await assert.rejects(submitTarget(f.control,r,"Q9!".repeat(12),async()=>{}));
+    assert.ok(!f.calls.some(x=>x.method==="PUT" || x.method==="persist"));
+  }
+});
+
+test("parent success does not hide missing, failed, duplicated or foreign nested operations",async()=>{
+  for(const mutate of [
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.childStatus="Running";},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.childOperations=[];},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.childOperations[0]!.properties.targetResource.id="/foreign";},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.childOperations[0]!.properties.provisioningState="Failed";},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.parentOperations.pop();},
+    (f:ReturnType<typeof crossGroupControl>)=>{f.state.parentOperations[0]=f.state.parentOperations[1]!;}
+  ]){
+    const {r}=crossGroupFixture();r.target!.phase="submitted";const f=crossGroupControl(r);f.state.terminal=true;mutate(f);
+    assert.equal((await refreshTarget(f.control,r)).target?.phase,"unknown");
+    assert.ok(f.calls.every(x=>["GET","LIST","persist"].includes(x.method)));
+  }
+});
+
+function repairFixture(crossGroup=false){
+  const {r,text,input}=fixture();
+  if(crossGroup)r.input.subnetId=r.input.subnetId.replace("/resourceGroups/test/","/resourceGroups/network-only/");
+  r.target=targetPreview(r,input,csvTargetEvidence(r,text));r.target.phase="failed";
   r.guestReady={bootId:file,cliVersion:r.artifact.version,archiveSha256:r.artifact.sha256,commit:"a".repeat(40),checkedAt:new Date().toISOString(),health:{idle:true,storageUsedPercent:4,swapUsedBytes:0,oomEvents:0}};
   const p=r.target,preloadId=`${p.serverId}/configurations/shared_preload_libraries`;
-  const operations=targetResourceIds(p).map(id=>({properties:{targetResource:{id},provisioningState:id===preloadId?"Failed":"Succeeded",statusMessage:id===preloadId?{error:{code:"ServerIsBusy"}}:undefined}}));
+  const operations=targetResourceIds(p).map(id=>({properties:{targetResource:{id:crossGroup && id===p.subnetId?p.networkDeployment!.deploymentId:id},provisioningState:id===preloadId?"Failed":"Succeeded",statusMessage:id===preloadId?{error:{code:"ServerIsBusy"}}:undefined}}));
+  const childOperations=[{properties:{targetResource:{id:p.subnetId},provisioningState:"Succeeded"}}];
   const server={location:r.input.region,tags:{application:"agefreighter",workflow:r.id,purpose:"migration-target"},sku:{name:p.input.postgresSKU},properties:{state:"Ready",version:"18",availabilityZone:r.input.zone,storage:{storageSizeGB:128},network:{publicNetworkAccess:"Disabled",delegatedSubnetResourceId:p.subnetId,privateDnsZoneArmResourceId:p.dnsId}}};
   const config={value:"pg_cron,pg_stat_statements",defaultValue:"pg_cron,pg_stat_statements",source:"system-default",isConfigPendingRestart:false};
   const events:string[]=[],saved:RunnerRecord[]=[];let loseAck=false;
-  const control:RunnerControl={sleep:async()=>{},persist:async r=>{events.push("persist");saved.push(structuredClone(r));},list:async()=>operations,request:async(_sub,path,method="GET",body)=>{
+  const control:RunnerControl={sleep:async()=>{},persist:async r=>{events.push("persist");saved.push(structuredClone(r));},list:async(_s,path)=>p.networkDeployment && path.startsWith(p.networkDeployment.deploymentId+"/operations")?childOperations:operations,request:async(_sub,path,method="GET",body)=>{
     events.push(method);
     if(method!=="GET"){
       assert.equal(method,"PUT");assert.equal(path,`${preloadId}?api-version=2024-08-01`);
@@ -198,14 +304,29 @@ function repairFixture(){
       if(loseAck)throw new Error("private failure text must not be persisted");return {status:200,value:{}};
     }
     if(path.startsWith(p.deploymentId+"?"))return {status:200,value:{properties:{provisioningState:"Failed"}}};
+    if(p.networkDeployment && path.startsWith(p.networkDeployment.deploymentId+"?"))return {status:200,value:{properties:{provisioningState:"Succeeded"}}};
     if(path.startsWith(p.serverId+"?"))return {status:200,value:server};
     if(path.includes("/databases/"))return {status:200,value:{}};
     if(path.includes("/configurations/azure.extensions"))return {status:200,value:{properties:{value:"AGE"}}};
     if(path.startsWith(preloadId+"?"))return {status:200,value:{properties:config}};
     throw new Error("Unexpected read: "+path);
   }};
-  return {r,control,events,saved,server,config,operations,loseAck:()=>{loseAck=true;}};
+  return {r,control,events,saved,server,config,operations,childOperations,loseAck:()=>{loseAck=true;}};
 }
+
+test("cross-group preload repair audits both deployments and never repairs an unproven network",async()=>{
+  const f=repairFixture(true);await repairBusyTargetPreload(f.control,f.r);
+  const next=await repairBusyTargetPreload(f.control,f.r,true);
+  assert.equal(next.target?.configurationRepair?.phase,"submitted");assert.equal(f.events.filter(x=>x==="PUT").length,1);
+  for(const mutate of [
+    (f:ReturnType<typeof repairFixture>)=>{f.childOperations.length=0;},
+    (f:ReturnType<typeof repairFixture>)=>{f.childOperations[0]!.properties.targetResource.id="/foreign";},
+    (f:ReturnType<typeof repairFixture>)=>{f.childOperations[0]!.properties.provisioningState="Failed";}
+  ]){
+    const bad=repairFixture(true);mutate(bad);
+    await assert.rejects(repairBusyTargetPreload(bad.control,bad.r,true));assert.ok(!bad.events.includes("PUT"));
+  }
+});
 
 test("preload repair is explicit, single-write, persists original failure and never replays deployment",async()=>{
   const f=repairFixture();await repairBusyTargetPreload(f.control,f.r);assert.equal(f.events.some(x=>x!=="GET"),false);

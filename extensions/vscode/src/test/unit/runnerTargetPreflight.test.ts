@@ -35,6 +35,26 @@ test("target preflight rejects stale guest, changed ownership, network overlap a
   const c=fixture();c.input.subnetCIDR="10.0.1.0/24";await assert.rejects(preflightTarget(c.control,c.r,c.input),/overlap/);
   const d=fixture(),list=d.control.list;d.control.list=async(s,p)=>p.includes("resourceType")?[]:list(s,p);await assert.rejects(preflightTarget(d.control,d.r,d.input),/quota/);
 });
+test("independent network group preflight reads both existing groups and keeps the NIC in the migration group",async()=>{
+  const f=fixture(),request=f.control.request;
+  f.r.input.subnetId=f.r.input.subnetId.replace("/resourceGroups/test/","/resourceGroups/network-only/");
+  f.control.request=async(s,p,m,b)=>{
+    if(p.includes("/networkInterfaces/"))return {status:200,value:{properties:{ipConfigurations:[{properties:{subnet:{id:f.r.input.subnetId}}}]}}};
+    if(p.startsWith(f.r.input.subnetId+"?"))return {status:200,value:{properties:{delegations:[]}}};
+    return request(s,p,m,b);
+  };
+  await preflightTarget(f.control,f.r,f.input);
+  for(const group of ["test","network-only"])assert.ok(f.calls.some(x=>x.includes(`/resourceGroups/${group}?`)));
+  for(const status of [403,404,500]){
+    const read=f.control.request;
+    const control={...f.control,request:async(s:string,p:string,m?:"GET"|"POST"|"PUT"|"PATCH",b?:unknown)=>p.includes("/resourceGroups/network-only?")?{status,value:{}}:read(s,p,m,b)};
+    await assert.rejects(preflightTarget(control,f.r,f.input),/Both migration and network/);
+  }
+});
+test("cross-subscription network fails before any preflight calls",async()=>{
+  const f=fixture();f.r.input.subnetId=f.r.input.subnetId.replace(f.r.input.subscriptionId,"22222222-2222-4222-8222-222222222222");
+  await assert.rejects(preflightTarget(f.control,f.r,f.input),/runner subscription/);assert.equal(f.calls.length,0);
+});
 test("target price selection rejects ambiguity, future rates, missing services and non-finite values",()=>{
   const {input}=fixture();const rates=[{armSkuName:input.loaderSize,serviceName:"Virtual Machines",hourlyUSD:.248,effectiveStartDate:"2023-01-01"},{armSkuName:input.postgresSKU,serviceName:"Azure Database for PostgreSQL",hourlyUSD:.488,effectiveStartDate:"2023-01-01"}];
   assert.equal(targetComputeRate(rates,input),.736);
