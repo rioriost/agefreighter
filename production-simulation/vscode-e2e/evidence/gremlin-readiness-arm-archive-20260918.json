@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-18 05:01:48 UTC",
+  "scope": "Only three user-approved completed readiness control records; selected non-sensitive ARM fields and complete readiness output. Parameters intentionally omitted.",
+  "deletionStatus": "Not yet deleted; user approved removal after this archive is committed and pushed.",
+  "records": [
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-4043e008b86e47b88722/runCommands/af-157990d3-b0a8-41a6-ac85-3ed78a9bf7c8",
+      "location": "japaneast",
+      "name": "af-157990d3-b0a8-41a6-ac85-3ed78a9bf7c8",
+      "properties": {
+        "asyncExecution": false,
+        "instanceView": {
+          "endTime": "2026-09-18T02:30:13+00:00",
+          "error": "",
+          "executionMessage": "Execution completed",
+          "executionState": "Succeeded",
+          "exitCode": 0,
+          "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"b15b106f-c23b-4f94-9727-f627297f83a3\",\"cliVersion\":\"2.4.0-dev.290c6efa3b3e\",\"commit\":\"290c6efa3b3e08423d35bf004485dfd6e0f1fd98\",\"archiveSha256\":\"00b66081e7629ecd4b7ad378cc4b134987d0b892d91b751b789354158e63432e\",\"ready\":true,\"capabilities\":[\"csv-inventory-v1\",\"csv-migration-v1\",\"neo4j-inventory-v1\",\"neo4j-migration-v1\",\"postgresql-inventory-v1\",\"postgresql-migration-v1\",\"cosmos-nosql-inventory-v1\",\"cosmos-nosql-migration-v1\",\"postgresql-native-floats-v1\",\"cosmos-explicit-property-types-v1\",\"resume-inspection-v1\",\"explicit-resume-v1\"],\"health\":{\"idle\":true,\"storageUsedPercent\":3.9041262772214314,\"swapUsedBytes\":0,\"oomEvents\":0}}\n",
+          "startTime": "2026-09-18T02:30:11+00:00"
+        },
+        "provisioningState": "Updating",
+        "source": {
+          "script": "#!/bin/bash\nset -euo pipefail\nset +x\numask 077\nprintf '%s' \"$AF_RUNNER_REQUEST\" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch\n"
+        },
+        "timeoutInSeconds": 60
+      }
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-4043e008b86e47b88722/runCommands/af-21d089df-b53e-49cd-b9fb-0e561fe15b8e",
+      "location": "japaneast",
+      "name": "af-21d089df-b53e-49cd-b9fb-0e561fe15b8e",
+      "properties": {
+        "asyncExecution": false,
+        "instanceView": {
+          "endTime": "2026-09-18T03:05:55+00:00",
+          "error": "",
+          "executionMessage": "Execution completed",
+          "executionState": "Succeeded",
+          "exitCode": 0,
+          "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"b15b106f-c23b-4f94-9727-f627297f83a3\",\"cliVersion\":\"2.4.0-dev.290c6efa3b3e\",\"commit\":\"290c6efa3b3e08423d35bf004485dfd6e0f1fd98\",\"archiveSha256\":\"00b66081e7629ecd4b7ad378cc4b134987d0b892d91b751b789354158e63432e\",\"ready\":true,\"capabilities\":[\"csv-inventory-v1\",\"csv-migration-v1\",\"neo4j-inventory-v1\",\"neo4j-migration-v1\",\"postgresql-inventory-v1\",\"postgresql-migration-v1\",\"cosmos-nosql-inventory-v1\",\"cosmos-nosql-migration-v1\",\"postgresql-native-floats-v1\",\"cosmos-explicit-property-types-v1\",\"resume-inspection-v1\",\"explicit-resume-v1\"],\"health\":{\"idle\":true,\"storageUsedPercent\":3.9048479670860115,\"swapUsedBytes\":0,\"oomEvents\":0}}\n",
+          "startTime": "2026-09-18T03:05:55+00:00"
+        },
+        "provisioningState": "Updating",
+        "source": {
+          "script": "#!/bin/bash\nset -euo pipefail\nset +x\numask 077\nprintf '%s' \"$AF_RUNNER_REQUEST\" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch\n"
+        },
+        "timeoutInSeconds": 60
+      }
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-4043e008b86e47b88722/runCommands/af-8c89c79b-d347-4ec1-823d-7e8dc5da656a",
+      "location": "japaneast",
+      "name": "af-8c89c79b-d347-4ec1-823d-7e8dc5da656a",
+      "properties": {
+        "asyncExecution": false,
+        "instanceView": {
+          "endTime": "2026-09-18T03:12:02+00:00",
+          "error": "",
+          "executionMessage": "Execution completed",
+          "executionState": "Succeeded",
+          "exitCode": 0,
+          "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"14b6b096-e4ce-4014-b98b-cc27c45cc93d\",\"cliVersion\":\"2.4.0-dev.290c6efa3b3e\",\"commit\":\"290c6efa3b3e08423d35bf004485dfd6e0f1fd98\",\"archiveSha256\":\"00b66081e7629ecd4b7ad378cc4b134987d0b892d91b751b789354158e63432e\",\"ready\":true,\"capabilities\":[\"csv-inventory-v1\",\"csv-migration-v1\",\"neo4j-inventory-v1\",\"neo4j-migration-v1\",\"postgresql-inventory-v1\",\"postgresql-migration-v1\",\"cosmos-nosql-inventory-v1\",\"cosmos-nosql-migration-v1\",\"postgresql-native-floats-v1\",\"cosmos-explicit-property-types-v1\",\"resume-inspection-v1\",\"explicit-resume-v1\"],\"health\":{\"idle\":true,\"storageUsedPercent\":3.919454476481854,\"swapUsedBytes\":0,\"oomEvents\":0}}\n",
+          "startTime": "2026-09-18T03:12:00+00:00"
+        },
+        "provisioningState": "Updating",
+        "source": {
+          "script": "#!/bin/bash\nset -euo pipefail\nset +x\numask 077\nprintf '%s' \"$AF_RUNNER_REQUEST\" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch\n"
+        },
+        "timeoutInSeconds": 60
+      }
+    }
+  ]
+}
