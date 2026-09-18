@@ -712,3 +712,47 @@ bytes**, disk **4%**, swap **0**, kernel OOM events **0**. The active unit's
 `ExecMainStatus=0` is not a terminal-success receipt. A subsequent GUI status
 reconciliation still reports running; no committed-row count or completion
 claim is inferred from this health sample.
+
+### Migration and complete counts PASS — September 18 03:27–03:32 UTC
+
+The same job completed after the active Reload Window/reconnect. Its exact
+verification report was generated at **03:27:12.38885669 UTC**, approximately
+**13m 33.64s** after GUI submission (includes preparation, load and counts;
+not an isolated load duration). GUI refresh observed finished / exit 0, then
+the normal Transfer/open action exported and imported the sealed report and
+displayed **Counts verification: PASS**.
+
+- Report: **9,618 bytes**, SHA-256
+  `32ad3da4325a99b0b2360ad9a33cc48b54bf512cad006f17bd270edf7eb82bda`;
+  independently recomputed from the retained private Mac report.
+- Fingerprint: `622f6004f5b29ac27d085c3573464bbbfd0c58efc741d2736308d49a603b6a66`.
+- Exact **1,600,000 vertices + 4,000,000 edges**, all **18 labels**, zero rejects.
+  Physical and durable-identity counts agree; all 24 checks pass, errors and
+  incomplete checks are empty. Committed-byte counters remain unavailable and
+  are not inferred from row counts.
+- At 03:28:04 UTC the original guest service was inactive/dead, disk 4%, swap
+  zero and kernel OOM count zero. No migration was resumed or retried.
+- [Redacted count receipt](evidence/gremlin-counts-pass-20260918.json) does not
+  replace the full report or qualify properties/endpoints canonically.
+
+B10 active-migration reload now has successful post-reload completion evidence.
+Active verifier reload and forced Extension Host crash remain open. B05 is
+still partial until all 64 Gremlin target digest ranges/root match.
+Requested specific approval for the pinned `e70e02068c68` Gremlin verifier
+(SHA `ecce5c6c105f786fe17fc698408312512fe11d786d4dcf5f076ad5f84687d0de`),
+read-only / 25 minutes / 4 GiB on this same job, including restarting only this
+VM/target within the existing 06:00 UTC bound. No verifier has been installed
+or executed. Submitted deallocation of only this idle VM and stop of only this
+new target while awaiting approval; all data/disks/evidence are retained.
+
+Fresh ownership tags and VM identity match. No RG locks or unrelated non-policy
+mutations were returned since 03:15 UTC. Billing refresh returned 429; keep the
+USD 220.808334109599 delayed observation and USD 650 planning reserve distinct
+from real-time billing. The USD 800 ceiling is unchanged.
+
+By **03:34:36 UTC**, fresh ARM readback confirms only the exact runner is
+**deallocated / provisioning Succeeded** and only the new target is **Stopped**.
+OS disk, source, migrated graph and all reports remain retained. The scoped
+heartbeat is paused after both stopped states were verified. PostgreSQL may
+auto-start after its platform stop-retention period; this is not deletion or
+a promise of zero storage charges. The full verifier approval remains pending.

@@ -2,14 +2,16 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
-Latest Gremlin B05 checkpoint, September 18 03:19 UTC: approved private target,
-AGE preload and same-VM resize finished in the installed GUI. New migration
-`c257a458-be95-44be-a3ad-54e2318b1856` is running since 03:13:38 UTC;
-no load/count/digest PASS yet. B10 active migration Reload Window/reconnect
-preserved the same operation without replay; active verification reload and
-forced Extension Host crash remain open. The approved exact VM/target
+Latest Gremlin B05 checkpoint, September 18 03:32 UTC: installed-GUI migration
+and complete counts **PASS** for 5.6M rows / 18 labels, zero rejects. Full
+64-range Gremlin canonical digest is not run; its pinned verifier awaits
+specific approval. B10 active migration Reload Window/reconnect preserved the
+same job through successful completion without replay; active verification
+reload and forced Extension Host crash remain open. The idle exact VM/target
+are verified deallocated / Stopped by 03:34:36 UTC with evidence retained;
+the scoped monitor is paused. The approved exact VM/target
 session ends at **06:00 UTC / 15:00 JST September 18**, earlier than the outer
-deadline. A scoped safety monitor is active. See
+deadline. Continuation requires the verifier approval and fresh health/bounds. See
 [execution evidence](gremlin-gui-execution-20260918.md).
 
 The nine base P1 routes are [qualified](progress.md). This ledger covers the
@@ -104,7 +106,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory recorded; Cosmos cross-window/trust guards corrected and tested; controller tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation; native resize, checkpoint inspection, target diagnosis, empty-target archival and report-transfer Cancel preserve prior records | Other approval surfaces and unrepresented faults still require bounded GUI/no-write evidence | partial |
-| B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification; terminal-state reload preserves records; actual active Gremlin inventory Reload Window/reconnect preserves operation, boot, configuration and original start time, then finishes and imports its exact report without replay; active Gremlin migration Reload Window/reconnect also preserves the running operation and original identity | Active migration completion after reload, active verification reload and forced Extension Host crash remain distinct and unqualified | partial |
+| B10 | Close/reload during assessment/load/verification; no replay | Persisted-state/process-exit tests pass; installed panels closed/reopened during inventory, load and full P1 verification; terminal-state reload preserves records; actual active Gremlin inventory Reload Window/reconnect preserves operation, boot, configuration and original start time, then finishes and imports its exact report without replay; active Gremlin migration Reload Window/reconnect preserves the operation through successful completion and GUI counts PASS | Active verification reload and forced Extension Host crash remain distinct and unqualified | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass; 20 production P1 controller tests cover full-digest identity/coverage/forgery, transfer failures, retained identity changes and corrupted reopen; signed-in installed candidate refuses retained P1 failure without retry/new PASS | Other invalid-import/transfer cases still lack installed-GUI evidence; synthetic reports and inert adapters are not live GUI/Azure fault evidence | partial |
 

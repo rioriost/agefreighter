@@ -8,17 +8,19 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
-**Latest Gremlin state (September 18 03:19 UTC):** the user-approved private
-PostgreSQL 18 / E8ds_v5 target (128 GiB storage) deployed successfully at
-02:39:09 UTC and was reconciled to provisioned in the installed GUI. Public
-access is Disabled. AGE preload and same-runner D4s_v5 resize finished; fresh
-post-resize readiness passed. Migration `c257a458-be95-44be-a3ad-54e2318b1856`
-started at **03:13:38 UTC** and is **running**. Actual active Reload Window /
-reconnect preserved that job without replay. Complete counts and the full
-Gremlin canonical digest remain pending, not PASS. Exact VM/target safety
-monitoring ends this bounded session by **06:00
-UTC / 15:00 JST today**. USD 800 ceiling and USD 650 planning reserve remain.
-See the [latest execution entry](gremlin-gui-execution-20260918.md#approved-private-target-deployed--september-18-02290306-utc).
+**Latest Gremlin state (September 18 03:32 UTC):** migration
+`c257a458-be95-44be-a3ad-54e2318b1856` and complete counts **PASS** in the
+installed GUI. Report generated at **03:27:12 UTC**, approximately 13m 34s
+after submission: exact **1.6M vertices + 4M edges / 18 labels**, zero rejects,
+no failed/incomplete checks. Actual active Reload Window/reconnect preserved
+the job, which subsequently finished without replay. Full **64-range Gremlin
+canonical digest is not run**; B05 remains partial. Its pinned verifier awaits
+specific approval. At **03:34:36 UTC**, the exact VM is verified deallocated
+and the new target Stopped, with all evidence retained; the monitor is paused.
+USD 800 ceiling, USD 650 reserve and **06:00 UTC / 15:00 JST
+today** session bound remain. See the
+[execution record](gremlin-gui-execution-20260918.md#migration-and-complete-counts-pass--september-18-03270332-utc)
+and [count receipt](evidence/gremlin-counts-pass-20260918.json).
 
 September 18 JST: a [fresh installed-GUI Gremlin draft](gremlin-gui-execution-20260918.md)
 selected the prepared source and private runner placement with the existing Azure
