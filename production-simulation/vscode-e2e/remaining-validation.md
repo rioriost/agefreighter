@@ -2,6 +2,14 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 next local follow-up: added explicit single-readiness-control removal
+admission, archive-before-intent-before-DELETE ordering and GET-only recovery.
+Only already-deallocated VMs and fresh successful ARM evidence are admitted;
+Pending/Updating blocks. This code is **not installed or live-qualified** and no
+Azure resource was removed/restarted. B08/B09 live lifecycle and B10 real forced
+Extension Host crash remain open. See the stage 2 limits in the
+[lifecycle record](command-receipt-lifecycle-20260918.md).
+
 September 18 local follow-up: successful readiness controls now retain sealed
 receipts, with a native local-only archive action and negative tests. This is
 stage 1 of command lifecycle work, **not slot reclamation or live qualification**.

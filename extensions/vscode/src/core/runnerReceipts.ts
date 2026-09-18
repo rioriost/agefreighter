@@ -71,6 +71,7 @@ export function readinessArchive(record: RunnerRecord, receipt: ReadinessReceipt
 
 /** Exclude the receipt ledger itself when finding still-referenced evidence. */
 export function readinessReceiptReferenced(record: RunnerRecord, receipt: ReadinessReceipt): boolean {
+  if (record.guestReady?.checkedAt === receipt.readiness.checkedAt && record.guestReady.bootId === receipt.readiness.bootId) return true;
   const { readinessReceipts: _receipts, ...state } = record;
   const identifiers = new Set([receipt.command.id.toLowerCase(), receipt.command.operation.toLowerCase()]);
   const contains = (value: unknown): boolean => typeof value === "string" ? identifiers.has(value.toLowerCase()) :

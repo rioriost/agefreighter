@@ -14,6 +14,7 @@ import { reviewRunnerTarget } from "./runnerTargetPanel";
 import { continueRunnerExecution } from "./runnerExecutionPanel";
 import { requirePanelWorkflow } from "./core/runnerPanelBinding";
 import { archiveRunnerReadiness } from "./runnerReceiptsPanel";
+import { manageReadinessRemoval } from "./runnerReceiptRemovalPanel";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -40,6 +41,10 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
       await store.write(record);
     }
   };
+  context.subscriptions.push(vscode.commands.registerCommand("agefreighter.manageReadinessRemoval", async () => {
+    try { await manageReadinessRemoval(sharedControl, store, azure); }
+    catch (error) { await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Readiness control removal needs review. No automatic retry was made."); }
+  }));
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.prepareDevelopmentRunner", async () => {
     try { await azure.subscriptions(); await prepareDevelopmentRunner(sharedControl, store, azure, message => output.info(message)); }
     catch (error) {

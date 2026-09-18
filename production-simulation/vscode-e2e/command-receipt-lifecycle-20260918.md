@@ -1,4 +1,4 @@
-# Managed command evidence lifecycle: local stage 1
+# Managed command evidence lifecycle: local stages 1–2
 
 Status: local implementation/regression only; not installed-GUI or Azure qualification.
 
@@ -9,7 +9,7 @@ of three old readiness controls to make room for further verification controls.
 The extension's 25-record admission threshold remains unchanged. That observation
 does not establish an Azure service quota. Manual cleanup is still a release gap.
 
-Stage 1 retains successful readiness evidence before the next guest command can
+Stage 1 (commit `6ce5434`) retains successful readiness evidence before the next guest command can
 replace the current pointer. It does not add DELETE support or remove any ARM
 record. Existing VM, target, source, RBAC, policies, disks and guest evidence are
 untouched. The installed extension remains the separately qualified candidate.
@@ -66,3 +66,62 @@ tracked in [remaining-validation.md](remaining-validation.md).
   absence of external governance changes, or safe deletion. Future removal must
   independently gather and bind that evidence; a matching SHA alone is not an
   admission decision. Existing archives and current controls remain untouched.
+
+## Stage 2: reviewed single-record removal and GET-only recovery
+
+Implemented locally after stage 1; no live cloud call, VM start, extension
+installation or removal has been performed for this change.
+
+- A separate native Command Palette action reviews exactly one sealed old
+  readiness record. Latest readiness remains protected even after a status
+  control has replaced the current command pointer. Other current/history
+  operation references are preserved, not just the current command ID.
+- Admission requires a matching owned, **already-deallocated** VM, matching
+  instance identity/placement, no active or uncertain workflow operation, and
+  fresh ARM `Succeeded` provisioning/execution with exit zero. Exact dispatch
+  script, bounded expected readiness output, timestamps and receipt must agree.
+  No legacy auto-adoption and no cleanup-triggered VM start/deallocation exist.
+- A second allowlisted archive binds the exact receipt and live observation.
+  Archive bytes/hash/read-back and directory synchronization precede a durable
+  single-use intent. Account, trust and resource evidence are rechecked after
+  approval and archiving. The approved account also binds the narrow transport.
+- DELETE success/acceptance is not completion. A subsequent explicit action
+  performs GET only and accepts absence only with the retained matching archive.
+  Lost acknowledgements, service refusals and crashes do not replay DELETE.
+  Reappearance invalidates a previous absence observation. Arbitrary service
+  errors/readiness output are not copied into user-facing failures or the ledger.
+- API shape/200/202/204 responses checked against the official
+  [2024-07-01 Compute specification](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/compute/resource-manager/Microsoft.Compute/Compute/stable/2024-07-01/runCommand.json).
+  The implementation does not invent an unsupported conditional-delete guarantee.
+
+### Stage 2 limits and review
+
+1. Pending/Updating remains a **blocker**, not a successful historical receipt.
+   The manually archived September 18 controls included `Updating` even with
+   successful execution; this candidate intentionally will not remove those.
+2. A durable intent that was never dispatched remains read-only/review-required,
+   not automatically reset. New explicit-retry policy is outside this stage.
+3. The workflow lock coordinates extension operations, not other Azure clients.
+   Native approval requires operator coordination of exclusive control. Fresh
+   reads cannot atomically exclude an external mutation between GET and DELETE.
+4. Directory fsync must succeed. macOS local storage was tested; Windows and
+   remote extension-host filesystem support are not qualified. A crash lock
+   still requires operator review, not automatic removal.
+5. B08/B09 live lifecycle acceptance and B10 actual forced Extension Host crash
+   remain open. Mocked crashes and reopening a real local store are explicitly
+   different evidence from a signed-in host crash or an Azure deletion trial.
+
+### Stage 2 local validation
+
+- `npm run check`: TypeScript, **380/380 unit tests**, bundle build pass.
+- Tests exercise cancellation, references, ownership, running VM, Pending,
+  Updating, malformed/changed output, account/trust changes, expiry, archive
+  failure/corruption, persistence failure, and changes during archiving.
+- Lost DELETE replies and simulated crashes after intent preserve no-replay
+  semantics. A new `RunnerStore` instance reopens real fsynced private evidence
+  and reconciles the unknown intent by GET only. Missing archive blocks even a
+  would-be 404; a reappearing resource invalidates previously observed absence.
+- Native handler adapters verify lock/approval boundaries and fsync ordering;
+  the Azure transport adapter rejects other scopes/accounts and missing trust.
+- `git diff --check` passed. These are local/inert-adapter tests, not a live
+  Windows/macOS signed-in GUI or Azure service result.

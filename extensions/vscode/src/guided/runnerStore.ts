@@ -80,4 +80,11 @@ export class RunnerStore {
     try { return await action(); }
     finally { await lock.close(); await unlink(lockPath); }
   }
+  /** Destructive control cleanup requires durable directory entries as well as
+   * fsynced file contents. Unsupported hosts fail closed before cloud deletion. */
+  async syncEvidenceDirectory(): Promise<void> {
+    await this.prepare();
+    const directory = await open(this.root, "r");
+    try { await directory.sync(); } finally { await directory.close(); }
+  }
 }

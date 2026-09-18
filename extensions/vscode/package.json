@@ -82,6 +82,10 @@
     },
     "commands": [
       {
+        "command": "agefreighter.manageReadinessRemoval",
+        "title": "AGEFreighter: Review / Reconcile Readiness Control Removal"
+      },
+      {
         "command": "agefreighter.archiveRunnerReadiness",
         "title": "AGEFreighter: Archive runner readiness receipts"
       },

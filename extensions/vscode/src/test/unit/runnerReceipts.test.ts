@@ -102,6 +102,7 @@ test("durable archive is create-only, hash-verified, and survives state replacem
     const archive = readinessArchive(record, record.readinessReceipts![0]!);
     await store.write(record);
     await store.retainReport(record.id, archive.manifest, archive.text);
+    await store.syncEvidenceDirectory();
     await store.retainReport(record.id, archive.manifest, archive.text);
     await store.write({ ...record, guestCommand: undefined, guestReady: undefined });
     assert.equal(await store.readReport(record.id, archive.manifest), archive.text);

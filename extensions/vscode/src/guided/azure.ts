@@ -5,6 +5,7 @@ import {
   VSCodeAzureSubscriptionProvider
 } from "@microsoft/vscode-azext-azureauth";
 import * as vscode from "vscode";
+import { createHash } from "node:crypto";
 import { RunnerRecord } from "../core/runner";
 import { issueCSVCapability, issueReportCapability } from "./blobCapabilities";
 import { CSVManifest, uploadCSV, uploadRunnerArchive } from "./csvTransfer";
@@ -157,7 +158,7 @@ export class AzureSession implements vscode.Disposable {
   }
 
   /** Control-plane requests only. Never accepts an arbitrary host or forwards redirects. */
-  public async runnerRequest(subscriptionID: string, path: string, method: "GET" | "POST" | "PUT" | "PATCH" = "GET", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }> {
+  public async runnerRequest(subscriptionID: string, path: string, method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }> {
     const subscription = await this.subscription(subscriptionID);
     const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
     const url = new URL(path, endpoint);
@@ -176,6 +177,22 @@ export class AzureSession implements vscode.Disposable {
     if (payload.length > 8 * 1024 * 1024) throw new Error("Azure runner response exceeded the safety limit.");
     return { status: response.status, value: payload ? JSON.parse(payload) as unknown : {},
       poll: response.headers.get("location") ?? response.headers.get("azure-asyncoperation") ?? undefined };
+  }
+
+  /** Fresh non-secret identity binding for a native destructive-action review. */
+  public async runnerAccountBinding(subscriptionID: string): Promise<string> {
+    await this.subscriptions();
+    const s = await this.subscription(subscriptionID);
+    return createHash("sha256").update(JSON.stringify([s.subscriptionId, s.tenantId, s.account.id, s.environment.resourceManagerEndpointUrl])).digest("hex");
+  }
+
+  /** Narrow deletion transport. The lifecycle performs archive/admission checks. */
+  public async removeRunnerReadiness(subscriptionID: string, commandId: string, accountBinding: string): Promise<void> {
+    if (!/^\/subscriptions\/[a-f0-9-]{36}\/resourceGroups\/[a-zA-Z0-9_.()-]+\/providers\/Microsoft\.Compute\/virtualMachines\/af-[a-f0-9]{20}\/runCommands\/af-[a-f0-9-]{36}$/.test(commandId) ||
+        !commandId.startsWith(`/subscriptions/${subscriptionID}/`) || !vscode.workspace.isTrusted ||
+        await this.runnerAccountBinding(subscriptionID) !== accountBinding || !vscode.workspace.isTrusted) throw new Error("Removal scope, workspace trust or Azure account changed.");
+    const response = await this.runnerRequest(subscriptionID, `${commandId}?api-version=2024-07-01`, "DELETE");
+    if (![200, 202, 204, 404].includes(response.status)) throw new Error("Removal response is uncertain; reconcile without replay.");
   }
 
   public async runnerList(subscriptionID: string, path: string): Promise<unknown[]> {

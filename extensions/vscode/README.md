@@ -326,12 +326,27 @@ private `runner-v2` storage as `<workflow>.report-<ARM-command-UUID>.json`.
 The picker marks receipts still referenced by workflow state. Legacy records
 without a sealed receipt are not adopted automatically.
 
-**Archiving does not free command slots or authorize deletion.** No Azure
-resource or guest evidence is removed. Reviewable selective removal and its
-interrupted-operation reconciliation remain follow-up work; do not delete
-unknown, running, referenced, migration, or verification commands to bypass the
-threshold. A stopped VM may temporarily expose a pending instance view, which
-must not be treated as a confirmed terminal result.
+**Archiving alone does not free command slots or authorize deletion.** For a
+separate review, use **AGEFreighter: Review / Reconcile Readiness Control Removal**.
+It requires an already-deallocated, owned VM, no active/uncertain local operation,
+an unreferenced sealed readiness receipt, and matching current ARM success.
+It will not start/stop a VM for cleanup. Pending/Updating ARM evidence blocks it,
+including transient instance views from stopped VMs. Legacy records are not
+adopted, and migration/verification commands cannot be selected for deletion.
+
+After a native confirmation for one exact command, the extension durably saves
+and verifies a separate archive, rechecks account/trust/resource state, persists
+a single-use removal intent, and submits one DELETE. The ARM control record is
+permanently removed; local archives, guest evidence, disks and data remain.
+Selecting that record again only checks its existence. Lost replies and retained
+intents never trigger another DELETE, even if a crash happened before dispatch.
+An HTTP acknowledgement is not completion: absence must be confirmed by GET.
+Coordinate exclusive access to the VM/control record during this review; these
+checks cannot prevent another Azure client from modifying it between requests.
+If durable directory synchronization is unsupported on the extension host,
+removal fails closed. That host requires separate qualification; the archive
+command remains available. This candidate has local regression coverage only;
+installed-GUI/Azure cleanup qualification is still pending.
 
 - [AGEFreighter documentation](https://github.com/rioriost/agefreighter/tree/main/docs)
 - [Configuration reference](https://github.com/rioriost/agefreighter/blob/main/docs/reference/configuration.md)

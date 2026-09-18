@@ -49,6 +49,7 @@ export interface RunnerRecord {
   hourlyComputeUSD: number;
   guestCommand?: GuestCommand;
   readinessReceipts?: import("./runnerReceipts").ReadinessReceipt[];
+  readinessRemovals?: import("./runnerReceiptRemoval").ReceiptRemoval[];
   absentStatusCommands?: GuestCommand[];
   absentReadinessCommands?: GuestCommand[];
   guestReady?: GuestReadiness;

@@ -44,6 +44,7 @@ function fixture() {
     "./runnerTargetPanel": {reviewRunnerTarget: () => {effects++;}},
     "./runnerExecutionPanel": {continueRunnerExecution: () => {effects++;}},
     "./runnerReceiptsPanel": {},
+    "./runnerReceiptRemovalPanel": {},
     "./developmentRunner": {}, "./core/runnerPlacement": {}
   };
   const output = {exports: {registerRunnerMigration: (_c: unknown, _o: unknown) => {}}};
