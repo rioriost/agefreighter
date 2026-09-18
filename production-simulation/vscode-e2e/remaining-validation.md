@@ -2,6 +2,14 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+Latest Gremlin B05 checkpoint, September 18 03:08 UTC: approved private target
+deployment succeeded and was reconciled in the installed GUI. AGE restart and
+same-VM resize are in progress; no load/count/digest PASS yet. B10 active
+migration/verification reload remains open. The approved exact VM/target
+session ends at **06:00 UTC / 15:00 JST September 18**, earlier than the outer
+deadline. A scoped safety monitor is active. See
+[execution evidence](gremlin-gui-execution-20260918.md).
+
 The nine base P1 routes are [qualified](progress.md). This ledger covers the
 additional requirements in [the original plan](plan.md#branch-coverage-beyond-the-base-paths).
 It does not reopen or replace their evidence. Unit tests, actual CLI contracts,

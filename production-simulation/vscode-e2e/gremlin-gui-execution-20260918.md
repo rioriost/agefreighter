@@ -641,3 +641,33 @@ deallocated / provisioning Succeeded**. OS disk and all evidence are preserved.
 No active worker, source operation or monitor was started. Continuation must
 refresh boot/guest health and target preflight; the native preview is not a
 durable authorization to skip freshness gates. The 06:00 UTC bound still applies.
+
+### Approved private target deployed — September 18 02:29–03:06 UTC
+
+Following the user's specific private-target approval, refreshed the same
+runner's readiness in the installed GUI: operation
+`a06d9347-7334-4b23-aa8d-4ba930615820`, boot
+`b15b106f-c23b-4f94-9727-f627297f83a3`, disk 3.90413%, idle worker,
+zero swap/OOM, unchanged pinned Linux artifact. Repeated target preflight and
+saved/submitted the reviewed plan through the actual folder/approval dialogs.
+Plan SHA-256: `48093e263ee939cf46b59e7fdff8995d5e17b175f41a39c66ee826b8b1576416`.
+
+Deployment `afpg-4043e008b86e47b88722` succeeded at
+`2026-09-18T02:39:09.848272Z` (correlation
+`fda2c97f-9b97-4f42-9da9-8dff0c0b8057`). The installed GUI subsequently
+reconciled it to **provisioned**, without replay. PostgreSQL 18 / E8ds_v5,
+128 GiB **storage**, Japan East zone 1, dedicated private subnet
+`10.246.22.0/24`; generated credentials stay in SecretStorage. Public access
+and source access scope were not expanded. Governance activity includes a
+policy deployment enabling target threat protection and subnet audit failures;
+these were observed, not bypassed or attributed to an application failure.
+
+AGE preload restart was submitted through the installed GUI at `03:05:27Z`.
+Fresh idle readiness was requested before the separately reviewed same-VM
+resize. Migration has not started and no additional qualification is claimed.
+The exact VM/target now have a five-minute safety monitor; it may reconcile
+existing operations and stop these resources, but cannot start/retry a load.
+Hard stop remains **September 18 06:00 UTC / 15:00 JST**. USD 800 ceiling,
+USD 650 conservative reserve and USD 1.448/hour combined planned compute
+remain unchanged; the latest refresh was throttled, so USD 220.808334109599
+is delayed prior billing evidence, not a real-time total.

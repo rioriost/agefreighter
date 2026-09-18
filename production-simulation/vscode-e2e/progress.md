@@ -8,6 +8,17 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
+**Latest Gremlin state (September 18 03:08 UTC):** the user-approved private
+PostgreSQL 18 / E8ds_v5 target (128 GiB storage) deployed successfully at
+02:39:09 UTC and was reconciled to provisioned in the installed GUI. Public
+access is Disabled. AGE preload restart is submitted; fresh guest readiness
+passed and the same-runner D4s_v5 resize is being advanced through the GUI.
+The sealed 5.6M-row / 18-label inventory is reused without replay. Migration,
+complete counts and the full Gremlin canonical digest are still pending, not
+PASS. Exact VM/target safety monitoring ends this bounded session by **06:00
+UTC / 15:00 JST today**. USD 800 ceiling and USD 650 planning reserve remain.
+See the [latest execution entry](gremlin-gui-execution-20260918.md#approved-private-target-deployed--september-18-02290306-utc).
+
 September 18 JST: a [fresh installed-GUI Gremlin draft](gremlin-gui-execution-20260918.md)
 selected the prepared source and private runner placement with the existing Azure
 session. The approved new transfer storage's exact-account `SecurityControl=Ignore`
