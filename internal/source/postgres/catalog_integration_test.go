@@ -97,6 +97,9 @@ GRANT SELECT ON ` + s + `.person, ` + s + `.orders TO ` + r + `;`
 	if err != nil || strings.Contains(string(encoded), "fixture-only") || strings.Contains(string(encoded), "catalog-must-not-read-this-value") || len(encoded) > CatalogMaxBytes {
 		t.Fatal("unsafe report")
 	}
+	if _, err = DecodeCatalog(encoded, []string{schema}); err != nil {
+		t.Fatal("actual PostgreSQL metadata failed the sealed artifact contract", err)
+	}
 	if _, err = ReadCatalog(t.Context(), parsed.String(), []string{schema + "_missing"}); err == nil {
 		t.Fatal("missing scope accepted")
 	}

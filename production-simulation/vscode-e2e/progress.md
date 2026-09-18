@@ -8,6 +8,16 @@ the defined P1 functional qualification, not production-scale certification,
 recovery qualification, or a claim that every possible configuration is covered.
 The dated sections below retain historical failures and intermediate states.
 
+September 18 local PostgreSQL catalog follow-up: a distinct guest operation now
+validates the reviewed connection, TLS/custom-CA digest and complete metadata
+report, then retains the operation/configuration/boot/report seals. Real local
+PostgreSQL 18.6 TLS CLI and metadata tests pass, as do focused race/vet checks,
+repository-wide Go tests, Linux AMD64 cross-builds and 404 extension tests.
+This is not installed or Azure-qualified: extension-side catalog
+intent/provenance/import and GUI recommendation adoption remain next. B04 stays
+partial; operator records and installed extension are unchanged. See
+[execution boundaries and evidence](postgres-recommendations-20260918.md#stage-2-guest-boundary-and-local-tls-qualification).
+
 **Latest Gremlin state (September 18 05:13 UTC): FULL CANONICAL PASS.** Installed
 GUI imported the sealed result for `b0530700-ccd4-4f33-84fa-0854c8f4037b` and
 displayed **P1 full canonical digest: PASS**. Independent Mac recomputation agrees:
@@ -1263,9 +1273,10 @@ Windows unit tests, source contracts, Extension Host and packaging.
   or explicitly representative assessment remains an R4 acceptance gate.
   Complete CSV inventory has now passed local P1 testing, and prefix-scaled
   estimates no longer pass the capacity gate even with exact total counts.
-- The form requires explicit reviewed mappings. PostgreSQL schema/FK catalog and
-  recommendation foundations are locally tested, but not yet connected to the
-  Linux runner or GUI (see [stage 1 evidence](postgres-recommendations-20260918.md)). Current table/column/graph identifiers
+- The form requires explicit reviewed mappings. PostgreSQL schema/FK catalog,
+  recommendation foundations and the guest execution/sealing path are locally
+  tested; extension-side operation/import and GUI adoption are still pending
+  (see [implementation evidence](postgres-recommendations-20260918.md)). Current table/column/graph identifiers
   are limited to ASCII letters/digits/underscores. Cosmos explicit mappings use
   a top-level label field; only the public Azure NoSQL endpoint is supported.
 - TLS validation remains mandatory. A custom Neo4j/PostgreSQL source CA can now

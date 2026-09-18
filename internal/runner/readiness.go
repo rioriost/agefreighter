@@ -62,6 +62,7 @@ func (m Manager) Ready(ctx context.Context) (Readiness, error) {
 		"csv-inventory-v1", "csv-migration-v1",
 		"neo4j-inventory-v1", "neo4j-migration-v1",
 		"postgresql-inventory-v1", "postgresql-migration-v1",
+		"postgresql-catalog-v1",
 		"cosmos-nosql-inventory-v1", "cosmos-nosql-migration-v1",
 		"postgresql-native-floats-v1",
 		"cosmos-explicit-property-types-v1",

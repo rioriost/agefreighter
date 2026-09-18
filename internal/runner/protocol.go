@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/rioriost/agefreighter/internal/config"
+	"github.com/rioriost/agefreighter/internal/source/postgres"
 )
 
 const MaxRequestBytes = 1 << 20
@@ -76,7 +77,7 @@ func Decode(input io.Reader) (Request, error) {
 		return Request{}, errors.New("invalid runner protocol version or operation identity")
 	}
 	switch request.Action {
-	case "ready", "profile", "inventory", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume", "resume-migration":
+	case "ready", "profile", "inventory", "postgres-catalog", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume", "resume-migration":
 	default:
 		return Request{}, errors.New("runner operation is not allowed")
 	}
@@ -132,6 +133,31 @@ func Decode(input io.Reader) (Request, error) {
 // ValidateConfiguration constrains guest file access and environment injection.
 // Database queries are subsequently checked by the connector's read-only parser.
 func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error) {
+	if request.Action == "postgres-catalog" {
+		catalog, err := postgres.DecodeCatalogRequest(request.Configuration)
+		if err != nil {
+			return nil, err
+		}
+		for name, value := range request.Secrets {
+			if name != "AGEFREIGHTER_SOURCE_DSN" && name != "AGEFREIGHTER_SOURCE_CA_PEM" || len(value) > 64<<10 || strings.ContainsRune(value, 0) {
+				return nil, errors.New("invalid catalog credential set")
+			}
+		}
+		if ca, ok := request.Secrets["AGEFREIGHTER_SOURCE_CA_PEM"]; ok {
+			if err := validateSourceCA([]byte(ca)); err != nil {
+				return nil, err
+			}
+			if catalog.SourceCASHA256 != sum([]byte(ca)) {
+				return nil, errors.New("catalog source CA changed after review")
+			}
+		} else if catalog.SourceCASHA256 != "" {
+			return nil, errors.New("reviewed catalog source CA is missing")
+		}
+		if err := postgres.ValidateCatalogConnection(catalog, request.Secrets["AGEFREIGHTER_SOURCE_DSN"], ""); err != nil {
+			return nil, err
+		}
+		return json.Marshal(catalog)
+	}
 	job, err := config.Parse(request.Configuration)
 	if err != nil {
 		return nil, errors.New("invalid assessment LoadJob configuration")
@@ -279,6 +305,8 @@ func Arguments(action, path string) ([]string, error) {
 		return []string{"profile", path, "--mode", "sample", "--sample-size", "10000", "--format", "json"}, nil
 	case "inventory":
 		return []string{"inventory", path, "--format", "json"}, nil
+	case "postgres-catalog":
+		return []string{"postgres-catalog", path}, nil
 	case "migrate-csv", "migrate-source":
 		return nil, nil // Fixed prepare/load/verify sequence, not arbitrary arguments.
 	default:

@@ -3,7 +3,9 @@ package runner
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -25,6 +27,7 @@ func TestCSVWorkerSealsFullBytesWithoutReplayOrCapabilityRetention(t *testing.T)
 		t.Skip("Unix guest filesystem capacity enforcement")
 	}
 	m, _, starts := testManager(t)
+	m.csvCapacity = func(string) (float64, float64, error) { return 1 << 30, 1 << 29, nil }
 	data := "id,name\n1,東京\n"
 	r := csvRequest(data)
 	calls := 0
@@ -77,6 +80,7 @@ func TestCSVFailureRetainsPartialButNeverPublishesOrLeaks(t *testing.T) {
 	for _, mode := range []string{"changed", "short", "oversized", "redirect", "denied"} {
 		t.Run(mode, func(t *testing.T) {
 			m, _, _ := testManager(t)
+			m.csvCapacity = func(string) (float64, float64, error) { return 1 << 30, 1 << 29, nil }
 			r := csvRequest("id\n1\n")
 			calls := 0
 			m.blobTransport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
@@ -112,6 +116,32 @@ func TestCSVFailureRetainsPartialButNeverPublishesOrLeaks(t *testing.T) {
 				t.Fatal("bad bytes published")
 			}
 		})
+	}
+}
+
+func TestCSVCapacityGateIsIndependentOfTestHostDisk(t *testing.T) {
+	for _, tc := range []struct {
+		total, free float64
+		bytes       int64
+		allowed     bool
+	}{
+		{1000, 500, 100, true}, {1000, 300, 100, true}, {1000, 299, 100, false},
+		{1000, 199, 0, false}, {0, 0, 0, false}, {1000, 1001, 0, false},
+		{1000, 500, -1, false}, {math.NaN(), 500, 1, false}, {1000, math.Inf(1), 1, false},
+	} {
+		m := Manager{csvCapacity: func(string) (float64, float64, error) { return tc.total, tc.free, nil }}
+		if (m.csvDiskGate("fixture", tc.bytes) == nil) != tc.allowed {
+			t.Fatal("wrong capacity admission", tc)
+		}
+	}
+	m, _, starts := testManager(t)
+	m.csvCapacity = func(string) (float64, float64, error) { return 1000, 100, nil }
+	if _, err := m.SubmitCSV(t.Context(), csvRequest("id\n1\n")); err == nil || *starts != 0 {
+		t.Fatal("full guest disk admitted")
+	}
+	m.csvCapacity = func(string) (float64, float64, error) { return 0, 0, errors.New("missing") }
+	if m.csvDiskGate("fixture", 1) == nil {
+		t.Fatal("missing evidence admitted")
 	}
 }
 func TestCSVCapabilitiesRejectForeignPathsPrivilegesAndUnsealedFiles(t *testing.T) {

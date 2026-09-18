@@ -24,6 +24,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/app"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/report"
+	"github.com/rioriost/agefreighter/internal/source/postgres"
 	"github.com/rioriost/agefreighter/internal/version"
 )
 
@@ -96,6 +97,27 @@ func TestClaimedWorkerRemovesProtectedTransportOnEarlyFailure(t *testing.T) {
 // The child executes the real source profiler, not a stub success report. The
 // systemd transport is injected separately so these tests run on macOS as well.
 func TestMain(m *testing.M) {
+	// Catalog subprocess orchestration fixture, not database qualification.
+	if len(os.Args) == 3 && os.Args[1] == "postgres-catalog" {
+		data, err := os.ReadFile(os.Args[2])
+		if err != nil {
+			os.Exit(1)
+		}
+		r, err := postgres.DecodeCatalogRequest(data)
+		if err != nil || postgres.ValidateCatalogConnection(r, os.Getenv("AGEFREIGHTER_SOURCE_DSN"), os.Getenv("SSL_CERT_FILE")) != nil {
+			os.Exit(1)
+		}
+		mode, _ := os.ReadFile("catalog-test-mode")
+		if string(mode) == "failed" {
+			os.Exit(1)
+		}
+		result := catalogReport
+		if string(mode) == "bad-scope" {
+			result = strings.Replace(result, "public", "other", 1)
+		}
+		_, _ = io.WriteString(os.Stdout, result)
+		os.Exit(0)
+	}
 	if len(os.Args) > 1 && os.Args[1] == "version" {
 		_, _ = io.WriteString(os.Stdout, version.Current().String("agefreighter"))
 		os.Exit(0)
@@ -163,6 +185,7 @@ func TestReadinessRequiresBootstrapAndMatchingInstallation(t *testing.T) {
 		"csv-inventory-v1", "csv-migration-v1",
 		"neo4j-inventory-v1", "neo4j-migration-v1",
 		"postgresql-inventory-v1", "postgresql-migration-v1",
+		"postgresql-catalog-v1",
 		"cosmos-nosql-inventory-v1", "cosmos-nosql-migration-v1",
 		"postgresql-native-floats-v1",
 		"cosmos-explicit-property-types-v1",

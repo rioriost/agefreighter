@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/rioriost/agefreighter/internal/report"
+	"github.com/rioriost/agefreighter/internal/source/postgres"
 )
 
 type Manager struct {
@@ -30,6 +31,7 @@ type Manager struct {
 	BootID           func() (string, error)
 	Start            func(context.Context, string) error
 	blobTransport    http.RoundTripper                                        // Test seam; production uses standard TLS validation.
+	csvCapacity      func(string) (float64, float64, error)                   // Test seam; nil reads the actual guest filesystem.
 	healthProbe      func(context.Context) (*GuestHealth, error)              // Test seam; nil uses local Linux evidence.
 	versionProbe     func(context.Context) (string, error)                    // Test seam; nil executes the installed CLI.
 	migrationPrepare func(context.Context, []byte, string) error              // Test seam; nil uses verified PostgreSQL TLS preparation.
@@ -77,14 +79,14 @@ func (m Manager) Submit(ctx context.Context, request Request) (State, error) {
 	if err := privateDirectory(root); err != nil {
 		return State{}, err
 	}
-	if request.Action == "migrate-csv" || request.Action == "migrate-source" {
+	if request.Action == "migrate-csv" || request.Action == "migrate-source" || request.Action == "postgres-catalog" {
 		probe := m.health
 		if m.healthProbe != nil {
 			probe = m.healthProbe
 		}
 		health, err := probe(ctx)
 		if err != nil || health == nil || !health.Idle || health.StorageUsedPercent >= 80 || health.SwapUsedBytes != 0 || health.OOMEvents != 0 {
-			return State{}, errors.New("migration requires current idle, storage, swap and OOM safety evidence")
+			return State{}, errors.New("operation requires current idle, storage, swap and OOM safety evidence")
 		}
 	}
 	if err := os.Mkdir(dir, 0700); err != nil {
@@ -205,7 +207,11 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 	if err != nil {
 		return err
 	}
-	deadline, cancel := context.WithTimeout(ctx, 30*time.Minute)
+	timeout := 30 * time.Minute
+	if state.Action == "postgres-catalog" {
+		timeout = 3 * time.Minute
+	}
+	deadline, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	cmd := exec.CommandContext(deadline, m.CLI, args...)
 	cmd.Dir = dir
@@ -238,14 +244,14 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 		return err
 	}
 	if !stdout.overflow {
-		if _, err := report.Decode(stdout.Bytes()); err == nil {
+		if err := validateWorkerReport(state.Action, configuration, stdout.Bytes()); err == nil {
 			data, err := redactedReport(stdout.Bytes(), secrets)
 			if err != nil {
 				return err
 			}
 			// Redacting a short secret may expand the JSON beyond the input
 			// bound. Such output cannot become a retrievable terminal artifact.
-			if len(data) <= MaxArtifactBytes {
+			if len(data) <= MaxArtifactBytes && validateWorkerReport(state.Action, configuration, data) == nil {
 				if err := writeNew(filepath.Join(dir, "report.json"), data); err != nil {
 					return err
 				}
@@ -269,6 +275,19 @@ func (m Manager) Work(ctx context.Context, workflow, operation string) error {
 		return errors.New("workflow lease changed; operator reconciliation required")
 	}
 	return os.Remove(filepath.Join(root, "active"))
+}
+
+func validateWorkerReport(action string, configuration, data []byte) error {
+	if action == "postgres-catalog" {
+		request, err := postgres.DecodeCatalogRequest(configuration)
+		if err != nil {
+			return err
+		}
+		_, err = postgres.DecodeCatalog(data, request.Schemas)
+		return err
+	}
+	_, err := report.Decode(data)
+	return err
 }
 
 func stageSourceCA(dir string, input map[string]string) (map[string]string, string, error) {

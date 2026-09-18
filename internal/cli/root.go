@@ -64,6 +64,7 @@ func newRoot(name, summary string, stdout, stderr io.Writer) *cobra.Command {
 			newVerifyCommand(),
 			newProfileCommand(),
 			newInventoryCommand(),
+			newPostgresCatalogCommand(),
 			newOptimizeCommand(),
 			newCleanupCommand(),
 		)

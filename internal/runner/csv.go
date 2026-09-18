@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +15,21 @@ import (
 )
 
 const MaxCSVBytes int64 = 2 << 30
+
+func (m Manager) csvDiskGate(root string, bytes int64) error {
+	probe := csvDiskCapacity
+	if m.csvCapacity != nil {
+		probe = m.csvCapacity
+	}
+	total, free, err := probe(root)
+	if err != nil {
+		return errors.New("CSV disk capacity is unavailable")
+	}
+	if bytes < 0 || total <= 0 || free < 0 || free > total || math.IsNaN(total) || math.IsNaN(free) || math.IsInf(total, 0) || math.IsInf(free, 0) || free-float64(bytes) < total*0.2 {
+		return errors.New("CSV import would exceed the 80 percent storage gate")
+	}
+	return nil
+}
 
 type CSVImport struct {
 	URL    string `json:"url"`
@@ -100,7 +116,7 @@ func (m Manager) SubmitCSV(ctx context.Context, r Request) (State, error) {
 	if err = privateDirectory(root); err != nil {
 		return State{}, err
 	}
-	if err = csvDiskGate(root, r.Import.Bytes); err != nil {
+	if err = m.csvDiskGate(root, r.Import.Bytes); err != nil {
 		return State{}, err
 	}
 	if err = os.Mkdir(dir, 0700); err != nil {
@@ -175,7 +191,7 @@ func (m Manager) workCSV(ctx context.Context, root, dir string, state State) err
 }
 
 func (m Manager) downloadCSV(ctx context.Context, root, dir string, source CSVImport) error {
-	if err := csvDiskGate(root, source.Bytes); err != nil {
+	if err := m.csvDiskGate(root, source.Bytes); err != nil {
 		return err
 	}
 	uploads := filepath.Join(root, "uploads")
