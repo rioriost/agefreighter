@@ -2,6 +2,15 @@
 
 Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
 
+September 18 placement follow-up: signed-in candidate selection confirmed source
+ARM identity/Japan East and same-RG default. Manual region selection was
+interrupted, so override acceptance is not claimed. A real webview-script
+regression reproduced stale zone carry-over and cross-subscription logical-zone
+copying. The local correction requires explicit unknown-zone review, preserves
+saved workflow zones and passes **389 unit / 13 isolated host tests**. It is not
+installed; operator records and Azure are unchanged. B01/B02 stay partial.
+See [placement correction and limits](placement-zone-review-20260918.md).
+
 September 18 06:23 UTC follow-up: **two isolated actual Extension Host SIGKILL
 cases pass**, before dispatch and after synthetic dispatch. Real archive/intent
 hashes survive a new host process; the retained crash lock blocks native access

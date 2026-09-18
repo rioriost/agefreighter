@@ -98,6 +98,8 @@ test("CSV and external source paths independently load runner RG/region dropdown
   assert.ok(v.el('region').options.some(o => o.textContent === 'Japan East (japaneast)'));
   assert.equal(v.el('region').value, '');
   v.choose('runnerGroup','migration-rg'); v.choose('region','japaneast');
+  assert.equal(v.el('preview').disabled, true);
+  v.choose('zone','1');
   assert.equal(v.el('preview').disabled, false);
   v.choose('type','postgresql'); v.choose('location','on-premises');
   assert.equal(v.el('region').value, 'japaneast');
@@ -141,4 +143,57 @@ test("empty or deleted options block preview instead of retaining stale selectio
   const v = view(); v.choose('runnerSubscription', subscription); v.fillCatalog(); v.choose('runnerGroup','migration-rg'); v.choose('region','japaneast');
   v.receive({ kind:'placementOptions', scope:'runner', subscription, catalog:{groups:[],regions:[]} });
   assert.equal(v.el('region').value,''); assert.equal(v.el('runnerGroup').value,''); assert.equal(v.el('preview').disabled,true);
+});
+
+test("unknown source zone clears a previous known zone and requires explicit review", () => {
+  const v = view(); v.choose('subscription',subscription); v.fillCatalog('both'); v.choose('sourceGroup','source-rg');
+  const prefix = `/subscriptions/${subscription}/resourceGroups/source-rg/providers/Microsoft.Compute/virtualMachines/`;
+  v.receive({kind:'sources',subscription,group:'source-rg',type:'neo4j',values:[
+    {id:prefix+'known',region:'japaneast',zone:'2',type:'Microsoft.Compute/virtualMachines'},
+    {id:prefix+'unknown',region:'japaneast',zone:'',type:'Microsoft.Compute/virtualMachines'}
+  ]});
+  v.choose('candidate',prefix+'known'); assert.equal(v.el('zone').value,'2');
+  v.choose('candidate',prefix+'unknown'); assert.equal(v.el('zone').value,'');
+  assert.equal(v.el('preview').disabled,true); assert.equal(v.el('configureSource').disabled,true);
+  v.choose('zone','3'); assert.equal(v.el('preview').disabled,false);
+  v.el('preview').trigger('click');
+  assert.equal((v.messages.at(-1)!.input as RunnerInput).zone,'3');
+});
+
+test("source identity, location, region and runner subscription changes clear stale zones", () => {
+  for (const [field,value] of [['type','csv'],['location','on-premises'],['sourceGroup','migration-rg'],['region','japanwest'],['runnerSubscription',otherSubscription],['sourceId','manual-source-id']]) {
+    const v = view(); v.choose('subscription',subscription); v.fillCatalog('both'); v.choose('sourceGroup','source-rg');
+    v.choose('region','japaneast'); v.choose('zone','2');
+    v.choose(field!,value!);
+    assert.equal(v.el('zone').value,'',field);
+    assert.equal(v.el('preview').disabled,true,field);
+  }
+});
+
+test("logical source zone is not copied across subscriptions", () => {
+  const v = view(); v.choose('subscription',subscription); v.fillCatalog('both'); v.choose('sourceGroup','source-rg');
+  v.choose('runnerSubscription',otherSubscription); v.fillCatalog('runner',otherSubscription);
+  const id = `/subscriptions/${subscription}/resourceGroups/source-rg/providers/Microsoft.Compute/virtualMachines/source`;
+  v.receive({kind:'sources',subscription,group:'source-rg',type:'neo4j',values:[{id,region:'japaneast',zone:'2',type:'Microsoft.Compute/virtualMachines'}]});
+  v.choose('candidate',id);
+  assert.equal(v.el('zone').value,'');
+});
+
+test("initial placement never silently chooses zone 1", () => {
+  const v = view(); assert.equal(v.el('zone').value,'');
+  assert.equal(v.el('preview').disabled,true);
+});
+
+for (const scenario of ['cosmos','unknown-zone','unsupported-zone','unavailable-region','deselected']) test(`candidate ${scenario} requires reviewed zone`, () => {
+  const v = view();
+  if (scenario === 'cosmos') v.choose('type','cosmos-nosql');
+  v.choose('subscription',subscription); v.fillCatalog('both'); v.choose('sourceGroup','source-rg');
+  v.choose('region','japaneast'); v.choose('zone','2');
+  const id = 'test-candidate';
+  v.receive({kind:'sources',subscription,group:'source-rg',type:scenario==='cosmos'?'cosmos-nosql':'neo4j',values:[{
+    id,region:scenario==='unavailable-region'?'unlisted':'japaneast',zone:scenario==='unknown-zone'?'':scenario==='unsupported-zone'?'4':'1',
+    type:scenario==='cosmos'?'Microsoft.DocumentDB/databaseAccounts':'Microsoft.Compute/virtualMachines'
+  }]});
+  v.choose('candidate',scenario==='deselected'?'':id);
+  assert.equal(v.el('zone').value,''); assert.equal(v.el('preview').disabled,true);
 });
