@@ -548,3 +548,14 @@ runner remains deallocated. Installation/reload of the new pinned unpublished
 VSIX needs action-time approval; private-target provisioning and a new bounded
 runner session require their own review. Existing report, failure evidence,
 Linux artifact, credentials and cloud resources are unchanged.
+
+Pinned replacement package (not installed):
+
+- Source commit: `60ea712de199ab3c4a17c5465560cbb8faa1d8bd`.
+- VSIX: `production-simulation/work/vscode-gremlin-target-vsix.50cerJ/agefreighter-60ea712-gremlin-target.vsix`.
+- VSIX SHA-256: `8f0eabd2a500de6ce0be5228240d8f83d3bbcce1c79822364e472056a820286f`.
+- Bundled JavaScript SHA-256: `90497cab435a6f2082d08cf4097ef77daf5d69e1dc78c5067ca21a33effc0617`.
+- Package prepublish repeated typecheck, all 314 tests and compilation successfully.
+- Next gate: specifically approve installation/reload of this unpublished VSIX,
+  reconnect the same workflow and retry target review using the retained report.
+  No Linux artifact replacement or repeated source inventory is required.
