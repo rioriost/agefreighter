@@ -468,3 +468,51 @@ Cosmos and app Go tests pass. The additional runner package rerun is **not a
 pass**: CSV tests stop at the real filesystem's 80% capacity gate; the Mac data
 volume reports 81% used. No files were deleted and no gate was bypassed. This
 local test-environment limitation is separate from the Azure runner's 4% disk.
+
+### Full inventory accepted and runner deallocated — September 18 00:32 UTC
+
+The completion monitor reconciled the existing operation, without retry or
+replay. Guest state records **finished / exit 0** at
+`2026-09-18T00:25:25.261403327Z`: elapsed **11 minutes 6.63 seconds** from the
+original worker start. The existing 30-minute runtime bound was not changed.
+
+The installed source panel reconciled completion, then performed its normal
+create-only export and exact-byte import. Export Run Command
+`af-5700c6b3-1fb1-4edc-8759-f7fc75d27e24`, submitted at `00:30:00.300Z`, succeeded
+with exit 0. The GUI opened **Hash-verified source report** and explicitly stated
+that this is not migration or sizing approval. The privately retained local file
+is `runner-v2/4043e008-b86e-47b8-8722-1efe637ae12a.report-c5ce0e77-ac49-472a-a112-b10e5d375b0f.json`
+under the extension's global storage. Its **2,944 bytes** and independently
+computed SHA-256 match both guest state and export receipt:
+`c4ec98b8adb7e3a70d5b00d0914a66c6f3e5ca28244958edf4b62d0fe438dba6`.
+
+Acceptance checks:
+
+- Report outcome **pass**; read-only and source-counts checks both **pass**.
+- Errors and incomplete checks are both empty; all report fields pass.
+- Complete-stream totals: **1,600,000 vertices + 4,000,000 edges = 5,600,000 records**.
+- All **18** mapped-label counts independently match the prepared portable
+  manifest, including the exact nine vertex labels and nine edge labels.
+- Every configured mapping reached EOF under the required immutable-source
+  window. This is exact count/discovery evidence, not a full source/target digest.
+- Original failure, replacement archives, current operation and both guest/local
+  evidence remain retained. Target and migration state are still absent.
+
+Read-only guest health at `00:29:56Z` found the completed service inactive/dead,
+Result success, ExecMainStatus 0, disk **4%**, swap **0**, and no kernel OOM match.
+MemoryCurrent was unavailable after exit; the earlier running sample was
+15,122,432 bytes. A continuous memory peak is not claimed. The bounded recent
+activity check found only the expected status Run Command; the latest delayed
+cost remains USD 218.409872486324, below the unchanged USD 800 ceiling.
+
+Deallocated only `af-4043e008b86e47b88722`, preserving its OS disk and all evidence.
+Fresh ARM readback confirmed **VM deallocated / provisioning Succeeded** before
+`00:32:27Z`, well before the unchanged 01:26 UTC bound. After this verification,
+`gremlin-inventory-retry-completion` was set to **PAUSED**. No credentials, RBAC,
+network controls, tags, source documents or other resources were changed.
+
+**Outcome:** the installed-GUI Gremlin-shaped NoSQL complete source inventory
+passes. B05 still requires separate target/capacity review, migration and all
+64 canonical target ranges. Active-assessment reload/reconnect passed; active
+migration/verification reload and forced crash remain open under B10. No new
+base migration route is counted as qualified by this inventory result.

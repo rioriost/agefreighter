@@ -1,6 +1,6 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-17 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+Updated: 2026-09-18 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
 All routes completed the installed-GUI workflow, complete counts verification,
 and full P1 canonical comparison (1.6M vertices, 4M edges, 64 ranges). This is
@@ -36,10 +36,13 @@ restart. No new source operation was submitted. The TypeScript correction and
 all **309** extension tests/build pass locally. Following specific approval,
 the reviewed VSIX is now installed/reloaded and cross-boot failure retention
 passes in the actual GUI. Fresh inventory `c5ce0e77-ac49-472a-a112-b10e5d375b0f`
-started September 18 at `00:14:18Z`; it is running, not complete. Actual active
-assessment Reload Window/reconnect preserved its operation and original start
-time without replay. Disk 4%, swap/OOM zero; latest delayed RG cost USD 218.41.
-Five-minute monitoring retains the original 01:26 UTC VM stop bound. No target or
+started September 18 at `00:14:18Z` and finished successfully at **00:25:25Z**
+(**11m 6.63s**). The installed GUI imported its hash-verified report: exact
+**1.6M vertices + 4M edges**, all **18 label counts** matching the prepared
+manifest, no errors/incomplete checks. Actual active assessment Reload
+Window/reconnect preserved its operation and original start time without replay.
+Disk 4%, swap/OOM zero; latest delayed RG cost USD 218.41. The exact runner is
+verified deallocated and the inventory heartbeat is paused. No target or
 migration is started and no additional route is qualified. A supplemental local
 runner-test rerun hit the Mac's real 81%-used disk capacity gate; Cosmos/app and
 309 extension tests pass. See the execution record for exact scope.
