@@ -1,6 +1,16 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-18 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+Updated: 2026-09-19 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+
+September 19 installation checkpoint: user-approved `d40d6cc` VSIX is now
+installed on MacStudio's VS Code 1.138.0. The real PostgreSQL source editor shows
+schema discovery controls and blocks catalog actions for the retained old-runner /
+already-assessed workflow; all 70 operator files remain unchanged. The matching
+Linux archive is built but not uploaded or installed. Fresh Azure reads show
+10 VMs deallocated / 18 Flexible Servers stopped. Cost refresh returned 429 and
+external resource writes require review before a new live session. B04 remains
+partial, not remote catalog/adoption PASS. See
+[installed-GUI checkpoint and next gates](postgres-catalog-gui-20260919.md).
 
 All routes completed the installed-GUI workflow, complete counts verification,
 and full P1 canonical comparison (1.6M vertices, 4M edges, 64 ranges). This is

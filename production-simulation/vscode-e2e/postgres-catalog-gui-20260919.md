@@ -1,0 +1,86 @@
+# PostgreSQL catalog GUI qualification preparation
+
+September 19, 2026, approximately 09:00–09:03 UTC. **B04 remains partial**.
+This checkpoint qualifies installation and the retained-workflow negative gate,
+not a remote catalog read, recommendation adoption, inventory or migration.
+
+## Reviewed artifacts
+
+Built from clean commit `d40d6ccc9a4ddf6e2ca626392cd7bf83140ed6c7` using the
+existing development-runner builder and VSIX packaging workflow. All 428
+extension unit tests, typechecking and compilation passed again.
+
+- VSIX `agefreighter-2.4.0.vsix`, SHA-256:
+  `8d70b7b76137a5d168e7d541c34e4bb3d12d8c4c8508d2d00998c87027480539`.
+- Extension JavaScript SHA-256:
+  `548a0cf23fa6a72216b9e56a2b5fa17376aff5a1c5bda69354f4ebe970b3250e`.
+- Linux AMD64 archive version `2.4.0-dev.d40d6ccc9a4d`, 37,197,546 bytes,
+  SHA-256 `2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6`.
+  Its local manifest remains under
+  `production-simulation/work/vscode-runner-build.HwWiUz/manifest.json`.
+  This archive has **not** been uploaded, installed or executed on Azure.
+
+The user specifically approved installing this unpublished VSIX on MacStudio.
+Installation succeeded and the installed JavaScript SHA matches the build.
+Actual installed VS Code is **1.138.0, arm64**, commit
+`7debcd0e2acdea1c52de81bf9ee1620444407dda`; older 1.136.1 results remain historical.
+No Marketplace publication occurred.
+
+## Installed GUI observations
+
+Launched the operator's VS Code and opened New Guided Migration. Reconnected
+through the actual picker to retained AZ-PGFS workflow
+`29558917-403e-4a76-aaa0-de07122ea9c6`, without replaying any operation.
+Opened Configure source & assessment and checked its accessibility tree and
+screenshot:
+
+- The PostgreSQL schema discovery section is visible, including explicit schemas,
+  discovery, status, report transfer and selected adoption controls.
+- All four catalog actions are disabled for this old, already-assessed workflow.
+  Its pinned runner predates `postgresql-catalog-v1`; the UI explains that a
+  matching reviewed Linux artifact is required. Both the missing capability and
+  existing assessment apply here, so this is not an isolated test of either gate.
+- The saved connection, nine vertex and nine edge mappings, retained inventory
+  operation and imported report remain visible. Nothing was edited or submitted.
+- The 70-file operator store aggregate filename/content SHA-256 is unchanged:
+  `fcc85c6021b1191d9207a9fe93eb661cd1665edebbf83e5d33a4602d87f248ef`.
+
+No passwords were read or entered. No worker, inventory, target deployment,
+migration, source write or report export was dispatched.
+
+## Read-only Azure preflight
+
+Scope: existing subscription `67c417f3-5a13-446c-afb9-40cd87f2fdb7`, resource
+group `rg-af-vscode-p1-20260905-a`. Fresh reads show all **10 retained VMs
+deallocated** and all **18 Flexible Servers Stopped**; no RG locks were returned.
+No resource was started, stopped, resized, tagged or otherwise changed here.
+
+The cost query for this RG, September 5–20, returned **HTTP 429**. It did not
+produce a new cost total. Historical USD 220.808334109599 and USD 650 planning
+reserve are not current billing. The USD 800 ceiling and outer deadline
+`2026-09-20T07:14:35.311Z` remain unchanged; the previous Gremlin 06:00 UTC
+September 18 session deadline is expired and is not authority for a new session.
+
+The 24-hour activity query (bounded to 200 events) returned external writes,
+including failed PostgreSQL TLS-configuration writes around 08:34 UTC September
+19, successful writes to the two on-premises-simulation Neo4j VMs, and a write to
+the retained Gremlin runner's OS disk on September 18. These observations do not
+prove their initiator, intent or effective changes. No governance setting was
+reversed. A read of the PostgreSQL source's `require_secure_transport` parameter
+returned `ServerStoppedError`; the source was **not** restarted just to inspect it.
+
+## Next bounded live trial
+
+Before any paid session, recheck cost/time reserve, exact resource ownership and
+the effective relevant governance changes. Define a fresh catalog workflow and
+its exact private runner/storage scope, approve the pinned Linux artifact, and
+set a short explicit shutdown bound within the outer deadline. Preserve all
+accepted workflows; the old AZ-PGFS workflow cannot be repurposed as a fresh
+catalog operation. Start only the selected PostgreSQL source and trial runner;
+no target is needed for the catalog-only phase.
+
+Then use the installed GUI for explicit `p1` schema discovery, operation/status
+reconciliation across reconnect, sealed report import, selection/adoption and
+manual editing. Source credentials must be entered privately. Complete inventory
+is a separate approved read and remains necessary before any sizing claim.
+No remote/catalog/adoption PASS is inferred from this installation checkpoint.

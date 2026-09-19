@@ -1,6 +1,14 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-18 JST. Status: **running; not release-qualified**.
+Updated: 2026-09-19 JST. Status: **running; not release-qualified**.
+
+September 19: the approved `d40d6cc` extension is installed on VS Code 1.138.0;
+real GUI display and rejection of the retained old/already-assessed PostgreSQL
+workflow are checked, with all 70 operator files preserved. Matching Linux
+artifact is prepared locally only. Live catalog/import/adoption and complete
+inventory still require a fresh workflow, current budget/governance checks and
+a bounded approved runner session. See
+[installation evidence](postgres-catalog-gui-20260919.md). B04 stays partial.
 
 September 18 PostgreSQL catalog GUI follow-up: retained operation/provenance,
 capability/fresh-readiness gates, sealed report import and explicit non-overwriting
