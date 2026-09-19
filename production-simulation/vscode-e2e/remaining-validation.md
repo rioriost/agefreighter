@@ -10,6 +10,12 @@ inventory still require a fresh workflow, current budget/governance checks and
 a bounded approved runner session. See
 [installation evidence](postgres-catalog-gui-20260919.md). B04 stays partial.
 
+Fresh local catalog trial draft: `66a26571-953f-4221-9659-a4b35460ffc4`.
+No new Azure resources/start. Budget gate is awaiting a portal cumulative cost
+and update-date confirmation after both API query scopes returned 429. P1 fixture
+DDL has no FKs; live FK recommendations cannot be qualified against it unchanged.
+Keep explicit manual edge/graph-ID/property review in this trial.
+
 September 18 PostgreSQL catalog GUI follow-up: retained operation/provenance,
 capability/fresh-readiness gates, sealed report import and explicit non-overwriting
 recommendation adoption are implemented locally. All **428 extension unit tests /

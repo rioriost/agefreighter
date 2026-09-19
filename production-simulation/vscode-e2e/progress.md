@@ -12,6 +12,13 @@ external resource writes require review before a new live session. B04 remains
 partial, not remote catalog/adoption PASS. See
 [installed-GUI checkpoint and next gates](postgres-catalog-gui-20260919.md).
 
+Follow-up: new GUI-created local draft `66a26571-953f-4221-9659-a4b35460ffc4`
+is ready for scoped catalog trial preparation; no Azure resources or operations
+were created. Both cost-query scopes returned 429, so paid execution is held
+pending a current portal cost/update-date confirmation. The expected P1 source
+has primary keys but no declared FKs; explicit manual edge mappings remain
+necessary, and a catalog-only result must not be called full P1 qualification.
+
 All routes completed the installed-GUI workflow, complete counts verification,
 and full P1 canonical comparison (1.6M vertices, 4M edges, 64 ranges). This is
 the defined P1 functional qualification, not production-scale certification,
