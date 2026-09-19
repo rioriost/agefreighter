@@ -137,6 +137,33 @@ access grant and has **not** accepted the dialog. The fresh RG lock query
 returned no locks. No storage, VM, source start, catalog read or Linux upload
 has occurred at this checkpoint.
 
+### Transfer account created; networking gate — September 19, 09:58–10:01 UTC
+
+The user approved the scoped account/role creation. On the next GUI observation,
+the native dialog was already dismissed and the operation was `submitted`;
+only status reconciliation was performed, without resubmission. ARM confirms
+deployment `af66a26571953f42219659a4-transfer` **Succeeded** at
+`2026-09-19T09:58:54.401392Z`. Account ownership tags match this workflow.
+The exact account-scoped role assignment
+`a0be79e6-522b-4a1b-ab36-117aaea8e2a2` grants Storage Blob Data Contributor to
+the approved signed-in user; no wider role scope was returned.
+
+The installed GUI now correctly reports
+`ready — public network: Disabled (provisioning is not transfer readiness)`.
+ARM confirms HTTPS-only, minimum TLS 1.2, anonymous blob access disabled and
+shared-key access disabled. Public network access is **Disabled**, despite the
+reviewed deployment requesting Enabled. The bounded activity reads returned
+no matching events yet, so the actor/cause is not established by those reads.
+No authenticated upload has passed and no Linux archive has been uploaded.
+
+Requested explicit confirmation to apply `SecurityControl=Ignore` and enable
+authenticated HTTPS public access **only on this new account**, keeping
+anonymous/shared-key access disabled. Neither change has been applied at this
+checkpoint. No VM or source server has been started. The previous 70 operator
+files still match the retained aggregate SHA; only the new workflow changed.
+The source form's database/user reset to defaults during refresh; re-enter
+`p1source` / `agefreighter_reader` before a future approved source operation.
+
 ### P1 schema expectations and qualification limits
 
 Inspection of the retained fixture preparation script

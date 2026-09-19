@@ -16,9 +16,12 @@ Follow-up: new GUI-created local draft `66a26571-953f-4221-9659-a4b35460ffc4`
 is ready for scoped catalog trial preparation; no Azure resources or operations
 were created. Both cost-query scopes returned 429; the user subsequently supplied
 a currently updated September portal total of **USD 265.69**, clearing that cost
-gate without claiming an API refresh. The installed GUI is at the new transfer
-account/scoped-access confirmation, awaiting action-time approval; no compute
-has started. The USD 800 ceiling and September 20 16:14 JST deadline remain.
+gate without claiming an API refresh. The user-approved new transfer account
+and account-scoped role are now created and ARM deployment succeeded. The GUI
+correctly distinguishes provisioning success from transfer readiness: public
+network access is Disabled. Exact-account exception-tag/public-HTTPS approval
+is requested before any change; no Linux upload or compute start has occurred.
+The USD 800 ceiling and September 20 16:14 JST deadline remain.
 The expected P1 source
 has primary keys but no declared FKs; explicit manual edge mappings remain
 necessary, and a catalog-only result must not be called full P1 qualification.
