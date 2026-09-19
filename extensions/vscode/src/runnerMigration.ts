@@ -2,7 +2,7 @@ import { runnerHTML } from "./core/runnerView";
 import * as vscode from "vscode";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
 import { AzureSession } from "./guided/azure";
-import { object, parseRunnerInput, previewHash, releaseArtifact, retainDraftSetup, RunnerRecord, runnerNames, runnerTemplate, sourceWorkflowDraft } from "./core/runner";
+import { assertPreviewableDraft, object, parseRunnerInput, previewHash, releaseArtifact, retainDraftSetup, RunnerRecord, runnerNames, runnerTemplate, sourceWorkflowDraft } from "./core/runner";
 import { preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunner } from "./core/runnerLifecycle";
 import { RunnerLockedError, RunnerStore } from "./guided/runnerStore";
 import { basename, join } from "node:path";
@@ -154,7 +154,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             const input = parseRunnerInput(message.input);
             assertPlacementSelection(input, await catalog(input.subscriptionId));
             const draft = typeof message.draftId === "string" ? await store.read(message.draftId) : undefined;
-            if (draft && (draft.phase !== "draft" || JSON.stringify(draft.input.source) !== JSON.stringify(input.source))) throw new Error("Source selection changed. Reopen the matching draft or start a separate source configuration.");
+            if (draft) assertPreviewableDraft(draft, input);
             const id = draft?.id ?? randomUUID();
             // Matching released software is a mandatory prerequisite. Never install a
             // stale version or execute mutable repository source on a customer VM.
@@ -185,6 +185,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             const reviewed = await store.exclusive(id, async () => {
               if (draft) {
                 const latest = await store.read(id);
+                if (JSON.stringify(latest) !== JSON.stringify(draft)) throw new Error("This draft changed during preview. Reconnect and review it again.");
                 record = retainDraftSetup(record, latest);
               }
               await control.persist(record); return record;

@@ -26,6 +26,13 @@ archive upload now pass. The new private B2s_v2 runner preview is complete;
 action-time approval for guest installation and container-scoped Blob Reader
 is requested at the native creation dialog. No VM/source start has occurred.
 The USD 800 ceiling and September 20 16:14 JST deadline remain.
+The later continuation exposed an expired-preview renewal bug: the installed
+view lost its retained draft ID and looked for the unpublished release instead
+of reusing the pinned guest archive. Both attempts failed before deployment;
+the proposed VM is absent. The extension-only fix passes 430 unit tests and
+13 isolated host tests, with a new VSIX packaged but not installed. Explicit
+renewal retains the workflow/artifact while preserving expiry, placement,
+concurrency and fresh-consent guards. B04 remains partial.
 The expected P1 source
 has primary keys but no declared FKs; explicit manual edge mappings remain
 necessary, and a catalog-only result must not be called full P1 qualification.

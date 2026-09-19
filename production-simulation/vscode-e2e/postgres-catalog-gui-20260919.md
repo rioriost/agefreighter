@@ -200,6 +200,45 @@ checks and establish the exact shutdown bound. The source remains Stopped
 with public network access Disabled and its expected subnet/private DNS;
 no source start or target creation occurred. Fresh RG lock query returned none.
 
+### Expired-preview renewal defect and local fix — September 19, 13:11–13:15 UTC
+
+At the user's next continuation, the retained preview had expired at 12:09:55Z.
+The installed GUI displayed the stale-preview rejection; ARM independently
+returned ResourceNotFound for the proposed VM. No deployment was submitted.
+Refreshing the preview then incorrectly attempted to fetch the unpublished
+2.4.0 release/checksums instead of retaining the already-uploaded development
+archive, and failed closed again.
+
+Root cause: the webview retained `draftId` only in phase `draft`, dropping it
+on `previewed`. The controller and evidence-retention helper also rejected
+renewal of an unsubmitted `previewed` record. Fixed all three layers to preserve
+the same workflow/artifact for explicit renewal. Source and full placement must
+still match, submitted/provisioned/failed/unknown records cannot be renewed,
+the latest record is rechecked under the exclusive lock, and a changed pinned
+artifact is rejected. The original preview expiry check is unchanged; new
+preflight, pricing, what-if and user consent are still required. No operator
+state file was edited to bypass a guard.
+
+Validation: **430/430 unit tests**, typecheck/build, **13 isolated VS Code 1.105.0
+Extension Host tests**, and VSIX packaging pass. New regressions cover renewing
+an expired preview, preserving artifact/CA/file evidence, blocking submitted or
+changed placement, retaining the ID in the actual view script, and clearing
+deployment checkboxes before re-review. The original 70 operator files still
+match their retained aggregate SHA. The signed-in VS Code extension is not yet
+updated; installed-GUI renewal and B04 catalog qualification remain unproven.
+
+New local VSIX SHA-256:
+`ff1d1770c3738ba1ec8c892f954ebbaa9133fbd81d951218f6d93f6b48859f55`;
+JavaScript SHA-256:
+`9f3dd3114ba2734364f80bf152f82719a07e794d5b87365d095e9e4a105a1ced`.
+This is an extension-only fix: the reviewed guest archive remains the exact
+`d40d6cc` bytes already uploaded. No VM/source start, guest install or target
+creation occurred. Storage remains authenticated-public HTTPS with anonymous
+and shared-key access disabled. A 12:01 storage write and policy audit events
+were observed; current ownership/security fields remain as approved, with no
+reversal performed. RG locks remain absent. Refresh all time-dependent gates
+again after installing the reviewed fix before any paid session.
+
 ### P1 schema expectations and qualification limits
 
 Inspection of the retained fixture preparation script

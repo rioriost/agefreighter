@@ -42,6 +42,29 @@ test("VM preview retains draft CA binding but cannot copy a changed source or ac
   assert.throws(() => retainDraftSetup(preview, { ...draft, input: { ...draft.input,
     source: { type: "postgresql", location: "azure" } } }), /changed/);
 });
+test("expired unsubmitted preview renews the same pinned artifact and transfer evidence", () => {
+  const previous = record();
+  previous.expiresAt = new Date(0).toISOString();
+  previous.sourceCA = { path: "/private/root.pem", name: "root.pem", bytes: 1513, sha256: "b".repeat(64) };
+  previous.developmentUpload = { phase: "ready", artifact: { ...artifact,
+    development: { commit: "c".repeat(40), bytes: 1234 } } };
+  previous.artifact = previous.developmentUpload.artifact;
+  previous.sourceFiles = [{ id: "nodes", name: "nodes.csv", path: "/private/nodes.csv" }];
+  const snapshot = structuredClone(previous);
+  const fresh = { ...record(), artifact: previous.artifact };
+  const renewed = retainDraftSetup(fresh, previous);
+  assert.equal(renewed.id, previous.id);
+  assert.equal(renewed.expiresAt, fresh.expiresAt);
+  assert.deepEqual(renewed.developmentUpload, previous.developmentUpload);
+  assert.deepEqual(renewed.sourceCA, previous.sourceCA);
+  assert.deepEqual(renewed.sourceFiles, previous.sourceFiles);
+  assert.deepEqual(previous, snapshot);
+  assert.throws(() => retainDraftSetup({ ...fresh, artifact }, previous), /changed/);
+  for (const phase of ["deployment-submitted", "provisioned", "failed", "unknown"] as const)
+    assert.throws(() => retainDraftSetup(fresh, { ...previous, phase }), /submitted/);
+  for (const changed of [{ ...input, zone: "2" }, { ...input, resourceGroup: "other" }, { ...input, size: "Standard_D4s_v5" }])
+    assert.throws(() => retainDraftSetup({ ...fresh, input: changed }, previous), /changed/);
+});
 function fixture() {
   const events: string[] = [];
   const saved: RunnerRecord[] = [];

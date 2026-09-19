@@ -88,6 +88,23 @@ test("changing a retained source clears readiness and blocks old workflow contro
   assert.deepEqual(v.messages.at(-1), {action: "continueExecution"});
 });
 
+test("renewing a preview retains the workflow ID and requires fresh deployment consent", () => {
+  const v = view();
+  const input = { subscriptionId: subscription, resourceGroup: "migration-rg", region: "japaneast", zone: "1", size: "Standard_B2s_v2", subnetId: "retained-subnet", source: { type: "csv", location: "local" } };
+  v.receive({ kind: "restoreInput", input, files: ["nodes.csv"] });
+  v.receive({ kind: "record", record: { id: subscription, phase: "previewed", input, expiresAt: new Date(0).toISOString() } });
+  v.el("networkApproved").checked = true; v.el("costApproved").checked = true;
+  v.el("preview").trigger("click");
+  assert.deepEqual(v.messages.at(-1), { action: "preview", draftId: subscription, input });
+  assert.equal(v.el("networkApproved").checked, false);
+  assert.equal(v.el("costApproved").checked, false);
+  assert.equal(v.el("deploy").disabled, true);
+  v.receive({ kind: "busy", value: false });
+  v.choose("type", "neo4j");
+  v.el("preview").trigger("click");
+  assert.equal(v.messages.at(-1)?.draftId, undefined);
+});
+
 test("CSV and external source paths independently load runner RG/region dropdowns", () => {
   const v = view();
   v.choose("type", "csv");

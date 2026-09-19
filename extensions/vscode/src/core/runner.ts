@@ -89,10 +89,19 @@ export function catalogActive(record: RunnerRecord): boolean {
   return !!record.postgresCatalog && (record.postgresCatalog.phase !== "finished" || !record.postgresCatalog.reportSHA256);
 }
 
+/** Only an unsubmitted workflow with unchanged placement can renew its preview. */
+export function assertPreviewableDraft(draft: RunnerRecord, input: RunnerInput): void {
+  if (!["draft", "previewed"].includes(draft.phase) ||
+    JSON.stringify(draft.input) !== JSON.stringify(input)) {
+    throw new Error("This draft changed or was already submitted. Reopen the matching draft or start a separate source configuration.");
+  }
+}
+
 /** Carry source trust and transfer evidence into a new, separately reviewed VM preview. */
 export function retainDraftSetup(preview: RunnerRecord, draft: RunnerRecord): RunnerRecord {
-  if (draft.id !== preview.id || draft.phase !== "draft" ||
-    JSON.stringify(draft.input.source) !== JSON.stringify(preview.input.source)) {
+  assertPreviewableDraft(draft, preview.input);
+  if (draft.id !== preview.id || (draft.developmentUpload?.phase === "ready" &&
+    JSON.stringify(draft.developmentUpload.artifact) !== JSON.stringify(preview.artifact))) {
     throw new Error("This draft changed in another window. Review it again.");
   }
   return { ...preview, sourceDraft: draft.sourceDraft, sourceCA: draft.sourceCA,
