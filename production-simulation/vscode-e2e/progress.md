@@ -18,9 +18,13 @@ were created. Both cost-query scopes returned 429; the user subsequently supplie
 a currently updated September portal total of **USD 265.69**, clearing that cost
 gate without claiming an API refresh. The user-approved new transfer account
 and account-scoped role are now created and ARM deployment succeeded. The GUI
-correctly distinguishes provisioning success from transfer readiness: public
-network access is Disabled. Exact-account exception-tag/public-HTTPS approval
-is requested before any change; no Linux upload or compute start has occurred.
+correctly distinguished provisioning success from transfer readiness. Following
+the user's continuation instruction, the exact-account exception tag and
+authenticated public HTTPS access were applied; anonymous/shared-key access
+remain disabled. Authenticated listing and the installed-GUI pinned Linux
+archive upload now pass. The new private B2s_v2 runner preview is complete;
+action-time approval for guest installation and container-scoped Blob Reader
+is requested at the native creation dialog. No VM/source start has occurred.
 The USD 800 ceiling and September 20 16:14 JST deadline remain.
 The expected P1 source
 has primary keys but no declared FKs; explicit manual edge mappings remain

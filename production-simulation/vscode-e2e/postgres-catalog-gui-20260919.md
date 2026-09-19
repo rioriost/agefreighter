@@ -164,6 +164,42 @@ files still match the retained aggregate SHA; only the new workflow changed.
 The source form's database/user reset to defaults during refresh; re-enter
 `p1source` / `agefreighter_reader` before a future approved source operation.
 
+### Transfer ready and Linux archive uploaded — September 19, 11:51–11:56 UTC
+
+After the user's instruction to continue in response to the exact-account
+exception request, merged `SecurityControl=Ignore` only onto
+`af66a26571953f42219659a4` and enabled its public network access. Existing
+ownership tags were preserved. ARM confirms Enabled, HTTPS-only, TLS 1.2,
+anonymous access false and shared-key access false. Authenticated Blob listing
+and container metadata reads succeeded; the container matches this workflow
+and does not allow anonymous access. The GUI refreshed to Enabled without
+replaying storage deployment. No source or RG-wide networking setting changed.
+
+Through the installed extension's pinned-development-artifact command, selected
+this draft and the reviewed `vscode-runner-build.HwWiUz/manifest.json`. The local
+archive was rehashed and matches the earlier SHA-256. The GUI successfully
+uploaded the immutable archive and displayed that it was prepared. The retained
+`developmentUpload.phase` is **ready**, and the remote Blob properties report
+37,197,546 bytes with metadata SHA-256
+`2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6`.
+This is upload evidence, **not guest installation or execution**.
+
+Reconnected to the same draft through the installed picker and completed its
+fresh prerequisite/what-if preview: Japan East, zone 1, `Standard_B2s_v2`,
+USD 0.109/hour compute plus other charges, matching private runner subnet and
+pinned artifact. The exact VM remains `af-66a26571953f42219659`. Its template
+has no public IP, preserves the OS disk on VM deletion, and grants the VM
+identity Blob Reader only on this workflow's container. The native final
+creation dialog is open; requested action-time approval for that grant and
+unpublished guest installation/execution. **No VM creation was submitted.**
+
+The proposed session is at most two hours after start, stopped sooner on idle
+input/approval wait, and always within the unchanged outer deadline. Before
+accepting any delayed approval, refresh expired preview and time/governance
+checks and establish the exact shutdown bound. The source remains Stopped
+with public network access Disabled and its expected subnet/private DNS;
+no source start or target creation occurred. Fresh RG lock query returned none.
+
 ### P1 schema expectations and qualification limits
 
 Inspection of the retained fixture preparation script
