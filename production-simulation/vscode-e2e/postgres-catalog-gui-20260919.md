@@ -117,6 +117,26 @@ date before any new resource creation/start. This is a budget-check gate, not
 authorization to exceed USD 800, extend September 20, use stale cost as current,
 or override governance. No live experiment is running while waiting.
 
+### Current portal cost supplied — September 19, approximately 09:43 UTC
+
+The user reports the September cumulative cost as **USD 265.69**, with the
+portal updated currently. This clears the missing-current-cost gate for the
+bounded trial; it is user-supplied portal evidence, not a successful Cost
+Management API refresh. The USD 800 ceiling, conservative USD 650 overall
+planning reserve (not an additional charge), and September 20 07:14:35.311 UTC
+outer deadline remain unchanged. Actual current billed headroom is USD 534.31
+before delayed/unbilled charges. A separate short shutdown bound is still
+required before starting compute.
+
+The installed GUI now displays the exact new-account confirmation for
+`af66a26571953f42219659a4`: Japan East, Standard LRS, signed-in-user Storage
+Blob Data Contributor scoped only to this new account. Its HTTPS endpoint is
+network-public; anonymous access and shared keys remain disabled. No source
+firewall is changed. The agent has requested action-time confirmation for this
+access grant and has **not** accepted the dialog. The fresh RG lock query
+returned no locks. No storage, VM, source start, catalog read or Linux upload
+has occurred at this checkpoint.
+
 ### P1 schema expectations and qualification limits
 
 Inspection of the retained fixture preparation script

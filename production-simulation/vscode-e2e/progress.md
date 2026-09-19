@@ -14,8 +14,12 @@ partial, not remote catalog/adoption PASS. See
 
 Follow-up: new GUI-created local draft `66a26571-953f-4221-9659-a4b35460ffc4`
 is ready for scoped catalog trial preparation; no Azure resources or operations
-were created. Both cost-query scopes returned 429, so paid execution is held
-pending a current portal cost/update-date confirmation. The expected P1 source
+were created. Both cost-query scopes returned 429; the user subsequently supplied
+a currently updated September portal total of **USD 265.69**, clearing that cost
+gate without claiming an API refresh. The installed GUI is at the new transfer
+account/scoped-access confirmation, awaiting action-time approval; no compute
+has started. The USD 800 ceiling and September 20 16:14 JST deadline remain.
+The expected P1 source
 has primary keys but no declared FKs; explicit manual edge mappings remain
 necessary, and a catalog-only result must not be called full P1 qualification.
 
