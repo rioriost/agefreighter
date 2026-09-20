@@ -1,15 +1,15 @@
 # PostgreSQL catalog GUI qualification preparation
 
-Latest checkpoint — September 20, approximately 01:26 UTC: approved extension
+Latest checkpoint — September 20, approximately 02:08 UTC: approved extension
 fix installed; same-workflow preview renewal, VM provisioning and pinned Linux
 readiness pass in the operator GUI. **B04 remains partial**: the single catalog
 attempt failed during source authentication (SQLSTATE 28P01), before schema
-collection. Evidence is retained; no automatic retry. The VM is verified
-deallocated after the approved credential-recovery attempt; source Stopped is
-also verified. Reader rotation is **not complete**: the first helper failed before
-ALTER ROLE, and its corrected successor was cancelled at the Mac Keychain
-permission prompt before Azure submission. The new Keychain value is pending,
-not a valid current source credential. See the detailed correction below.
+collection. Evidence is retained; no automatic retry. The approved
+reader credential recovery now succeeded: corrected helper exit 0, committed
+rotation, and a separate verified-TLS/read-only login passed. The named Keychain
+item below is now the current PGFS reader password. Source Stopped and runner
+deallocation are verified; guest evidence is preserved. B04 still requires a fresh, separately
+reviewed catalog workflow; the earlier failure is not retried or converted to PASS.
 Earlier checkpoints below are historical, including their not-installed claims.
 
 September 19, 2026, approximately 09:00–09:03 UTC. **B04 remains partial**.
@@ -430,3 +430,40 @@ rejects dispatch at/after 02:35 UTC. Recheck resource readiness, governance and
 time before releasing the gate. Do not start a second helper or expose its
 in-memory credential. The requested local authorization is still pending.
 Final ARM reconciliation confirms both VM deallocated and source Stopped.
+
+### Reader rotation complete — September 20, 02:04–02:09 UTC
+
+The previous gated helper had exited without obtaining Keychain data or
+submitting Azure work. At the user's continuation, reopened the same helper;
+the user explicitly confirmed the Mac permission. Credential readback then
+succeeded without printing its value. Fresh reads confirmed both resources
+stopped, source public access Disabled, no RG locks, and only expected prior
+stop/deallocate actions in the bounded activity query. Cost refresh returned
+429; latest delayed RG total remains USD 284.682696744039, not a new total.
+Started only the exact runner and source, within unchanged budget/time bounds.
+
+After source Ready and VM running, removed the old protected reset command and
+verified its absence. The corrected r2 command was absent before explicit
+dispatch. It ran **02:07:31Z–02:07:32Z, Succeeded, exit 0**, and emitted the
+completion marker. Independent read-only guest evidence retrieval confirmed
+COMMIT, both reader checks true (expected role/database/read-only default and
+active TLS), empty stderr and empty kernel-OOM evidence. The same pending
+Keychain value is now **applied and login-verified**. The administrator password,
+role attributes, grants, source data and network settings were not changed.
+
+Use Keychain service/label
+`agefreighter-afpg-p1-source-20260907-agefreighter_reader-20260920`, account
+`agefreighter_reader`, for this PGFS source from now on. Neither historical
+staging password file was overwritten; the old PGVM reader file must no longer
+be used as this PGFS reader credential. No other source credential was rotated.
+
+Both exact temporary protected reset command resources were removed while the
+VM was running, and a fresh command list proves their absence. This removes
+the reset control/secret transport only; both failed and successful guest
+evidence, disks, and the original failed catalog remain. Source stop and runner
+deallocation were submitted after evidence capture. See the redacted
+[rotation receipt](evidence/pgfs-reader-rotation-20260920.json).
+Credential recovery is not B04 catalog/import/adoption qualification; no catalog
+operation was retried, and a fresh reviewed workflow is still required.
+Final reconciliation confirms source Stopped and runner deallocated before
+the 02:45 UTC session bound. No cloud compute remains active for this trial.

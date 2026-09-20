@@ -1,18 +1,18 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-20 JST. Status: **not release-qualified; catalog credential confirmation required**.
+Updated: 2026-09-20 JST. Status: **not release-qualified; catalog credential recovery complete**.
 
 Latest: installed extension `d85965c` and pinned Linux `d40d6cc` passed the
 actual preview-renewal, provisioning and readiness path. The approved metadata
 operation `6f425d11-fba7-4af1-a876-38374138e614` failed at source authentication
 with SQLSTATE 28P01, before schema collection. Failure evidence is retained;
 no automatic retry or mapping adoption. The administrator/reader file mix-up
-was identified and explained. Approved reader rotation is incomplete: an
-unsupported psql command failed before ALTER ROLE, and the corrected helper
-awaits local Mac Keychain authorization (cancelled before Azure submission).
-The newly saved Keychain value must not be treated as applied. Runner is
-deallocated; source Stopped is verified. B04 remains partial: establish the current credential,
-then use a separately reviewed fresh workflow for catalog/import/adoption and
+was identified and explained. After the user's Mac Keychain authorization,
+the corrected helper committed the reader rotation at 02:07:32 UTC and verified
+a separate TLS/read-only login with unchanged role attributes. The named new
+Keychain value is now applied. Temporary reset transports were removed;
+guest evidence remains. Runner is deallocated and source Stopped is verified.
+B04 remains partial: use a separately reviewed fresh workflow for catalog/import/adoption and
 complete inventory. See [current execution record](postgres-catalog-gui-20260919.md).
 The following dated checkpoints are historical.
 

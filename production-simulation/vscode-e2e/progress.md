@@ -2,7 +2,7 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest B04 checkpoint (September 20, approximately 01:26 UTC): approved extension fix `d85965c` is installed; actual
+Latest B04 checkpoint (September 20, approximately 02:10 UTC): approved extension fix `d85965c` is installed; actual
 GUI preview renewal preserved the same workflow and pinned Linux archive.
 The private discovery VM was provisioned once and the GUI verified the exact
 guest version/hash and `postgresql-catalog-v1` capability. Disk 3.49%, no swap
@@ -11,11 +11,13 @@ or OOM. The user-approved first catalog attempt failed during authentication
 Failed operation/evidence are retained with no automatic retry. The new VM is
 verified deallocated; source Stopped is also verified after credential recovery.
 The historical file guidance was corrected: the pgfs staging file is the
-administrator password, not the reader password. Approved reader rotation
-failed before ALTER ROLE on an unsupported psql command; the corrected helper
-was cancelled at Mac Keychain authorization before Azure submission. The new
-Keychain item is **pending, not applied**. Complete rotation and verify login
-before a separately reviewed fresh catalog attempt. Fresh RG September cost is
+administrator password, not the reader password. Approved reader rotation now
+**succeeded at 02:07:32 UTC**, after the user authorized Keychain access:
+committed transaction, separate verified-TLS/read-only login, unchanged
+non-password role attributes, empty stderr. The named Keychain item is now
+applied; old password files are unchanged. Both temporary reset transports were
+removed with guest evidence retained. A separately reviewed fresh catalog
+attempt is still required. Latest delayed RG September cost is
 USD 284.682696744039 (delayed billing); USD 800 / September 20 16:14 JST outer
 limit remains, with an earlier 11:45 JST session shutdown bound. One retained
 completed target found Ready was safely stopped and verified; no data deleted.
