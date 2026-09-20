@@ -2,17 +2,27 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current offline follow-up: [CSV choice binding audit](csv-choice-bindings-20260920.md)
+Current B04 follow-up (September 20, 09:33 UTC): the approved
+[isolated FK trial](postgres-fk-live-plan-20260920.md) produced a complete sealed
+two-table catalog. Installed GUI imported its exact bytes/SHA and displayed two
+vertex candidates, one safe products-to-suppliers FK edge and the nullable-FK
+manual-review warning. All candidates remain unselected. Adoption, reconnect and
+the five-vertex/three-edge mapped inventory remain pending; no migration claim.
+The monitor only reconciled existing export/import. At09:35UTC, after fifteen
+minutes without a worker since export completion, it requested exact VM
+deallocation and source stop, preserving schema, disks and evidence. Both stopped
+states were verified by09:37:30UTC, before the09:42UTC bound; heartbeat disabled.
+
+Previous offline follow-up: [CSV choice binding audit](csv-choice-bindings-20260920.md)
 passes for the accepted P1 route: actual installed-GUI restoration of all 18
 file/type/ID/endpoint selections, exact retained configuration/verified-transfer
 bindings and unchanged 74 operator files. Added regressions pass (445 unit tests,
 13 Go configuration contracts); no production change, install or Azure mutation.
-B04 still needs live FK recommendations. The [isolated FK plan](postgres-fk-live-plan-20260920.md)
-is unexecuted; local review requires a fresh workflow-owned runner/storage, not
-rebinding accepted records. Explicit fixture/resource/grant scope approval is
-needed. Other partial rows in the branch ledger remain open as well.
+B04's live FK proposal display now has evidence above, but explicit adoption and
+mapped inventory remain open. Other partial rows in the branch ledger remain
+open as well. Accepted P1 records/data were not rebound or modified.
 
-Current B04 step (September 20, approximately 08:45 UTC): installed-GUI recovery,
+Previous B04 step (September 20, approximately 08:45 UTC): installed-GUI recovery,
 fresh runner readiness and exact sealed inventory export/import **passed**.
 All 18 mapped-label counts match the frozen P1 fixture: 1.6M vertices + 4M edges;
 report pass, no errors/incomplete checks, independently matched 2,947 bytes/SHA.

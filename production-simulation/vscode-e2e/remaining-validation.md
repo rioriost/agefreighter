@@ -2,7 +2,7 @@
 
 Updated: 2026-09-20 JST. Status: **not release-qualified; live catalog, reviewed mappings and complete inventory/import passed**.
 
-Current checkpoint (08:45 UTC): installed-GUI complete inventory/import passed,
+Previous checkpoint (08:45 UTC): installed-GUI complete inventory/import passed,
 with independently matched original seal and all 18 frozen P1 label counts
 (1.6M vertices + 4M edges, no errors/incomplete checks). VM deallocated and source
 Stopped/private verified; monitor disabled. No new migration or target.
@@ -15,11 +15,15 @@ evidence only. The [isolated FK trial](postgres-fk-live-plan-20260920.md) now ha
 user approval for the bounded fixture/resource scope. A fresh GUI workflow is
 saved; dedicated storage, scoped grants and pinned archive transfer succeeded
 after exact action-time approvals. Pinned guest readiness and the isolated
-create-only fixture SQL succeeded. Installed GUI reconciled catalog exit0 and
-the 1,966-byte sealed report; exact transfer/import approval is pending, so
-candidate/FK acceptance and mapped inventory are not yet complete.
-Hard stop 2026-09-20 09:42 UTC (18:42 JST), or 15-minute idle user wait, without
-automatic extension. Accepted records are not rebound; no target or migration.
+create-only fixture SQL succeeded. Installed GUI imported the exact sealed
+catalog and shows two vertex candidates, one safe FK edge and the nullable-FK
+manual-review warning; all remain unselected. Explicit adoption/reconnect and
+mapped inventory are not yet complete. Monitor only reconciled existing work.
+Following the fifteen-minute idle-worker limit, exact VM deallocation and source
+Stopped/private were verified by09:37:30UTC, before the09:42UTC hard bound.
+Heartbeat disabled; schema/disks/reports retained. A new bounded session is
+required for remaining live inventory. Accepted records are not rebound; no target
+or migration was created.
 
 Previous next step: approved fix `3dff349` is installed and GUI rejected-export
 retention passed at 08:37:39 UTC, preserving the same finished inventory/seal and

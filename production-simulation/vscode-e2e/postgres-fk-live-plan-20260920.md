@@ -2,10 +2,11 @@
 
 Status: bounded fixture/resource scope approved by the user on 2026-09-20;
 Dedicated storage, pinned runner readiness and isolated fixture setup succeeded.
-The installed GUI reconciled the successful catalog read after private password
-entry. Exact sealed report transfer/import approval is pending; no candidate or
-mapped inventory is accepted yet. This is not a live
-qualification result; stop both compute resources by 18:42 JST at the latest.
+The installed GUI imported the exact sealed catalog; two vertex candidates,
+one safe FK edge and the nullable-FK warning match expectations, all unselected.
+Candidate adoption/reconnect and mapped inventory remain unperformed. This is not a
+completed qualification. VM deallocated and source Stopped/private verified at
+09:37UTC; the safety heartbeat is disabled. Evidence and the fixture are retained.
 
 ## Why a separate fixture is needed
 
@@ -149,3 +150,34 @@ No source write, new resource or Azure restart occurred during this design revie
   No candidate count or safety-warning acceptance is claimed before import.
 - Cost refresh succeeded: delayed RG September actual cost **USD302.628107546835**,
   under the unchanged USD800 ceiling. Hard stop remains09:42UTC.
+
+## Safety monitor reconciliation — 09:31–09:33 UTC
+
+- The user had already submitted the exact report transfer via installed GUI;
+  the retained export was submitted09:20:08.585UTC and finished09:20:18UTC,
+  exit0. This monitor reconciled that existing operation only, without replay.
+- Installed GUI imported the 1,966-byte sealed catalog. Independent local SHA-256
+  matches `67c10b4481d64c89ceb8b9118b7419df01740a923ceca710fdb8d974f1be8ee4`.
+  Complete scope contains only `products` and `suppliers` in the dedicated schema.
+- GUI shows exactly two vertex candidates and one directed edge candidate from
+  products to suppliers through `products_supplier_fk`; the nullable
+  `products_optional_supplier_fk` is a manual-review warning rather than a safe
+  edge proposal. All three checkboxes remain unselected and adoption disabled.
+  No automatic adoption, P1 proposal, new inventory or migration occurred.
+- ARM verifies VM running and source Ready/private; RG error activity since
+  launch is empty. There is no active mapped inventory. Preserve all evidence
+  and enforce the 15-minute idle-user-wait limit after the export worker ended
+  (09:35:18UTC), before the unchanged09:42UTC hard limit.
+- Read-only guest check at09:32:34UTC showed disk4%, memory270,102,528bytes,
+  no swap, no active workflow marker and no OOM kernel entries.
+- At09:35:35UTC, the record still had no adopted source draft or assessment.
+  Requested deallocation of only the exact VM and stop of only the existing
+  source. Both requests were accepted; initial states deallocating/Stopping.
+  Retained schema, imported catalog, guest logs and disks; no deletion or restart.
+- By09:37:30UTC, ARM independently verified `PowerState/deallocated` and source
+  `Stopped` with public network Disabled, before the09:42UTC bound. Disabled the
+  safety heartbeat after both states were verified. Do not restart solely to
+  read evidence. Further paid execution needs a new bounded session; offline
+  candidate review remains possible. Source Flexible Server reports its normal
+  automatic restart after seven days; this stopped-state observation is not a
+  claim of indefinite shutdown. Latest delayed RG cost remainsUSD302.628107546835.
