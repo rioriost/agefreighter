@@ -1,11 +1,15 @@
 # PostgreSQL catalog GUI qualification preparation
 
-Latest checkpoint — September 20, approximately 01:09 UTC: approved extension
+Latest checkpoint — September 20, approximately 01:26 UTC: approved extension
 fix installed; same-workflow preview renewal, VM provisioning and pinned Linux
 readiness pass in the operator GUI. **B04 remains partial**: the single catalog
 attempt failed during source authentication (SQLSTATE 28P01), before schema
 collection. Evidence is retained; no automatic retry. The VM is verified
-deallocated; the source is also verified Stopped at approximately 01:12 UTC.
+deallocated after the approved credential-recovery attempt; source Stopped is
+also verified. Reader rotation is **not complete**: the first helper failed before
+ALTER ROLE, and its corrected successor was cancelled at the Mac Keychain
+permission prompt before Azure submission. The new Keychain value is pending,
+not a valid current source credential. See the detailed correction below.
 Earlier checkpoints below are historical, including their not-installed claims.
 
 September 19, 2026, approximately 09:00–09:03 UTC. **B04 remains partial**.
@@ -358,3 +362,71 @@ catalog workflow. Source stop was submitted after failure; runner deallocation
 was verified after bounded diagnostics. No permissions/network exposure changed.
 Final ARM reconciliation at approximately 01:12 UTC confirms the source is
 Stopped as well. Both exact resources are now stopped with all evidence retained.
+
+### Credential provenance correction and approved rotation — September 20
+
+After explicit user approval to reset `agefreighter_reader`, inspection of the
+original preparation invocation established the earlier file guidance was
+incorrect: `work/az-pgfs-staging/postgres-password` supplied **adminPassword**
+for `afsourceadmin`; **sourcePassword** for `agefreighter_reader` was supplied
+from `work/az-pgvm-staging/postgres-password`. The operator was incorrectly
+directed to the administrator file. No secret values were displayed in this
+investigation. Neither historical file is overwritten or relabelled as the new
+reader credential, and the administrator password is not reset.
+
+The approved rotation is limited to the existing reader role on
+`afpg-p1-source-20260907` / `p1source`. A create-only Keychain item was saved and
+read back locally, using service/label
+`agefreighter-afpg-p1-source-20260907-agefreighter_reader-20260920` and account
+`agefreighter_reader`. This name explicitly identifies the source and role;
+the generated 32-byte random password is not stored in a repository file,
+command argument, chat or report. Both secret parameters travel only through
+the protected Managed Run Command body on stdin. Raw Azure submission output
+is suppressed to prevent accidental request disclosure.
+
+The helper is scoped to the exact existing runner, runs at most 420 seconds,
+checks disk/swap/OOM/idle state, and uses verified TLS. It changes only the
+reader password in a bounded transaction; equality of `pg_roles` snapshots
+guards all non-password role attributes. A separate reader connection must
+verify the expected database/user, read-only default and active TLS before
+the completion marker is emitted. No schema, grants, row data, network or
+administrator credential changes are included. Script SHA-256:
+`804b3bd6d285419174b00593e48ef6b5388d75963ab4d4747aa0c0a7ba6f51ce`.
+Submission succeeded and execution ran `2026-09-20T01:18:21Z`–01:18:42Z,
+then exited 3. Sanitized guest diagnostics identified `invalid command
+\\getenv`: the installed PostgreSQL client does not implement that psql command.
+The retained transaction log ends after BEGIN, SET, SET, SELECT 1, DO, with no
+ALTER ROLE or COMMIT. Thus no password rotation committed; no completion marker
+or reader login verification exists. Stderr SHA-256:
+`fd53df161d2ea689a6f33302c2a7f7283a6a71e9c7c7715dfbaa1e89422f7396`.
+The original catalog operation and helper evidence remain intact.
+
+Corrected the private helper to stream a strictly validated 64-character hex
+password through psql stdin, not arguments/files or unsupported client commands.
+The revised script passes shell syntax validation; Swift submitter compiles.
+Revised script SHA-256:
+`5d68e86955300e96ddbd1f7a2f80f8f7fea20c57579d7a66f034a91198ed4db8`.
+It reuses the exact pending Keychain item without generating/replacing another
+secret. The revised executable triggered macOS Keychain authorization, which
+requires the user's local action; no bypass was attempted. At the idle wait,
+terminated only that exact local helper (exit 143) before any Azure submission.
+ARM returned ResourceNotFound for the proposed r2 command. Do not describe
+the saved Keychain password as applied or ask the user to use it for login yet.
+
+Deallocated only the trial VM and requested source stop to avoid paid idle
+waiting. Removing the failed helper's protected Managed Run Command transport
+was attempted, but Azure rejected deletion because the VM was already stopped.
+That protected control record therefore remains; guest evidence is retained.
+Do not restart solely for cleanup. On the next authorized session, reconcile
+and remove that exact transport after preserving its terminal metadata, then
+complete the separately named r2 rotation. Obtain Mac Keychain authorization
+before starting paid resources where possible. The same USD 800, 02:45 UTC
+session bound and 07:14:35.311 UTC outer bound remain; no automatic extension.
+
+A replacement local `submit-r2-gated` process now requests only Keychain access
+while cloud resources remain off. After that authorization it waits for explicit
+`DISPATCH` on stdin; it cannot submit an Azure request without that gate and
+rejects dispatch at/after 02:35 UTC. Recheck resource readiness, governance and
+time before releasing the gate. Do not start a second helper or expose its
+in-memory credential. The requested local authorization is still pending.
+Final ARM reconciliation confirms both VM deallocated and source Stopped.
