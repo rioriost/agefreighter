@@ -705,3 +705,12 @@ cancel/disposal/trust and concurrent changes. The first source-contract invocati
 lacked AGEFREIGHTER_TEST_BINARY; after building a local test CLI, all 10 source
 configuration contract routes passed. This is local regression evidence only;
 installation and actual GUI recovery/import remain pending. Guest binary unchanged.
+
+Correction commit `3dff349` is pushed. Typecheck, all 442 unit/controller tests,
+10 actual-Go source configuration contracts and extension packaging passed.
+Prepared local VSIX SHA-256
+`e7244454c90459721705f89839ce4ca911ed60bcd2552c21b7acf8775c8478d6`;
+bundle SHA-256
+`68fcf29bf741cde36b028a2a1cfbe39ce40712bac9af1b3dba9ebf79e01c5e40`.
+Requested action-time approval before installing this unpublished local build.
+The installed extension, guest binaries and operator records were not replaced.
