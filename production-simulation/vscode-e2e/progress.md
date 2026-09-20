@@ -2,7 +2,14 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September 20, approximately 06:10 UTC): user approved restarting
+Current B04 step (September 20, approximately 06:25 UTC): inventory worker
+`3a4ffae1-8727-464b-8968-40bed2f42c69` finished successfully. Sealed report is
+2,947 bytes / SHA-256 `821638b1e510ff545c424dbfaacf4508d9727c78d9368afc8c34aa98285b9a18`.
+Exact transfer approval is pending; complete report and all 18-label counts are
+not yet accepted. Source stop requested; runner retained briefly for export.
+Fresh delayed RG cost USD 295.608869711763, below USD 800. B04 remains partial.
+
+Prior restart checkpoint (September 20, approximately 06:10 UTC): user approved restarting
 the existing runner/source and appropriate time extensions; USD 800 unchanged.
 Current session bound is 08:00 UTC / 17:00 JST, with exact-VM auto-shutdown and
 dedicated safety heartbeat. Source is Ready/private; refreshed installed-GUI

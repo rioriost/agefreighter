@@ -639,3 +639,19 @@ guest configuration SHA is
 `4d0827936e062675a814cfb0980fb047f1eb9e7b7f1e931b5637bf67ef212616`.
 Monitor this operation only; no replay, upgrade or source modification. Full
 report completion, seal/import and exact 18-label counts remain pending.
+
+### Inventory worker finished — September 20, approximately 06:25 UTC
+
+Installed GUI reconciliation of the same operation returned `finished` with
+successful exit and sealed report: 2,947 bytes, SHA-256
+`821638b1e510ff545c424dbfaacf4508d9727c78d9368afc8c34aa98285b9a18`.
+The transfer confirmation is open and exact report/destination approval was
+requested. No export or import has been submitted yet, and exact counts/complete
+report acceptance remain pending; worker success alone is not inventory or
+migration qualification. The source is no longer needed for report transfer,
+so its stop was requested while retaining all data. Runner remains available
+briefly for approved export, with the 15-minute idle-wait and 08:00 UTC bound.
+
+Fresh MonthToDate RG cost query returned USD 295.608869711763 (billing still
+delayed), below USD 800. Activity-log review since 06:14 showed only this
+workflow's known status command, with no new external governance action.
