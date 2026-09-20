@@ -2,13 +2,15 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest B04 checkpoint: approved extension fix `d85965c` is installed; actual
+Latest B04 checkpoint (September 20, approximately 01:09 UTC): approved extension fix `d85965c` is installed; actual
 GUI preview renewal preserved the same workflow and pinned Linux archive.
 The private discovery VM was provisioned once and the GUI verified the exact
 guest version/hash and `postgresql-catalog-v1` capability. Disk 3.49%, no swap
-or OOM. **No catalog read or adoption has run; B04 remains partial.** Awaiting
-read-only metadata approval and private password entry, the new VM is verified
-deallocated and the source remains Stopped. Fresh RG September cost is
+or OOM. The user-approved first catalog attempt failed during authentication
+(SQLSTATE 28P01), before collecting schema metadata. **B04 remains partial.**
+Failed operation/evidence are retained with no automatic retry. The new VM is
+verified deallocated; the source is verified Stopped. Confirm the current
+reader credential before a separately reviewed fresh attempt. Fresh RG September cost is
 USD 284.682696744039 (delayed billing); USD 800 / September 20 16:14 JST outer
 limit remains, with an earlier 11:45 JST session shutdown bound. One retained
 completed target found Ready was safely stopped and verified; no data deleted.

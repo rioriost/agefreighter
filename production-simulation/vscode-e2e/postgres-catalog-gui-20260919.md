@@ -1,10 +1,11 @@
 # PostgreSQL catalog GUI qualification preparation
 
-Latest checkpoint — September 20, approximately 00:59 UTC: approved extension
+Latest checkpoint — September 20, approximately 01:09 UTC: approved extension
 fix installed; same-workflow preview renewal, VM provisioning and pinned Linux
-readiness pass in the operator GUI. **B04 remains partial**: no catalog operation
-has been submitted. The new VM is verified deallocated while awaiting the
-read-only catalog approval and private password entry; the source stays Stopped.
+readiness pass in the operator GUI. **B04 remains partial**: the single catalog
+attempt failed during source authentication (SQLSTATE 28P01), before schema
+collection. Evidence is retained; no automatic retry. The VM is verified
+deallocated; the source is also verified Stopped at approximately 01:12 UTC.
 Earlier checkpoints below are historical, including their not-installed claims.
 
 September 19, 2026, approximately 09:00–09:03 UTC. **B04 remains partial**.
@@ -316,3 +317,44 @@ or automatic restart. All other 17 Flexible Servers were already Stopped and
 all 10 previous VMs deallocated. No resources, disks or data were deleted.
 The 70 pre-existing operator files still match the retained aggregate SHA;
 only the new workflow acquired deployment/readiness evidence.
+
+### First catalog attempt: authentication failure — September 20, 01:00–01:09 UTC
+
+The user continued the reviewed read-only trial. Fresh RG locks were absent,
+the recent activity query showed the expected trial actions and policy audit,
+and the established budget/session bounds were unchanged. Started only the
+exact new runner and retained PostgreSQL source. The source's old September 16
+expiry tag was observed, not rewritten; explicit subsequent authorization
+extends the trial to September 20. Public access remained Disabled. Effective
+parameters were `require_secure_transport=on`, minimum `TLSv1.2`, with no
+pending restart; no TLS setting was changed.
+
+Cancelled the old password prompt before submitting anything, then refreshed
+Linux readiness in the installed GUI after restart. The new boot is
+`7df7db0f-6e35-436a-947f-258bb5c921d7`; readiness at 01:01:46.413Z verified the
+same pinned artifact, idle guest, 3.4886% disk, zero swap and OOM events.
+Reopened the same reviewed catalog confirmation. The user approved in VS Code
+and entered the source password privately. The local staging password-file
+existence and mode 0600 had been checked without displaying its value; that
+alone did not establish current validity for the reader account.
+
+Catalog operation `6f425d11-fba7-4af1-a876-38374138e614` was submitted once at
+`2026-09-20T01:04:29.448Z`, with configuration SHA-256
+`d801f9817d9e01f6240ffa6869f700004125fb98376208d4d8989ad66b704cc3`.
+Installed GUI reconciliation progressed from submitted to accepted to failed.
+Sanitized read-only guest diagnostics confirm execution 01:04:32.458111284Z
+through 01:04:34.812840036Z, exit 1, stage `connect PostgreSQL catalog`, SQLSTATE
+**28P01**. No sealed catalog report exists. Retained stderr is 51 bytes, SHA-256
+`ae75535c68de66ac0248073dec36b64861380174d4201f9ad28298d32f245c13`;
+raw stderr and credentials were not exported. The operation directory retains
+state, worker claim, job and stderr; the transient secrets file is absent.
+
+This proves authentication rejection, not a catalog-query defect, changed
+password, or user-input mistake. No row collection, mapping adoption, inventory,
+target creation, migration or source-data modification occurred. Do not retry
+this retained operation or erase its evidence. Establish the current credential
+or obtain explicit credential-reset approval before a separately reviewed fresh
+catalog workflow. Source stop was submitted after failure; runner deallocation
+was verified after bounded diagnostics. No permissions/network exposure changed.
+Final ARM reconciliation at approximately 01:12 UTC confirms the source is
+Stopped as well. Both exact resources are now stopped with all evidence retained.

@@ -1,6 +1,16 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-19 JST. Status: **running; not release-qualified**.
+Updated: 2026-09-20 JST. Status: **not release-qualified; catalog credential confirmation required**.
+
+Latest: installed extension `d85965c` and pinned Linux `d40d6cc` passed the
+actual preview-renewal, provisioning and readiness path. The approved metadata
+operation `6f425d11-fba7-4af1-a876-38374138e614` failed at source authentication
+with SQLSTATE 28P01, before schema collection. Failure evidence is retained;
+no automatic retry or mapping adoption. Runner deallocation and source Stopped
+are verified. B04 remains partial: establish the current credential,
+then use a separately reviewed fresh workflow for catalog/import/adoption and
+complete inventory. See [current execution record](postgres-catalog-gui-20260919.md).
+The following dated checkpoints are historical.
 
 September 19: the approved `d40d6cc` extension is installed on VS Code 1.138.0;
 real GUI display and rejection of the retained old/already-assessed PostgreSQL
