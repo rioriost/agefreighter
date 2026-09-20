@@ -495,3 +495,28 @@ Read-only ARM reconciliation confirms the old runner deallocated, source Stopped
 with public access Disabled, and no RG locks. The USD 800 ceiling, latest delayed
 cost and 02:45 UTC session shutdown bound are unchanged. Recheck remaining time
 and governance before any subsequent paid run; do not extend the session.
+
+### Fresh draft transfer ready — September 20, 02:24–02:29 UTC
+
+After explicit approval, merged `SecurityControl=Ignore` only onto
+`afae9523105eba42b69fe39d`, preserving its existing ownership tags, and enabled
+authenticated public HTTPS. ARM verified HTTPS-only, TLS 1.2, anonymous access
+false and shared-key access false. Authenticated Blob listing succeeded;
+installed GUI reconciliation reports public network Enabled. Source exposure,
+credentials and other accounts were unchanged.
+
+The user first declined the pinned archive upload, then explicitly approved it
+in the next message. After stating that the newer approval superseded the
+decline, submitted the installed GUI upload once. Local and retained artifact
+SHA-256 match `2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6`;
+the dedicated Blob contains exactly 37,197,546 bytes and GUI/local workflow
+reconciliation marks the development upload ready. No source data or credentials
+were included. This is transfer readiness, not guest or catalog qualification.
+
+Reconnected to the same fresh workflow and completed its VM preview using
+the pinned `d40d6ccc9a4d` Linux build. Proposed private VM
+`af-ae9523105eba42b69fe3` is B2s_v2, Japan East zone 1, estimated compute
+USD 0.109/hour plus storage/network. The native creation confirmation is open;
+requested action-time approval for installation and this VM identity's
+container-scoped Blob Reader grant. No VM/source was started. The 02:45 UTC
+session stop and USD 800 ceiling remain unchanged; recheck time before deployment.

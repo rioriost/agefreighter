@@ -2,13 +2,15 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September 20, approximately 02:23 UTC): new GUI draft
+Current B04 step (September 20, approximately 02:29 UTC): new GUI draft
 `ae952310-5eba-42b6-9fe3-9db00e93cdac` preserves the previous failed attempt.
 User-approved transfer storage and account-scoped Blob role were created;
-GUI reconciliation reports provisioning ready but public network Disabled.
-Awaiting approval for the exact-account exception tag/authenticated HTTPS access.
-No new VM, artifact upload or catalog operation; previous runner/source remain
-stopped. The 02:45 UTC session bound and USD 800 cap are unchanged.
+The approved exact-account exception tag/authenticated HTTPS access now pass
+ARM and authenticated listing checks; anonymous/shared-key access remain off.
+After explicit upload approval, the pinned Linux archive is transferred and
+reconciled ready. New VM preview passes; installation/container-scoped Blob
+Reader approval is pending. No VM or catalog operation started; previous
+runner/source remain stopped. The 02:45 UTC session bound and USD 800 cap are unchanged.
 See [fresh draft evidence](postgres-catalog-gui-20260919.md#fresh-catalog-draft--september-20-approximately-0220-utc).
 
 Latest B04 checkpoint (September 20, approximately 02:10 UTC): approved extension fix `d85965c` is installed; actual
