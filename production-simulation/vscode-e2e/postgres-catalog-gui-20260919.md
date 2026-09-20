@@ -520,3 +520,60 @@ USD 0.109/hour plus storage/network. The native creation confirmation is open;
 requested action-time approval for installation and this VM identity's
 container-scoped Blob Reader grant. No VM/source was started. The 02:45 UTC
 session stop and USD 800 ceiling remain unchanged; recheck time before deployment.
+
+### Fresh runner provisioned — September 20, 02:32–02:37 UTC
+
+The user approved and submitted the installed native VM confirmation.
+Reconciliation observed `deployment-submitted` at 02:32:48.004 UTC; no second
+deployment was sent. ARM deployment succeeded at 02:33:11.472296 UTC, followed
+by installed-GUI provisioning confirmation. Verified VM identity
+`33af9f10-f71c-4bd0-a9c6-8645e72ebac9` has Blob Data Reader only on this
+workflow's container. Persistent OS disk has delete option Detach. The exact
+VM's Azure auto-shutdown is enabled for 02:45 UTC; the session is not extended.
+
+The first readiness command `af-b217564b-2755-40da-b99c-39de73b41577` failed
+with exit 127 before `/usr/local/bin/agefreighter-tools` existed. Its evidence
+is retained. Read-only diagnostics subsequently proved cloud-init done,
+cloud-final success and bootstrap completion at 02:33:58.172687698 UTC. This
+was an early readiness check, not a failed source operation or alternate install.
+One diagnostic kernel-log command used an unsupported timestamp; its empty
+match output was not accepted as OOM proof. The later product readiness check
+provided the actual OOM observation.
+
+Fresh installed-GUI readiness `0530e804-999f-4b42-9323-6dd22a79adb9`, submitted
+02:36:06.825 UTC, finished and verified the pinned archive/version/commit,
+`postgresql-catalog-v1`, boot `d789f8b8-0b46-4368-be29-3444288b3cda`, idle
+guest, 3.5110% disk, zero swap and zero OOM. The source start was requested only
+for the same retained private server; public access remains Disabled. Cost API
+again returned 429; the latest delayed USD 284.682696744039 is not a fresh total.
+Reviewed catalog confirmation specifies `p1source`, `agefreighter_reader`,
+schema `p1`, two minutes / 64 tables / 4 MiB, with TLS validation and no row reads.
+Source startup and private password entry are still pending at this checkpoint.
+
+### Catalog/import and selected adoption passed — September 20, 02:39–02:44 UTC
+
+After the source became Ready and the user entered the credential privately,
+the installed GUI submitted `ebe462e6-6995-4c45-a56c-f1d998079008` once at
+02:39:19.712 UTC. Reconciliation progressed submitted → accepted → finished.
+The sealed report is 23,753 bytes, SHA-256
+`08851b472c4471f1a7a597f43956da8b8f94afc1429e2861589665f80b10ace1`.
+The user approved its exact transfer; the GUI submitted one create-only export
+at 02:41:27.560 UTC and imported the same report. Independent local size/hash
+checks match. The report is complete and contains 18 tables.
+
+The GUI displayed recommendations with nothing preselected. Explicitly selected
+only the nine intended P1 vertex tables and adopted them via the native
+non-overwriting confirmation. All nine edge tables remained unselected; the
+fixture has no FK definitions, so edge semantics are not inferred. Local state
+retains nine vertex mappings, zero edges, and no inventory/target/migration.
+Graph IDs, labels, other properties and manual edges still require review/editing
+before new complete inventory. B04 remains partial; live FK recommendations and
+a new migration qualification are not claimed.
+
+Stopped the source after catalog completion and deallocated this VM after
+successful report export/import. Fresh ARM reads verified VM deallocated and
+source Stopped by 02:43:55 UTC, before the 02:45 UTC session bound. All disks,
+failed readiness/catalog evidence and successful reports remain. No data or
+credentials were deleted. See [redacted receipt](evidence/pgfs-catalog-r2-20260920.json).
+Offline mapping review can continue; further cloud work requires a renewed
+session bound, not implicit extension of the earlier shutdown time.

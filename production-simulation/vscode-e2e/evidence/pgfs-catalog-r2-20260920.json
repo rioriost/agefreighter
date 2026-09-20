@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "qualification": "B04 partial: catalog, sealed import and selected vertex adoption passed",
+  "workflow": "ae952310-5eba-42b6-9fe3-9db00e93cdac",
+  "operation": "ebe462e6-6995-4c45-a56c-f1d998079008",
+  "submittedAt": "2026-09-20T02:39:19.712Z",
+  "phase": "finished",
+  "configurationSHA256": "d801f9817d9e01f6240ffa6869f700004125fb98376208d4d8989ad66b704cc3",
+  "bindingSHA256": "5f87bf8db5681dc10a5ef25ad4a07a40b4903edb355e05ff06c3fb5723957815",
+  "artifactSHA256": "2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6",
+  "guestCommit": "d40d6ccc9a4ddf6e2ca626392cd7bf83140ed6c7",
+  "bootId": "d789f8b8-0b46-4368-be29-3444288b3cda",
+  "readiness": {
+    "checkedAt": "2026-09-20T02:36:06.825Z",
+    "idle": true,
+    "diskUsedPercent": 3.5110335277372506,
+    "swapUsedBytes": 0,
+    "oomEvents": 0
+  },
+  "report": {
+    "bytes": 23753,
+    "sha256": "08851b472c4471f1a7a597f43956da8b8f94afc1429e2861589665f80b10ace1",
+    "complete": true,
+    "tableCount": 18,
+    "transfer": "imported",
+    "localBytesAndSHA256IndependentlyMatched": true
+  },
+  "adoption": {
+    "explicitlySelectedVertices": 9,
+    "selectedEdges": 0,
+    "requiresGraphIdPropertyAndEdgeReview": true,
+    "fullInventoryStarted": false,
+    "migrationStarted": false
+  },
+  "shutdown": {
+    "verifiedBefore": "2026-09-20T02:43:55Z",
+    "vm": "deallocated",
+    "source": "Stopped",
+    "disksAndEvidencePreserved": true,
+    "sessionBound": "2026-09-20T02:45:00Z"
+  }
+}

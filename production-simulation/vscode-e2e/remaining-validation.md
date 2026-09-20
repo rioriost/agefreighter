@@ -1,13 +1,19 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-20 JST. Status: **not release-qualified; catalog credential recovery complete**.
+Updated: 2026-09-20 JST. Status: **not release-qualified; live catalog/import and selected vertex adoption passed**.
 
 Current next step: fresh GUI workflow `ae952310-5eba-42b6-9fe3-9db00e93cdac`
 has user-approved transfer storage and account-scoped Blob access. The approved
 exact-account exception/HTTPS change and pinned archive upload passed. VM preview
-is complete; guest installation/container-scoped Blob Reader approval is pending.
-No new VM or source read has started. Existing runner/source remain stopped. Preserve the earlier
-failed workflow; B04 remains partial and the 02:45 UTC session bound unchanged.
+and approved private VM deployment are complete. Exact build/catalog capability
+and idle guest health pass. Catalog/import succeeded: complete 18-table report,
+23,753 bytes and independently matching seal. Nine intended vertex candidates
+were explicitly adopted. Next: review/edit graph IDs, labels and properties,
+add nine manual edges, then new complete inventory. Live FK recommendations
+remain unproven because this fixture has no FKs. VM deallocated/source Stopped
+verified by 02:43:55 UTC. Further cloud work requires renewed session authority;
+the 02:45 UTC bound is not implicitly extended. Preserve the earlier failed
+workflow. B04 remains partial.
 
 Latest: installed extension `d85965c` and pinned Linux `d40d6cc` passed the
 actual preview-renewal, provisioning and readiness path. The approved metadata
@@ -251,7 +257,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B01 | Default/separate migration RG; independent network RG | Base P1 paths use same RG; installed GUI proves separate migration-RG selection/default preservation; scoped network-RG target implementation and local tests now exist | Separate-RG provisioning and independent network-RG deployment still need installed GUI/Azure qualification; no live two-scope receipt yet | partial |
 | B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review and early malformed/cross-subscription input rejection; placement/preflight tests pass | Unknown-zone VM transition and live invalid region/SKU/subnet/delegation/quota admission remain unqualified | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
-| B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Relevant base routes/manual mappings have full P1 canonical PASS; PG catalog/guest boundary and extension discovery/import/explicit adoption pass local tests, including prior real PostgreSQL TLS | Qualify matching pinned extension/Linux catalog discovery, reconnect, import, adoption/editing and complete inventory live. Local implementation/manual mappings do not close this. Finish exact CSV choice bindings | partial |
+| B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Base/manual routes have full P1 canonical PASS; September 20 installed GUI/Linux catalog discovered 18 tables, imported the sealed report and explicitly adopted nine vertex candidates | Finish graph-ID/property/label edits, manual edges, reconnect retention and new complete inventory. Fixture has no FKs; live FK recommendations remain unproven. Finish exact CSV choice bindings | partial |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin-shaped NoSQL installed-GUI inventory, private target/resize, migration and complete counts pass; independent full digest generated 05:08:24 UTC and GUI-imported, all 5.6M records / 18 labels / 64 ranges and root match, including typed properties, composite IDs and endpoints | Complete for the defined document-format branch; not native Gremlin API qualification | pass |
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
