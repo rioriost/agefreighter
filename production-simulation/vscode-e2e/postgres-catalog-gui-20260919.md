@@ -1,5 +1,12 @@
 # PostgreSQL catalog GUI qualification preparation
 
+Latest checkpoint — September 20, approximately 00:59 UTC: approved extension
+fix installed; same-workflow preview renewal, VM provisioning and pinned Linux
+readiness pass in the operator GUI. **B04 remains partial**: no catalog operation
+has been submitted. The new VM is verified deallocated while awaiting the
+read-only catalog approval and private password entry; the source stays Stopped.
+Earlier checkpoints below are historical, including their not-installed claims.
+
 September 19, 2026, approximately 09:00–09:03 UTC. **B04 remains partial**.
 This checkpoint qualifies installation and the retained-workflow negative gate,
 not a remote catalog read, recommendation adoption, inventory or migration.
@@ -258,3 +265,54 @@ accepted 18-map fixture before full inventory. Foreign-key recommendation
 coverage remains in the earlier local dedicated fixture; this unmodified P1
 source cannot establish a live FK-adoption PASS. Do not add constraints or change
 the accepted source merely to obtain such a result.
+
+### Fixed installed GUI, deployment and readiness — September 20, 00:48–00:59 UTC
+
+Installed the user-approved extension fix from `d85965c`; VSIX and installed
+JavaScript match the SHA-256 values recorded above. The user manually performed
+Reload Window after initial remote input attempts did not take effect. The
+actual installed GUI then renewed the expired preview for the same workflow
+`66a26571-953f-4221-9659-a4b35460ffc4`, retaining the uploaded `d40d6cc` Linux
+archive. Fresh preview and consent succeeded without release-download fallback.
+
+Submitted the exact private discovery VM `af-66a26571953f42219659` once at
+`2026-09-20T00:53:04.566Z`. ARM and installed-GUI reconciliation both reached
+provisioned. Placement is Japan East / zone 1 / Standard_B2s_v2 in the existing
+runner subnet, with no public IP or SSH ingress and retained OS disk. Its
+identity has Blob Reader only on this workflow's transfer container. No target
+database, source firewall change or migration was created.
+
+The installed GUI dispatched and reconciled readiness operation
+`5ca5a966-80b0-421b-967e-2cca68c83e91` successfully. Evidence at
+`2026-09-20T00:56:35.910Z` reports boot
+`85fb7508-aa1c-451c-9c21-733f30b9e312`, exact reviewed archive hash/version/commit,
+and capability `postgresql-catalog-v1`. Guest is idle, disk 3.4877% used,
+swap 0 and OOM events 0. No catalog worker or source read has run; readiness
+does not establish catalog/recommendation qualification.
+
+Entered the reviewed source host, database `p1source`, user
+`agefreighter_reader` and schema `p1` in the actual editor. The native catalog
+approval correctly lists those values and the exact new VM, with a two-minute
+read-only metadata limit, no row values/counts and required TLS validation.
+Action-time approval and private password entry remain pending. No credential
+was read, copied or entered. Before continuing, reconcile that dialog and obtain
+fresh guest readiness after restart; do not submit using stale boot evidence.
+
+Safety/cost ledger: fresh RG locks were absent. The September MonthToDate RG
+ActualCost query succeeded at approximately 00:52 UTC, returning
+**USD 284.682696744039** (billing can lag), below the unchanged USD 800 ceiling.
+The outer deadline remains `2026-09-20T07:14:35.311Z`. An enabled UTC 02:45
+auto-shutdown schedule targets only the new VM, establishing this session's
+earlier **11:45 JST** bound; it does not authorize any extension of that bound.
+After reaching the approval/input wait, explicitly deallocated this exact VM
+and verified `PowerState/deallocated` at approximately 00:58 UTC, preserving
+all evidence and disk. Source `afpg-p1-source-20260907` was not started.
+
+During fresh fleet inspection, retained completed target
+`afpg-09bb0173608f4ab1bf62` was unexpectedly Ready. Verified its ownership,
+finished migration/P1-pass record and retired VM before stopping it; ARM then
+confirmed Stopped. The start cause is unproven, not attributed to an operator
+or automatic restart. All other 17 Flexible Servers were already Stopped and
+all 10 previous VMs deallocated. No resources, disks or data were deleted.
+The 70 pre-existing operator files still match the retained aggregate SHA;
+only the new workflow acquired deployment/readiness evidence.

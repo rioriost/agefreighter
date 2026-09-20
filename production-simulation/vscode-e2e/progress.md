@@ -1,6 +1,19 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-19 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+
+Latest B04 checkpoint: approved extension fix `d85965c` is installed; actual
+GUI preview renewal preserved the same workflow and pinned Linux archive.
+The private discovery VM was provisioned once and the GUI verified the exact
+guest version/hash and `postgresql-catalog-v1` capability. Disk 3.49%, no swap
+or OOM. **No catalog read or adoption has run; B04 remains partial.** Awaiting
+read-only metadata approval and private password entry, the new VM is verified
+deallocated and the source remains Stopped. Fresh RG September cost is
+USD 284.682696744039 (delayed billing); USD 800 / September 20 16:14 JST outer
+limit remains, with an earlier 11:45 JST session shutdown bound. One retained
+completed target found Ready was safely stopped and verified; no data deleted.
+See [September 20 execution and safety ledger](postgres-catalog-gui-20260919.md#fixed-installed-gui-deployment-and-readiness--september-20-00480059-utc).
+The checkpoints below retain historical states, not current installation status.
 
 September 19 installation checkpoint: user-approved `d40d6cc` VSIX is now
 installed on MacStudio's VS Code 1.138.0. The real PostgreSQL source editor shows
