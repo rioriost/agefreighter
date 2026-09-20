@@ -2,7 +2,17 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September 20, approximately 03:23 UTC): fresh GUI workflow
+Current B04 step (September 20, approximately 06:10 UTC): user approved restarting
+the existing runner/source and appropriate time extensions; USD 800 unchanged.
+Current session bound is 08:00 UTC / 17:00 JST, with exact-VM auto-shutdown and
+dedicated safety heartbeat. Source is Ready/private; refreshed installed-GUI
+readiness passes on the new boot (disk 3.71%, idle, zero swap/OOM, pinned build).
+Complete-inventory confirmation is approved and the private reader-password
+input is open. No inventory has been submitted yet. The monitor stops both
+resources after 15 minutes of idle user-input wait, terminal outcome or bound.
+Latest cost refresh returned 429; USD 284.682696744039 is delayed, not current.
+
+Previous offline B04 checkpoint (September 20, approximately 03:23 UTC): fresh GUI workflow
 `ae952310-5eba-42b6-9fe3-9db00e93cdac` preserves the previous failed attempt.
 User-approved transfer storage and account-scoped Blob role were created;
 The approved exact-account exception tag/authenticated HTTPS access now pass

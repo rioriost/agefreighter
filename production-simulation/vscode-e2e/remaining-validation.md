@@ -3,6 +3,13 @@
 Updated: 2026-09-20 JST. Status: **not release-qualified; live catalog/import and selected vertex adoption passed**.
 
 Current next step: fresh GUI workflow `ae952310-5eba-42b6-9fe3-9db00e93cdac`
+is awaiting private reader-password entry for the approved complete inventory.
+The user renewed existing-runner/source runtime with appropriate extensions;
+current session stop is September 20 08:00 UTC / 17:00 JST, USD 800 unchanged.
+New-boot GUI readiness passes and source is Ready/private. A safety heartbeat
+stops idle input-wait resources after 15 minutes; no inventory is submitted yet.
+
+Prior offline checkpoint: this workflow
 has user-approved transfer storage and account-scoped Blob access. The approved
 exact-account exception/HTTPS change and pinned archive upload passed. VM preview
 and approved private VM deployment are complete. Exact build/catalog capability
@@ -13,8 +20,8 @@ manual edges now exactly match the frozen fixture; generated projection checks
 pass. Reload Window and reconnect retain all 18 mappings. Next: new complete
 inventory in a separately bounded live session. Live FK recommendations
 remain unproven because this fixture has no FKs. VM deallocated/source Stopped
-verified by 02:43:55 UTC. Further cloud work requires renewed session authority;
-the 02:45 UTC bound is not implicitly extended. Preserve the earlier failed
+verified by 02:43:55 UTC. The 02:45 UTC bound was subsequently explicitly renewed
+by the user for the bounded session above. Preserve the earlier failed
 workflow. B04 remains partial.
 
 Latest: installed extension `d85965c` and pinned Linux `d40d6cc` passed the

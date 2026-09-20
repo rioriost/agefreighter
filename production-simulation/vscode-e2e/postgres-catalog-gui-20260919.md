@@ -602,3 +602,32 @@ target or migration was submitted, and no Azure resource was started. The
 expired 02:45 UTC live-session bound remains unchanged. Next is complete source
 inventory under renewed bounded-session authority; B04 remains partial, and
 the no-FK fixture still does not qualify live FK recommendations.
+
+### Renewed inventory session — September 20, approximately 06:05 UTC
+
+The user explicitly approved restarting the existing runner/source for complete
+inventory and authorized appropriate time extensions. The previous 02:45 UTC
+session bound is superseded for this work; USD 800 is unchanged. Established a
+new bounded session ending 08:00 UTC (17:00 JST), rather than indefinite uptime.
+The exact runner's enabled Azure auto-shutdown now targets 08:00 UTC. A dedicated
+heartbeat `postgresql-catalog-inventory-safety-monitor` reconciles only this
+session and stops the exact runner and source after terminal completion/failure,
+15 minutes of idle user-input wait, or the bound. It cannot initiate/retry work.
+
+Before restart, ARM verified this runner deallocated, source Stopped/private,
+no RG locks and no RG activity since the prior offline checkpoint. The cost API
+returned 429; USD 284.682696744039 remains the latest delayed total, not a fresh
+bill. No new resource, target, grant, credential or public access was created.
+Started only `af-ae9523105eba42b69fe3` and `afpg-p1-source-20260907`.
+Fresh installed-GUI readiness is pending before the full inventory and private
+reader-password entry. The reviewed mapping configuration is unchanged.
+
+By 06:09 UTC the source is Ready with public network Disabled. Installed-GUI
+readiness operation `43d7000f-f755-491e-a7a4-adfc2f974991` finished: boot
+`bcae7345-e968-4a12-8cd0-4c7708c6543b`, exact pinned build, idle, disk 3.7069%,
+swap zero and OOM zero. Reviewed the same 18 mappings again and approved the
+native complete mapped-record inventory confirmation (30 minutes / 4 GiB /
+no swap, read-only source, no target writes). At approximately 06:10 UTC the
+private VS Code password input is open; no inventory operation has been
+submitted yet. Requested only the current PGFS reader Keychain item, never
+the administrator or Neo4j passwords. Idle input-wait shutdown is monitored.
