@@ -14,10 +14,12 @@ configuration contracts pass. Broader CSV value combinations have local contract
 evidence only. The [isolated FK trial](postgres-fk-live-plan-20260920.md) now has
 user approval for the bounded fixture/resource scope. A fresh GUI workflow is
 saved; dedicated storage, scoped grants and pinned archive transfer succeeded
-after exact action-time approvals. The private runner is provisioned and the
-source is starting; guest readiness is pending. Hard stop 2026-09-20 09:42 UTC
-(18:42 JST), no automatic extension. Its create-only fixture SQL is prepared
-but not run. Accepted records are not rebound; no target or migration is started.
+after exact action-time approvals. Pinned guest readiness and the isolated
+create-only fixture SQL succeeded. Installed GUI reconciled catalog exit0 and
+the 1,966-byte sealed report; exact transfer/import approval is pending, so
+candidate/FK acceptance and mapped inventory are not yet complete.
+Hard stop 2026-09-20 09:42 UTC (18:42 JST), or 15-minute idle user wait, without
+automatic extension. Accepted records are not rebound; no target or migration.
 
 Previous next step: approved fix `3dff349` is installed and GUI rejected-export
 retention passed at 08:37:39 UTC, preserving the same finished inventory/seal and

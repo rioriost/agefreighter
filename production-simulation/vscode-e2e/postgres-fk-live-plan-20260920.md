@@ -1,10 +1,11 @@
 # Isolated PostgreSQL FK GUI qualification proposal
 
 Status: bounded fixture/resource scope approved by the user on 2026-09-20;
-GUI setup and approved compute provisioning are in progress. Dedicated storage,
-authenticated network access and pinned archive transfer succeeded. The source
-is starting and the private runner is provisioned; guest readiness is pending.
-No fixture writes/catalog reads yet. This is not a live qualification result.
+Dedicated storage, pinned runner readiness and isolated fixture setup succeeded.
+The installed GUI reconciled the successful catalog read after private password
+entry. Exact sealed report transfer/import approval is pending; no candidate or
+mapped inventory is accepted yet. This is not a live
+qualification result; stop both compute resources by 18:42 JST at the latest.
 
 ## Why a separate fixture is needed
 
@@ -114,3 +115,37 @@ No source write, new resource or Azure restart occurred during this design revie
   shell syntax and Swift type checks but has not been submitted. It uses protected
   administrator parameters and the committed create-only SQL, without credential
   rotation or accepted P1 modifications.
+
+## Fixture ready / catalog credential gate — 09:17 UTC
+
+- Installed GUI verified pinned guest readiness at `2026-09-20T09:13:58.372Z`,
+  boot `62fcab5d-c9b4-49e8-8bd6-c4779cde7770`. Guest was idle, disk 3.4811%,
+  swap-used zero and OOM events zero. Source reconciled Ready/private.
+- Submitted only `af-pg-fk-fixture-20260920` using protected administrator
+  parameters and script SHA-256
+  `d50f3af2a0675197981b0ea7cd7b0a746e54bdd9d2d97b7c8e0bbd4a4d0e688c`.
+  ARM terminal execution Succeeded/exit0 with marker
+  `isolated_fixture_created_scoped_grants_committed` proves the bounded SQL
+  transaction and its postconditions completed. No credential rotation or P1
+  mutation; the dedicated schema and its five rows are retained.
+- Installed-GUI catalog confirmation displays the exact `p1source` database,
+  existing reader, new runner and only `af_fk_qualification_20260920`. The user
+  approved the read in VS Code; its private password box is open. Requested the
+  existing PostgreSQL reader Keychain entry, never a Neo4j/admin credential.
+  No catalog dispatch yet. Stop on 15-minute idle credential wait or the hard
+  09:42 UTC deadline; no automatic restart or extension.
+- User subsequently entered the password; installed GUI accepted catalog operation
+  `511d0745-b0dd-43c7-b88f-b1144947df44`, configuration SHA-256
+  `20dfdcadf0fd093633f3d959a8d6cf8193cfe082eb5d24bfde8aa1a36870a6d8`.
+  Read-only guest evidence independently confirms fixture completion at
+  `2026-09-20T09:16:14Z`, committed SQL log checksum
+  `f89018bf71b8fa9d82803d34392fbfc6785bcf83ea31e0018550a28056192524`,
+  checksum verification OK, disk4%, memory267,403,264 bytes, no swap.
+- Catalog completed at `2026-09-20T09:17:57.378559415Z`, exit0, 1,966-byte
+  report SHA-256 `67c10b4481d64c89ceb8b9118b7419df01740a923ceca710fdb8d974f1be8ee4`.
+  Installed GUI reconciled finished and displays the sealed transfer approval.
+  Requested explicit transfer/import of the synthetic two-table schema/key
+  metadata to this workflow's storage and Mac; no row/password/AI transfer.
+  No candidate count or safety-warning acceptance is claimed before import.
+- Cost refresh succeeded: delayed RG September actual cost **USD302.628107546835**,
+  under the unchanged USD800 ceiling. Hard stop remains09:42UTC.
