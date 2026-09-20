@@ -1,9 +1,10 @@
 # Isolated PostgreSQL FK GUI qualification proposal
 
 Status: bounded fixture/resource scope approved by the user on 2026-09-20;
-GUI setup in progress. No source writes or compute starts yet. Dedicated storage
-creation and account-scoped user access succeeded; authenticated network access
-and pinned archive transfer approval are pending. This is not a live qualification result.
+GUI setup and approved compute provisioning are in progress. Dedicated storage,
+authenticated network access and pinned archive transfer succeeded. The source
+is starting and the private runner is provisioned; guest readiness is pending.
+No fixture writes/catalog reads yet. This is not a live qualification result.
 
 ## Why a separate fixture is needed
 
@@ -90,3 +91,26 @@ No source write, new resource or Azure restart occurred during this design revie
   form, as in the earlier catalog trial. Re-enter and verify `p1source` /
   `agefreighter_reader` immediately before catalog review; never submit defaults.
   No credentials were entered and no source operation was submitted.
+
+## Approved launch — 09:12–09:14 UTC
+
+- User separately approved the exact account's tag/network exception and archive
+  upload. Merged only `SecurityControl=Ignore`, preserving ownership tags; ARM
+  confirmed HTTPS-only/TLS1.2, public network Enabled, anonymous/shared keys false.
+  Installed-GUI upload is ready; independent Blob metadata matches the pinned
+  SHA-256 and 37,197,546 bytes.
+- User separately approved VM `af-24bd714a70ee486582db`, its pinned development
+  installation and workflow-container-only Blob Reader grant. GUI submitted
+  deployment at `2026-09-20T09:12:40.285Z` and reconciled provisioned at
+  `2026-09-20T09:13:50.615Z`. B2s_v2, Japan East/zone1, USD0.109/hour compute;
+  no public IP or SSH ingress. Source start was requested for the same session.
+- Hard shutdown deadline **2026-09-20T09:42:00Z (18:42 JST)**, less than 30 minutes
+  after the first request. Updated the safety heartbeat to this exact VM/source
+  and deadline; configured the VM's Azure auto-shutdown for 09:42 UTC. Never
+  extend automatically. No target creation or migration is authorized here.
+- Fresh RG error activity and locks were empty. Guest readiness command
+  `af-dfb8a74c-b018-40ea-b0b1-08767edfacdc` is submitted; wait/reconcile it, do not
+  replay. Source still Starting at the first poll. Fixture setup helper passed
+  shell syntax and Swift type checks but has not been submitted. It uses protected
+  administrator parameters and the committed create-only SQL, without credential
+  rotation or accepted P1 modifications.
