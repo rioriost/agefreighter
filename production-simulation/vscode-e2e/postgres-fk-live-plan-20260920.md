@@ -1,8 +1,9 @@
 # Isolated PostgreSQL FK GUI qualification proposal
 
 Status: bounded fixture/resource scope approved by the user on 2026-09-20;
-GUI setup in progress. No source writes or compute starts yet. Exact storage
-access confirmation is pending; this is not a live qualification result.
+GUI setup in progress. No source writes or compute starts yet. Dedicated storage
+creation and account-scoped user access succeeded; authenticated network access
+and pinned archive transfer approval are pending. This is not a live qualification result.
 
 ## Why a separate fixture is needed
 
@@ -66,8 +67,11 @@ No source write, new resource or Azure restart occurred during this design revie
   Japan East/zone 1, B2s_v2 and existing nondelegated runner subnet.
 - Schema input is restricted to `af_fk_qualification_20260920`, database
   `p1source`, existing `agefreighter_reader`. No password has been requested.
-- The storage confirmation proposes `af24bd714a70ee486582db90` with account-only
-  Blob Data Contributor for the signed-in user. Creation is not yet submitted.
+- The user approved the storage confirmation for `af24bd714a70ee486582db90`.
+  At 09:05–09:10 UTC, ARM and installed-GUI reconciliation confirmed successful
+  creation and account-only Blob Data Contributor for the signed-in user.
+  Anonymous access and shared keys are disabled. Public network access remains
+  Disabled, so provisioning success does not establish transfer readiness.
 - Fresh cost query returned HTTP 429; the last confirmed delayed RG month-to-date
   total is USD 295.608869711763. The USD 800 ceiling remains unchanged.
 - Source is stopped with public access disabled; RG locks are absent. The
@@ -76,3 +80,13 @@ No source write, new resource or Azure restart occurred during this design revie
 - The create-only fixture SQL is retained beside this plan. It uses one bounded
   transaction, fails if the schema already exists, creates no new role/password,
   and grants only USAGE plus SELECT on the two new tables. It has not run.
+- Requested approval for the established `SecurityControl=Ignore` exception and
+  authenticated public HTTPS on this exact new account, plus upload of the pinned
+  `d40d6ccc9a4d` Linux archive (37,197,546 bytes, SHA-256
+  `2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6`).
+  The installed GUI displays the exact workflow-container/archive destination;
+  upload confirmation is open but not submitted. No tag/network change yet.
+- Storage reconciliation restored database/user defaults in the unreviewed source
+  form, as in the earlier catalog trial. Re-enter and verify `p1source` /
+  `agefreighter_reader` immediately before catalog review; never submit defaults.
+  No credentials were entered and no source operation was submitted.

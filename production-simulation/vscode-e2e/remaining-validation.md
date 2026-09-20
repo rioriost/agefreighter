@@ -13,8 +13,9 @@ file IDs/seals, with no operator mutation. All 445 unit tests and 13 actual-Go
 configuration contracts pass. Broader CSV value combinations have local contract
 evidence only. The [isolated FK trial](postgres-fk-live-plan-20260920.md) now has
 user approval for the bounded fixture/resource scope. A fresh GUI workflow is
-saved; exact new-account storage/grant confirmation is pending. No Azure resource
-creation, source writes or compute starts have occurred in this trial. Its
+saved; dedicated storage/account-scoped user grant succeeded. Exact-account
+network exception and pinned archive transfer approval are pending. No source
+writes or compute starts have occurred in this trial. Its
 create-only fixture SQL is prepared but not run. Accepted records are not rebound.
 
 Previous next step: approved fix `3dff349` is installed and GUI rejected-export
