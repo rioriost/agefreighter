@@ -3,6 +3,8 @@ import test from "node:test";
 import { Script } from "node:vm";
 import { runnerSourceHTML } from "../../core/runnerSourceView";
 import { sourceForm, csvFile } from "../sourceFixtures";
+import { buildSourceDraft } from "../../core/runnerSource";
+import { workflow } from "../sourceFixtures";
 
 class Element {
   type=""; checked=false;
@@ -28,6 +30,63 @@ function view() {
   });
   return { html, el: (id: string) => elements.get(id)!, all, send: (data: unknown) => receivers.forEach(receive => receive({ data })), messages };
 }
+
+test("CSV choices serialize immutable file IDs rather than duplicate display names or list order", () => {
+  const files = [csvFile, { id: "33333333-3333-4333-8333-333333333333", name: csvFile.name }];
+  const form = { ...sourceForm, mappings: sourceForm.mappings.map((m, i) => ({ ...m, collection: files[i]!.id })) };
+  for (const listed of [files, [...files].reverse()]) {
+    const v = view();
+    v.send({ kind: "init", type: "csv", location: "local", files: listed, form });
+    v.send({ kind: "busy", value: false });
+    const choices = v.all.filter(e => e.tag === "select" && e.children.some(c => c.value === csvFile.id));
+    assert.equal(choices.length, 2);
+    assert.deepEqual(choices.map(e => e.value), files.map(f => f.id));
+    assert.deepEqual(choices[0]!.children.map(e => e.value), ["", ...listed.map(f => f.id)]);
+    v.el("review").trigger("click");
+    const sent = v.messages.at(-1).form;
+    assert.deepEqual(sent.mappings.map((m: any) => m.collection), files.map(f => f.id));
+    const csv = (buildSourceDraft({ type: "csv", location: "local" }, sent, workflow, listed).configuration.source as any).csv;
+    assert.equal(csv.vertices[0].path, `/var/lib/agefreighter/workflows/${workflow}/uploads/${files[0]!.id}.csv`);
+    assert.equal(csv.edges[0].path, `/var/lib/agefreighter/workflows/${workflow}/uploads/${files[1]!.id}.csv`);
+    assert.ok(v.messages.every(m => ["ready", "review"].includes(m.action)));
+  }
+});
+
+test("CSV typed properties, IDs, endpoints and null choices survive the webview-to-config boundary", () => {
+  const declarations = "s=s:string,i=i:int64,f=f:float64,b=b:boolean,sa=sa:string[],ia=ia:int64[],fa=fa:float64[],ba=ba:boolean[]";
+  for (const nullValue of ["\\N", "", "NULL"]) {
+    const v = view(), form = { ...sourceForm, nullValue, mappings: sourceForm.mappings.map(m => ({ ...m, collection: csvFile.id, properties: declarations })) };
+    v.send({ kind: "init", type: "csv", location: "local", files: [csvFile], form });
+    v.send({ kind: "busy", value: false });
+    assert.equal(v.el("nullValue").value, nullValue);
+    v.el("review").trigger("click");
+    const sent = v.messages.at(-1).form, draft = buildSourceDraft({ type: "csv", location: "local" }, sent, workflow, [csvFile]);
+    const csv = (draft.configuration.source as any).csv;
+    assert.deepEqual(csv.defaults, { delimiter: ",", quote: '"', escape: '"', header: true, encoding: "utf-8", nullValue });
+    assert.deepEqual({ ...csv.vertices[0].propertyTypes }, { s: "string", i: "int64", f: "float64", b: "boolean", sa: "string[]", ia: "int64[]", fa: "float64[]", ba: "boolean[]" });
+    assert.deepEqual(csv.edges[0].propertyTypes, csv.vertices[0].propertyTypes);
+    assert.equal(csv.vertices[0].idColumn, "id"); assert.equal(csv.edges[0].externalIdColumn, "id");
+    assert.deepEqual(csv.edges[0].start, { label: "Person", field: "from_id" });
+    assert.deepEqual(csv.edges[0].end, { label: "Person", field: "to_id" });
+    assert.equal(draft.canAssess, false, "settings alone are not guest file verification");
+  }
+});
+
+test("CSV file and null edits invalidate approval and missing selections fail closed", () => {
+  const v = view(), form = { ...sourceForm, mappings: sourceForm.mappings.map(m => ({ ...m, collection: csvFile.id })) };
+  v.send({ kind: "init", type: "csv", files: [csvFile], form, canStart: true, inventoryReady: true });
+  v.send({ kind: "busy", value: false });
+  const choice = v.all.find(e => e.tag === "select" && e.children.some(c => c.value === csvFile.id))!;
+  for (const control of [choice, v.el("nullValue")]) {
+    v.send({ kind: "review", draft: { canAssess: true, warnings: [], configuration: {} } });
+    assert.equal(v.el("inventory").disabled, false);
+    control.trigger("change");
+    assert.equal(v.el("inventory").disabled, true); assert.equal(v.el("reviewSection").hidden, true);
+  }
+  choice.value = ""; v.el("review").trigger("click");
+  assert.throws(() => buildSourceDraft({ type: "csv", location: "local" }, v.messages.at(-1).form, workflow, [csvFile]));
+  assert.throws(() => buildSourceDraft({ type: "csv", location: "local" }, form, workflow, []), /file picker/);
+});
 
 test("rejected export has a distinct host-gated action and never auto-replays",()=>{
   const v=view();v.send({kind:"init",type:"postgresql",transferEnabled:true,rejectedExportReview:false});v.send({kind:"busy",value:false});

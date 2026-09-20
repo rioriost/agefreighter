@@ -2,14 +2,25 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Current offline follow-up: [CSV choice binding audit](csv-choice-bindings-20260920.md)
+passes for the accepted P1 route: actual installed-GUI restoration of all 18
+file/type/ID/endpoint selections, exact retained configuration/verified-transfer
+bindings and unchanged 74 operator files. Added regressions pass (445 unit tests,
+13 Go configuration contracts); no production change, install or Azure mutation.
+B04 still needs live FK recommendations. The [isolated FK plan](postgres-fk-live-plan-20260920.md)
+is unexecuted; local review requires a fresh workflow-owned runner/storage, not
+rebinding accepted records. Explicit fixture/resource/grant scope approval is
+needed. Other partial rows in the branch ledger remain open as well.
+
 Current B04 step (September 20, approximately 08:45 UTC): installed-GUI recovery,
 fresh runner readiness and exact sealed inventory export/import **passed**.
 All 18 mapped-label counts match the frozen P1 fixture: 1.6M vertices + 4M edges;
 report pass, no errors/incomplete checks, independently matched 2,947 bytes/SHA.
 VM deallocated and source Stopped/private verified; safety heartbeat disabled.
 No source reread, target or migration was started. The catalog-to-mapped-inventory
-slice passes; B04 overall remains partial (live FK recommendations and exact CSV
-choice bindings). This inventory is not new migration/canonical-digest evidence.
+slice passes; at that checkpoint B04 still lacked live FK recommendations and
+exact CSV choice bindings (the latter audited above). This inventory is not new
+migration/canonical-digest evidence.
 
 Previous B04 step (September 20, approximately 08:38 UTC): user-approved fix
 `3dff349` is installed with matching bundle SHA and actual Reload Window/reconnect.

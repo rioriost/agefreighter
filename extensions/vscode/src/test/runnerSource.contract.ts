@@ -39,3 +39,18 @@ for (const path of paths) {
     assert.equal(result.status, 0, result.stderr + result.stdout);
   });
 }
+
+for (const nullValue of ["\\N", "", "NULL"]) {
+  test(`CSV all eight explicit property types and null ${JSON.stringify(nullValue)} pass the actual Go validator`, async () => {
+    const binary = process.env.AGEFREIGHTER_TEST_BINARY;
+    assert.ok(binary, "AGEFREIGHTER_TEST_BINARY must reference the locally built test CLI");
+    const edgeFile = { id: "33333333-3333-4333-8333-333333333333", name: "edges.csv" };
+    const properties = "s=s:string,i=i:int64,f=f:float64,b=b:boolean,sa=sa:string[],ia=ia:int64[],fa=fa:float64[],ba=ba:boolean[]";
+    const form = { ...sourceForm, nullValue, mappings: sourceForm.mappings.map(m => ({ ...m, collection: m.kind === "vertex" ? csvFile.id : edgeFile.id, properties })) };
+    const draft = buildSourceDraft({ type: "csv", location: "local" }, form, workflow, [csvFile, edgeFile]);
+    const directory = await mkdtemp(join(tmpdir(), "af-csv-choices-")), file = join(directory, "generated.json");
+    await writeFile(file, JSON.stringify(draft.configuration), { mode: 0o600 });
+    const result = spawnSync(binary, ["validate", file, "--format", "json"], { encoding: "utf8", timeout: 10000 });
+    assert.equal(result.status, 0, result.stderr + result.stdout);
+  });
+}
