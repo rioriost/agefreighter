@@ -38,5 +38,17 @@
     "source": "Stopped",
     "disksAndEvidencePreserved": true,
     "sessionBound": "2026-09-20T02:45:00Z"
+  },
+  "offlineMappingReview": {
+    "observedAt": "2026-09-20T03:23:00Z",
+    "vertices": 9,
+    "edges": 9,
+    "frozenFixtureMatchIgnoringOrder": true,
+    "explicitIdentityPropertyProjection": true,
+    "assertP1Projection": "pass",
+    "configurationJSONSHA256": "dfa9355e4d7651d763f6bc04cf7f320cb1adc8709b29dc7d25a71924c9bf9d8a",
+    "actualReloadAndReconnectRetainedMappings": true,
+    "inventorySubmitted": false,
+    "azureStarted": false
   }
 }

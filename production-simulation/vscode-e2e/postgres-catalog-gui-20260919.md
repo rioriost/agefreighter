@@ -577,3 +577,28 @@ failed readiness/catalog evidence and successful reports remain. No data or
 credentials were deleted. See [redacted receipt](evidence/pgfs-catalog-r2-20260920.json).
 Offline mapping review can continue; further cloud work requires a renewed
 session bound, not implicit extension of the earlier shutdown time.
+
+### Offline mapping editing and reconnect passed — September 20, 03:18–03:23 UTC
+
+In the installed source-assessment GUI, edited the nine adopted vertex labels
+to the frozen P1 names, selected `external_id` as stable identity and explicitly
+projected all 11 properties, including `source_key` and `external_id`. Added all
+nine edge mappings manually with `relationship_id`, the reviewed start/end
+labels and `start_id`/`end_id`, and all seven edge properties. No recommendation
+was silently treated as a business relationship or complete property selection.
+
+Clicked Review source settings and independently checked the saved form against
+`fixtures/postgresql-p1-mappings.json`: all 18 mappings match exactly after
+sorting by label. The generated configuration passes `assertP1Projection` and
+is assessable. Its `JSON.stringify(configuration)` SHA-256 is
+`dfa9355e4d7651d763f6bc04cf7f320cb1adc8709b29dc7d25a71924c9bf9d8a`.
+This hash identifies the offline draft, not a submitted inventory operation.
+
+Executed actual Developer: Reload Window, reconnected to the same workflow and
+opened Configure source & assessment. All 18 mappings, identities, properties,
+endpoints, `p1source` database and reader username reappeared correctly. Imported
+catalog recommendations remain available with nothing selected. No inventory,
+target or migration was submitted, and no Azure resource was started. The
+expired 02:45 UTC live-session bound remains unchanged. Next is complete source
+inventory under renewed bounded-session authority; B04 remains partial, and
+the no-FK fixture still does not qualify live FK recommendations.

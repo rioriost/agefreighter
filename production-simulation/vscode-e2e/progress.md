@@ -2,7 +2,7 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September 20, approximately 02:44 UTC): fresh GUI workflow
+Current B04 step (September 20, approximately 03:23 UTC): fresh GUI workflow
 `ae952310-5eba-42b6-9fe3-9db00e93cdac` preserves the previous failed attempt.
 User-approved transfer storage and account-scoped Blob role were created;
 The approved exact-account exception tag/authenticated HTTPS access now pass
@@ -14,8 +14,12 @@ passes (disk 3.51%, zero swap/OOM, exact pinned build and catalog capability).
 The first readiness check preceded bootstrap completion and failed; its evidence
 is retained. Metadata-only catalog and sealed import passed: complete 18-table
 report, 23,753 bytes, independently matched SHA. Nine intended vertex candidates
-were explicitly adopted in the GUI. Graph IDs/properties, manual edges and full
-inventory remain open; B04 is partial. VM deallocated and source Stopped verified
+were explicitly adopted in the GUI. Offline GUI edits now preserve all nine
+vertex and nine edge mappings, matching the frozen PostgreSQL P1 fixture exactly
+(ignoring row order), including explicit identity-property projections. The
+generated configuration passes `assertP1Projection`. Actual Reload Window and
+reconnect restored all 18 mappings and connection fields without replay.
+New complete inventory remains open; B04 is partial. VM deallocated and source Stopped verified
 by 02:43:55 UTC, before the 02:45 bound. All evidence/disks are preserved.
 See [catalog receipt](evidence/pgfs-catalog-r2-20260920.json).
 See [fresh draft evidence](postgres-catalog-gui-20260919.md#fresh-catalog-draft--september-20-approximately-0220-utc).
