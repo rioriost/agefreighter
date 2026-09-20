@@ -11,9 +11,11 @@ B04 still needs live FK recommendation coverage. The subsequent
 restoration of all 18 P1 choices to exact retained configuration and verified
 file IDs/seals, with no operator mutation. All 445 unit tests and 13 actual-Go
 configuration contracts pass. Broader CSV value combinations have local contract
-evidence only. The [isolated FK proposal](postgres-fk-live-plan-20260920.md) is
-unexecuted; local review requires a fresh workflow-owned runner/storage and
-explicit fixture/resource/grant approval rather than rebinding accepted records.
+evidence only. The [isolated FK trial](postgres-fk-live-plan-20260920.md) now has
+user approval for the bounded fixture/resource scope. A fresh GUI workflow is
+saved; exact new-account storage/grant confirmation is pending. No Azure resource
+creation, source writes or compute starts have occurred in this trial. Its
+create-only fixture SQL is prepared but not run. Accepted records are not rebound.
 
 Previous next step: approved fix `3dff349` is installed and GUI rejected-export
 retention passed at 08:37:39 UTC, preserving the same finished inventory/seal and

@@ -1,6 +1,8 @@
 # Isolated PostgreSQL FK GUI qualification proposal
 
-Status: reviewed plan only; not approved for execution and not run.
+Status: bounded fixture/resource scope approved by the user on 2026-09-20;
+GUI setup in progress. No source writes or compute starts yet. Exact storage
+access confirmation is pending; this is not a live qualification result.
 
 ## Why a separate fixture is needed
 
@@ -55,3 +57,22 @@ privilege and data-change scope plus bounded runtime; native action-time gates
 then bind exact generated identities and pinned artifact before mutation.
 This is a tiny supplemental schema-behavior trial, not another P1 graph migration.
 No source write, new resource or Azure restart occurred during this design review.
+
+## Execution preparation — 2026-09-20
+
+- Fresh installed-GUI workflow: `24bd714a-70ee-4865-82db-90d6f4760650`,
+  confirmed against the retained record filename before deployment.
+- The GUI selected the existing approved subscription/test RG, PostgreSQL source,
+  Japan East/zone 1, B2s_v2 and existing nondelegated runner subnet.
+- Schema input is restricted to `af_fk_qualification_20260920`, database
+  `p1source`, existing `agefreighter_reader`. No password has been requested.
+- The storage confirmation proposes `af24bd714a70ee486582db90` with account-only
+  Blob Data Contributor for the signed-in user. Creation is not yet submitted.
+- Fresh cost query returned HTTP 429; the last confirmed delayed RG month-to-date
+  total is USD 295.608869711763. The USD 800 ceiling remains unchanged.
+- Source is stopped with public access disabled; RG locks are absent. The
+  30-minute compute clock has not started. Do not use the old session's deadline
+  or restart its completed workflow.
+- The create-only fixture SQL is retained beside this plan. It uses one bounded
+  transaction, fails if the schema already exists, creates no new role/password,
+  and grants only USAGE plus SELECT on the two new tables. It has not run.
