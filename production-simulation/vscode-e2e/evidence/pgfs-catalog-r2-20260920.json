@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "qualification": "B04 partial: catalog, sealed import and selected vertex adoption passed",
+  "qualification": "B04 partial: catalog, reviewed mappings and complete inventory/import passed; live FK recommendations and CSV choice bindings remain open",
   "workflow": "ae952310-5eba-42b6-9fe3-9db00e93cdac",
   "operation": "ebe462e6-6995-4c45-a56c-f1d998079008",
   "submittedAt": "2026-09-20T02:39:19.712Z",
@@ -38,6 +38,35 @@
     "source": "Stopped",
     "disksAndEvidencePreserved": true,
     "sessionBound": "2026-09-20T02:45:00Z"
+  },
+  "inventoryImport": {
+    "observedAt": "2026-09-20T08:45:00Z",
+    "operation": "3a4ffae1-8727-464b-8968-40bed2f42c69",
+    "generatedAt": "2026-09-20T06:13:24.371685639Z",
+    "configurationSHA256": "dfa9355e4d7651d763f6bc04cf7f320cb1adc8709b29dc7d25a71924c9bf9d8a",
+    "bytes": 2947,
+    "sha256": "821638b1e510ff545c424dbfaacf4508d9727c78d9368afc8c34aa98285b9a18",
+    "outcome": "pass",
+    "checksPassed": 2,
+    "errors": 0,
+    "incompleteChecks": 0,
+    "vertices": 1600000,
+    "edges": 4000000,
+    "all18LabelCountsMatchFrozenP1": true,
+    "localBytesAndSHA256IndependentlyMatched": true,
+    "installedGUIReportOpened": true,
+    "rejectedExportEvidenceRetained": true,
+    "sourceReadRepeated": false,
+    "migrationQualification": false,
+    "shutdown": {
+      "observedAt": "2026-09-20T08:45:00Z",
+      "vm": "deallocated",
+      "source": "Stopped",
+      "sourcePublicAccess": "Disabled",
+      "disksAndEvidencePreserved": true,
+      "safetyHeartbeat": "PAUSED",
+      "sessionBound": "2026-09-20T09:10:00Z"
+    }
   },
   "offlineMappingReview": {
     "observedAt": "2026-09-20T03:23:00Z",

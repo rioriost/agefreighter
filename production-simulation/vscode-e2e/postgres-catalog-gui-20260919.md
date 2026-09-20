@@ -737,3 +737,47 @@ verified VM deallocated and source Stopped/private. Azure was not started by thi
 installation/recovery approval. Next gate: a bounded runner-only session for fresh
 readiness and exact sealed report export/import; keep the source stopped. B04
 inventory counts/import are still unaccepted, and no migration claim is added.
+
+### Approved runner-only report session — September 20, 08:41 UTC onward
+
+User approved at most thirty minutes for the same runner's fresh readiness and
+existing sealed report transfer/import. Source remains Stopped/private. Set
+exact-VM auto-shutdown and safety heartbeat to 09:10 UTC (18:10 JST), without
+extending the USD 800 ceiling; started only this VM. Current cost refresh returned
+429; latest delayed RG total remains USD 295.608869711763. No RG locks found.
+Activity review showed the known rejected export and audit policy events on this
+VM. Separate secure-transport configuration attempts on stopped PG servers failed;
+no source start or security-control change was made for this session.
+
+Reconnected the installed GUI to refresh the parent's cached command state, then
+requested fresh Linux readiness. No inventory replay, source read, target creation,
+migration, credential or RBAC change is authorized by this session.
+
+### Complete inventory imported and resources stopped — September 20, 08:44–08:45 UTC
+
+Installed GUI readiness `5052cb8d-547e-463f-a722-783eb2e1c2b5` finished on boot
+`e16a9f24-1ca4-4870-8e9a-0c0302daf359`: pinned Linux artifact/commit matched,
+idle, disk 4.1025%, swap zero and OOM zero. Reopening source assessment restored
+catalog recommendations without the missing-readiness warning. No source read
+was repeated. Explicit same-report transfer submitted once at 08:43:41.414 UTC,
+command `af-f4979be2-b780-4df5-8db5-eb31e4f8985a`; installed GUI reconciled it
+finished and imported, then opened **Hash-verified source report**.
+
+Independently re-read the private local report: exactly 2,947 bytes and original
+SHA-256 `821638b1e510ff545c424dbfaacf4508d9727c78d9368afc8c34aa98285b9a18`.
+Report generated at 06:13:24.371685639 UTC has outcome pass, both read-only and
+source-counts checks pass, no errors and no incomplete checks. All 18 per-label
+counts exactly match sums of the frozen P1 fixture leaves: 1,600,000 vertices and
+4,000,000 edges. The scan reached EOF in one PostgreSQL repeatable-read snapshot.
+This verifies complete mapped-record inventory, not unique identities, endpoint
+integrity, source immutability or migrated-property digests.
+
+Requested exact-VM deallocation immediately after import/count acceptance.
+By approximately 08:45 UTC, ARM verified VM **deallocated**, source **Stopped**
+and source public access **Disabled**. Disabled the safety heartbeat after both
+stopped states were verified, ahead of the 09:10 UTC bound. All disks, catalog,
+inventory, failed export history and imported reports remain. No target or
+migration was created. B04's catalog-to-mapped-inventory slice now passes; B04
+overall remains partial because live FK recommendations and exact CSV choice
+bindings still need their own evidence. Existing nine base-route qualifications
+are unchanged.

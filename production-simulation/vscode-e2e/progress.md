@@ -2,7 +2,16 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September 20, approximately 08:38 UTC): user-approved fix
+Current B04 step (September 20, approximately 08:45 UTC): installed-GUI recovery,
+fresh runner readiness and exact sealed inventory export/import **passed**.
+All 18 mapped-label counts match the frozen P1 fixture: 1.6M vertices + 4M edges;
+report pass, no errors/incomplete checks, independently matched 2,947 bytes/SHA.
+VM deallocated and source Stopped/private verified; safety heartbeat disabled.
+No source reread, target or migration was started. The catalog-to-mapped-inventory
+slice passes; B04 overall remains partial (live FK recommendations and exact CSV
+choice bindings). This inventory is not new migration/canonical-digest evidence.
+
+Previous B04 step (September 20, approximately 08:38 UTC): user-approved fix
 `3dff349` is installed with matching bundle SHA and actual Reload Window/reconnect.
 Installed GUI successfully retained the rejected export after expiry/absence checks;
 the same finished inventory and seal are preserved, with no automatic replay.
