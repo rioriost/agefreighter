@@ -2,7 +2,14 @@
 
 Updated: 2026-09-20 JST. Status: **not release-qualified; live catalog/import and selected vertex adoption passed**.
 
-Current next step: fresh GUI workflow `ae952310-5eba-42b6-9fe3-9db00e93cdac`
+Current next step: approved fix `3dff349` is installed and GUI rejected-export
+retention passed at 08:37:39 UTC, preserving the same finished inventory/seal and
+all prior evidence. Fresh guest readiness was invalidated. Resume only a bounded
+runner session for readiness and exact sealed export/import; keep the source
+Stopped. Catalog recommendations cannot be refreshed until runner readiness is
+re-established. Count acceptance remains pending; this is not migration evidence.
+
+Previous next step: fresh GUI workflow `ae952310-5eba-42b6-9fe3-9db00e93cdac`
 needs installed-GUI recovery of a report export approved after VM shutdown.
 HTTP 409, absent exact ARM command and absent blob are verified. Local extension
 fix adds explicit evidence-preserving recovery after capability expiry, with no

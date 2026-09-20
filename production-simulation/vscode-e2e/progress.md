@@ -2,7 +2,16 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September 20, approximately 08:17 UTC onward): user submitted
+Current B04 step (September 20, approximately 08:38 UTC): user-approved fix
+`3dff349` is installed with matching bundle SHA and actual Reload Window/reconnect.
+Installed GUI successfully retained the rejected export after expiry/absence checks;
+the same finished inventory and seal are preserved, with no automatic replay.
+Fresh runner readiness was invalidated and is required before transfer; catalog
+recommendation refresh is gated until then. VM deallocated/source Stopped remain
+verified. Next: bounded runner-only readiness and sealed report export/import.
+Exact inventory count acceptance is still pending; no target or migration started.
+
+Previous B04 step (September 20, approximately 08:17 UTC onward): user submitted
 report-transfer approval after VM shutdown. Azure rejected the export with HTTP
 409; exact command and report blob are absent, with unchanged sealed inventory.
 Local extension recovery fix preserves the rejected attempt and requires explicit

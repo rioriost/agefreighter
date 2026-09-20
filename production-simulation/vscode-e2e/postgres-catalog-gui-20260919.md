@@ -714,3 +714,26 @@ bundle SHA-256
 `68fcf29bf741cde36b028a2a1cfbe39ce40712bac9af1b3dba9ebf79e01c5e40`.
 Requested action-time approval before installing this unpublished local build.
 The installed extension, guest binaries and operator records were not replaced.
+
+### Approved installation and rejected-export retention — September 20, 08:35–08:38 UTC
+
+After explicit user approval, installed the exact VSIX above and independently
+matched the installed bundle SHA-256. Actual Developer: Reload Window and GUI
+reconnect restored this workflow, its 18 mappings and unchanged finished inventory.
+The new rejected-export review button was present in the installed GUI.
+
+At 08:37:39.042 UTC, the separate native confirmation passed the twenty-minute
+expiry margin, stopped-VM and exact command/blob absence gates. The GUI retained
+the original HTTP 409 command and transfer in `rejectedReportExports`, removed
+only its active transfer intent and invalidated stale guest readiness. The
+inventory operation, 2,947-byte report seal and imported catalog remain unchanged.
+No worker, export, source read or migration was submitted.
+
+The panel now reports no inventory report transferred. Its catalog recommendation
+refresh also reports that current runner identity cannot be accepted while fresh
+readiness is absent; this is not lost catalog evidence or a new source failure.
+Fresh readiness must precede the separately approved transfer. Live ARM reads
+verified VM deallocated and source Stopped/private. Azure was not started by this
+installation/recovery approval. Next gate: a bounded runner-only session for fresh
+readiness and exact sealed report export/import; keep the source stopped. B04
+inventory counts/import are still unaccepted, and no migration claim is added.
