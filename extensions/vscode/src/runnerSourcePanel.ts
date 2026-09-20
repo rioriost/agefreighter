@@ -10,7 +10,7 @@ import { assessmentActive, ensureAssessmentReadiness, refreshAssessment, startAs
 import { runnerSourceHTML } from "./core/runnerSourceView";
 import { refreshStorage, storageDraft, submitStorage } from "./core/runnerStorageLifecycle";
 import { reportStorageNames, verifyReportStorage, verifyTransferStorage } from "./core/runnerReportStorage";
-import { importReport, refreshReportExport, startReportExport } from "./core/runnerReport";
+import { canRetainRejectedReportExport, importReport, refreshReportExport, retainRejectedReportExport, startReportExport } from "./core/runnerReport";
 import { escapeHTML } from "./core/report";
 import { CSVManifest, CSVTransferCancelledError, inspectCSV } from "./guided/csvTransfer";
 import { csvAssessmentReady, refreshCSVImport, startCSVImport } from "./core/runnerCSV";
@@ -48,6 +48,7 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
     cosmosAccess: record.cosmosAccess?.phase,
     storage: record.storageDeployment ? `${record.storageDeployment.phase}${record.storageDeployment.networkAccess ? ` — public network: ${record.storageDeployment.networkAccess} (provisioning is not transfer readiness)` : ""}` : undefined,
     transferEnabled: !!services, csvTransfers: record.csvTransfers, transfer: record.reportTransfers?.find(item => item.operation === record.assessment?.operation)?.phase,
+    rejectedExportReview: canRetainRejectedReportExport(record),
     inventoryReady: record.guestReady?.capabilities?.includes(`${record.input.source.type}-inventory-v1`) === true,
     canStart: record.phase === "provisioned" && !!record.guestReady }); await postCatalog(record); };
   const listener = panel.webview.onDidReceiveMessage(async raw => {
@@ -233,6 +234,22 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
             if (current.storageDeployment && current.storageDeployment.phase !== "previewed") throw new Error("Storage was already submitted. Refresh its status.");
             const draft = { ...current, storageDeployment: storageDraft(current, principal) };
             await control.persist(draft); return submitStorage(control, draft);
+          });
+          await initialize(next); break;
+        }
+        case "retainRejectedExport": {
+          if (!services || !vscode.workspace.isTrusted) throw new Error("Trusted Azure access is required for export reconciliation.");
+          const record = await store.read(workflow);
+          if (!canRetainRejectedReportExport(record)) throw new Error("No eligible rejected report export.");
+          const operation = record.assessment!.operation, commandId = record.guestCommand!.id;
+          const confirmed = await vscode.window.showWarningMessage("Retain the rejected report export and prepare a fresh transfer?", { modal: true,
+            detail: `Operation ${operation}\nReport ${record.assessment!.reportBytes} bytes; SHA-256 ${record.assessment!.reportSHA256}\nRequires an HTTP 409 rejection older than twenty minutes (original capability expired), a deallocated runner, absent ARM command and absent exact report blob. The old command and transfer are retained locally. This does not start a VM, export, source read or migration. Start the runner, verify fresh idle readiness and separately approve the transfer afterward.` }, "Retain rejected export");
+          if (confirmed !== "Retain rejected export" || disposed) break;
+          const next = await store.exclusive(workflow, async () => {
+            if (!vscode.workspace.isTrusted || disposed) throw new Error("Trusted active source panel is required for export reconciliation.");
+            const current = await store.read(workflow);
+            if (current.guestCommand?.id !== commandId || current.assessment?.operation !== operation || hash(current) !== hash(record)) throw new Error("Export changed; review it again.");
+            return retainRejectedReportExport(control, current, await services.reportCapability(current, operation, "r"));
           });
           await initialize(next); break;
         }

@@ -3,6 +3,14 @@
 Updated: 2026-09-20 JST. Status: **not release-qualified; live catalog/import and selected vertex adoption passed**.
 
 Current next step: fresh GUI workflow `ae952310-5eba-42b6-9fe3-9db00e93cdac`
+needs installed-GUI recovery of a report export approved after VM shutdown.
+HTTP 409, absent exact ARM command and absent blob are verified. Local extension
+fix adds explicit evidence-preserving recovery after capability expiry, with no
+automatic retry and a running-VM preflight. Install/review the fix, retain the
+rejected attempt through GUI, then separately approve exact sealed export/import.
+No source reread or target is needed; VM/source remain stopped.
+
+Previous inventory checkpoint: the same workflow
 has successfully finished inventory worker `3a4ffae1-8727-464b-8968-40bed2f42c69`.
 The 2,947-byte sealed report awaits exact transfer approval/import and count
 acceptance. After 15 minutes without transfer approval, source Stopped verified

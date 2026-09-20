@@ -61,6 +61,7 @@ export interface RunnerRecord {
   postgresCatalog?: import("./runnerCatalog").PostgresCatalog;
   assessmentHistory?: Assessment[];
   reportTransfers?: ReportTransfer[];
+  rejectedReportExports?: { command: GuestCommand; transfer: ReportTransfer; retainedAt: string; reason: "http409-command-and-blob-absent" }[];
   storageDeployment?: StorageDeployment;
   csvTransfers?: CSVTransfer[];
   developmentUpload?: {artifact: RunnerArtifact; phase: "prepared" | "ready"};

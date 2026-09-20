@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { downloadReport, reportCapability, ReportManifest, verifyReportBytes } from "../../core/runnerBlob";
-import { importReport, refreshReportExport, startReportExport } from "../../core/runnerReport";
+import { importReport, refreshReportExport, retainRejectedReportExport, startReportExport } from "../../core/runnerReport";
 import { RunnerRecord } from "../../core/runner";
 import { RunnerControl } from "../../core/runnerLifecycle";
 import { reportStorageNames, verifyReportStorage } from "../../core/runnerReportStorage";
@@ -30,6 +30,7 @@ function fixture() {
   let result: unknown, failure = false;
   const control: RunnerControl = { sleep: async () => {}, list: async () => [], persist: async r => { events.push("persist"); saved.push(structuredClone(r)); }, request: async (_sub, path, method = "GET", body) => {
     events.push(method + path);
+    if (path === `${record.vmId}/instanceView?api-version=2024-07-01`) return { status: 200, value: { statuses: [{ code: "PowerState/running" }] } };
     const names = reportStorageNames(record);
     if (path === `${names.id}?api-version=2023-05-01`) return { status: 200, value: { id: names.id, location: record.input.region, tags: { application: "agefreighter", workflow, purpose: "artifact-transfer" }, properties: { provisioningState: "Succeeded", supportsHttpsTrafficOnly: true, allowBlobPublicAccess: false, allowSharedKeyAccess: false, minimumTlsVersion: "TLS1_2", primaryEndpoints: { blob: `${names.origin}/` } } } };
     if (path === `${names.containerId}?api-version=2023-05-01`) return { status: 200, value: { id: names.containerId, properties: { publicAccess: "None" } } };
@@ -43,6 +44,69 @@ const validFetch: typeof fetch = async (_url, init) => {
   assert.ok(!JSON.stringify(init?.headers).includes("authorization"));
   return new Response(payload, { headers: { "content-length": String(manifest.bytes) } });
 };
+
+function rejectedFixture() {
+  const f = fixture(), now = Date.now();
+  f.record.guestCommand = { id: `${f.record.vmId}/runCommands/af-${operation}`, operation, action: "export-report", phase: "unknown", submittedAt: new Date(now - 1260000).toISOString(), failure: "Azure returned HTTP 409; reconcile before retrying." };
+  f.record.reportTransfers = [{ ...manifest, blob: capability("c").split("?")[0]!, phase: "unknown" }];
+  const original = f.control.request;
+  let power = "PowerState/deallocated", commandStatus = 404;
+  f.control.request = async (sub, path, method, body) => {
+    if (path.includes("/instanceView?")) return { status: 200, value: { statuses: [{ code: power }] } };
+    if (path.includes("&$expand=instanceView")) return { status: commandStatus, value: {} };
+    return original(sub, path, method, body);
+  };
+  const missing: typeof fetch = async (_url, init) => { assert.equal(init?.method, "HEAD"); assert.equal(init?.redirect, "error"); assert.ok(init?.signal); return new Response(null, { status: 404, headers: { "x-ms-error-code": "BlobNotFound" } }); };
+  return { ...f, now, missing, setPower: (p: string) => { power = p; }, setCommand: (s: number) => { commandStatus = s; } };
+}
+
+test("rejected export retention is explicit, GET/HEAD-only and preserves exact evidence without source replay", async () => {
+  const f = rejectedFixture(), before = structuredClone(f.record);
+  const next = await retainRejectedReportExport(f.control, f.record, capability("r", f.now), f.missing, f.now);
+  assert.deepEqual(f.record, before); assert.deepEqual(next.assessment, before.assessment);
+  assert.deepEqual(next.rejectedReportExports![0]!.command, before.guestCommand);
+  assert.deepEqual(next.rejectedReportExports![0]!.transfer, before.reportTransfers![0]);
+  assert.equal(next.reportTransfers!.length, 0); assert.equal(next.guestCommand!.phase, "failed");
+  assert.equal(next.guestReady, undefined); assert.equal(f.saved.length, 1); assert.equal(f.bodies.length, 0);
+  assert.ok(!JSON.stringify(f.saved).includes("SECRET-CAPABILITY"));
+  f.setPower("PowerState/running");
+  await assert.rejects(startReportExport(f.control, next, capability("c")), /health|readiness/i);
+  assert.equal(f.bodies.length, 0);
+  await assert.rejects(retainRejectedReportExport(f.control, next, capability("r"), f.missing), /HTTP 409/);
+  next.guestReady = { bootId: operation, cliVersion: next.artifact.version, archiveSha256: next.artifact.sha256, commit: "pinned", checkedAt: new Date().toISOString(), health: {idle:true,storageUsedPercent:5,swapUsedBytes:0,oomEvents:0} };
+  const changed = structuredClone(next); changed.assessment!.reportSHA256 = "e".repeat(64);
+  await assert.rejects(startReportExport(f.control, changed, capability("c")), /original report seal/);
+  const restarted = await startReportExport(f.control, next, capability("c"));
+  assert.equal(restarted.reportTransfers![0]!.phase,"submitted");assert.equal(f.bodies.length,1);
+  assert.equal(restarted.rejectedReportExports!.length,1);assert.deepEqual(restarted.assessment,before.assessment);
+});
+
+test("export recovery fails closed for ambiguous commands, wrong seals, active VM and missing authorization", async () => {
+  const mutations: ((r: RunnerRecord) => void)[] = [
+    r => { r.guestCommand!.failure = "Guest submission was not confirmed; reconcile before retrying."; },
+    r => { r.guestCommand!.submittedAt = new Date().toISOString(); },
+    r => { r.guestCommand!.action = "inventory"; },
+    r => { r.guestCommand!.id = "/other/runCommands/af-" + operation; },
+    r => { r.assessment!.reportSHA256 = "f".repeat(64); },
+    r => { r.reportTransfers![0]!.phase = "imported"; },
+    r => { r.reportTransfers![0]!.blob += "?bad=1"; },
+    r => { r.assessment!.phase = "running"; },
+    r => { r.rejectedReportExports = Array(16).fill({}); },
+  ];
+  for (const mutate of mutations) { const f = rejectedFixture(); mutate(f.record); await assert.rejects(retainRejectedReportExport(f.control, f.record, capability("r"), f.missing)); assert.equal(f.saved.length, 0); assert.equal(f.bodies.length, 0); }
+  for (const status of [200, 403, 429, 500]) { const f = rejectedFixture(); f.setCommand(status); await assert.rejects(retainRejectedReportExport(f.control, f.record, capability("r"), f.missing)); assert.equal(f.saved.length, 0); }
+  for (const power of ["PowerState/running", "PowerState/stopped", "PowerState/deallocating"]) { const f = rejectedFixture(); f.setPower(power); await assert.rejects(retainRejectedReportExport(f.control, f.record, capability("r"), f.missing)); assert.equal(f.saved.length, 0); }
+  for (const response of [new Response(null), new Response(null, { status: 404 }), new Response(null, { status: 404, headers: { "x-ms-error-code": "ContainerNotFound" } }), new Response(null, { status: 403 })]) { const f = rejectedFixture(); await assert.rejects(retainRejectedReportExport(f.control, f.record, capability("r"), async () => response)); assert.equal(f.saved.length, 0); }
+  const f = rejectedFixture(); await assert.rejects(retainRejectedReportExport(f.control, f.record, capability("c"), f.missing));
+  await assert.rejects(retainRejectedReportExport(f.control, f.record, capability("r"), async () => { throw new Error("SECRET-CAPABILITY"); }), e => !String(e).includes("SECRET-CAPABILITY"));
+});
+
+test("initial export requires running VM before persisting any intent", async () => {
+  const f = fixture(), request = f.control.request;
+  f.control.request = async (s,p,m,b) => p.includes("/instanceView?") ? {status:200,value:{statuses:[{code:"PowerState/deallocated"}]}} : request(s,p,m,b);
+  await assert.rejects(startReportExport(f.control,f.record,capability("c")), /PowerState\/running/);
+  assert.equal(f.saved.length,0); assert.equal(f.bodies.length,0);
+});
 
 test("catalog export/import uses its own sealed operation rather than an assessment fallback", async () => {
   const c=catalogFixture(), started=await startCatalog(c.control,c.record,catalogConfiguration(c.record,catalogForm,["public"]),{});
@@ -107,7 +171,7 @@ test("non-object JSON and invalid UTF-8 cannot become imported evidence despite 
 
 test("export intent persists before PUT with capability only in protected parameters", async () => {
   const f = fixture(); const r = await startReportExport(f.control, f.record, capability("c"));
-  assert.equal(f.events[3], "persist"); assert.ok(f.events[4]?.startsWith("PUT"));
+  assert.equal(f.events[4], "persist"); assert.ok(f.events[5]?.startsWith("PUT"));
   assert.equal(r.reportTransfers?.[0]?.phase, "submitted"); assert.ok(!JSON.stringify(f.saved).includes("SECRET-CAPABILITY"));
   const body = f.bodies[0] as { properties: { protectedParameters: { value: string }[]; parameters?: unknown } };
   assert.equal(body.properties.parameters, undefined);

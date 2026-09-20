@@ -677,3 +677,31 @@ Fresh ARM reads at approximately 06:42 UTC verified exact VM deallocated and
 source Stopped. Disabled the safety heartbeat after both stopped states were
 verified. Transfer approval/import is the next user-facing gate; no qualification
 claim was advanced.
+
+### Export approval after shutdown — September 20, 08:17 UTC onward
+
+The user submitted the installed native transfer confirmation at 08:17:31.579
+UTC, after the runner was deallocated. Export command
+`af-15c4c7df-5ff4-43ec-b837-b8adc67ec266` received HTTP 409 and was retained as
+unknown. Read-only ARM lookup returned ResourceNotFound for that exact command;
+authenticated Blob existence check returned false for the exact sealed report.
+The source inventory itself remains finished and unchanged. Neither VM nor
+source was restarted; no report was transferred and no intent was manually edited.
+
+Local extension correction adds a separately confirmed, pre-target rejected
+export retention path. It requires the exact sanitized HTTP 409, at least 20
+minutes since submission (old capability expiry plus margin), deallocated VM,
+ARM 404 and authenticated exact-blob HEAD 404/BlobNotFound. Existing/ambiguous
+command or blob, wrong ownership/seal, changed confirmation state and untrusted
+workspace fail closed. Original command/transfer are retained in bounded local
+history; no worker or export is automatically run. Subsequent transfer still
+requires a running VM, fresh idle readiness, unchanged seal/destination and
+separate approval. Initial exports now also check running power state before
+persisting intent, preventing this stopped-VM case from creating another trap.
+
+Unit/GUI-controller tests cover successful retention, no replay, expired-capability
+wait, missing/ambiguous evidence, fresh readiness, original seal preservation,
+cancel/disposal/trust and concurrent changes. The first source-contract invocation
+lacked AGEFREIGHTER_TEST_BINARY; after building a local test CLI, all 10 source
+configuration contract routes passed. This is local regression evidence only;
+installation and actual GUI recovery/import remain pending. Guest binary unchanged.

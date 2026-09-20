@@ -29,6 +29,16 @@ function view() {
   return { html, el: (id: string) => elements.get(id)!, all, send: (data: unknown) => receivers.forEach(receive => receive({ data })), messages };
 }
 
+test("rejected export has a distinct host-gated action and never auto-replays",()=>{
+  const v=view();v.send({kind:"init",type:"postgresql",transferEnabled:true,rejectedExportReview:false});v.send({kind:"busy",value:false});
+  assert.equal(v.el("retainRejectedExport").disabled,true);
+  v.send({kind:"init",type:"postgresql",transferEnabled:true,rejectedExportReview:true});
+  assert.equal(v.el("retainRejectedExport").disabled,false);assert.ok(v.messages.every(m=>m.action==="ready"));
+  v.el("retainRejectedExport").trigger("click");assert.deepEqual(v.messages.at(-1),{action:"retainRejectedExport"});
+  assert.equal(v.el("retainRejectedExport").disabled,true);
+  v.send({kind:"busy",value:false});v.send({kind:"init",type:"postgresql",transferEnabled:false,rejectedExportReview:true});assert.equal(v.el("retainRejectedExport").disabled,true);
+});
+
 test("catalog UI gates old guests, preserves unsaved forms during status/import and requires explicit selection",()=>{
   const v=view();v.send({kind:"init",type:"postgresql",canStart:true,transferEnabled:true,form:{...sourceForm,mappings:[]}});v.send({kind:"busy",value:false});
   v.send({kind:"catalog",available:false,frozen:false});assert.equal(v.el("catalogStart").disabled,true);

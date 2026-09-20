@@ -2,7 +2,15 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September 20, approximately 06:41 UTC): report transfer remains
+Current B04 step (September 20, approximately 08:17 UTC onward): user submitted
+report-transfer approval after VM shutdown. Azure rejected the export with HTTP
+409; exact command and report blob are absent, with unchanged sealed inventory.
+Local extension recovery fix preserves the rejected attempt and requires explicit
+review, expiry/absence proof, fresh readiness and separate transfer approval.
+It also blocks initial exports to stopped VMs before intent creation. Installation
+and real GUI recovery/import remain pending. VM/source were not restarted.
+
+Previous shutdown checkpoint (September 20, approximately 06:41 UTC): report transfer remains
 unapproved after 15 minutes of idle wait. Source Stopped and exact runner
 deallocated verified by approximately 06:42 UTC; safety heartbeat disabled,
 with all disks/data/reports preserved. Inventory worker
