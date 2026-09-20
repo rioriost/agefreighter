@@ -3,11 +3,12 @@
 Updated: 2026-09-20 JST. Status: **not release-qualified; live catalog/import and selected vertex adoption passed**.
 
 Current next step: fresh GUI workflow `ae952310-5eba-42b6-9fe3-9db00e93cdac`
-is awaiting private reader-password entry for the approved complete inventory.
+has accepted complete inventory `3a4ffae1-8727-464b-8968-40bed2f42c69`
+after private reader entry. Completion, sealed import and exact counts are pending.
 The user renewed existing-runner/source runtime with appropriate extensions;
 current session stop is September 20 08:00 UTC / 17:00 JST, USD 800 unchanged.
 New-boot GUI readiness passes and source is Ready/private. A safety heartbeat
-stops idle input-wait resources after 15 minutes; no inventory is submitted yet.
+stops idle input-wait resources after 15 minutes and enforces the session bound.
 
 Prior offline checkpoint: this workflow
 has user-approved transfer storage and account-scoped Blob access. The approved

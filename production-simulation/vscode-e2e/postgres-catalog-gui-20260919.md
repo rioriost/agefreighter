@@ -631,3 +631,11 @@ no swap, read-only source, no target writes). At approximately 06:10 UTC the
 private VS Code password input is open; no inventory operation has been
 submitted yet. Requested only the current PGFS reader Keychain item, never
 the administrator or Neo4j passwords. Idle input-wait shutdown is monitored.
+
+The user completed private entry promptly. At approximately 06:10 UTC the GUI
+submitted inventory `3a4ffae1-8727-464b-8968-40bed2f42c69` once and reconciled
+it to accepted. It retains the new boot and reviewed configuration SHA above;
+guest configuration SHA is
+`4d0827936e062675a814cfb0980fb047f1eb9e7b7f1e931b5637bf67ef212616`.
+Monitor this operation only; no replay, upgrade or source modification. Full
+report completion, seal/import and exact 18-label counts remain pending.

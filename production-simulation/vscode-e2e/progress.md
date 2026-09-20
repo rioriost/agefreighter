@@ -7,8 +7,9 @@ the existing runner/source and appropriate time extensions; USD 800 unchanged.
 Current session bound is 08:00 UTC / 17:00 JST, with exact-VM auto-shutdown and
 dedicated safety heartbeat. Source is Ready/private; refreshed installed-GUI
 readiness passes on the new boot (disk 3.71%, idle, zero swap/OOM, pinned build).
-Complete-inventory confirmation is approved and the private reader-password
-input is open. No inventory has been submitted yet. The monitor stops both
+After private reader entry, inventory `3a4ffae1-8727-464b-8968-40bed2f42c69`
+was submitted once and reconciled accepted, with unchanged reviewed configuration.
+Full completion, sealed import and exact 18-label counts are pending. The monitor stops both
 resources after 15 minutes of idle user-input wait, terminal outcome or bound.
 Latest cost refresh returned 429; USD 284.682696744039 is delayed, not current.
 
