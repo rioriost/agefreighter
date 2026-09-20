@@ -467,3 +467,31 @@ Credential recovery is not B04 catalog/import/adoption qualification; no catalog
 operation was retried, and a fresh reviewed workflow is still required.
 Final reconciliation confirms source Stopped and runner deallocated before
 the 02:45 UTC session bound. No cloud compute remains active for this trial.
+
+### Fresh catalog draft — September 20, approximately 02:20 UTC
+
+At the user's continuation, the installed GUI created fresh local workflow
+`ae952310-5eba-42b6-9fe3-9db00e93cdac`. It targets the same retained PostgreSQL
+source, authorized subscription/group, Japan East zone 1 and existing runner
+subnet, with B2s_v2 selected. The source form specifies `p1source`, reader
+`agefreighter_reader` and schema `p1`; no password was entered or exported.
+The prior failed workflow and operation remain untouched.
+
+The user approved the native confirmation for new transfer account
+`afae9523105eba42b69fe39d` and Storage Blob Data Contributor for the signed-in
+user on that account only. Deployment succeeded at 02:21:09.189586 UTC;
+read-only ARM confirmed the exact account-scoped role
+`c092fa18-772e-4374-99b7-20df8d75746a`. Anonymous access and shared keys remain
+disabled. The installed GUI reconciled `ready — public network: Disabled`
+and explicitly distinguished provisioning from transfer readiness. No archive
+upload, VM creation/start, source start or catalog submission occurred.
+Requested action-time approval for the established `SecurityControl=Ignore`
+exception and authenticated public HTTPS access on this new account only;
+that approval is pending. No policy tag or network setting was changed.
+The source form's database/user reverted to defaults on storage reconciliation;
+re-entered and visually verified `p1source` / `agefreighter_reader`. Verify
+the exact reviewed connection again before any read; no password was entered.
+Read-only ARM reconciliation confirms the old runner deallocated, source Stopped
+with public access Disabled, and no RG locks. The USD 800 ceiling, latest delayed
+cost and 02:45 UTC session shutdown bound are unchanged. Recheck remaining time
+and governance before any subsequent paid run; do not extend the session.

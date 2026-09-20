@@ -2,6 +2,13 @@
 
 Updated: 2026-09-20 JST. Status: **not release-qualified; catalog credential recovery complete**.
 
+Current next step: fresh GUI workflow `ae952310-5eba-42b6-9fe3-9db00e93cdac`
+has user-approved transfer storage and account-scoped Blob access. Provisioning
+passed, but authenticated transfer remains blocked by public network Disabled.
+Exact-account policy-exception/HTTPS approval is pending; no new VM or source
+read has started. Existing runner/source remain stopped. Preserve the earlier
+failed workflow; B04 remains partial and the 02:45 UTC session bound unchanged.
+
 Latest: installed extension `d85965c` and pinned Linux `d40d6cc` passed the
 actual preview-renewal, provisioning and readiness path. The approved metadata
 operation `6f425d11-fba7-4af1-a876-38374138e614` failed at source authentication
