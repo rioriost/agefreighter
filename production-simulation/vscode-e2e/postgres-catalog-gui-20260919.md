@@ -655,3 +655,25 @@ briefly for approved export, with the 15-minute idle-wait and 08:00 UTC bound.
 Fresh MonthToDate RG cost query returned USD 295.608869711763 (billing still
 delayed), below USD 800. Activity-log review since 06:14 showed only this
 workflow's known status command, with no new external governance action.
+
+### Idle approval-wait shutdown — September 20, approximately 06:41 UTC
+
+No report-transfer approval arrived during the 15-minute idle wait. The exact
+inventory remains finished with the same 2,947-byte seal; no export/import or
+new operation was submitted. Fresh guest diagnostics at 06:38:21 UTC verified
+unit inactive, Result=success, ExecMainStatus=0, no AGEFreighter process, root
+disk 5%, zero swap and zero kernel OOM matches. Source Stopped was verified.
+Activity review showed the known source stop and subsequent Resource Health
+notifications, not a new external configuration change. Cost refresh again
+returned delayed USD 295.608869711763, below USD 800.
+
+Requested deallocation of only `af-ae9523105eba42b69fe3` at approximately
+06:41 UTC. All disks, source data, sealed reports and failed/successful operation
+evidence remain; no deletion or automatic retry. Complete-report import and
+exact count acceptance are pending, so B04 remains partial. This monitor must
+not restart the VM solely to retrieve evidence.
+
+Fresh ARM reads at approximately 06:42 UTC verified exact VM deallocated and
+source Stopped. Disabled the safety heartbeat after both stopped states were
+verified. Transfer approval/import is the next user-facing gate; no qualification
+claim was advanced.

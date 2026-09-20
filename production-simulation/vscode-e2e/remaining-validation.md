@@ -5,7 +5,10 @@ Updated: 2026-09-20 JST. Status: **not release-qualified; live catalog/import an
 Current next step: fresh GUI workflow `ae952310-5eba-42b6-9fe3-9db00e93cdac`
 has successfully finished inventory worker `3a4ffae1-8727-464b-8968-40bed2f42c69`.
 The 2,947-byte sealed report awaits exact transfer approval/import and count
-acceptance. Source stop requested; no target or migration was started.
+acceptance. After 15 minutes without transfer approval, source Stopped verified
+and exact runner deallocated verified by approximately 06:42 UTC; heartbeat
+disabled, retaining all disks/reports. No target
+or migration was started. Do not restart solely to retrieve evidence from the monitor.
 The user renewed existing-runner/source runtime with appropriate extensions;
 current session stop is September 20 08:00 UTC / 17:00 JST, USD 800 unchanged.
 New-boot GUI readiness passes and source is Ready/private. A safety heartbeat

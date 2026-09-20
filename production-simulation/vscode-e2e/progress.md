@@ -2,7 +2,14 @@
 
 Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September 20, approximately 06:25 UTC): inventory worker
+Current B04 step (September 20, approximately 06:41 UTC): report transfer remains
+unapproved after 15 minutes of idle wait. Source Stopped and exact runner
+deallocated verified by approximately 06:42 UTC; safety heartbeat disabled,
+with all disks/data/reports preserved. Inventory worker
+exit is successful, but sealed import and exact counts remain pending. No retry
+or migration was started. Latest delayed cost USD 295.608869711763 / USD 800.
+
+Previous worker checkpoint (September 20, approximately 06:25 UTC): inventory worker
 `3a4ffae1-8727-464b-8968-40bed2f42c69` finished successfully. Sealed report is
 2,947 bytes / SHA-256 `821638b1e510ff545c424dbfaacf4508d9727c78d9368afc8c34aa98285b9a18`.
 Exact transfer approval is pending; complete report and all 18-label counts are
