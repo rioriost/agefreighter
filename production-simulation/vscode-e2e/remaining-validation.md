@@ -2,6 +2,14 @@
 
 Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed mappings and complete inventory/import passed**.
 
+Latest B01 preparation: renewed2hour compute envelope/USD800, new dedicated
+migration group and fresh installed-GUI Cosmos workflow using the existing
+network group. Exact approved transfer account/grant created successfully;
+access is Disabled, so per-account exception and pinned upload approval is
+pending. No compute start, inventory, target or migration yet. Existing evidence
+preserved and28local target tests pass; B01 is not qualified. See
+[new bounded trial](separate-network-live-20260921.md).
+
 Latest read-only batch: installed GUI Pending/reference removal refusals and
 workflow-selector Cancel pass; all78operator files unchanged,42regressions pass.
 Independent ARM confirms the historical readiness command is currently Pending

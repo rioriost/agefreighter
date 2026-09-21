@@ -2,6 +2,17 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest B01 follow-up: user renewed maximum2hours/unchangedUSD800. Created
+dedicated migration group `rg-af-vscode-p1-b01-20260921`; actual GUI saved fresh
+Cosmos workflow `5cb990c1-2a25-4de5-a10d-09fab2ef0b18`, using the original group's
+VNet and reviewed zone1. After exact approval, transfer-account deployment
+succeeded06:25:28UTC with account-scoped user Blob access. Public access is
+Disabled; its exact exception/access change and pinned upload need separate
+approval. No VM/DB start, assessment or target; compute clock not started.
+Older78operator files unchanged;28target regressions pass. Delayed old-group
+costUSD333.523399055421. B01 remains partial. See
+[bounded separate-network trial](separate-network-live-20260921.md).
+
 Latest read-only follow-up (September21,06:03–06:06UTC): installed GUI refuses
 removal of the historical FK readiness record because current ARM execution is
 Pending (independently confirmed; no output/start/end). A referenced catalog
