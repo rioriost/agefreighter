@@ -2,7 +2,19 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **GUI migration and complete counts PASS; full digest awaiting approval; B01 partial**.
+Current B01 phase: **safely stopped; GUI migration/counts PASS; canonical digest pending; B01 partial**.
+Idle approval bound triggered exact VM deallocation and target stop. Activity
+timestamps show13:42:16UTC, sixteen seconds late; no retroactive extension.
+VM deallocated verified13:42:29UTC; target still Stopping then.
+Both terminal states verified13:44:37UTC, target Stopped; asynchronous DB stop
+completed after the conservative idle deadline, without extending authorization.
+Retained report SHA unchanged, disks/data/evidence preserved, no verifier
+uploaded/installed/run. Scoped safety heartbeat PAUSED. Storage charges continue;
+Flexible Server warns of automatic startup after seven days. Any next live
+session requires explicit pinned-verifier approval and bounded exact-resource
+restart. See [safety stop](separate-network-live-20260921.md).
+
+Previous B01 phase: **GUI migration and complete counts PASS; full digest awaiting approval; B01 partial**.
 Same job completed13:27:18UTC,14m53.21s after submission including preparation,
 load and verification. Installed GUI imported sealed9,619-byte report and visibly
 displayed Counts verification: PASS. Independent SHA/job/fingerprint assertions

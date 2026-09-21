@@ -585,3 +585,29 @@ replacement, graph/credential/network change is included. Pending this new
 approval, leave it uninstalled. If no approval arrives, stop exact VM/target
 by **13:42UTC** as a conservative idle bound; never extend15:00UTC hard stop.
 The existing safety heartbeat remains active and must enforce this idle bound.
+
+### Idle safety stop verified; canonical qualification remains pending
+
+September21,13:41UTC: no new verifier approval had arrived. Fresh ARM reads
+confirmed exact workflow ownership on the existing VM and private target; the
+last five minutes of activity returned no external changes. Issued only VM
+deallocation and target stop. Subsequent activity-log reconciliation dates both
+requests to13:42:16UTC, sixteen seconds after the conservative idle bound;
+the deadline was missed and is not retroactively extended. At13:42:29UTC the VM was already
+`PowerState/deallocated`, while the target was `Stopping`. Both terminal states
+were verified at13:44:37UTC: VM deallocated and target `Stopped`. Target stop
+completion also required asynchronous service processing; no restart was performed.
+
+The retained9,619-byte report was rehashed and still matches
+`923c379c4bfa07fb4e7c27f6d8dcac35e916ba76458176e81855724c07485c7e`.
+No resource, disk, graph or evidence was deleted. No source, credentials, RBAC,
+network, tags or software changed. Latest delayed two-group cost remains
+USD349.336185663541; this stop check did not refresh billing. Storage/retention
+charges continue. Azure CLI warns that the stopped Flexible Server automatically
+starts after seven days; this stop is not indefinite retention without compute.
+
+The scoped safety heartbeat is now PAUSED after both stopped states were
+verified. Counts PASS remains accepted, but **B01 is still partial**: no dedicated
+verifier was uploaded, installed or run, and no64range/root match is claimed.
+Next live work needs explicit approval for the pinned verifier and a bounded
+restart of these exact resources; do not restart solely to inspect evidence.
