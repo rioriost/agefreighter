@@ -3,10 +3,11 @@
 Status: September 21 offline explicit adoption and Reload Window/reconnect passed.
 Two vertex mappings and the safe products-to-suppliers FK retain reviewed properties;
 the nullable FK remains a manual-review warning. Mapped inventory is pending.
-The approved September21 session reached its fifteen-minute idle input limit.
-No inventory was dispatched. The private input was cancelled, preserving mappings;
-exact VM/source stop requests accepted01:58UTC, before the02:08UTC hard bound.
-VM deallocated and source Stopped/private verified by02:01:16UTC; monitor disabled.
+The first September21 session stopped safely without inventory dispatch.
+User approved a new maximum30minute restart; exact existing VM/source starts
+accepted02:10:41UTC. Hard stop02:39UTC (11:39JST), safety monitor active.
+Fresh boot/readiness passed; private password input is open at02:13UTC,
+mapped inventory not dispatched. No mapping changes.
 No new resource, software update, grant, target or migration is authorized.
 
 ## Why a separate fixture is needed
@@ -242,3 +243,26 @@ No source write, new resource or Azure restart occurred during this design revie
   Flexible Server reports normal automatic restart after seven days; this is
   not an indefinite-shutdown guarantee. Further live inventory requires a new
   bounded session with the user available for private credential entry.
+
+## Reapproved read-only session — September21 02:10 UTC
+
+- User explicitly approved another maximum30minute restart of only the same
+  VM/source for the pending5vertex/3edge mapped inventory. USD800 cap unchanged.
+- Before starting: VM deallocated, source Stopped/private and no RG locks.
+  Fresh delayed September RG cost USD326.07607295488. Activity since prior stop
+  showed tag writes on other retained storage accounts, not this workflow's
+  account/VM/source, plus resource-health events. No governance setting changed.
+- First start requests02:10:41UTC, both accepted. New hard stop
+  **2026-09-21T02:39:00Z (11:39 JST)**, within30minutes. Updated existing safety
+  monitor and exact VM shutdown schedule to02:39UTC. Preserve all earlier evidence.
+  Fresh readiness must pass before source reads; fifteen-minute idle-input rule
+  remains. No install, grants, network changes, new resources, target or migration.
+- Fresh GUI readiness operation `63c31fe8-dbfb-4d07-be82-1c602710aac7` finished;
+  new boot `7ef882c4-1b87-462e-9ec6-f6be6c9bbd83`, checked02:11:53.156UTC,
+  pinned version/archive unchanged, idle true, disk3.706%, swap0/OOM0.
+  Independent guest diagnostic02:12:36UTC: used memory243,122,176bytes, root4%,
+  swap0 and no OOM kernel entries. Source Ready/private confirmed.
+- Restored mappings were reviewed without modification, exact source read
+  confirmation accepted and private password input displayed at02:13UTC.
+  At02:13:53UTC, no inventory exists. Asked user for the existing PostgreSQL
+  reader credential privately. Stop if still idle at02:28UTC, or hard02:39UTC.

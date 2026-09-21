@@ -2,7 +2,14 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September21, 01:58UTC): explicit adoption of the isolated
+Current B04 step (September21, 02:10UTC): user approved a new maximum30minute
+read-only session for the isolated FK inventory. Exact existing VM/source starts
+accepted02:10:41UTC; hard stop02:39UTC (11:39JST), safety monitor active.
+Fresh boot/readiness passed; at02:13UTC private credential input is open,
+5vertex/3edge inventory not dispatched. Idle-input cutoff02:28UTC. No new resources,
+updates, grants, target or migration. Delayed RG costUSD326.07607295488/capUSD800.
+
+Previous B04 step (September21, 01:58UTC): explicit adoption of the isolated
 fixture's two vertices and safe FK edge, reviewed properties and actual Reload
 Window/reconnect passed while stopped; sourceDraft SHA unchanged. User approved
 existing VM/source restart for at most30minutes. Starts accepted01:39:15UTC;
