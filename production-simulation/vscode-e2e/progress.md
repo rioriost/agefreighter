@@ -2,7 +2,19 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest offline B01 correction: readiness waits up to45seconds for bootstrap
+Latest B01 corrected live readiness: user-approved VSIX installed and actual
+Reload Window/reconnect passed with all79 operator files unchanged. Existing VM
+started08:00:02UTC; one explicit readiness command succeeded08:00:46UTC and was
+reconciled in the installed GUI. Pinned Linux version/commit/SHA match; idle,
+disk3.51%, memory245MiB, no swap/OOM. Successful receipt retained; prior exit127
+failure preserved. No source grant/read, target or migration. This validates the
+already-bootstrapped restart path, not initial-boot pending behavior or B01
+qualification. VM deallocated verified by08:03:32UTC; scoped heartbeat disabled,
+before the unchanged08:35UTC bound. Disks/evidence preserved.
+Delayed original-group costUSD337.313050576123, capUSD800. See
+[readiness-only live evidence](separate-network-live-20260921.md).
+
+Previous offline B01 correction: readiness waits up to45seconds for bootstrap
 within its existing60second command bound. Still-running bootstrap is explicitly
 pending, never successful/automatically retried; failed bootstrap remains failed.
 Source/migration dispatch and pinned checks remain unchanged. Typecheck,452unit

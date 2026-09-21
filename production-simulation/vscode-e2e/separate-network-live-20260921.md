@@ -204,3 +204,44 @@ No operator CLI installation or source access was performed by these tests.
 Asked for exact local-extension installation/reload and existing-VM restart
 for readiness only, keeping the pinned Linux artifact and08:35UTC stop bound.
 No new access grant, resource creation, source read or migration is included.
+
+## Approved corrected readiness-only restart
+
+The user approved the exact local VSIX/reload and existing-VM restart for
+readiness only. Installed `baf7079` package SHA `fcc7865cade8…`; independently
+matched installed bundle SHA `09f9b0a34cdd…`, performed actual Developer: Reload
+Window and reconnected to the same saved workflow while the VM was stopped.
+All79 operator files were unchanged by installation/reload/reconnection.
+Reactivated the exact-VM safety monitor before starting, retaining the08:35UTC
+hard stop and USD800 ceiling. No new source access was granted.
+
+Requested start08:00:02UTC. Installed GUI explicitly submitted one new readiness
+operation `3795275d-99b9-44ca-8800-69a73d798ed1` at08:00:38.630UTC, command
+`af-6a99dd57-eb7d-43a7-bc1c-7fab7cd90203`. Independent ARM observation confirmed
+the corrected readiness-only script, unchanged60second timeout and successful
+exit0 at08:00:46UTC. GUI Refresh reconciled and visibly displayed pinned Linux
+guest verified; source assessment still required. Retained receipt SHA256 is
+`2018114d6f0c6091eb37b3e8d81eede4eb786f37032c8ac97fff39ff6625597d`.
+
+Verified boot `f58d00d7-a03b-4531-8135-05f38f116fc0`, unchanged Linux commit/archive
+SHA/version, idle worker, disk3.5113%, zero swap and zero OOM events. Bounded
+read-only guest diagnostics at08:01:41UTC additionally found cloud-init done,
+245MiB used memory of7936MiB and no AGEFreighter process. The prior failed
+readiness command remains retained with exit127. Only this workflow JSON changed
+among79 operator files; no assessment, target or migration record exists.
+
+This proves the corrected script's successful already-bootstrapped restart path
+through the installed GUI. It does **not** prove the initial-boot pending branch
+on Azure; that branch retains offline test evidence only. B01 remains partial.
+
+Latest delayed combined-group cost query returned USD337.313050576123 for the
+original group; the new group had no returned billing row, not proof of zero
+cost. Conservative planning reserve remains USD700 against USD800. Activity
+review found storage/governance writes and audit events; no controls were
+overridden. Current account remains authenticated HTTPS-only access with anonymous
+Blob/shared-key disabled and TLS1.2 minimum. No source/network/RBAC change was made.
+
+Readiness-only work finished; requested exact VM deallocation08:02:29UTC,
+preserving all disks, receipts and failed-command evidence. ARM verified
+`PowerState/deallocated` by08:03:32UTC, before the08:35UTC bound. Disabled the
+scoped heartbeat after this confirmation. No other resource was stopped.

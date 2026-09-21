@@ -2,7 +2,17 @@
 
 Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed mappings and complete inventory/import passed**.
 
-Latest B01 offline fix: `baf7079` distinguishes pending bootstrap from terminal
+Latest B01 live follow-up: approved `baf7079` VSIX install/Reload Window and
+same-workflow reconnect passed. One explicit readiness operation succeeded on
+the existing VM08:00:46UTC, with matching pinned Linux artifact, idle/disk/memory/
+swap/OOM gates and retained successful receipt. No source access, target or
+migration. VM deallocated verified by08:03:32UTC and scoped heartbeat disabled,
+with disks/evidence preserved. B01 remains partial: initial-boot
+pending behavior is locally tested, not live-qualified; source assessment and
+separate-network target/migration remain pending. See
+[readiness evidence](separate-network-live-20260921.md).
+
+Previous B01 offline fix: `baf7079` distinguishes pending bootstrap from terminal
 readiness failure and waits at most45seconds, without retrying source operations
 or accepting unverified readiness. Typecheck,452unit tests,13actual-Go-validator
 contracts, build and VSIX packaging pass. Corrected operator installation/live
