@@ -4,10 +4,12 @@ Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed
 
 Current isolated FK step: explicit adoption, property review and actual Reload
 Window/reconnect passed September21 with unchanged sourceDraft SHA. The approved
-existing VM/source restart was requested01:39:15UTC; hard stop02:08UTC (11:08JST),
-monitor active. Fresh readiness/source Ready-private passed01:42UTC; GUI password
-input is open, mapped inventory5vertices+3edges not dispatched. Stop on idle
-input wait01:57:30UTC or hard bound. No new resources, updates, grants, target
+existing VM/source restart was requested01:39:15UTC; hard stop02:08UTC (11:08JST).
+Fresh readiness passed, but mapped inventory5vertices+3edges was not dispatched
+before the fifteen-minute idle input limit01:57:30UTC. Cancelled private input
+and requested exact VM/source stop01:58UTC; VM deallocated and source
+Stopped/private verified by02:01:16UTC. Monitor disabled. Latest delayed
+RG costUSD326.07607295488, capUSD800 unchanged. No new resources, updates, grants, target
 or migration authorized.
 
 Previous checkpoint (08:45 UTC): installed-GUI complete inventory/import passed,

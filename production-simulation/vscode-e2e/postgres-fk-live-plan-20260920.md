@@ -3,10 +3,10 @@
 Status: September 21 offline explicit adoption and Reload Window/reconnect passed.
 Two vertex mappings and the safe products-to-suppliers FK retain reviewed properties;
 the nullable FK remains a manual-review warning. Mapped inventory is pending.
-The user approved restarting only the existing VM/source for at most 30 minutes.
-Starts requested at 01:39:15 UTC; hard stop 02:08 UTC (11:08 JST), monitor active.
-Fresh pinned readiness and source Ready/private verified; private GUI password
-input opened at 01:42:30 UTC. Inventory is not dispatched yet.
+The approved September21 session reached its fifteen-minute idle input limit.
+No inventory was dispatched. The private input was cancelled, preserving mappings;
+exact VM/source stop requests accepted01:58UTC, before the02:08UTC hard bound.
+VM deallocated and source Stopped/private verified by02:01:16UTC; monitor disabled.
 No new resource, software update, grant, target or migration is authorized.
 
 ## Why a separate fixture is needed
@@ -219,3 +219,26 @@ No source write, new resource or Azure restart occurred during this design revie
   never Neo4j/admin credentials. No inventory dispatch as of this checkpoint.
 - Preserve hard stop02:08UTC and fifteen-minute idle input limit01:57:30UTC.
   No source data, grants, software, network or target changes occurred.
+
+## Idle-input safety stop — September21 01:58 UTC
+
+- Monitoring found no assessment/worker and the same private GUI password prompt.
+  At01:57:45UTC, the fifteen-minute idle limit01:57:30UTC had passed. Cancelled
+  the unsubmitted prompt to prevent late submission into a stopping session;
+  no credentials were read or stored and no source inventory was dispatched.
+- Read-only diagnostic01:55:02UTC: memory264,630,272bytes, root4%, swap0,
+  no OOM kernel messages. RG locks/error activity absent; listed operations
+  match authorized starts/readiness/diagnostics plus a resolved health event.
+- Cost refresh succeeded: delayed RG September actual **USD326.07607295488**,
+  below the unchanged USD800 cap. This is delayed billing, not final total.
+- Requested only exact VM deallocation and source stop by01:58:17UTC. VM
+  deallocated verified immediately; source Stopping/private at01:59:29UTC.
+  Retained fixture, disks, catalog and local workflow. sourceDraft SHA remains
+  `d4182257cf899b3ab89979ee9542994d2059217e5868bf91e93ae26a26a7d8d7`.
+  Mapped five-vertex/three-edge inventory remains pending, not a failed read
+  or completed qualification. No retry, new target or migration was started.
+- By02:01:16UTC, source Stopped/private was independently verified, completing
+  both stopped-state checks before02:08UTC. Disabled the safety heartbeat.
+  Flexible Server reports normal automatic restart after seven days; this is
+  not an indefinite-shutdown guarantee. Further live inventory requires a new
+  bounded session with the user available for private credential entry.

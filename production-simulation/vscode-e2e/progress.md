@@ -2,14 +2,16 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September21, 01:39UTC): explicit adoption of the isolated
+Current B04 step (September21, 01:58UTC): explicit adoption of the isolated
 fixture's two vertices and safe FK edge, reviewed properties and actual Reload
 Window/reconnect passed while stopped; sourceDraft SHA unchanged. User approved
 existing VM/source restart for at most30minutes. Starts accepted01:39:15UTC;
-hard stop02:08UTC (11:08JST), monitor active. Fresh readiness and five-vertex/
-three-edge mapped inventory were pending at launch. At01:42UTC, pinned readiness
-and source Ready/private passed; GUI private password input is open, inventory
-not dispatched. Stop on fifteen-minute idle wait01:57:30UTC or hard bound.
+hard stop02:08UTC (11:08JST). Fresh readiness passed, but no inventory was
+dispatched before the fifteen-minute idle input limit01:57:30UTC. Cancelled
+the unsubmitted private input and requested exact VM/source stop01:58UTC.
+VM deallocated and source Stopped/private verified by02:01:16UTC; monitor disabled.
+Mapped five-vertex/three-edge inventory remains pending. Latest delayed RG cost
+USD326.07607295488; capUSD800 unchanged. Mappings/evidence preserved.
 No new resource, update, grant,
 target or migration. See [FK trial](postgres-fk-live-plan-20260920.md).
 
