@@ -463,3 +463,31 @@ using four read-only calls and an in-memory-only persistence callback: result
 **provisioned**, on-disk operator record byte-for-byte unchanged. This is not an
 installed-GUI pass. Installed `baf7079` and retained `unknown` record remain
 unchanged pending approval to install/reload the corrected local extension.
+
+## Corrected installed-GUI target reconciliation PASS
+
+September21,12:35–12:39UTC: user approved installing/reloading the exact local
+correction for GUI-only read-back, with no Azure start or migration. Verified
+VSIX SHA256 `ec3f6e9ba719da8e78de70bde029ef6bf375c2f92868290698b1d4b5cc213ff6`
+and installed commit `07d1e450efaf57930a70517b59c858b8b800dd6c` on the current
+Mac VS Code1.138.0. Installed/built bundle SHA256 both
+`007d4d3b8b8c898ab2ba80e6dfa6599891899a28ee7b74c1eb3e028cd3f010c8`.
+No Marketplace publication or Linux artifact update occurred.
+
+Actual Developer Reload Window, New Guided Migration, and saved-workflow
+reconnect preserved all80 retained operator files byte-for-byte before review.
+Selected only workflow `5cb990c1-2a25-4de5-a10d-09fab2ef0b18`, then clicked
+Review / reconcile private target. Installed GUI displayed **Private target:
+provisioned**, with the explicit ARM-not-AGE/migration/verification disclaimer;
+notification-center screenshot was visually inspected. The only file change
+was this workflow record, and the only JSON-field change was
+`target.phase: unknown -> provisioned`. Source configuration, inventory seal,
+plan, deployment identifiers and all other evidence remained unchanged. No
+migration record exists and no deployment was replayed.
+
+Fresh ARM reads before and after GUI review confirm VM deallocated and target
+Stopped. Scoped monitor remains paused. The11:45UTC live deadline has expired;
+this GUI-only approval does not renew it. B01 separate-group target creation
+and installed reconciliation are now accepted. Runtime AGE readiness after
+startup, same-VM migration sizing, actual load and full64range canonical
+verification remain pending a separately approved bounded live session.

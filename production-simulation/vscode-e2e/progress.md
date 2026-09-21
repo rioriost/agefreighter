@@ -2,7 +2,17 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **Azure target deployment PASS; installed-GUI reconciliation blocked by a corrected local defect; B01 partial**.
+Current B01 phase: **Azure target deployment and corrected installed-GUI reconciliation PASS; B01 partial**.
+User-approved local extension `07d1e45` installed on Mac VS Code1.138.0;
+bundle hash matches. Actual Reload Window/reconnect preserved all80operator
+files. GUI read-only review now displays `Private target: provisioned`; only
+this workflow's target.phase changed from unknown to provisioned. All source,
+plan, inventory and other evidence retained; no replay or migration. VM remains
+deallocated and target Stopped. Prior11:45UTC deadline expired, monitor paused.
+Runtime AGE readiness, same-VM resize, migration and64range verification need
+a new bounded live authorization. See [installed-GUI acceptance](separate-network-live-20260921.md).
+
+Previous B01 phase: **Azure target deployment PASS; installed-GUI reconciliation blocked by a corrected local defect; B01 partial**.
 Parent deployment succeeded09:57:46UTC; all reviewed parent/child resources pass.
 The installed extension counts successful targetless ARM output-evaluation rows
 as extra resources and retains `unknown`. Local fix preserves strict leaf checks;
