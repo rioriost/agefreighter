@@ -2,7 +2,19 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **same-VM sizing complete; GUI migration accepted, Linux worker running; B01 partial**.
+Current B01 phase: **GUI migration and complete counts PASS; full digest awaiting approval; B01 partial**.
+Same job completed13:27:18UTC,14m53.21s after submission including preparation,
+load and verification. Installed GUI imported sealed9,619-byte report and visibly
+displayed Counts verification: PASS. Independent SHA/job/fingerprint assertions
+and all18source-label counts agree:1.6Mvertices+4Medges, zero rejects,24checks pass,
+no errors/incomplete checks. Exact worker inactive/dead; disk4%, swap0/no OOM.
+Delayed two-group costUSD349.336185663541, capUSD800/reserveUSD700unchanged.
+Full64range Gremlin verifier e70e02068c68 is not installed/dispatched; action-time
+approval requested for this exact VM/job. If approval does not arrive, stop exact
+VM/target by13:42UTC conservative idle bound; outer15:00UTC unchanged. Existing
+safety monitor active; evidence retained. See [counts acceptance](separate-network-live-20260921.md).
+
+Previous B01 phase: **same-VM sizing complete; GUI migration accepted, Linux worker running; B01 partial**.
 GUI advanced the existing VM from B2s_v2 to D4s_v5 while preserving its disk,
 NIC/identity and placement. AGE preload applied during target start; pending=false.
 Fresh post-resize readiness passed with pinned Linux d40d6ccc9a4d, disk3.65515%,

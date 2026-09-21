@@ -547,3 +547,41 @@ All62 targeted resize/execution/target/preflight regressions pass. Scoped monito
 now tracks this exact job, permitted retained test-report import and safety
 stops. Dedicated full64range verifier is not installed or action-time-approved
 for this VM. Preserve all accepted inventory and original evidence.
+
+### Migration and installed-GUI complete counts PASS
+
+September21,13:27:18.126578553UTC: the same job produced a complete passing
+verification report,893.21seconds (14m53.21s) after submission. This includes
+preparation, load and counts verification, not an isolated load benchmark.
+GUI reconciled finished/exit0, exported the existing sealed report through the
+same workflow container, imported it privately and displayed **Counts
+verification: PASS**. The actual screenshot was inspected. No migration replay.
+
+Independent retained-file assertions verified9,619bytes and SHA256
+`923c379c4bfa07fb4e7c27f6d8dcac35e916ba76458176e81855724c07485c7e`,
+job `37624cff-6aea-449e-9de3-38c6aa5c984d`, fingerprint
+`de63cc1f383f8618366ddb4cb307b71a57243d952e1100614ecfcbcc2e810961`.
+All18labels exactly match the accepted source inventory:1,600,000vertices and
+4,000,000edges, with accepted/committed/live-physical/live-identity counters
+equal and zero rejects. All24checks pass, no errors or incomplete checks.
+
+Read-only guest check13:28:36UTC confirms the exact unit inactive/dead, result
+success/exit0, no loader process, disk4%, guest used273MiB, swap0 and no kernel
+OOM entries. Latest delayed cost query now includes both groups: original
+USD349.315980396541 plus B01 USD0.020205267, total USD349.336185663541. This is
+delayed billing, not real-time spend; cumulativeUSD800/USD700reserve unchanged.
+Recent activity shows the authorized command operations and policy audits,
+without observed unrelated resource changes.
+
+**B01 remains partial** until all64canonical ranges/root agree. No full verifier
+was installed or dispatched. Exact local Gremlin verifier e70e02068c68 archive
+still matches SHA256
+`ecce5c6c105f786fe17fc698408312512fe11d786d4dcf5f076ad5f84687d0de`,
+7,631,392bytes, profile gremlin-partition64. Required user action: approve its
+upload to this workflow's existing storage and isolated read-only execution on
+this exact VM/job (25minutes/4GiB, approximately1GiB retained fixture), with
+sealed result returned privately to this Mac. No source read/write, loader
+replacement, graph/credential/network change is included. Pending this new
+approval, leave it uninstalled. If no approval arrives, stop exact VM/target
+by **13:42UTC** as a conservative idle bound; never extend15:00UTC hard stop.
+The existing safety heartbeat remains active and must enforce this idle bound.
