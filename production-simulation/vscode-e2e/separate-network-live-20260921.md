@@ -424,3 +424,42 @@ scope what-if gates passed before the single parent submission. Parent
 `afpg-net-5cb990c12a254de5a10d` in the original network group. Installed GUI
 reconciled `submitted` without replay. No migration record exists; neither
 deployment success nor AGE readiness has yet been claimed.
+
+## ARM target complete; installed reconciliation defect retained
+
+September21,09:57:46.767UTC: parent deployment **Succeeded**, no deployment error.
+All seven expected parent resource operations succeeded, including the exact
+network child; its sole subnet resource operation also succeeded. PostgreSQL18,
+E8ds_v5/128GiB storage, workflow ownership and private network were independently
+read back. Public access is Disabled; delegated subnet is in the original group
+and private DNS in the new migration group. Database `agefreighter` exists;
+`azure.extensions=AGE`, `shared_preload_libraries=pg_stat_statements,age`.
+Preload has `isConfigPendingRestart=true`: runtime AGE readiness is not proven.
+
+Actual installed GUI reconciliation returned **unknown**, without replaying
+deployment. ARM returned an additional successful, targetless
+`EvaluateDeploymentOutput` row in both parent and child operation lists. The
+strict raw operation-count checks mistook these bookkeeping rows for extra
+resources (parent8versus7, child2versus1). This is an extension reconciliation
+defect, not a failed resource creation. Microsoft documents this provisioning
+operation in [Deployment Operations List](https://learn.microsoft.com/en-us/rest/api/resources/deployment-operations/list?view=rest-resources-2025-04-01).
+Original operation IDs: parent output `08584116226308758423`, child output
+`08584116226287631785`; successful child subnet `8E1FB10E61D4C905`.
+
+Stopped only this new target and deallocated only its existing VM after retaining
+the terminal result. By10:02:33UTC independent ARM reads confirmed target
+**Stopped** and VM **PowerState/deallocated**. Disabled scoped heartbeat after
+both confirmations, well before11:45UTC. Disks, source, graph, secrets, network
+and all original evidence retained; no resize, restart-for-AGE, migration or
+full canonical verification performed.
+
+Local correction filters only exact successful, targetless output-evaluation
+rows with no reported error before the existing identity/cardinality checks.
+It still refuses failed/pending/unknown/resource-bearing rows, missing/duplicate
+leaves and invalid child deployments. Added four regression tests covering both
+scopes and read-only repair eligibility; typecheck, all456unit tests and build
+pass. Re-ran corrected reconciliation against the real completed ARM deployment
+using four read-only calls and an in-memory-only persistence callback: result
+**provisioned**, on-disk operator record byte-for-byte unchanged. This is not an
+installed-GUI pass. Installed `baf7079` and retained `unknown` record remain
+unchanged pending approval to install/reload the corrected local extension.

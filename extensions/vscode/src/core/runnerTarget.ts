@@ -283,7 +283,7 @@ export async function refreshTarget(control:RunnerControl,record:RunnerRecord):P
  * Used for cross-group completion and the narrow preload-only repair gate. */
 async function targetDeploymentOperations(control:RunnerControl,record:RunnerRecord):Promise<unknown[]>{
   const p=record.target!,sub=record.input.subscriptionId;
-  const operations=await control.list(sub,`${p.deploymentId}/operations?api-version=2022-09-01`);
+  const operations=resourceDeploymentOperations(await control.list(sub,`${p.deploymentId}/operations?api-version=2022-09-01`));
   if(!p.networkDeployment)return operations;
   const n=p.networkDeployment;
   const expected=new Set([...targetResourceIds(p).filter(id=>id!==p.subnetId),n.deploymentId].map(id=>id.toLowerCase()));
@@ -298,11 +298,24 @@ async function targetDeploymentOperations(control:RunnerControl,record:RunnerRec
   }
   const child=await control.request(sub,`${n.deploymentId}?api-version=2022-09-01`);
   if(child.status!==200 || object(object(child.value).properties).provisioningState!=="Succeeded")throw new Error("Network deployment success evidence is missing.");
-  const children=await control.list(sub,`${n.deploymentId}/operations?api-version=2022-09-01`);
+  const children=resourceDeploymentOperations(await control.list(sub,`${n.deploymentId}/operations?api-version=2022-09-01`));
   if(children.length!==1)throw new Error("Unexpected network deployment operations.");
   const op=object(object(children[0]).properties);
   if(String(object(op.targetResource).id).toLowerCase()!==p.subnetId.toLowerCase() || op.provisioningState!=="Succeeded")throw new Error("Delegated subnet creation is not proven.");
   return [...leaves,...children];
+}
+
+/** ARM also emits a targetless output-evaluation row for each deployment.
+ * Only that exact successful bookkeeping row is excluded. Failed/pending output
+ * evaluation, unknown operations and every resource-bearing row remain subject
+ * to the existing exact-identity, cardinality and success checks. */
+function resourceDeploymentOperations(operations:unknown[]):unknown[]{
+  return operations.filter(entry=>{
+    const p=object(object(entry).properties);
+    return !(p.provisioningOperation==="EvaluateDeploymentOutput" &&
+      p.provisioningState==="Succeeded" && p.targetResource==null &&
+      (p.statusMessage==null || object(p.statusMessage).error==null));
+  });
 }
 
 /** Narrow operator recovery, not deployment retry. Only the single failed

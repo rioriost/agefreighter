@@ -2,7 +2,18 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **approved separate-network target deployment submitted; B01 partial**.
+Current B01 phase: **Azure target deployment PASS; installed-GUI reconciliation blocked by a corrected local defect; B01 partial**.
+Parent deployment succeeded09:57:46UTC; all reviewed parent/child resources pass.
+The installed extension counts successful targetless ARM output-evaluation rows
+as extra resources and retains `unknown`. Local fix preserves strict leaf checks;
+456unit tests/typecheck/build pass, corrected read-only live ARM reconciliation
+returns `provisioned` without changing operator records. Corrected VSIX install
+and actual GUI recheck remain pending. Preload configured but requires restart;
+runtime AGE readiness, resize, migration and64range verification not performed.
+Exact target Stopped and VM deallocated verified by10:02:33UTC; monitor disabled,
+disks/evidence retained. See [completion and reconciliation defect](separate-network-live-20260921.md).
+
+Previous B01 phase: **approved separate-network target deployment submitted; B01 partial**.
 User approved exact private PostgreSQL18/AGE E8ds_v5/128GiB-storage target,
 dedicated subnet/DNS and SecretStorage, existing VM restart, maximum2hours;
 no resize or migration. Hard stop11:45UTC/20:45JST, USD800/USD700reserve unchanged.

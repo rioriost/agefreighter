@@ -270,6 +270,48 @@ test("cross-group deployment fails closed on occupied identities, missing leaves
   }
 });
 
+test("successful targetless ARM output evaluation is not an extra resource in either scope",async()=>{
+  for(const targetResource of [null,undefined]){
+    const {r}=crossGroupFixture();r.target!.phase="submitted";
+    const f=crossGroupControl(r);f.state.terminal=true;
+    const evaluation={properties:{provisioningOperation:"EvaluateDeploymentOutput",provisioningState:"Succeeded",targetResource}};
+    (f.state.parentOperations as unknown[]).push(evaluation);
+    (f.state.childOperations as unknown[]).push(evaluation);
+    assert.equal((await refreshTarget(f.control,r)).target?.phase,"provisioned");
+    assert.ok(f.calls.every(x=>["GET","LIST","persist"].includes(x.method)));
+  }
+});
+
+test("output bookkeeping never hides failed, pending, unknown or resource-bearing operations",async()=>{
+  for(const scope of ["parentOperations","childOperations"] as const){
+    for(const properties of [
+      {provisioningOperation:"EvaluateDeploymentOutput",provisioningState:"Failed",targetResource:null},
+      {provisioningOperation:"EvaluateDeploymentOutput",provisioningState:"Running",targetResource:null},
+      {provisioningOperation:"EvaluateDeploymentOutput",provisioningState:"Succeeded",targetResource:{id:"/foreign"}},
+      {provisioningOperation:"EvaluateDeploymentOutput",provisioningState:"Succeeded",targetResource:{}},
+      {provisioningOperation:"EvaluateDeploymentOutput",provisioningState:"Succeeded",targetResource:null,statusMessage:{error:{code:"Unexpected"}}},
+      {provisioningOperation:"DeploymentCleanup",provisioningState:"Succeeded",targetResource:null},
+      {provisioningState:"Succeeded",targetResource:null},
+    ]){
+      const {r}=crossGroupFixture();r.target!.phase="submitted";
+      const f=crossGroupControl(r);f.state.terminal=true;
+      (f.state[scope] as unknown[]).push({properties});
+      assert.equal((await refreshTarget(f.control,r)).target?.phase,"unknown");
+      assert.ok(f.calls.every(x=>["GET","LIST","persist"].includes(x.method)));
+    }
+  }
+});
+
+test("successful bookkeeping cannot substitute for a missing resource",async()=>{
+  for(const scope of ["parentOperations","childOperations"] as const){
+    const {r}=crossGroupFixture();r.target!.phase="submitted";
+    const f=crossGroupControl(r);f.state.terminal=true;
+    f.state[scope].pop();
+    (f.state[scope] as unknown[]).push({properties:{provisioningOperation:"EvaluateDeploymentOutput",provisioningState:"Succeeded",targetResource:null}});
+    assert.equal((await refreshTarget(f.control,r)).target?.phase,"unknown");
+  }
+});
+
 test("parent success does not hide missing, failed, duplicated or foreign nested operations",async()=>{
   for(const mutate of [
     (f:ReturnType<typeof crossGroupControl>)=>{f.state.childStatus="Running";},
@@ -325,6 +367,20 @@ test("cross-group preload repair audits both deployments and never repairs an un
   ]){
     const bad=repairFixture(true);mutate(bad);
     await assert.rejects(repairBusyTargetPreload(bad.control,bad.r,true));assert.ok(!bad.events.includes("PUT"));
+  }
+});
+
+test("output evaluation is separate from exact resource coverage in read-only repair eligibility",async()=>{
+  for(const crossGroup of [false,true]){
+    const f=repairFixture(crossGroup);
+    const evaluation={properties:{provisioningOperation:"EvaluateDeploymentOutput",provisioningState:"Succeeded",targetResource:null}};
+    (f.operations as unknown[]).push(evaluation);
+    (f.childOperations as unknown[]).push(evaluation);
+    assert.equal(await repairBusyTargetPreload(f.control,f.r),f.r);
+    assert.ok(f.events.every(x=>x==="GET"));
+    f.operations.shift();
+    await assert.rejects(repairBusyTargetPreload(f.control,f.r));
+    assert.ok(f.events.every(x=>x==="GET"));
   }
 });
 
