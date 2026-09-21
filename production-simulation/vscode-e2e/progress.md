@@ -2,14 +2,15 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 step (September21, 02:10UTC): user approved a new maximum30minute
-read-only session for the isolated FK inventory. Exact existing VM/source starts
-accepted02:10:41UTC; hard stop02:39UTC (11:39JST), safety monitor active.
-Fresh boot/readiness passed. User supplied the credential; inventory submitted
-02:14:01UTC and finished with sealed2,087-byte report by02:15:41UTC. Exact report
-transfer approval/import and5vertex/3edge acceptance pending; idle cutoff02:30UTC.
-No new resources,
-updates, grants, target or migration. Delayed RG costUSD326.07607295488/capUSD800.
+Current B04 result (September21, 02:17UTC): **defined FK catalog/adoption/inventory
+slice PASS**. Installed GUI imported the exact sealed2,087-byte report;
+independent hash/count assertions match five vertices plus three edges/all3labels,
+two passed checks, no errors/incomplete checks. Explicit properties and actual
+Reload Window/reconnect already passed; nullable FK stays manual-review-only.
+B04's defined acceptance is now satisfied; broader branch coverage remains partial.
+This adds no migration/digest claim. Exact VM deallocated and source Stopped/private
+verified by02:20:24UTC, before02:39UTC; monitor disabled. Evidence retained.
+No new resources/updates/grants/target/migration. Delayed RG costUSD326.07607295488.
 
 Previous B04 step (September21, 01:58UTC): explicit adoption of the isolated
 fixture's two vertices and safe FK edge, reviewed properties and actual Reload

@@ -1,14 +1,12 @@
 # Isolated PostgreSQL FK GUI qualification proposal
 
-Status: September 21 offline explicit adoption and Reload Window/reconnect passed.
-Two vertex mappings and the safe products-to-suppliers FK retain reviewed properties;
-the nullable FK remains a manual-review warning. Mapped inventory is pending.
-The first September21 session stopped safely without inventory dispatch.
-User approved a new maximum30minute restart; exact existing VM/source starts
-accepted02:10:41UTC. Hard stop02:39UTC (11:39JST), safety monitor active.
-Fresh boot/readiness passed. User supplied the private credential; mapped
-inventory finished with a sealed2,087-byte report. Transfer approval/import
-and exact count acceptance remain pending as of02:16UTC. No mapping changes.
+Status: **PASS for the defined isolated FK catalog/adoption/inventory slice**.
+September21 installed GUI imported the sealed report: five vertices, three edges,
+all three reviewed labels; both checks pass, no errors or incomplete checks.
+Explicit mapping/property adoption and Reload Window/reconnect also passed.
+The nullable FK remains manual-review-only. This is not migration qualification.
+Exact VM deallocated and source Stopped/private verified by02:20:24UTC;
+safety monitor disabled. All evidence and the fixture are retained.
 No new resource, software update, grant, target or migration is authorized.
 
 ## Why a separate fixture is needed
@@ -277,3 +275,28 @@ No source write, new resource or Azure restart occurred during this design revie
   user approval for transfer/import; no report content/count acceptance yet.
   No replay or migration. Stop by02:30UTC if still idle awaiting transfer input,
   or after successful import, terminal failure or hard02:39UTC.
+
+## Sealed mapped inventory accepted — September21 02:17 UTC
+
+- User approved exact report transfer. Reconciled the same export command
+  `af-ce28bc71-94b1-4022-b682-dafe46250153` without replay and imported through
+  installed GUI. The Hash-verified source report view displayed the retained
+  result. Independent local bytes/SHA match the2,087-byte original seal.
+- Report generated02:14:13.408745188UTC; outcome pass, read-only and source-counts
+  checks pass, all fields pass, errors/incompleteChecks empty. Complete stream
+  used one PostgreSQL repeatable-read snapshot. Exact counts: products3,
+  suppliers2, safe products-to-suppliers edge3; five vertices plus three edges.
+- Independent assertions verified exact size/SHA, all three labels, both checks,
+  no errors/incomplete fields, finished operation and GUI-imported transfer.
+  Warning `INVENTORY_NOT_MIGRATION_VERIFICATION` remains: counts do not establish
+  unique identity or endpoint existence, and no target/migration/digest is implied.
+- Together with prior sealed catalog display, explicit adoption/property review,
+  and actual Reload Window/reconnect, the defined isolated FK slice passes.
+  Nullable FK was not silently accepted; accepted P1 data/records were untouched.
+- Fresh pre-stop RG locks/error activity empty. Exact source stop and VM
+  deallocation requested by02:18:07UTC, well before02:39UTC; evidence preserved.
+- VM `PowerState/deallocated` and source `Stopped`/public network Disabled
+  independently verified by02:20:24UTC, under ten minutes after first start
+  request and before the02:39UTC hard bound. Disabled the existing safety monitor.
+  No resources/disks/schema/evidence deleted. The normal seven-day automatic
+  Flexible Server restart remains a platform caveat, not indefinite shutdown.
