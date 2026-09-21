@@ -2,6 +2,14 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest offline follow-up: installed-GUI readiness-receipt archive, selector
+Cancel and repeated archive pass using an actual FK-trial receipt. Cancel left
+all77 operator files unchanged; first archive added one1,434-byte mode0600 file,
+all originals unchanged; repeat kept all78files identical. Independent hashes
+and24targeted regressions pass. No Azure operation, install or deletion.
+See [receipt lifecycle](command-receipt-lifecycle-20260918.md). B09 remains partial:
+this is local evidence preservation, not live record-removal qualification.
+
 Current B04 result (September21, 02:17UTC): **defined FK catalog/adoption/inventory
 slice PASS**. Installed GUI imported the exact sealed2,087-byte report;
 independent hash/count assertions match five vertices plus three edges/all3labels,

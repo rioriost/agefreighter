@@ -1,6 +1,8 @@
 # Managed command evidence lifecycle: local stages 1–2
 
-Status: local implementation/regression only; not installed-GUI or Azure qualification.
+Status: installed-GUI local archive/cancellation/idempotence qualified on
+September21. Live ARM record removal/recovery remains unqualified. Earlier
+sections retain their historical local-only scope.
 
 ## Problem and scope
 
@@ -191,3 +193,38 @@ archive/intent persistence. A reopened host refuses the retained crash lock;
 separate inert recovery-controller checks are GET-only. This strengthens local
 crash evidence but does not establish live deletion, signed-in active-operation
 crash recovery, or permission to clear a crash lock.
+
+## Installed GUI successful archive — September21
+
+After the isolated FK trial naturally produced successful sealed readiness
+receipts, exercised the normal installed `Archive runner readiness receipts`
+command. No synthetic record injection, Azure operation, VM start, deletion,
+new software installation or credential access occurred in this batch.
+
+- Installed bundle SHA `68fcf29bf741cde36b028a2a1cfbe39ce40712bac9af1b3dba9ebf79e01c5e40`
+  (accepted3dff349 candidate). Repository checkpoint5055a7a.
+- Actual workflow `24bd714a-70ee-4865-82db-90d6f4760650` has three receipts.
+  GUI marks the catalog-bound and latest readiness as still referenced/preserve;
+  `af-c171ebeb-32b7-46f5-8c81-3da5f8a01e9d` is historical readiness only.
+  That classification is not permission or current ARM admission for deletion.
+- Cancelled at the receipt selector: all77 pre-existing operator files remained
+  byte-identical, with no added/deleted files or successful-archive notification.
+- Selected the exact historical receipt: native JSON document opened and GUI
+  reported locally archived/hash-verified, with explicit no-deletion disclaimer.
+  Only one private archive was added; all77 existing files remained unchanged.
+- Archive1,434bytes, SHA-256
+  `46e4db632eb961a6abc937a29655821886215b19b5007a35c157799ab7383288`;
+  embedded receipt SHA
+  `94e7ff0b24774ec9d23bebbdd694f665a002364dc416f81c1728fac9da007666`.
+  Independently recomputed body and archive hashes; filesystem mode0600.
+- Repeated the same installed-GUI command/workflow/receipt selection. Success
+  notification returned again; all78 files and their hashes remained identical.
+  No duplicate archive, overwrite, workflow rewrite or lock-file residue.
+- Targeted existing production receipt/storage/native-handler regressions:
+  **24/24 pass**, no skipped tests. No implementation changes were necessary.
+
+This closes the real successful local archive and receipt-selector cancellation
+subcases. It does not qualify live command deletion, GET-only removal recovery,
+signed-in crash recovery or all B09 approval surfaces. The archive is retained
+in private operator storage, not copied into Git. Accepted catalog/inventory,
+source mappings and migration evidence remain byte-identical.

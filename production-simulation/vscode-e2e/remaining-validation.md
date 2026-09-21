@@ -2,6 +2,13 @@
 
 Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed mappings and complete inventory/import passed**.
 
+Latest offline batch: actual installed-GUI local readiness archive, receipt
+selection Cancel and same-receipt repeat pass. Only one private sealed archive
+added;77pre-existing operator files unchanged, repeat preserves all78files.
+Both hash layers/mode0600 and24targeted tests pass. B09 remains partial; no
+Azure operation, deletion, install or new migration. See
+[receipt lifecycle](command-receipt-lifecycle-20260918.md).
+
 Current isolated FK result: **PASS for the defined catalog/adoption/inventory
 slice**. Installed GUI imported exact2,087-byte report; independent assertions
 match original SHA, all3labels,5vertices+3edges, two pass checks, no errors or
@@ -333,7 +340,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
-| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory recorded; Cosmos cross-window/trust guards corrected and tested; controller tests cover stale previews, locks, persist-before-PUT and GET-only reconciliation; native resize, checkpoint inspection, target diagnosis, empty-target archival and report-transfer Cancel preserve prior records | Other approval surfaces and unrepresented faults still require bounded GUI/no-write evidence | partial |
+| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory recorded; Cosmos cross-window/trust guards and controller stale-preview/lock/reconciliation tests pass; native cancellation checks preserve records; actual successful readiness archive, receipt-selector Cancel and idempotent repeat pass with unchanged prior files | Other approval surfaces/unrepresented faults and live record-removal/recovery remain unqualified; local archive does not authorize deletion | partial |
 | B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and full canonical PASS remain accepted; actual isolated Extension Host SIGKILL now preserves archive/intent and crash lock at two control-removal boundaries, with inert Azure adapters and GET-only controller checks | Forced crash during signed-in active Azure operation and native operator-reviewed crash-lock recovery remain unqualified | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass; 20 production P1 controller tests cover full-digest identity/coverage/forgery, transfer failures, retained identity changes and corrupted reopen; signed-in installed candidate refuses retained P1 failure without retry/new PASS | Other invalid-import/transfer cases still lack installed-GUI evidence; synthetic reports and inert adapters are not live GUI/Azure fault evidence | partial |
