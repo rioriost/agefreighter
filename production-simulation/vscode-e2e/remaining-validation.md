@@ -8,8 +8,11 @@ network group. Exact approved transfer account/grant created successfully;
 the separately approved account-only exception/public HTTPS setting and pinned
 archive upload are complete. Anonymous/shared-key disabled; authenticated access,
 GUI ready/reconnect and matching Blob size/SHA metadata verified. Fresh VM
-preview passed; exact identity/install approval remains pending. No compute start,
-inventory, target or migration yet. Existing evidence
+preview and separately approved deployment passed using the other-group subnet.
+Initial readiness ran before bootstrap completion and failed exit127; subsequent
+read-only evidence found tools installed and healthy disk/memory. Retained the
+failure, stopped exact VM with deallocation verified06:40:15UTC, no automatic
+retry. No source grant, inventory, target or migration yet. Existing evidence
 preserved and28local target tests pass; B01 is not qualified. See
 [new bounded trial](separate-network-live-20260921.md).
 

@@ -12,8 +12,15 @@ anonymous/shared-key disabled. Authenticated access and installed GUI ready
 state pass. Pinned37,197,546-byte archive uploaded06:31:38UTC with matching SHA
 metadata and retained ready state; GUI reconnect preserved the workflow.
 Fresh GUI VM preview passed06:33:04UTC atUSD0.109/hour plus storage/network;
-exact new VM/container-reader/install approval is pending. No VM/DB start, assessment
-or target; compute clock not started.
+exact VM/container-reader/install approval was subsequently received. GUI
+submitted06:36:05UTC; deployment succeeded06:36:46UTC, no public IP and correct
+other-group subnet/container grant independently verified. Hard stop08:35UTC.
+Initial readiness failed exit127 at06:37:24UTC because tools were not yet
+installed; cloud-init finished06:37:26UTC and a later read-only diagnostic found
+the tool present, disk4%, memory275MiB, no swap/OOM. Early-readiness/bootstrap
+race is supported; failure retained without retry. Requested exact VM stop
+under the terminal-failure rule; deallocated verified06:40:15UTC. No assessment,
+source grant, target or migration.
 Older78operator files unchanged;28target regressions pass. Delayed old-group
 costUSD333.523399055421. B01 remains partial. See
 [bounded separate-network trial](separate-network-live-20260921.md).

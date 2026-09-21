@@ -130,3 +130,41 @@ Observed wording issue: the discovery page still says the VNet must be in the
 migration group, although installed target implementation supports a separate
 same-subscription network group. Record this as stale guidance, not a proven
 deployment failure. Do not silently loosen actual two-scope admission gates.
+
+## Approved runner deployment
+
+The user approved the exact VM, container-only Blob Reader and pinned executable
+installation. Created a thread safety monitor before submission, scoped only to
+this runner and any subsequently approved target of this workflow. Hard stop is
+**2026-09-21T08:35:00Z (17:35 JST)**, conservatively less than two hours from the
+first request; no automatic extension. The monitor must also stop on terminal
+failure or fifteen minutes of idle approval waiting. Existing source/accepted
+targets remain out of its mutation scope.
+
+Fresh locks returned none and the new group contained only the transfer account.
+The installed GUI native confirmation showed the exact VM, B2s_v2/USD0.109 per
+hour, pinned SHA and workflow-container reader grant. Accepted that confirmation
+after the user approval at06:36:05.759UTC. ARM deployment succeeded06:36:46UTC;
+installed GUI reconciled provisioned06:37:13UTC. All VM/NIC/NSG/role operations
+succeeded. Exact new VM principal has only the reviewed container Blob Reader;
+its NIC uses the existing other-group runner subnet with no public IP. Azure
+auto-shutdown is Enabled for08:35UTC on this exact VM, in addition to the monitor.
+
+Initial guest readiness operation `ecfbf845-7ea3-4f31-823f-84d9f76a15b9`, command
+`af-67e83d32-1068-47e8-bd32-763bec24d870`, submitted06:37:19UTC and failed
+06:37:24UTC with exit127: `/usr/local/bin/agefreighter-tools` did not yet exist.
+GUI correctly retained failure rather than accepting ARM provisioning success.
+A bounded read-only diagnostic at06:38:54UTC found cloud-init done (finished
+06:37:26UTC), the executable now present, root usage4%, used memory275MiB,
+no swap and zero matched kernel OOM records. Evidence supports an early-readiness
+race with bootstrap completion, not a proven corrupt artifact or permission
+failure. No source read or automatic readiness retry was performed.
+
+Per the terminal-failure safety rule, requested deallocation of only this VM
+at06:40UTC, preserving OS disk, command record, bootstrap logs and configuration.
+ARM verified `PowerState/deallocated` by06:40:15UTC. No source grant, assessment, target or
+migration has been submitted. B01 remains partial; the next correction should
+distinguish bootstrap-in-progress from terminal guest readiness failure, without
+replaying migrations or weakening artifact/health checks. Disabled the scoped
+heartbeat after verified deallocation; the Azure VM shutdown schedule remains
+enabled as a retained safety setting. No software correction is claimed yet.
