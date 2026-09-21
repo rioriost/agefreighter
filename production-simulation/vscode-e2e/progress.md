@@ -5,8 +5,10 @@ Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qual
 Current B04 step (September21, 02:10UTC): user approved a new maximum30minute
 read-only session for the isolated FK inventory. Exact existing VM/source starts
 accepted02:10:41UTC; hard stop02:39UTC (11:39JST), safety monitor active.
-Fresh boot/readiness passed; at02:13UTC private credential input is open,
-5vertex/3edge inventory not dispatched. Idle-input cutoff02:28UTC. No new resources,
+Fresh boot/readiness passed. User supplied the credential; inventory submitted
+02:14:01UTC and finished with sealed2,087-byte report by02:15:41UTC. Exact report
+transfer approval/import and5vertex/3edge acceptance pending; idle cutoff02:30UTC.
+No new resources,
 updates, grants, target or migration. Delayed RG costUSD326.07607295488/capUSD800.
 
 Previous B04 step (September21, 01:58UTC): explicit adoption of the isolated

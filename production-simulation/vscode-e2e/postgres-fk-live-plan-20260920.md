@@ -6,8 +6,9 @@ the nullable FK remains a manual-review warning. Mapped inventory is pending.
 The first September21 session stopped safely without inventory dispatch.
 User approved a new maximum30minute restart; exact existing VM/source starts
 accepted02:10:41UTC. Hard stop02:39UTC (11:39JST), safety monitor active.
-Fresh boot/readiness passed; private password input is open at02:13UTC,
-mapped inventory not dispatched. No mapping changes.
+Fresh boot/readiness passed. User supplied the private credential; mapped
+inventory finished with a sealed2,087-byte report. Transfer approval/import
+and exact count acceptance remain pending as of02:16UTC. No mapping changes.
 No new resource, software update, grant, target or migration is authorized.
 
 ## Why a separate fixture is needed
@@ -266,3 +267,13 @@ No source write, new resource or Azure restart occurred during this design revie
   confirmation accepted and private password input displayed at02:13UTC.
   At02:13:53UTC, no inventory exists. Asked user for the existing PostgreSQL
   reader credential privately. Stop if still idle at02:28UTC, or hard02:39UTC.
+- User entered the credential; GUI submitted inventory
+  `5a0a140b-1b4a-4785-bd6b-c3c451865b6e` at02:14:01.245UTC on the same new boot.
+  Source configuration SHA `710c5a4116ed02c71a30a84ead13f30e8d5b5809f03676fb88a4d6da1434ae5b`;
+  guest configuration SHA `396f2016f3e748503e7ada144ba26255fa64aad023de4b84a2d192a72842b44b`.
+- GUI status reconciliation finished by02:15:41UTC; sealed report2,087bytes,
+  SHA `d6d4ea9c5c696a9daed453ce877b8a7743b4041aae9a7a0b74a4daac78d75390`.
+  Opened exact transfer preview to the existing workflow container and asked
+  user approval for transfer/import; no report content/count acceptance yet.
+  No replay or migration. Stop by02:30UTC if still idle awaiting transfer input,
+  or after successful import, terminal failure or hard02:39UTC.

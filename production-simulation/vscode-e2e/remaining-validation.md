@@ -4,8 +4,9 @@ Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed
 
 Current isolated FK step: user approved a new maximum30minute read-only session.
 Existing VM/source starts accepted02:10:41UTC; hard stop02:39UTC (11:39JST),
-monitor active. Fresh readiness passed; at02:13UTC private credential input is
-open,5vertex/3edge inventory not dispatched. Idle-input cutoff02:28UTC; no new resource,
+monitor active. Inventory submitted02:14:01UTC after private credential input;
+finished with sealed2,087-byte report by02:15:41UTC. Exact transfer approval/import
+and5vertex/3edge acceptance pending. Idle-input cutoff02:30UTC; no new resource,
 update, grant, target or migration. Delayed RG costUSD326.07607295488/capUSD800.
 
 Previous isolated FK step: explicit adoption, property review and actual Reload
