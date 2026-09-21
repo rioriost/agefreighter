@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { object, RunnerRecord, runnerNames } from "./runner";
 import { RunnerControl } from "./runnerLifecycle";
 import { ReportManifest, verifyReportBytes } from "./runnerBlob";
-import { guestDispatchScript } from "./runnerGuest";
+import { guestDispatchScript, guestReadinessScript } from "./runnerGuest";
 import { ReadinessReceipt, readinessArchive, readinessReceiptReferenced, sealReadinessReceipt } from "./runnerReceipts";
 
 export interface ReceiptRemoval {
@@ -63,7 +63,7 @@ async function observe(control: RunnerControl, r: RunnerRecord, receipt: Readine
   const start = Date.parse(String(view.startTime)), end = Date.parse(String(view.endTime)), submitted = Date.parse(receipt.command.submittedAt);
   if (response.status !== 200 || String(c.id).toLowerCase() !== receipt.command.id.toLowerCase() || c.location !== r.input.region ||
       props.provisioningState !== "Succeeded" || view.executionState !== "Succeeded" || view.exitCode !== 0 ||
-      view.error !== "" && view.error !== undefined || object(props.source).script !== guestDispatchScript ||
+      view.error !== "" && view.error !== undefined || ![guestDispatchScript, guestReadinessScript].includes(String(object(props.source).script)) ||
       Object.keys(object(props.source)).some(k => k !== "script") || props.asyncExecution !== false || props.timeoutInSeconds !== 60 ||
       props.runAsUser || props.runAsPassword || props.outputBlobUri || props.errorBlobUri ||
       props.parameters !== undefined && (!Array.isArray(props.parameters) || props.parameters.length !== 0) ||
@@ -82,7 +82,7 @@ async function observe(control: RunnerControl, r: RunnerRecord, receipt: Readine
   // evidence and exact validated output hash bind the approved observation.
   return { vm: { id: r.vmId, instanceId: p.vmId, location: v.location, zone: r.input.zone, workflow: r.id, power: power[0],
       configurationSHA256: digest({ tags, identity: v.identity, storage: p.storageProfile, network: p.networkProfile, hardware: p.hardwareProfile, security: p.securityProfile }) },
-    command: { id: receipt.command.id, location: c.location, scriptSHA256: digest(guestDispatchScript), startTime: view.startTime, endTime: view.endTime,
+    command: { id: receipt.command.id, location: c.location, scriptSHA256: digest(object(props.source).script), startTime: view.startTime, endTime: view.endTime,
       metadataSHA256: digest({ tags: c.tags, systemData: c.systemData }),
       provisioningState: props.provisioningState, executionState: view.executionState, exitCode: 0, outputSHA256: createHash("sha256").update(view.output).digest("hex") } };
 }

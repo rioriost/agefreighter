@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { RunnerStore } from "../../guided/runnerStore";
 import { sourceWorkflowDraft, RunnerRecord } from "../../core/runner";
-import { guestDispatchScript } from "../../core/runnerGuest";
+import { guestDispatchScript, guestReadinessScript } from "../../core/runnerGuest";
 import { retainReadinessReceipt } from "../../core/runnerReceipts";
 import { previewReceiptRemoval, submitReceiptRemoval, reconcileReceiptRemoval, RemovalIO } from "../../core/runnerReceiptRemoval";
 import { verifyReportBytes } from "../../core/runnerBlob";
@@ -64,6 +64,16 @@ test("cancel never archives, persists, or contacts Azure again", async () => {
   const f = removalFixture(), plan = await f.preview(), before = f.events.length;
   assert.strictEqual(await submitReceiptRemoval(f.io, f.record, plan, false), f.record);
   assert.equal(f.events.length, before);
+});
+
+test("bootstrap-aware successful readiness has its exact script bound without admitting pending output", async () => {
+  const f=removalFixture();f.command.properties.source.script=guestReadinessScript;
+  const plan=await f.preview();
+  assert.equal(JSON.parse(plan.text).observation.command.scriptSHA256,
+    (await import("node:crypto")).createHash("sha256").update(JSON.stringify(guestReadinessScript)).digest("hex"));
+  f.command.properties.instanceView.output=JSON.stringify({version:1,ready:false,bootstrap:"pending"});
+  await assert.rejects(f.preview(),/Unexpected readiness/);
+  assert.ok(!f.events.includes("DELETE"));
 });
 
 for (const fault of ["referenced", "readiness", "active", "unknown", "running-vm", "owner", "vm-instance", "pending", "updating", "failed", "wrong-output", "unknown-field", "foreign", "script", "late-run", "secret-parameter"] as const) {

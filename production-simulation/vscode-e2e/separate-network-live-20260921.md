@@ -168,3 +168,28 @@ distinguish bootstrap-in-progress from terminal guest readiness failure, without
 replaying migrations or weakening artifact/health checks. Disabled the scoped
 heartbeat after verified deallocation; the Azure VM shutdown schedule remains
 enabled as a retained safety setting. No software correction is claimed yet.
+
+## Offline bootstrap-readiness correction
+
+Following the user's continuation, added an extension-side readiness-only
+wrapper. It waits for cloud-init for at most45seconds inside the unchanged
+60second managed-command timeout. Only exit124 becomes the strict
+`bootstrap-pending` observation; nonzero/error/degraded cloud-init or missing
+completion marker/executable fail closed. After completion, the normal pinned
+version/SHA/boot/health checks still run. Source/migration dispatch scripts are
+unchanged. Starting a fresh readiness control clears any prior boot proof.
+
+Pending bootstrap is neither a successful readiness receipt nor a source-read
+authorization. GUI explains the state and requires a separate explicit check;
+GET refresh does not repeat execution. Credential-wait readiness also exits
+without source dispatch on this state. Receipt removal accepts only the exact
+legacy or new script and still requires sealed successful readiness, not pending
+output; its recorded observation hashes the actual approved script.
+
+Typecheck, all452unit tests (zero skipped) and production bundle build pass.
+Shell tests exercise pending/error/degraded/missing-file/success outcomes with
+controlled local commands; actual view-script tests verify messaging and no
+automatic request. This is offline validation, not a new live bootstrap or B01
+qualification. Azure VM remains deallocated (freshly verified06:46UTC). Preparing
+a reviewable VSIX; operator installation/reload and subsequent live checks remain
+pending separate approval. The existing08:35UTC runtime deadline is not extended.

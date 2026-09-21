@@ -71,6 +71,18 @@ function view() {
   return { el: (id: string) => elements.get(id)!, choose, fillCatalog, receive, messages };
 }
 
+test("pending bootstrap shows an explicit check action and never dispatches from a status message", () => {
+  const v=view(),before=v.messages.length;
+  v.receive({kind:"record",record:{id:subscription,phase:"provisioned",input:{source:{type:"csv"}},guestCommand:{phase:"bootstrap-pending"}}});
+  assert.match(v.el("guestStatus").textContent,/bootstrap is still running/);
+  assert.match(v.el("guestStatus").textContent,/explicitly check/);
+  assert.doesNotMatch(v.el("guestStatus").textContent,/verified at|could not be verified/);
+  assert.equal(v.messages.length,before);
+  assert.equal(v.el("guestReady").disabled,false);
+  v.el("guestRefresh").trigger("click");
+  assert.deepEqual(v.messages.at(-1),{action:"guestRefresh",workflow:subscription});
+});
+
 test("changing a retained source clears readiness and blocks old workflow controls", () => {
   const v = view();
   const record = {id: subscription, phase: "provisioned", input: {source: {type: "csv"}}, guestReady: {checkedAt: "old-check"}, guestCommand: {phase: "finished"}};

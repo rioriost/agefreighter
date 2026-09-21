@@ -216,6 +216,18 @@ test("pending readiness is bounded and never replayed after timeout or cancellat
   assert.equal(puts, 1);
 });
 
+test("bootstrap pending during credential-wait readiness never starts assessment or retries",async()=>{
+  const f=readinessFixture();let puts=0;
+  f.control.request=async(_s,_p,method="GET")=>{
+    if(method==="PUT"){puts++;return {status:201,value:{}};}
+    return puts?{status:200,value:{properties:{instanceView:{executionState:"Succeeded",exitCode:0,output:JSON.stringify({version:1,ready:false,bootstrap:"pending"})}}}}:{status:404,value:{}};
+  };
+  await assert.rejects(ensureAssessmentReadiness(f.control,f.record),/bootstrap is still pending/);
+  assert.equal(puts,1);assert.equal(f.saved.at(-1)?.guestReady,undefined);
+  await assert.rejects(ensureAssessmentReadiness(f.control,f.saved.at(-1)!),/bootstrap is still pending/);
+  assert.equal(puts,1);
+});
+
 test("closing the panel during readiness prevents source dispatch", async () => {
   const f = readinessFixture();
   await assert.rejects(ensureAssessmentReadiness(f.control, f.record, () => f.reads() > 0), /cancelled/);

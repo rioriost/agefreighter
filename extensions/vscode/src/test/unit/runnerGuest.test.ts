@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
-import { assembleGuestReport, dispatchGuest, guestDispatchScript, reconcileGuest } from "../../core/runnerGuest";
+import { assembleGuestReport, dispatchGuest, guestDispatchScript, guestReadinessScript, reconcileGuest } from "../../core/runnerGuest";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { RunnerRecord } from "../../core/runner";
 import { RunnerControl } from "../../core/runnerLifecycle";
 
@@ -128,4 +132,64 @@ test("re-reading readiness cannot renew an old check",async()=>{
   const checked=(await reconcileGuest(f.control,next)).record;
   assert.equal(checked.guestReady?.checkedAt,"2020-01-01T00:00:00Z");
   await assert.rejects(dispatchGuest(f.control,checked,{version:1,workflow:id,operation:op,action:"inventory",configuration:{}}),/fresh guest readiness/);
+});
+
+test("only explicit readiness waits for bootstrap, retaining the 60 second command bound",async()=>{
+  for (const action of ["ready", "status"] as const) {
+    const f=fixture(),r=record();
+    r.guestReady={bootId:op,cliVersion:r.artifact.version,archiveSha256:r.artifact.sha256,commit:"old",checkedAt:new Date().toISOString()};
+    const next=await dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action});
+    const body=f.bodies[0] as any;
+    assert.equal(body.properties.source.script,action==="ready"?guestReadinessScript:guestDispatchScript);
+    assert.equal(body.properties.timeoutInSeconds,60);
+    assert.equal(next.guestReady===undefined,action==="ready");
+    assert.ok(r.guestReady); // Never mutate the earlier evidence in-place.
+  }
+});
+
+test("pending bootstrap is not readiness, and GET reconciliation never retries it",async()=>{
+  const f=fixture();const r=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
+  f.result({version:1,ready:false,bootstrap:"pending"});
+  const before=f.bodies.length;
+  const checked=await reconcileGuest(f.control,r);
+  assert.equal(checked.record.guestCommand?.phase,"bootstrap-pending");
+  assert.equal(checked.record.guestReady,undefined);assert.equal(checked.result,undefined);
+  assert.equal(checked.record.readinessReceipts,undefined);
+  await reconcileGuest(f.control,checked.record);assert.equal(f.bodies.length,before);
+  await assert.rejects(dispatchGuest(f.control,checked.record,{version:1,workflow:id,operation:op,action:"inventory",configuration:{}}),/fresh guest readiness/);
+  // Only a separate explicit readiness request can submit a new command.
+  f.result(undefined);
+  await dispatchGuest(f.control,checked.record,{version:1,workflow:id,operation:op,action:"ready"});
+  assert.equal(f.bodies.length,before+1);
+});
+
+test("malformed bootstrap observations fail closed",async()=>{
+  for (const value of [
+    {version:1,ready:false,bootstrap:"failed"},
+    {version:1,ready:true,bootstrap:"pending"},
+    {version:1,ready:false,bootstrap:"pending",cliVersion:"untrusted"},
+    {version:2,ready:false,bootstrap:"pending"}
+  ]) {
+    const f=fixture(),r=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
+    f.result(value);const checked=await reconcileGuest(f.control,r);
+    assert.equal(checked.record.guestCommand?.phase,"failed");assert.equal(checked.record.guestReady,undefined);
+  }
+});
+
+test("readiness shell waits before dispatch, preserves payload and fails closed on missing installation",{skip:process.platform==="win32"},()=>{
+  const dir=mkdtempSync(join(tmpdir(),"af-bootstrap-test-"));
+  try {
+    const marker=join(dir,"complete"),tool=join(dir,"tools");
+    writeFileSync(tool,"#!/bin/bash\ncat\n",{mode:0o700});
+    const script=guestReadinessScript.replaceAll("/var/lib/agefreighter/bootstrap.complete",marker).replaceAll("/usr/local/bin/agefreighter-tools",tool);
+    assert.equal(spawnSync("bash",["-n"],{input:script}).status,0);
+    const run=(status:number,complete:boolean)=>spawnSync("bash",["-c",
+      `timeout() { [ "$*" = '45 cloud-init status --wait' ] || return 99; ${complete?`touch '${marker}';`:""} return ${status}; }\n${script}`],
+      {encoding:"utf8",env:{...process.env,AF_RUNNER_REQUEST:Buffer.from('{"action":"ready"}').toString("base64")}});
+    const pending=run(124,false);assert.equal(pending.status,0);assert.deepEqual(JSON.parse(pending.stdout),{version:1,ready:false,bootstrap:"pending"});
+    for(const exit of [1,2,127,137]) {const failed=run(exit,false);assert.equal(failed.status,1);assert.equal(failed.stdout,"");}
+    assert.equal(run(0,false).status,1);
+    const ready=run(0,true);assert.equal(ready.status,0);assert.equal(ready.stdout,'{"action":"ready"}');
+    rmSync(tool);assert.equal(run(0,true).status,1);
+  } finally {rmSync(dir,{recursive:true,force:true});}
 });

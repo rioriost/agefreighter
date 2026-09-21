@@ -2,6 +2,14 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest offline B01 correction: readiness waits up to45seconds for bootstrap
+within its existing60second command bound. Still-running bootstrap is explicitly
+pending, never successful/automatically retried; failed bootstrap remains failed.
+Source/migration dispatch and pinned checks remain unchanged. Typecheck,452unit
+tests and build pass; actual corrected GUI/Azure qualification is pending.
+VM freshly verified deallocated;08:35UTC deadline unchanged. See
+[bootstrap race and correction](separate-network-live-20260921.md).
+
 Latest B01 follow-up: user renewed maximum2hours/unchangedUSD800. Created
 dedicated migration group `rg-af-vscode-p1-b01-20260921`; actual GUI saved fresh
 Cosmos workflow `5cb990c1-2a25-4de5-a10d-09fab2ef0b18`, using the original group's

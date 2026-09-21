@@ -17,8 +17,9 @@ const sha = /^[a-f0-9]{64}$/;
 export async function ensureAssessmentReadiness(control: RunnerControl, record: RunnerRecord, cancelled: () => boolean = () => false): Promise<RunnerRecord> {
   const checkCancelled = () => { if (cancelled()) throw new Error("Source assessment cancelled; no source read was submitted."); };
   checkCancelled();
-  if (record.phase !== "provisioned" || !record.guestReady || assessmentActive(record) || record.migration) throw new Error("Review the provisioned runner and retained source operation first.");
   if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command before source assessment.");
+  if (record.guestCommand?.phase === "bootstrap-pending") throw new Error("Linux bootstrap is still pending; explicitly check readiness in the runner panel. No source read was submitted.");
+  if (record.phase !== "provisioned" || !record.guestReady || assessmentActive(record) || record.migration) throw new Error("Review the provisioned runner and retained source operation first.");
   const boot = record.guestReady.bootId;
   const age = Date.now() - Date.parse(record.guestReady.checkedAt);
   // Leave a full minute for the following protected dispatch.
@@ -28,6 +29,7 @@ export async function ensureAssessmentReadiness(control: RunnerControl, record: 
     checkCancelled();
     current = (await reconcileGuest(control, current)).record;
     if (current.guestCommand?.phase === "failed") throw new Error("Linux readiness failed; no source read was submitted. Reconcile the runner.");
+    if (current.guestCommand?.phase === "bootstrap-pending") throw new Error("Linux bootstrap is still pending; explicitly check readiness in the runner panel. No source read was submitted.");
     if (current.guestCommand?.phase === "finished") {
       if (current.guestReady?.bootId !== boot) throw new Error("The runner rebooted while awaiting input. Review the new boot before source reads.");
       assertIdleHealth(current); checkCancelled(); return current;

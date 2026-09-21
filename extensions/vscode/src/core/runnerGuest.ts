@@ -9,7 +9,7 @@ export interface GuestCommand {
   id: string;
   operation: string;
   action: "ready" | "profile" | "inventory" | "postgres-catalog" | "status" | "report" | "export-report" | "import-csv" | "migrate-csv" | "migrate-source" | "inspect-resume" | "resume-migration";
-  phase: "submitted" | "unknown" | "finished" | "failed";
+  phase: "submitted" | "unknown" | "finished" | "failed" | "bootstrap-pending";
   submittedAt: string;
   failure?: string;
 }
@@ -37,6 +37,30 @@ export const guestDispatchScript = `#!/bin/bash
 set -euo pipefail
 set +x
 umask 077
+printf '%s' "$AF_RUNNER_REQUEST" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch
+`;
+
+// Only the explicit, source-free readiness control may wait for cloud-init.
+// Leave 15 seconds of the existing 60-second ARM bound for dispatch. A timeout
+// observes pending bootstrap; it never starts/restarts bootstrap or a worker.
+export const guestReadinessScript = `#!/bin/bash
+set -euo pipefail
+set +x
+umask 077
+bootstrap_status=0
+timeout 45 cloud-init status --wait >/dev/null 2>&1 || bootstrap_status=$?
+if [ "$bootstrap_status" -eq 124 ]; then
+  printf '%s\\n' '{"version":1,"ready":false,"bootstrap":"pending"}'
+  exit 0
+fi
+if [ "$bootstrap_status" -ne 0 ]; then
+  printf '%s\\n' 'Linux bootstrap did not complete successfully.' >&2
+  exit 1
+fi
+if [ ! -f /var/lib/agefreighter/bootstrap.complete ] || [ ! -x /usr/local/bin/agefreighter-tools ]; then
+  printf '%s\\n' 'Linux bootstrap installation evidence is missing.' >&2
+  exit 1
+fi
 printf '%s' "$AF_RUNNER_REQUEST" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch
 `;
 
@@ -91,11 +115,13 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
   const command: GuestCommand = { id: `${record.vmId}/runCommands/af-${randomUUID()}`, operation: request.operation, action: request.action, phase: "submitted", submittedAt: new Date().toISOString() };
   if ((await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01`)).status !== 404) throw new Error("Guest command resource already exists.");
   const submitted: RunnerRecord = { ...record, guestCommand: command };
+  // No previous boot proof may authorize reads while a fresh check is pending.
+  if (request.action === "ready") delete submitted.guestReady;
   await control.persist(submitted);
   try {
     const response = await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01`, "PUT", {
       location: record.input.region,
-      properties: { source: { script: guestDispatchScript }, protectedParameters: [{ name: "AF_RUNNER_REQUEST", value: Buffer.from(payload).toString("base64") }], timeoutInSeconds: 60, asyncExecution: false }
+      properties: { source: { script: request.action === "ready" ? guestReadinessScript : guestDispatchScript }, protectedParameters: [{ name: "AF_RUNNER_REQUEST", value: Buffer.from(payload).toString("base64") }], timeoutInSeconds: 60, asyncExecution: false }
     });
     if (response.status < 200 || response.status >= 300) throw new Error();
     return submitted;
@@ -149,6 +175,12 @@ export async function reconcileGuest(control: RunnerControl, record: RunnerRecor
       const value = object(result);
       if (value.version !== 1) throw new Error();
       if (command.action === "ready") {
+        if (value.ready === false && value.bootstrap === "pending" && Object.keys(value).length === 3) {
+          next.guestCommand = { ...command, phase: "bootstrap-pending" };
+          delete next.guestReady;
+          await control.persist(next);
+          return { record: next }; // No readiness receipt or source permission.
+        }
         if (value.ready !== true || value.os !== "linux" || value.architecture !== "amd64" || value.cliVersion !== record.artifact.version || value.archiveSha256 !== record.artifact.sha256 || typeof value.bootId !== "string" || !uuid.test(value.bootId) || typeof value.commit !== "string") throw new Error();
         if (record.artifact.development && value.commit !== record.artifact.development.commit) throw new Error();
         // Re-reading an old ARM response must never refresh its validity.
