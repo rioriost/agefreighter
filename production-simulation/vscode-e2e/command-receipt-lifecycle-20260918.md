@@ -228,3 +228,41 @@ subcases. It does not qualify live command deletion, GET-only removal recovery,
 signed-in crash recovery or all B09 approval surfaces. The archive is retained
 in private operator storage, not copied into Git. Accepted catalog/inventory,
 source mappings and migration evidence remain byte-identical.
+
+## Installed GUI removal admission — September 21, 06:03–06:06 UTC
+
+Used the unchanged installed candidate above through its normal **Review /
+Reconcile Readiness Control Removal** command. The intended confirmation-modal
+cancellation test could not reach that modal: current ARM admission correctly
+refused the historical receipt. Do not report modal cancellation as passed.
+
+- Selected workflow `24bd714a-70ee-4865-82db-90d6f4760650` and historical
+  `af-c171ebeb-32b7-46f5-8c81-3da5f8a01e9d`. Installed GUI reports
+  `Command is absent, changed, pending or not proven successful. Nothing may be removed.`
+- Independent read-only ARM GET for that exact command confirms provisioning
+  `Succeeded`, but execution **Pending**, absent start/end times and absent
+  output. Its reported exitCode 0 alone does not establish successful execution.
+  The cause of this current instance-view state was not determined; do not
+  attribute it to deallocation or replace current evidence with the older seal.
+- Independently reconfirmed exact VM `PowerState/deallocated` and existing
+  source `afpg-p1-source-20260907` Stopped/public access Disabled. No attempt was
+  made to restart it, rerun readiness, weaken admission or delete the record.
+- Selected catalog-referenced `af-dfb8a74c-b018-40ea-b0b1-08767edfacdc` in the
+  same installed GUI. It refuses with `Readiness is still referenced; retain
+  this command.` No removal approval modal or intent was created.
+- Cancelled the removal workflow selector in a separate invocation. The
+  selector closed normally without starting an operation.
+- All **78** pre-existing operator files remain byte-identical after the two
+  refusals and selector cancellation; no file, archive, intent or lock added.
+  Installed JavaScript still has SHA
+  `68fcf29bf741cde36b028a2a1cfbe39ce40712bac9af1b3dba9ebf79e01c5e40`.
+- Removal controller/native-handler regressions: **42/42 pass**, no skips.
+  These local tests are separate from the installed-GUI observations above.
+
+No cloud mutation, credential/RBAC/network change, software installation or
+migration occurred. B09 gains actual Pending/reference-refusal and selector
+cancellation evidence, but remains partial. Successful live deletion, its
+confirmation-modal cancellation and GET-only post-removal recovery remain
+unqualified. Preserve this command; the refusal is not permission for manual
+cleanup. Future paid trials require a fresh bounded runtime approval because
+the earlier session is closed.

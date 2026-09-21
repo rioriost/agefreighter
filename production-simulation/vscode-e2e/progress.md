@@ -2,6 +2,15 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest read-only follow-up (September21,06:03–06:06UTC): installed GUI refuses
+removal of the historical FK readiness record because current ARM execution is
+Pending (independently confirmed; no output/start/end). A referenced catalog
+receipt is also refused; workflow-selector cancellation preserves all78files.
+All42removal regressions pass. Exact VM remains deallocated; no Azure mutation
+or install. Removal confirmation-modal cancellation was not reached and is not
+claimed. B09 remains partial; preserve the record without bypassing admission.
+See [receipt admission evidence](command-receipt-lifecycle-20260918.md).
+
 Latest offline follow-up: installed-GUI readiness-receipt archive, selector
 Cancel and repeated archive pass using an actual FK-trial receipt. Cancel left
 all77 operator files unchanged; first archive added one1,434-byte mode0600 file,

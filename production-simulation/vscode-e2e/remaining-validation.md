@@ -2,6 +2,14 @@
 
 Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed mappings and complete inventory/import passed**.
 
+Latest read-only batch: installed GUI Pending/reference removal refusals and
+workflow-selector Cancel pass; all78operator files unchanged,42regressions pass.
+Independent ARM confirms the historical readiness command is currently Pending
+without output/timestamps, while its VM is deallocated. The removal confirmation
+modal could not be reached; its cancellation, actual deletion and recovery are
+not qualified. No cloud mutation or new runtime. Preserve evidence and admission
+rules; B09 remains partial. See [receipt lifecycle](command-receipt-lifecycle-20260918.md).
+
 Latest offline batch: actual installed-GUI local readiness archive, receipt
 selection Cancel and same-receipt repeat pass. Only one private sealed archive
 added;77pre-existing operator files unchanged, repeat preserves all78files.
