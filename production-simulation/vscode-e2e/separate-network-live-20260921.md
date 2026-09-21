@@ -491,3 +491,27 @@ this GUI-only approval does not renew it. B01 separate-group target creation
 and installed reconciliation are now accepted. Runtime AGE readiness after
 startup, same-VM migration sizing, actual load and full64range canonical
 verification remain pending a separately approved bounded live session.
+
+## Approved bounded migration session
+
+September21,13:03UTC: user explicitly approved restarting only the existing B01
+VM/target, AGE readiness, same-VM D4s_v5 sizing and migration/verification of the
+5.6M-row Cosmos fixture, maximum two hours from first start. Fixed hard stop is
+**2026-09-21T15:00:00Z (September22 00:00JST)**, conservatively shorter than that
+limit. Cumulative USD800 remains unchanged; the GUI renewal's “additional”
+wording does not authorize another USD800. USD700 reserve includes accumulated
+charges and retained resources. Fresh cost query returned429; last delayed
+original-group cost remains USD341.803553466625 and B01 charges are unreported,
+not zero. Read-back confirms exact VM deallocated/B2s_v2 and private target
+Stopped/E8ds_v5, unchanged ownership/network; no group lock returned. Activity
+contains resource-health and policy audit events, no unexplained new workload.
+
+Installed GUI recorded the new deadline with current USD1.448/hour combined
+compute. Scoped safety heartbeat re-enabled; exact VM auto-shutdown set to
+15:00UTC before start. Preserve Linux d40d6ccc9a4d and extension07d1e45.
+No new resource, source modification, credential/grant/public-access change,
+deletion or automatic retry is authorized. A dedicated full-digest executable
+installation remains an action-time approval. Stop exact compute at terminal
+failure, qualification completion, fifteen minutes of idle approval waiting or
+the fixed bound, retaining all evidence. Startup/readiness/resize/migration and
+canonical verification are not yet claimed by this authorization record.

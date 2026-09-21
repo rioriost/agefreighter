@@ -2,7 +2,18 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **Azure target deployment and corrected installed-GUI reconciliation PASS; B01 partial**.
+Current B01 phase: **approved bounded migration session starting; B01 partial**.
+User explicitly approved existing B01 VM/target restart, AGE readiness, same-VM
+D4s_v5 resize and5.6M-row migration/verification. Start requests issued13:03:43UTC;
+fixed stop15:00UTC (September22 00:00JST), less than two hours. Scoped monitor and
+exact-VM auto-shutdown enabled before startup. Cumulative USD800 cap/USD700reserve
+unchanged; latest cost refresh429, previous delayed original-groupUSD341.803553466625
+and B01 charges unreported. Installed GUI recorded renewed authorization at the
+same USD1.448/hour compute rate. Fresh readiness submitted13:04:12UTC; no resize,
+migration or canonical verification claimed yet. No new resources/source/RBAC/
+network changes or deletion. See [bounded migration session](separate-network-live-20260921.md).
+
+Previous B01 phase: **Azure target deployment and corrected installed-GUI reconciliation PASS; B01 partial**.
 User-approved local extension `07d1e45` installed on Mac VS Code1.138.0;
 bundle hash matches. Actual Reload Window/reconnect preserved all80operator
 files. GUI read-only review now displays `Private target: provisioned`; only
