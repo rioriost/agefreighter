@@ -2,6 +2,14 @@
 
 Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed mappings and complete inventory/import passed**.
 
+Current B01 inventory is running on the approved existing VM, after explicit
+account-wide Cosmos Reader approval and18:30JST deadline extension. Exact
+operation `68831e91-96e4-4b85-a720-90c7aa7ab14f`, start08:30:50UTC,30min/4GiB
+bound, healthy08:31:51UTC. Await complete5.6Mrow/all18label sealed report and
+approved GUI transfer/import; then stop exact VM. Source writes/new target/
+migration remain out of this approval. B01 qualification is not complete.
+See [inventory session](separate-network-live-20260921.md).
+
 Latest B01 live follow-up: approved `baf7079` VSIX install/Reload Window and
 same-workflow reconnect passed. One explicit readiness operation succeeded on
 the existing VM08:00:46UTC, with matching pinned Linux artifact, idle/disk/memory/

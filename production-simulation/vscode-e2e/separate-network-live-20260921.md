@@ -245,3 +245,46 @@ Readiness-only work finished; requested exact VM deallocation08:02:29UTC,
 preserving all disks, receipts and failed-command evidence. ARM verified
 `PowerState/deallocated` by08:03:32UTC, before the08:35UTC bound. Disabled the
 scoped heartbeat after this confirmation. No other resource was stopped.
+
+## Approved inventory session (18:30 JST hard stop)
+
+The user explicitly approved account-wide Built-in Data Reader for this exact
+VM, restart and complete read-only inventory of only `p1/graph-gremlin-p1-20260917`,
+plus structural/count report transfer through the existing dedicated storage to
+Mac. The scope of the installed grant implementation was disclosed as the whole
+Cosmos account, not a container-only grant. No writes, source exposure, new DB,
+software installation or migration are included. USD800 is unchanged; the new
+fixed stop bound is **2026-09-21T09:30:00Z (18:30 JST)**. End early on terminal
+failure, imported complete report or fifteen minutes of idle user waiting.
+
+Reactivated the existing scoped monitor and changed only this VM's Azure
+auto-shutdown to09:30UTC (Enabled and exact target verified). Installed GUI
+submitted and reconciled role assignment `114bfef7-9418-4f7f-819f-6ce6e8ac2cae`;
+independent ARM read confirms principal `06418bc7-c272-46e6-9ffe-c60dbd57c9a1`,
+Built-in Data Reader and exact account scope. This does not prove data-plane
+propagation. Requested existing VM start08:29:25UTC, retaining Linux artifact
+and source configuration. Complete inventory/transfer acceptance remains pending.
+
+Fresh corrected GUI readiness matched the pinned artifact and new boot
+`fbc051cf-b482-4378-8dbe-36b58d2268bc`. Reviewed the unchanged source form and
+accepted the native complete-inventory confirmation. Exactly one inventory
+operation `68831e91-96e4-4b85-a720-90c7aa7ab14f` was submitted08:30:46.794UTC,
+command `af-07d26761-56bd-4b8d-998d-83c6c239ba84`. ARM control succeeded/exit0
+and GUI reconciled its accepted state; this is not a completion claim.
+Source configuration SHA256 is
+`43eee6147844242a656f02e4882a04a632c2d0230d86cee76cd57a6235d2a149`;
+guest configuration SHA256 is
+`22a733abcf7a5c0e9ce6ee554895ca961b1e25b2f7fbef1ecf5609ffe2c5051f`.
+
+Read-only guest check08:31:51UTC: exact assessment unit active/running, original
+start08:30:50UTC,30minute runtime limit (approximately09:00:50UTC) and4GiB memory
+limit. Unit MemoryCurrent16,273,408bytes; total guest used259MiB; disk4%, swap0,
+kernel OOM matches0. No retries, upgrades, source writes, target or migration.
+Source/guest work remains uninterrupted. Updated scoped monitor with this exact
+operation and the approved report-export/import continuation; acceptance still
+requires full5.6Mrows/all18labels, no incomplete/failed checks and matching seal.
+
+Fresh cost query still returns USD337.313050576123 for the original group only;
+new-group charges may not yet be reported. USD700 planning reserve/USD800 ceiling
+unchanged. Recent activity contains VM writes; current health and pinned boot/
+artifact were independently checked, without overriding governance controls.

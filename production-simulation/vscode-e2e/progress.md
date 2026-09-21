@@ -2,6 +2,16 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Current B01 phase: **complete source inventory running; not yet accepted**.
+User approved exact VM account-wide Cosmos Data Reader, specified-container
+reads/report transfer and18:30JST stop extension; USD800 unchanged. GUI grant
+verified, existing VM start08:29:25UTC and new-boot readiness passed. Inventory
+`68831e91-96e4-4b85-a720-90c7aa7ab14f` started08:30:50UTC with30min/4GiB bound;
+08:31:51UTC active/running, disk4%, guest used259MiB, no swap/OOM. Monitor retains
+the exact operation and approved report import, then VM deallocation; no source
+writes, new DB or migration. B01 remains partial. See
+[current bounded inventory session](separate-network-live-20260921.md).
+
 Latest B01 corrected live readiness: user-approved VSIX installed and actual
 Reload Window/reconnect passed with all79 operator files unchanged. Existing VM
 started08:00:02UTC; one explicit readiness command succeeded08:00:46UTC and was
