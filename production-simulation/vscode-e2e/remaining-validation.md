@@ -2,7 +2,15 @@
 
 Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed mappings and complete inventory/import passed**.
 
-Current B01 inventory is running on the approved existing VM, after explicit
+Current B01 source inventory/import **PASS**: all18label counts match frozen P1,
+1.6Mvertices+4Medges, no failed/incomplete checks. Installed GUI imported exact
+2,944bytes and SHA `e34bf7857c91…`, independently verified. Exact VM deallocated
+by08:44:36UTC; monitor disabled, evidence/grant retained. B01 remains partial:
+two-scope target review/deployment, resize, migration and64range canonical target
+verification are still pending; none was authorized by the inventory-only session.
+See [inventory completion](separate-network-live-20260921.md).
+
+Previous B01 inventory was running on the approved existing VM, after explicit
 account-wide Cosmos Reader approval and18:30JST deadline extension. Exact
 operation `68831e91-96e4-4b85-a720-90c7aa7ab14f`, start08:30:50UTC,30min/4GiB
 bound, healthy08:31:51UTC. Await complete5.6Mrow/all18label sealed report and

@@ -288,3 +288,41 @@ Fresh cost query still returns USD337.313050576123 for the original group only;
 new-group charges may not yet be reported. USD700 planning reserve/USD800 ceiling
 unchanged. Recent activity contains VM writes; current health and pinned boot/
 artifact were independently checked, without overriding governance controls.
+
+## Inventory and sealed GUI import complete
+
+September21,08:44UTC: **source inventory/import PASS; B01 still partial**.
+Reconciled only the existing operation through the installed GUI. It reached
+finished with successful exit and generated its report08:42:01.417946411UTC,
+approximately11minutes11seconds after the observed worker start. No source
+retry, discovery replay or software change was performed.
+
+The already-approved normal GUI create-only export used command
+`af-f39e2c46-2308-4f07-b329-0f24290dbc0c`, submitted08:42:45.339UTC and ARM
+succeeded/exit0 at08:43:05UTC. Subsequent GUI reconciliation imported the exact
+report and opened **Hash-verified source report**; actual visual inspection
+confirmed the imported state and its not-a-migration/sizing-approval disclaimer.
+Private retained file is the workflow's
+`5cb990c1-2a25-4de5-a10d-09fab2ef0b18.report-68831e91-96e4-4b85-a720-90c7aa7ab14f.json`
+under extension global storage. It is2,944bytes; independently calculated SHA256
+`e34bf7857c918baac4b0b83147917a6d01b405fd8cddba0c0e45402525f16c0f`
+matches assessment, guest export acknowledgement and imported transfer receipt.
+
+Independent assertions against the frozen P1 canonical fixture's aggregated
+label counts passed all18labels:1,600,000vertices and4,000,000edges, total5,600,000.
+Report outcome and both checks pass; errors/incompleteChecks are empty. Capacity
+method is complete-stream-range, not sampled-prefix extrapolation. This proves
+complete mapped-record counts only, not identity uniqueness, endpoint validity
+or canonical property equality; those require the subsequent migration and
+full64range verification. No target or migration record exists.
+
+Read-only guest inspection08:42:37UTC found unit inactive/dead, exit0, no process,
+disk4%, guest used259MiB, swap0 and kernel OOM matches0. Requested only this VM's
+deallocation08:44:09UTC; ARM confirmed `PowerState/deallocated` by08:44:36UTC,
+well before09:30UTC. Disabled the scoped heartbeat after stop confirmation.
+OS disk, guest/local evidence, transfer storage and approved reader assignment
+remain retained. No other resource, source data or security control was changed.
+
+Next B01 phase is review of private target/independent-network-group deployment,
+same-VM resize, then separately authorized GUI migration and full verification.
+Do not turn this inventory result into B01 or release qualification.

@@ -2,7 +2,16 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **complete source inventory running; not yet accepted**.
+Current B01 phase: **source inventory and sealed GUI import PASS; B01 partial**.
+Existing operation completed; report generated08:42:01UTC. Installed GUI exported
+and imported exact2,944bytes/SHA `e34bf7857c91…`. Independent assertions match
+all18frozen P1label counts,1.6Mvertices+4Medges; no failed/incomplete checks.
+Actual report/imported UI verified. Exact VM deallocated by08:44:36UTC and
+heartbeat disabled, before09:30UTC. Disks/evidence/approved reader grant retained.
+No target/migration; canonical migration verification remains pending. See
+[accepted inventory and safe stop](separate-network-live-20260921.md).
+
+Previous B01 phase: **complete source inventory running; not yet accepted**.
 User approved exact VM account-wide Cosmos Data Reader, specified-container
 reads/report transfer and18:30JST stop extension; USD800 unchanged. GUI grant
 verified, existing VM start08:29:25UTC and new-boot readiness passed. Inventory
