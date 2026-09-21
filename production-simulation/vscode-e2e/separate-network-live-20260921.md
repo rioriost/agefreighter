@@ -99,10 +99,27 @@ Enabled. An early new-group activity read returned no policy-modify event; the
 cause is not established and event delivery can lag. GUI retains submitted;
 do not claim authenticated Blob access or ready reconciliation yet.
 
-Requested separate action-time approval for this exact account's official
-`SecurityControl=Ignore` exception, authenticated public HTTPS access, and
-upload of the checked37,197,546-byte pinned Linux archive into this workflow's
-container. No exception/access change or upload has been performed yet.
+The user subsequently approved this exact account's `SecurityControl=Ignore`
+exception, authenticated public HTTPS access and pinned archive upload. Applied
+the tag without replacing existing tags, enabled public network access and
+independently verified anonymous/shared-key access remained false, HTTPS-only
+and TLS1.2 unchanged. Authenticated container listing succeeded; installed GUI
+refresh reconciled storage as ready/public Enabled without redeployment.
+
+The installed qualification command reviewed the exact manifest and uploaded
+the approved37,197,546-byte archive. Independent Blob properties show creation
+at06:31:38UTC, the matching byte length and full SHA256 metadata
+`2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6`.
+The local upload record is ready; GUI confirmed the pinned archive is prepared.
+This verifies upload/metadata, not a new remote download digest or Linux install.
+Actual reconnect restored the same workflow and pinned artifact. Fresh installed
+GUI preflight passed at06:33:04UTC: runner `af-5cb990c12a254de5a10d`, B2s_v2,
+Japan East/zone1, computeUSD0.109/hour plus storage/network. Preview includes
+only the new NSG/NIC/VM and its Blob Data Reader role on this workflow container.
+No public IP or source grant is in the template. The preview expires06:48:04UTC
+and must be refreshed if approval comes later. Requested separate action-time
+approval for VM creation, this identity grant and unpublished installation;
+deployment has not been submitted.
 No VM start request has been made, so the two-hour compute clock is not running.
 
 All28existing target/template/preflight/lifecycle regression tests pass, including

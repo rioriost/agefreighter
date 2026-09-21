@@ -6,9 +6,14 @@ Latest B01 follow-up: user renewed maximum2hours/unchangedUSD800. Created
 dedicated migration group `rg-af-vscode-p1-b01-20260921`; actual GUI saved fresh
 Cosmos workflow `5cb990c1-2a25-4de5-a10d-09fab2ef0b18`, using the original group's
 VNet and reviewed zone1. After exact approval, transfer-account deployment
-succeeded06:25:28UTC with account-scoped user Blob access. Public access is
-Disabled; its exact exception/access change and pinned upload need separate
-approval. No VM/DB start, assessment or target; compute clock not started.
+succeeded06:25:28UTC with account-scoped user Blob access. Following exact user
+approval, applied the account-only exception/public HTTPS setting, retaining
+anonymous/shared-key disabled. Authenticated access and installed GUI ready
+state pass. Pinned37,197,546-byte archive uploaded06:31:38UTC with matching SHA
+metadata and retained ready state; GUI reconnect preserved the workflow.
+Fresh GUI VM preview passed06:33:04UTC atUSD0.109/hour plus storage/network;
+exact new VM/container-reader/install approval is pending. No VM/DB start, assessment
+or target; compute clock not started.
 Older78operator files unchanged;28target regressions pass. Delayed old-group
 costUSD333.523399055421. B01 remains partial. See
 [bounded separate-network trial](separate-network-live-20260921.md).

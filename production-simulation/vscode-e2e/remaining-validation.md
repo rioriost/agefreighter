@@ -5,8 +5,11 @@ Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed
 Latest B01 preparation: renewed2hour compute envelope/USD800, new dedicated
 migration group and fresh installed-GUI Cosmos workflow using the existing
 network group. Exact approved transfer account/grant created successfully;
-access is Disabled, so per-account exception and pinned upload approval is
-pending. No compute start, inventory, target or migration yet. Existing evidence
+the separately approved account-only exception/public HTTPS setting and pinned
+archive upload are complete. Anonymous/shared-key disabled; authenticated access,
+GUI ready/reconnect and matching Blob size/SHA metadata verified. Fresh VM
+preview passed; exact identity/install approval remains pending. No compute start,
+inventory, target or migration yet. Existing evidence
 preserved and28local target tests pass; B01 is not qualified. See
 [new bounded trial](separate-network-live-20260921.md).
 
