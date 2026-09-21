@@ -193,3 +193,14 @@ automatic request. This is offline validation, not a new live bootstrap or B01
 qualification. Azure VM remains deallocated (freshly verified06:46UTC). Preparing
 a reviewable VSIX; operator installation/reload and subsequent live checks remain
 pending separate approval. The existing08:35UTC runtime deadline is not extended.
+
+Correction commit: `baf7079`. Packaged VSIX SHA256
+`fcc7865cade8e6ee71c438e904a7967dc3a306489cd6d696061de7aefc8ca7ab`;
+bundle SHA256 `09f9b0a34cddcb71154ac8c6407c825cccc44c928353eab26e6d23d796a81521`.
+All13source-to-Go-validator contract tests also pass with a freshly built local
+test CLI. The first contract invocation lacked its required test-binary variable
+and failed at the harness prerequisite; the configured rerun passed13/13.
+No operator CLI installation or source access was performed by these tests.
+Asked for exact local-extension installation/reload and existing-VM restart
+for readiness only, keeping the pinned Linux artifact and08:35UTC stop bound.
+No new access grant, resource creation, source read or migration is included.

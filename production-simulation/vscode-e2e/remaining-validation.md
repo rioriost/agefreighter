@@ -2,6 +2,14 @@
 
 Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed mappings and complete inventory/import passed**.
 
+Latest B01 offline fix: `baf7079` distinguishes pending bootstrap from terminal
+readiness failure and waits at most45seconds, without retrying source operations
+or accepting unverified readiness. Typecheck,452unit tests,13actual-Go-validator
+contracts, build and VSIX packaging pass. Corrected operator installation/live
+readiness remains approval-pending; Linux artifact and08:35UTC deadline unchanged.
+This does not close B01 or qualify a migration. See
+[correction and package evidence](separate-network-live-20260921.md).
+
 Latest B01 preparation: renewed2hour compute envelope/USD800, new dedicated
 migration group and fresh installed-GUI Cosmos workflow using the existing
 network group. Exact approved transfer account/grant created successfully;
