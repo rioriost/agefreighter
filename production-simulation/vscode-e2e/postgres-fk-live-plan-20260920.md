@@ -1,12 +1,11 @@
 # Isolated PostgreSQL FK GUI qualification proposal
 
-Status: bounded fixture/resource scope approved by the user on 2026-09-20;
-Dedicated storage, pinned runner readiness and isolated fixture setup succeeded.
-The installed GUI imported the exact sealed catalog; two vertex candidates,
-one safe FK edge and the nullable-FK warning match expectations, all unselected.
-Candidate adoption/reconnect and mapped inventory remain unperformed. This is not a
-completed qualification. VM deallocated and source Stopped/private verified at
-09:37UTC; the safety heartbeat is disabled. Evidence and the fixture are retained.
+Status: September 21 offline explicit adoption and Reload Window/reconnect passed.
+Two vertex mappings and the safe products-to-suppliers FK retain reviewed properties;
+the nullable FK remains a manual-review warning. Mapped inventory is pending.
+The user approved restarting only the existing VM/source for at most 30 minutes.
+Starts requested at 01:39:15 UTC; hard stop 02:08 UTC (11:08 JST), monitor active.
+No new resource, software update, grant, target or migration is authorized.
 
 ## Why a separate fixture is needed
 
@@ -181,3 +180,26 @@ No source write, new resource or Azure restart occurred during this design revie
   candidate review remains possible. Source Flexible Server reports its normal
   automatic restart after seven days; this stopped-state observation is not a
   claim of indefinite shutdown. Latest delayed RG cost remainsUSD302.628107546835.
+
+## Explicit adoption and bounded restart — September 21
+
+- While both resources were stopped, selected the two vertex candidates and the
+  safe products-to-suppliers FK in the installed GUI. Explicitly adopted them;
+  nullable `products_optional_supplier_fk` was not adopted.
+- Reviewed properties: products `id`, `name`, `supplier_id`,
+  `optional_supplier_id`; suppliers `id`, `name`; edge `id`, `supplier_id`.
+  Directed edge starts at products.id and ends at suppliers via supplier_id.
+  Generated queries reference only the dedicated schema, never P1 tables.
+- Actual Developer: Reload Window followed by reconnect to the same saved
+  workflow restored all three mappings/properties. The full sourceDraft JSON
+  SHA-256 stayed `d4182257cf899b3ab89979ee9542994d2059217e5868bf91e93ae26a26a7d8d7`.
+  No live inventory existed at this checkpoint. GUI approval requires new review.
+- Fresh pre-start checks: exact VM deallocated, source Stopped/private, no RG
+  locks or error activity since 00:30 UTC. Cost refresh returned HTTP429;
+  last confirmed delayed RG actual cost USD302.628107546835, USD800 cap unchanged.
+- User approved restarting only the existing VM/source for read-only mapped
+  inventory, at most 30 minutes from first start. First requests 01:39:15 UTC;
+  hard stop **2026-09-21T02:08:00Z (11:08 JST)**. Both starts accepted.
+  Updated the existing safety monitor and exact VM daily shutdown to02:08UTC.
+  Fresh readiness must verify the new boot and health before inventory dispatch.
+  Stop on terminal outcome, fifteen-minute idle input wait or hard bound.

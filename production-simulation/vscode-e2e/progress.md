@@ -1,8 +1,16 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-20 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B04 follow-up (September 20, 09:33 UTC): the approved
+Current B04 step (September21, 01:39UTC): explicit adoption of the isolated
+fixture's two vertices and safe FK edge, reviewed properties and actual Reload
+Window/reconnect passed while stopped; sourceDraft SHA unchanged. User approved
+existing VM/source restart for at most30minutes. Starts accepted01:39:15UTC;
+hard stop02:08UTC (11:08JST), monitor active. Fresh readiness and five-vertex/
+three-edge mapped inventory remain pending. No new resource, update, grant,
+target or migration. See [FK trial](postgres-fk-live-plan-20260920.md).
+
+Previous B04 follow-up (September 20, 09:33 UTC): the approved
 [isolated FK trial](postgres-fk-live-plan-20260920.md) produced a complete sealed
 two-table catalog. Installed GUI imported its exact bytes/SHA and displayed two
 vertex candidates, one safe products-to-suppliers FK edge and the nullable-FK
