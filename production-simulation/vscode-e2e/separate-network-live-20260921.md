@@ -326,3 +326,66 @@ remain retained. No other resource, source data or security control was changed.
 Next B01 phase is review of private target/independent-network-group deployment,
 same-VM resize, then separately authorized GUI migration and full verification.
 Do not turn this inventory result into B01 or release qualification.
+
+## Approved fifteen-minute readiness/target-preview session
+
+Installed GUI read-only target planning refused the stopped VM with
+"Check the running guest before approving target deployment." No target intent,
+credential or deployment was created. Independent quota read found DDSv5
+usage62/64cores (insufficient for D4ds_v5), EDSv5 usage24/256 and regional86/196.
+Reviewed existing VNet subnets; `10.246.23.0/24` is a non-overlapping candidate.
+
+User specifically approved restarting only the existing VM for at most15minutes
+for fresh readiness and target preview; no DB, grant or migration. Start request
+accepted08:55:35UTC. Before starting, set the exact-VM Azure auto-shutdown and
+scoped monitor to **09:09:00UTC (18:09JST)**, conservatively within15minutes.
+The later09:30UTC outer deadline does not extend this short session. USD800 cap
+and USD700 reserve unchanged. Stop immediately after preview/failure and preserve
+evidence. Candidate remains E8ds_v5/128GiB storage with later D4s_v5 same-VM
+resize, subject to fresh GUI preflight; none of those mutations is authorized.
+
+## Separate-network target preview saved; no deployment
+
+September21,09:01UTC: installed GUI fresh readiness and target preflight passed.
+Readiness operation `9799adf5-9733-44f1-8753-38a2f0f2561f`, submitted08:56:04.263UTC,
+was reconciled as finished; pinned artifact matched on new boot
+`e4c1374d-d1e2-4cd9-8fc2-4c90d196170e`. Retained receipt reports idle,
+disk3.5281%, swap0, OOM0. After deallocation ARM instance-view returned Pending
+with no output; preserve the successful GUI receipt rather than replaying the
+command or treating the stopped-agent response as a new execution result.
+
+Actual native GUI review showed all5.6M mapped rows/18labels and the accepted
+inventory seal. Fresh pricing is **USD1.448/hour combined compute**, plus the
+USD700 accrued/non-compute reserve, within the USD800 planning ceiling. Reviewed
+PostgreSQL18/AGE E8ds_v5,128GiB storage, JapanEast zone1, HA disabled, private
+access; prospective same-VM D4s_v5 resize remains a separate operation. The new
+`10.246.23.0/24` delegated subnet would be deployed in the original network RG;
+server/private DNS would be in the new migration RG. No peering/public access.
+
+Selected **Save plan only** and chose `production-simulation/work/b01-staging`
+in the native folder picker. GUI confirmed "Reviewed LoadJob and plan saved.
+No Azure resources were deployed." Retained target phase is `previewed`, hash
+`20abaf42160222a0f677a5923d2ba19a1a0410b23c8278d28bfedfb952a90abf`.
+Both local files are mode0600 and parse as JSON/YAML1.2:
+
+- LoadJob1,252bytes, SHA256
+  `8fee2141d3e7b26f403a3d9eef218ab973d1ce2e21a5670bd9fca30de467eb1f`.
+- Target plan10,130bytes, SHA256
+  `67acdef1252a84547ad768ff20fdab28e31d3c33f3968c1bfcd54a551b49b444`.
+
+This save-only path does not generate credentials, submit ARM what-if/deployment,
+resize the VM or start migration. Independent ARM inventory shows no Flexible
+Server/private DNS in the new group and only the original runner/transfer
+deployments. Migration record remains absent. The plan's09:30UTC outer deadline
+is not permission to keep this readiness-only session running.
+
+Requested exact VM deallocation09:00:44UTC, verified `PowerState/deallocated`
+by09:01:22UTC, less than6minutes after start and before09:09UTC. Scoped heartbeat
+disabled after verification. Disks, report, plan and prior failed evidence remain
+retained. B01 remains **partial**: separate-group target deployment, same-VM
+resize, actual GUI migration and full64range canonical verification are pending
+their scoped approvals and a sufficient remaining live window.
+
+Documentation validation: diff whitespace and sensitive-value scan clean;
+both saved files parse, mode0600 and hashes independently checked, private work
+directory remains Git-ignored. All28 target/preflight regression tests pass.

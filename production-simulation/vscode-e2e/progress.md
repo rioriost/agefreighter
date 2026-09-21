@@ -2,7 +2,17 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **source inventory and sealed GUI import PASS; B01 partial**.
+Current B01 phase: **fresh GUI target preflight and save-only plan PASS; B01 partial**.
+Approved15minute existing-VM restart began08:55:35UTC. New-boot readiness passed,
+then installed GUI reviewed the separate-network-group subnet and private target
+with current USD1.448/hour combined compute, USD700 reserve/USD800 cap. Saved
+LoadJob and target plan (`20abaf421602…`) only; no credentials, target deployment,
+resize or migration. Exact VM deallocated by09:01:22UTC and heartbeat disabled,
+before09:09UTC short-session bound. Evidence/disks retained. Actual deployment,
+migration and64range canonical verification remain pending. See
+[target preview and safe stop](separate-network-live-20260921.md).
+
+Previous B01 phase: **source inventory and sealed GUI import PASS; B01 partial**.
 Existing operation completed; report generated08:42:01UTC. Installed GUI exported
 and imported exact2,944bytes/SHA `e34bf7857c91…`. Independent assertions match
 all18frozen P1label counts,1.6Mvertices+4Medges; no failed/incomplete checks.
