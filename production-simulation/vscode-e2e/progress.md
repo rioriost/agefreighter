@@ -2,7 +2,18 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **fresh GUI target preflight and save-only plan PASS; B01 partial**.
+Current B01 phase: **approved separate-network target deployment submitted; B01 partial**.
+User approved exact private PostgreSQL18/AGE E8ds_v5/128GiB-storage target,
+dedicated subnet/DNS and SecretStorage, existing VM restart, maximum2hours;
+no resize or migration. Hard stop11:45UTC/20:45JST, USD800/USD700reserve unchanged.
+VM start09:47:40UTC and fresh pinned readiness pass. Installed GUI renewed
+plan `395b74a99c91…`, passed separate-scope what-if and submitted one parent;
+ARM Running09:50:54UTC. Reconciliation is read-only, no replay. Latest delayed
+original-group costUSD341.803553466625; new-group charges not yet reported.
+Scoped stop monitor active; stop exact VM/new target at outcome or bound.
+See [bounded deployment session](separate-network-live-20260921.md).
+
+Previous B01 phase: **fresh GUI target preflight and save-only plan PASS; B01 partial**.
 Approved15minute existing-VM restart began08:55:35UTC. New-boot readiness passed,
 then installed GUI reviewed the separate-network-group subnet and private target
 with current USD1.448/hour combined compute, USD700 reserve/USD800 cap. Saved

@@ -389,3 +389,38 @@ their scoped approvals and a sufficient remaining live window.
 Documentation validation: diff whitespace and sensitive-value scan clean;
 both saved files parse, mode0600 and hashes independently checked, private work
 directory remains Git-ignored. All28 target/preflight regression tests pass.
+
+## Approved private-target deployment session
+
+September21 follow-up: user said continue to the explicit request for existing
+VM restart and new private PostgreSQL18/AGE E8ds_v5/128GiB-storage target,
+dedicated subnet/private DNS and credentials retained only in VS Code
+SecretStorage, maximum two hours, USD800 unchanged. This is not approval for
+VM resize or data migration. Previous09:30UTC window has expired; this is a new
+bounded authorization. Set exact-VM auto-shutdown and scoped safety monitor to
+**11:45UTC (20:45JST)** before starting, conservatively within two hours.
+Stop the exact VM and new target on terminal outcome or deadline; retain evidence.
+
+Read-only checks confirmed exact VM ownership/B2s_v2/deallocation and only the
+original runner/transfer deployments. Recent activity showed the prior authorized
+start/readiness/deallocation and health events, not a new target deployment.
+Fresh delayed cost is USD341.803553466625 for the original group; new-group
+charges remain unreported, not zero. USD700 reserve/USD800 ceiling retained.
+
+Exact VM start accepted09:47:40UTC. GUI readiness operation
+`0393de7a-4e5e-4234-ad18-da2695ce20a1`, submitted09:47:59.609UTC, finished on boot
+`6da2b5d0-710f-4533-807b-9f97a8a71238`; artifact/version matched, idle,
+disk3.5289%, swap0/OOM0. Native target review repeated quota/network/current
+price checks and showed the approved two-group layout, USD1.448/hour combined
+compute, USD700 reserve/USD800 cap and11:45UTC deadline. The planned later
+D4s_v5 resize was not performed; VM remains B2s_v2.
+
+Selected the already-approved target deployment through the installed GUI and
+saved new create-only plan `395b74a99c91decce69ddae7a7b724b2116dd793180fed0f2cb0427963c8367e`
+under the same private B01 staging folder, preserving the prior preview. Both
+scope what-if gates passed before the single parent submission. Parent
+`afpg-5cb990c12a254de5a10d` is Running at09:50:54.589UTC, correlation
+`166c2eb9-62e4-4d22-925d-46a9c3e2dae8`. Independent network child is
+`afpg-net-5cb990c12a254de5a10d` in the original network group. Installed GUI
+reconciled `submitted` without replay. No migration record exists; neither
+deployment success nor AGE readiness has yet been claimed.
