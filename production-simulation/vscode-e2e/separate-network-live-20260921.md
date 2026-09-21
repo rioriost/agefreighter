@@ -515,3 +515,35 @@ installation remains an action-time approval. Stop exact compute at terminal
 failure, qualification completion, fifteen minutes of idle approval waiting or
 the fixed bound, retaining all evidence. Startup/readiness/resize/migration and
 canonical verification are not yet claimed by this authorization record.
+
+### Same-VM sizing complete; migration accepted and worker running
+
+First start requests issued13:03:43UTC. Fresh installed-GUI readiness succeeded
+for operation `948ec658-5767-4760-96d8-9e9a29a8b8b0`, disk3.6542%, idle and
+zero swap/OOM. GUI explicitly advanced deallocate, B2s_v2-to-D4s_v5 patch and
+start as separate stages, reconciling each without replay. Preservation digest
+`e3f95f22a1fb03bb8a7ee9464c1092438be2d79bf5a35cc9be718877f3a35d99`
+remained unchanged across disk/NIC/system-identity/placement checks. Resize is
+finished. Target startup applied the existing AGE preload: pending=false and
+GUI `targetRestart.phase=finished` at13:07:27UTC, without a separate restart.
+
+Post-resize readiness `550e71b9-2d0e-4530-8078-15bb9073b495`, submitted13:10:26UTC,
+passed on boot `e8c8577e-29a6-4040-a809-d69eb8918342`: exact pinned artifact,
+idle, disk3.65515%, swap0/OOM0. GUI migration preflight verified the retained
+Cosmos reader grant, accepted inventory/configuration, private target readiness,
+applied preload, price and budget before the native migration confirmation.
+
+One new migration was submitted13:12:24.916UTC; operation/job
+`37624cff-6aea-449e-9de3-38c6aa5c984d`. Guest configuration SHA256
+`8186d67deee2acc44d8e3a2e42a229f95d75a667101677ab2f2c23344ee5808c`.
+Installed GUI reconciled accepted; independent read-only guest evidence at
+13:13:32UTC shows its exact worker active/running since13:12:50UTC, loader RSS
+31,912KiB, unit memory26,857,472bytes, disk4%, total guest used277MiB, swap0
+and no kernel OOM entries. Worker retains a30minute runtime limit, approximately
+13:42:50UTC; outer15:00UTC stop remains unchanged. A later status receipt is
+pending, not another migration. No count/canonical pass yet; B01 stays partial.
+
+All62 targeted resize/execution/target/preflight regressions pass. Scoped monitor
+now tracks this exact job, permitted retained test-report import and safety
+stops. Dedicated full64range verifier is not installed or action-time-approved
+for this VM. Preserve all accepted inventory and original evidence.

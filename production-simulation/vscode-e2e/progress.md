@@ -2,7 +2,20 @@
 
 Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **approved bounded migration session starting; B01 partial**.
+Current B01 phase: **same-VM sizing complete; GUI migration accepted, Linux worker running; B01 partial**.
+GUI advanced the existing VM from B2s_v2 to D4s_v5 while preserving its disk,
+NIC/identity and placement. AGE preload applied during target start; pending=false.
+Fresh post-resize readiness passed with pinned Linux d40d6ccc9a4d, disk3.65515%,
+idle/no swap/OOM. One GUI migration submitted13:12:24.916UTC: job
+`37624cff-6aea-449e-9de3-38c6aa5c984d`, accepted against the retained5.6M/18label
+inventory. Exact worker independently active/running13:13:32UTC, loader31,912KiB
+RSS, disk4%, swap0/no OOM. Counts and canonical verification remain pending.
+Worker30minute bound and15:00UTC outer stop unchanged; cumulativeUSD800 cap.
+Scoped safety monitor active; no new resource/source/security changes. Full64range
+verifier installation remains separately gated. All62targeted regressions pass.
+See [live migration evidence](separate-network-live-20260921.md).
+
+Previous B01 phase: **approved bounded migration session starting; B01 partial**.
 User explicitly approved existing B01 VM/target restart, AGE readiness, same-VM
 D4s_v5 resize and5.6M-row migration/verification. Start requests issued13:03:43UTC;
 fixed stop15:00UTC (September22 00:00JST), less than two hours. Scoped monitor and
