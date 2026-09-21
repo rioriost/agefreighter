@@ -5,8 +5,10 @@ Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed
 Current isolated FK step: explicit adoption, property review and actual Reload
 Window/reconnect passed September21 with unchanged sourceDraft SHA. The approved
 existing VM/source restart was requested01:39:15UTC; hard stop02:08UTC (11:08JST),
-monitor active. Fresh readiness and mapped inventory5vertices+3edges remain
-pending; no new resources, updates, grants, target or migration authorized.
+monitor active. Fresh readiness/source Ready-private passed01:42UTC; GUI password
+input is open, mapped inventory5vertices+3edges not dispatched. Stop on idle
+input wait01:57:30UTC or hard bound. No new resources, updates, grants, target
+or migration authorized.
 
 Previous checkpoint (08:45 UTC): installed-GUI complete inventory/import passed,
 with independently matched original seal and all 18 frozen P1 label counts

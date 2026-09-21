@@ -5,6 +5,8 @@ Two vertex mappings and the safe products-to-suppliers FK retain reviewed proper
 the nullable FK remains a manual-review warning. Mapped inventory is pending.
 The user approved restarting only the existing VM/source for at most 30 minutes.
 Starts requested at 01:39:15 UTC; hard stop 02:08 UTC (11:08 JST), monitor active.
+Fresh pinned readiness and source Ready/private verified; private GUI password
+input opened at 01:42:30 UTC. Inventory is not dispatched yet.
 No new resource, software update, grant, target or migration is authorized.
 
 ## Why a separate fixture is needed
@@ -203,3 +205,17 @@ No source write, new resource or Azure restart occurred during this design revie
   Updated the existing safety monitor and exact VM daily shutdown to02:08UTC.
   Fresh readiness must verify the new boot and health before inventory dispatch.
   Stop on terminal outcome, fifteen-minute idle input wait or hard bound.
+
+## Fresh readiness / inventory credential gate — 01:42 UTC
+
+- Installed GUI reconciled readiness `af-c171ebeb-32b7-46f5-8c81-3da5f8a01e9d`
+  at01:40:45.019UTC, new boot `8addef7d-9bbc-4f23-b3d8-b3f9f10b5139`;
+  pinned Linux version/archive unchanged, idle true, disk3.522%, no swap/OOM.
+- Independent guest diagnostic01:42:01UTC: total used memory245,882,880bytes,
+  swap0, root4%; source Ready with public network Disabled. No worker replay.
+- Re-reviewed the restored mappings in the installed GUI and approved complete
+  read-only inventory for exact existing runner/source/database. Private password
+  input opened01:42:30UTC; requested the existing PostgreSQL reader Keychain item,
+  never Neo4j/admin credentials. No inventory dispatch as of this checkpoint.
+- Preserve hard stop02:08UTC and fifteen-minute idle input limit01:57:30UTC.
+  No source data, grants, software, network or target changes occurred.

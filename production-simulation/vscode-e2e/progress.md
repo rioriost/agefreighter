@@ -7,7 +7,10 @@ fixture's two vertices and safe FK edge, reviewed properties and actual Reload
 Window/reconnect passed while stopped; sourceDraft SHA unchanged. User approved
 existing VM/source restart for at most30minutes. Starts accepted01:39:15UTC;
 hard stop02:08UTC (11:08JST), monitor active. Fresh readiness and five-vertex/
-three-edge mapped inventory remain pending. No new resource, update, grant,
+three-edge mapped inventory were pending at launch. At01:42UTC, pinned readiness
+and source Ready/private passed; GUI private password input is open, inventory
+not dispatched. Stop on fifteen-minute idle wait01:57:30UTC or hard bound.
+No new resource, update, grant,
 target or migration. See [FK trial](postgres-fk-live-plan-20260920.md).
 
 Previous B04 follow-up (September 20, 09:33 UTC): the approved
