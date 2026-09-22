@@ -24,6 +24,7 @@ function fixture(){
       createWebviewPanel:()=>({onDidDispose:(fn:()=>void)=>{dispose=fn;},webview:{html:"",postMessage:async(m:unknown)=>{messages.push(m);},onDidReceiveMessage:(fn:typeof receive)=>{receive=fn;return{dispose:()=>{}};}}}),
       showWarningMessage:async(_title:string,options:{detail:string})=>{details.push(options.detail);onConfirm();return answer;}
     }},
+    "./runnerWatch":{watchRetainedOperation:async()=>{}},
     "./core/runner":{object},"./core/runnerSourceView":{runnerSourceHTML:()=>"test"},
     "./core/runnerReport":{canRetainRejectedReportExport,retainRejectedReportExport:async(_c:unknown,r:typeof record,cap:string)=>{assert.equal(cap,"read-only-capability");calls++;return r;}}
   };

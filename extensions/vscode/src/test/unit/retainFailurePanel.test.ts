@@ -25,7 +25,7 @@ function fixture(){
     vscode:{workspace,ViewColumn:{One:1},window:{
       createWebviewPanel:()=>({onDidDispose:(fn:()=>void)=>{dispose=fn;},webview:{html:"",postMessage:async(m:Record<string,any>)=>{messages.push(m);},onDidReceiveMessage:(fn:typeof receive)=>{receive=fn;return{dispose:()=>{}};}}}),
       showWarningMessage:async(_title:string,options:{detail:string})=>{details.push(options.detail);onConfirm();return answer;}
-    }},"./core/runner":{object},"./core/runnerAssessment":assessment,"./core/runnerSourceView":{runnerSourceHTML:()=>"test"}
+    }},"./runnerWatch":{watchRetainedOperation:async()=>{}},"./core/runner":{object},"./core/runnerAssessment":assessment,"./core/runnerSourceView":{runnerSourceHTML:()=>"test"}
   };
   const output={exports:{openRunnerSource:(_a:unknown,_b:unknown,_c:unknown,_d:string)=>{}}},native=createRequire(__filename);
   new Script(code).runInNewContext({module:output,exports:output.exports,Error,require:(n:string)=>n in modules?modules[n]:n.startsWith("node:")?native(n):{}});

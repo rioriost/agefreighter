@@ -47,6 +47,38 @@ retain failed-run evidence and use a fresh job and target for corrective tests.
 
 ## Prerequisites
 
+### Fewer interactive waits in guided qualification
+
+- Before starting compute, use **AGEFreighter: Prepare, Replace or Forget Source
+  Credential** after reviewing source settings. Choose **Use once**, or opt into
+  encrypted VS Code SecretStorage reuse for this workflow, connection, account
+  and CA. Reuse expires after eight hours or an earlier target deadline; changed
+  connections and retained failures require new entry. The encrypted entry is
+  removed on next access after expiry, or immediately with **Forget**. No password
+  is stored in the form, workflow JSON, LoadJob, logs or model context.
+- Target inputs are saved after each field and survive cancellation, reload and
+  preflight failure. Reuse or edit them; no deadline is automatically extended.
+  **Save plan only** does not require a running VM. A deployment still requires
+  review, fresh readiness and live ownership/network/quota/budget checks after
+  input is complete. Saved inputs are not deployment authorization.
+- Active source operations are monitored while their panel is open, including
+  after reconnect. Migration execution watches the retained job automatically.
+  Polling is bounded to 30 minutes/15 status steps; failures stop the watcher.
+  Cancel stops watching, not the Linux job. No migration is automatically retried
+  or resumed. Existing receipt-capacity and service time limits still apply.
+- A single approval for a specific sealed report covers export, bounded polling
+  and hash-verified import. Reopen a pending transfer without repeating export or
+  its approval. Report import is not full migration qualification.
+- The native same-VM resize approval now covers deallocation, resize and restart
+  of that exact idle runner, for at most 20 minutes or the earlier target deadline.
+  A retained, unchanged grant can continue after reconnect; uncertainty never
+  causes replay. Migration, new resources and verifier installation remain
+  separately reviewed operations.
+
+MFA and native OS permissions cannot be pre-approved by this extension. Prepare
+credentials and review plans while resources are stopped where possible. Installed
+GUI/live qualification remains distinct from automated regression tests.
+
 Use VS Code 1.105 or newer and sign in to Azure in VS Code.
 Azure Resources and AGEFreighter have separate account-access
 permissions: on first use, open VS Code's **Accounts** menu (profile icon) and

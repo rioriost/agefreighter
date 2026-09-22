@@ -90,6 +90,7 @@ suite("AGEFreighter extension", () => {
     const commands = await vscode.commands.getCommands(true);
     for (const command of [
       "agefreighter.newGuidedMigration",
+      "agefreighter.sourceCredential",
       "agefreighter.validate",
       "agefreighter.plan",
       "agefreighter.profile",

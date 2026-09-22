@@ -68,6 +68,7 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
     "./runnerSourcePanel": {openRunnerSource: () => {effects++;}},
     "./runnerTargetPanel": {reviewRunnerTarget: () => {effects++;}},
     "./runnerExecutionPanel": {continueRunnerExecution: () => {effects++;}},
+    "./sourceCredentialPanel": {},
     "./runnerReceiptsPanel": {},
     "./runnerReceiptRemovalPanel": {},
     "./developmentRunner": {}, "./core/runnerPlacement": placement

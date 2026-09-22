@@ -68,12 +68,15 @@ export interface RunnerRecord {
   upgrade?: RunnerUpgrade;
   upgradeHistory?: RunnerUpgrade[];
   target?: RunnerTarget;
+  /** Local inputs only, never an authorization to deploy or extend a deadline. */
+  targetDraft?: { binding: string; input: Partial<RunnerTarget["input"]>; folder?: string };
   costAuthorizations?: {
     authorizedAt: string;
     previous: Pick<RunnerTarget["input"], "deadline" | "budgetUSD" | "additionalReserveUSD" | "hourlyUSD">;
     current: Pick<RunnerTarget["input"], "deadline" | "budgetUSD" | "additionalReserveUSD" | "hourlyUSD">;
   }[];
   resize?: RunnerResize;
+  resizeAuthorization?: { binding: string; approvedAt: string; deadline: string };
   migration?: RunnerMigration;
   migrationContinuations?: RunnerMigration[];
   resumeInspection?: import("./runnerResume").ResumeInspection;

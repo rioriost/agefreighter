@@ -9,14 +9,17 @@ import { buildSourceDraft, inspectSourceCA, sourceSecrets } from "./core/runnerS
 import { assessmentActive, ensureAssessmentReadiness, refreshAssessment, startAssessment, retainFailedAssessment } from "./core/runnerAssessment";
 import { runnerSourceHTML } from "./core/runnerSourceView";
 import { refreshStorage, storageDraft, submitStorage } from "./core/runnerStorageLifecycle";
-import { reportStorageNames, verifyReportStorage, verifyTransferStorage } from "./core/runnerReportStorage";
-import { canRetainRejectedReportExport, importReport, refreshReportExport, retainRejectedReportExport, startReportExport } from "./core/runnerReport";
+import { reportStorageNames, verifyTransferStorage } from "./core/runnerReportStorage";
+import { canRetainRejectedReportExport, retainRejectedReportExport } from "./core/runnerReport";
 import { escapeHTML } from "./core/report";
 import { CSVManifest, CSVTransferCancelledError, inspectCSV } from "./guided/csvTransfer";
 import { csvAssessmentReady, refreshCSVImport, startCSVImport } from "./core/runnerCSV";
 import { csvFilesInFolder } from "./guided/csvSelection";
 import { previewCosmosAccess, refreshCosmosAccess, submitCosmosAccess } from "./core/runnerCosmosAccess";
 import { adoptCatalog, assertCatalogCurrent, catalogBinding, catalogConfiguration, catalogRecommendations, refreshCatalog, startCatalog } from "./core/runnerCatalog";
+import { sourceCredential, forgetSourceCredential } from "./sourceCredentialPanel";
+import { watchRetainedOperation } from "./runnerWatch";
+import { transferApprovedReport } from "./runnerReportFlow";
 
 export interface RunnerSourceServices {
   storagePrincipal(subscription: string): Promise<string>;
@@ -53,11 +56,16 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
     canStart: record.phase === "provisioned" && !!record.guestReady }); await postCatalog(record); };
   const listener = panel.webview.onDidReceiveMessage(async raw => {
     if (busy) return;
+    let watch: "assessment" | "postgresCatalog" | undefined;
     busy = true; await post({ kind: "busy", value: true });
     try {
       const message = object(raw);
       switch (message.action) {
-        case "ready": await initialize(await store.read(workflow)); break;
+        case "ready": {
+          const r = await store.read(workflow); await initialize(r);
+          watch = r.assessment ? "assessment" : r.postgresCatalog ? "postgresCatalog" : undefined; break;
+        }
+        case "forgetCredential": await forgetSourceCredential(context, workflow); await post({ kind: "error", text: "Saved source credential removed. The next approved operation will ask for a password." }); break;
         case "catalogStart": {
           if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before catalog discovery.");
           const record = await store.read(workflow);
@@ -67,7 +75,7 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           const confirmed = await vscode.window.showWarningMessage("Read PostgreSQL schema metadata on this Linux runner?", { modal: true,
             detail: `${configuration.host}:${configuration.port}/${configuration.database} as ${configuration.username}\nSchemas: ${configuration.schemas.join(", ")}\nRunner: ${record.vmId}\nRead-only catalog transaction: 2 minutes, 64 tables, 128 columns and 64 key constraints per table; 4 MiB output. No row values, exact counts, target writes or migration. TLS verification is required. This is a single retained operation, never an automatic retry.` }, "Approve catalog read");
           if (confirmed !== "Approve catalog read" || disposed) break;
-          let password = await vscode.window.showInputBox({ title: "Read-only PostgreSQL source password", password: true, ignoreFocusOut: true, prompt: "Protected Linux channel only; not stored with the catalog or sent to an AI model." });
+          let password = await sourceCredential(context, record, configuration, () => disposed);
           if (password === undefined || disposed) break;
           try {
             let pem: string | undefined;
@@ -85,13 +93,13 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
               if (!vscode.workspace.isTrusted || disposed) throw new Error("Catalog approval cancelled.");
               return startCatalog(control, current, configuration, secrets);
             });
-            reviewedHash = undefined; await postCatalog(next);
+            reviewedHash = undefined; await postCatalog(next); watch = "postgresCatalog";
           } finally { password = undefined; }
           break;
         }
         case "catalogRefresh": {
           if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before refreshing catalog evidence.");
-          await postCatalog(await store.exclusive(workflow, async () => refreshCatalog(control, await store.read(workflow)))); break;
+          await postCatalog(await store.exclusive(workflow, async () => refreshCatalog(control, await store.read(workflow)))); watch = "postgresCatalog"; break;
         }
         case "catalogReport": {
           if (!services || !vscode.workspace.isTrusted) throw new Error("Trusted Azure access is required for catalog transfer.");
@@ -100,19 +108,11 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           if (record.reportTransfers?.find(x => x.operation === c.operation)?.phase === "imported") { await postCatalog(record); break; }
           if (record.storageDeployment?.phase !== "ready") throw new Error("Prepare transfer storage first.");
           const names = reportStorageNames(record);
-          const confirmed = await vscode.window.showWarningMessage("Transfer this sealed PostgreSQL catalog?", { modal: true,
+          const confirmed = record.reportTransfers?.some(x => x.operation === c.operation) ? "Transfer catalog report" : await vscode.window.showWarningMessage("Transfer this sealed PostgreSQL catalog?", { modal: true,
             detail: `Operation ${c.operation}\n${c.reportBytes} bytes; SHA-256 ${c.reportSHA256}\nDestination: ${names.origin}/${names.container}\nSchema/table/key names may be sensitive. Stored privately on this computer; no AI upload, source re-read or mapping adoption.` }, "Transfer catalog report");
           if (confirmed !== "Transfer catalog report" || disposed) break;
-          const next = await store.exclusive(workflow, async () => {
-            if (!vscode.workspace.isTrusted || disposed) throw new Error("Catalog transfer cancelled.");
-            let current = await store.read(workflow);
-            if (hash(assertCatalogCurrent(current)) !== hash(c)) throw new Error("Catalog manifest changed; review again.");
-            if (!current.reportTransfers?.some(x => x.operation === c.operation)) return startReportExport(control, current, await services.reportCapability(current, c.operation, "c"), c.operation);
-            if (current.guestCommand?.action === "export-report" && current.guestCommand.operation === c.operation) current = await refreshReportExport(control, current);
-            return importReport(control, current, c.operation, await services.reportCapability(current, c.operation, "r"), async (id, manifest, text) => {
-              catalogRecommendations(current, text); await store.retainReport(id, manifest, text);
-            });
-          });
+          const next = await transferApprovedReport(control, store, workflow, { operation: c.operation, sha256: c.reportSHA256, bytes: c.reportBytes },
+            (...args) => services.reportCapability(...args), () => disposed || !vscode.workspace.isTrusted, (r, text) => { catalogRecommendations(r, text); });
           await postCatalog(next); break;
         }
         case "catalogAdopt": {
@@ -262,19 +262,10 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           if (existing?.phase !== "imported") {
             const names = reportStorageNames(record);
             if (record.storageDeployment?.phase !== "ready") throw new Error("Prepare transfer storage and refresh it to Ready first.");
-            const confirmed = await vscode.window.showWarningMessage("Transfer and verify this assessment report?", { modal: true,
+            const confirmed = existing ? "Transfer verified report" : await vscode.window.showWarningMessage("Transfer and verify this assessment report?", { modal: true,
               detail: `${assessment.action}: ${assessment.operation}\n${manifest.bytes} bytes; SHA-256 ${manifest.sha256}\nDestination: ${names.origin}/${names.container}\nSource metadata/sample values may be sensitive. The report is retained privately on this computer and is not sent to an AI model. This action does not repeat source discovery or start migration.` }, "Transfer verified report");
             if (confirmed !== "Transfer verified report" || disposed) break;
-            const next = await store.exclusive(workflow, async () => {
-              let current = await store.read(workflow);
-              if (current.assessment?.operation !== assessment.operation || current.assessment.reportSHA256 !== manifest.sha256) throw new Error("The assessment changed; review it again.");
-              await verifyReportStorage(control, current, `${names.origin}/${names.container}/reports/${assessment.operation}.json`);
-              if (!current.reportTransfers?.some(item => item.operation === assessment.operation)) {
-                return startReportExport(control, current, await services.reportCapability(current, assessment.operation, "c"));
-              }
-              if (current.guestCommand?.action === "export-report" && current.guestCommand.operation === assessment.operation) current = await refreshReportExport(control, current);
-              return importReport(control, current, assessment.operation, await services.reportCapability(current, assessment.operation, "r"), (id, m, text) => store.retainReport(id, m, text));
-            });
+            const next = await transferApprovedReport(control, store, workflow, manifest, (...args) => services.reportCapability(...args), () => disposed || !vscode.workspace.isTrusted);
             await initialize(next);
             if (next.reportTransfers?.find(item => item.operation === assessment.operation)?.phase !== "imported") break;
           }
@@ -361,7 +352,7 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           if (confirmed !== "Approve source reads" || disposed) break;
           let password: string | undefined;
           if (["neo4j", "postgresql"].includes(record.input.source.type)) {
-            password = await vscode.window.showInputBox({ title: "Read-only source password", prompt: "Sent through the protected guest channel; not saved with settings or sent to an AI model.", password: true, ignoreFocusOut: true });
+            password = await sourceCredential(context, record, record.sourceDraft.form, () => disposed);
             if (password === undefined || disposed) break;
           }
           try {
@@ -380,19 +371,26 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
               if (disposed) throw new Error("Source assessment cancelled; no source read was submitted.");
               return startAssessment(control, current, message.method as "profile" | "inventory", secrets);
             });
-            await post({ kind: "assessment", assessment: next.assessment });
+            await post({ kind: "assessment", assessment: next.assessment }); watch = "assessment";
           } finally { password = undefined; }
           break;
         }
         case "refresh": {
           const next = await store.exclusive(workflow, async () => refreshAssessment(control, await store.read(workflow)));
-          await post({ kind: "assessment", assessment: next.assessment }); break;
+          await post({ kind: "assessment", assessment: next.assessment }); watch = "assessment"; break;
         }
         default: throw new Error("Unsupported source form action.");
       }
     } catch (error) {
       await post({ kind: "error", text: error instanceof Error ? error.message : "Source assessment could not be completed. No automatic replay was attempted." });
     } finally { busy = false; await post({ kind: "busy", value: false }); }
+    if (watch && !disposed) {
+      const kind = watch;
+      void watchRetainedOperation(control, store, workflow, kind, () => disposed, async r => {
+        if (["failed", "interrupted"].includes(r[kind]?.phase ?? "")) await forgetSourceCredential(context, workflow);
+        if (kind === "postgresCatalog") await postCatalog(r); else await post({ kind: "assessment", assessment: r.assessment });
+      }).catch(async () => { await post({ kind: "error", text: "Automatic status watch stopped. Retained work was not cancelled or replayed; use Refresh to reconcile." }); });
+    }
   });
   panel.onDidDispose(() => { disposed = true; listener.dispose(); }, undefined, context.subscriptions);
 }

@@ -90,6 +90,11 @@
         "title": "AGEFreighter: Archive runner readiness receipts"
       },
       {
+        "command": "agefreighter.sourceCredential",
+        "title": "Prepare, Replace or Forget Source Credential",
+        "category": "AGEFreighter"
+      },
+      {
         "command": "agefreighter.continueRunnerExecution",
         "title": "AGEFreighter: Continue / Verify Linux Migration"
       },

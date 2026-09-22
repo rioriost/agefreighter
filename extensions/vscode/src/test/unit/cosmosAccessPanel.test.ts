@@ -31,6 +31,7 @@ function fixture() {
       showWarningMessage:async()=>{confirmations++;onConfirm();return answer;}
     }},
     "./core/runner":{object},"./core/runnerAssessment":{assessmentActive:()=>false},
+    "./runnerWatch":{watchRetainedOperation:async()=>{}},
     "./core/runnerSourceView":{runnerSourceHTML:()=>"test"},"./core/runnerCosmosAccess":cosmosAccess
   };
   const output={exports:{openRunnerSource:(_context:unknown,_control:unknown,_store:unknown,_id:string)=>{}}},native=createRequire(__filename);

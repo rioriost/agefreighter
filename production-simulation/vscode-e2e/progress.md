@@ -46,6 +46,15 @@ readiness expiry during serial input and manual orchestration overhead. Pending
 folder/deployment cancelled, exact idleVM stop requested09:07UTC; no new target
 or migration. Automation improvements proposed, not yet implemented.
 Both exact VMs verified deallocated by09:08UTC; safety monitor paused.
+User then requested implementation and live continuation. Local automation
+improvements are now implemented: optional scoped encrypted source credential
+reuse, retained target inputs/offline saving, post-input readiness refresh,
+bounded retained-operation status watches, one-approved-report transfer/import,
+and an exact-scope bounded same-VM resize sequence. Typecheck/build and502
+unit/adapter tests pass; isolated real Extension Host25/25 on baseline1.105 and
+installed1.138 also pass. [Implementation and boundaries](automation-improvements-20260922.md).
+Operator-profile installation and B03 live continuation are not yet performed;
+no existing Azure qualification is inferred from these local tests.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).

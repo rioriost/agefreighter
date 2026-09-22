@@ -22,6 +22,8 @@ function fixture(){
     showWarningMessage:async(title:string,_options:unknown,button:string)=>{confirmations.push(title);onConfirm();return cancel?undefined:button;},
     showInputBox:async()=>{passwords++;onPassword();return "PRIVATE-CATALOG-PASSWORD";}
   }},"./core/runner":runner,"./core/runnerCatalog":catalog,"./core/runnerAssessment":assessment,"./core/runnerSource":source,"./core/runnerSourceView":{runnerSourceHTML:()=>"fixture"}};
+  modules["./sourceCredentialPanel"]={sourceCredential:async()=>{passwords++;onPassword();return "PRIVATE-CATALOG-PASSWORD";}};
+  modules["./runnerWatch"]={watchRetainedOperation:async()=>{}};
   const output={exports:{openRunnerSource:(_a:unknown,_b:unknown,_c:unknown,_d:string)=>{}}},native=createRequire(__filename);
   new Script(code).runInNewContext({module:output,exports:output.exports,Error,Buffer,require:(name:string)=>name in modules?modules[name]:name.startsWith("node:")?native(name):{}});
   output.exports.openRunnerSource({subscriptions:[]},f.control,store,workflow);

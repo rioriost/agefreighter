@@ -15,6 +15,7 @@ import { continueRunnerExecution } from "./runnerExecutionPanel";
 import { requirePanelWorkflow } from "./core/runnerPanelBinding";
 import { archiveRunnerReadiness } from "./runnerReceiptsPanel";
 import { manageReadinessRemoval } from "./runnerReceiptRemovalPanel";
+import { sourceCredential, forgetSourceCredential } from "./sourceCredentialPanel";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -22,6 +23,18 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
   const azure = new AzureSession();
   let panel: vscode.WebviewPanel | undefined;
   const store = new RunnerStore(join(context.globalStorageUri.fsPath, "runner-v2"));
+  context.subscriptions.push(vscode.commands.registerCommand("agefreighter.sourceCredential", async () => {
+    try {
+      if(!vscode.workspace.isTrusted)throw new Error("Trust this workspace before managing source credentials.");
+      const selected=await vscode.window.showQuickPick((await store.list()).filter(r=>["neo4j","postgresql"].includes(r.input.source.type)&&r.sourceDraft).map(r=>({label:r.id,description:`${r.input.source.type}: ${r.sourceDraft!.form.host} / ${r.sourceDraft!.form.username}`,id:r.id})),{placeHolder:"Prepare or forget a source credential — no Azure resources will be started"});
+      if(!selected)return;
+      const r=await store.read(selected.id);
+      const action=await vscode.window.showQuickPick(["Prepare / reuse credential","Forget saved credential","Replace saved credential"],{placeHolder:"Encrypted, workflow-scoped source credential"});
+      if(!action)return;
+      if(action!=="Prepare / reuse credential")await forgetSourceCredential(context,r.id);
+      if(action!=="Forget saved credential")await sourceCredential(context,r,r.sourceDraft!.form,undefined,true);
+    } catch { await vscode.window.showErrorMessage("Source credential could not be prepared. No Azure operation was performed."); }
+  }));
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.archiveRunnerReadiness", async () => {
     try { await archiveRunnerReadiness(store); }
     catch (error) { await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Readiness evidence could not be archived. Nothing was removed."); }

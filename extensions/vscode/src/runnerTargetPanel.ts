@@ -7,6 +7,8 @@ import { AzureSession } from "./guided/azure";
 import { RunnerControl } from "./core/runnerLifecycle";
 import { sourceTargetEvidence, targetPreview, TargetInput, submitTarget, refreshTarget, repairBusyTargetPreload } from "./core/runnerTarget";
 import { preflightTarget, targetComputeRate } from "./core/runnerTargetPreflight";
+import { ensureAssessmentReadiness } from "./core/runnerAssessment";
+import { targetDraftBinding, retainTargetDraft } from "./core/targetDraft";
 
 export async function reviewRunnerTarget(context:vscode.ExtensionContext,control:RunnerControl,store:RunnerStore,azure:AzureSession,workflow?:string):Promise<void>{
   if(!vscode.workspace.isTrusted)throw new Error("Trust this workspace before planning Azure resources.");
@@ -28,35 +30,62 @@ export async function reviewRunnerTarget(context:vscode.ExtensionContext,control
   if(!a?.reportSHA256 || !a.reportBytes)throw new Error("Complete and import the whole-source inventory first.");
   const report=await store.readReport(record.id,{operation:a.operation,sha256:a.reportSHA256,bytes:a.reportBytes});
   const evidence=sourceTargetEvidence(record,report);
-  const ask=(prompt:string,value:string)=>vscode.window.showInputBox({prompt,value,ignoreFocusOut:true});
-  const serverName=await ask("New private PostgreSQL 18 server name",record.target?.input.serverName??`afpg-${record.id.replaceAll("-","").slice(0,20)}`);if(serverName===undefined)return;
-  const subnetCIDR=await ask("New non-overlapping delegated subnet CIDR inside the existing runner VNet",record.target?.input.subnetCIDR??"");if(subnetCIDR===undefined)return;
-  const postgresSKU=await vscode.window.showQuickPick(["Standard_D4ds_v5","Standard_D8ds_v5","Standard_D16ds_v5","Standard_E8ds_v5"],{placeHolder:"Target SKU (4-vCore GP is a starting point for bounded trials, not a throughput guarantee)"});if(!postgresSKU)return;
-  const storage=await vscode.window.showQuickPick(["128","256","512","1024"],{placeHolder:`Target GiB: must cover high estimate ${evidence.storageHighBytes} bytes plus 25% headroom`});if(!storage)return;
-  const loaderSize=await vscode.window.showQuickPick(["Standard_D4s_v5","Standard_D8s_v5","Standard_D16s_v5"],{placeHolder:"Same Linux VM's migration size; 4 GiB loader RSS remains the bound"});if(!loaderSize)return;
-  const deadline=await ask("Approved UTC live-window deadline (ISO 8601; never extends an existing authorization)",record.target?.input.deadline??new Date(Date.now()+24*3600000).toISOString());if(deadline===undefined)return;
-  const budget=await ask("Approved total workflow cost ceiling, USD",String(record.target?.input.budgetUSD??100));if(budget===undefined)return;
-  const reserve=await ask("Reserve USD covering accrued charges, delayed billing, all storage/NAT/network/backup and retained evidence through the deadline",String(record.target?.input.additionalReserveUSD??50));if(reserve===undefined)return;
+  const binding=targetDraftBinding(record);
+  const draft=record.targetDraft?.binding===binding?record.targetDraft:undefined;
+  const values:Partial<TargetInput>={...record.target?.input,...draft?.input};
+  let folderPath=draft?.folder;
+  const save=async()=>{record=await store.exclusive(record.id,async()=>{const next=retainTargetDraft(await store.read(record.id),binding,values,folderPath);await store.write(next);return next;});};
+  const required:(keyof TargetInput)[]=["serverName","subnetCIDR","postgresSKU","storageGiB","loaderSize","deadline","budgetUSD","additionalReserveUSD"];
+  const reuse=required.every(k=>values[k]!==undefined)?await vscode.window.showQuickPick(["Reuse saved target inputs","Edit saved target inputs"],{placeHolder:`Saved inputs only — no deployment authorized. Deadline ${values.deadline}`}):"Edit saved target inputs";
+  if(!reuse)return;
+  const ask=async(key:keyof TargetInput,prompt:string,value:string)=>{
+    if(reuse==="Reuse saved target inputs")return String(values[key]);
+    const result=await vscode.window.showInputBox({prompt,value:values[key]===undefined?value:String(values[key]),ignoreFocusOut:true});
+    if(result!==undefined){Object.assign(values,{[key]:["budgetUSD","additionalReserveUSD"].includes(key)?Number(result):result});await save();}return result;
+  };
+  const pick=async(key:keyof TargetInput,options:string[],placeHolder:string)=>{
+    if(reuse==="Reuse saved target inputs")return String(values[key]);
+    const previous=values[key]===undefined?undefined:String(values[key]);
+    const result=await vscode.window.showQuickPick(previous&&options.includes(previous)?[previous,...options.filter(x=>x!==previous)]:options,{placeHolder,ignoreFocusOut:true});
+    if(result!==undefined){Object.assign(values,{[key]:key==="storageGiB"?Number(result):result});await save();}return result;
+  };
+  const serverName=await ask("serverName","New private PostgreSQL 18 server name",`afpg-${record.id.replaceAll("-","").slice(0,20)}`);if(serverName===undefined)return;
+  const subnetCIDR=await ask("subnetCIDR","New non-overlapping delegated subnet CIDR inside the existing runner VNet","");if(subnetCIDR===undefined)return;
+  const postgresSKU=await pick("postgresSKU",["Standard_D4ds_v5","Standard_D8ds_v5","Standard_D16ds_v5","Standard_E8ds_v5"],"Target SKU (not a throughput guarantee)");if(!postgresSKU)return;
+  const storage=await pick("storageGiB",["128","256","512","1024"],`Target GiB: must cover high estimate ${evidence.storageHighBytes} bytes plus 25% headroom`);if(!storage)return;
+  const loaderSize=await pick("loaderSize",["Standard_D4s_v5","Standard_D8s_v5","Standard_D16s_v5"],"Same Linux VM's migration size; 4 GiB loader RSS remains the bound");if(!loaderSize)return;
+  const deadline=await ask("deadline","Explicitly approved UTC deadline (ISO 8601; no automatic extension)","");if(deadline===undefined)return;
+  const budget=await ask("budgetUSD","Approved cumulative workflow cost ceiling, USD","100");if(budget===undefined)return;
+  const reserve=await ask("additionalReserveUSD","Reserve USD including accrued charges, delayed billing and retained storage/network","50");if(reserve===undefined)return;
   const input:TargetInput={serverName,subnetCIDR,postgresSKU,postgresTier:postgresSKU.startsWith("Standard_E")?"MemoryOptimized":"GeneralPurpose",storageGiB:Number(storage),loaderSize,deadline,budgetUSD:Number(budget),additionalReserveUSD:Number(reserve),hourlyUSD:1};
   input.hourlyUSD=targetComputeRate(await azure.retailRates(record.input.region,[loaderSize,postgresSKU]),input);
-  await preflightTarget(control,record,input);
+  Object.assign(values,input);await save();
   const plan=targetPreview({...record,target:undefined},input,evidence);
   const sizing=evidence.sourceType==="neo4j"?"Neo4j sizing high bound uses exact count-store totals at 16 KiB per mapped record; this is conservative for P1 but not a universal property-width guarantee.":evidence.sourceType==="postgresql"?`${Object.keys(evidence.labels).length} mapped labels were counted in one complete repeatable-read stream.`:evidence.sourceType==="cosmos-nosql"?`${Object.keys(evidence.labels).length} mapped labels were counted in one complete stream under the reviewed source-immutability window.`:`${Object.keys(evidence.labels).length} mapped labels were counted by the complete CSV scan.`;
   const choice=await vscode.window.showWarningMessage("Review the private migration target and same-VM sizing",{modal:true,detail:
     `${evidence.rows} mapped rows; inventory SHA-256 ${evidence.reportSHA256}. ${sizing}\nMigration group: ${record.input.resourceGroup}, ${record.input.region}, zone ${record.input.zone}\nNew delegated subnet: ${plan.subnetId}\n${plan.networkDeployment?`Network group: ${plan.networkDeployment.resourceGroup}. Separate child deployment: ${plan.networkDeployment.deploymentId}. Both scopes require deployment permission; only the new subnet is declared in the network group.\n`:""}PostgreSQL 18 / AGE: ${postgresSKU}, ${storage} GiB; HA disabled (single-server trial). ${subnetCIDR}, private DNS in the migration group linked to the existing VNet. No public access or peering.\nSame runner: ${loaderSize}; resize is a later, separate idle-VM operation.\nCompute USD ${input.hourlyUSD}/hour + USD ${input.additionalReserveUSD} accrued/non-compute reserve. Total ceiling USD ${input.budgetUSD}; deadline ${deadline}. This is a budget gate, not a guaranteed bill or automatic shutdown.\nFolder selection saves a secret-reference-only LoadJob. Generated target credentials stay only in VS Code SecretStorage. Deployment is followed by separate AGE readiness, migration and full verification; it does not mark completion.`},"Save plan and approve target deployment","Save plan only");
   if(!choice)return;
-  const folder=await vscode.window.showOpenDialog({canSelectFiles:false,canSelectFolders:true,canSelectMany:false,openLabel:"Save reviewed LoadJob and target plan here"});
-  if(!folder?.[0] || folder[0].scheme!=="file")return;
+  if(!folderPath){
+    const folder=await vscode.window.showOpenDialog({canSelectFiles:false,canSelectFolders:true,canSelectMany:false,openLabel:"Save reviewed LoadJob and target plan here"});
+    if(!folder?.[0] || folder[0].scheme!=="file")return;
+    folderPath=folder[0].fsPath;await save();
+  }
   await store.exclusive(record.id,async()=>{
-    const latest=await store.read(record.id);
+    let latest=await store.read(record.id);
     if(latest.target && latest.target.phase!=="previewed" || JSON.stringify(sourceTargetEvidence(latest,report))!==JSON.stringify(evidence))throw new Error("Workflow changed while reviewing; no deployment was submitted.");
     // JSON is a strict YAML 1.2 subset. This export is directly accepted by the CLI,
     // uses guest paths and environment references, and never includes a password.
-    const stem=`agefreighter-${record.id}-${plan.hash.slice(0,12)}`;
-    for(const [name,data] of [[`${stem}.yaml`,JSON.stringify(latest.sourceDraft!.configuration,null,2)+"\n"],[`${stem}.target.json`,JSON.stringify(plan,null,2)+"\n"]]){
-      const f=await open(join(folder[0]!.fsPath,name!),"wx",0o600);try{await f.writeFile(data!);await f.sync();}finally{await f.close();}
+    if(!vscode.workspace.isTrusted || targetDraftBinding(latest)!==binding)throw new Error("Target review changed or trust was revoked.");
+    if(choice==="Save plan and approve target deployment"){
+      latest=await ensureAssessmentReadiness(control,latest,()=>!vscode.workspace.isTrusted);
+      await preflightTarget(control,latest,input);
     }
-    const next={...latest,target:plan};await control.persist(next);
+    const currentPlan=targetPreview({...latest,target:undefined},input,evidence);
+    const stem=`agefreighter-${record.id}-${currentPlan.hash.slice(0,12)}-${Date.now()}`;
+    for(const [name,data] of [[`${stem}.yaml`,JSON.stringify(latest.sourceDraft!.configuration,null,2)+"\n"],[`${stem}.target.json`,JSON.stringify(currentPlan,null,2)+"\n"]]){
+      const f=await open(join(folderPath!,name!),"wx",0o600);try{await f.writeFile(data!);await f.sync();}finally{await f.close();}
+    }
+    const next={...latest,target:currentPlan};await control.persist(next);
     if(choice!=="Save plan and approve target deployment")return;
     const secretKey=`runner-target/${record.id}/${createHash("sha256").update(plan.serverId).digest("hex")}`;
     let password=await context.secrets.get(secretKey);
