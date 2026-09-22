@@ -153,3 +153,18 @@ shellcheck pass. It pins old/new leaf and CA hashes, preserves old evidence,
 requires a bounded stop epoch, verifies fixture counts/health and matching key,
 and changes only the public leaf. It has **not run** on the guest. A live TLS
 check is still required after approved startup and certificate installation.
+
+## September22 14:12UTC — compute approval and fixed safety bound
+
+User explicitly approved the exact new runner, workflow-container Blob Reader
+and pinned development execution. Existing source start/leaf renewal remains
+approved. Fixed hard stop **2026-09-22T16:00:00Z** (September23 01:00JST), begin
+deallocating15:55UTC; this is conservatively less than two hours from the first
+forthcoming compute request. Exact-scope safety monitor updated and ACTIVE before
+startup. Fresh ARM confirms sourceVMaf-pgvm-source deallocated/trial-owned and
+runner subnet10.246.1.0/24 without delegation. No target is approved or created.
+Only af-pgvm-source and af-cb2ef280a8914edfb45b belong to this stop scope.
+
+Installed GUI submitted exact runner deployment once at14:14:17.980UTC;
+existing source startup requested14:14:19UTC. The maximum2hour clock is now
+running; fixed16:00UTC stop remains. No inventory or target request was submitted.
