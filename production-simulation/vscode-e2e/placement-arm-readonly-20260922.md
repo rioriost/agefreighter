@@ -83,3 +83,39 @@ Still required: installed-GUI backend refusal paths, unknown-zone VM transition,
 unavailable SKU and quota denial. Existing synthetic/unit evidence stays distinct
 from the real-ARM checks above. Defined branch totals remain **5 pass / 7 partial**;
 the nine base migration routes remain qualified, not all-branch release readiness.
+
+## Follow-up: GUI recovered; release gate observed; ordering correction
+
+September 22, approximately 03:00 UTC: normal signed-in VS Code 1.138.0 became
+readable again. In the same fresh unsaved wizard, selected Neo4j/on-premises,
+the approved subscription, existing B01 migration group, Japan East, zone 1 and
+the existing `runner` subnet. No endpoint, source credentials or source-data
+operation was used. Independent GitHub release lookup returned `release not found`.
+One prerequisite-preview click visibly returned:
+
+> The matching AGEFreighter 2.4.0 Linux release/checksums are not available. No Azure deployment was submitted.
+
+This is actual installed-GUI release-refusal evidence, not backend placement
+refusal. Closed the unsaved wizard successfully; all 82 operator files retained
+the aggregate SHA above. No what-if, draft save, deployment or resource startup
+occurred. The installed build and its mandatory release gate were unchanged.
+
+Corrected the production message-handler order: after input/catalog/draft/version
+validation, run the same GET-only `preflightRunner` before release lookup. Invalid
+placement can now be explained without being hidden by a missing release. Release
+version/checksum and development-artifact opt-in/binding guards still gate pricing,
+what-if, record persistence and approved deployment. Submission still performs its
+own fresh preflight; no protection was removed and no failed operation is replayed.
+
+Added five production-handler tests with inert UI/Azure/storage/fetch adapters:
+placement rejection prevents release fetch/effects; invalid catalog prevents both;
+missing and malformed checksums prevent pricing/what-if/persistence; only matching
+checksum after valid placement reaches pricing. These test event ordering, not
+live Azure metadata or GUI interaction. Initial invalid-catalog fixture used a
+parser-invalid region and was corrected to a parser-valid unknown catalog value.
+Final typecheck, 463/463 unit tests and build pass. The existing isolated real
+VS Code host suite also passes 25/25, without using the operator account/store.
+
+The source fix includes the previous cross-group explanatory text correction.
+Installation and real signed-in GUI backend refusal tests remain pending; B02
+and overall branch counts are unchanged. No Marketplace publication is implied.

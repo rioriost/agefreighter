@@ -2,6 +2,15 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest B02 follow-up: signed-in GUI recovered and visibly refused a fresh preview
+because matching2.4.0release/checksums are unavailable; unsaved wizard closed,
+all82operator files preserved. Moved GET-only placement preflight ahead of release
+lookup locally, retaining mandatory artifact/deployment gates and fresh submit
+checks. Five handler regressions added:463unit/25isolated-host tests and build
+pass. Corrected build installation and actual GUI backend refusals remain pending.
+No startup, deployment, source access or release. B02 remains partial; see
+[ordering correction](placement-arm-readonly-20260922.md).
+
 Latest B02 batch: **6/6 unchanged production placement checks pass against real
 ARM responses**, 19 GETs, no mutations/startup/source data. Actual nonexistent
 subnet/group, delegated subnet, VNet-region mismatch and source-zone mismatch

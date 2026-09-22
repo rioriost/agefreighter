@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { transformSync } from "esbuild";
 import * as runner from "../../core/runner";
 import { requirePanelWorkflow } from "../../core/runnerPanelBinding";
+import * as placement from "../../core/runnerPlacement";
 
 // Execute the production message handler with inert UI/storage/Azure adapters.
 // This tests lifecycle/dispatch only, not signed-in or live cloud behavior.
@@ -14,7 +15,7 @@ const id = "11111111-1111-4111-8111-111111111111";
 const input = {subscriptionId: id, resourceGroup: "test", region: "japaneast", zone: "1", size: "Standard_B2s_v2", subnetId: `/subscriptions/${id}/resourceGroups/test/providers/Microsoft.Network/virtualNetworks/test/subnets/runner`, source: {type: "neo4j" as const, location: "on-premises" as const}};
 const code = transformSync(readFileSync(join(__dirname, "../../runnerMigration.ts"), "utf8"), {loader: "ts", format: "cjs"}).code;
 
-function fixture() {
+function fixture(preview?: {preflightError?: string; checksum?: string}) {
   const record = runner.sourceWorkflowDraft(id, input);
   record.phase = "provisioned";
   const commands = new Map<string, () => unknown>();
@@ -22,6 +23,7 @@ function fixture() {
   const panels: {messages: Record<string, any>[]; receive: (m: unknown) => Promise<void>; dispose: () => void}[] = [];
   let effects = 0;
   let fileDialogs = 0;
+  const previewSteps: string[] = [];
   let refresh = async (_control: unknown, r: runner.RunnerRecord) => r;
   const modules: Record<string, unknown> = {
     "vscode": {ViewColumn: {One: 1}, workspace: {isTrusted: true}, commands: {registerCommand: (name: string, handler: () => unknown) => {commands.set(name, handler); return {}; }}, window: {
@@ -33,30 +35,86 @@ function fixture() {
         return {reveal: () => {}, onDidDispose: (fn: () => void) => {p.dispose = fn;}, webview: {cspSource: "test", html: "", postMessage: async (m: Record<string, any>) => {p.messages.push(m);}, onDidReceiveMessage: (fn: typeof p.receive) => {p.receive = fn;} }};
       }
     }},
-    "./guided/azure": {AzureSession: class { async subscriptions() {return [];} async runnerRequest() {effects++; throw Error("Unexpected cloud request");} async runnerList() {effects++; throw Error("Unexpected cloud list");} }},
+    "./guided/azure": {AzureSession: class {
+      async subscriptions() {return [];}
+      async runnerRequest() {effects++; throw Error("Unexpected cloud request");}
+      async runnerList(_subscription: string, path: string) {
+        if (preview && path.includes("/resourcegroups?")) return [{name: "test"}];
+        effects++; throw Error("Unexpected cloud list");
+      }
+      async locations() {assert.ok(preview); return [{name: "japaneast", displayName: "Japan East"}];}
+      async retailRates() {previewSteps.push("pricing"); throw Error("Pricing sentinel; no what-if");}
+    }},
     "./guided/runnerStore": {RunnerLockedError: class extends Error {}, RunnerStore: class { async list() {return [record];} async read() {return record;} async write(r: runner.RunnerRecord) {writes.push(r);} async exclusive(_id: string, action: () => unknown) {return action();} }},
     "./core/runnerView": {runnerHTML: () => "synthetic UI adapter"},
     "./core/runner": runner,
     "./core/runnerPanelBinding": {requirePanelWorkflow},
-    "./core/runnerLifecycle": {refreshRunner: (control: unknown, r: runner.RunnerRecord) => refresh(control, r)},
+    "./core/runnerLifecycle": {
+      refreshRunner: (control: unknown, r: runner.RunnerRecord) => refresh(control, r),
+      preflightRunner: async () => {
+        assert.ok(preview); previewSteps.push("preflight");
+        if (preview.preflightError) throw Error(preview.preflightError);
+      },
+      whatIfRunner: async () => {effects++; throw Error("Unexpected what-if");},
+      submitRunner: async () => {effects++; throw Error("Unexpected deployment");}
+    },
     "./core/runnerGuest": {dispatchGuest: () => {effects++; throw Error("Unexpected dispatch");}},
     "./runnerSourcePanel": {openRunnerSource: () => {effects++;}},
     "./runnerTargetPanel": {reviewRunnerTarget: () => {effects++;}},
     "./runnerExecutionPanel": {continueRunnerExecution: () => {effects++;}},
     "./runnerReceiptsPanel": {},
     "./runnerReceiptRemovalPanel": {},
-    "./developmentRunner": {}, "./core/runnerPlacement": {}
+    "./developmentRunner": {}, "./core/runnerPlacement": placement
   };
   const output = {exports: {registerRunnerMigration: (_c: unknown, _o: unknown) => {}}};
   const nativeRequire = createRequire(__filename);
-  new Script(code).runInNewContext({Error, module: output, exports: output.exports, require: (name: string) => {
+  new Script(code).runInNewContext({Error, AbortSignal, fetch: async () => {
+    assert.ok(preview); previewSteps.push("release");
+    return {ok: preview.checksum !== undefined, text: async () => preview.checksum};
+  }, module: output, exports: output.exports, require: (name: string) => {
     if (name in modules) return modules[name];
     if (name.startsWith("node:")) return nativeRequire(name);
     throw Error("Unexpected dependency: " + name);
   }});
-  output.exports.registerRunnerMigration({subscriptions: [], globalStorageUri: {fsPath: "unused-inert-store"}}, {});
-  return {record, panels, writes, fileDialogs: () => fileDialogs, effects: () => effects, setRefresh: (fn: typeof refresh) => {refresh = fn;}, open: () => {commands.get("agefreighter.newGuidedMigration")!(); return panels.at(-1)!;}};
+  output.exports.registerRunnerMigration({subscriptions: [], globalStorageUri: {fsPath: "unused-inert-store"}, extension: {packageJSON: {version: "2.4.0"}}}, {});
+  return {record, panels, writes, previewSteps, fileDialogs: () => fileDialogs, effects: () => effects, setRefresh: (fn: typeof refresh) => {refresh = fn;}, open: () => {commands.get("agefreighter.newGuidedMigration")!(); return panels.at(-1)!;}};
 }
+
+test("preview propagates placement rejection before fetching release or allowing effects", async () => {
+  const f = fixture({preflightError: "The selected subnet does not exist."}), panel = f.open();
+  await panel.receive({action: "preview", input});
+  assert.deepEqual(f.previewSteps, ["preflight"]);
+  assert.match(panel.messages.at(-2)!.text, /subnet does not exist/);
+  assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+  assert.ok(!panel.messages.some(m => m.kind === "record"));
+});
+
+test("preview still rejects invalid catalog selection before preflight or release", async () => {
+  const f = fixture({}), panel = f.open();
+  await panel.receive({action: "preview", input: {...input, region: "madeupregion"}});
+  assert.deepEqual(f.previewSteps, []);
+  assert.match(panel.messages.at(-2)!.text, /current subscription list/);
+  assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+});
+
+for (const checksum of [undefined, "invalid-checksum"]) {
+  test(`valid placement cannot bypass ${checksum === undefined ? "missing" : "invalid"} release protection`, async () => {
+    const f = fixture({checksum}), panel = f.open();
+    await panel.receive({action: "preview", input});
+    assert.deepEqual(f.previewSteps, ["preflight", "release"]);
+    assert.match(panel.messages.at(-2)!.text, /release\/checksums are not available|checksum is missing or ambiguous/);
+    assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+    assert.ok(!panel.messages.some(m => m.kind === "record"));
+  });
+}
+
+test("pricing is reached only after placement and a matching release checksum", async () => {
+  const f = fixture({checksum: `${"a".repeat(64)}  agefreighter_v2.4.0_linux_amd64.tar.gz`}), panel = f.open();
+  await panel.receive({action: "preview", input});
+  assert.deepEqual(f.previewSteps, ["preflight", "release", "pricing"]);
+  assert.match(panel.messages.at(-2)!.text, /Pricing sentinel/);
+  assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+});
 
 test("canceling the new-wizard CSV picker neither persists nor uploads nor starts a runner", async () => {
   const f = fixture(), panel = f.open();

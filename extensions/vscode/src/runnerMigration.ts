@@ -160,6 +160,10 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             // stale version or execute mutable repository source on a customer VM.
             const version = String(context.extension.packageJSON.version);
             if (!/^2\.4\.\d+(?:-[a-z0-9.]+)?$/.test(version)) throw new Error("Runner release version is invalid.");
+            // Surface read-only placement failures even when a matching release
+            // is unavailable. Artifact validation still precedes pricing,
+            // what-if, persistence and every approved deployment.
+            await preflightRunner(control, input);
             let artifact;
             if (draft?.developmentUpload?.phase === "ready") {
               if (!developmentEnabled() || !vscode.workspace.isTrusted || JSON.stringify(draft.input) !== JSON.stringify(input)) throw new Error("Development artifact opt-in or approved placement changed.");
@@ -171,7 +175,6 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             if (checksums.length > 1024 * 1024) throw new Error("Release checksum metadata is too large.");
             artifact = releaseArtifact(version, checksums);
             }
-            await preflightRunner(control, input);
             const rates = (await azure.retailRates(input.region, [input.size])).filter(r => r.serviceName === "Virtual Machines");
             const ratesNow = rates.filter(r => Date.parse(r.effectiveStartDate) <= Date.now());
             if (ratesNow.length !== 1 || !Number.isFinite(ratesNow[0]!.hourlyUSD) || ratesNow[0]!.hourlyUSD <= 0) throw new Error("A unique current Linux compute price is unavailable. Deployment is blocked.");

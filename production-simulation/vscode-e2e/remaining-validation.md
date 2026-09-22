@@ -2,6 +2,13 @@
 
 Updated: 2026-09-22 JST. Status: **not release-qualified; B01 full canonical PASS; 5/12 defined branches pass, 7 partial**.
 
+B02 next step: install/reload the reviewed ordering correction, then test backend
+refusals in the signed-in GUI without deployment. The original release refusal
+is now actually observed; GET-only placement checks now precede release lookup
+in source, but artifact/approval protection remains required before effects.
+463unit/25isolated-host tests pass; installation/live results pending. Operator
+store unchanged, no cloud startup. See [follow-up](placement-arm-readonly-20260922.md).
+
 Latest B02 batch: 6/6 production preflight cases pass with real read-only Azure
 metadata (19GETs), including missing subnet/group, actual delegation, region and
 zone mismatch refusals. These are not installed-GUI backend outcomes. No startup
