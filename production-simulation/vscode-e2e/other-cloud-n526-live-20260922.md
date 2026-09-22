@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Automation improvements implemented, tested and installed (5f93f3c). User approved a new maximum two-hour source/runner session at11:55UTC, measured from the first compute-start request. Offline credential/target preparation precedes startup; both exact VMs are still deallocated, monitor paused. Existing inventory remains imported; no target or migration yet.**
+Status: **Improved installed GUI (5f93f3c) saved the B03 target plan offline and successfully reused its inputs. User entered the source credential and selected Remember. New maximum two-hour source/runner session approved at11:55UTC; no compute start requested yet. Both VMs remain stopped, monitor paused. Target is locally previewed only, pending action-time creation approval; no migration.**
 
 ## Authorization and boundaries
 
@@ -562,3 +562,32 @@ User should enter the current canonical Keychain credential and explicitly opt
 into encrypted workflow reuse. No Keychain secret was read into tools/chat, no
 credential was reset, and no Azure VM was started while waiting. Existing
 inventory731f5d8f is retained; do not repeat discovery.
+
+##12:16–12:19UTC — offline plan saved and reused in installed GUI
+
+User confirmed private password entry and selection of Remember for this workflow.
+The prompt closed; no secret was retrieved into tooling, chat or files. Actual
+reuse during migration has not yet been exercised.
+
+Installed target review selected E8ds_v5/128GiB, same-runner D4s_v5 and unused
+10.246.24.0/24. Refreshed retail quote remains USD1.448/hour for target plus
+resized runner, excluding source and non-compute. USD800 cumulative ceiling and
+USD700 accrued/retention reserve unchanged. Saved deadline14:10UTC (23:10JST)
+is conservatively within the authorized two hours if startup occurs after this
+checkpoint; do not automatically extend it. Safety monitor must be updated and
+activated before any compute start, with stopping beginning14:05UTC.
+
+Selected **Save plan only** with both VMs off. GUI confirmed reviewed LoadJob
+and plan saved, no Azure resources deployed. Two unique files in the ignored
+othercloud-n526-20260922 work folder have mode0600; workflow target phase is
+previewed, hash0c23155fdb6f17b7ef32df4ab940c6e66a1296327fa4819bcaaa364a2908101a.
+The original finished/imported inventory731f5d8f/SHA4e0efa9b18b6 remains unchanged;
+no migration exists. Reopening target review offered **Reuse saved target inputs**,
+which displayed the same exact review without repeated input or folder selection.
+
+Native target-creation confirmation is now visible, unaccepted. Request approval
+for only this new private server, delegated subnet/private DNS and generated
+target credential in SecretStorage before proceeding. Keep compute off during
+this approval wait; after approval start only the already authorized source and
+runner, refresh ownership/governance/readiness, and submit once through the GUI.
+Offline save/reuse is installed-GUI evidence, not Azure migration qualification.

@@ -57,8 +57,14 @@ User-approved operator-profile installation and actual Reload Window completed
 11:51–11:53UTC. Installed bundle matches the approved5f93f3c VSIX; new credential
 command opens the retained B03 workflow without Azure or credential mutation.
 The existing663-byte inventory remains hash-matched/imported. Live continuation
-is not performed:10:58UTC authorization expired, so a new bounded runtime approval
-is required. No Azure qualification is inferred from local installation/tests.
+was not performed under the expired10:58UTC authorization. User then approved a
+new maximum two-hour session at11:55UTC and entered the source credential with
+Remember. Installed GUI saved the LoadJob/target plan offline and reused all
+inputs successfully12:16–12:19UTC. Local target is previewed only; creation
+approval is pending, both VMs remain stopped and the runtime clock is unstarted.
+Saved deadline14:10UTC; activate scoped safety monitoring before startup.
+Latest delayed two-group costUSD420.304221975638. No Azure qualification is
+inferred from local installation/tests or offline plan save/reuse.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
