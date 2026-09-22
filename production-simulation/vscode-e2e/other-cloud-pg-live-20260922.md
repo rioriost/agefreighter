@@ -263,3 +263,16 @@ no inventory replay and no target created. The diagnostic correction cannot
 retroactively identify the first failure. Prepare a pinned local build; live
 installation and a new explicitly reviewed attempt require their exact-scope
 approval, inside the original16:00UTC hard bound or a newly authorized window.
+
+Pinned local Linux candidate built from committed/pushed
+`646f0d4b361aec55fcc3f44cb689e06fd915d6e1`:
+`agefreighter-2.4.0-dev.646f0d4b361a-linux-amd64.tar.gz`,37,215,444bytes,
+SHA-256`07ba1744b5daf7e226915c50d46fa5eda704949fc7d175e2b39a150813f41692`.
+Independent archive checksum and two expected ELFamd64 member inspection pass;
+this build has not run on a Linux guest. Local manifest:
+`production-simulation/work/vscode-runner-build.qCO0dA/manifest.json` (ignored).
+Pending exact approval covers existing workflow-storage transfer, existing runner
+upgrade, startup of only the same source/runner and one new GUI inventory,
+max30minutes/4GiB/no automatic retry within16:00UTC. No new target, network,
+credential, RBAC or source-data changes. A successful inventory is not migration
+qualification. Keep both VMs stopped while awaiting approval.
