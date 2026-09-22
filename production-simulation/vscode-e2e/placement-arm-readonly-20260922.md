@@ -119,3 +119,12 @@ VS Code host suite also passes 25/25, without using the operator account/store.
 The source fix includes the previous cross-group explanatory text correction.
 Installation and real signed-in GUI backend refusal tests remain pending; B02
 and overall branch counts are unchanged. No Marketplace publication is implied.
+
+Packaged candidate: source commit `7338faa`, VSIX SHA-256
+`3814b4f11ce6f121c2fe8843cea7e960cad72095a6710b3656b43a2f3f361245`,
+compiled JavaScript SHA-256
+`3f4d147925709b74f861fd65cf2a4a883c81e15c2b46dd62b73a338bfd8a0dcf`.
+`npm run package` passes, including its fresh 463-test/build prepublish checks.
+Requested action-time permission to install this local, unpublished VSIX and
+reload the normal VS Code window, followed only by read-only negative tests.
+No installation has been performed at this checkpoint.
