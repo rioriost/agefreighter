@@ -1,7 +1,37 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { buildSourceDraft, sourceSecrets } from "../../core/runnerSource";
 import { csvFile, sourceForm, workflow } from "../sourceFixtures";
+
+test("frozen P1 PostgreSQL other-cloud draft preserves every property, identity and endpoint", () => {
+  const bytes = readFileSync("../../production-simulation/vscode-e2e/fixtures/postgresql-p1-mappings.json");
+  assert.equal(createHash("sha256").update(bytes).digest("hex"), "ac02ab254bb85f929abe033407c4d3358c2addca91c20864c4dce8be4d072e8f");
+  const mappings = JSON.parse(bytes.toString("utf8")) as typeof sourceForm.mappings;
+  const form = { ...sourceForm, name: "othercloud-pg-p1-r1", host: "192.0.2.20", port: 5432, database: "p1source", username: "agefreighter_reader", mappings };
+  const draft = buildSourceDraft({ type: "postgresql", location: "other-cloud" }, form, workflow);
+  assert.deepEqual(draft.configuration, buildSourceDraft({ type: "postgresql", location: "on-premises" }, form, workflow).configuration);
+  assert.equal(draft.canAssess, true);
+  const pg = (draft.configuration.source as any).postgresql;
+  assert.equal(pg.vertices.length, 9); assert.equal(pg.edges.length, 9);
+  assert.deepEqual(pg.connection, { env: "AGEFREIGHTER_SOURCE_DSN" });
+  for (const mapping of mappings) {
+    const generated = [...pg.vertices, ...pg.edges].find(m => m.label === mapping.label);
+    assert.ok(generated);
+    assert.deepEqual({ ...generated.properties }, Object.fromEntries(mapping.properties.split(",").map(p => p.split("="))));
+    assert.equal(generated.properties.source_key, "source_key");
+    assert.ok(generated.query.startsWith("SELECT "));
+    assert.ok(generated.query.endsWith(`FROM "p1"."${mapping.collection}" ORDER BY "${mapping.identity}"`));
+    if (mapping.kind === "vertex") assert.equal(generated.idField, "external_id");
+    else {
+      assert.equal(generated.externalIdField, "relationship_id");
+      assert.deepEqual(generated.start, { label: mapping.startLabel, field: mapping.startField });
+      assert.deepEqual(generated.end, { label: mapping.endLabel, field: mapping.endField });
+    }
+  }
+  assert.ok(!/resourceId|subscriptionId|192\.0\.2\.20|password/i.test(JSON.stringify(draft.configuration)));
+});
 
 test("Gremlin GUI declarations survive review without changing undeclared source configuration",()=>{
   const selection={type:"cosmos-nosql",location:"azure"} as const;

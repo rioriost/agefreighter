@@ -10,6 +10,14 @@ This supersedes the pending B03 checkpoints below. PostgreSQL other-cloud live
 selection remains unqualified, so the broader ledger stays5pass/7partial.
 See [canonical evidence](evidence/b03-n526-p1-pass-20260922.json).
 
+Next PostgreSQL other-cloud preparation: existing PGVM fixture remains
+deallocated. Retained public leaf expired September20; CA valid untilOctober6.
+Installed new-wizard selection verified without cloud mutation. Frozen18mapping
+regression and real Go/P1-projection contracts pass:503unit/14CLI contracts,
+typecheck/build. Test-only; installed pins unchanged. New bounded runtime/TLS
+renewal and source-specific credential preparation precede live work. See
+[PostgreSQL preparation and gates](other-cloud-pg-live-20260922.md).
+
 Latest B03: user approved the bounded other-cloud-selection trial. Installed GUI
 reviewed a new endpoint-only Neo4j draft. Approved storage tag/authenticated HTTPS
 access and fixed archive upload are complete; anonymous/shared-key access stays

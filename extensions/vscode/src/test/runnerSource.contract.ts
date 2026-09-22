@@ -2,13 +2,29 @@
 // extension itself never launches this local binary.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildSourceDraft } from "../core/runnerSource";
 import { sourceForm, workflow, csvFile } from "./sourceFixtures";
 import { SourceKind, SourceLocation } from "../core/runner";
+import { assertP1Projection } from "../core/p1Qualification";
+
+test("other-cloud PostgreSQL frozen P1 mappings pass the actual Go validator and P1 projection gate", async () => {
+  const binary = process.env.AGEFREIGHTER_TEST_BINARY;
+  assert.ok(binary, "AGEFREIGHTER_TEST_BINARY must reference the locally built test CLI");
+  const mappings = JSON.parse(await readFile("../../production-simulation/vscode-e2e/fixtures/postgresql-p1-mappings.json", "utf8"));
+  const draft = buildSourceDraft({ type: "postgresql", location: "other-cloud" }, {
+    ...sourceForm, name: "othercloud-pg-p1-r1", host: "192.0.2.20", port: 5432,
+    database: "p1source", username: "agefreighter_reader", mappings
+  }, workflow);
+  assertP1Projection(draft.configuration);
+  const directory = await mkdtemp(join(tmpdir(), "af-pg-other-cloud-contract-")), file = join(directory, "generated.json");
+  await writeFile(file, JSON.stringify(draft.configuration), { mode: 0o600 });
+  const result = spawnSync(binary, ["validate", file, "--format", "json"], { encoding: "utf8", timeout: 10000 });
+  assert.equal(result.status, 0, result.stderr + result.stdout);
+});
 
 const paths: readonly { name: string; type: SourceKind; location: SourceLocation; cosmosFormat?: "gremlin"; gremlinPropertyTypes?: string }[] = [
   { name: "azure-neo4j", type: "neo4j", location: "azure" },
