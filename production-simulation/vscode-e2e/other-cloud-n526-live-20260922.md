@@ -643,3 +643,23 @@ actual remembered-credential reuse is not yet proven. Stop the exact source VM,
 runner and target by conservative idle bound12:59UTC if still blocked; begin
 stopping12:57UTC. Reconcile current state first if user returns and approved work
 starts. Original14:10UTC hard stop remains unchanged. No new qualification claim.
+
+##12:53–12:58UTC — remembered credential reused; migration submitted once
+
+User returned with continue and Mac unlocked; GUI reconciliation resumed before
+the idle bound. The old screen-lock wait ended (no runtime deadline extension).
+Initial start preflight refused the stale readiness receipt before any migration
+intent. A new explicit GUI readiness check passed at12:55:36.555UTC; selected
+Start new neo4j migration and approved the reviewed5.6M-row/new-graph operation.
+The remembered workflow credential was used without a new password prompt or
+secret extraction. Built-in pre-dispatch readiness then completed automatically.
+
+Installed GUI submitted operation/job99ae1d29-f7b4-43f2-a91a-149464617a22 once
+at12:57:35.612UTC; commandaf-5193cb10-0cb4-4a44-aaa9-4667cee1a911. ARM command
+Succeeded/exit0 is an accepted-worker acknowledgement, NOT completed migration.
+Boota47fc8eb-399c-4e55-a62f-18595bbd28f4 and pinned Linux unchanged;
+configuration SHA99c1d29561cd12c050414fe52a79af2e175d5ac036fc910aada1aa6a8e0826be.
+GUI visibly entered Watching retained operation — no automatic retry. Healthy
+worker bound30minutes, approximately13:28UTC; hard stop14:10UTC/begin14:05 remain.
+No replay, source re-inventory, new credential or additional resource creation.
+Counts/report import and separately action-time-approved64-range verifier remain.

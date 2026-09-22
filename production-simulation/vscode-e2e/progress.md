@@ -75,6 +75,13 @@ with a new boot, disk3.62%,swap0/OOM0 and unchanged Linux pin. Mac screen lock
 blocks GUI reconciliation/start; no migration yet and stored-secret reuse is
 not yet exercised. Unlock requested; conservative idle stop12:59UTC (initiate
 12:57UTC) for exact source/runner/target if still waiting, hard14:10UTC unchanged.
+User returned/unlocked12:53UTC, ending that wait. Fresh GUI readiness passed;
+remembered credential reused without another password prompt. Migration job
+99ae1d29-f7b4-43f2-a91a-149464617a22 submitted once12:57:35UTC; ARM acknowledged
+accepted and GUI automatic retained-operation watch started. This is not load
+completion/counts/full-digest success. Worker30min bound and14:10UTC hard stop
+remain unchanged; no inventory replay. Full verifier still requires its own
+action-time approval before installation/run on this guest.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
