@@ -12,7 +12,10 @@ readonly expected_ca=6da7aebf5484f43715daa04330fb6d891833e9d22c4f0c5ed571ab53982
 # The main task sets the fixed approved window before this script is dispatched.
 deadline=${1:?absolute approved UTC deadline required}
 test "$(id -u)" = 0
-test "$(hostname)" = af-op-n526-source
+# Snapshot clone retains the original guest hostname. Bind to Azure metadata,
+# never infer the authorized VM from that inherited hostname alone.
+test "$(curl --noproxy '*' --connect-timeout 3 --max-time 5 -fsS -H Metadata:true \
+  'http://169.254.169.254/metadata/instance/compute/name?api-version=2021-02-01&format=text')" = af-op-n526-source
 hostname -I | tr ' ' '\n' | grep -Fx "$ip" >/dev/null
 now=$(date -u +%s)
 end=$(date -u -d "$deadline" +%s)
@@ -63,7 +66,7 @@ install -o 7474 -g 7474 -m 0644 "$evidence/server-after.crt" "$root/tls/public.c
 docker restart --time 120 "$container" >/dev/null
 for attempt in $(seq 1 45); do
   test "$(date -u +%s)" -lt "$end"
-  if openssl s_client -brief -connect "$ip:7687" -verify_ip "$ip" -verify_return_error \
+  if timeout 10s openssl s_client -brief -connect "$ip:7687" -verify_ip "$ip" -verify_return_error \
     -CAfile "$evidence/ca-after.crt" </dev/null > "$evidence/tls-handshake.txt" 2>&1; then
     grep -F 'Verification: OK' "$evidence/tls-handshake.txt" >/dev/null && break
   fi
@@ -71,7 +74,8 @@ for attempt in $(seq 1 45); do
   sleep 2
 done
 docker inspect --format '{{json .Mounts}}' "$container" > "$evidence/mounts-after.json"
-cmp "$evidence/mounts-before.json" "$evidence/mounts-after.json"
+python3 -c 'import json,sys; a,b=(json.load(open(p)) for p in sys.argv[1:]); assert sorted(a,key=lambda x:x["Destination"]) == sorted(b,key=lambda x:x["Destination"]), "Mount configuration changed"' \
+  "$evidence/mounts-before.json" "$evidence/mounts-after.json"
 test "$(sha256sum "$root/ca.key" "$root/tls/private.key")" = "$key_files_before"
 test "$(docker inspect --format '{{.State.OOMKilled}}' "$container")" = false
 docker inspect --format '{{.Image}} {{.State.Status}} {{.State.OOMKilled}} {{.RestartCount}}' "$container" > "$evidence/container-after.txt"

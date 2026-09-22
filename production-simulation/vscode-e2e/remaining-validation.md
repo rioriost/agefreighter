@@ -4,12 +4,14 @@ Updated: 2026-09-22 JST. Status: **not release-qualified; B01 full canonical PAS
 
 Next live trial: B03 Neo4j other-cloud selection using the accepted IP-only
 private fixture, a fresh workflow and full canonical verification. User approved
-a maximum two-hour compute window; it has not started. New installed-GUI draft
+a maximum two-hour compute window; first request07:18:49UTC, hard stop09:15UTC.
+New installed-GUI draft
 is reviewed; approved authenticated storage access and pinned artifact upload are
 complete. Actual GUI reconnect/preflight pass; exact new VM/scoped identity grant
-and development installation approval pending. Fixture TLS
-renewal is prepared but not executed (retained CA expired September 22 04:38:18
-UTC). No TLS bypass or accepted-graph overwrite. See
+and development installation approved, runner provisioned and source starting.
+Fresh guest readiness and source TLS renewal/reconciliation passed; new public CA
+selected in GUI. Source password input pending07:28UTC; no inventory submitted,
+idle stop07:43UTC if waiting. No TLS bypass or accepted-graph overwrite. See
 [approved preparation checkpoint](other-cloud-n526-live-20260922.md).
 Fresh delayed combined cost is USD390.9644901299309 / cumulative USD800;
 eight old Ready targets were safety-stopped, with final state recorded in

@@ -6,10 +6,13 @@ Latest B03: user approved the bounded other-cloud-selection trial. Installed GUI
 reviewed a new endpoint-only Neo4j draft. Approved storage tag/authenticated HTTPS
 access and fixed archive upload are complete; anonymous/shared-key access stays
 disabled. Upload size/SHA metadata, actual GUI reconnect and runner preflight pass.
-Exact new VM/scoped Blob Reader/unpublished install approval is pending.
-No compute has started and the maximum
-two-hour clock has not begun. Fixture TLS renewal is prepared/static-checked but
-not executed; fixed Linux archive hash reverified. No new qualification result;
+Exact new VM/scoped Blob Reader/unpublished install approved; runner submitted
+07:18:49UTC and provisioned, dedicated source startup requested07:19:36UTC.
+Hard stop09:15UTC (begin stopping09:10) and scoped safety monitor active.
+Guest readiness passed; fixture TLS renewal and retained-evidence reconciliation
+passed (mount difference was array order only). Updated CA selected in GUI.
+07:28UTC read-only source password input pending; inventory not submitted, idle
+stop07:43UTC if still waiting. No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
 

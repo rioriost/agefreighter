@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Approved storage access and artifact upload complete; VM/identity/install approval pending. No compute started.**
+Status: **Runner ready, source TLS renewal verified; GUI password input pending. Inventory not submitted.**
 
 ## Authorization and boundaries
 
@@ -148,3 +148,68 @@ software installation/execution. No deployment submitted; source VM freshly
 deallocated and new runner absent. Recheck expired preview before any later
 submission. Establish the absolute two-hour deadline and safety monitor before
 the first compute request; the clock remains unstarted. TLS renewal still pending.
+
+## September 22 — approved startup safety gates
+
+User approved the exact new B2s_v2 runner, container-scoped Blob Reader and fixed
+development artifact installation/execution. Set the conservative hard shutdown
+to **2026-09-22T09:15:00Z (18:15 JST)** before any compute request, with stopping
+beginning by09:10UTC; never extend automatically. Safety heartbeat
+`b03-other-cloud-trial-safety-monitor` is active for only this runner, dedicated
+source and eventual separately approved target. Idle required-input wait15minutes
+or terminal failure also stops this session's compute, preserving disks/evidence.
+
+Fresh cost query still returns originalRG USD388.915409197442 and B01RG
+USD2.0490809324889 (delayed, total USD390.9644901299309). Two-hour RG activity
+review includes storage writes/audits and prior authorized target stops. Exact
+source activity query returned no recent events; fresh storage remains Enabled
+with the approved tag, not reverted. No other resource scope is added.
+
+Installed GUI retained the runner submission at **07:18:49.369 UTC** (first
+compute request). A concurrent native-dialog change made the click result
+ambiguous; fresh GUI and ARM reconciliation confirmed submission, with no replay.
+Exact deployment Succeeded at07:19:29.986418UTC; GUI reconciled provisioned at
+07:20:11.997UTC. Dedicated source start requested07:19:36UTC after fresh ownership
+and deallocated checks. Deadline09:15UTC is within two hours of first request.
+Guest health/bootstrap checks dispatched before source TLS renewal or assessment.
+The renewal handshake now has an explicit10-second timeout per attempt; shell
+syntax and ShellCheck pass. No migration/target or qualification result yet.
+
+Fresh07:20:39UTC guest checks: runner cloud-init done, exact fixed CLI version,
+disk4%, swap0 and no current-boot kernel OOM; source disk6%, swap0, no kernel OOM,
+expected pinned container running/OOMfalse. Source hostname is inherited
+`af-n526-source` from the snapshot, so renewed script binds to IMDS Azure name
+`af-op-n526-source` plus10.246.5.5 instead. IMDS/path/original CA hash and required
+TLS/read-only env checks passed before mutation. No credential value was read.
+
+Installed GUI readiness operation `6ad4aa37-db24-44a8-b8e3-c2161acd6825`, command
+`af-f05c70ae-6a56-49cc-96ae-e655719adab0`, finished and reconciled: boot
+`1571c5af-c353-4919-9d12-404897e5db9d`, fixed commit, idle, disk3.511%, swap0/OOM0.
+Independent role query confirms runner principal `38f40ee0-bba8-46ef-8854-47f5c0619e91`
+has Blob Reader at only this workflow container.
+
+TLS renewal generated/installed a new leaf and restarted the same container once.
+Chain/IP-SAN/live TLS1.3 verification passed, but raw mount-array byte comparison
+stopped final sealing. Read-only diff proved all mount objects/fields identical,
+only array order changed (`/data`, `/logs`, read-only `/ssl/bolt`). Retained both
+raw arrays and original failed check output; no regeneration or restart replay.
+The script now compares sorted full objects. A separate reconciliation script
+checks retained old/new certificate public keys against existing private keys,
+installed leaf, live TLS and running/OOMfalse state, then seals new evidence only.
+Until that reconciliation completes, renewal is not recorded as fully verified.
+
+Reconciliation subsequently passed: all nine retained evidence-file checksums,
+old/new CA and leaf public-key identity against retained private keys, installed
+leaf equality, live IP-SAN TLS1.3 and running/OOMfalse. No second restart/renewal.
+Public CA valid September22 07:22:13–September29 07:22:13UTC, PEM1541bytes,
+SHA `6f83ebef29bc7b2292527745386499c59ede19dd4b112f532e4f62bd78d17d67`.
+Copied only this public certificate to the local ignored work directory; local
+hash agrees with guest evidence. GUI selected this exact CA and reviewed source
+settings. No TLS bypass, private-key export or password reset.
+
+At **07:28UTC**, the installed GUI's native read-only source password input is
+visible after reviewing the full inventory read (30minutes/4GiB/no swap). Requested
+user entry using `agefreighter-op-n526-neo4j`, account `neo4j`, not the AZ-N526
+credential. No credential was read by this task and no inventory is submitted yet.
+If user-input idle persists to07:43UTC, stop both exact VMs and preserve evidence.
+The safety heartbeat now records that early stop and current readiness/CA.
