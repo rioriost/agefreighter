@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Inventory failed with unauthorized category; evidence retained, both exact VMs deallocated and monitor paused. No retry or migration.**
+Status: **Inventory failed with unauthorized category; subsequent explicitly authorized clone-only password reset and Keychain update PASS. Both exact VMs deallocated, monitor paused; no inventory retry or migration.**
 
 ## Authorization and boundaries
 
@@ -246,3 +246,67 @@ Both exact VMs independently verified `PowerState/deallocated` by07:37UTC,
 well before09:15UTC. Safety heartbeat PAUSED after verification. All disks/data/
 evidence retained; storage retention charges continue. Source authentication must
 be confirmed before a newly reviewed attempt; no full B03 qualification claimed.
+
+## September22 — explicitly authorized clone-only credential reset
+
+After confirming the existing Keychain item, the user explicitly requested a
+password reset. This supersedes the no-native-password-change restriction only
+for `af-op-n526-source` / container `af-op-n526-neo4j526` / user `neo4j`.
+The original AZ-N526 source, runner, failed inventory and all graphs remain
+untouched. This action does not submit a new GUI inventory or migration.
+
+Fresh ARM ownership matches the retained OS disk, route OP-N526 and D8s_v5;
+source is deallocated, RG locks empty. Recent activity includes expected previous
+trial operations and storage governance actions, no unexpected source mutation.
+Fresh delayed cost remains USD390.9644901299309 for both groups; USD800 ceiling
+and USD700 accrued/retention reserve remain unchanged.
+
+New random credential was created/readback-verified in dated Keychain item
+`agefreighter-op-n526-neo4j-reset-20260922`, account `neo4j`, without displaying
+it. The canonical `agefreighter-op-n526-neo4j` is not updated until guest reset
+success is verified. Secret values are never placed in argv, local request files,
+console, Git or chat; the ARM protected parameter is sent through stdin.
+The existing reviewed recovery script backs up the system database, resets on an
+unpublished loopback-only temporary service, restores normal authentication and
+checks exact1.6M/4M counts. Added dispatch guards bind IMDS to this clone, pinned
+image/data mount, disk<80%, no swap/OOM and fixed deadline. Static Swift build,
+shell syntax and ShellCheck pass. No guest reset has yet been submitted.
+
+Start only this source for recovery; stop immediately after terminal evidence
+and Keychain update, or by08:25UTC (begin stop08:20UTC), earlier than the existing
+09:15UTC outer bound. No dispatch after08:05UTC, existing900-second command bound,
+no automatic retry. Safety monitor reconciles/stops only this source.
+
+### Reset completion —07:49UTC
+
+Only the dedicated source restarted.07:47:29UTC guest gates confirmed pinned
+normal container running/OOMfalse, disk6%, swap0 and no current-boot kernel OOM.
+Exactly one protected recovery `af-op-n526-password-reset-20260922` ran
+07:48:28–07:49:24UTC, Succeeded/exit0. New credential authenticated successfully
+and exact source counts remain1,600,000 vertices plus4,000,000 edges.
+
+Retained guest evidence:
+`/var/lib/agefreighter/neo4j-password-recovery/20260922T074829Z`.
+System-database backup SHA
+`8d2633a32e900cb2c95e73eca3f9d335fe247bc6a32b930f80df6ced3eb02278`;
+summary SHA
+`d10384311252fe634794833e5cd78e55bf28591725193981b50d6704b9df42bc`.
+Independent checksum checks pass. Temporary recovery container is absent;
+normal authenticated container running/OOMfalse, disk7%, swap0/no kernel OOM.
+Renewed CA SHA remains unchanged. These are authentication/count controls,
+not a new GUI inventory or canonical migration verification.
+
+Canonical Keychain item `agefreighter-op-n526-neo4j`, account `neo4j`, updated
+only after guest success and readback-verified equal to the staged new secret.
+Use this canonical item for the next private GUI entry; AZ-N526 items are not
+for this clone. The dated recovery copy remains in Keychain, never in local
+files/Git/chat. The secret-bearing ARM recovery command definition was removed
+after successful evidence retention; no source data, disk or guest evidence was
+deleted. Dedicated source deallocation requested immediately after checks;
+runner was never restarted. Verify both stopped states before pausing monitor.
+
+By07:53:40UTC both exact source and runner independently verified
+`PowerState/deallocated`. The removed recovery command's absence is verified.
+Safety heartbeat paused. All source data, OS disks and failed/successful guest
+evidence retained. The reset is complete; B03 remains partial awaiting fresh
+installed-GUI inventory and later migration/full canonical qualification.

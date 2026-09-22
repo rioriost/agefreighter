@@ -13,8 +13,11 @@ Fresh guest readiness and source TLS renewal/reconciliation passed; new public C
 selected in GUI. One GUI inventory failed with unauthorized category/exit1;
 no sealed report, retry, target or migration. Exact VMs deallocated by07:37UTC,
 monitor paused, evidence retained.
-Correct source credential/account state needs confirmation before a separately
-reviewed retry. No TLS bypass or accepted-graph overwrite. See
+User then explicitly authorized clone-only credential reset:07:49:24UTC recovery
+PASS, fresh authenticated1.6M/4M counts and backup/checksums verified, canonical
+Keychain item updated and readback-verified. Both exact VMs independently verified
+deallocated by07:53:40UTC; monitor paused. A separately reviewed GUI retry is still
+outstanding. No TLS bypass or accepted-graph overwrite. See
 [approved preparation checkpoint](other-cloud-n526-live-20260922.md).
 Fresh delayed combined cost is USD390.9644901299309 / cumulative USD800;
 eight old Ready targets were safety-stopped, with final state recorded in
