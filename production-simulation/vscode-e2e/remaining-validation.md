@@ -22,8 +22,12 @@ No new exact-inventory operation submitted: private input remained pending at
 08:16UTC, so the two exact VMs were requested to deallocate and unsubmitted input
 cancelled. Both independently verified deallocated by08:18:19UTC, heartbeat paused.
 User requested continuation08:24UTC: same VMs restarted, fresh GUI readiness/TLS
-pass; private updated-password input pending, no new inventory submitted. Monitor
-active with08:45UTC idle-input cutoff. Original09:15UTC limit was not extended.
+pass. User entry submitted inventory731f5d8f08:29:47UTC, finished with sealed
+663-byte report; user-approved GUI transfer/import and SHA verification complete
+08:41UTC. Exact1.6M vertices/4M edges, no errors/incomplete checks. Report is
+aggregate-only: all18 labels are not proven, nor migration/canonical verification.
+Exact source/runner verified deallocated by08:46UTC; monitor paused. Original
+09:15UTC was not extended. Next: target planning, migration and full verification.
 No TLS bypass or accepted-graph overwrite. See
 [approved preparation checkpoint](other-cloud-n526-live-20260922.md).
 Fresh delayed combined cost is USD398.7127296615029 / cumulative USD800;

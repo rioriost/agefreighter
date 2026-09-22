@@ -27,8 +27,13 @@ deallocation requested, unsubmitted input cancelled. Both verified deallocated b
 08:18:19UTC, heartbeat paused. Delayed costUSD398.71273; no new qualification result.
 User requested continuation08:24UTC: same source/runner restarted, actual GUI
 reconnect and fresh08:27:58 readiness/source TLS pass. Private password prompt
-visible again; no inventory submitted. Monitor reactivated, idle stop08:45UTC,
-original hard09:15UTC unchanged. Cost refresh429; no new resources or migration.
+visible again. User entry submitted inventory731f5d8f at08:29:47UTC; GUI
+reconciled finished at08:36UTC with a sealed663-byte report, SHA4e0efa9b18b6….
+User-approved transfer imported and hash-verified08:41UTC: exact1.6M vertices,
+4M edges, no errors/incomplete checks. Aggregate-only report does NOT prove
+all18 labels; no full inventory/route qualification claimed. Exact two VMs
+verified deallocated by08:46UTC, monitor paused; original09:15UTC unchanged.
+Cost refresh429; no new target resources or migration.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).

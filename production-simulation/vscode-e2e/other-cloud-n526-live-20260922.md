@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **User requested continuation after idle stop. Same source/runner restarted; fresh GUI readiness and source TLS PASS. Private password input visible; no new inventory submitted. Original09:15UTC hard stop unchanged.**
+Status: **Updated private credential accepted; GUI imported sealed inventory731f5d8f: exact1.6M vertices/4M edges, no report errors or incomplete checks. This aggregate-only report does not prove all18 labels or migration qualification. Exact source/runner independently verified deallocated by08:46UTC; heartbeat paused. No target or migration.**
 
 ## Authorization and boundaries
 
@@ -401,3 +401,61 @@ chain/IP-SAN Verification OK. Reviewed unchanged host/keys/CA and accepted exact
 read-only inventory confirmation in GUI. Private updated-password input visible
 around08:30UTC; no new assessment submitted. Idle-input cutoff08:45UTC unless a
 new healthy operation is submitted; hard stopping09:10/hard bound09:15 unchanged.
+
+User confirmed private entry while the preceding checkpoint was being recorded.
+Retained GUI receipt establishes actual submission08:29:47.094UTC (superseding
+the earlier not-yet-submitted observation), inventory
+`731f5d8f-b99c-4c6e-9c0c-59044ac6a217`, managed command
+`af-24e89273-1bd2-478c-b81e-8483df5de66a`, same new boot/configuration.
+GUI reconciled accepted with guest configuration SHA
+`3389e233f61e8ade31e8438fc5eec8b7297a8a462a8a3e4a9ede151a50725f08`.
+No duplicate submission. Password-idle08:45 stop is superseded while this healthy
+approved30minute worker runs; original09:15 outer bound remains. Accepted is
+not inventory success. Status reconciliation in progress.
+
+##08:36UTC — retained inventory finished; report-transfer gate
+
+Installed GUI refreshed the same operation731f5d8f to `finished`, with
+663-byte report SHA-256
+`4e0efa9b18b6b1a985046a80599405687d1b7d7b9e82bdf1fba76c7c73a57435`.
+No duplicate inventory or migration was submitted. Native transfer confirmation
+names only existing storage `afb775b1b281ca40fcb669f1` and this workflow's
+container. Requested user approval before upload/import; report contents,
+1.6M/4M counts, all18 labels and completeness remain unverified until import.
+No AI transfer or new source discovery is part of this operation.
+
+An independent08:32 guest diagnostic could not parse state because `jq` is not
+installed; this diagnostic failure is not a worker failure and does not justify
+installing software. A separate read-only health check was issued without jq.
+Use conservative08:45UTC idle stop (begin08:44) pending new authorized work;
+original09:15UTC hard deadline and unchanged cumulative budget remain in force.
+
+##08:41UTC — approved transfer/import; aggregate count evidence
+
+User approved transfer of the exact663-byte report through the existing workflow
+container. Native confirmation was advanced by the user while state was being
+reconciled; no duplicate export was dispatched. Actual GUI now shows `imported`
+and Hash-verified source report. Independent local SHA matches the sealed value.
+Report generated08:29:51.059253147UTC: outcome pass, source-counts pass,
+vertices1600000, edges4000000, totalRows5600000, count method
+neo4j-transactional-count-store; errors/warnings/incompleteChecks empty.
+
+Coverage correction: this663-byte Neo4j inventory reports aggregate totals only,
+not per-label totals. Therefore the monitor's full18-label acceptance requirement
+is NOT established by this report despite its pass outcome. Preserve this gap for
+subsequent discovery/migration verification; B03 remains partial and no full
+qualification is claimed. Prior failed inventory23f3ef65 remains retained.
+
+Runner health08:38:23UTC: no agefreighter process, disk4%, used memory238MiB,
+swap0 and no current-boot kernel OOM. Before shutdown, exact ownership/SKUs/OSdisks
+were reconfirmed; recent activity query returned only the scoped read-only guest
+check, with no new governance change identified. No cost refresh retry after429.
+Requested deallocation of only source af-op-n526-source and runner
+af-b775b1b281ca40fcb669 as the completed assessment reaches its conservative
+idle bound. Preserve disks, imported report, source data and all recovery evidence;
+no target, migration, new credential/network/RBAC change or resource deletion.
+
+Both exact VMs independently verified `VM deallocated` by08:46UTC; the safety
+heartbeat was paused after verification. No restart to inspect evidence. Retained
+disks/storage still incur charges. Next phase is reviewed sizing/target creation
+and migration with label and full canonical verification, not a repeat inventory.
