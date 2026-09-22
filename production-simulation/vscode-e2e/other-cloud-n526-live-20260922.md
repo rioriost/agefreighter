@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Inventory failed with unauthorized category; subsequent explicitly authorized clone-only password reset and Keychain update PASS. Both exact VMs deallocated, monitor paused; no inventory retry or migration.**
+Status: **Credential reset PASS; user-requested GUI continuation prepared with failed evidence retained. Exact source/runner restarted, readiness/TLS PASS; private password input pending, no new inventory submitted.**
 
 ## Authorization and boundaries
 
@@ -310,3 +310,37 @@ By07:53:40UTC both exact source and runner independently verified
 Safety heartbeat paused. All source data, OS disks and failed/successful guest
 evidence retained. The reset is complete; B03 remains partial awaiting fresh
 installed-GUI inventory and later migration/full canonical qualification.
+
+##07:56UTC — user-requested continuation after reset
+
+User requested continuation after successful reset and stopped-state confirmation.
+Review a new GUI inventory attempt preserving failed operation23f3ef65; do not
+resume/replay it. Restart only the same source/runner, no new resource, credential,
+network, artifact or target changes. The original hard09:15UTC limit (stop09:10)
+is unchanged, not a fresh two-hour window. Completed reset-only safety session
+is over; scoped monitoring is reactivated for this continuation with15minute
+idle-input and30minute inventory bounds. Source password remains private GUI entry.
+
+Fresh ARM confirms both exact VMs deallocated with expected ownership/SKUs,
+no RG locks. Recent actions match authorized recovery/stopping and storage
+governance evaluations; no new source mutation identified. Refreshed delayed
+cost is originalRG USD396.586776991143 plus B01 USD2.12595267035987, combined
+USD398.7127296615029; cumulativeUSD800/reserveUSD700 unchanged. GUI visibly
+retains failed inventory and exact reviewed endpoint/source_key/renewed CA.
+
+Both start requests accepted. Installed GUI readiness operation
+`a3b8e66f-a22a-41c7-85fc-1905b8850f5e`, command
+`af-781b413a-8469-4bed-ab40-b1f44ffad8eb`, submitted07:58:58.183UTC then
+reconciled finished: new boot `3eed8556-ce4e-4c53-b8b6-d585fe9f0a54`, same
+fixed artifact, idle, disk3.5198%, swap0/OOM0. Independent source07:59:25UTC
+check: normal container running/OOMfalse, disk7%, swap0/no kernel OOM, live
+TLS1.3 chain/IP-SAN Verification OK. Storage remains authenticated-public
+Enabled with anonymous/shared-key access disabled and approved tag unchanged.
+
+Actual GUI retained failed operation23f3ef65 in assessmentHistory, cleared only
+the active assessment slot and reviewed unchanged source settings/CA/keys.
+Native exact-inventory read confirmation accepted; private Read-only source
+password prompt visible around08:01UTC. Requested user entry from the updated
+canonical OP-N526 Keychain item. No new inventory operation or source read yet.
+If still idle awaiting input at08:16UTC, stop both exact VMs and preserve evidence;
+the09:15UTC hard session bound remains. Do not submit using an old secret.

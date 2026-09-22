@@ -18,7 +18,11 @@ monitor paused. User subsequently explicitly authorized clone-only password rese
 one recovery completed07:49:24UTC, authenticated1.6M/4M counts verified, system
 backup/checksums retained and canonical Keychain item updated/readback-verified.
 No inventory retry; source and runner independently verified deallocated by
-07:53:40UTC, recovery monitor paused. No target or migration.
+07:53:40UTC, recovery monitor paused. Subsequent user continuation restarted only
+these same VMs inside the original09:15UTC window. Fresh GUI readiness/source TLS
+pass; failed inventory retained in history, new reviewed inventory waiting for
+private updated-password entry. No new inventory submitted, target or migration.
+Safety monitor active; idle-input stop08:16UTC. Refreshed delayed costUSD398.71273.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
