@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Aggregate inventory imported; B03 remains partial. Target planning attempted with compute stopped and correctly refused the missing live readiness gate. No target plan persisted/deployed. Source/runner remain deallocated, monitor paused; a new bounded runtime authorization is required before next live phase.**
+Status: **Fresh readiness/target preflight passed after approved restart. User raised test-duration/automation concerns; unsubmitted folder/deployment flow cancelled, source/runner verified deallocated by09:08UTC; monitor paused. No target created or migration; existing evidence retained. Automation improvements are recommendations, not yet implemented.**
 
 ## Authorization and boundaries
 
@@ -481,3 +481,60 @@ finished/imported. Independent ARM confirms both exact VMs remain deallocated.
 Do not bypass readiness or restart into an insufficient remaining live window.
 Request bounded time extension for next live phase; new target/subnet/SecretStorage
 creation remains a separate action-time approval after successful preflight.
+
+##08:59UTC — explicit new runtime approval and cost constraints
+
+User approved restarting the same source/runner for at most two hours from first
+request. User also specified monthlyUSD3750 ceiling, current all-resource-group
+estimateUSD1919 and permissibleUSD100/day for the remaining September days.
+Treat1919 as user-reported estimate, not measured actual spend. Preserve the
+existing cumulative trialUSD800 ceiling and USD700 accrued/retention reserve;
+the new wider subscription cost limits do not silently raise the trial allowance.
+Latest delayed two-groupcost398.7127296615029USD; prior API429 remains a freshness
+limitation. Other workloads and retention must still fit the user's total limits.
+
+Fresh exact VM models: both deallocated, expected workflow/source tags, SKUs and
+OSdisks unchanged. RG locks empty. Scoped recent activity shows only the previous
+authorized deallocations; no new governance change identified. Reactivated scoped
+safety heartbeat before requesting start of only these two VMs08:59:17UTC.
+Hard stop10:58UTC (19:58JST), stopping begins10:53UTC, conservatively less than
+two hours after start. This explicit approval supersedes the old09:15UTC bound;
+do not extend again automatically. New target/subnet/SecretStorage approval must
+still be obtained at the native action gate after fresh readiness/preflight.
+
+Fresh GUI readiness09:00:14.253UTC: operationcfeeaa97-b092-4730-b455-755ad0fae3c1,
+commandaf-40568853-288e-462c-a056-7e231f270164, newboot
+8c06e724-eed5-4660-b570-82daef2fcc1e, same pinned artifact, idle,disk3.5371%,
+swap0/OOM0. Source independent09:00:51UTC: normal container running/OOMfalse,
+disk7%,swap0,no kernel OOM,TLS1.3 chain/IP-SAN verified. Installed GUI target
+preflight passed and presented E8ds_v5/128GiB plus later same-VM D4s_v5,
+computeUSD1.448/hour excluding source VM/non-compute, deadline10:58UTC,
+USD800 ceiling/USD700reserve. No target submitted.
+
+##09:07UTC — test-duration diagnosis; preserve completed work
+
+User questioned long calendar duration and repeated manual-input/restart loops.
+Inspected production handlers: source catalog, assessment and migration each
+request a password; source credentials are not reused from SecretStorage whereas
+target credentials are. Target preflight requires a running guest and readiness
+no older than300000ms before plan persistence; serial questions can stale readiness.
+Operator confirmation granularity and15-minute idle shutdown further amplify
+wait/restart loops. These observations are causes of avoidable orchestration
+overhead, not evidence of slow data migration.
+
+Proposed improvements: opt-in scoped source-secret reuse, persist draft/input
+before compute, automatic read-only readiness/status refresh, resumable stages
+without operation replay, scoped approval reuse where permitted, and layered
+automated regression with distinct installed-GUI acceptance evidence. Retain
+mandatory MFA/OS permission/security-changing action-time approvals. No code
+change or blanket approval bypass implemented in this diagnostic turn.
+
+User advanced native target dialog to folder selection while diagnosis ran;
+selection had not been confirmed. Cancelled that unsubmitted flow after announcing
+deployment hold. Local target/migration absent, assessment/guestcommand finished.
+Exact ownership reconfirmed; requested only the two idle VMs' deallocation09:07UTC
+to avoid charges while discussing the improved workflow. No target/credential
+creation, source mutation, inventory replay or evidence deletion.
+
+Both exact VMs independently verified deallocated by09:08UTC; safety heartbeat
+paused after confirmation. Existing imported inventory and source remain intact.

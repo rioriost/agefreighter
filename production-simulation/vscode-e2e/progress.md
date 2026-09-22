@@ -38,6 +38,14 @@ Continuation target review selected E8ds_v5/128GiB and same-VM D4s_v5 with
 candidate10.246.24.0/24. Stopped-guest preflight correctly refused; no target
 plan persisted or deployment/credential creation. Both VMs remain deallocated;
 next live phase needs a new bounded runtime authorization and fresh readiness.
+User subsequently approved restart/max2hours with hardstop10:58UTC, monthlyUSD3750
+and dailyUSD100 cost constraints (user-reported all-group estimateUSD1919).
+Fresh readiness and target preflight passed; target remained unsubmitted. User
+raised test-duration concerns; diagnosis identified repeated source-secret prompts,
+readiness expiry during serial input and manual orchestration overhead. Pending
+folder/deployment cancelled, exact idleVM stop requested09:07UTC; no new target
+or migration. Automation improvements proposed, not yet implemented.
+Both exact VMs verified deallocated by09:08UTC; safety monitor paused.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
