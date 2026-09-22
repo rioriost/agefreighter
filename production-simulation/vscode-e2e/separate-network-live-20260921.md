@@ -683,3 +683,15 @@ Only existing VM/target start requested, no new resources or source changes.
 Latest delayed combined costUSD370.284238355361, reserve/cap unchanged.
 Wait for ready resources, then installed-GUI fresh guest readiness and the
 approved pinned full verifier. No canonical success yet.
+
+### September22 canonical verifier submitted
+
+VM running and target Ready verified01:10UTC. Installed GUI fresh readiness
+passed on boot `f6705143-51ab-455f-ad23-de2d01a2cfcb`, unchanged pinned Linux
+archive/commit, idle health, disk3.673%, swap0 and no OOM. The user-approved
+e70e02068c68 archive was selected and checked by the installed GUI; one isolated
+verification operation `8c5c9c6f-be92-4edf-88eb-22ce062e575e` was submitted at
+**2026-09-22T01:12:51.293Z**, against existing job
+`37624cff-6aea-449e-9de3-38c6aa5c984d`. Managed command has the same operation
+suffix. Preserve25minute/4GiB limits and02:00UTC session deadline; no migration
+replay. Reconcile this operation and sealed result only. Submission is not PASS.

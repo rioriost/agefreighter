@@ -5,10 +5,12 @@ Updated: 2026-09-22 JST. Status: **not release-qualified; B01 migration/counts p
 Latest B01 evidence supersedes the historical inventory-only checkpoint below:
 separate migration/network-group target deployment, same-VM resize and installed
 GUI migration/counts PASS are complete. Full64range/root comparison is pending.
-Compute is stopped. Approved verification restart hit a post-load authorization
-renewal defect before startup; local fix passes457unit tests/typecheck/build,
-and corrected installation/Reload Window/reconnect now preserve all81operator
-files. Actual GUI renewal and full verification remain pending. See
+Approved verification restart initially hit a post-load authorization renewal
+defect; the fix passes457unit tests/typecheck/build and installation/reconnect
+preserved all81operator files. Actual GUI renewal and new-boot readiness now
+PASS; the exact verifier was submitted once September22,01:12:51UTC, with
+25minute/4GiB limits and02:00UTC hard session stop. Full verification/import
+remain pending. See
 [current B01 follow-up](separate-network-live-20260921.md).
 
 Current B01 source inventory/import **PASS**: all18label counts match frozen P1,
