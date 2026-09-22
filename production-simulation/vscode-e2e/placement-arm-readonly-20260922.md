@@ -177,3 +177,45 @@ than only direct preflight evidence. Outstanding items include unknown-zone VM,
 unavailable SKU, quota denial and the post-fix valid-placement release control.
 No quota exhaustion, unavailable capacity or unknown source metadata was induced
 by mutating live resources. Branch totals stay 5 pass / 7 partial.
+
+## Follow-up: post-fix valid-placement control completed
+
+September 22, approximately 05:17–05:19 UTC: resumed the same unsaved form,
+confirmed the approved subscription, B01 migration group, Japan East, zone 1,
+`Standard_B2s_v2` and actual `runner` subnet. The source choice was
+Neo4j/on-premises with no endpoint or credentials entered. Submitted one new
+prerequisite preview through the installed GUI. Its final visible result was:
+
+> The matching AGEFreighter 2.4.0 Linux release/checksums are not available. No Azure deployment was submitted.
+
+With the verified installed `7338faa` handler ordering, this proves the real
+placement preflight returned successfully before the mandatory release refusal.
+GitHub independently still reports no v2.4.0 release. No pricing/what-if,
+preview persistence, deployment, guest action or source connection followed.
+Closed the unsaved wizard and observed the remaining empty Untitled editor.
+All 82 operator files retain aggregate SHA
+`210699618b47cae309efc601398bfb171ed37248675d1436af2363c04735eb4a`.
+
+Read-only Azure capacity inspection explains why the remaining denial cases
+cannot be honestly claimed in this existing placement:
+
+| Current Japan East choice/quota | Observed state |
+|---|---|
+| `Standard_B2s_v2` | Zones 1/2/3, no subscription restrictions |
+| `Standard_D2s_v5` | Zones 1/2/3, no subscription restrictions |
+| `Standard_D4s_v5` | Zones 1/2/3, no subscription restrictions |
+| Total regional vCPUs | 74 / 101 (27 available) |
+| `standardBsv2Family` | 8 / 100 (92 available) |
+| `standardDSv5Family` | 64 / 100 (36 available) |
+
+These are control-plane availability/usage observations, not a guarantee of a
+successful VM allocation. All three visible discovery choices fit the observed
+quota; none supplies an unavailable-SKU denial. No resources were created to
+exhaust quota, no quota was lowered, and no responses were substituted in GUI
+tests. Direct unit-test rejection cases remain a separate evidence level.
+
+The installed-GUI batch is now **four placement refusals plus one valid-placement
+release-refusal control complete**. Remaining B02 live gaps are unknown-zone VM,
+unavailable SKU and quota denial. Those require a suitable scoped fixture or
+explicitly labelled isolated fault tests, not repeating successful previews in
+the current environment. B02 stays partial and totals stay 5 pass / 7 partial.

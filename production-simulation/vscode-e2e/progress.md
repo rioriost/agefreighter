@@ -2,6 +2,15 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest B02 control: post-fix installed GUI accepts read-only placement checks
+then refuses missing 2.4.0 release/checksums; no deployment or preview persistence.
+Unsaved wizard closed and all 82 operator files unchanged. The preceding four GUI
+placement refusals plus this control are complete. Read-only Japan East capacity
+shows all three discovery SKUs available in zones 1/2/3 and sufficient quotas, so
+unavailable-SKU/quota-denial cases cannot be qualified there without a different
+fixture. Unknown-zone VM also remains open. B02 partial, 5 pass / 7 partial; see
+[completed control and capacity](placement-arm-readonly-20260922.md).
+
 Latest B02 installed-GUI batch: approved `7338faa` package installed/reloaded,
 matching JavaScript hash and corrected VNet guidance verified. Four actual GUI
 previews correctly refuse nonexistent subnet, actual DB delegation, VNet-region
