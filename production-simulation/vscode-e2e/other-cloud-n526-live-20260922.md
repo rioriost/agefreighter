@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **User approved target creation. Exact source/runner startup requested12:22:03UTC, hard stop14:10UTC with stopping from14:05UTC; scoped monitor active. Fresh runner health/source TLS pass. Installed GUI submitted the private target once; ARM Running at12:28UTC. Existing inventory retained; no migration yet.**
+Status: **Neo4j other-cloud-selection migration and full canonical verification PASS. Result generated13:14:46UTC and imported through installed GUI by13:20UTC. Exact source/runner deallocated and target Stopped verified by13:25:54UTC; safety monitor paused. PostgreSQL other-cloud selection and actual third-party-cloud compatibility are not qualified by this trial.**
 
 ## Authorization and boundaries
 
@@ -707,3 +707,47 @@ Archive7,248,083bytes/SHA60ed56a6773e…; maximum25min/4GiB, read-only target.
 Approval wait ended; idle13:27 stop condition no longer applies to this healthy
 approved work. Existing14:10UTC hard stop unchanged. Monitor same operation,
 never replay. Submission is not canonical PASS; all64ranges/root remain pending.
+
+##13:14–13:23UTC — full canonical PASS and early safety stop
+
+Approved raw-ID verifier completed once. Report generated13:14:46.652297517UTC,
+23,226 bytes, SHA-256
+`c40ba2ae35168726d3943c5d66ac84573b788a66b01a39deab38d987a3d74852`.
+Installed GUI reconciled the same operation, exported through the existing
+workflow container with commandaf-3642cd47-bc10-4fcc-a536-2e163d0fb559, imported
+the exact sealed bytes, and visibly displayed **P1 full canonical digest: PASS**.
+No verifier/load replay, source reread, credential prompt or scope change.
+
+Independent local assertions check exact bytes/SHA, job/read-only identity,
+all64 expected/actual leaf objects,18labels,1,600,000 vertices and4,000,000 edges.
+Recomputing both roots from their canonical leaf tuples produces
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+This proves typed properties, identities and endpoints, not just counts.
+Raw report remains retained in the normal VS Code report store and on the guest;
+the redacted evidence index is [B03 canonical result](evidence/b03-n526-p1-pass-20260922.json).
+
+Guest13:15:17UTC: verifier unit inactive,Resultsuccess/ExecMainStatus0,
+disk6%,swap0,no kernelOOM. The execution was bounded by4GiB; a peak RSS sample
+was not captured during its short run and is not inferred from post-exit memory.
+Fresh ARM checks confirmed exact ownership/disks and no locks. Activity review
+included the authorized commands and VNet/target-NSG writes around13:12UTC;
+the latter were not independently attributed and no counteracting network
+mutation was performed. Approved evidence-preserving shutdown was requested
+for only the exact source VM,runner VM and private target. By13:22:50UTC both
+VMs were PowerState/deallocated and target Stopping; final state check follows.
+
+The defined Neo4j endpoint-only other-cloud simulation is qualified. It does
+not establish AWS/GCP compatibility or PostgreSQL other-cloud execution.
+The earlier aggregate-only source inventory remains honestly aggregate-only;
+all18labels are proven by migration counts and full target canonical evidence.
+
+##13:25–13:27UTC — shutdown verified; monitor paused
+
+Exact sourceaf-op-n526-source and runneraf-b775b1b281ca40fcb669 both verified
+PowerState/deallocated; targetafpg-b775b1b281ca40fcb669 verified Stopped at
+13:25:54UTC, before the14:10UTC hard bound. Scoped safety heartbeat paused after
+verification. No resources, OS disks, source/target graphs or evidence deleted.
+Flexible Server warns that it automatically starts after seven days; stopped
+compute does not eliminate retained disk/storage/Cosmos charges. Latest cost
+remains the delayed11:57UTC two-groupUSD420.304221975638 observation, not a fresh
+final invoice. No new live window or additional route was started.

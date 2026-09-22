@@ -2,6 +2,14 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Current checkpoint13:27UTC: **B03 Neo4j other-cloud selection now has installed-GUI
+migration, counts and full canonical PASS**:5.6Mrows/18labels/64ranges/root match.
+Result retained/imported; source and runner deallocated, target Stopped verified
+by13:25:54UTC and scoped safety monitor paused. All disks/data/evidence retained.
+This supersedes the pending B03 checkpoints below. PostgreSQL other-cloud live
+selection remains unqualified, so the broader ledger stays5pass/7partial.
+See [canonical evidence](evidence/b03-n526-p1-pass-20260922.json).
+
 Latest B03: user approved the bounded other-cloud-selection trial. Installed GUI
 reviewed a new endpoint-only Neo4j draft. Approved storage tag/authenticated HTTPS
 access and fixed archive upload are complete; anonymous/shared-key access stays
@@ -93,8 +101,8 @@ User immediately approved correct raw-ID verifier placement/run/import13:11UTC;
 GUI submitted operation6fb20b39 at13:12:26UTC, bound to job99ae1d29. Approval
 wait ended; healthy25min/4GiB verification is now active under the unchanged
 14:10UTC hard stop. Full canonical result is still pending.
-No new qualification result;
-branch totals remain 5 pass / 7 partial. See
+The subsequent canonical PASS is recorded in the current checkpoint above.
+Broader branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
 
 September 22 cost-safety follow-up: eight old retained PostgreSQL targets were

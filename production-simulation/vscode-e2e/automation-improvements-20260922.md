@@ -75,3 +75,22 @@ SHA `4e0efa9b18b6b1a985046a80599405687d1b7d7b9e82bdf1fba76c7c73a57435`;
 target and migration remain absent. No Azure start/change was requested. The
 10:58UTC live bound has expired; a new explicit bounded runtime authorization is
 needed before starting the existing source/runner. Do not silently extend it.
+
+## Installed-GUI live acceptance — September22 12:16–13:20UTC
+
+After a separately approved new bounded session, the operator prepared Remember
+and saved/reused target inputs/LoadJob offline before compute startup12:22:03UTC.
+Same-VM resize preserved identity/disk evidence. After a screen-lock interruption,
+fresh readiness and migration submission reused the remembered source credential
+without another password prompt. One approved counts-report transfer completed
+export/import in the same flow. Counts and separately approved full canonical
+verification passed for5.6Mrows/18labels/64ranges with the frozen root.
+See [B03 execution](other-cloud-n526-live-20260922.md).
+
+Automation limits remain observed, not hidden: the retained-operation watch
+returned a running state and an explicit Refresh retained migration was needed
+to reconcile terminal completion. The reason has not been diagnosed. An initial
+start preflight refused stale readiness after the lock wait, requiring an explicit
+fresh readiness check. Full-P1 reconciliation/export/import still uses separate
+GUI actions. These are follow-up automation gaps, not migration failures or proof
+of unattended completion. No code/installed-pin change was made during this run.

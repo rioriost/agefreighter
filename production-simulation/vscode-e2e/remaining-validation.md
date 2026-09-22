@@ -2,6 +2,14 @@
 
 Updated: 2026-09-22 JST. Status: **not release-qualified; B01 full canonical PASS; 5/12 defined branches pass, 7 partial**.
 
+Latest B03 checkpoint13:27UTC: Neo4j other-cloud GUI selection now passes the
+actual5.6M-row migration/counts and all64canonical ranges/root. Sealed result
+imported; exact source/runner deallocated and target Stopped verified13:25:54UTC;
+scoped safety monitor paused, all resources/evidence retained. This closes
+the Neo4j simulation subcase, not PostgreSQL other-cloud selection or actual
+third-party-cloud compatibility. Earlier pending checkpoints below are historical.
+See [full result](evidence/b03-n526-p1-pass-20260922.json).
+
 Next live trial: B03 Neo4j other-cloud selection using the accepted IP-only
 private fixture, a fresh workflow and full canonical verification. User approved
 a maximum two-hour compute window; first request07:18:49UTC, hard stop09:15UTC.
@@ -476,7 +484,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 |---|---|---|---|---|
 | B01 | Default/separate migration RG; independent network RG | Same-group base P1 PASS; installed separate-group selection, two-scope private target provisioning, same-VM resize and5.6M-row migration/counts PASS; September22 installed-GUI sealed import and independent64range/root comparison PASS | Complete for the defined group-placement branch; not all invalid placement/initial-boot cases (B02/B09), native Gremlin API or production-scale qualification | pass |
 | B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review, early input rejection, four backend refusals and valid-placement release refusal; six direct real-ARM checks separately recorded | Unknown-zone VM transition, unavailable SKU and quota denial remain unqualified; current offered SKUs/zones and quotas cannot supply those refusal cases | partial |
-| B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
+| B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; location GUI audit/request traces/CLI contracts pass; September22 Neo4j other-cloud GUI migration and full5.6M/18label/64range canonical PASS | PostgreSQL other-cloud selection still has only local-contract/selection evidence; Azure-hosted endpoint-only simulation is not actual third-party-cloud compatibility | partial |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Base/manual routes have full P1 canonical PASS; installed GUI/Linux P1 catalog, explicit mappings and complete inventory/import pass; CSV all18choices/IDs/seals/configuration binding pass,445unit tests/13Go contracts; isolated FK GUI catalog, explicit safe edge/property adoption, reconnect and sealed5vertex/3edge inventory pass | Complete for defined cases; nullable FK remains manual review. Supplemental FK inventory is not another migration/digest qualification; broader value combinations retain local-contract-only scope | pass |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin-shaped NoSQL installed-GUI inventory, private target/resize, migration and complete counts pass; independent full digest generated 05:08:24 UTC and GUI-imported, all 5.6M records / 18 labels / 64 ranges and root match, including typed properties, composite IDs and endpoints | Complete for the defined document-format branch; not native Gremlin API qualification | pass |
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
