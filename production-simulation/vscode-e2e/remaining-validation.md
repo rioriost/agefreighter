@@ -1,6 +1,14 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-21 JST. Status: **not release-qualified; live catalog, reviewed mappings and complete inventory/import passed**.
+Updated: 2026-09-22 JST. Status: **not release-qualified; B01 migration/counts passed, full digest pending**.
+
+Latest B01 evidence supersedes the historical inventory-only checkpoint below:
+separate migration/network-group target deployment, same-VM resize and installed
+GUI migration/counts PASS are complete. Full64range/root comparison is pending.
+Compute is stopped. Approved verification restart hit a post-load authorization
+renewal defect before startup; local fix passes457unit tests/typecheck/build,
+but corrected installation and GUI acceptance remain pending. See
+[current B01 follow-up](separate-network-live-20260921.md).
 
 Current B01 source inventory/import **PASS**: all18label counts match frozen P1,
 1.6Mvertices+4Medges, no failed/incomplete checks. Installed GUI imported exact
@@ -388,7 +396,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 | ID | Required branch | Existing evidence / current limitation | Remaining acceptance | State |
 |---|---|---|---|---|
-| B01 | Default/separate migration RG; independent network RG | Base P1 paths use same RG; installed GUI proves separate migration-RG selection/default preservation; scoped network-RG target implementation and local tests now exist | Separate-RG provisioning and independent network-RG deployment still need installed GUI/Azure qualification; no live two-scope receipt yet | partial |
+| B01 | Default/separate migration RG; independent network RG | Same-group base P1 PASS; installed separate-group selection, two-scope private target provisioning, same-VM resize and5.6M-row migration/counts PASS | Full64range/root comparison remains; post-load window-renewal fix locally tested, corrected installation/GUI acceptance pending; compute stopped | partial |
 | B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review and early malformed/cross-subscription input rejection; placement/preflight tests pass | Unknown-zone VM transition and live invalid region/SKU/subnet/delegation/quota admission remain unqualified | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Base/manual routes have full P1 canonical PASS; installed GUI/Linux P1 catalog, explicit mappings and complete inventory/import pass; CSV all18choices/IDs/seals/configuration binding pass,445unit tests/13Go contracts; isolated FK GUI catalog, explicit safe edge/property adoption, reconnect and sealed5vertex/3edge inventory pass | Complete for defined cases; nullable FK remains manual review. Supplemental FK inventory is not another migration/digest qualification; broader value combinations retain local-contract-only scope | pass |

@@ -158,6 +158,31 @@ test("a renewed authorization preserves target identity and records the expired 
   assert.equal(next.costAuthorizations?.[0]?.authorizedAt,"2026-09-12T07:00:00.000Z");
   assert.throws(()=>renewTargetAuthorization({...r,migration:{} as any},{deadline:"2026-09-16T06:59:00Z",budgetUSD:800,additionalReserveUSD:200,hourlyUSD:2},now));
 });
+test("post-load authorization renews only sealed passing counts without altering retained evidence",()=>{
+  const {r,text,input}=fixture(),now=Date.parse("2026-09-22T01:00:00Z");
+  r.target=targetPreview(r,input,csvTargetEvidence(r,text));r.target.phase="provisioned";
+  r.target.input.deadline="2026-09-21T15:00:00Z";
+  r.migration={operation:op,jobId:op,phase:"finished",startedAt:"2026-09-21T13:12:00Z",bootId:file,artifactSHA256:r.artifact.sha256,cliVersion:r.artifact.version,evidence:r.target.evidence,exitCode:0,reportSHA256:"c".repeat(64),reportBytes:9619,verification:{outcome:"pass",summary:"Counts pass",sha256:"c".repeat(64)}};
+  const before=JSON.stringify(r),cost={deadline:"2026-09-22T01:50:00Z",budgetUSD:800,additionalReserveUSD:700,hourlyUSD:2};
+  const next=renewTargetAuthorization(r,cost,now);
+  assert.equal(JSON.stringify(r),before);assert.equal(next.migration,r.migration);
+  assert.equal(next.sourceDraft,r.sourceDraft);assert.equal(next.reportTransfers,r.reportTransfers);
+  assert.deepEqual({...next,target:r.target,costAuthorizations:r.costAuthorizations},{...r,costAuthorizations:r.costAuthorizations});
+  assert.equal(next.target!.serverId,r.target.serverId);assert.equal(next.target!.template,r.target.template);
+  assert.equal(next.costAuthorizations!.length,1);assert.equal(next.target!.input.budgetUSD,800);
+  for(const phase of ["submitted","accepted","running","failed","interrupted"] as const){
+    assert.throws(()=>renewTargetAuthorization({...r,migration:{...r.migration!,phase}},cost,now));
+  }
+  for(const patch of [{verification:undefined},{verification:{outcome:"fail" as const,summary:"failure"}},{verification:{outcome:"incomplete" as const,summary:"incomplete"}},{exitCode:1},{reportSHA256:"bad"},{reportBytes:0},{verification:{outcome:"pass" as const,summary:"mismatched seal",sha256:"d".repeat(64)}}]){
+    assert.throws(()=>renewTargetAuthorization({...r,migration:{...r.migration!,...patch}},cost,now));
+  }
+  for(const patch of [{guestCommand:{phase:"submitted"}},{guestCommand:{phase:"unknown"}},{p1Qualification:{phase:"submitted"}},{p1Qualification:{phase:"unknown"}},{p1Qualification:{phase:"exporting"}},{resize:{phase:"starting"}},{targetRestart:{phase:"submitted"}}]){
+    assert.throws(()=>renewTargetAuthorization({...r,...patch} as RunnerRecord,cost,now));
+  }
+  for(const patch of [{deadline:"2026-09-22T00:59:00Z"},{deadline:"2026-09-27T01:00:00Z"},{budgetUSD:1}]){
+    assert.throws(()=>renewTargetAuthorization(r,{...cost,...patch},now));
+  }
+});
 test("target deployment persists once, carries secrets only in ARM secure parameters, and reconciles by GET",async()=>{
   const {r,text,input}=fixture();r.target=targetPreview(r,input,csvTargetEvidence(r,text));const events:string[]=[],saved:RunnerRecord[]=[];let completed=false;
   const password="Q9!".repeat(12);

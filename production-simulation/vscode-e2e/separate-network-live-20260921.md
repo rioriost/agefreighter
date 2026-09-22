@@ -611,3 +611,44 @@ verified. Counts PASS remains accepted, but **B01 is still partial**: no dedicat
 verifier was uploaded, installed or run, and no64range/root match is claimed.
 Next live work needs explicit approval for the pinned verifier and a bounded
 restart of these exact resources; do not restart solely to inspect evidence.
+
+### September22 approved verification session blocked before startup
+
+User explicitly approved existing B01 VM/target restart for at most60minutes,
+the pinned e70e02068c68 verifier upload to existing workflow storage and isolated
+read-only execution (25minutes/4GiB), private result import and final stop.
+Cumulative USD800 is unchanged; no new resources, migration replay, data,
+credentials, grants or network changes. The live window begins with the first
+start request, which has **not** been issued.
+
+Fresh ARM confirms VM deallocated/D4s_v5 and target Stopped/private, exact
+workflow tags and retained VM principal/disk identity. Latest delayed billing
+is USD368.450234466485 for the original group plus USD1.834003888876 for B01,
+total USD370.284238355361; keep accrued/retention reserve USD700 inside USD800.
+No resource-group lock returned. Activity shows a September21,15:55UTC external
+OS-disk write; its response retained the same disk/VM and64GiB capacity and
+reported Standard_LRS. Do not undo external governance. Before live execution,
+recheck the retained guest artifact, health and evidence after startup.
+
+Installed GUI's cost renewal refused the finished job with
+`Renew authorization only for a provisioned target before migration.` No local
+authorization was persisted, no verifier uploaded and no Azure startup occurred.
+This is a real post-load verification continuation gap, not a migration failure.
+The existing migration remains finished with exit0, matching retained report
+and decision seals,9,619bytes and counts PASS.
+
+Local correction permits renewal only before migration or after finished,
+exit0, sealed passing counts. Active/uncertain guest, resize, preload and P1
+export/verification operations remain blocked; failed/incomplete migrations
+cannot renew through this path. Only cost fields and audit history change;
+source, target identity, job and every retained result remain unchanged. The
+dialog now calls the ceiling cumulative and includes accrued costs in reserve,
+instead of suggesting another additional budget. Renewal still performs no
+Azure action and does not permit job replay.
+
+A new regression reproduced the installed rejection before the fix. Typecheck,
+all457unit tests (zero skips) and build pass after correction. The corrected
+extension still needs action-time installation approval and installed-GUI
+verification; do not edit the operator record manually or bypass its gate.
+VM/DB stay stopped and safety heartbeat stays PAUSED until actual startup.
+B01 full64range/root qualification remains pending.

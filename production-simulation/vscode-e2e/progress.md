@@ -1,8 +1,19 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-21 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **safely stopped; GUI migration/counts PASS; canonical digest pending; B01 partial**.
+Current B01 phase: **post-load time-window renewal corrected locally; installation pending; compute stopped**.
+User approved a60minute exact-resource verification session and the pinned
+read-only verifier. Before startup, installed GUI refused renewal solely because
+the migration already finished. No window saved, startup or verifier dispatch.
+Local fix accepts only sealed passing finished counts (or pre-migration), keeps
+active/uncertain/failed paths blocked and preserves all non-cost evidence.
+Typecheck,457unit tests/no skips and build PASS. Corrected extension installation
+and actual GUI renewal remain pending action-time approval; no manual record edit.
+Fresh delayed two-group cost USD370.284238355361; cumulative800/reserve700unchanged.
+The60minute live window has not started. See [renewal correction](separate-network-live-20260921.md).
+
+Previous B01 phase: **safely stopped; GUI migration/counts PASS; canonical digest pending; B01 partial**.
 Idle approval bound triggered exact VM deallocation and target stop. Activity
 timestamps show13:42:16UTC, sixteen seconds late; no retroactive extension.
 VM deallocated verified13:42:29UTC; target still Stopping then.

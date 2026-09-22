@@ -142,9 +142,15 @@ export function targetBudget(input: TargetInput, now=Date.now()): void {
 }
 
 /** Records a fresh, explicitly reviewed cost window without touching Azure.
- * The deployed target identity and every non-cost sizing choice are immutable. */
+ * The deployed target identity and every non-cost sizing choice are immutable.
+ * Completed passing counts may renew for post-load verification, never replay. */
 export function renewTargetAuthorization(record: RunnerRecord, input: Pick<TargetInput,"deadline"|"budgetUSD"|"additionalReserveUSD"|"hourlyUSD">, now=Date.now()): RunnerRecord {
-  if(record.target?.phase!=="provisioned" || record.migration)throw new Error("Renew authorization only for a provisioned target before migration.");
+  if(record.target?.phase!=="provisioned")throw new Error("Renew authorization only for a provisioned target.");
+  const m=record.migration;
+  if(m && (m.phase!=="finished" || m.exitCode!==0 || m.verification?.outcome!=="pass" || !sha.test(m.reportSHA256??"") || m.verification.sha256!==m.reportSHA256 || !Number.isSafeInteger(m.reportBytes) || m.reportBytes!<=0))throw new Error("Post-load renewal requires retained sealed passing counts; reconcile incomplete or failed migration first.");
+  if(record.guestCommand && ["submitted","unknown"].includes(record.guestCommand.phase) ||
+    record.p1Qualification && ["submitted","unknown","exporting"].includes(record.p1Qualification.phase) ||
+    record.resize && record.resize.phase!=="finished" || record.targetRestart && record.targetRestart.phase!=="finished")throw new Error("Reconcile active or uncertain operations before renewing authorization.");
   const previous=record.target.input;
   const current={...previous,...input};
   targetBudget(current,now);
