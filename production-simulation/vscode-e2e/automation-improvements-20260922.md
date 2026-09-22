@@ -58,3 +58,20 @@ the prepared inputs and request a new bounded live window without starting VMs.
 New target/subnet/credential creation and the dedicated verifier remain separate
 action-time gates. The B03 branch remains partial until actual installed-GUI load,
 all labels and64 canonical ranges/root have been verified.
+
+## Operator-profile installation — 2026-09-22 11:51–11:53 UTC
+
+User explicitly requested installation of the corrected build. Rechecked the
+approved VSIX SHA above, installed with the official VS Code CLI, and observed
+successful installation. Installed bundle SHA-256
+`03e64421e06ed338b7d5a9997f4c2cc7ebcec2933b2d0498a520324f6799b3aa`
+matches the bundle inside the approved VSIX. Actual CUA `Developer: Reload Window`
+completed. Executing the new `Prepare, Replace or Forget Source Credential`
+command opened the retained-workflow picker including B03; cancelled before
+credential retrieval, entry or storage. This verifies activation, not live migration.
+
+Read-only local evidence check: B03 inventory remains finished/imported,663bytes,
+SHA `4e0efa9b18b6b1a985046a80599405687d1b7d7b9e82bdf1fba76c7c73a57435`;
+target and migration remain absent. No Azure start/change was requested. The
+10:58UTC live bound has expired; a new explicit bounded runtime authorization is
+needed before starting the existing source/runner. Do not silently extend it.

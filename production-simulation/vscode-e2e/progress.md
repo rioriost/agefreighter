@@ -53,8 +53,12 @@ bounded retained-operation status watches, one-approved-report transfer/import,
 and an exact-scope bounded same-VM resize sequence. Typecheck/build and502
 unit/adapter tests pass; isolated real Extension Host25/25 on baseline1.105 and
 installed1.138 also pass. [Implementation and boundaries](automation-improvements-20260922.md).
-Operator-profile installation and B03 live continuation are not yet performed;
-no existing Azure qualification is inferred from these local tests.
+User-approved operator-profile installation and actual Reload Window completed
+11:51–11:53UTC. Installed bundle matches the approved5f93f3c VSIX; new credential
+command opens the retained B03 workflow without Azure or credential mutation.
+The existing663-byte inventory remains hash-matched/imported. Live continuation
+is not performed:10:58UTC authorization expired, so a new bounded runtime approval
+is required. No Azure qualification is inferred from local installation/tests.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
