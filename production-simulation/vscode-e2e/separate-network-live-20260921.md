@@ -652,3 +652,18 @@ extension still needs action-time installation approval and installed-GUI
 verification; do not edit the operator record manually or bypass its gate.
 VM/DB stay stopped and safety heartbeat stays PAUSED until actual startup.
 B01 full64range/root qualification remains pending.
+
+### September22 corrected extension installed and reloaded
+
+User authorized the offered correction/reload. Installed a4b61d8 VSIX with
+SHA256 `c65b7ea8358943f339ed90d2eb70c4794a31dae14580ba6c2cb719b06b9d374c`;
+installed bundle matches
+`8f0061a16bf2d42abe1a41cd6f805697316f70286a905c20e95d56b80fdd2a8e`.
+Actual Developer: Reload Window and GUI selection of the exact saved B01 workflow
+completed. All81operator files remain byte-identical before installation,
+after reload and after reconnect (aggregate SHA256
+`c01e453c3b3161c4f2c7ce7aa0d2268b945addcb273f80b25a7a2367f8b3a461`).
+No migration replay, Azure startup or verifier submission occurred. Approved
+60minute verification session has not started. Next is installed-GUI cost-window
+renewal, bounded startup/readiness and the already approved canonical verifier;
+installation/reconnect alone does not close B01.

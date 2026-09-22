@@ -2,7 +2,13 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **post-load time-window renewal corrected locally; installation pending; compute stopped**.
+Current B01 phase: **corrected extension installed/reloaded; retained B01 reconnected; compute stopped**.
+Approved a4b61d8 installation and actual Reload Window/reconnect completed.
+Installed bundle matches reviewed SHA; all81operator files are byte-identical.
+No replay/startup/verifier submission. Next: GUI renewal and approved bounded
+verification session. B01 remains partial until64ranges/root match.
+
+Previous B01 phase: **post-load time-window renewal corrected locally; installation pending; compute stopped**.
 User approved a60minute exact-resource verification session and the pinned
 read-only verifier. Before startup, installed GUI refused renewal solely because
 the migration already finished. No window saved, startup or verifier dispatch.
