@@ -21,7 +21,10 @@ same VMs restarted, fresh readiness/TLS pass, failure retained in GUI history.
 No new exact-inventory operation submitted: private input remained pending at
 08:16UTC, so the two exact VMs were requested to deallocate and unsubmitted input
 cancelled. Both independently verified deallocated by08:18:19UTC, heartbeat paused.
-Original09:15UTC limit was not extended. No TLS bypass or accepted-graph overwrite. See
+User requested continuation08:24UTC: same VMs restarted, fresh GUI readiness/TLS
+pass; private updated-password input pending, no new inventory submitted. Monitor
+active with08:45UTC idle-input cutoff. Original09:15UTC limit was not extended.
+No TLS bypass or accepted-graph overwrite. See
 [approved preparation checkpoint](other-cloud-n526-live-20260922.md).
 Fresh delayed combined cost is USD398.7127296615029 / cumulative USD800;
 eight old Ready targets were safety-stopped, with final state recorded in

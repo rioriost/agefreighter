@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Credential reset PASS; GUI continuation reached private input but no new inventory was submitted. Both exact VMs verified deallocated after the fifteen-minute idle-input stop; heartbeat paused.**
+Status: **User requested continuation after idle stop. Same source/runner restarted; fresh GUI readiness and source TLS PASS. Private password input visible; no new inventory submitted. Original09:15UTC hard stop unchanged.**
 
 ## Authorization and boundaries
 
@@ -373,3 +373,31 @@ Final local record still has no active assessment and retains the prior failure.
 Heartbeat paused after stopped-state verification. No new qualification result;
 the private-input gate and fresh GUI inventory remain outstanding. Stopped disks
 and storage continue to incur retention charges inside the unchanged budget.
+
+##08:24UTC — user requested another continuation
+
+User requested continue after the idle-input stop. No assessment had been
+submitted in that preceding continuation; preserve that distinction from an
+inventory failure/retry. Same two VM identities/ownership/SKUs and deallocated
+states reconfirmed, RG locks empty. Recent activity includes expected stopping
+and external governance writes/evaluations; no changes were reverted. Fresh
+billing refresh returned429; latest delayed totalUSD398.7127296615029 is retained,
+not represented as real-time cost. USD800/reserveUSD700 and09:15UTC hard deadline
+remain unchanged, with stopping by09:10UTC and no new two-hour allowance.
+
+Reactivated exact-scope safety monitoring and requested start of the same two
+VMs only. Existing source form and workflow reconnected through installed GUI
+without new deployment or source discovery. New GUI readiness check submitted;
+source health/TLS read-only checks in progress. No new inventory, target,
+credential change, artifact installation or migration at this checkpoint.
+
+GUI reconnect selected exact workflowb775b1b2 without replay. Readiness operation
+`c79de7fd-0b0a-423c-9597-ea2dc57d4805`, command
+`af-fe4c8163-0654-4d4a-a887-290723e7037d`, submitted08:27:58.232UTC and
+reconciled finished: new boot `faf75071-779a-4e73-bd85-84d3c87f70cd`, same pinned
+CLI/archive, idle, disk3.5215%, swap0/OOM0. Independent source08:28:27UTC:
+disk7%, swap0/no current-boot OOM, normal container running/OOMfalse, TLS1.3
+chain/IP-SAN Verification OK. Reviewed unchanged host/keys/CA and accepted exact
+read-only inventory confirmation in GUI. Private updated-password input visible
+around08:30UTC; no new assessment submitted. Idle-input cutoff08:45UTC unless a
+new healthy operation is submitted; hard stopping09:10/hard bound09:15 unchanged.

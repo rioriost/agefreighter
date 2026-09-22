@@ -25,6 +25,10 @@ private updated-password entry. No new inventory submitted, target or migration.
 At08:16UTC the prompt was still pending and runner idle: exact source/runner
 deallocation requested, unsubmitted input cancelled. Both verified deallocated by
 08:18:19UTC, heartbeat paused. Delayed costUSD398.71273; no new qualification result.
+User requested continuation08:24UTC: same source/runner restarted, actual GUI
+reconnect and fresh08:27:58 readiness/source TLS pass. Private password prompt
+visible again; no inventory submitted. Monitor reactivated, idle stop08:45UTC,
+original hard09:15UTC unchanged. Cost refresh429; no new resources or migration.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
