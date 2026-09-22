@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Improved installed GUI (5f93f3c) saved the B03 target plan offline and successfully reused its inputs. User entered the source credential and selected Remember. New maximum two-hour source/runner session approved at11:55UTC; no compute start requested yet. Both VMs remain stopped, monitor paused. Target is locally previewed only, pending action-time creation approval; no migration.**
+Status: **User approved target creation. Exact source/runner startup requested12:22:03UTC, hard stop14:10UTC with stopping from14:05UTC; scoped monitor active. Fresh runner health/source TLS pass. Installed GUI submitted the private target once; ARM Running at12:28UTC. Existing inventory retained; no migration yet.**
 
 ## Authorization and boundaries
 
@@ -591,3 +591,32 @@ target credential in SecretStorage before proceeding. Keep compute off during
 this approval wait; after approval start only the already authorized source and
 runner, refresh ownership/governance/readiness, and submit once through the GUI.
 Offline save/reuse is installed-GUI evidence, not Azure migration qualification.
+
+##12:20–12:28UTC — approved target submitted after fresh startup gates
+
+User confirmed OK for the exact new private target/subnet/DNS/SecretStorage
+creation. Their native click before VM startup triggered only a readiness check;
+operation2c505a4c returned409 while compute was stopped and was reconciled failed.
+No target submission occurred then. Retained evidence was not replayed or removed.
+
+Fresh ownership/disks/SKUs and no RG locks/recent governance events verified;
+reactivated scoped heartbeat with14:10UTC hard stop and14:05UTC stop initiation.
+First compute-start request12:22:03UTC for only sourceaf-op-n526-source and
+runneraf-b775b1b281ca40fcb669; both independently verified running. No extension
+of the previously saved deadline. Delayed costUSD420.304221975638 remains the
+latest successful billing observation, not a live bill.
+
+Explicit new installed-GUI readiness9911369e-cd5d-4778-92da-7e4abfed21fe
+(commandaf-25939374-0bf8-402e-9b91-1b4de20d5e12) passed at12:26:26.191UTC.
+New boot75914d3c-3f00-46ad-bf33-f7dc606cbd24, pinned Linux unchanged, idle,
+disk3.5384%,swap0/OOM0. Independent source check12:27:02UTC: container running,
+OOMfalse,disk7%,swap0,no kernel OOM, TLS1.3 chain/IP-SAN verificationOK.
+
+Reused saved target inputs/folder; clicked the same user-approved deployment
+scope after readiness. Fresh built-in preflight passed. Installed GUI retained
+one submitted target, hash1a8e0fbf9bb8f756cb04fa02a30325c975f01c7f0e75e0d14bb084b79cc02eb5;
+ARM deploymentafpg-b775b1b281ca40fcb669 is Running with timestamp
+12:28:11.606114UTC and no error. Source remains endpoint-only in migration
+configuration; no source graph, credential, exposure, RBAC or tag change.
+Reconcile this deployment, never submit another. AGE readiness, same-VM resize,
+actual migration and independently approved full canonical verifier remain.

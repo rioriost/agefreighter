@@ -65,6 +65,10 @@ approval is pending, both VMs remain stopped and the runtime clock is unstarted.
 Saved deadline14:10UTC; activate scoped safety monitoring before startup.
 Latest delayed two-group costUSD420.304221975638. No Azure qualification is
 inferred from local installation/tests or offline plan save/reuse.
+User approved target creation; scoped monitor activated and first exact two-VM
+startup requested12:22:03UTC. Fresh runner health/source TLS pass. Installed GUI
+reused the plan and submitted target once; ARM Running12:28UTC. Hard stop14:10UTC,
+stop initiation14:05UTC. No migration yet; retained inventory is not replayed.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
