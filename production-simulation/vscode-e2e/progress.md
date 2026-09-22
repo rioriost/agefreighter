@@ -2,6 +2,15 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest B02 batch: **6/6 unchanged production placement checks pass against real
+ARM responses**, 19 GETs, no mutations/startup/source data. Actual nonexistent
+subnet/group, delegated subnet, VNet-region mismatch and source-zone mismatch
+are refused; valid placement passes. This is not installed-GUI rejection proof.
+GUI capture failed before a new preview outcome; all82operator files unchanged.
+Corrected stale same-group-only VNet guidance in source; typecheck,458unit tests
+and build pass, but not installed/visually verified. B02 stays partial, totals
+5pass/7partial. See [read-only placement evidence](placement-arm-readonly-20260922.md).
+
 Latest offline B12 batch: **real isolated VS Code1.138.0 host25/25PASS**, including
 12new retained canonical-report cases. One valid control opens the actual PASS
 tab;11invalid reports are rejected without new PASS presentation, persistence,

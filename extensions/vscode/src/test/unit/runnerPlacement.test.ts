@@ -7,6 +7,13 @@ import { runnerHTML } from "../../core/runnerView";
 
 const subscription = "11111111-1111-4111-8111-111111111111";
 const otherSubscription = "22222222-2222-4222-8222-222222222222";
+test("placement guidance permits a separately reviewed network resource group", () => {
+  const html = runnerHTML("https://webview.example");
+  assert.match(html, /existing VNet, which may be in a different resource group/);
+  assert.match(html, /review of both resource scopes and approval/);
+  assert.doesNotMatch(html, /requires its existing VNet in the migration group/);
+});
+
 const catalog = placementCatalog([{ name: "source-rg", location: "westus", properties: { token: "omit" } }, { name: "migration-rg" }], [
   { name: "japaneast", displayName: "Japan East", latitude: 35.68 }, { name: "japanwest", displayName: "Japan West" }, { name: "global", displayName: "Global" }
 ]);

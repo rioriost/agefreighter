@@ -2,6 +2,13 @@
 
 Updated: 2026-09-22 JST. Status: **not release-qualified; B01 full canonical PASS; 5/12 defined branches pass, 7 partial**.
 
+Latest B02 batch: 6/6 production preflight cases pass with real read-only Azure
+metadata (19GETs), including missing subnet/group, actual delegation, region and
+zone mismatch refusals. These are not installed-GUI backend outcomes. No startup
+or mutation; all82operator files unchanged. GUI capture failed before a new
+preview outcome. Corrected stale cross-group guidance locally;458unit tests/build
+pass, not installed. See [B02 evidence](placement-arm-readonly-20260922.md).
+
 Latest B12 host batch: actual VS Code1.138.0 runs the production canonical
 controller and retained-file store against synthetic evidence.12new cases pass:
 one valid PASS tab and11invalid-report rejections, with no persistence/redownload
@@ -406,7 +413,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | ID | Required branch | Existing evidence / current limitation | Remaining acceptance | State |
 |---|---|---|---|---|
 | B01 | Default/separate migration RG; independent network RG | Same-group base P1 PASS; installed separate-group selection, two-scope private target provisioning, same-VM resize and5.6M-row migration/counts PASS; September22 installed-GUI sealed import and independent64range/root comparison PASS | Complete for the defined group-placement branch; not all invalid placement/initial-boot cases (B02/B09), native Gremlin API or production-scale qualification | pass |
-| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review and early malformed/cross-subscription input rejection; placement/preflight tests pass | Unknown-zone VM transition and live invalid region/SKU/subnet/delegation/quota admission remain unqualified | partial |
+| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review and early malformed/cross-subscription input rejection; six real-ARM production preflight cases pass, including missing subnet/group, delegation, region/zone mismatch rejection | Unknown-zone VM transition, installed-GUI backend refusals, unavailable SKU and quota denial remain unqualified; direct real-ARM checks are not GUI evidence | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Base/manual routes have full P1 canonical PASS; installed GUI/Linux P1 catalog, explicit mappings and complete inventory/import pass; CSV all18choices/IDs/seals/configuration binding pass,445unit tests/13Go contracts; isolated FK GUI catalog, explicit safe edge/property adoption, reconnect and sealed5vertex/3edge inventory pass | Complete for defined cases; nullable FK remains manual review. Supplemental FK inventory is not another migration/digest qualification; broader value combinations retain local-contract-only scope | pass |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin-shaped NoSQL installed-GUI inventory, private target/resize, migration and complete counts pass; independent full digest generated 05:08:24 UTC and GUI-imported, all 5.6M records / 18 labels / 64 ranges and root match, including typed properties, composite IDs and endpoints | Complete for the defined document-format branch; not native Gremlin API qualification | pass |
