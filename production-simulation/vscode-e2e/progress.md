@@ -2,7 +2,15 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **corrected extension installed/reloaded; retained B01 reconnected; compute stopped**.
+Current B01 phase: **corrected GUI renewal PASS; approved bounded verifier session starting**.
+Exact existing VM/target starts requested September22,01:06:39UTC. Hard deadline
+02:00UTC/11:00JST (less than60minutes), safety stop begins01:55UTC; scoped monitor
+and exact VM shutdown configured before startup. Cumulative USD800/reserveUSD700,
+combined compute1.448/hour; delayed costUSD370.284238355361. Finished migration,
+job/counts report retained. No new migration/source/security changes; readiness
+and full64range verification are next, not yet PASS.
+
+Previous B01 phase: **corrected extension installed/reloaded; retained B01 reconnected; compute stopped**.
 Approved a4b61d8 installation and actual Reload Window/reconnect completed.
 Installed bundle matches reviewed SHA; all81operator files are byte-identical.
 No replay/startup/verifier submission. Next: GUI renewal and approved bounded

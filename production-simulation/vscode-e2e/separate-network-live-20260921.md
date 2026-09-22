@@ -667,3 +667,19 @@ No migration replay, Azure startup or verifier submission occurred. Approved
 60minute verification session has not started. Next is installed-GUI cost-window
 renewal, bounded startup/readiness and the already approved canonical verifier;
 installation/reconnect alone does not close B01.
+
+### September22 bounded verifier startup
+
+Installed corrected GUI successfully renewed the finished job's authorization
+without replay: cumulative USD800, accrued/retention reserve USD700, current
+combined compute USD1.448/hour and hard deadline **2026-09-22T02:00:00Z
+(11:00JST)**. The native confirmation explicitly describes cumulative cost and
+unchanged migration/evidence. Exact retained job/counts seal remains unchanged.
+Fresh ARM confirms exact ownership, VM deallocated and target Stopped/private
+before startup. Scoped heartbeat enabled and exact VM shutdown set to01:55UTC
+before first startup requests at **01:06:39UTC**; this is conservatively within
+the approved maximum60minutes. Begin shutdown by01:55UTC for service latency.
+Only existing VM/target start requested, no new resources or source changes.
+Latest delayed combined costUSD370.284238355361, reserve/cap unchanged.
+Wait for ready resources, then installed-GUI fresh guest readiness and the
+approved pinned full verifier. No canonical success yet.
