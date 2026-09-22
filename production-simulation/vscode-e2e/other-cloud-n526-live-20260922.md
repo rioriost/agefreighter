@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **GUI draft reviewed; new transfer-storage permission pending. No compute started.**
+Status: **Storage provisioning reconciled; authenticated HTTPS access/artifact transfer approval pending. No compute started.**
 
 ## Authorization and boundaries
 
@@ -100,3 +100,21 @@ the renewal script. These are preparation checks, not installed-guest proof.
    update and push redacted results. No accepted graph or workflow overwrite.
 
 No B03 qualification result is claimed at this preparation checkpoint.
+
+## September 22 06:55–06:59 UTC — storage reconciled, compute still stopped
+
+On continuation, the native confirmation was no longer present and the installed
+GUI showed the existing storage deployment as submitted. A refresh reconciled
+it to `ready — public network: Disabled (provisioning is not transfer readiness)`;
+no duplicate deployment was dispatched. Independent ARM reads confirmed the exact
+account Succeeded, anonymous access false, shared-key access false, workflow tags
+matching, and only the intended user/account-scoped Blob Data Contributor grant.
+The retained deployment records role assignment `83c2202f-2b49-417e-a834-f1be860c22b3`.
+
+Actual public-network access is Disabled despite Enabled in the retained template.
+The cause has not been independently attributed. Requested explicit permission
+for this exact account's `SecurityControl=Ignore` tag, authenticated HTTPS access,
+and upload of the pinned Linux archive to its workflow-only container. None of
+those changes or transfers has been performed at this checkpoint. Source VM
+`af-op-n526-source` is freshly verified deallocated; no runner/target startup,
+TLS renewal, password prompt or assessment. The two-hour compute clock is unstarted.

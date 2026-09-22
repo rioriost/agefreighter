@@ -5,7 +5,8 @@ Updated: 2026-09-22 JST. Status: **not release-qualified; B01 full canonical PAS
 Next live trial: B03 Neo4j other-cloud selection using the accepted IP-only
 private fixture, a fresh workflow and full canonical verification. User approved
 a maximum two-hour compute window; it has not started. New installed-GUI draft
-is reviewed, with exact transfer-storage/access approval pending. Fixture TLS
+is reviewed and transfer storage provisioning reconciled. Public-network access
+is Disabled; exact tag/access exception and artifact upload approval pending. Fixture TLS
 renewal is prepared but not executed (retained CA expired September 22 04:38:18
 UTC). No TLS bypass or accepted-graph overwrite. See
 [approved preparation checkpoint](other-cloud-n526-live-20260922.md).
