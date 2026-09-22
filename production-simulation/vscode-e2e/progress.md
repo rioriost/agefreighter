@@ -82,6 +82,17 @@ accepted and GUI automatic retained-operation watch started. This is not load
 completion/counts/full-digest success. Worker30min bound and14:10UTC hard stop
 remain unchanged; no inventory replay. Full verifier still requires its own
 action-time approval before installation/run on this guest.
+Migration finished13:05:07UTC (about7m17s). Installed GUI imported the sealed
+9619-byte report/SHAa66aa8c3a183… and displayed Counts PASS. Independent assertions
+confirm1.6Mvertices+4Medges/all18labels/zero rejects/24passed checks/no errors or
+incomplete checks. Correct Neo4j raw-ID verifier8a23a5109798/SHA60ed56a6773e…
+awaits action-time approval; Gremlin-profile e70e02068c68 is not applicable here.
+No full-digest/B03qualification claim yet. Pending-approval idle stop13:27UTC
+(begin13:25), original14:10UTC hard stop unchanged.
+User immediately approved correct raw-ID verifier placement/run/import13:11UTC;
+GUI submitted operation6fb20b39 at13:12:26UTC, bound to job99ae1d29. Approval
+wait ended; healthy25min/4GiB verification is now active under the unchanged
+14:10UTC hard stop. Full canonical result is still pending.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).

@@ -663,3 +663,47 @@ GUI visibly entered Watching retained operation — no automatic retry. Healthy
 worker bound30minutes, approximately13:28UTC; hard stop14:10UTC/begin14:05 remain.
 No replay, source re-inventory, new credential or additional resource creation.
 Counts/report import and separately action-time-approved64-range verifier remain.
+
+##13:05UTC — retained migration finished; report import pending
+
+Exact job99ae1d29 finished13:05:07.174569205UTC after starting12:57:50.655727160UTC
+(about7minutes17seconds). Retained status is finished/exit0 with9619-byte report
+SHA a66aa8c3a183c2d64e7b87c18a9c42462147adaf862bf00d2ce97f5cf512cc31 and
+fingerprint494dc6e781855871b48162fddea2c114950c839fe0def3a0c75d5b3fd2784fc0.
+Independent guest health13:05:42UTC: unit inactive/resultsuccess, no running CLI,
+disk4%,swap0/no kernelOOM. Read-only ARM observed the terminal retained status;
+installed GUI watcher still reconciling its existing status command. Report
+transfer/import and assertions are next; exit0 alone is not full qualification.
+
+##13:10–13:11UTC — installed GUI counts PASS; raw-ID verifier approval pending
+
+GUI reconciled the exact terminal job, then one approved retained-report transfer
+completed automatically through the existing workflow container. No migration
+replay or repeat export. GUI displayed Counts verification: PASS. Independently
+rehashing the imported9619-byte report matches a66aa8c3a183…; all18 labels sum to
+1,600,000 vertices and4,000,000 edges, accepted/committed/live physical/live
+identity counts agree, rejects0,24checks pass, errors/incompletechecks empty.
+New idle-health receipt requested for the final read-only verification gate.
+
+The Neo4j raw-ID profile requires verifier8a23a5109798, archiveSHA
+60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d, locally rehashed.
+Manifest vscode-p1-verifier.YxRRzz declares expected raw canonical rootbf6bb2aa….
+The earlier heartbeat's e70e02068c68 reference is Gremlin-partition64-specific
+and is NOT the correct artifact for this Neo4j trial; do not use it here.
+Requested one action-time approval for the correct verifier upload/install/run
+and private result import, max25min/4GiB, unchanged14:10UTC deadline. No verifier
+installed or run yet; full B03 remains partial. If approval still pending, begin
+stopping exact source/runner/target13:25UTC to verify stopped by13:27UTC.
+
+##13:11–13:13UTC — approved raw-ID full verification submitted
+
+User expressly approved the exact verifier placement, execution and private
+result import at action time. Selected the rehashed raw-ID manifest through
+installed GUI and accepted its matching native review. Fresh13:09:40UTC readiness
+shows same boot/loader, idle,disk3.637%,swap0/OOM0. No loader upgrade.
+P1 operation6fb20b39-3206-45ad-be99-6b235c31a69e submitted13:12:26.728UTC,
+commandaf-6fb20b39-3206-45ad-be99-6b235c31a69e, bound to job99ae1d29.
+Archive7,248,083bytes/SHA60ed56a6773e…; maximum25min/4GiB, read-only target.
+Approval wait ended; idle13:27 stop condition no longer applies to this healthy
+approved work. Existing14:10UTC hard stop unchanged. Monitor same operation,
+never replay. Submission is not canonical PASS; all64ranges/root remain pending.
