@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Storage provisioning reconciled; authenticated HTTPS access/artifact transfer approval pending. No compute started.**
+Status: **Approved storage access and artifact upload complete; VM/identity/install approval pending. No compute started.**
 
 ## Authorization and boundaries
 
@@ -118,3 +118,33 @@ and upload of the pinned Linux archive to its workflow-only container. None of
 those changes or transfers has been performed at this checkpoint. Source VM
 `af-op-n526-source` is freshly verified deallocated; no runner/target startup,
 TLS renewal, password prompt or assessment. The two-hour compute clock is unstarted.
+
+## September 22 07:04–07:09 UTC — approved transfer complete, VM preview reviewed
+
+The user approved the exact storage tag/access change and fixed archive transfer.
+Merged `SecurityControl=Ignore` into this account's existing tags and enabled
+public-network access. Fresh independent ARM verification retained HTTPS-only,
+TLS1.2 minimum, anonymous access false and shared-key access false. Authenticated
+listing of the workflow container succeeded. Installed GUI refresh reconciled
+ready/public Enabled; no storage redeployment or source exposure change.
+
+The installed qualification command selected this exact workflow and the pinned
+manifest, checked local archive bytes, and uploaded through its normal approved
+path. GUI confirmed the archive prepared; retained developmentUpload phase ready.
+Independent Blob properties show creation at 07:04:49 UTC, 37,197,546 bytes and
+SHA256 metadata `2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6`.
+This is upload/metadata evidence, not a fresh remote-download digest or guest install.
+
+Actual GUI reconnect restored the same workflow and pinned artifact. The UUID
+search returned no quick-pick matches because the identifier is in the description;
+filtering `neo4j — draft` exposed the exact UUID for selection. No different draft
+was selected or edited. Fresh preflight completed 07:08:09.625 UTC: Japan East,
+zone1, B2s_v2, USD0.109/hour plus disk/network, preview expires 07:23:09.625 UTC.
+Its resources are only the new NSG/NIC/VM `af-b775b1b281ca40fcb669` and the VM's
+Blob Reader role on this workflow container. No public IP or source grant.
+
+Requested action-time approval for this VM, scoped identity access and unpublished
+software installation/execution. No deployment submitted; source VM freshly
+deallocated and new runner absent. Recheck expired preview before any later
+submission. Establish the absolute two-hour deadline and safety monitor before
+the first compute request; the clock remains unstarted. TLS renewal still pending.

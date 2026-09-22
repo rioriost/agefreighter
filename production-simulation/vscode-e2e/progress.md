@@ -3,9 +3,10 @@
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
 Latest B03: user approved the bounded other-cloud-selection trial. Installed GUI
-reviewed a new endpoint-only Neo4j draft and reconciled transfer storage ready.
-ARM confirms exact user/account-scoped Blob access, but HTTPS public access is
-Disabled; exact tag/access exception and fixed artifact upload approval pending.
+reviewed a new endpoint-only Neo4j draft. Approved storage tag/authenticated HTTPS
+access and fixed archive upload are complete; anonymous/shared-key access stays
+disabled. Upload size/SHA metadata, actual GUI reconnect and runner preflight pass.
+Exact new VM/scoped Blob Reader/unpublished install approval is pending.
 No compute has started and the maximum
 two-hour clock has not begun. Fixture TLS renewal is prepared/static-checked but
 not executed; fixed Linux archive hash reverified. No new qualification result;
