@@ -2,6 +2,16 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+September 22 cost-safety follow-up: eight old retained PostgreSQL targets were
+unexpectedly Ready with all trial VMs deallocated. Ownership and recent activity
+were reviewed, then stop requests submitted for those exact targets; no deletion,
+data/credential/network change or new test window. Fresh delayed two-group cost
+is USD390.9644901299309 under the unchanged cumulative USD800 ceiling. The next
+proposed B03 other-cloud-selection trial needs a new bounded runtime approval and
+renewal of the expired private fixture TLS certificate. See
+[safety-stop evidence and proposed next trial](idle-cost-safety-20260922.md)
+for final stopped-state verification. Qualification totals are unchanged.
+
 Latest local B02 follow-up: 13 added contracts connect the production preview
 handler and preflight to synthetic ARM replies. SKU/quota denials stop before
 release fetch or persistence; exact quota and unknown-zone reviewed controls

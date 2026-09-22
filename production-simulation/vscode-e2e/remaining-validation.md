@@ -2,6 +2,15 @@
 
 Updated: 2026-09-22 JST. Status: **not release-qualified; B01 full canonical PASS; 5/12 defined branches pass, 7 partial**.
 
+Next live proposal: B03 Neo4j other-cloud selection using the accepted IP-only
+private fixture, a fresh workflow and full canonical verification. Not started:
+requires a new maximum two-hour window and fixture TLS renewal (retained CA
+expired September 22 04:38:18 UTC). No TLS bypass or accepted-graph overwrite.
+Fresh delayed combined cost is USD390.9644901299309 / cumulative USD800;
+eight old Ready targets were safety-stopped, with final state recorded in
+[the cost-safety follow-up](idle-cost-safety-20260922.md). This does not qualify
+B03, B09 or any other missing branch.
+
 B02 isolated follow-up: 13 production handler/preflight integration contracts
 pass with synthetic ARM and inert UI/storage/release adapters; 476 unit tests,
 typecheck and build PASS. No cloud or installed-GUI changes. Unknown-zone VM,
