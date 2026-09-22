@@ -37,3 +37,24 @@ successful run above. These are synthetic/local regression results, not a new
 Azure migration qualification. Production B03 resources remain stopped and its
 663-byte imported inventory is preserved. Development VSIX install and actual
 signed-in GUI/live continuation remain the next gates.
+
+## Handoff — packaged, production-profile installation pending
+
+Implementation committed/pushed as `5f93f3c`. Packaged development VSIX:
+`extensions/vscode/dist/agefreighter-2.4.0.vsix`, SHA-256
+`3a82dfceaefc5534911e3c1e7f994bef5d84102fab60de8c8eeb2dd3117662de`.
+Requested action-time consent for installing this unpublished build and reloading
+the operator's window. Do not start compute while waiting. Read-only ARM refresh
+confirmed the exact B03 source and runner are still deallocated with their expected
+disks/tags; recent activity contains the authorized deallocation and health events.
+No new target, migration, source read or credential change occurred in this turn.
+
+After installation, prepare the optional workflow credential and target inputs
+while stopped; reuse inventory `731f5d8f-b99c-4c6e-9c0c-59044ac6a217` rather than
+repeating source investigation. Reactivate the exact-scope safety monitor before
+any authorized restart. Current hard stop is still **2026-09-22 10:58 UTC**,
+begin stop at10:53; do not reset the clock. If insufficient time remains, retain
+the prepared inputs and request a new bounded live window without starting VMs.
+New target/subnet/credential creation and the dedicated verifier remain separate
+action-time gates. The B03 branch remains partial until actual installed-GUI load,
+all labels and64 canonical ranges/root have been verified.
