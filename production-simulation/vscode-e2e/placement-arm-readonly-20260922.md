@@ -128,3 +128,52 @@ compiled JavaScript SHA-256
 Requested action-time permission to install this local, unpublished VSIX and
 reload the normal VS Code window, followed only by read-only negative tests.
 No installation has been performed at this checkpoint.
+
+## Follow-up: approved installation and four installed-GUI refusals
+
+September 22, approximately 04:58–05:07 UTC: after explicit user approval,
+installed the exact `7338faa` VSIX above and executed Developer: Reload Window.
+Installed JavaScript SHA matches `3f4d14792570…` in full. The normal signed-in
+VS Code wizard visibly shows the corrected two-scope VNet guidance, including
+assessment, review and approval; this closes its previous visual-check gap.
+
+Submitted four independent prerequisite-preview checks through actual GUI fields:
+
+| Input | Observed installed-GUI result |
+|---|---|
+| Neo4j/on-premises, Japan East/zone 1, lookup-only nonexistent subnet `af-b02-nonexistent-20260922` | `The selected subnet does not exist.` |
+| Same placement, actual delegated subnet `afpg-5cb990c12a254de5a10d` | `Use a non-delegated compute subnet, not the Flexible Server delegated subnet.` |
+| Actual `runner` subnet in Japan East, runner region Japan West/zone 1 | `The runner region must match the existing VNet.` |
+| Azure Neo4j source ARM ID `af-n44-source` (actual zone 1), runner Japan East/zone 2 | `Select the source availability zone for the runner.` |
+
+The last case used the visible source ARM-ID field; no candidate discovery or
+database connection was needed. It verifies server-side source-zone admission,
+not unknown-zone VM proposal behavior. All actual preview submissions used the
+approved trial subscription, B01 migration group and original network group.
+Each displayed a specific placement refusal instead of the missing-release error.
+No preview record, what-if, deployment, source configuration, VM/DB startup or
+credential/RBAC/network change occurred. This conclusion combines observed GUI
+outcomes, matching installed code ordering and unchanged operator files, not a
+network capture. A native menu initially selected another subscription and
+triggered automatic group/region listing; that selection was corrected before
+any preview or resource action, and was not used for a qualification case.
+
+The user interrupted the turn after these four results. On continuation around
+05:10 UTC, the old wizard was no longer open. Opened a fresh unsaved wizard for
+the valid-placement/missing-release control, but native menu actions repeatedly
+reported external UI changes and did not reliably select the target subscription.
+Stopped sending further actions. No success, cancellation or close is claimed for
+that unfinished menu interaction. The post-fix valid-placement release refusal
+remains pending in the real GUI; it is covered by handler tests, not by these
+four negative cases. GitHub's fresh release lookup still returned release not found.
+
+At 05:14:46 UTC, all 82 operator files still match the original aggregate SHA
+`210699618b47cae309efc601398bfb171ed37248675d1436af2363c04735eb4a`.
+No source code changed in this installation/test batch; the candidate's existing
+463-unit/25-isolated-host/build/package results are retained, not newly rerun.
+
+B02 remains **partial**, now with four real installed-GUI backend refusals rather
+than only direct preflight evidence. Outstanding items include unknown-zone VM,
+unavailable SKU, quota denial and the post-fix valid-placement release control.
+No quota exhaustion, unavailable capacity or unknown source metadata was induced
+by mutating live resources. Branch totals stay 5 pass / 7 partial.
