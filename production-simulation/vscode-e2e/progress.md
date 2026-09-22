@@ -17,7 +17,10 @@ regression and real Go/P1-projection contracts pass:503unit/14CLI contracts,
 typecheck/build. Test-only; installed pins unchanged. New bounded runtime/TLS
 renewal was subsequently approved with max2hours from first compute start.
 New installed-GUI draft cb2ef280 reviewed; all18 persisted mappings exactly match
-the fixture. Correct PGVM reader input is pending while compute stays stopped.
+the fixture. PGVM reader entered; GUI encrypted reuse works without re-prompt.
+Approved dedicated storage/scoped user access, account-only tag/HTTPS setting
+and pinned archive upload complete; size/SHA match. New private VM preview passes,
+but VM/scoped reader/development installation approval is pending.
 Same-CA/key public leaf prepared locally and validated; not installed on guest.
 Runtime clock unstarted; no source reads or deployment. See
 [PostgreSQL preparation and gates](other-cloud-pg-live-20260922.md).

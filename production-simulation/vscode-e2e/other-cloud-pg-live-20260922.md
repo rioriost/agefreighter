@@ -116,3 +116,40 @@ health checks after the bounded compute session starts. Prior leaf retained.
 Next: prepare the correct source credential, then exact storage/access/artifact
 review; set a fixed absolute stop time and safety monitor immediately before the
 first compute start. Do not spend the compute window waiting for credentials.
+
+## September22 14:10UTC — credential reuse and artifact transfer ready
+
+User entered the PGVM reader credential. Invoking Prepare/reuse again for this
+exact workflow returned without another password or Remember prompt; encrypted
+reuse is working. This proves preparation/reuse, not successful authentication
+against the stopped source. No secret was inspected or exported.
+
+User explicitly approved dedicated storage and account-scoped Blob Contributor.
+Installed GUI submitted deployment `afcb2ef280a8914edfb45bde-transfer` once;
+ARM creation succeeded and GUI reconciled ready. Account public-network access
+was initially Disabled. User separately approved this account's
+SecurityControl=Ignore tag, authenticated HTTPS enablement and exact pinned
+archive upload. Merged the tag without replacing ownership tags; fresh ARM
+confirmed Enabled with anonymous/shared-key access still false. No source
+exposure, VM start or target creation occurred.
+
+Actual installed-GUI development preparation uploaded Linuxd40d6ccc9a4d to
+`afcb2ef280a8914edfb45bde` / `af-cb2ef280-a891-4edf-b45b-de75e33eb7b8`.
+GUI reports prepared; independent Blob properties confirm37,197,546bytes and
+metadataSHA2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6.
+GUI reconnected to this draft and prerequisites/preview passed for exact VM
+`af-cb2ef280a8914edfb45b`, B2s_v2, Japan East/zone1, USD0.109/hour compute.
+New VM/container-scoped reader and unpublished installation approval is pending.
+No compute request has occurred; maximum2hour runtime clock remains unstarted.
+
+Fresh billing returned originalRGUSD423.333012629158 plus B01RGUSD3.69074183488681,
+totalUSD427.02375446404481 (delayed billing, not real-time); cumulative800USD,
+reserve700USD, monthly3750USD/daily100USD constraints unchanged. RG identity and
+recent control-plane activity inspected; stale expiry/budget tags were not
+rewritten as new authorization. The old Neo4j safety monitor remains paused.
+
+Prepared `renew-pgvm-fixture-certificate-20260922.sh` locally; bash syntax and
+shellcheck pass. It pins old/new leaf and CA hashes, preserves old evidence,
+requires a bounded stop epoch, verifies fixture counts/health and matching key,
+and changes only the public leaf. It has **not run** on the guest. A live TLS
+check is still required after approved startup and certificate installation.
