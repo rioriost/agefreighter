@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Updated private credential accepted; GUI imported sealed inventory731f5d8f: exact1.6M vertices/4M edges, no report errors or incomplete checks. This aggregate-only report does not prove all18 labels or migration qualification. Exact source/runner independently verified deallocated by08:46UTC; heartbeat paused. No target or migration.**
+Status: **Aggregate inventory imported; B03 remains partial. Target planning attempted with compute stopped and correctly refused the missing live readiness gate. No target plan persisted/deployed. Source/runner remain deallocated, monitor paused; a new bounded runtime authorization is required before next live phase.**
 
 ## Authorization and boundaries
 
@@ -459,3 +459,25 @@ Both exact VMs independently verified `VM deallocated` by08:46UTC; the safety
 heartbeat was paused after verification. No restart to inspect evidence. Retained
 disks/storage still incur charges. Next phase is reviewed sizing/target creation
 and migration with label and full canonical verification, not a repeat inventory.
+
+##08:54UTC — stopped-state target review, no deployment
+
+User requested continue. Installed GUI retained the same workflow/report and
+opened target review without replaying discovery. Fresh ARM read of the existing
+VNet10.246.0.0/16 showed24.0/24 unused (existing named subnets1.0/24 through
+23.0/24); candidate10.246.24.0/24 requires another overlap check at deployment.
+Reviewed candidate: afpg-b775b1b281ca40fcb669, PostgreSQL18/AGE,
+Standard_E8ds_v5,128GiB, same runner later Standard_D4s_v5, JapanEast/zone1.
+Inventory-based high storage estimate91750400000bytes plus25% headroom fits128GiB;
+this is a conservative count-derived sizing bound, not measured property width.
+Entered only original09:15UTC deadline, USD800 ceiling and USD700 accrued/retention
+reserve, rejecting the form's unapproved24-hour default.
+
+Read-only preflight correctly refused: Check the running guest before approving
+target deployment. Source code also requires matching readiness no older than
+five minutes. No final deployment confirmation, generated credential, folder
+export or target intent persisted; local target remains absent and inventory731f5
+finished/imported. Independent ARM confirms both exact VMs remain deallocated.
+Do not bypass readiness or restart into an insufficient remaining live window.
+Request bounded time extension for next live phase; new target/subnet/SecretStorage
+creation remains a separate action-time approval after successful preflight.

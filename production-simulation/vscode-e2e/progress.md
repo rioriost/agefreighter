@@ -34,6 +34,10 @@ User-approved transfer imported and hash-verified08:41UTC: exact1.6M vertices,
 all18 labels; no full inventory/route qualification claimed. Exact two VMs
 verified deallocated by08:46UTC, monitor paused; original09:15UTC unchanged.
 Cost refresh429; no new target resources or migration.
+Continuation target review selected E8ds_v5/128GiB and same-VM D4s_v5 with
+candidate10.246.24.0/24. Stopped-guest preflight correctly refused; no target
+plan persisted or deployment/credential creation. Both VMs remain deallocated;
+next live phase needs a new bounded runtime authorization and fresh readiness.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
