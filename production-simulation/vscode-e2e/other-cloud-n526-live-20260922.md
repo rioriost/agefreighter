@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Fresh readiness/target preflight passed after approved restart. User raised test-duration/automation concerns; unsubmitted folder/deployment flow cancelled, source/runner verified deallocated by09:08UTC; monitor paused. No target created or migration; existing evidence retained. Automation improvements are recommendations, not yet implemented.**
+Status: **Automation improvements implemented, tested and installed (5f93f3c). User approved a new maximum two-hour source/runner session at11:55UTC, measured from the first compute-start request. Offline credential/target preparation precedes startup; both exact VMs are still deallocated, monitor paused. Existing inventory remains imported; no target or migration yet.**
 
 ## Authorization and boundaries
 
@@ -538,3 +538,27 @@ creation, source mutation, inventory replay or evidence deletion.
 
 Both exact VMs independently verified deallocated by09:08UTC; safety heartbeat
 paused after confirmation. Existing imported inventory and source remain intact.
+
+##11:55UTC — new bounded authorization; prepare before compute
+
+User approved a new maximum two-hour runtime for the same source VM and runner
+after installation of the improved extension. The prior10:58UTC bound expired;
+this is a new explicit authorization, not an automatic extension. Clock starts
+only at the first compute-start request. Set and persist an absolute deadline and
+reactivate the exact-scope safety monitor before that request. Target creation
+and dedicated verifier installation remain their existing action-time gates.
+
+Fresh ARM confirms both VMs deallocated, expected disks/SKUs/ownership tags;
+RG locks empty and no activity events in the queried09:35UTC-to-current interval.
+Cost API succeeded this time: delayed month-to-date ActualCost/PreTaxCost for the
+two trial groups is **USD420.304221975638**. Cumulative trialUSD800 and reserveUSD700
+remain unchanged; user monthlyUSD3750/dailyUSD100 constraints remain in effect.
+Do not present delayed billing as real-time or equate it with the user's previous
+all-subscription forecast.
+
+Installed GUI selected only B03 via the new credential preparation command and
+opened a private source-password prompt for10.246.5.5:7687/neo4j asneo4j.
+User should enter the current canonical Keychain credential and explicitly opt
+into encrypted workflow reuse. No Keychain secret was read into tools/chat, no
+credential was reset, and no Azure VM was started while waiting. Existing
+inventory731f5d8f is retained; do not repeat discovery.
