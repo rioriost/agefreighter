@@ -15,7 +15,11 @@ deallocated. Retained public leaf expired September20; CA valid untilOctober6.
 Installed new-wizard selection verified without cloud mutation. Frozen18mapping
 regression and real Go/P1-projection contracts pass:503unit/14CLI contracts,
 typecheck/build. Test-only; installed pins unchanged. New bounded runtime/TLS
-renewal and source-specific credential preparation precede live work. See
+renewal was subsequently approved with max2hours from first compute start.
+New installed-GUI draft cb2ef280 reviewed; all18 persisted mappings exactly match
+the fixture. Correct PGVM reader input is pending while compute stays stopped.
+Same-CA/key public leaf prepared locally and validated; not installed on guest.
+Runtime clock unstarted; no source reads or deployment. See
 [PostgreSQL preparation and gates](other-cloud-pg-live-20260922.md).
 
 Latest B03: user approved the bounded other-cloud-selection trial. Installed GUI

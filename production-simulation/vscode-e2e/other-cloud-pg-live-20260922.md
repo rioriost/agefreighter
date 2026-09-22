@@ -1,7 +1,7 @@
 # B03 PostgreSQL other-cloud selection — offline preparation
 
-September22,2026. Status: **offline preparation and local contracts PASS; no new
-workflow persisted, cloud mutation, source read or migration submitted**.
+September22,2026. Status: **offline preparation and local contracts PASS; new
+installed-GUI draft reviewed; no cloud mutation, source read or migration submitted**.
 This follows the completed Neo4j other-cloud simulation; it is a separate
 PostgreSQL selection and must not reuse the Neo4j credential or qualification.
 
@@ -82,3 +82,37 @@ do not invent a new CA, reset the reader password or extract private keys.
 This is another Azure-hosted endpoint-only simulation, not AWS/GCP certification.
 B03 remains partial until this actual PostgreSQL GUI route passes. No new
 cloud cost or runtime approval is inferred from local test success.
+
+## September22 13:54UTC — approved continuation, stopped-compute preparation
+
+The user's continuation after the explicit certificate/max2hour question approves
+the existing PGVM leaf renewal and a maximum two-hour compute session. The clock
+has **not started**: no VM start/create or server start was submitted. The prior
+Neo4j deadline is not reused. Exact new resource/access/artifact gates remain.
+
+Installed GUI created workflow `cb2ef280-a891-4edf-b45b-de75e33eb7b8`,
+`othercloud-pg-p1-r1`, PostgreSQL/other-cloud, existing trial RG, Japan East,
+zone1, B2s_v2 and existing runner subnet. Source is endpoint-only10.246.1.20:5432,
+p1source/agefreighter_reader; no source ARM identifier. Selected the retained
+public CA, whose file SHA matches the pinned value above. All18 mappings were
+entered through the GUI and Review source settings persisted them. Independent
+deep equality against the frozen mapping fixture passes. SourceDraft JSON SHA-256:
+`9ce861d71b8a638203b7a5b1b602e7dbe0f6652a08f4c687a19684d4b9fc8e29`.
+
+Opened Prepare/reuse source credential for this exact new workflow while compute
+is stopped. The private prompt identifies the PGVM endpoint and reader role;
+user input is pending. Flexible Server and Neo4j credentials are not substitutes.
+No password was retrieved or written to a file; Remember is the user's choice.
+
+Prepared a new **local public leaf only**, signed with the existing CA/key and
+retained CSR. Chain, DNS and IP SAN validation pass; public key matches the
+September13 retained leaf. Validity September22 13:54:11UTC to September29
+13:54:11UTC; public certificate SHA-256
+`4b10b4f74d827f22967eab716bac117ec25c19ca56070f6131281e25449746f3`.
+The CA/private keys were not changed or exported. No guest certificate update or
+live TLS validation has occurred; those require fresh exact guest identity and
+health checks after the bounded compute session starts. Prior leaf retained.
+
+Next: prepare the correct source credential, then exact storage/access/artifact
+review; set a fixed absolute stop time and safety monitor immediately before the
+first compute start. Do not spend the compute window waiting for credentials.
