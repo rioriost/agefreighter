@@ -23,9 +23,12 @@ and pinned archive upload complete; size/SHA match. New private VM preview passe
 and VM/scoped reader/development installation subsequently approved. First
 compute request14:14:17UTC; fixed stop16:00UTC (begin15:55), scoped monitor active.
 Runner readiness passes; existing PGVM leaf renewed with old evidence retained,
-CA/key unchanged, live endpoint TLS1.3 verified. GUI submitted inventorybb184697
-14:19:26UTC using saved credential without re-prompt; auto-watch active, no replay.
-No inventory-success or target/migration claim yet. See
+CA/key unchanged, source-local endpoint TLS1.3 verified. GUI submitted inventory
+bb184697 using saved credential without re-prompt, but child failed14:19:32UTC,
+exit1/no report. Coarse retained error is connection-related; exact cause unknown,
+not proven credential failure. GUI phasefailed retained, no automatic retry.
+Exact source/runner deallocated by14:29UTC; safety monitor paused, all evidence
+preserved. No target/migration; next is diagnosis, not another blind attempt. See
 [PostgreSQL preparation and gates](other-cloud-pg-live-20260922.md).
 
 Latest B03: user approved the bounded other-cloud-selection trial. Installed GUI

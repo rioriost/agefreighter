@@ -1,7 +1,8 @@
 # B03 PostgreSQL other-cloud selection — offline preparation
 
-September22,2026. Status: **offline preparation and local contracts PASS; new
-installed-GUI draft reviewed; no cloud mutation, source read or migration submitted**.
+September22,2026. Status: **preparation PASS; first installed-GUI inventory FAILED;
+exact source and runner deallocated; no target or migration created**.
+Latest outcome supersedes the historical preparation checkpoints below.
 This follows the completed Neo4j other-cloud simulation; it is a separate
 PostgreSQL selection and must not reuse the Neo4j credential or qualification.
 
@@ -193,3 +194,38 @@ GUI entered automatic retained-operation watch without a password re-prompt.
 Managed dispatch completion is not inventory success; no replay was performed.
 Worker limits30minutes/4GiB/no swap; target still absent. Reconcile and require
 the sealed full18label/1.6Mvertex+4Medge result before further target review.
+
+## September22 14:29UTC — inventory failure retained; safe stop verified
+
+The durable guest state proves the child inventory started14:19:32.548274885UTC
+and failed14:19:32.653073659UTC, exit1, without report bytes/hash. Installed GUI
+reconciled `failed`; the earlier accepted display was a stale dispatch receipt,
+not a healthy active worker. Systemd unit success/inactive is **not** child CLI
+success: the worker supervisor retained the child failure in state.json.
+
+Retained51-byte stderr SHA-256:
+`d1d694a1717436e62073c3f131686fba9f5f11455eb128dd409544982872d94b`.
+An in-guest fixed-category scan matched connectivity; it did not match explicit
+auth/TLS/permission/validation keywords. This is only coarse classification,
+**not** proof of a network fault or a correct/incorrect password. No raw secret,
+DSN or SDK error was exposed. Exact cause remains unresolved. Source-local live
+TLS success does not prove the runner's authenticated database connection.
+
+Read-only inspection retained state, unit/journal metadata and artifact names.
+An initial diagnostic used jq, absent from this runner; repeated only the
+read-only inspection with available tools. No worker retry/restart was performed.
+Guest evidence includes job.json, state.json, worker.claim and stderr.log; no
+report.json or transient secrets.json remained. Latest runner disk4%,swap0/OOM0.
+
+Requested source deallocation after terminal failure, then runner deallocation
+after collecting bounded sanitized evidence. ARM independently confirms **both
+PowerState/deallocated by14:29UTC**. Scoped heartbeat PAUSED after verification.
+All disks/data/certificates/failed evidence retained; no target exists. One final
+read-only GUI status command `af-d661e725-c371-49d7-8000-7a051ec5180e` was still
+locally submitted at shutdown; it is not an inventory replay and must not justify
+restarting the VM. It can be reconciled via ARM without guest startup.
+
+Next is diagnosis of the connection-stage failure, not another inventory attempt
+or migration. Do not reset the reader credential or weaken TLS based on this
+coarse error alone. The original16:00UTC bound is not extended by early stopping.
+B03 PostgreSQL remains unqualified; base9/9 and broader5pass/7partial unchanged.
