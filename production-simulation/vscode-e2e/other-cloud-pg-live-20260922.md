@@ -168,3 +168,28 @@ Only af-pgvm-source and af-cb2ef280a8914edfb45b belong to this stop scope.
 Installed GUI submitted exact runner deployment once at14:14:17.980UTC;
 existing source startup requested14:14:19UTC. The maximum2hour clock is now
 running; fixed16:00UTC stop remains. No inventory or target request was submitted.
+
+## September22 14:21UTC — live TLS and complete inventory submitted
+
+Runner ARM provisioned, installed-GUI readiness14:15:27UTC succeeded:
+boot8b207a68-b8fc-4bb2-b4a5-10c5ff5348aa, exactd40d6ccc9a4d pin,
+disk3.481685%,idle,swap0/OOM0. Exact runner principal's Blob Data Reader grant
+was independently confirmed at this workflow container only.
+
+Source bootb68acdb3-17f0-4b75-ba86-ac46163b9649, disk10%,swap0/OOM0.
+Fresh guest old-leaf/CA hashes matched pins; reviewed certificate renewal
+succeeded and old/new certificates were retained under
+`/var/lib/agefreighter-source/evidence/tls-renewal-20260922`.
+Existing PostgreSQL18.1 pinned container was stopped and was started by the
+approved renewal. Post-renewal health/evidence checks pass: retained18tables,
+5.6Mcounts, no password environment/secret mounts. Actual endpoint TLS1.3
+handshake verifies the CA, hostname and IP-SAN. Retained counts alone are not
+new inventory proof.
+
+Actual GUI source-read approval submitted inventory
+`bb184697-3121-41d1-be23-fe0c8ff78593` at14:19:26.974UTC on the same runner boot,
+configSHA`a2d3038228711c8d455c0b06ee0a0aa69eae8ef8e1400cbfed2e127a994f8498`.
+GUI entered automatic retained-operation watch without a password re-prompt.
+Managed dispatch completion is not inventory success; no replay was performed.
+Worker limits30minutes/4GiB/no swap; target still absent. Reconcile and require
+the sealed full18label/1.6Mvertex+4Medge result before further target review.

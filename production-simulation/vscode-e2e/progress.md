@@ -20,9 +20,12 @@ New installed-GUI draft cb2ef280 reviewed; all18 persisted mappings exactly matc
 the fixture. PGVM reader entered; GUI encrypted reuse works without re-prompt.
 Approved dedicated storage/scoped user access, account-only tag/HTTPS setting
 and pinned archive upload complete; size/SHA match. New private VM preview passes,
-but VM/scoped reader/development installation approval is pending.
-Same-CA/key public leaf prepared locally and validated; not installed on guest.
-Runtime clock unstarted; no source reads or deployment. See
+and VM/scoped reader/development installation subsequently approved. First
+compute request14:14:17UTC; fixed stop16:00UTC (begin15:55), scoped monitor active.
+Runner readiness passes; existing PGVM leaf renewed with old evidence retained,
+CA/key unchanged, live endpoint TLS1.3 verified. GUI submitted inventorybb184697
+14:19:26UTC using saved credential without re-prompt; auto-watch active, no replay.
+No inventory-success or target/migration claim yet. See
 [PostgreSQL preparation and gates](other-cloud-pg-live-20260922.md).
 
 Latest B03: user approved the bounded other-cloud-selection trial. Installed GUI
