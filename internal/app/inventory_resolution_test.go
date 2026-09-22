@@ -11,7 +11,20 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	sourcecosmos "github.com/rioriost/agefreighter/internal/source/cosmos"
+	sourcepostgres "github.com/rioriost/agefreighter/internal/source/postgres"
 )
+
+func TestInventoryInitializationDiagnosticIsRedacted(t *testing.T) {
+	_, err := sourcepostgres.NewSnapshotCoordinator(t.Context(), "postgresql://%", 1)
+	got := inventoryInitializationError(fmt.Errorf("SECRET-CANARY: %w", err))
+	if got.Error() != "network inventory initialization failed [postgresql/snapshot-connect/connection-configuration]" || errors.Unwrap(got) != nil {
+		t.Fatalf("unsafe diagnostic: %v", got)
+	}
+	got = inventoryInitializationError(errors.New("SECRET-CANARY"))
+	if got.Error() != "network inventory initialization failed" || errors.Unwrap(got) != nil {
+		t.Fatalf("unsafe unknown error: %v", got)
+	}
+}
 
 func TestInventoryResolutionErrorIsAllowlistedAndRedacted(t *testing.T) {
 	const secret = "SECRET-CANARY-https://private.example/?token=value"

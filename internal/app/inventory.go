@@ -15,6 +15,7 @@ import (
 	sourcecontract "github.com/rioriost/agefreighter/internal/source"
 	sourcecosmos "github.com/rioriost/agefreighter/internal/source/cosmos"
 	sourceneo4j "github.com/rioriost/agefreighter/internal/source/neo4j"
+	sourcepostgres "github.com/rioriost/agefreighter/internal/source/postgres"
 	"github.com/rioriost/agefreighter/pkg/model"
 )
 
@@ -115,9 +116,17 @@ func networkSourceInventory(ctx context.Context, job config.LoadJob, options Inv
 	resolved.Errors.RejectLimit = 0
 	iterator, err := newSourceIterator(ctx, resolved, "", nil)
 	if err != nil {
-		return report.Document{}, errors.New("network inventory initialization failed")
+		return report.Document{}, inventoryInitializationError(err)
 	}
 	return consumeNetworkInventory(ctx, resolved, iterator, options)
+}
+
+func inventoryInitializationError(err error) error {
+	if stage, category, ok := sourcepostgres.InitializationDiagnostic(err); ok {
+		return fmt.Errorf("network inventory initialization failed [postgresql/%s/%s]", stage, category)
+	}
+	// Other connector/validation errors remain opaque, never interpolated.
+	return errors.New("network inventory initialization failed")
 }
 
 // Emit only fixed categories. SDK errors can contain endpoints, query values,

@@ -229,3 +229,37 @@ Next is diagnosis of the connection-stage failure, not another inventory attempt
 or migration. Do not reset the reader credential or weaken TLS based on this
 coarse error alone. The original16:00UTC bound is not extended by early stopping.
 B03 PostgreSQL remains unqualified; base9/9 and broader5pass/7partial unchanged.
+
+## September22 14:45UTC — offline error identification and diagnostic correction
+
+Without restarting either VM, the fixed CLI message
+`inventory: network inventory initialization failed` plus its trailing newline
+reproduced both the retained51byte length and exact SHA-256
+`d1d694a1717436e62073c3f131686fba9f5f11455eb128dd409544982872d94b`.
+Thus the earlier keyword match was the generic word **network**, not independent
+evidence of a network fault. The old binary deliberately discarded the connector
+initialization cause. Authentication, TLS, connection configuration and snapshot
+initialization remain possible; no cause can be recovered from this fixed string.
+
+Implemented a local-only diagnostic correction. PostgreSQL parse/connect/begin/
+export failures now retain private typed, fixed stage/category labels. Known
+authentication, permission, database, TLS verification, DNS, network and timeout
+categories are selected by typed causes/allowlisted SQLSTATE values, never raw
+error text. Raw errors, connection strings, server messages and certificate names
+are discarded; no original error chain is exposed. Inventory preserves those
+safe labels while other connector errors remain opaque. No read query, TLS mode,
+credential, source fingerprint or migration semantics changed.
+
+Local verification PASS: full `go test ./...`; PostgreSQL/app race tests;
+extension typecheck503unit tests and14actual-CLI contracts. The18mapping P1
+contract now reaches an actual Go iterator against a loopback synthetic PG
+server, proves its authentication category, and excludes a private server-message
+canary from output. Typed TLS/permission/unknown-error redaction cases also pass.
+External-DSN integration tests remain opt-in; this is not Azure retry evidence.
+
+Fresh ARM checks at14:44UTC confirm both exact VMs still deallocated. Installed
+extension5f93f3c/Linuxd40d6ccc9a4d remain unchanged, no credentials read/reset,
+no inventory replay and no target created. The diagnostic correction cannot
+retroactively identify the first failure. Prepare a pinned local build; live
+installation and a new explicitly reviewed attempt require their exact-scope
+approval, inside the original16:00UTC hard bound or a newly authorized window.

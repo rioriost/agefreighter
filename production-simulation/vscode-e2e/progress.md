@@ -25,8 +25,11 @@ compute request14:14:17UTC; fixed stop16:00UTC (begin15:55), scoped monitor acti
 Runner readiness passes; existing PGVM leaf renewed with old evidence retained,
 CA/key unchanged, source-local endpoint TLS1.3 verified. GUI submitted inventory
 bb184697 using saved credential without re-prompt, but child failed14:19:32UTC,
-exit1/no report. Coarse retained error is connection-related; exact cause unknown,
-not proven credential failure. GUI phasefailed retained, no automatic retry.
+exit1/no report. Offline exact SHA matching identifies only the generic message
+`network inventory initialization failed`, not proof of a network or credential
+fault. Local safe typed initialization diagnostics and loopback actual-CLI18mapping
+regression pass; fullGo/race,503unit/14contracts pass. Installed pins unchanged.
+GUI phasefailed retained, no automatic retry.
 Exact source/runner deallocated by14:29UTC; safety monitor paused, all evidence
 preserved. No target/migration; next is diagnosis, not another blind attempt. See
 [PostgreSQL preparation and gates](other-cloud-pg-live-20260922.md).

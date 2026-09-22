@@ -103,7 +103,7 @@ func TestNewIteratorValidation(t *testing.T) {
 		{"readers low", func(o *IteratorOptions) { o.MaxReaders = -1 }, "readers"},
 		{"readers high", func(o *IteratorOptions) { o.MaxReaders = 257 }, "readers"},
 		{"mapping", func(o *IteratorOptions) { o.Namespace = "" }, "namespace"},
-		{"dsn parse", func(o *IteratorOptions) { o.DSN = "postgres://%" }, "parse PostgreSQL"},
+		{"dsn parse", func(o *IteratorOptions) { o.DSN = "postgres://%" }, "connection-parse/connection-configuration"},
 		{"token parse", func(o *IteratorOptions) { o.AfterToken = "bad" }, "resume token"},
 	}
 	for _, test := range tests {

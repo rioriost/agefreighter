@@ -5,7 +5,9 @@ import test from "node:test";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
+import { createServer } from "node:net";
+import { promisify } from "node:util";
 import { buildSourceDraft } from "../core/runnerSource";
 import { sourceForm, workflow, csvFile } from "./sourceFixtures";
 import { SourceKind, SourceLocation } from "../core/runner";
@@ -24,6 +26,40 @@ test("other-cloud PostgreSQL frozen P1 mappings pass the actual Go validator and
   await writeFile(file, JSON.stringify(draft.configuration), { mode: 0o600 });
   const result = spawnSync(binary, ["validate", file, "--format", "json"], { encoding: "utf8", timeout: 10000 });
   assert.equal(result.status, 0, result.stderr + result.stdout);
+
+  // Exercise actual iterator initialization, not just YAML validation. Only a
+  // loopback synthetic PostgreSQL server is contacted; it rejects startup with
+  // a fixed SQLSTATE and a private canary which must never reach CLI output.
+  const server = createServer(socket => {
+    socket.setTimeout(5000, () => socket.destroy());
+    socket.once("data", () => {
+      const body = Buffer.from("SFATAL\0C28P01\0MPRIVATE-RESPONSE-CANARY\0\0");
+      const header = Buffer.alloc(5);
+      header[0] = 69; // PostgreSQL ErrorResponse
+      header.writeInt32BE(body.length + 4, 1);
+      socket.end(Buffer.concat([header, body]));
+    });
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    await assert.rejects(promisify(execFile)(binary, ["inventory", file, "--format", "json"], {
+      env: { ...process.env, AGEFREIGHTER_SOURCE_DSN: `postgresql://test:test@127.0.0.1:${address.port}/test?sslmode=disable` },
+      timeout: 10000
+    }), (error: unknown) => {
+      const failed = error as { code: number; stderr: string; stdout: string };
+      assert.equal(failed.code, 1);
+      assert.equal(failed.stdout, "");
+      assert.equal(failed.stderr, "inventory: network inventory initialization failed [postgresql/snapshot-connect/authentication]\n");
+      return true;
+    });
+  } finally {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  }
 });
 
 const paths: readonly { name: string; type: SourceKind; location: SourceLocation; cosmosFormat?: "gremlin"; gremlinPropertyTypes?: string }[] = [

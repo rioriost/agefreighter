@@ -65,7 +65,7 @@ func NewSnapshotCoordinator(
 	}
 	owner, err := pgx.Connect(ctx, dsn)
 	if err != nil {
-		return nil, safeDatabaseError(ctx, "connect PostgreSQL snapshot owner", err)
+		return nil, initializationFailure(ctx, "snapshot-connect", err)
 	}
 	tx, err := owner.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
@@ -73,13 +73,13 @@ func NewSnapshotCoordinator(
 	})
 	if err != nil {
 		_ = owner.Close(context.Background())
-		return nil, safeDatabaseError(ctx, "begin PostgreSQL snapshot owner", err)
+		return nil, initializationFailure(ctx, "snapshot-begin", err)
 	}
 	var snapshot string
 	if err := tx.QueryRow(ctx, "SELECT pg_export_snapshot()").Scan(&snapshot); err != nil {
 		_ = tx.Rollback(context.Background())
 		_ = owner.Close(context.Background())
-		return nil, safeDatabaseError(ctx, "export PostgreSQL snapshot", err)
+		return nil, initializationFailure(ctx, "snapshot-export", err)
 	}
 	if !validSnapshotID(snapshot) {
 		_ = tx.Rollback(context.Background())
