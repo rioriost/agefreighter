@@ -10,8 +10,11 @@ is reviewed; approved authenticated storage access and pinned artifact upload ar
 complete. Actual GUI reconnect/preflight pass; exact new VM/scoped identity grant
 and development installation approved, runner provisioned and source starting.
 Fresh guest readiness and source TLS renewal/reconciliation passed; new public CA
-selected in GUI. Source password input pending07:28UTC; no inventory submitted,
-idle stop07:43UTC if waiting. No TLS bypass or accepted-graph overwrite. See
+selected in GUI. One GUI inventory failed with unauthorized category/exit1;
+no sealed report, retry, target or migration. Exact VMs deallocated by07:37UTC,
+monitor paused, evidence retained.
+Correct source credential/account state needs confirmation before a separately
+reviewed retry. No TLS bypass or accepted-graph overwrite. See
 [approved preparation checkpoint](other-cloud-n526-live-20260922.md).
 Fresh delayed combined cost is USD390.9644901299309 / cumulative USD800;
 eight old Ready targets were safety-stopped, with final state recorded in

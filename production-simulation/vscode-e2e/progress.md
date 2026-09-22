@@ -11,8 +11,11 @@ Exact new VM/scoped Blob Reader/unpublished install approved; runner submitted
 Hard stop09:15UTC (begin stopping09:10) and scoped safety monitor active.
 Guest readiness passed; fixture TLS renewal and retained-evidence reconciliation
 passed (mount difference was array order only). Updated CA selected in GUI.
-07:28UTC read-only source password input pending; inventory not submitted, idle
-stop07:43UTC if still waiting. No new qualification result;
+User entered credential; exact GUI inventory23f3ef65 failed with sanitized
+unauthorized category/exit1 and no sealed report. No automatic retry/reset;
+evidence retained, exact runner/source deallocated verified by07:37UTC and safety
+monitor paused. No target or migration.
+No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
 

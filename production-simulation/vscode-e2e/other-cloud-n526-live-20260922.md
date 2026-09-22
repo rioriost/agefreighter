@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Runner ready, source TLS renewal verified; GUI password input pending. Inventory not submitted.**
+Status: **Inventory failed with unauthorized category; evidence retained, both exact VMs deallocated and monitor paused. No retry or migration.**
 
 ## Authorization and boundaries
 
@@ -213,3 +213,36 @@ user entry using `agefreighter-op-n526-neo4j`, account `neo4j`, not the AZ-N526
 credential. No credential was read by this task and no inventory is submitted yet.
 If user-input idle persists to07:43UTC, stop both exact VMs and preserve evidence.
 The safety heartbeat now records that early stop and current readiness/CA.
+
+User entered the credential; installed GUI submitted exactly one inventory at
+07:29:22.820UTC, operation `23f3ef65-dc78-42ed-93f9-bf2775270012`, managed command
+`af-a6a951fd-4c6d-4e70-b422-424db478ad0b`. Automatic readiness refresh07:29:09.893UTC
+preserved the same boot and idle health, disk3.511%, swap0/OOM0. Configuration
+SHA `76e35e3cd2727eece42276a0c7934264732663ad3c8f497d2c7b1ced52e7c234`;
+GUI reconciled accepted with guest configuration
+`0dd6b17d50cc9fd2d1ab7ce1088aad01569e5b9022bc89531e98db3b6e5c921a`.
+The previous07:43 password-idle stop is superseded while this healthy approved
+worker runs, but its30minute service bound and09:15 hard stop remain. Accepted is
+not a complete inventory or migration qualification. Heartbeat updated accordingly.
+
+## Terminal inventory failure — authentication category, no retry
+
+Installed GUI reconciled the exact operation to failed at approximately07:33UTC.
+Retained guest state independently shows start07:29:29.098016159UTC,
+finish07:29:29.243025558UTC, exit1, no sealed report. Read only sanitized error
+categories: `unauthorized`; raw89-byte stderr stays on the guest, SHA
+`05a83f01f9f6a512030e8b3f8daac11c4a7ff44974bf62f1fec9df7d8fdadbe7`.
+Transient secrets.json and operation source-ca.pem are absent. No password was
+extracted, changed or replayed. This establishes source authentication rejection,
+not which password/account-state caused it. Do not silently retry or reset.
+
+Guest health07:32:11UTC: no active agefreighter process, disk4%, swap0/no current
+boot OOM. State/job/worker.claim/stderr retained. Source deallocation requested
+after terminal observation; runner deallocation requested after bounded sanitized
+diagnostic. No target was created and no migration occurred. Verify both stopped
+states before disabling the safety monitor; retain all disks and evidence.
+
+Both exact VMs independently verified `PowerState/deallocated` by07:37UTC,
+well before09:15UTC. Safety heartbeat PAUSED after verification. All disks/data/
+evidence retained; storage retention charges continue. Source authentication must
+be confirmed before a newly reviewed attempt; no full B03 qualification claimed.
