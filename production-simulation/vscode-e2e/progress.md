@@ -2,13 +2,21 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest B03: user approved the bounded other-cloud-selection trial. Installed GUI
+created and reviewed a new endpoint-only Neo4j draft; exact storage creation and
+account-scoped access approval is pending. No compute has started and the maximum
+two-hour clock has not begun. Fixture TLS renewal is prepared/static-checked but
+not executed; fixed Linux archive hash reverified. No new qualification result;
+branch totals remain 5 pass / 7 partial. See
+[B03 preparation and gates](other-cloud-n526-live-20260922.md).
+
 September 22 cost-safety follow-up: eight old retained PostgreSQL targets were
 unexpectedly Ready with all trial VMs deallocated. Ownership and recent activity
 were reviewed, then stop requests submitted for those exact targets; no deletion,
 data/credential/network change or new test window. Fresh delayed two-group cost
 is USD390.9644901299309 under the unchanged cumulative USD800 ceiling. The next
-proposed B03 other-cloud-selection trial needs a new bounded runtime approval and
-renewal of the expired private fixture TLS certificate. See
+proposed B03 other-cloud-selection trial subsequently received bounded runtime
+approval (see latest checkpoint above); expired fixture TLS still needs renewal. See
 [safety-stop evidence and proposed next trial](idle-cost-safety-20260922.md)
 for final stopped-state verification. Qualification totals are unchanged.
 
