@@ -2,6 +2,14 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest local B02 follow-up: 13 added contracts connect the production preview
+handler and preflight to synthetic ARM replies. SKU/quota denials stop before
+release fetch or persistence; exact quota and unknown-zone reviewed controls
+retain the release gate. Typecheck, 476 unit tests and build PASS. Test-only;
+no installed extension or Azure changes. This does not close the three remaining
+live B02 gaps or change branch totals. See
+[isolated placement contracts](placement-panel-contract-20260922.md).
+
 Latest B02 control: post-fix installed GUI accepts read-only placement checks
 then refuses missing 2.4.0 release/checksums; no deployment or preview persistence.
 Unsaved wizard closed and all 82 operator files unchanged. The preceding four GUI

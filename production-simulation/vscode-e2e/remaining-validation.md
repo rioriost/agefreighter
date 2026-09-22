@@ -2,6 +2,13 @@
 
 Updated: 2026-09-22 JST. Status: **not release-qualified; B01 full canonical PASS; 5/12 defined branches pass, 7 partial**.
 
+B02 isolated follow-up: 13 production handler/preflight integration contracts
+pass with synthetic ARM and inert UI/storage/release adapters; 476 unit tests,
+typecheck and build PASS. No cloud or installed-GUI changes. Unknown-zone VM,
+unavailable-SKU and quota-denial live coverage remains open; these contracts
+must not be substituted for it. See
+[isolated placement contracts](placement-panel-contract-20260922.md).
+
 B02 latest: post-fix valid-placement/release-refusal control now PASS in the
 installed GUI; four backend refusals also complete. Wizard closed, 82 operator
 files unchanged, no cloud mutation/startup. Actual Japan East SKU/quota reads

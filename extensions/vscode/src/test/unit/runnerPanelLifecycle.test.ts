@@ -8,6 +8,7 @@ import { transformSync } from "esbuild";
 import * as runner from "../../core/runner";
 import { requirePanelWorkflow } from "../../core/runnerPanelBinding";
 import * as placement from "../../core/runnerPlacement";
+import { preflightRunner, RunnerControl } from "../../core/runnerLifecycle";
 
 // Execute the production message handler with inert UI/storage/Azure adapters.
 // This tests lifecycle/dispatch only, not signed-in or live cloud behavior.
@@ -15,7 +16,7 @@ const id = "11111111-1111-4111-8111-111111111111";
 const input = {subscriptionId: id, resourceGroup: "test", region: "japaneast", zone: "1", size: "Standard_B2s_v2", subnetId: `/subscriptions/${id}/resourceGroups/test/providers/Microsoft.Network/virtualNetworks/test/subnets/runner`, source: {type: "neo4j" as const, location: "on-premises" as const}};
 const code = transformSync(readFileSync(join(__dirname, "../../runnerMigration.ts"), "utf8"), {loader: "ts", format: "cjs"}).code;
 
-function fixture(preview?: {preflightError?: string; checksum?: string}) {
+function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pick<RunnerControl, "request" | "list">}) {
   const record = runner.sourceWorkflowDraft(id, input);
   record.phase = "provisioned";
   const commands = new Map<string, () => unknown>();
@@ -37,9 +38,13 @@ function fixture(preview?: {preflightError?: string; checksum?: string}) {
     }},
     "./guided/azure": {AzureSession: class {
       async subscriptions() {return [];}
-      async runnerRequest() {effects++; throw Error("Unexpected cloud request");}
+      async runnerRequest(...args: Parameters<RunnerControl["request"]>) {
+        if (preview?.arm) return preview.arm.request(...args);
+        effects++; throw Error("Unexpected cloud request");
+      }
       async runnerList(_subscription: string, path: string) {
         if (preview && path.includes("/resourcegroups?")) return [{name: "test"}];
+        if (preview?.arm) return preview.arm.list(_subscription, path);
         effects++; throw Error("Unexpected cloud list");
       }
       async locations() {assert.ok(preview); return [{name: "japaneast", displayName: "Japan East"}];}
@@ -51,8 +56,9 @@ function fixture(preview?: {preflightError?: string; checksum?: string}) {
     "./core/runnerPanelBinding": {requirePanelWorkflow},
     "./core/runnerLifecycle": {
       refreshRunner: (control: unknown, r: runner.RunnerRecord) => refresh(control, r),
-      preflightRunner: async () => {
+      preflightRunner: async (control: RunnerControl, selection: runner.RunnerInput) => {
         assert.ok(preview); previewSteps.push("preflight");
+        if (preview.arm) return preflightRunner(control, selection);
         if (preview.preflightError) throw Error(preview.preflightError);
       },
       whatIfRunner: async () => {effects++; throw Error("Unexpected what-if");},
@@ -113,6 +119,89 @@ test("pricing is reached only after placement and a matching release checksum", 
   await panel.receive({action: "preview", input});
   assert.deepEqual(f.previewSteps, ["preflight", "release", "pricing"]);
   assert.match(panel.messages.at(-2)!.text, /Pricing sentinel/);
+  assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+});
+
+// Synthetic ARM responses, but the real message handler, input validation,
+// capability parsers and preflight are connected. No Azure session or GUI
+// qualification is claimed. Unexpected paths/methods fail closed in this adapter.
+function placementARM() {
+  const base = `/subscriptions/${id}/resourceGroups/test`;
+  const sourceId = `${base}/providers/Microsoft.Compute/virtualMachines/source`;
+  const family = "standardBsv2Family";
+  const data = {
+    skus: [{resourceType: "virtualMachines", name: input.size, family, locations: [input.region],
+      capabilities: [{name: "vCPUs", value: "2"}, {name: "MemoryGB", value: "8"}],
+      locationInfo: [{location: input.region, zones: ["1", "2", "3"]}], restrictions: [] as unknown[]}],
+    quota: [{name: {value: "cores"}, currentValue: 8, limit: 10},
+      {name: {value: family}, currentValue: 8, limit: 10}],
+    source: {location: input.region, zones: [] as string[], properties: {}}
+  };
+  const reads: string[] = [];
+  const arm: Pick<RunnerControl, "request" | "list"> = {
+    async request(subscription, path, method = "GET", body) {
+      assert.equal(subscription, id); assert.equal(method, "GET"); assert.equal(body, undefined);
+      reads.push(path);
+      if (path === `${input.subnetId}?api-version=2024-05-01`) return {status: 200, value: {properties: {delegations: []}}};
+      if (path === `${input.subnetId.replace(/\/subnets\/runner$/, "")}?api-version=2024-05-01`) return {status: 200, value: {location: input.region}};
+      if (path === `${base}?api-version=2021-04-01`) return {status: 200, value: {}};
+      if (path === `${sourceId}?api-version=2024-07-01`) return {status: 200, value: data.source};
+      throw Error("Unexpected fixture request");
+    },
+    async list(subscription, path) {
+      assert.equal(subscription, id); reads.push(path);
+      if (path === `/subscriptions/${id}/providers/Microsoft.Compute/skus?api-version=2021-07-01&$filter=${encodeURIComponent("location eq 'japaneast'")}`) return data.skus;
+      if (path === `/subscriptions/${id}/providers/Microsoft.Compute/locations/japaneast/usages?api-version=2025-04-01`) return data.quota;
+      throw Error("Unexpected fixture list");
+    }
+  };
+  return {data, arm, reads, sourceId};
+}
+
+const deniedPlacements: {name: string; error: RegExp; reads: number; change: (data: ReturnType<typeof placementARM>["data"]) => void}[] = [
+  {name: "SKU absent", error: /SKU is not available/, reads: 4, change: d => {d.skus = []; }},
+  {name: "SKU location restricted", error: /SKU is not available/, reads: 4, change: d => {d.skus[0]!.restrictions = [{type: "Location", restrictionInfo: {locations: [input.region]}}]; }},
+  {name: "selected zone restricted", error: /SKU is not available/, reads: 4, change: d => {d.skus[0]!.restrictions = [{type: "Zone", restrictionInfo: {locations: [input.region], zones: ["1"]}}]; }},
+  {name: "regional quota short by one core", error: /quota is insufficient/, reads: 5, change: d => {d.quota[0]!.currentValue = 9; }},
+  {name: "family quota short by one core", error: /quota is insufficient/, reads: 5, change: d => {d.quota[1]!.currentValue = 9; }},
+  {name: "regional quota absent", error: /quota is insufficient/, reads: 5, change: d => {d.quota.shift(); }},
+  {name: "family quota absent", error: /quota is insufficient/, reads: 5, change: d => {d.quota.pop(); }},
+  {name: "malformed quota value", error: /quota is insufficient/, reads: 5, change: d => {d.quota[0]!.limit = Number.NaN; }}
+];
+for (const scenario of deniedPlacements) test(`production placement-to-panel contract: ${scenario.name}`, async () => {
+  const a = placementARM(); scenario.change(a.data);
+  const f = fixture({arm: a.arm}), panel = f.open();
+  await panel.receive({action: "preview", input});
+  assert.deepEqual(f.previewSteps, ["preflight"]);
+  assert.equal(a.reads.length, scenario.reads);
+  assert.match(panel.messages.at(-2)!.text, scenario.error);
+  assert.equal(panel.messages.at(-1)!.kind, "busy");
+  assert.equal(panel.messages.at(-1)!.value, false);
+  assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+  assert.ok(!panel.messages.some(m => m.kind === "record"));
+});
+
+for (const scenario of ["exact quota boundary", "other zone restricted", "other region restricted", "unknown source zone reviewed"])
+  test(`production placement-to-panel control: ${scenario}`, async () => {
+    const a = placementARM();
+    if (scenario === "other zone restricted") a.data.skus[0]!.restrictions = [{type: "Zone", restrictionInfo: {locations: [input.region], zones: ["2"]}}];
+    if (scenario === "other region restricted") a.data.skus[0]!.restrictions = [{type: "Location", restrictionInfo: {locations: ["japanwest"]}}];
+    const selection = scenario === "unknown source zone reviewed"
+      ? {...input, source: {type: "neo4j" as const, location: "azure" as const, resourceId: a.sourceId}} : input;
+    const f = fixture({arm: a.arm}), panel = f.open();
+    await panel.receive({action: "preview", input: selection});
+    assert.deepEqual(f.previewSteps, ["preflight", "release"], JSON.stringify(panel.messages));
+    assert.equal(a.reads.length, scenario === "unknown source zone reviewed" ? 6 : 5);
+    assert.match(panel.messages.at(-2)!.text, /release\/checksums are not available/);
+    assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+    assert.ok(!panel.messages.some(m => m.kind === "record"));
+  });
+
+test("unknown source zone cannot reach ARM or release without an explicit runner zone", async () => {
+  const a = placementARM(), f = fixture({arm: a.arm}), panel = f.open();
+  await panel.receive({action: "preview", input: {...input, zone: "", source: {type: "neo4j", location: "azure", resourceId: a.sourceId}}});
+  assert.deepEqual(f.previewSteps, []); assert.deepEqual(a.reads, []);
+  assert.match(panel.messages.at(-2)!.text, /zone/);
   assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
 });
 
