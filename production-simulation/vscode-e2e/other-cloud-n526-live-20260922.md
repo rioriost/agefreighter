@@ -1,7 +1,7 @@
 # B03 Neo4j other-cloud selection — approved bounded trial
 
 September 22, 2026. Branch `codex/2.4.0-guided-migration`.
-Status: **Credential reset PASS; user-requested GUI continuation prepared with failed evidence retained. Exact source/runner restarted, readiness/TLS PASS; private password input pending, no new inventory submitted.**
+Status: **Credential reset PASS; GUI continuation reached private input but no new inventory was submitted. Both exact VMs verified deallocated after the fifteen-minute idle-input stop; heartbeat paused.**
 
 ## Authorization and boundaries
 
@@ -344,3 +344,32 @@ password prompt visible around08:01UTC. Requested user entry from the updated
 canonical OP-N526 Keychain item. No new inventory operation or source read yet.
 If still idle awaiting input at08:16UTC, stop both exact VMs and preserve evidence;
 the09:15UTC hard session bound remains. Do not submit using an old secret.
+
+##08:16UTC — idle-input safety stop
+
+At the fixed08:16UTC idle deadline, GUI still showed the private password prompt
+and No assessment started. Fresh local record retained assessment=null and only
+the completed readiness command; prior failed operation remains in history.
+Guest08:15:29UTC: same runner boot, no agefreighter process, disk4%, swap0,
+no current-boot kernel OOM. Source's preceding08:08:59UTC health was running,
+disk7%, swap0/OOMfalse. Delayed cost at08:08 remainedUSD398.7127296615029.
+
+Ownership reconfirmed for both exact VMs. Recent governance observation includes
+an external-principal runner VM write Succeeded08:09:32UTC and a source VM write
+Failed08:09:58UTC; the exact purpose/change is not attributed. Fresh runner model
+retains the expected B2s_v2, OS disk, principal and workflow tags. No attempt was
+made to revert external governance or change permissions/network.
+
+With no submitted/active inventory, requested deallocation of only source
+`af-op-n526-source` and runner `af-b775b1b281ca40fcb669` just after08:16UTC.
+Closed the still-unsubmitted private input with Escape to prevent delayed
+submission to stopping compute; GUI returned to reviewed source form. No secret
+was read or submitted, no source data/credential change, retry, target or migration.
+All disks and historical recovery/failure evidence retained. Verify stopped states
+before pausing heartbeat and recording final safety outcome.
+
+Both exact VMs independently verified `PowerState/deallocated` by08:18:19UTC.
+Final local record still has no active assessment and retains the prior failure.
+Heartbeat paused after stopped-state verification. No new qualification result;
+the private-input gate and fresh GUI inventory remain outstanding. Stopped disks
+and storage continue to incur retention charges inside the unchanged budget.
