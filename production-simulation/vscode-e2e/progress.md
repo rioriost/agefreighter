@@ -2,7 +2,18 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Current B01 phase: **corrected GUI renewal/readiness PASS; full verifier submitted once**.
+Current B01 phase: **full canonical qualification PASS; exact compute stopped**.
+Installed GUI imported the23,310-byte sealed result and displayed full P1 PASS.
+Independent byte/hash/job checks and both recomputed roots match all64ranges,
+1.6Mvertices+4Medges/18labels with typed properties/identities/endpoints.
+Exact VM deallocation/target stop requested September22,01:19:46UTC; VM
+deallocated/target Stopped/private verified01:21:56UTC. Safety monitor PAUSED;
+disks/evidence retained, storage/Cosmos charges continue. Defined branch ledger now
+has5pass/7partial; nine base routes remain9/9, not all-branch release qualification.
+See [B01 final result](separate-network-live-20260921.md) and
+[sealed evidence summary](evidence/b01-p1-pass-20260922.json).
+
+Previous B01 phase: **corrected GUI renewal/readiness PASS; full verifier submitted once**.
 Exact existing VM/target starts requested September22,01:06:39UTC. Hard deadline
 02:00UTC/11:00JST (less than60minutes), safety stop begins01:55UTC; scoped monitor
 and exact VM shutdown configured before startup. Cumulative USD800/reserveUSD700,

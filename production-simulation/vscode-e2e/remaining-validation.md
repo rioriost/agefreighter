@@ -1,19 +1,18 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-22 JST. Status: **not release-qualified; B01 migration/counts passed, full digest pending**.
+Updated: 2026-09-22 JST. Status: **not release-qualified; B01 full canonical PASS; 5/12 defined branches pass, 7 partial**.
 
-Latest B01 evidence supersedes the historical inventory-only checkpoint below:
-separate migration/network-group target deployment, same-VM resize and installed
-GUI migration/counts PASS are complete. Full64range/root comparison is pending.
-Approved verification restart initially hit a post-load authorization renewal
-defect; the fix passes457unit tests/typecheck/build and installation/reconnect
-preserved all81operator files. Actual GUI renewal and new-boot readiness now
-PASS; the exact verifier was submitted once September22,01:12:51UTC, with
-25minute/4GiB limits and02:00UTC hard session stop. Full verification/import
-remain pending. See
+Latest B01 evidence supersedes all historical pending checkpoints below:
+separate migration/network-group target deployment, same-VM resize, installed
+GUI migration/counts and full canonical verification/import all PASS. All64ranges,
+5.6Mrecords/18labels and both independently recomputed roots match the frozen
+Gremlin-shaped NoSQL P1 profile. The GUI post-load renewal defect was corrected
+with457unit tests, then verified live; no job replay or manual operator-record
+edit. Exact VM deallocated/target Stopped/private verified01:21:56UTC, well before
+02:00UTC; monitor disabled and evidence retained. See
 [current B01 follow-up](separate-network-live-20260921.md).
 
-Current B01 source inventory/import **PASS**: all18label counts match frozen P1,
+Historical B01 source inventory/import **PASS**: all18label counts match frozen P1,
 1.6Mvertices+4Medges, no failed/incomplete checks. Installed GUI imported exact
 2,944bytes and SHA `e34bf7857c91…`, independently verified. Exact VM deallocated
 by08:44:36UTC; monitor disabled, evidence/grant retained. B01 remains partial:
@@ -399,7 +398,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 
 | ID | Required branch | Existing evidence / current limitation | Remaining acceptance | State |
 |---|---|---|---|---|
-| B01 | Default/separate migration RG; independent network RG | Same-group base P1 PASS; installed separate-group selection, two-scope private target provisioning, same-VM resize and5.6M-row migration/counts PASS | Full64range/root comparison remains; renewal fix installed/reloaded with81files unchanged, actual renewal/verification pending; compute stopped | partial |
+| B01 | Default/separate migration RG; independent network RG | Same-group base P1 PASS; installed separate-group selection, two-scope private target provisioning, same-VM resize and5.6M-row migration/counts PASS; September22 installed-GUI sealed import and independent64range/root comparison PASS | Complete for the defined group-placement branch; not all invalid placement/initial-boot cases (B02/B09), native Gremlin API or production-scale qualification | pass |
 | B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review and early malformed/cross-subscription input rejection; placement/preflight tests pass | Unknown-zone VM transition and live invalid region/SKU/subnet/delegation/quota admission remain unqualified | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; signed-in location GUI audit passes; endpoint-only preflight request traces omit source ARM; equivalent other-cloud configurations pass real CLI validation | Other-cloud choice has selection/local-contract evidence, not an additional live end-to-end migration | partial |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Base/manual routes have full P1 canonical PASS; installed GUI/Linux P1 catalog, explicit mappings and complete inventory/import pass; CSV all18choices/IDs/seals/configuration binding pass,445unit tests/13Go contracts; isolated FK GUI catalog, explicit safe edge/property adoption, reconnect and sealed5vertex/3edge inventory pass | Complete for defined cases; nullable FK remains manual review. Supplemental FK inventory is not another migration/digest qualification; broader value combinations retain local-contract-only scope | pass |

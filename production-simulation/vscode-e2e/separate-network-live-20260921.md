@@ -1,6 +1,8 @@
 # B01 separate migration group / existing network group live trial
 
-September 21, 2026. Status: preparation only; not qualified.
+Updated September22,2026. Status: **B01 full canonical qualification PASS**.
+The original September21 plan and chronological follow-ups below are retained;
+the final September22 result supersedes their pending status.
 
 ## Authorization and reviewed scope
 
@@ -695,3 +697,36 @@ verification operation `8c5c9c6f-be92-4edf-88eb-22ce062e575e` was submitted at
 `37624cff-6aea-449e-9de3-38c6aa5c984d`. Managed command has the same operation
 suffix. Preserve25minute/4GiB limits and02:00UTC session deadline; no migration
 replay. Reconcile this operation and sealed result only. Submission is not PASS.
+
+### September22 full canonical qualification PASS
+
+The isolated verifier ran01:13:17–01:16:31UTC, succeeded with exit0 and generated
+its result at **2026-09-22T01:16:31.841074Z**. Installed GUI reconciled the exact
+operation, exported once with command `af-1d8ed19b-d182-4bc9-8511-ce465af50774`
+(01:17:11–01:17:12UTC, exit0), imported the sealed23,310-byte report and visibly
+displayed **P1 full canonical digest: PASS**. Report SHA256:
+`82e72581c7b846e0dcfd7657e9609ed9d59cf9e06659d397d3ee5c601d0d061a`.
+
+Independent local assertions checked the byte count, original seal, exact job,
+read-only outcome, all64expected/actual leaves and both recomputed roots:
+`8a048faa36fad90404c263d3ce75073d117e5d96a15f8a614a42347cbd7a0ef4`.
+All1,600,000vertices+4,000,000edges across18labels agree, including typed
+properties, composite identities and endpoints. No mismatch or migration replay.
+This closes the defined B01 separate-migration-group/existing-network-group
+branch. It is not native Gremlin API, production-scale, or all-branch release
+qualification. Other branch gaps remain recorded in the ledger.
+
+During execution at01:15:12UTC, the exact service was active, MemoryCurrent
+1,844,764,672bytes, processRSS781,320KiB, disk6%, swap0 and kernelOOM count0;
+MemoryMax4GiB/RuntimeMax25minutes remained enforced. These are observations,
+not an asserted continuous peak. All58targeted verifier/controller/authorization
+regressions passed without skips. Fresh ownership, retained principal/disk and
+private target state were checked before exact VM deallocation/target stop
+requests at01:19:46UTC. Evidence, disks, source and grants are retained; no
+cleanup/deletion. Exact VM **PowerState/deallocated** and target **Stopped** with
+public access Disabled were verified by **01:21:56UTC**, within15m17s of first
+startup and before02:00UTC. Scoped safety heartbeat is PAUSED. Retained storage
+and Cosmos charges continue; Flexible Server may automatically restart after
+seven days. Only the exact B01 VM/target were stopped, not unrelated resources.
+The redacted machine-readable [result](evidence/b01-p1-pass-20260922.json) links
+this outcome to the exact operation/report seal.
