@@ -620,3 +620,26 @@ ARM deploymentafpg-b775b1b281ca40fcb669 is Running with timestamp
 configuration; no source graph, credential, exposure, RBAC or tag change.
 Reconcile this deployment, never submit another. AGE readiness, same-VM resize,
 actual migration and independently approved full canonical verifier remain.
+
+##12:36–12:48UTC — target/resize complete; GUI blocked by screen lock
+
+The same target deployment succeeded and installed GUI reconciled provisioned.
+AGE preload restart submitted12:36:50.791UTC and finished; ARM confirms Ready,
+public access Disabled and pg_stat_statements,age with no pending restart.
+Exact-scope same-VM resize authorization12:37:57.155UTC remains bounded to20minutes.
+An initial read-only ARM readiness gate refused before any resize intent; after
+fresh running/Succeeded confirmation, the same authorization continued without
+replaying a mutation. Resize started12:40:59.632UTC and GUI reconciled finished
+by12:43UTC. Independent ARM confirms running D4s_v5 and the same OS disk;
+preservation SHA b54ba6463db8c8ad7f6ee5d79a1fcf1ccf4cb33ad1239083ada9756f1070e2bc.
+
+Post-resize readiness a21102b6-8ebd-40d4-a41e-8805d29f2dc0 was submitted via GUI
+12:43:43.582UTC. Read-only ARM reconciliation12:48UTC confirms Succeeded/exit0,
+new boot a47fc8eb-399c-4e55-a62f-18595bbd28f4, unchanged pinned Linux, ready/idle,
+disk3.6199%,swap0/OOM0. The retained local command still awaits GUI reconciliation.
+Computer Use reports the Mac locked; requested manual unlock, without accessing
+stored secrets or changing the local workflow file. No migration exists and
+actual remembered-credential reuse is not yet proven. Stop the exact source VM,
+runner and target by conservative idle bound12:59UTC if still blocked; begin
+stopping12:57UTC. Reconcile current state first if user returns and approved work
+starts. Original14:10UTC hard stop remains unchanged. No new qualification claim.

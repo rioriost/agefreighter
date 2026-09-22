@@ -69,6 +69,12 @@ User approved target creation; scoped monitor activated and first exact two-VM
 startup requested12:22:03UTC. Fresh runner health/source TLS pass. Installed GUI
 reused the plan and submitted target once; ARM Running12:28UTC. Hard stop14:10UTC,
 stop initiation14:05UTC. No migration yet; retained inventory is not replayed.
+Target provisioned, AGE preload finished and same-runner D4s_v5 resize finished
+by12:43UTC with preservation digest verified. Post-resize readiness succeeded
+with a new boot, disk3.62%,swap0/OOM0 and unchanged Linux pin. Mac screen lock
+blocks GUI reconciliation/start; no migration yet and stored-secret reuse is
+not yet exercised. Unlock requested; conservative idle stop12:59UTC (initiate
+12:57UTC) for exact source/runner/target if still waiting, hard14:10UTC unchanged.
 No new qualification result;
 branch totals remain 5 pass / 7 partial. See
 [B03 preparation and gates](other-cloud-n526-live-20260922.md).
