@@ -2,6 +2,15 @@
 
 Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest offline B12 batch: **real isolated VS Code1.138.0 host25/25PASS**, including
+12new retained canonical-report cases. One valid control opens the actual PASS
+tab;11invalid reports are rejected without new PASS presentation, persistence,
+redownload or changed evidence. Production controller/store/VS Code API are real;
+reports and storage ARM replies are synthetic. No signed-in Azure fault claim.
+All457unit tests pass; all82operator files and installed production bundle remain
+unchanged. No cloud startup or mutation. B12 remains partial and branch totals
+stay5pass/7partial. See [host rejection evidence](p1-retained-host-20260922.md).
+
 Current B01 phase: **full canonical qualification PASS; exact compute stopped**.
 Installed GUI imported the23,310-byte sealed result and displayed full P1 PASS.
 Independent byte/hash/job checks and both recomputed roots match all64ranges,

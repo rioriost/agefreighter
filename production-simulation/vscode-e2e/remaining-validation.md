@@ -2,6 +2,13 @@
 
 Updated: 2026-09-22 JST. Status: **not release-qualified; B01 full canonical PASS; 5/12 defined branches pass, 7 partial**.
 
+Latest B12 host batch: actual VS Code1.138.0 runs the production canonical
+controller and retained-file store against synthetic evidence.12new cases pass:
+one valid PASS tab and11invalid-report rejections, with no persistence/redownload
+on rejection. Full host suite25/25 and unit suite457/457pass; all82operator files
+unchanged. This does not replace signed-in transfer-fault qualification; B12
+stays partial. See [retained host checks](p1-retained-host-20260922.md).
+
 Latest B01 evidence supersedes all historical pending checkpoints below:
 separate migration/network-group target deployment, same-VM resize, installed
 GUI migration/counts and full canonical verification/import all PASS. All64ranges,
@@ -409,7 +416,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory recorded; Cosmos cross-window/trust guards and controller stale-preview/lock/reconciliation tests pass; native cancellation checks preserve records; actual successful readiness archive, receipt-selector Cancel and idempotent repeat pass with unchanged prior files | Other approval surfaces/unrepresented faults and live record-removal/recovery remain unqualified; local archive does not authorize deletion | partial |
 | B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and full canonical PASS remain accepted; actual isolated Extension Host SIGKILL now preserves archive/intent and crash lock at two control-removal boundaries, with inert Azure adapters and GET-only controller checks | Forced crash during signed-in active Azure operation and native operator-reviewed crash-lock recovery remain unqualified | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
-| B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass; 20 production P1 controller tests cover full-digest identity/coverage/forgery, transfer failures, retained identity changes and corrupted reopen; signed-in installed candidate refuses retained P1 failure without retry/new PASS | Other invalid-import/transfer cases still lack installed-GUI evidence; synthetic reports and inert adapters are not live GUI/Azure fault evidence | partial |
+| B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass;20production P1 controller tests and12new real-host retained-file cases pass, including11negative reports with no new PASS tab/persistence/redownload; signed-in installed candidate refuses retained P1 failure without retry/new PASS | Other invalid-import/transfer cases still lack signed-in installed-GUI evidence; real isolated host with synthetic reports/inert ARM is not an Azure transfer fault | partial |
 
 ## First local regression batch
 
@@ -707,19 +714,17 @@ reconciliation observations, **not** B11 fault/recovery acceptance. See the
 
 ### Remaining sequence
 
-1. Complete the existing-evidence mapping and local/host negative tests (B01–B10,
-   B12). Preserve separation between mocked and actual service evidence.
-2. Review and exercise B11 remote resume, including allowlisted guest protocol, explicit
-   GUI approval, durable intent, credential handling, config and identity checks,
-   no automatic replay, and safe reconciliation of interrupted control actions.
-   Test both source and CSV behavior; unsupported combinations must block clearly.
-3. Review/test/package a pinned candidate before installing it for live trials.
-   Recheck remaining time and conservative cost; do not start an experiment that
-   cannot finish inside the current envelope.
-4. Run B10/B11 on a fresh P1 target/job with precise fault points and retained
-   checkpoints; after recovery require complete counts and the frozen canonical
-   root, not merely job completion. Run B05 Gremlin and remaining independent
-   choices through the installed GUI as their own evidence permits.
-5. Close each case with artifact IDs/hashes and screenshots/action evidence.
-   Stop owned compute after retention. Release readiness still requires all
-   mandatory cases and a matching tested/installed VSIX; this ledger is not a waiver.
+1. Keep B01/B04/B05/B08/B11 closed for their defined scopes; do not repeat accepted
+   migration runs merely because the historical sequence above still mentions them.
+2. Finish read-only signed-in placement admission checks (B02), and scope a fresh
+   other-cloud choice run (B03) without treating endpoint-only local contracts as
+   a second live migration. Use dedicated unaccepted workflows for negative inputs.
+3. Plan dedicated B06/B07/B09/B10/B12 fault trials with precise expected refusals,
+   immutable prior evidence, no automatic retry/replay, and negative-control proofs.
+   Do not modify accepted resources to manufacture changed ownership or corruption.
+4. Any new compute session needs a fresh bounded authorization/cost check; B01's
+   September22 session is complete and its approval is not a general restart permit.
+   New access, unpublished software and destructive operations retain their gates.
+5. Record real signed-in/guest evidence separately from unit or isolated-host
+   results; stop exact owned compute after evidence retention. All mandatory gaps
+   and tested/installed artifact parity must be resolved before release qualification.
