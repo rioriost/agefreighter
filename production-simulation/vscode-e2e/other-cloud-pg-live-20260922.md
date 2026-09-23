@@ -325,3 +325,21 @@ Archive member checksum matches the locally tested bundle. Requested specific
 unpublished extension installation/reload approval; not installed yet.
 Linux diagnostic candidate remains646f0d4/SHA07ba1744b5da unchanged.
 No compute start, source read, artifact upload or scope expansion occurred.
+
+## September23 01:23UTC — installed credential fix; bounded diagnostic session started
+
+User approved7976cec VSIX installation. Official VS Code installation succeeded;
+installed bundleSHA matches`cb5f1023974fda24435686dbf46c84a681c35161532873dd0b82b6c16a2e6fcf`.
+Actual Developer: Reload Window completed. User entered the PGVM reader credential
+and chose Remember. Explicit Prepare/reuse on the same retained failed workflow
+returned without a password prompt: installed-GUI credential regression PASS.
+No credential value was inspected. Existing runner container-scoped Blob Data
+Reader assignment was independently confirmed; no grants were changed.
+
+Both exact VMs were freshly confirmed deallocated before starting. At01:22:40UTC
+the safety clock was fixed; start requests for only`af-pgvm-source` and
+`af-cb2ef280a8914edfb45b` followed. Conservative hard stop is02:22:00UTC
+(11:22JST), begin stopping02:20UTC; less than60minutes from first request.
+Scoped heartbeat activated before start. Approved next actions remain pinned
+646f0d4 Linux upgrade and one inventory/report import, not target or migration.
+Old failed operation and pending read-only status command remain retained.

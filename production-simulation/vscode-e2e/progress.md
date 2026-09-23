@@ -2,14 +2,15 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-September23 update: a new60minute same-resource diagnostic/inventory window is
-approved but **not started**. Stopped-compute preparation exposed a credential
-reuse bug: retained failure caused newly entered credentials to be discarded.
-Local fix preserves explicit post-failure preparation while invalidating on new
-failures;508unit/14CLI contracts/typecheck/build PASS. Updated VSIX installation
-and GUI confirmation pending; both VMs remain deallocated. No target/migration,
-and prior PostgreSQL initialization cause still unknown. Latest delayed twoRG
-costUSD444.3963173658658,800USD ceiling unchanged.
+September23 update01:23UTC: approved7976cec extension installed/hash-verified and
+actually reloaded. User prepared the credential; explicit installed-GUI reuse
+returned without another password prompt. Credential regression PASS alongside
+508unit/14CLI contracts/typecheck/build. The same-resource diagnostic session
+started01:22UTC, hardstop02:22UTC (begin stop02:20UTC), within approved60minutes.
+Only the existing source/runner are starting; next is approved pinned646f0d4
+Linux upgrade and one inventory. No target/migration; prior PostgreSQL
+initialization cause still unknown. Latest delayed twoRG costUSD444.3963173658658,
+800USD ceiling unchanged. Scoped safety monitor active; failed evidence retained.
 
 Current checkpoint13:27UTC: **B03 Neo4j other-cloud selection now has installed-GUI
 migration, counts and full canonical PASS**:5.6Mrows/18labels/64ranges/root match.
