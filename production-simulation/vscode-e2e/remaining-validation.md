@@ -2,7 +2,18 @@
 
 Updated: 2026-09-23 JST. Status: **not release-qualified; B01/B03 full canonical PASS; 6/12 defined branches pass, 6 partial**.
 
-Latest September23 09:41UTC: user-approved3bc0069 candidate installed and actual
+Latest September23 10:01UTC: actual native local-lock Cancel and explicit recovery
+PASS in a separate unsigned-in VS Code1.139.0 profile. One exact lock archive,
+unchanged record/report bytes and restored exclusive local access independently
+verified; all91normal operator files unchanged. This closes the native local
+confirmation gap only. Reviewed B12 offline case utility adds59tests, B10 helper
+adds2; full669unit tests, typecheck/build/host compilation PASS. Installed product
+bundle unchanged. Zero-compute signed-in B12 trial separately approval-pending;
+no new Azure mutation or live-cloud acceptance. Ledger remains6pass/6partial.
+See [native evidence](evidence/b10-native-lock-20260923.json) and
+[next live scopes](b09-b10-b12-live-next-20260923.md).
+
+Prior September23 09:41UTC: user-approved3bc0069 candidate installed and actual
 VS Code1.139.0 Reload Window completed; package/bundle hashes match. New command
 activation and native workflow-selector cancellation pass, with all91operator
 files unchanged. No actual unlock, cloud fault, deletion or compute startup;
@@ -516,9 +527,9 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory/native cancellation/local archive evidence retained; September23 running-only separate fresh same-boot readiness gate, v2 archive and v1 GET-only compatibility pass77focused tests; historical Pending remains refused | Other approval surfaces/unrepresented faults and live record-removal/recovery remain unqualified; local archive does not authorize deletion | partial |
-| B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and canonical PASS retained; September23 actual isolated VS Code1.139.0 SIGKILL at two boundaries preserves archive/intent, refuses implicit acquisition and passes scripted explicit same-boot dead-owner lock recovery;44focused tests pass | Forced crash during signed-in active Azure operation and actual native operator-reviewed recovery remain unqualified; scripted local recovery is not an operator click | partial |
+| B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and canonical PASS retained; September23 actual isolated VS Code1.139.0 SIGKILL at two boundaries preserves archive/intent;44focused tests pass; later actual native Cancel/recovery in an unsigned-in isolated profile preserves record/report bytes and archives the dead-child lock | Forced crash during signed-in active Azure operation remains unqualified; isolated SIGKILL, dead-child native confirmation and active-cloud evidence remain distinct | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
-| B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels and signed-in retained-failure refusal retained; September23 typed sanitized rejection/no-replay coverage65focused tests PASS;12real VS Code1.139.0 retained cases include11negatives with no new PASS/persistence/redownload and preserved bytes | Other invalid-import/transfer cases still lack signed-in installed-GUI evidence; real isolated host with synthetic reports/inert ARM is not an Azure transfer fault | partial |
+| B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels and signed-in retained-failure refusal retained; September23 typed sanitized rejection/no-replay coverage65focused tests PASS;12real VS Code1.139.0 retained cases include11negatives; reviewed offline fresh-download fixture utility has59tests and preserves independent original seals | Fresh invalid-import/transfer cases still lack signed-in installed-GUI evidence; synthetic host cases and offline fixture preparation are not Azure transfer faults | partial |
 
 ## First local regression batch
 

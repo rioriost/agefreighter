@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-23T09:58:36.593Z",
+  "scope": "isolated-unsigned-in-native-local-lock-recovery",
+  "result": "pass",
+  "overallB10": "partial",
+  "vscodeVersion": "1.139.0",
+  "implementationCommit": "3bc006939b24725d5114f4384e42bc54e8e3c2cd",
+  "bundleSHA256": "3108910e2933f73b1b1d0edf92458e7384e2008261469c56da2f19789366da67",
+  "officialAndCopiedExecutableSHA256": "1b58953da3281bddea360f21198ab80f8a5caa72c77f7cf996bd3c9fa74dfb3c",
+  "retainedFixture": "/private/tmp/af-native-lock-fN6Gq6",
+  "workflow": "578684f4-aff7-41ce-a8d3-67e35d31b428",
+  "syntheticWorkflow": true,
+  "deadOwner": { "pid": 78447, "exitCode": 23, "signal": null, "sameBootProven": true },
+  "nativeHostPID": 79913,
+  "nativeCommand": "agefreighter.reviewRunnerCrashLock",
+  "nativeCancelObserved": true,
+  "cancelPreservedLockInodeAndBytes": true,
+  "nativeFreshReviewApprovalObserved": true,
+  "nativeSuccessNotificationObserved": true,
+  "recordSHA256": "cce9e05a1748cc497cb14f10d65479f54deab12f7aeac871dd0b3dc64ace832b",
+  "reportSHA256": "83e3aba8d55460610c99dd61f874f5fb18db70c44f93948c402950b4af88f7c6",
+  "originalLockSHA256": "d40d8c67fe4e3002c7b8949bc92bcbe6f827141e11f2326529be9d354a6f5a0b",
+  "archive": {
+    "count": 1,
+    "bytes": 997,
+    "sha256": "630f6a925056258b7558ec4a899887e11a5295e29f0808d16deb67bb57f6aee2",
+    "approvedAt": "2026-09-23T09:58:25.667Z",
+    "mode": "0600",
+    "originalLockBytesMatch": true
+  },
+  "lockAbsentAfterNativeApproval": true,
+  "recordAndReportUnchanged": true,
+  "exclusiveLocalReadRestored": true,
+  "cancelEvidenceSHA256": "a284bd3aff7574470a34859bad81f0a50501bf66a7a8bbef63303540df72768b",
+  "recoveredEvidenceSHA256": "d073bcec17b24124ab9fdccfd7032d8f7e27302e3e1f0b344669bca8c97da65d",
+  "normalOperatorStore": {
+    "filesBeforeAndAfter": 91,
+    "pathModeContentSHA256BeforeAndAfter": "794d6a7e3c88b12a2b70b0373064bd40f2c746318104d0c82697ea8741551709"
+  },
+  "nativeObservationLocation": "task transcript screenshots and accessibility states",
+  "azureMutation": false,
+  "signedInActiveCloudCrashQualified": false,
+  "caveats": [
+    "UI binding required a separate exact path to an unchanged official app copy.",
+    "Original test workspace had a user-only settings placement error, fixed in helper afterwards.",
+    "Workspace was closed and only readme opened; no workspace trust grant or bypass.",
+    "This run used a real exited Node child, not an active Azure operation or forced Extension Host exit.",
+    "File verification alone does not prove native interaction; root separately observed actual clicks.",
+    "Isolated window closed after verification; all evidence remains retained."
+  ]
+}

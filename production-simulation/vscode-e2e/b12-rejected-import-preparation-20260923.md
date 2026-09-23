@@ -49,6 +49,15 @@ admission before retention, consistent with prior behavior.
   it; the parent coordinator runs host suites serially and records outcomes.
 - No live Azure request, operator-store access, GUI action, installation,
   credential access, or accepted workflow mutation was performed by this worker.
+- Follow-up offline setup utility: `npm run typecheck` and
+  `npx --no-install tsx --test src/test/unit/p1DownloadCase.test.ts`: **59 pass,
+  0 fail, 0 skip**. Tests use only synthetic snapshots/receipts and disposable
+  temporary directories. They cover both original qualification phases, both
+  negative expectations, maximum report length, guest-receipt binding, identity
+  and profile refusal, nonsecret native approval/Cosmos references, credential
+  and ambiguous JSON rejection, input size/UTF-8, operator-path refusal,
+  symlink/hardlink refusal, existing directories, concurrent setup, and actual
+  offline CLI success/sanitized argument failure.
 
 ## Concrete later signed-in native procedure
 
@@ -69,17 +78,63 @@ never copy SecretStorage or place SAS/token values in test files or evidence.
 Do not reuse the automatic isolated-host launcher for this run: its tests are
 deliberately unsigned-in with inert Azure adapters.
 
-Prepare cases outside the native import operation with a reviewed test-only
-setup utility using `RunnerStore.write` in the verified disposable profile.
-That utility is not implemented or registered by this change. It must refuse
-the normal operator storage path, an existing record/report, symlinks, and a
-nonempty case directory. It takes only an explicitly authorized nonsecret
-record snapshot and independent guest manifest; it must not discover or read
-the operator store itself. Retain that original snapshot and manifest unchanged
-and hashed in a separate evidence directory before creating any case. Keep
+Prepare cases outside the native import operation with the test-only
+`extensions/vscode/src/test/helpers/prepareP1DownloadCase.ts` utility. It uses
+production `RunnerStore.write` in a newly created private staging store, then
+publishes the one disposable record with a create-only hard link. This prevents
+the store's normal replacement semantics from overwriting a competing file.
+It refuses known operator storage paths, symbolic links in any input ancestor,
+hardlinked inputs, and any pre-existing case root, including an empty directory.
+It accepts only explicit, owned, bounded nonsecret record/guest-receipt files;
+it never discovers operator storage or reads credentials. All input validation
+finishes before output is created. Keep
 the original workflow/operation identifiers so the genuine Azure storage
 ownership and exact report-capability checks remain in force. These are
 disposable local test records, not newly qualified migrations.
+
+Run this from `extensions/vscode` only after the record and original guest
+export receipt have been explicitly supplied as reviewed nonsecret exports:
+
+```sh
+npx --no-install tsx src/test/helpers/prepareP1DownloadCase.ts \
+  --record /absolute/approved-exports/record.json \
+  --manifest /absolute/approved-exports/guest-export-receipt.json \
+  --case-root /private/tmp/af-b12-0123456789ab \
+  --scenario wrong-sha256 \
+  --acknowledge-nonsecret-inputs
+```
+
+Use a new 12-lowercase-hex suffix for every case. On macOS the destination must
+be directly under canonical `/private/tmp`; `/tmp` is a symlink alias and is
+refused with guidance to use `/private/tmp`. Other POSIX hosts use the canonical
+OS temporary directory; Windows is not supported by this setup utility.
+For the second case use another new root and `--scenario wrong-length`.
+The guest receipt must have exactly `workflow`, `operation`, `jobId`, `sha256`,
+`bytes`, and `exported: true`, all bound to the original record. A bare hash/size
+manifest or a verification receipt without export confirmation is insufficient.
+An exported or previously passing P1 phase is admitted; a submitted, verified,
+exporting, failed, or unknown phase is refused.
+
+The utility preserves original raw bytes under `originals/` with read-only file
+permissions, and records their hashes, original guest seal, deliberately wrong
+expectation, precise field changes and the disposable record hash in
+`evidence/case.json`. This is logical read-only retention, not tamperproof
+storage. `user-data/` and `extensions/` are separately created under the case
+root; the seeded store contains exactly one record and no reports. Successful
+output prints only those local paths. Check success and `evidence/case.json`
+before using a prepared case. If setup fails, any partial directory remains
+for inspection and cannot be reused. No automatic deletion or repair occurs.
+
+Known credential/token fields, signed URLs, private keys and credential-bearing
+connection strings are refused recursively. Unknown top-level record fields and
+unknown qualification/receipt fields are refused. Only narrowly checked native
+cost/resize audit structures and fixed nonsecret ARM/environment/default-Azure
+references are admitted. These checks are conservative and cannot prove that
+arbitrary opaque strings contain no secret; the reviewed-export requirement and
+explicit acknowledgment remain necessary. The files' claimed guest provenance
+and Azure authorization are not authenticated by this offline utility.
+The helper is under `src/test`, excluded by the existing VSIX `src/**` rule,
+and has no production registration, network call, native launcher or adapter.
 
 For each case, use a separate disposable profile/store with exactly one copied
 record. Require a finished migration with passing counts, the correct original

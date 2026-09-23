@@ -2,12 +2,13 @@
 
 ## Scope and current verdict
 
-**Implemented locally; B10 remains partial.** The production store and native
+**Native local recovery verified; B10 remains partial.** The production store and native
 command now support an explicit review of recoverable interrupted local locks.
 Recovery performs no Azure request, dispatch, retry, reconnect, or workflow edit.
 Unit/panel contracts and an isolated real Extension Host SIGKILL/reopen exercise
-pass. The native confirmation dialog has not been exercised by a real operator,
-and a signed-in crash during an active Azure inventory/load/verifier remains open.
+pass. The coordinator has now exercised the actual native confirmation dialog
+in an isolated unsigned-in profile, as recorded below. A signed-in crash during
+an active Azure operation remains open.
 
 This change does not alter prior accepted canonical reports. No installation,
 credential access, operator-storage mutation, compute start, or live Azure action
@@ -90,3 +91,65 @@ Both results record `scriptedLocalLockRecovery: true`,
 
 These results extend the September 18 isolated process-crash evidence; they do not
 close B10's signed-in active-cloud crash or native operator-confirmation gates.
+
+## Actual native local cancellation and recovery — 09:57–09:59 UTC
+
+The later native check closes the local confirmation gate, not the active-cloud
+gate. The test-only `scripts/native-lock-fixture.cjs` creates a fresh private
+profile and harmless synthetic CSV draft/report with production `RunnerStore`.
+Its own child78447 acquired the production lock, sealed its marker and exited23
+inside the protected action, leaving a real same-boot dead-owner lock. No arbitrary
+process was terminated and no cloud operation was represented by the fixture.
+
+Retained fixture: `/private/tmp/af-native-lock-fN6Gq6`, workflow
+`578684f4-aff7-41ce-a8d3-67e35d31b428`. The real VS Code1.139.0 development host
+loaded unchanged implementation3bc0069, bundle SHA
+`3108910e2933f73b1b1d0edf92458e7384e2008261469c56da2f19789366da67`.
+Normal installed extension and all91operator-store files remained unchanged.
+
+The coordinator used the actual Command Palette production command, selected
+the sole fixture workflow and inspected its native macOS modal. The displayed
+workflow/PID/lock/workflow hashes agreed with the independent file baseline.
+
+1. Clicked **Cancel**. Independent verification confirmed the exact same three
+   store files, original lock inode and bytes, and no recovery archive.
+2. Opened a fresh review through the same native command and clicked **Recover
+   local lock**. GUI reported archived recovery with no remote action.
+3. Independent verification found exactly one997-byte private archive, original
+   lock absent, exact original lock bytes and review hashes in the archive, and
+   unchanged workflow/report bytes. A new production exclusive local read
+   succeeded without changing those bytes. All three retained files are0600.
+
+Archive SHA `630f6a925056258b7558ec4a899887e11a5295e29f0808d16deb67bb57f6aee2`,
+approved09:58:25.667UTC. Cancellation evidence SHA
+`a284bd3aff7574470a34859bad81f0a50501bf66a7a8bbef63303540df72768b`;
+recovered evidence SHA
+`d073bcec17b24124ab9fdccfd7032d8f7e27302e3e1f0b344669bca8c97da65d`.
+Native modal and success screenshots/accessibility observations are retained in
+the task transcript; these are actual clicks, not inert panel adapters or a
+scripted call to approve recovery. The fixture verifier itself cannot prove UI
+interaction, so its filesystem evidence and these observations remain distinct.
+
+### Environment caveats and scope
+
+Launching a second instance at the same application path caused the UI tool to
+bind the normal instance. The coordinator stopped only that newly launched test
+instance and copied the unmodified official application inside the fixture,
+then bound its exact separate path. Original/copy executable SHA both
+`1b58953da3281bddea360f21198ab80f8a5caa72c77f7cf996bd3c9fa74dfb3c`.
+The recovery host PID79913 activated AGEFreighter09:57:42.242UTC.
+
+The first generated workspace placed a user-only update setting at workspace
+scope, causing a harmless VS Code settings error. The helper was corrected and
+its two local tests rerun. The live fixture was preserved; the coordinator closed
+the untrusted test workspace and opened only its readme in a folderless window.
+No workspace-trust protection was disabled or trust grant made. The lock command
+needs no workspace folder. The isolated test window was closed after verification;
+its profile, app copy, logs and evidence remain retained.
+
+No Azure sign-in, resource mutation, credential read, real migration or remote
+operation took place in this native test. The already-completed isolated Extension
+Host SIGKILL tests and this dead-child/native-modal test are separate evidence;
+they do not together constitute an unobserved signed-in active-cloud crash.
+See [native evidence](evidence/b10-native-lock-20260923.json) and the
+[next live scopes](b09-b10-b12-live-next-20260923.md).

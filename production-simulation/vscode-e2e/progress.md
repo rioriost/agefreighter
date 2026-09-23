@@ -2,7 +2,22 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest09:41UTC: **Reviewed B09/B10/B12 candidate installed and reloaded**.
+Latest10:01UTC: **B10 actual native local recovery PASS; B12 safe live-case setup ready**.
+In a separate unsigned-in VS Code1.139.0 profile, the production recovery command's
+actual Cancel preserved the lock and all bytes; a fresh native confirmation
+archived the exact dead-owner lock and restored local access without changing
+workflow/report bytes. All91normal operator files remain unchanged. This closes
+the native local-dialog gap, not signed-in active-Azure crash recovery.
+B12 now has a reviewed offline disposable-case utility with59dedicated tests;
+full669unit tests, typecheck, build and host compilation PASS. The production
+bundle is unchanged, so no additional installation is needed. No cloud mutation
+occurred; read-only checks confirmed eligible pre-target resources remain off.
+Approval requested for the separate zero-compute B12 signed-in read-only trial.
+Base9/9 and extended6pass/6partial remain. See
+[native evidence](evidence/b10-native-lock-20260923.json) and
+[next live scopes](b09-b10-b12-live-next-20260923.md).
+
+Prior09:41UTC: **Reviewed B09/B10/B12 candidate installed and reloaded**.
 User-approved3bc0069 VSIX and installed bundle seals match. VS Code1.139.0
 reloaded normally; new host74091 activated the new local-lock command and
 displayed25retained workflows. Selector cancelled before any lock action.
