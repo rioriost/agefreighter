@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "scope": "B09 native modal and production-controller cancellation with synthetic prerequisites",
+  "result": "pass-three-defined-cases",
+  "overallB09": "partial",
+  "independentFileReviewAt": "2026-09-23T11:43:15.369Z",
+  "retainedRoot": "/private/tmp/af-native-cancel-iRAB86",
+  "launchMode": "normal-development-host-with-disposable-companion",
+  "vscodeVersion": "1.139.0",
+  "officialExecutableSHA256": "1b58953da3281bddea360f21198ab80f8a5caa72c77f7cf996bd3c9fa74dfb3c",
+  "productionBundleSHA256AtTrial": "695fba74e45701c07b15f9713bf14c4e96458134c6cd09094685015d7a52f3f5",
+  "harnessSHA256PinnedByCompanion": "e7835ec4146f5b23a6c76eeb650cb84c639900286e92660d935217c9b1c5de7e",
+  "ledgerSHA256": "f267df6012e424cfd84ea92305c7610222d66d6fec89941fea89919bcaf69275",
+  "nativeClickEvidence": "Coordinator actual Cancel clicks and native observations; runtime API results and independent filesystem checks retained separately",
+  "cases": [
+    {
+      "id": "A18",
+      "decision": "execution.costApproval",
+      "completedAt": "2026-09-23T11:39:07.921Z",
+      "resultSHA256": "df6ad0ae6f8f0047c8b57e8dc24549381750c5345559fba5db436cd887a74edd",
+      "baselineSHA256": "3623503e19bad877ef1b49ba832f5298e56b0b3564ec642181561ef2e7a71b5e",
+      "compiledControllerSHA256": "34f4c845d14d72ada1f093478703af0c1b90924f199b44f10c1b81678ed096fd",
+      "sourceControllerSHA256": "dfe6f2ce29af0ab2e34b1575bec2117c2bd986046fa297b4e9c1574d3bf06006",
+      "syntheticPrerequisites": "action selection, three cost inputs and pricing"
+    },
+    {
+      "id": "A19",
+      "decision": "execution.preloadRestart",
+      "completedAt": "2026-09-23T11:39:22.470Z",
+      "resultSHA256": "e658c0dff20936c112ff6c59e0b4b100405db4f09fec3d384a65ddfd23122aa8",
+      "baselineSHA256": "a2f817c9f3c65f92aec2389b8eae49767d040e54c2a00c775c9e919b3ad94899",
+      "compiledControllerSHA256": "34f4c845d14d72ada1f093478703af0c1b90924f199b44f10c1b81678ed096fd",
+      "sourceControllerSHA256": "dfe6f2ce29af0ab2e34b1575bec2117c2bd986046fa297b4e9c1574d3bf06006",
+      "syntheticPrerequisites": "action selection and target state; two inert GETs after Cancel reconcile without restart or persistence"
+    },
+    {
+      "id": "A29",
+      "decision": "receipt.remove",
+      "completedAt": "2026-09-23T11:39:39.719Z",
+      "resultSHA256": "3d2914d2d2a07b0ea5d1d06bec6d4fd280eeca46b8ad458b016d8bdaf5f2bf61",
+      "baselineSHA256": "94b97f14c1d196dcffb22b820059fc9c79c90cd31fdbac42999253ddfae38736",
+      "compiledControllerSHA256": "5aedfb1c416d1869422dd636616563c6376194c5266c9945e3457a90fa70ef23",
+      "sourceControllerSHA256": "4322bf95fe62d925d84603a01e08bf21341c67fce7ff73f10be7ec56b0618099",
+      "syntheticPrerequisites": "workflow/receipt selections, account binding and three ownership/readiness GETs"
+    }
+  ],
+  "eachCase": {
+    "actualNativeModalCount": 1,
+    "actualNativeCancel": true,
+    "deniedEffectAttempts": 0,
+    "privateStoreFiles": 2,
+    "beforeAfterAndCurrentHashesMatch": true,
+    "fileModes": "0600",
+    "compiledControllerHashVerified": true
+  },
+  "frozenCancellationCreditsAfterReview": 13,
+  "remainingCancellationDecisions": 17,
+  "precedingAttempts": "Three preceding setup/test-mode/aborted attempts remain retained without credit; no retrospective PASS",
+  "signedInCloudEvidence": false,
+  "productionCommandRegistrationTested": false,
+  "limitations": [
+    "Only A18, A19 and A29 are credited by this receipt",
+    "Actual modal API and production core/controller were used; selectors, inputs and Azure prerequisites were synthetic",
+    "No live Azure ownership, readiness, restart, deletion or lost-response behavior is qualified",
+    "No fixture business request reached Azure; this is not a claim about all VS Code background traffic",
+    "A29 does not close the live readiness-control lifecycle gate"
+  ]
+}

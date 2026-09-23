@@ -1,8 +1,24 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-23 JST. Status: **not release-qualified; B01/B03 full canonical PASS; 6/12 defined branches pass, 6 partial**.
+Updated: 2026-09-23 JST. Status: **not release-qualified; base routes9/9; 7/12 defined branches pass, 5 partial**.
 
-Latest September23 11:16UTC: original deployment-consent snapshot/expiry binding
+Latest September23 11:43UTC independent review: **B12 passes its defined mixed-layer
+scope**. Normal signed-in native download actions rejected wrong expected SHA
+at approximately11:25UTC and length at approximately11:36UTC. Original input
+seals, exact copied-record differences, unchanged exported records/zero reports
+and both installed3bc0069 bundle pins were independently checked. Prior semantic
+production-controller/real-host negatives remain synthetic, not eight Azure
+corruption trials. No independent HTTP request-count trace is claimed.
+Actual isolated normal-development native Cancel at11:39UTC also passes A18/A19/A29:
+one modal each, no effect attempts, unchanged record/report hashes/modes. B09 now
+has13/30 cancellation credits,17 pending; live removal and its other finite gates
+remain open. Three preceding harness attempts retain no credit. See
+[B12 receipt](evidence/b12-native-download-rejection-20260923.json),
+[native cancellation receipt](evidence/b09-native-cancel-20260923.json) and
+[finite acceptance ledger](b09-b10-b12-acceptance-20260923.md).
+Base9/9 remains unchanged; extended totals are7pass/5partial. B09/B10 are partial.
+
+Prior September23 11:16UTC: original deployment-consent snapshot/expiry binding
 corrected and independently reviewed; root691unit tests plus49focused checks,
 typecheck/build/host compilation PASS. Not yet installed for native B09 testing.
 User approved the zero-compute B12 read-only trial; both immutable negative
@@ -536,10 +552,10 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
-| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory/native cancellation/local archive evidence retained; September23 running-only separate fresh same-boot readiness gate, v2 archive and v1 GET-only compatibility pass77focused tests; historical Pending remains refused | Other approval surfaces/unrepresented faults and live record-removal/recovery remain unqualified; local archive does not authorize deletion | partial |
+| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 approval decisions:13 credited including actual isolated native A18/A19/A29 at11:39UTC; historical quota/artifact refusals credited; running-only receipt gate and consent-binding regressions pass; Pending remains refused |17 cancellation decisions, native expiry/duplicate controller proof, actual lost deployment response/terminal bootstrap failure and live archived removal/GET404 remain; isolated A29 is not live admission/deletion | partial |
 | B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and canonical PASS retained; September23 actual isolated VS Code1.139.0 SIGKILL at two boundaries preserves archive/intent;44focused tests pass; later actual native Cancel/recovery in an unsigned-in isolated profile preserves record/report bytes and archives the dead-child lock | Forced crash during signed-in active Azure operation remains unqualified; isolated SIGKILL, dead-child native confirmation and active-cloud evidence remain distinct | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
-| B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels and signed-in retained-failure refusal retained; September23 typed sanitized rejection/no-replay coverage65focused tests PASS;12real VS Code1.139.0 retained cases include11negatives; reviewed offline fresh-download fixture utility has59tests and preserves independent original seals | Fresh invalid-import/transfer cases still lack signed-in installed-GUI evidence; synthetic host cases and offline fixture preparation are not Azure transfer faults | partial |
+| B12 | Invalid verification must never be PASS | Existing synthetic production-controller/real-host semantic negatives and signed-in retained-failure refusal, plus normal signed-in native fresh wrong-expected-SHA and length refusals at11:25/11:36UTC; independent originals/case/pin/post-state review PASS | Complete for the frozen mixed-layer scope; not all eight cases against Azure, remote corruption, actual network truncation or an instrumented HTTP request count | pass |
 
 ## First local regression batch
 
@@ -837,15 +853,18 @@ reconciliation observations, **not** B11 fault/recovery acceptance. See the
 
 ### Remaining sequence
 
-1. Keep B01/B04/B05/B08/B11 closed for their defined scopes; do not repeat accepted
+1. Keep B01/B03/B04/B05/B08/B11/B12 closed for their defined scopes; do not repeat accepted
    migration runs merely because the historical sequence above still mentions them.
-2. Finish read-only signed-in placement admission checks (B02), and scope a fresh
-   other-cloud choice run (B03) without treating endpoint-only local contracts as
-   a second live migration. Use dedicated unaccepted workflows for negative inputs.
-3. Plan dedicated B06/B07/B09/B10/B12 fault trials with precise expected refusals,
+2. Finish remaining defined placement admission checks (B02), using dedicated
+   unaccepted workflows for negative inputs, not modified accepted resources.
+3. Plan dedicated B06/B07/B09/B10 trials with precise expected refusals,
    immutable prior evidence, no automatic retry/replay, and negative-control proofs.
    Do not modify accepted resources to manufacture changed ownership or corruption.
-4. Any new compute session needs a fresh bounded authorization/cost check; B01's
+4. The newly approved existing-runner/source B09/B10 session has an exact60-minute
+   maximum from first start, stop initiation by minute55 and15-minute idle bound;
+   see [scope and exclusions](b09-b10-b12-live-next-20260923.md) and the
+   [execution record](b09-b10-live-20260923.md). Approval is not an
+   execution result. Other new compute needs fresh authorization/cost checks; B01's
    September22 session is complete and its approval is not a general restart permit.
    New access, unpublished software and destructive operations retain their gates.
 5. Record real signed-in/guest evidence separately from unit or isolated-host

@@ -1,8 +1,15 @@
 # B12 fresh-download integration — September 23
 
-Status at11:09UTC: **authorized setup complete; authentication blocked before
-either report download**. Neither negative case has passed or failed its report
-admission check. No VM/database was started and no source operation was submitted.
+Latest, independently reviewed11:43UTC: **B12 PASS for the frozen mixed-layer
+scope**. Normal signed-in native actions rejected the deliberately wrong expected
+SHA at approximately11:25UTC and length at approximately11:36UTC. Both copied
+records remain unchanged/exported with zero report files and no new PASS. No
+VM/database was started and no source operation was submitted by these trials.
+See the [redacted acceptance receipt](evidence/b12-native-download-rejection-20260923.json).
+
+Historical11:09UTC checkpoint: authorized setup was complete, but ordinary
+authentication blocked both report checks. That blocker is retained below and
+is not counted as report-rejection evidence.
 
 ## Approved boundary and immutable inputs
 
@@ -37,7 +44,7 @@ profile directories. Originals are read-only; no report files were copied.
 | wrong-sha256 | First SHA character `0` → `1`; length unchanged | `5e1f53791b8edd49a0befda6a663011439c354242e56cfba08a53e258b5e548b` |
 | wrong-length | Expected length differs by one byte; SHA unchanged | `14ddab0047f428a5973f0e3bf2fe7819f79b6a5bf86273343256dd976f5d5ed5` |
 
-## Native profile setup and authentication boundary
+## Native profile setup and historical authentication boundary
 
 The first case installed the previously approved3bc0069 VSIX, not the in-progress
 B09 follow-up. Its package SHA-256 is
@@ -56,9 +63,9 @@ which policy or platform condition caused the failure. Interactive user sign-in
 was requested; no broker/keychain repair, policy bypass, repeated login attempt,
 credential-cache copy or substitute CLI authentication was used.
 
-The AGEFreighter report command has not been invoked. Ownership admission,
-read-only report capability issuance and fresh Blob GET are not yet qualified.
-Authentication failure is not a report rejection PASS.
+At that checkpoint the AGEFreighter report command had not been invoked.
+Ownership admission, read-only report capability issuance and fresh Blob GET
+were not qualified. Authentication failure was not a report rejection PASS.
 
 At11:08UTC, both copied records retained their initial hashes/`exported` state,
 with no additional store files. All91normal operator files retained aggregate
@@ -67,18 +74,50 @@ path/mode/content SHA-256
 Fresh read-only Azure observations confirmed the B03 runner deallocated and its
 target Stopped. Other stopped guests were not probed or restarted.
 
-## Finite completion criterion and evidence limits
+## Actual signed-in native rejections and independent review
+
+Ordinary interactive sign-in subsequently completed in each separate profile.
+The coordinator used the normal installed `agefreighter.continueRunnerExecution`
+command, selected the existing copied workflow and invoked **Qualify / reconcile
+full P1 digest (development only)** once per case. No test controller replaced
+this command. The installed implementation stayed at3bc0069 for both cases.
+
+| Case | Actual native result | Precise post-action file check |
+| --- | --- | --- |
+| Wrong expected SHA | Notification center confirmed the sanitized SHA-256 mismatch refusal, approximately11:25UTC | 11:26:17.656UTC; original copied-record hash, `exported`, one record, zero reports, no new PASS |
+| Wrong expected length | Notification center confirmed the sanitized length mismatch refusal, approximately11:36UTC | 11:36:53.540UTC; original copied-record hash, `exported`, one record, zero reports, no new PASS |
+
+These errors arise from the genuine download-admission path, not the earlier
+authentication failure. The coordinator's native observations are distinct from
+the supervisor's independent local verification at11:43:15.369UTC. That review
+rehashed both read-only originals and independent guest receipts; checked their
+workflow/operation/job/original-seal binding; compared complete original and
+copied JSON (only phase and the declared expected seal differ); and verified
+the exact installed bundle in each profile. Each current0600 store contains only
+its initial record; both original input files remain0400. No raw credentials,
+capabilities or report contents are added to the public receipt.
+
+Coordinator post-action evidence reports all91operator files still matching
+aggregate`794d6a7e3c88b12a2b70b0373064bd40f2c746318104d0c82697ea8741551709`.
+The supervisor did not reread the normal operator store or rerun either command.
+Network request counts were not instrumented: one native qualification action
+per case is observed; an independently traced count of exactly one HTTP request
+is not claimed. Immutable setup manifests still say `not-run` because they
+record preparation; separate observed-result files and this receipt record the
+later outcomes without rewriting those manifests.
+
+## Finite completed scope and evidence limits
 
 The original plan's invalid-verification classes are counts/digest mismatch,
 rejects, missing, truncated, stale, wrong-job and incomplete evidence. Existing
 production-controller/real isolated-host tests cover those semantic classes,
-and a signed-in retained-failure refusal is already recorded. The remaining
-integration check is the normal signed-in native download path refusing both
-deliberately wrong expectations with unchanged records, no retained report and
-no new PASS. See [retained-host coverage](p1-retained-host-20260922.md).
+and a signed-in retained-failure refusal is already recorded. The two native
+refusals above complete the remaining fresh-download integration boundary with
+unchanged records, no retained report and no new PASS. See
+[retained-host coverage](p1-retained-host-20260922.md).
 
-After those two observed refusals, B12 may be reported complete for this defined
-scope using explicitly mixed-layer evidence. It must not be described as all
+Together these observations close B12 for this defined scope using explicitly
+mixed-layer evidence. They must not be described as all
 eight cases executed against Azure. Wrong expected length can be rejected at
 Content-Length before body reading; it is not observed network truncation.
 Wrong expected SHA is not observed remote corruption. No corrupted remote Blob,

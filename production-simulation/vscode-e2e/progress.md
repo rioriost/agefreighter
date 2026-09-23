@@ -2,7 +2,35 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest11:16UTC: **B09 consent binding corrected; approved B12 setup awaits normal authentication**.
+Latest11:43UTC independent review: **B12 defined mixed-layer scope PASS; three
+additional actual native cancellation decisions PASS**. Normal signed-in3bc0069
+native actions rejected deliberately wrong expected SHA at approximately11:25UTC
+and length at approximately11:36UTC, with unchanged exported records, zero reports
+and no new PASS. Both original snapshot/guest-receipt seals, copied JSON differences,
+installed pins and current files were independently verified. This complements
+existing synthetic semantic negatives; it is not eight live Azure fault cases or
+an instrumented network request count. Authentication-blocker history is retained.
+A18/A19/A29 actual native Cancel in a normal-development disposable host at11:39UTC
+preserves record/report hashes/modes, with one modal and no denied effects each.
+Three earlier harness attempts receive no credit. B09 cancellation totals13credited/
+17pending; live lifecycle/other finite gates and B10 active-cloud crash remain open.
+No compute was started for these results. Base9/9; extended7pass/5partial.
+See [B12 receipt](evidence/b12-native-download-rejection-20260923.json),
+[native cancellation receipt](evidence/b09-native-cancel-20260923.json) and
+[fixed acceptance ledger](b09-b10-b12-acceptance-20260923.md).
+
+Separate preparation: the user approved the exact existing-runner/source B09/B10
+session, maximum60minutes from first start, stop initiation by minute55 and15-minute
+idle bound. The [execution record](b09-b10-live-20260923.md) still has compute off
+and private source-credential input pending at its preparation checkpoint. This
+approval adds no test credit or authority for new resources, source changes or
+readiness deletion without an exact action-time record-ID approval.
+**Current next step:** private user input in the ordinary installed source-password
+prompt (and the reviewed workflow-scoped Remember choice); no password in chat,
+files or command arguments. The live clock has not started. Root will refresh
+the exact safety/stop gates before any authorized compute start.
+
+Prior11:16UTC: **B09 consent binding corrected; approved B12 setup awaits normal authentication**.
 Independent review identified an approval-to-submission snapshot gap; the original
 full review, expiry and action-time guards are now bound through the locked
 reread. Root691unit tests, typecheck/build/host compilation and49focused checks
