@@ -51,6 +51,9 @@ class ReadOnlyBackend:
     def pagesize(self):
         return os.sysconf("SC_PAGE_SIZE")
 
+    def euid(self):
+        return os.geteuid()
+
     def disk_percent(self):
         disk = os.statvfs("/var/lib/agefreighter/workflows")
         if not disk.f_blocks:
@@ -145,8 +148,19 @@ def process(backend, pid, expected, group):
             "exactUnitCgroupMember": member, "state": fields[0]}
 
 
-def oom_count(backend):
-    code, out, err = backend.run(["/usr/bin/journalctl", "-k", "-b", "--no-pager", "--grep=Out of memory|Killed process", "-o", "cat"])
+def oom_count(backend, boot):
+    # --quiet suppresses both decorations and inaccessible-journal warnings.
+    # Require root and independently prove visibility of this boot's kernel
+    # journal before accepting empty matching output as a measured zero.
+    if backend.euid() != 0 or not isinstance(boot, str) or not UUID.fullmatch(boot):
+        raise Unavailable()
+    code, out, err = backend.run(["/usr/bin/journalctl", "-k", "-b", "--no-pager", "--quiet", "-n", "1", "-o", "json", "--output-fields=_BOOT_ID"])
+    if code != 0 or err.strip() or len(out.splitlines()) != 1:
+        raise Unavailable()
+    entry = json.loads(out)
+    if not isinstance(entry, dict) or entry.get("_BOOT_ID") != boot.replace("-", ""):
+        raise Unavailable()
+    code, out, err = backend.run(["/usr/bin/journalctl", "-k", "-b", "--no-pager", "--quiet", "--grep=Out of memory|Killed process", "-o", "cat"])
     if code == 1 and not out and not err:
         return 0
     if code != 0 or err.strip():
@@ -186,6 +200,29 @@ def cgroup_health(backend, group):
     return values  # Missing cgroup-v2 files remain null, never inferred zero.
 
 
+def inventory_children(backend, main, group):
+    # Go may spawn its child from any OS thread. The main thread's children
+    # file is therefore insufficient. Only enumerate this verified unit's
+    # cgroup, never all /proc; retain only exact direct inventory children.
+    raw = backend.read("/sys/fs/cgroup" + group + "/cgroup.procs", 4096).split()
+    if not raw or len(raw) > 64 or len(set(raw)) != len(raw) or any(integer(pid) is None or int(pid) <= 0 for pid in raw):
+        raise Unavailable()
+    if str(main["pid"]) not in raw:
+        raise Unavailable()
+    children = []
+    for pid in raw:
+        if int(pid) == main["pid"]:
+            continue
+        # A disappearing/unreadable cgroup entry invalidates enumeration;
+        # do not silently skip it to manufacture a stable process proof.
+        candidate = process(backend, int(pid), CLI, group)
+        if not candidate["exactUnitCgroupMember"]:
+            raise Unavailable()
+        if candidate["expectedExecutable"] and candidate["ppid"] == main["pid"]:
+            children.append(candidate)
+    return {"children": children, "count": len(raw)}
+
+
 def observe(operation, backend):
     if not UUID.fullmatch(operation):
         raise ValueError("Exact lowercase operation UUID required")
@@ -197,18 +234,11 @@ def observe(operation, backend):
         boot = None
     first = safe(lambda: service(backend, unit))
     main = safe(lambda: process(backend, first["MainPID"], TOOLS, group)) if first else None
-    children = []
-    if main:
-        raw = safe(lambda: backend.read(f"/proc/{main['pid']}/task/{main['pid']}/children", 4096))
-        pids = raw.split() if raw is not None else []
-        if len(pids) <= 16 and all(integer(pid) is not None for pid in pids):
-            for pid in pids:
-                candidate = safe(lambda pid=pid: process(backend, int(pid), CLI, group))
-                if candidate and candidate["expectedExecutable"] and candidate["ppid"] == main["pid"]:
-                    children.append(candidate)
+    scan = safe(lambda: inventory_children(backend, main, group)) if main and first["exactControlGroup"] and main["expectedExecutable"] and main["exactUnitCgroupMember"] else None
+    children = scan["children"] if scan else []
     disk = safe(backend.disk_percent)
     swap = safe(lambda: swap_bytes(backend))
-    oom = safe(lambda: oom_count(backend))
+    oom = safe(lambda: oom_count(backend, boot))
     memory = cgroup_health(backend, group) if first and first["exactControlGroup"] else None
     last = safe(lambda: service(backend, unit))
     main_after = safe(lambda: process(backend, main["pid"], TOOLS, group)) if main else None
@@ -238,6 +268,7 @@ def observe(operation, backend):
             "startedUTC": started, "finishedUTC": backend.utc(), "bootId": boot,
             "serviceBefore": first, "serviceAfter": last, "mainBefore": main, "mainAfter": main_after,
             "inventoryChildrenBefore": children, "inventoryChildAfter": child_after,
+            "cgroupProcessEnumerationComplete": scan is not None, "cgroupProcessCount": scan["count"] if scan else None,
             "activeInventoryProcessProven": stable, "healthWithinObservedBounds": health,
             "diskUsedPercent": disk, "swapUsedBytes": swap, "kernelOOMMatchingLineCount": oom, "cgroupMemory": memory,
             "limitation": "Bounded snapshots only, not continuous monitoring. Null is unknown. False process proof does not mean finished/success. No assessment state/configuration or credentials were read."}
@@ -247,12 +278,18 @@ def main():
     if len(sys.argv) != 2 or not UUID.fullmatch(sys.argv[1]):
         print('{"error":"exact-operation-uuid-required","readOnly":true}')
         return 2
-    if sys.platform != "linux":
-        print('{"error":"approved-linux-runner-required","readOnly":true}')
+    if sys.platform != "linux" or os.geteuid() != 0:
+        print('{"error":"approved-linux-root-runner-required","readOnly":true}')
         return 2
     try:
         result = observe(sys.argv[1], ReadOnlyBackend())
-        print(json.dumps(result, separators=(",", ":"), allow_nan=False))
+        serialized = json.dumps(result, separators=(",", ":"), allow_nan=False)
+        # Include the final newline in the wire-size limit. Never truncate a
+        # partial observation into something that could resemble valid proof.
+        if len(serialized.encode("utf-8")) + 1 > 4096:
+            print('{"error":"observation-output-too-large","readOnly":true}')
+            return 2
+        print(serialized)
         return 0 if result["activeInventoryProcessProven"] and result["healthWithinObservedBounds"] else 3
     except Exception:
         # Never forward arbitrary OS errors, diagnostic output or filesystem data.

@@ -78,6 +78,27 @@ Likewise, configured `MemoryMax` is not an observed RSS measurement.
 
 ## Minimal sanitized read-only guest observation
 
+Prepared observer: `scripts/b10-observe-inventory.py`. Root supplies only the
+new lowercase operation UUID; the approved workflow is fixed in the script.
+Use `python3 <reviewed-script> <NEW_OPERATION_UUID>` through the approved guest
+observation channel (or the same reviewed content on stdin). Do not run it on
+the desktop or substitute an old/foreign operation. No Azure launcher is
+included. Exit 0 requires both live-process proof and observed health bounds;
+exit 3 retains valid JSON but declines those gates; exit 2 is invalid input or
+unavailable observation. Never reinterpret null counters as zero. Thirteen offline
+mocked/structural tests cover identity changes, absent children and unavailable
+health without invoking any guest or diagnostic process. Exact cgroup enumeration
+also covers children spawned by non-main Go threads. A root/current-boot journal
+visibility probe is required before reporting zero matching OOM lines. Output,
+including its newline, is capped at4096bytes; oversized results return a fixed
+error, not truncated evidence. Independent review approved this bounded payload.
+
+The prior accepted report was generated at06:13:24.371685639UTC after approximate
+06:10 submission, not at the06:25 status observation. Its roughly three-minute
+window is only a planning hint; the new worker can finish sooner. Stage the
+observer and bind the host before submission. No delay, pause or automatic retry
+is authorized merely to obtain crash evidence.
+
 Use only the already approved Run Command observation channel on this runner.
 Each new managed observation is itself a counted control, not an ARM GET.
 Do not change service state. The payload may read these allowlisted fields:
