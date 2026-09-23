@@ -2,7 +2,27 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest13:05UTC independent review: **B09 original expired-preview refusal PASS
+Latest13:35UTC: **B10 defined active-cloud crash/recovery PASS; B09 exact live
+readiness archive/removal lifecycle PASS**. Normal signed-in VS Code submitted
+one read-only inventory, then exact Extension Host74091 was interrupted while
+independent guest snapshots prove the same unit/main/child remained active.
+Native reconnect issued status/export controls without a new inventory approval;
+the sealed2,947-byte report imports with1.6Mvertices/4Medges/all18labels, no errors
+or incomplete checks. Prior report/history/configuration remain intact. No lock
+remained, so live lock recovery is not claimed. Exact runner deallocated/source
+Stopped were verified13:34:49UTC and the monitor paused, before13:55 hard bound.
+See [live execution](b09-b10-live-20260923.md),
+[B10 receipt](evidence/b10-live-active-crash-20260923.json), and
+[B09 lifecycle receipt](evidence/b09-live-readiness-removal-20260923.json).
+
+B10/B12 are complete for their stated scopes. B09 remains partial for only
+actual lost deployment response and terminal bootstrap failure; a separate
+new-resource/fault scope is awaiting user approval. No new VM/fault was started.
+Base9/9 unchanged; extended **8pass/4partial**, not release-qualified.
+**Current next step:** authorize and execute the bounded B09 two-failure trial;
+do not repeat completed cancellation, expiry, duplicate, B10 or B12 evidence.
+
+Prior13:05UTC independent review: **B09 original expired-preview refusal PASS
 in the frozen isolated native/controller scope**. The original preview retained
 its exact15-minute interval,12:48:13.063–13:03:13.063UTC. An early-opened real modal
 returned positive13:03:34.398UTC,21.335seconds after expiry, and the production

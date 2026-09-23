@@ -1,8 +1,26 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-23 JST. Status: **not release-qualified; base routes9/9; 7/12 defined branches pass, 5 partial**.
+Updated: 2026-09-23 JST. Status: **not release-qualified; base routes9/9; 8/12 defined branches pass, 4 partial**.
 
-Latest September23 13:05UTC independent review: **B09 original expired-preview
+Latest September23 13:35UTC: **B10's remaining active-cloud crash case PASS**.
+Independent guest process evidence brackets the exact local Extension Host
+interruption. Native same-operation reconnection/import completed5.6Mrecords
+and18labels with matching report SHA, preserved prior report/history, and no
+inventory replay in the retained control timeline. Exact runner deallocated and
+source Stopped verified13:34:49UTC, monitor paused, no deadline extension. See
+[live execution](b09-b10-live-20260923.md) and
+[B10 receipt](evidence/b10-live-active-crash-20260923.json).
+
+B09's actual native readiness lifecycle also passes: Cancel unchanged, one
+exact approved old control archived/removed, native GET-only absence plus
+independent ARM404, newer/current/history evidence retained. See
+[B09 receipt](evidence/b09-live-readiness-removal-20260923.json).
+B09 now has only two pending gates: actual lost deployment response and terminal
+bootstrap failure. The separate new-resource/fault scope has not yet been
+approved/executed. B12 remains defined mixed-layer PASS. Other partial branches
+B02/B06/B07 are outside this B09/B10/B12 batch.
+
+Prior September23 13:05UTC independent review: **B09 original expired-preview
 controller gate PASS in an isolated normal native host**. Original creation and
 expiry remain12:48:13.063/13:03:13.063UTC; the actual positive returned
 13:03:34.398UTC and was refused before submitRunner/write/effect. Full current
@@ -613,8 +631,8 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
-| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 cancellations, isolated original-expiry refusal and same-window/two-window duplicate controller gates credited at stated layers; B input attribution remains limited and2earlier expiry attempts remain failures; historical quota/artifact refusals credited; Pending remains refused | Actual lost deployment response/terminal bootstrap failure and live archived removal/GET404 remain; isolated A29 is not live admission/deletion | partial |
-| B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and canonical PASS retained; September23 actual isolated VS Code1.139.0 SIGKILL at two boundaries preserves archive/intent;44focused tests pass; later actual native Cancel/recovery in an unsigned-in isolated profile preserves record/report bytes and archives the dead-child lock | Forced crash during signed-in active Azure operation remains unqualified; isolated SIGKILL, dead-child native confirmation and active-cloud evidence remain distinct | partial |
+| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 cancellations, isolated original-expiry refusal and same-window/two-window duplicate controller gates credited at stated layers; historical quota/artifact refusals credited; actual signed-in native readiness Cancel/archive/exact removal/GET404 pass with newer evidence preserved | Actual lost deployment response and terminal bootstrap failure remain; isolated scopes and limited B-input attribution stay explicit | partial |
+| B10 | Close/reload during assessment/load/verification; no replay | Prior active Reload Window and isolated lock/SIGKILL evidence retained; September23 signed-in exact-host crash brackets same active guest child, same-operation reconnect/import5.6M/18labels, preserved report/history and verified bounded shutdown | Complete for defined case; no lock remained in this live run, no new graph migration or every-source/timing claim; control timeline is not an instrumented HTTP trace | pass |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Existing synthetic production-controller/real-host semantic negatives and signed-in retained-failure refusal, plus normal signed-in native fresh wrong-expected-SHA and length refusals at11:25/11:36UTC; independent originals/case/pin/post-state review PASS | Complete for the frozen mixed-layer scope; not all eight cases against Azure, remote corruption, actual network truncation or an instrumented HTTP request count | pass |
 

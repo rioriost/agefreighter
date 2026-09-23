@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "scope": "B09 one explicitly approved live readiness-control archive, removal and GET-only absence reconciliation",
+  "result": "pass-exact-live-control-lifecycle",
+  "overallB09": "partial",
+  "evidenceLayer": "normal-installed-signed-in-native-command-and-real-Azure-with-independent-local-evidence-review",
+  "independentFileReviewAt": "2026-09-23T13:27:01.877Z",
+  "workflow": "ae952310-5eba-42b6-9fe3-9db00e93cdac",
+  "runner": "af-ae9523105eba42b69fe3",
+  "installedImplementation": "3bc0069",
+  "installedBundleSHA256": "3108910e2933f73b1b1d0edf92458e7384e2008261469c56da2f19789366da67",
+  "authority": {
+    "source": "Coordinator-reported explicit user action-time approval",
+    "approvedControl": "af-8d520efe-8fa4-4541-b3b5-c8f5fa3dfff5",
+    "approvedRunner": "af-ae9523105eba42b69fe3",
+    "scope": "Only this one readiness control; no other control or guest/source evidence deletion authorized by this action.",
+    "existingSessionStopInitiationUTC": "2026-09-23T13:50:00Z",
+    "existingSessionHardBoundUTC": "2026-09-23T13:55:00Z",
+    "extendsComputeWindow": false
+  },
+  "nativeCancel": {
+    "coordinatorObservationAtApproximateUTC": "2026-09-23T13:10:00Z",
+    "baselineFile": "/private/tmp/af-b09-b10-live-CM2Opa/readiness-before-cancel.json",
+    "baselineFileSHA256": "44bfad5b7b26c63afade0526b48280c8a9eb9682ec76e94f44acd42e441b9fb1",
+    "baselineRecordedAt": "2026-09-23T13:09:01.560Z",
+    "recordSHA256BeforeAndAfterReportedByCoordinator": "560949922b385c6491aba278c2f90c014cf5b1248ea718db653e7509bec9545e",
+    "baselineReceiptCount": 5,
+    "baselineRemovalIntentCount": 0,
+    "coordinatorObservations": [
+      "The actual native review displayed the exact older control and receipt; the coordinator selected Cancel.",
+      "The record hash stayed unchanged and readinessRemovals remained empty.",
+      "A separate exact ARM GET still found the selected successful control."
+    ],
+    "supervisorBoundary": "The saved pre-Cancel projection and its seals were independently read. The native interaction, immediate post-Cancel hash and ARM observation are coordinator-reported; they are not reconstructed from the later mutable workflow."
+  },
+  "removedControl": {
+    "name": "af-8d520efe-8fa4-4541-b3b5-c8f5fa3dfff5",
+    "guestOperation": "b1717fa3-6387-464e-a45d-1c4d86d917a1",
+    "submittedAt": "2026-09-23T13:06:16.064Z",
+    "receiptSHA256": "d8abb56bc27fa91359a467c653b0f32deb063df155ec242d3848001eb1f1f7c3",
+    "liveStartAt": "2026-09-23T13:06:32+00:00",
+    "liveEndAt": "2026-09-23T13:06:35+00:00",
+    "provisioningState": "Succeeded",
+    "executionState": "Succeeded",
+    "exitCode": 0,
+    "outputSHA256": "0db370e894ff6e03a2cec99dd24cc9963208dac172530250d6a737567296dd9b",
+    "health": {
+      "idle": true,
+      "storageUsedPercent": 4.104398298785772,
+      "swapUsedBytes": 0,
+      "oomEvents": 0
+    }
+  },
+  "separateCurrentAuthority": {
+    "name": "af-88b21ee4-c11d-4eb1-a81e-86e5b2477851",
+    "guestOperation": "a16913a8-ad77-4858-aabd-c610adbbd310",
+    "submittedAndCheckedAt": "2026-09-23T13:13:41.607Z",
+    "receiptSHA256": "50b85e8575de852391dd4877efc14fdd595f49412bbd6d5b2e10be72da11eed0",
+    "liveStartAt": "2026-09-23T13:13:54+00:00",
+    "liveEndAt": "2026-09-23T13:13:54+00:00",
+    "provisioningState": "Succeeded",
+    "executionState": "Succeeded",
+    "exitCode": 0,
+    "outputSHA256": "b8dcabd2ecc9279aa2d369d4dea382d1ef73a73b114c213e3e1a5028139e34bf",
+    "ageAtRemovalIntentMs": 153276,
+    "requiredMaximumAgeMs": 300000,
+    "health": {
+      "idle": true,
+      "storageUsedPercent": 4.1050583057559376,
+      "swapUsedBytes": 0,
+      "oomEvents": 0
+    },
+    "notTheInitialSecondReceipt": "The earlier af-a45dbb8e-c83c-4601-8f0b-44dbcdcf1195 receipt was retained but was not the fresh authority archived for deletion."
+  },
+  "commonArchivedBinding": {
+    "bootId": "785b5b9c-3311-42e2-92b1-9e917c16dbd3",
+    "guestVersion": "2.4.0-dev.d40d6ccc9a4d",
+    "guestCommit": "d40d6ccc9a4ddf6e2ca626392cd7bf83140ed6c7",
+    "guestArchiveSHA256": "2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6",
+    "scriptSHA256": "db6e39ebf95a823f8e935bb239d645848558a2d2fef913ea9ba560a8061071a2",
+    "vmInstanceId": "d0a65f55-5bbe-46d2-bdef-1eeb8e4d45af",
+    "region": "japaneast",
+    "zone": "1",
+    "vmPowerState": "PowerState/running",
+    "vmConfigurationSHA256": "ffa4c10955e3e4fef1e7ee3b0a225724fbd22e922c7db4557c161fdba2a7c140",
+    "accountSealMatchesArchiveAndIntent": true,
+    "fullControlAndVMIdsMatchExactWorkflowScope": true
+  },
+  "archive": {
+    "kind": "agefreighter-readiness-removal-v2",
+    "operation": "92c8334f-c617-4450-8c93-256d6dea5c12",
+    "fileInNormalRunnerV2Store": "ae952310-5eba-42b6-9fe3-9db00e93cdac.report-92c8334f-c617-4450-8c93-256d6dea5c12.json",
+    "bytes": 4726,
+    "sha256": "d2e89da30eee731ded5066d959b77a1039ccefaab52d9a618f9dc86b0b3ff32c",
+    "mode": "0600",
+    "reviewedAt": "2026-09-23T13:15:37.514Z",
+    "filesystemCreatedAt": "2026-09-23T13:16:12.121Z",
+    "filesystemModifiedAt": "2026-09-23T13:16:12.122Z",
+    "verifiedManifestAndBothReceiptSeals": true,
+    "archivePrecedesIntentByFilesystemEvidence": true,
+    "durabilityBoundary": "Reviewed production code retains, synchronizes and reads back the archive before persisting the single-use intent. Filesystem timestamps and retained bytes corroborate order; no separate system-call trace was captured."
+  },
+  "removalAndReconciliation": {
+    "nativeConfirmationAtReportedByCoordinator": "2026-09-23T13:16:14.883Z",
+    "persistedIntentSubmittedAt": "2026-09-23T13:16:14.883Z",
+    "intentCountAtIndependentReview": 1,
+    "nativeGETOnlyReconciliationApproximateUTC": "2026-09-23T13:20:00Z",
+    "finalPersistedPhase": "absent",
+    "independentExactARMObservationReportedByCoordinator": "ResourceNotFound",
+    "coordinatorObservation": "After explicit user approval of this exact control, the normal installed native archive/remove action ran. A later explicit native selection performed GET-only reconciliation and reported absence; a separate exact ARM GET also returned ResourceNotFound.",
+    "supervisorCloudCalls": 0,
+    "capturedWireDELETECount": null,
+    "transportCountBoundary": "One bound local removal intent and the reviewed single-dispatch/no-replay code path are evidenced. This receipt does not assert a separately captured number of on-wire DELETE attempts."
+  },
+  "preservationAtIndependentReview": {
+    "allFivePreCancelReceiptsByteEquivalent": true,
+    "selectedReceiptRetained": true,
+    "separateAuthorityReceiptRetained": true,
+    "totalReadinessReceipts": 7,
+    "originalFinishedAssessmentRetainedInHistory": true,
+    "originalAssessmentOperation": "3a4ffae1-8727-464b-8968-40bed2f42c69",
+    "originalReportBytes": 2947,
+    "originalReportSHA256": "821638b1e510ff545c424dbfaacf4508d9727c78d9368afc8c34aa98285b9a18",
+    "mutableWorkflowBoundary": "The coordinator had begun the separately approved B10 inventory by review time. The whole workflow is therefore not asserted unchanged after deletion; exact receipts, archive and original assessment/report are checked individually."
+  },
+  "sourceReview": {
+    "removalCoreAndPanelUnchangedFromInstalledImplementation": true,
+    "sourceSHA256": {
+      "core/runnerReceiptRemoval.ts": "78bf7c7ccd58b35d34310ec50edcfc17c5477c0a571036448d3d803e8e3a2486",
+      "runnerReceiptRemovalPanel.ts": "4322bf95fe62d925d84603a01e08bf21341c67fce7ff73f10be7ec56b0618099"
+    },
+    "verifiedBoundaries": [
+      "Initial eligibility refuses referenced controls, existing removal intents, uncertain operations and unproven or Pending live command evidence.",
+      "Admission requires an already-running owned VM and a separate newer same-boot sealed readiness control with current idle health.",
+      "Exact live observation is checked again after approval and after archive verification; fresh single-use intent precedes removal dispatch.",
+      "An existing intent selects GET-only reconciliation. HTTP success alone is not absence; exact GET404 is required. No automatic DELETE retry is implemented."
+    ]
+  },
+  "limitations": [
+    "GUI interactions, user approval and external ARM responses are coordinator-reported. The supervisor independently read only the exact authorized local baseline, workflow/archive/report and installed/source files.",
+    "This qualifies one successful same-boot live lifecycle, not deletion of historical Pending controls after restart, automatic control cleanup or general permission to delete other controls.",
+    "The Azure control record itself is permanently removed; its local evidence remains. No broader claim of all guest/source/disk bytes being independently rehashed is made.",
+    "This case does not qualify actual lost deployment acknowledgement, terminal guest-bootstrap failure or B10 active-inventory crash recovery."
+  ],
+  "remainingB09": [
+    "Separately approved actual lost deployment response with same-operation GET-only reconciliation and no PUT replay",
+    "Separately approved actual terminal guest-bootstrap failure and unready source-dispatch gate"
+  ],
+  "supervisorActivity": "Read-only evidence/code verification followed by creation of this redacted receipt only; no GUI, cloud call, operator-store mutation, installation or commit."
+}
