@@ -2,8 +2,8 @@
 
 September23,2026. Status: **post-reset source inventory PASS/imported; private
 target provisioned; AGE preload and same-VM resize completed; installed GUI
-submitted the new migration at04:27UTC under the approved05:45UTC hard stop.
-Migration/counts/full canonical verification are not yet accepted**.
+migration/counts PASS imported. Full canonical verification awaits specific
+verifier approval; idle safety stop begins04:45UTC, due04:47UTC if still waiting**.
 Latest outcome supersedes the historical preparation checkpoints below.
 This follows the completed Neo4j other-cloud simulation; it is a separate
 PostgreSQL selection and must not reuse the Neo4j credential or qualification.
@@ -691,3 +691,30 @@ fixed runner; no replacement, retry or resume.30minute service bound remains.
 Scoped heartbeat updated to reconcile only this exact operation and retain the
 05:45UTC hard stop(begin05:40). Submitted is not migration success. Dedicated
 canonical verifier has not been installed or action-time approved for this guest.
+
+## September23 04:40UTC — migration/counts PASS imported; canonical approval pending
+
+GUI reconciled exact migration finished exit0 and imported the9619byte report
+through the existing workflow container, SHA
+`5bdf8e8c6c3f9bda62c504fdf9da98fe0a8d6ed81455f66bb20d16277ccbe4dc`.
+Actual installed GUI displays Counts verification: PASS. Independent assertions
+confirm18mapped labels,1,600,000vertices+4,000,000edges; accepted,committed,live
+physical and live identity counts all match inventory; rejects0 including the
+separate unclassified.rejects summary field;24checks pass,errors/incomplete empty.
+Report generated04:32:01.345623733UTC. Receipt
+`evidence/b03-pg-counts-pass-20260923.json`. No migration replay or source rescan.
+
+Read-only guest health04:36:54UTC: worker inactive, disk4%,swap0/OOM0. Its optional
+state summarizer could not run because guest jq is absent; no software installed.
+The sealed terminal result was independently reconciled by the installed GUI.
+Recent scoped Activity Log contained policy audit/auditIfNotExists only outside
+our run-command operations; target Ready/public access Disabled unchanged.
+
+Full64range/root verification is NOT performed. Correct raw-ID verifier
+8a23a5109798/archiveSHA60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d
+was locally rehashed; requested specific upload/install/run/private-import
+approval, max25min/4GiB. No verifier installed/run. While waiting, begin stopping
+exact source/runner/target04:45UTC, verify by04:47UTC where Azure latency permits,
+conservatively15minutes after report generation. A fresh approved active worker
+supersedes this idle condition, never the original05:45UTC hardstop. All evidence
+retained; broader B03 qualification remains partial.

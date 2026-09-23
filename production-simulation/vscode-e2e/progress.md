@@ -2,7 +2,15 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest04:27UTC: **B03 PostgreSQL GUI migration submitted, without credential re-entry**.
+Latest04:40UTC: **B03 PostgreSQL GUI migration and counts PASS**.
+Imported sealed9619byte report;1.6Mvertices+4Medges/18labels,zero rejects,
+24checks pass/no errors or incomplete checks. Independent all-label assertions
+and SHA agree. [Counts receipt](evidence/b03-pg-counts-pass-20260923.json).
+Full64range canonical check awaits specific verifier approval, not yet installed.
+Idle safety stop starts04:45UTC/due04:47UTC if approval still pending; hard
+05:45UTC bound unchanged. Broader ledger5pass/7partial remains until full digest.
+
+Prior04:27UTC: **B03 PostgreSQL GUI migration submitted, without credential re-entry**.
 Private target provisioned; AGE preload and same-runnerD4s_v5 resize finished.
 Source existing container started with valid TLS and health gates; runner newboot
 disk3.84%,swap0/OOM0. New jobd707adf8-7cab-4d73-8e38-ec141e72ac18,30minute
