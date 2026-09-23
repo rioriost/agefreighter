@@ -276,3 +276,41 @@ upgrade, startup of only the same source/runner and one new GUI inventory,
 max30minutes/4GiB/no automatic retry within16:00UTC. No new target, network,
 credential, RBAC or source-data changes. A successful inventory is not migration
 qualification. Keep both VMs stopped while awaiting approval.
+
+## September23 01:12UTC — approved new window; stopped-compute credential defect
+
+User approved a new maximum60minute window from the first compute start for the
+same source/runner, pinned646f0d4 diagnostic installation and one inventory.
+The September22 deadline is expired, not silently extended. This new clock has
+**not started**; both VMs remain deallocated. No target or migration is approved.
+Fresh delayed billing: originalRGUSD440.138794871022, B01RGUSD4.2575224948438,
+totalUSD444.3963173658658. Existing800USD ceiling/reserve700USD and monthly/daily
+constraints unchanged. ARM confirms exact runner identity/scoped placement;
+storage retains authenticated public HTTPS, anonymous/shared-key disabled and
+existing authorized tag. Overnight policy/Defender/EventGrid actions are visible;
+these controls were not changed or removed. The previous read-only status command
+remains Pending, not an inventory retry; reconcile it after a legitimate start.
+
+User entered the PGVM credential through the native GUI. The subsequent explicit
+reuse check prompted again. Code inspection reproduced a separate extension bug:
+`savedSourceCredential` unconditionally removed even freshly prepared credentials
+whenever the current retained operation was failed/interrupted. Watch callbacks
+also unconditionally deleted credentials on repeated failure observation. The
+user's input was not evidence of an authentication failure. Cancelled the duplicate
+prompt without reading its value; compute stayed stopped.
+
+Corrected failure binding to include the unique sorted current/history failure
+IDs. A new failure still invalidates an older credential; explicit post-failure
+entry survives repeat observation and archival of that same failure. Watchers
+now validate the latest record instead of unconditionally deleting its session.
+No plaintext workflow storage, automatic credential retrieval, extended8hour
+expiry, changed-connection reuse or automatic source retry was introduced.
+
+Local typecheck/build,508unit tests and14actual-CLI contracts PASS. Regressions
+cover assessment/catalog/migration failure invalidation, explicit preparation,
+archive/reload/history reordering, repeated failure callbacks, a second failure,
+expiry/connection changes and no credential in workflow JSON. Installed GUI
+validation remains pending; the old extension is still installed. A separately
+pinned updated VSIX must be approved before installation/reload, then credential
+preparation can be verified before spending the new compute window. This fix
+does not identify the prior PostgreSQL initialization failure or qualify B03.

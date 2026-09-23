@@ -51,6 +51,36 @@ test("archiving a failed attempt cannot resurrect its previously cached password
   r.assessmentHistory=[{operation:"failed",phase:"failed",action:"inventory",bootId:"boot",configurationSHA256:"a".repeat(64)}];
   assert.equal(await savedSourceCredential(v,r,catalogForm),undefined);assert.equal(v.data.size,0);
 });
+for (const kind of ["assessment", "postgresCatalog", "migration"] as const) {
+  test(`${kind} failure invalidates an old credential but allows explicit preparation after failure`, async () => {
+    const {record:r}=catalogFixture(),v=vault(),now=1000000;
+    await rememberSourceCredential(v,r,catalogForm,"OLD",now);
+    Object.assign(r,{[kind]:{operation:"failed-operation",phase:"failed"}});
+    assert.equal(await savedSourceCredential(v,r,catalogForm,now+1),undefined);
+    await rememberSourceCredential(v,r,catalogForm,"NEW",now+2);
+    assert.equal(await savedSourceCredential(v,structuredClone(r),catalogForm,now+3),"NEW");
+    Object.assign(r,{[kind]:{operation:"second-operation",phase:"interrupted"}});
+    assert.equal(await savedSourceCredential(v,r,catalogForm,now+4),undefined);
+  });
+}
+test("explicit post-failure preparation survives archival, reload and reordered history, not a new failure",async()=>{
+  const {record:r}=catalogFixture(),v=vault(),now=1000000;
+  const failed={operation:"first",phase:"failed" as const,action:"inventory" as const,bootId:"boot",configurationSHA256:"a".repeat(64)};
+  r.assessment=failed;
+  r.assessmentHistory=[{...failed,operation:"older"}];
+  await rememberSourceCredential(v,r,catalogForm,"NEW",now);
+  const binding=credentialBinding(r,catalogForm);
+  r.assessmentHistory=[failed,...r.assessmentHistory];
+  delete r.assessment;
+  assert.equal(credentialBinding(r,catalogForm),binding);
+  r.assessmentHistory.reverse();
+  assert.equal(await savedSourceCredential(v,structuredClone(r),catalogForm,now+1),"NEW");
+  r.assessment={...failed,operation:"new",phase:"running"};
+  assert.equal(await savedSourceCredential(v,r,catalogForm,now+2),"NEW");
+  r.assessment.phase="failed";
+  assert.equal(await savedSourceCredential(v,r,catalogForm,now+3),undefined);
+  assert.ok(!JSON.stringify(r).includes("NEW"));
+});
 test("target draft saves without live readiness or Azure requests and refuses changed binding",()=>{
   const {record:r}=catalogFixture();delete r.guestReady;
   const binding=targetDraftBinding(r),next=retainTargetDraft(r,binding,{subnetCIDR:"10.0.24.0/24"},"/chosen");

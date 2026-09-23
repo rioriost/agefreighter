@@ -34,6 +34,27 @@ for(const action of ["Use once",undefined])test(`credential choice ${action??"ca
   const adapter=load("sourceCredentialPanel.ts",{"./core/sourceCredential":credentials,vscode:{workspace:{isTrusted:true},window:{showInputBox:async()=>"SECRET",showQuickPick:async()=>action}}});
   assert.equal(await adapter.sourceCredential(context,r,catalogForm),action?"SECRET":undefined);assert.equal(stores,0);
 });
+test("offline prepare after retained failure prompts once and remains reusable after archival",async()=>{
+  const data=new Map<string,string>(),r=catalogFixture().record;let prompts=0,choices=0;
+  const context={secrets:{get:async(k:string)=>data.get(k),store:async(k:string,v:string)=>{data.set(k,v);},delete:async(k:string)=>{data.delete(k);}}};
+  const failed={operation:"failed",phase:"failed" as const,action:"inventory" as const,bootId:"boot",configurationSHA256:"a".repeat(64)};
+  r.assessment=failed; delete r.guestReady;
+  r.sourceDraft={form:catalogForm as any,configuration:{},warnings:[],canAssess:true};
+  const adapter=load("sourceCredentialPanel.ts",{"./core/sourceCredential":credentials,vscode:{workspace:{isTrusted:true},window:{showInputBox:async()=>{prompts++;return "SECRET";},showQuickPick:async()=>{choices++;return "Remember for this workflow (up to 8 hours)";}}}});
+  assert.equal(await adapter.sourceCredential(context,r,catalogForm,undefined,true),"SECRET");
+  await adapter.invalidateStaleSourceCredential(context,r);
+  assert.equal(await adapter.sourceCredential(context,structuredClone(r),catalogForm,undefined,true),"SECRET");
+  r.assessmentHistory=[failed]; delete r.assessment;
+  assert.equal(await adapter.sourceCredential(context,structuredClone(r),catalogForm),"SECRET");
+  assert.equal(prompts,1);assert.equal(choices,1);
+  r.assessment={...failed,operation:"new-failure"};
+  await adapter.invalidateStaleSourceCredential(context,r);
+  assert.equal(data.size,0);
+  delete r.sourceDraft;
+  data.set(credentials.credentialKey(r.id),"not-a-valid-session");
+  await adapter.invalidateStaleSourceCredential(context,r);
+  assert.equal(data.size,0);
+});
 
 for(const kind of ["assessment","postgresCatalog","migration"] as const)test(`${kind} watcher reconciles same operation to terminal without starting work`,async()=>{
   let r=catalogFixture().record,calls=0,locks=0;

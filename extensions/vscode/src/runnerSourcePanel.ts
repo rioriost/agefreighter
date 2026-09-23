@@ -17,7 +17,7 @@ import { csvAssessmentReady, refreshCSVImport, startCSVImport } from "./core/run
 import { csvFilesInFolder } from "./guided/csvSelection";
 import { previewCosmosAccess, refreshCosmosAccess, submitCosmosAccess } from "./core/runnerCosmosAccess";
 import { adoptCatalog, assertCatalogCurrent, catalogBinding, catalogConfiguration, catalogRecommendations, refreshCatalog, startCatalog } from "./core/runnerCatalog";
-import { sourceCredential, forgetSourceCredential } from "./sourceCredentialPanel";
+import { sourceCredential, forgetSourceCredential, invalidateStaleSourceCredential } from "./sourceCredentialPanel";
 import { watchRetainedOperation } from "./runnerWatch";
 import { transferApprovedReport } from "./runnerReportFlow";
 
@@ -387,7 +387,7 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
     if (watch && !disposed) {
       const kind = watch;
       void watchRetainedOperation(control, store, workflow, kind, () => disposed, async r => {
-        if (["failed", "interrupted"].includes(r[kind]?.phase ?? "")) await forgetSourceCredential(context, workflow);
+        if (["failed", "interrupted"].includes(r[kind]?.phase ?? "")) await invalidateStaleSourceCredential(context, await store.read(workflow));
         if (kind === "postgresCatalog") await postCatalog(r); else await post({ kind: "assessment", assessment: r.assessment });
       }).catch(async () => { await post({ kind: "error", text: "Automatic status watch stopped. Retained work was not cancelled or replayed; use Refresh to reconcile." }); });
     }

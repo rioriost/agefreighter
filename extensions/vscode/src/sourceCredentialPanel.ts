@@ -20,3 +20,10 @@ export async function sourceCredential(context: vscode.ExtensionContext, record:
 export async function forgetSourceCredential(context: vscode.ExtensionContext, workflow: string): Promise<void> {
   await context.secrets.delete(credentialKey(workflow));
 }
+
+/** Reconciliation may observe the same failure more than once. Discard only
+ * credentials predating it, not explicit post-failure preparation. No prompt. */
+export async function invalidateStaleSourceCredential(context: vscode.ExtensionContext, record: RunnerRecord): Promise<void> {
+  if (!record.sourceDraft) { await forgetSourceCredential(context, record.id); return; }
+  await savedSourceCredential(context.secrets, record, record.sourceDraft.form);
+}

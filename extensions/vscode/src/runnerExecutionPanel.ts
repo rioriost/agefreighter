@@ -16,7 +16,7 @@ import {inspectSourceCA} from "./core/runnerSource";
 import {ensureAssessmentReadiness} from "./core/runnerAssessment";
 import {inspectResume,recoveryReadiness,resumeAdmission,resumeMigration} from "./core/runnerResume";
 import {showMigrationVerification} from "./migrationVerificationPanel";
-import { sourceCredential, forgetSourceCredential } from "./sourceCredentialPanel";
+import { sourceCredential, invalidateStaleSourceCredential } from "./sourceCredentialPanel";
 import { watchRetainedOperation } from "./runnerWatch";
 import { transferApprovedReport } from "./runnerReportFlow";
 import { authorizeResize, resizeAuthorized } from "./core/resizeAuthorization";
@@ -147,7 +147,7 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   }
   if(r.migration && !["finished","failed","interrupted"].includes(r.migration.phase)){
     await watchRetainedOperation(control,store,r.id,"migration",undefined,async current=>{
-      if(["failed","interrupted"].includes(current.migration?.phase??""))await forgetSourceCredential(context,current.id);
+      if(["failed","interrupted"].includes(current.migration?.phase??""))await invalidateStaleSourceCredential(context,await store.read(current.id));
     });
     r=await store.read(r.id);
   }
