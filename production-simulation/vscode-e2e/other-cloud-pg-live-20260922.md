@@ -552,3 +552,34 @@ polling. Source data, OS disks, all operation evidence and prior failure history
 preserved. No target created or migration performed. No resource deletion.
 Do not restart to read evidence or automatically resume/retry; await explicit
 user continuation and a new bounded session. Broader ledger5pass/7partial.
+
+## September23 02:53UTC — explicit continuation after Keychain recovery
+
+User reported recovery after re-login and explicitly requested resumption.
+Installed-GUI Prepare / reuse credential returned without another input while
+both VMs were stopped. Re-login also opened VS Code1.139.0 release notes; no
+extension or Linux artifact upgrade was performed. Ownership and recent Activity
+Log reviewed: prior deallocations succeeded; an automatic status request at
+02:47:12 had failed409 after deallocation and was not a source read replay.
+Scoped safety monitor re-enabled before starts02:53UTC. Only the same source
+and runner started. New conservative stop03:50UTC(begin03:45), within60minutes.
+Same inventory/report-only scope, no target/migration/install/security changes.
+Interrupted60ba3809 must be reconciled before deciding any fresh attempt.
+Unknown status controlaf-14792620 confirmed absent by ARM and reconciled as
+failed in installed GUI; it was not resubmitted. Latest cost447.08125631327976USD.
+
+## September23 02:57UTC — retained completion discovered; no repeated source scan
+
+Independent guest evidence shows60ba3809 actually finished02:45:52.376327734UTC,
+before the user interruption/deallocation, exit0, empty stderr. This supersedes
+the earlier unconfirmed/running observation; the job was not automatically
+resumed on restart. Report2947bytes SHA
+`d67f999ba62d427fa776b05b4f9a99f24418ea1d0343870e25000377d9edb381`
+retained; disk4%,swap0/OOM0,idle/no loader process. Installed GUI reconciled the
+same operation to finished. No new inventory dispatched and no password prompt.
+Approved report-only transfer submitted02:57:03.814UTC via control
+`af-1153ebf8-6f46-4a5a-862b-d20e9d57e72e` through existing exact workflow
+container; hash/count acceptance pending import. Source health/start command
+completed with valid CA/IP-SAN and disk10%,swap0; no repeat scan was required.
+Source deallocation requested immediately once retained completion established;
+only runner remains needed for report export. No target/migration.
