@@ -1,0 +1,41 @@
+{
+  "kind": "b03-pg-five-readiness-removal-receipt-v1",
+  "archive": "b03-pg-five-readiness-archive-20260923.json",
+  "archiveSHA256": "b55ba13375da4d6dcb56b2e054d373c94339b8d6df6440a99b42629b04619b4b",
+  "archiveCommittedBeforeDeletion": "4e752cc",
+  "deletionSubmittedWindowUTC": [
+    "2026-09-23T08:55:03.410Z",
+    "2026-09-23T08:55:05.595Z"
+  ],
+  "beforeCount": 25,
+  "afterCount": 20,
+  "qualificationReplayed": false,
+  "nativeRemovalLifecycleQualified": false,
+  "observations": [
+    {
+      "command": "af-618186b2-cee7-4a82-95b8-962dfff30de3",
+      "getResult": "ResourceNotFound",
+      "observedAt": "2026-09-23T08:56:05.395Z"
+    },
+    {
+      "command": "af-36454212-d75d-49d6-82da-46267bfab307",
+      "getResult": "ResourceNotFound",
+      "observedAt": "2026-09-23T08:56:05.778Z"
+    },
+    {
+      "command": "af-85b55af5-9b2b-4b78-8b45-242a0e5739b4",
+      "getResult": "ResourceNotFound",
+      "observedAt": "2026-09-23T08:56:06.176Z"
+    },
+    {
+      "command": "af-4972880e-cec5-4a3a-9576-feedaeed1a69",
+      "getResult": "ResourceNotFound",
+      "observedAt": "2026-09-23T08:56:06.575Z"
+    },
+    {
+      "command": "af-c3637975-69ca-4679-9553-4e9b09d7d637",
+      "getResult": "ResourceNotFound",
+      "observedAt": "2026-09-23T08:56:06.963Z"
+    }
+  ]
+}

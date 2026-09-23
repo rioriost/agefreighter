@@ -1,0 +1,60 @@
+{
+  "evidenceVersion": 1,
+  "scope": "B03 PostgreSQL other-cloud GUI selection, Azure-hosted endpoint-only simulation",
+  "workflow": "cb2ef280-a891-4edf-b45b-de75e33eb7b8",
+  "jobId": "d707adf8-7cab-4d73-8e38-ec141e72ac18",
+  "migrationFinishedAt": "2026-09-23T04:32:01.345623733Z",
+  "countsReport": {
+    "bytes": 9619,
+    "sha256": "5bdf8e8c6c3f9bda62c504fdf9da98fe0a8d6ed81455f66bb20d16277ccbe4dc",
+    "guiOutcome": "pass",
+    "vertices": 1600000,
+    "edges": 4000000,
+    "labels": 18,
+    "rejects": 0,
+    "passedChecks": 24,
+    "errors": [],
+    "incompleteChecks": []
+  },
+  "canonicalVerification": {
+    "operation": "028ec524-990f-4ed3-8265-6eb024d5cf57",
+    "profile": "raw-id",
+    "verifierCommit": "8a23a5109798ec906109532e4cc6c32308b3c824",
+    "archiveSha256": "60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d",
+    "generatedAt": "2026-09-23T08:34:52.886552556Z",
+    "bytes": 23224,
+    "sha256": "00938de546f94d1fe50e372044bef9b423e104919855fc8d934a06b4b42f77fc",
+    "readOnly": true,
+    "guiOutcome": "pass",
+    "independentlyVerifiedAt": "2026-09-23T08:57:57.273Z",
+    "recordCount": 5600000,
+    "ranges": 64,
+    "fixtureRootSha256": "f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f",
+    "expectedRootSha256": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70",
+    "actualRootSha256": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70",
+    "independentLeafComparison": "pass",
+    "independentRootRecomputation": "pass",
+    "exportCommand": "af-adb0920d-e2f5-4d34-8a42-d055acc4fce4",
+    "exportFinishedAt": "2026-09-23T08:56:26Z",
+    "verificationOrMigrationReplayed": false
+  },
+  "maintenance": {
+    "removedHistoricalReadinessControls": 5,
+    "archive": "b03-pg-five-readiness-archive-20260923.json",
+    "absenceReceipt": "b03-pg-five-readiness-removal-20260923.json",
+    "nativeRemovalLifecycleQualified": false,
+    "guestDataDisksAndEvidence": "retained"
+  },
+  "shutdown": {
+    "verifiedBy": "2026-09-23T08:58:29Z",
+    "sourceVm": "PowerState/deallocated",
+    "runnerVm": "PowerState/deallocated",
+    "target": "Stopped",
+    "disksDataAndEvidence": "retained"
+  },
+  "limitations": [
+    "Azure-hosted endpoint-only simulation, not real third-party-cloud network compatibility",
+    "No peak RSS measurement was captured during the short verifier run",
+    "Native managed-command lifecycle remains unqualified; manual removal does not substitute for that test"
+  ]
+}

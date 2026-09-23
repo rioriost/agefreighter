@@ -804,3 +804,58 @@ maintenance deletion is needed to free capacity, or a reviewed non-deleting
 export path. Do not weaken the existing removal guard or edit workflow metadata
 to bypass it. Any resumed result retrieval stays inside10:25UTC hardstop and
 must not rerun the verifier, migration or source scan.
+
+## September23 08:56UTC — five-control maintenance approved and verified
+
+User explicitly expanded removal approval from one to five historical readiness
+controls. Selected exactly the five oldest sealed, unreferenced readiness records;
+validated historical seals with the production archive/reference routines, exact
+live identities and constant scripts. Sanitized archive/current observations and
+exact deletion intents committed/pushed4e752cc before any deletion:
+`evidence/b03-pg-five-readiness-archive-20260923.json`, SHA
+`b55ba13375da4d6dcb56b2e054d373c94339b8d6df6440a99b42629b04619b4b`.
+No protected parameter values were retained. These separately authorized manual
+maintenance operations do not qualify or weaken the native removal guard.
+
+Only the existing runner was restarted within the unchanged10:25UTC bound;
+target/source remained stopped because retained result export needs no DB access.
+Fresh guest health08:54:04UTC: no loader/verifier process,disk6%,swap0/OOM0;
+VM Running/provisioning Succeeded and unchanged ownership before deletion.
+Submitted each of five exact DELETEs once08:55:03–08:55:05UTC. List count25→20
+and each exact GET ResourceNotFound verified08:56UTC; current readiness,
+migration and qualification controls still exist. Removal receipt:
+`evidence/b03-pg-five-readiness-removal-20260923.json`.
+ARM records are not recoverable through this operation; normalized archives,
+guest files/disks, all graphs, job data and verifier output remain intact.
+
+Installed GUI then advanced the SAME verified qualification to exporting via
+`af-adb0920d-e2f5-4d34-8a42-d055acc4fce4`, using the existing private workflow
+container. No new qualification/migration or source read. Export/import outcome
+still pending at this checkpoint. No additional approval prompt or DB startup.
+
+## September23 08:58UTC — full installed-GUI qualification PASS; compute stopped
+
+Exact retained-result export completed08:56:26UTC exit0. Installed GUI imported
+23224bytes with the original00938de5… SHA and displayed
+`P1 full canonical digest: PASS`. Local independent assertions08:57:57UTC match
+the exact job,readOnly marker,5600000records,1600000vertices/4000000edges,
+18labels and all64leaf fields(kind/name/range/start/end/rows/SHA). Recomputed both
+roots from the canonical leaf encoding; expected and actual both
+`bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+Frozen fixture root matchesf74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f.
+Result generated08:34:52.886552556UTC; no new verifier/migration was run to retrieve
+it. Source and target stayed stopped throughout final maintenance/export.
+
+Fresh ownership/governance checked, then deallocated only the runner immediately.
+By08:58:29UTC independently verified source/runner PowerState/deallocated and
+target Stopped. Scoped monitor paused after confirmation. All disks, graph data,
+guest evidence and local reports retained; no peak verifier RSS claim. Managed
+readiness records alone were removed under the user's five-record approval.
+Receipt:`evidence/b03-pg-p1-pass-20260923.json`.
+
+B03 now passes both defined Neo4j/PostgreSQL other-cloud GUI selection subcases;
+broader branch ledger6pass/6partial, base routes9/9 unchanged. This remains an
+Azure-hosted IP-only simulation, not real external-cloud connectivity proof.
+Separately approved manual maintenance does not qualify native record-removal
+or lost-acknowledgement recovery; B09 stays partial. Flexible Server can restart
+automatically after7days; retained storage remains billable.

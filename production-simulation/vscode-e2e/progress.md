@@ -2,7 +2,20 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest08:44UTC: **B03 PostgreSQL verifier exit0; result import blocked by control capacity**.
+Latest08:58UTC: **B03 PostgreSQL other-cloud GUI migration and full canonical PASS**.
+Installed GUI imported the retained23224byte result and displayed full P1 PASS.
+Independent comparison matched all5.6M typed records,18labels,64ranges and
+recomputed expected/actual canonical root. No migration/verifier replay.
+Five explicitly approved historical readiness controls were archived before
+manual deletion; exact absence verified, other controls/guest evidence retained.
+Only runner restarted for maintenance/export; source and target stayed off.
+Source/runner deallocated and target Stopped verified by08:58:29UTC, monitor paused.
+Broader defined branch ledger now6pass/6partial; base routes remain9/9.
+This is endpoint-only Azure simulation, not real third-party-cloud compatibility.
+Native control removal is still unqualified. See
+[canonical receipt](evidence/b03-pg-p1-pass-20260923.json).
+
+Prior08:44UTC: **B03 PostgreSQL verifier exit0; result import blocked by control capacity**.
 Exact qualification028ec524 finished08:34:52UTC; GUI retained verified phase and
 23224byte result seal00938de546f94d1fe50e372044bef9b423e104919855fc8d934a06b4b42f77fc.
 Result export was not submitted: extension25managed-command cap reached.
