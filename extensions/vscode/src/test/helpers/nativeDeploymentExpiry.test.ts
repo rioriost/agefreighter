@@ -63,7 +63,7 @@ test("expiry preparation rejects arbitrary operator paths before writing", async
   await assert.rejects(prepareDeploymentExpiryCompanion("/not-an-isolated-fixture", "unused"));
 });
 
-test("bundled production panel renders and reaches the inert mock dialog; mock Cancel never qualifies expiry", async () => {
+test("bundled production panel skips enumerable proposed context getters and reaches inert mock dialog; mock Cancel never qualifies expiry", async () => {
   const root = await mkdtemp("/private/tmp/af-deployment-expiry-");
   try {
     await prepareDeploymentExpiryCompanion(root, resolve(__dirname, "../../.."));
@@ -90,7 +90,11 @@ test("bundled production panel renders and reaches the inert mock dialog; mock C
     const customRequire = (name: string) => name === "vscode" ? fake : realRequire(name);
     runInNewContext(await readFile(join(root, "runtime.cjs"), "utf8"), { module: Object.assign(compiled, { require: customRequire }), exports: compiled.exports,
       require: customRequire, process, Buffer, URL, setTimeout, clearTimeout, console });
-    await compiled.exports.activate({ extensionPath: root, extensionMode: 2, subscriptions: [] });
+    let proposedGetterReads = 0;
+    const context = { extensionPath: root, extensionMode: 2, subscriptions: [] };
+    Object.defineProperty(context, "extensionRuntime", { enumerable: true, get: () => { proposedGetterReads++; throw Error("Proposed extensionRuntime API is unavailable"); } });
+    await compiled.exports.activate(context);
+    assert.equal(proposedGetterReads, 0);
     assert.deepEqual([...commands.keys()], ["agefreighterFixture.openDeploymentExpiry"]);
     await commands.get("agefreighterFixture.openDeploymentExpiry")!();
     assert.match(rendered, /Approve & deploy discovery VM/);
@@ -102,5 +106,6 @@ test("bundled production panel renders and reaches the inert mock dialog; mock C
     assert.equal(result.observation.submitEntries, 0); assert.equal(result.observation.storeWrites, 0);
     assert.deepEqual(result.observation.effectAttempts, []);
     assert.deepEqual(result.observation.initialSnapshot, result.observation.finalSnapshot);
+    assert.equal(proposedGetterReads, 0);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

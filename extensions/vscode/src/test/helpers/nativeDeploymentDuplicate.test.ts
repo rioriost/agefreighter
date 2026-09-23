@@ -38,7 +38,7 @@ test("only phase and observed revision may change during the single legitimate i
   for (const value of [{ ...submitted, previewHash: "different" }, { ...submitted, expiresAt: "renewed" }, { ...submitted, hourlyComputeUSD: 900 }, { ...submitted, phase: "unknown" as const }]) assert.throws(() => assertOnlySubmittedIntent(original, value));
 });
 
-test("bundle mock: synthetic duplicate message while modal pending is dropped; one inert PUT and exact intent, no native claim", async () => {
+test("bundle skips enumerable proposed context getters; synthetic duplicate is dropped with one inert PUT and exact intent, no native claim", async () => {
   const root = await mkdtemp("/private/tmp/af-deployment-duplicate-");
   try {
     const args = await prepareDeploymentDuplicateCompanion(root, resolve(__dirname, "../../.."), "same-window");
@@ -60,7 +60,11 @@ test("bundle mock: synthetic duplicate message while modal pending is dropped; o
     const customRequire = (name: string) => name === "vscode" ? fake : realRequire(name);
     runInNewContext(await readFile(join(root, "runtime.cjs"), "utf8"), { module: Object.assign(compiled, { require: customRequire }), exports: compiled.exports,
       require: customRequire, process, Buffer, URL, setTimeout, clearTimeout, console });
-    await compiled.exports.activate({ extensionPath: root, extensionMode: 2, subscriptions: [], globalStorageUri: { fsPath: join(root, "user-data/User/globalStorage/fixture") } });
+    let proposedGetterReads = 0;
+    const context = { extensionPath: root, extensionMode: 2, subscriptions: [], globalStorageUri: { fsPath: join(root, "user-data/User/globalStorage/fixture") } };
+    Object.defineProperty(context, "extensionRuntime", { enumerable: true, get: () => { proposedGetterReads++; throw Error("Proposed extensionRuntime API is unavailable"); } });
+    await compiled.exports.activate(context);
+    assert.equal(proposedGetterReads, 0);
     assert.deepEqual([...commands.keys()], ["agefreighterFixture.openDeploymentDuplicate"]);
     await commands.get("agefreighterFixture.openDeploymentDuplicate")!(); assert.match(rendered, /Approve & deploy discovery VM/);
     const record = messages.find(m => m.kind === "record")!.record as { id: string; previewHash: string };
@@ -74,6 +78,7 @@ test("bundle mock: synthetic duplicate message while modal pending is dropped; o
     assert.equal(result.finalRecord.phase, "deployment-submitted"); assert.equal(verdict.controllerBoundaryPass, true);
     assert.equal(verdict.actualNativeInteractionQualifiedByThisFile, false); assert.equal(verdict.signedInAzureDuplicationQualified, false);
     assert.equal(result.lostAzureReplyQualified, false);
+    assert.equal(proposedGetterReads, 0);
     await assert.rejects(prepareDeploymentDuplicateCompanion(root, resolve(__dirname, "../../.."), "same-window"), /EEXIST/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

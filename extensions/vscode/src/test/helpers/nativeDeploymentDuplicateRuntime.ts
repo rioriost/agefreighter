@@ -150,8 +150,10 @@ export async function activate(context: VSCode.ExtensionContext) {
     },
     afterWrite: async record => { await retain(join(root, "intent-persisted.json"), { record, sha256: await recordHash(), at: new Date().toISOString() }); }
   };
-  const productionContext = { ...context, subscriptions: [] as VSCode.Disposable[], globalStorageUri: actual.Uri.file(root),
-    secrets: new Proxy({}, { get: () => () => deny("credential access") }), extension: { packageJSON: { version: "2.4.0" } } } as unknown as VSCode.ExtensionContext;
+  // ExtensionContext may expose enumerable proposed-API getters. Never spread
+  // or enumerate the real context: unrelated getters must remain untouched.
+  const productionContext = lazyNativeFacade(context, { subscriptions: [] as VSCode.Disposable[], globalStorageUri: actual.Uri.file(root),
+    secrets: new Proxy({}, { get: () => () => deny("credential access") }), extension: { packageJSON: { version: "2.4.0" } } } as unknown as Partial<VSCode.ExtensionContext>);
   registerRunnerMigration(productionContext, { info: () => {}, error: () => {} } as unknown as VSCode.LogOutputChannel); context.subscriptions.push(...productionContext.subscriptions);
   context.subscriptions.push(actual.commands.registerCommand("agefreighterFixture.openDeploymentDuplicate", async () => {
     if (opened) return; opened = true; registry.get("agefreighter.newGuidedMigration")!(); assert.ok(receive);

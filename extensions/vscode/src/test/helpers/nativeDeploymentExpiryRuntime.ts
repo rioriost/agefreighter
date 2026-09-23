@@ -114,8 +114,10 @@ export async function activate(context: VSCode.ExtensionContext) {
     submitEntered: () => { observation.submitEntries++; event("submitRunner-entry"); },
     storeWrite: () => { observation.storeWrites++; deny("workflow persistence after setup"); }
   };
-  const productionContext = { ...context, subscriptions: [] as VSCode.Disposable[], globalStorageUri: actual.Uri.file(root),
-    secrets: new Proxy({}, { get: () => () => deny("credential access") }), extension: { packageJSON: { version: "2.4.0" } } } as unknown as VSCode.ExtensionContext;
+  // ExtensionContext may expose enumerable proposed-API getters. Never spread
+  // or enumerate the real context: unrelated getters must remain untouched.
+  const productionContext = lazyNativeFacade(context, { subscriptions: [] as VSCode.Disposable[], globalStorageUri: actual.Uri.file(root),
+    secrets: new Proxy({}, { get: () => () => deny("credential access") }), extension: { packageJSON: { version: "2.4.0" } } } as unknown as Partial<VSCode.ExtensionContext>);
   registerRunnerMigration(productionContext, { info: () => {}, error: () => {} } as unknown as VSCode.LogOutputChannel);
   context.subscriptions.push(...productionContext.subscriptions);
   context.subscriptions.push(actual.commands.registerCommand("agefreighterFixture.openDeploymentExpiry", async () => {
