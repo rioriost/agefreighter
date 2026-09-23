@@ -1,8 +1,8 @@
 import { runnerHTML } from "./core/runnerView";
 import * as vscode from "vscode";
-import { generateKeyPairSync, randomUUID } from "node:crypto";
+import { createHash, generateKeyPairSync, randomUUID } from "node:crypto";
 import { AzureSession } from "./guided/azure";
-import { assertPreviewableDraft, object, parseRunnerInput, previewHash, releaseArtifact, retainDraftSetup, RunnerRecord, runnerNames, runnerTemplate, sourceWorkflowDraft } from "./core/runner";
+import { assertFreshPreview, assertPreviewableDraft, object, parseRunnerInput, previewHash, releaseArtifact, retainDraftSetup, RunnerRecord, runnerNames, runnerTemplate, sourceWorkflowDraft } from "./core/runner";
 import { preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunner } from "./core/runnerLifecycle";
 import { RunnerLockedError, RunnerStore } from "./guided/runnerStore";
 import { basename, join } from "node:path";
@@ -218,15 +218,34 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             if (!vscode.workspace.isTrusted) throw new Error("Trust this VS Code workspace before approving Azure deployment.");
             if (!current || message.hash !== current.previewHash || message.networkApproved !== true || message.costApproved !== true) throw new Error("Review a fresh preview, network prerequisites and additional charges first.");
             if (current.artifact.development && !developmentEnabled()) throw new Error("User-level development artifact opt-in was removed.");
+            assertFreshPreview(current);
+            // Renewal can preserve previewHash. Bind the entire original review,
+            // including its expiry/revision, before yielding to native consent.
+            const review = { workflow: current.id, hash: current.previewHash, expiresAt: current.expiresAt, revision: current.updatedAt,
+              contentSHA256: createHash("sha256").update(JSON.stringify(current)).digest("hex") };
             const confirmed = await vscode.window.showWarningMessage(
               `Create the reviewed Linux discovery/migration VM ${current.vmId}?`,
               { modal: true, detail: `${current.input.region} / zone ${current.input.zone}; ${current.input.size}; compute estimate USD ${current.hourlyComputeUSD}/hour. Disk, network, NAT and other charges are additional. Resources remain until separately stopped/deleted. No source firewall, target database or migration is created. ${current.artifact.development ? `TEST build ${current.artifact.development.commit}; SHA-256 ${current.artifact.sha256}. Grants this VM identity Blob Reader only on this workflow container.` : "No role assignment is created."} Source assessment requires a separate approval after guest readiness.` }, "Create reviewed runner");
             if (confirmed !== "Create reviewed runner") break;
-            const workflowId = current.id;
-            current = await store.exclusive(workflowId, async () => {
-              // A different extension window may have submitted while the modal
-              // was open. Re-read the durable record under its exclusive lock.
-              return submitRunner(control, await store.read(workflowId));
+            current = await store.exclusive(review.workflow, async () => {
+              const latest = await store.read(review.workflow);
+              const assertApproved = () => {
+                if (disposed || !vscode.workspace.isTrusted) throw new Error("The approving panel closed or workspace trust changed. Review deployment again.");
+                if (latest.artifact.development && !developmentEnabled()) throw new Error("User-level development artifact opt-in was removed.");
+                if (Date.now() >= Date.parse(review.expiresAt) || latest.id !== review.workflow || latest.previewHash !== review.hash ||
+                    latest.expiresAt !== review.expiresAt || latest.updatedAt !== review.revision ||
+                    createHash("sha256").update(JSON.stringify(latest)).digest("hex") !== review.contentSHA256) {
+                  throw new Error("The approved preview changed or expired. Reconnect and review deployment again.");
+                }
+                assertFreshPreview(latest);
+              };
+              assertApproved();
+              // Read-only preflight may await network I/O. Recheck consent at
+              // the intent and request boundaries, not just after the modal.
+              return submitRunner({ ...control,
+                persist: async record => { if (record.phase === "deployment-submitted") assertApproved(); await control.persist(record); },
+                request: (...args) => { if (args[2] && args[2] !== "GET") assertApproved(); return control.request(...args); }
+              }, latest);
             });
             await display(current);
             break;

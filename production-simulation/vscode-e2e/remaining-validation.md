@@ -2,7 +2,17 @@
 
 Updated: 2026-09-23 JST. Status: **not release-qualified; B01/B03 full canonical PASS; 6/12 defined branches pass, 6 partial**.
 
-Latest September23 10:01UTC: actual native local-lock Cancel and explicit recovery
+Latest September23 11:16UTC: original deployment-consent snapshot/expiry binding
+corrected and independently reviewed; root691unit tests plus49focused checks,
+typecheck/build/host compilation PASS. Not yet installed for native B09 testing.
+User approved the zero-compute B12 read-only trial; both immutable negative
+profiles are prepared, but ordinary Microsoft authentication is pending before
+any report GET. No expected report-rejection outcome or new PASS is claimed.
+All91operator files unchanged; no compute started. Remaining scopes are finite
+and evidence-layer-specific; see [B09 correction](b09-consent-binding-20260923.md)
+and [B12 checkpoint](b12-fresh-download-20260923.md). Ledger stays6pass/6partial.
+
+Prior September23 10:01UTC: actual native local-lock Cancel and explicit recovery
 PASS in a separate unsigned-in VS Code1.139.0 profile. One exact lock archive,
 unchanged record/report bytes and restored exclusive local access independently
 verified; all91normal operator files unchanged. This closes the native local

@@ -2,7 +2,19 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest10:01UTC: **B10 actual native local recovery PASS; B12 safe live-case setup ready**.
+Latest11:16UTC: **B09 consent binding corrected; approved B12 setup awaits normal authentication**.
+Independent review identified an approval-to-submission snapshot gap; the original
+full review, expiry and action-time guards are now bound through the locked
+reread. Root691unit tests, typecheck/build/host compilation and49focused checks
+PASS; updated installed-GUI qualification is separate. B12's two immutable
+disposable profiles are prepared, and the approved pin is installed in the first.
+Microsoft sign-in has not completed; no report GET or rejection-test PASS yet.
+No compute started; original91operator files are unchanged. Native cancellation
+fixture preparation continues offline. Base9/9 and extended6pass/6partial remain.
+See [B09 correction](b09-consent-binding-20260923.md) and
+[B12 live checkpoint](b12-fresh-download-20260923.md).
+
+Prior10:01UTC: **B10 actual native local recovery PASS; B12 safe live-case setup ready**.
 In a separate unsigned-in VS Code1.139.0 profile, the production recovery command's
 actual Cancel preserved the lock and all bytes; a fresh native confirmation
 archived the exact dead-owner lock and restored local access without changing

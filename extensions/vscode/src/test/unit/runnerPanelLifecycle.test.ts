@@ -19,16 +19,24 @@ const code = transformSync(readFileSync(join(__dirname, "../../runnerMigration.t
 function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pick<RunnerControl, "request" | "list">}) {
   const record = runner.sourceWorkflowDraft(id, input);
   record.phase = "provisioned";
+  let stored = record;
   const commands = new Map<string, () => unknown>();
   const writes: runner.RunnerRecord[] = [];
   const panels: {messages: Record<string, any>[]; receive: (m: unknown) => Promise<void>; dispose: () => void}[] = [];
   let effects = 0;
   let fileDialogs = 0;
   const previewSteps: string[] = [];
+  const workspace = {isTrusted: true};
+  const submitted: runner.RunnerRecord[] = [], requests: Parameters<RunnerControl["request"]>[] = [];
+  let developmentOptIn = true, deploymentAdapter = false;
+  let confirmation: string | undefined = "Create reviewed runner";
+  let duringConfirm = async () => {}, duringPersist = async () => {};
+  let submit = async (_control: RunnerControl, _r: runner.RunnerRecord): Promise<runner.RunnerRecord> => {effects++; throw Error("Unexpected deployment");};
   let refresh = async (_control: unknown, r: runner.RunnerRecord) => r;
   const modules: Record<string, unknown> = {
-    "vscode": {ViewColumn: {One: 1}, workspace: {isTrusted: true}, commands: {registerCommand: (name: string, handler: () => unknown) => {commands.set(name, handler); return {}; }}, window: {
-      showQuickPick: async () => ({record}),
+    "vscode": {ViewColumn: {One: 1}, workspace, commands: {registerCommand: (name: string, handler: () => unknown) => {commands.set(name, handler); return {}; }}, window: {
+      showQuickPick: async () => ({record: structuredClone(stored)}),
+      showWarningMessage: async () => {await duringConfirm(); return confirmation;},
       showOpenDialog: async () => {fileDialogs++; return undefined;},
       createWebviewPanel: () => {
         const p = {messages: [] as Record<string, any>[], receive: async (_m: unknown) => {}, dispose: () => {}};
@@ -40,6 +48,7 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
       async subscriptions() {return [];}
       async runnerRequest(...args: Parameters<RunnerControl["request"]>) {
         if (preview?.arm) return preview.arm.request(...args);
+        if (deploymentAdapter) {requests.push(args); return {status: 200, value: {}};}
         effects++; throw Error("Unexpected cloud request");
       }
       async runnerList(_subscription: string, path: string) {
@@ -50,7 +59,7 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
       async locations() {assert.ok(preview); return [{name: "japaneast", displayName: "Japan East"}];}
       async retailRates() {previewSteps.push("pricing"); throw Error("Pricing sentinel; no what-if");}
     }},
-    "./guided/runnerStore": {RunnerLockedError: class extends Error {}, RunnerStore: class { async list() {return [record];} async read() {return record;} async write(r: runner.RunnerRecord) {writes.push(r);} async exclusive(_id: string, action: () => unknown) {return action();} }},
+    "./guided/runnerStore": {RunnerLockedError: class extends Error {}, RunnerStore: class { async list() {return [stored];} async read() {return structuredClone(stored);} async write(r: runner.RunnerRecord) {writes.push(r); stored = r; await duringPersist();} async exclusive(_id: string, action: () => unknown) {return action();} }},
     "./core/runnerView": {runnerHTML: () => "synthetic UI adapter"},
     "./core/runner": runner,
     "./core/runnerPanelBinding": {requirePanelWorkflow},
@@ -62,7 +71,7 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
         if (preview.preflightError) throw Error(preview.preflightError);
       },
       whatIfRunner: async () => {effects++; throw Error("Unexpected what-if");},
-      submitRunner: async () => {effects++; throw Error("Unexpected deployment");}
+      submitRunner: async (control: RunnerControl, r: runner.RunnerRecord) => {submitted.push(r); return submit(control, r);}
     },
     "./core/runnerGuest": {dispatchGuest: () => {effects++; throw Error("Unexpected dispatch");}},
     "./runnerSourcePanel": {openRunnerSource: () => {effects++;}},
@@ -72,11 +81,11 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
     "./runnerReceiptsPanel": {},
     "./runnerReceiptRemovalPanel": {},
     "./runnerLockRecoveryPanel": {},
-    "./developmentRunner": {}, "./core/runnerPlacement": placement
+    "./developmentRunner": {developmentEnabled: () => developmentOptIn}, "./core/runnerPlacement": placement
   };
   const output = {exports: {registerRunnerMigration: (_c: unknown, _o: unknown) => {}}};
   const nativeRequire = createRequire(__filename);
-  new Script(code).runInNewContext({Error, AbortSignal, fetch: async () => {
+  new Script(code).runInNewContext({Error, Date, AbortSignal, fetch: async () => {
     assert.ok(preview); previewSteps.push("release");
     return {ok: preview.checksum !== undefined, text: async () => preview.checksum};
   }, module: output, exports: output.exports, require: (name: string) => {
@@ -85,7 +94,103 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
     throw Error("Unexpected dependency: " + name);
   }});
   output.exports.registerRunnerMigration({subscriptions: [], globalStorageUri: {fsPath: "unused-inert-store"}, extension: {packageJSON: {version: "2.4.0"}}}, {});
-  return {record, panels, writes, previewSteps, fileDialogs: () => fileDialogs, effects: () => effects, setRefresh: (fn: typeof refresh) => {refresh = fn;}, open: () => {commands.get("agefreighter.newGuidedMigration")!(); return panels.at(-1)!;}};
+  return {record, panels, writes, previewSteps, workspace, submitted, requests,
+    changeStored: (fn: (r: runner.RunnerRecord) => void) => fn(stored),
+    setConfirm: (fn: typeof duringConfirm) => {duringConfirm = fn;}, cancel: () => {confirmation = undefined;},
+    setPersist: (fn: typeof duringPersist) => {duringPersist = fn;}, disableDevelopment: () => {developmentOptIn = false;},
+    setSubmit: (fn: typeof submit) => {submit = fn; deploymentAdapter = true;},
+    fileDialogs: () => fileDialogs, effects: () => effects, setRefresh: (fn: typeof refresh) => {refresh = fn;}, open: () => {commands.get("agefreighter.newGuidedMigration")!(); return panels.at(-1)!;}};
+}
+
+async function deploymentFixture() {
+  const f = fixture();
+  Object.assign(f.record, {phase: "previewed", template: {resources: []}, hourlyComputeUSD: 0.05,
+    expiresAt: new Date(Date.now() + 60_000).toISOString(), updatedAt: new Date().toISOString(),
+    artifact: {version: "2.4.0", url: "inert-fixture", sha256: "a".repeat(64), development: {commit: "abcdef", bytes: 100}}});
+  f.record.previewHash = runner.previewHash(f.record.template, f.record.input, f.record.hourlyComputeUSD);
+  const panel = f.open();
+  await panel.receive({action: "restore"});
+  const hash = f.record.previewHash;
+  // Only test the panel's controller boundary: no production Azure adapter or
+  // cloud connection exists. This inert controller copies intent state just as
+  // submitRunner does, so the panel must tolerate its own durable advancement.
+  let beforeIntent = async () => {};
+  f.setSubmit(async (control, r) => {
+    await beforeIntent();
+    let next: runner.RunnerRecord = {...r, phase: "deployment-submitted"};
+    await control.persist(next);
+    try { await control.request(r.input.subscriptionId, `${r.deploymentId}?inert=true`, "PUT", {properties: {template: r.template}}); }
+    catch { next = {...next, phase: "unknown"}; await control.persist(next); }
+    return next;
+  });
+  return {...f, panel, beforeIntent: (fn: typeof beforeIntent) => {beforeIntent = fn;},
+    deploy: () => panel.receive({action: "deploy", workflow: id, hash, networkApproved: true, costApproved: true})};
+}
+
+test("unchanged native deployment approval dispatches once after its own intent write", async () => {
+  const f = await deploymentFixture(); await f.deploy();
+  assert.equal(f.submitted.length, 1);
+  assert.deepEqual(f.writes.map(r => r.phase), ["deployment-submitted"]);
+  assert.equal(f.requests.length, 1); assert.equal(f.requests[0]![2], "PUT");
+  assert.equal(f.effects(), 0);
+});
+
+test("cancelled deployment approval neither submits nor persists", async () => {
+  const f = await deploymentFixture(); f.cancel(); await f.deploy();
+  assert.equal(f.submitted.length, 0); assert.equal(f.requests.length, 0); assert.equal(f.writes.length, 0);
+});
+
+for (const change of ["same-hash-renewal", "revision", "price", "template", "artifact", "source-files", "identity", "already-submitted"] as const) {
+  test(`deployment refuses ${change} while its approval modal is open`, async () => {
+    const f = await deploymentFixture(), originalHash = f.record.previewHash;
+    f.setConfirm(async () => f.changeStored(r => {
+      if (change === "same-hash-renewal") r.expiresAt = new Date(Date.parse(r.expiresAt) + 60_000).toISOString();
+      if (change === "revision") r.updatedAt = new Date(Date.parse(r.updatedAt) + 1).toISOString();
+      if (change === "price") r.hourlyComputeUSD = 0.1;
+      if (change === "template") r.template = {resources: [], changed: true};
+      if (change === "artifact") r.artifact.sha256 = "b".repeat(64);
+      if (change === "source-files") r.sourceFiles = [{id, name: "different.csv", path: "/inert/different.csv"}];
+      if (change === "identity") r.id = "22222222-2222-4222-8222-222222222222";
+      if (change === "already-submitted") r.phase = "deployment-submitted";
+      if (change === "price" || change === "template") r.previewHash = runner.previewHash(r.template, r.input, r.hourlyComputeUSD);
+    }));
+    await f.deploy();
+    if (change === "same-hash-renewal") assert.equal(f.record.previewHash, originalHash);
+    assert.equal(f.submitted.length, 0); assert.equal(f.requests.length, 0); assert.equal(f.writes.length, 0);
+    assert.match(f.panel.messages.at(-2)!.text, /approved preview changed or expired/);
+  });
+}
+
+for (const lost of ["trust", "development-opt-in", "panel", "expiry"] as const) {
+  test(`deployment refuses ${lost} lost during native confirmation`, async t => {
+    const f = await deploymentFixture();
+    f.setConfirm(async () => {
+      if (lost === "trust") f.workspace.isTrusted = false;
+      if (lost === "development-opt-in") f.disableDevelopment();
+      if (lost === "panel") f.panel.dispose();
+      if (lost === "expiry") t.mock.method(Date, "now", () => Date.parse(f.record.expiresAt));
+    });
+    await f.deploy();
+    assert.equal(f.submitted.length, 0); assert.equal(f.requests.length, 0); assert.equal(f.writes.length, 0);
+  });
+}
+
+for (const boundary of ["preflight", "intent-persistence"] as const) for (const lost of ["trust", "development-opt-in", "panel", "expiry"] as const) {
+  test(`deployment refuses ${lost} lost during awaited ${boundary} before PUT`, async t => {
+    const f = await deploymentFixture();
+    const change = async () => {
+      if (lost === "trust") f.workspace.isTrusted = false;
+      if (lost === "development-opt-in") f.disableDevelopment();
+      if (lost === "panel") f.panel.dispose();
+      if (lost === "expiry") t.mock.method(Date, "now", () => Date.parse(f.record.expiresAt));
+    };
+    if (boundary === "preflight") f.beforeIntent(change);
+    else f.setPersist(change);
+    await f.deploy();
+    assert.equal(f.submitted.length, 1); // Inert controller entered; no ARM dispatch.
+    assert.equal(f.requests.length, 0);
+    assert.deepEqual(f.writes.map(r => r.phase), boundary === "preflight" ? [] : ["deployment-submitted", "unknown"]);
+  });
 }
 
 test("preview propagates placement rejection before fetching release or allowing effects", async () => {
