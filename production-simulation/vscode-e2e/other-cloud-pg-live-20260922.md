@@ -231,6 +231,25 @@ or migration. Do not reset the reader credential or weaken TLS based on this
 coarse error alone. The original16:00UTC bound is not extended by early stopping.
 B03 PostgreSQL remains unqualified; base9/9 and broader5pass/7partial unchanged.
 
+## September23 01:46UTC — approved exact-reader authentication reconciliation
+
+User approved checking the PGVM reader authentication settings and resetting
+its password if necessary. Started only existing`af-pgvm-source`; runner remains
+deallocated. Separate conservative stop bound02:10UTC (begin02:08UTC), inside
+the preceding02:22UTC limit; no inventory/target/migration is authorized by this
+credential-only step. Scoped safety monitor activated before start. Resource
+ownership/size/stopped baseline rechecked; existing expired fixture tag noted,
+not rewritten. Existing800USD cap and latest delayed444.3963173658658USD remain.
+
+Read-only catalog check excludes password verifier values and raw authentication
+logs. Its first transaction aborted on an incorrect pg_authid.rolconfig
+reference; corrected to pg_db_role_setting, no role/password change occurred.
+Prepared a create-only, deadline-bound reset path for the existing reader only:
+new random value retained in a distinctly named Keychain item, protected ARM
+transport, psql password encryption, post-change TLS/read-only/18-table access
+checks and before/after role-attribute equality. Never use a PGFS/Neo4j item or
+administrator password for the reader. No secret values go to chat, argv or Git.
+
 ## September22 14:45UTC — offline error identification and diagnostic correction
 
 Without restarting either VM, the fixed CLI message
@@ -400,3 +419,34 @@ No automatic retry, password change, target/migration or security changes.
 Scoped monitor paused after verified stop. Next is explicit credential/role
 reconciliation, not another paid retry with unverified credentials.
 B03 PostgreSQL remains unqualified; base9/9 and broader5pass/7partial unchanged.
+
+## September23 01:56UTC — role checks PASS; reset blocked before execution
+
+User-approved read-only catalog reconciliation: reader login enabled, no expiry,
+SCRAM verifier present (never displayed), default read-only on, no elevated role
+flags or inherited memberships. CONNECT/schema USAGE true and18/18tables SELECT
+permitted;7HBA rules,no parse errors,one SCRAM host rule. Disk10%,swap0/OOM0.
+These checks do not authenticate the previously entered password.
+
+Fresh random value saved only in Keychain service
+`agefreighter-af-pgvm-source-agefreighter_reader-20260923`, account
+`agefreighter_reader`: **PENDING / NOT APPLIED; do not use for login yet.**
+Protected reset command`af-pgvm-reader-reset-20260923` creation failed.
+ARM ResourceNotFound proved absence; one reconciled request reused the exact
+pending value,without regeneration,and again failed. Activity Log confirms
+BadRequest: managed Run command limit25,current25. No guest reset/SQL password
+change occurred. No secret value or raw request diagnostic was emitted.
+
+Stopped source on capacity blocker; both source and runner independently
+PowerState/deallocated by01:56UTC. Monitor paused. Original02:10UTC reset bound
+not extended. All disks/data/failed jobs/25control resources preserved; no
+inventory,target,migration,password/grant/network change.
+
+Candidate for separately approved archive/removal is only
+`af-pgvm-r2-health-20260914`. Inspected script is the existing read-only fixture
+health check,no parameters/protected parameters,180second timeout. Historical
+September14 execution log records Succeeded/exit0; current ARM says Pending
+with no timestamps/output,not fresh terminal proof. Source is deallocated.
+Before any approved control removal preserve current metadata/script and
+historical evidence; never delete guest evidence or preparation jobs for space.
+No removal performed; pending Keychain value remains unchanged.

@@ -2,6 +2,13 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+September23 01:56UTC follow-up: approved PGVM reader reconciliation found login,
+expiry,read-only and18table access settings correct. New dated Keychain credential
+is **pending, not applied**: reset creation hit source VM's25/25managed command
+limit. No password change or inventory retry. Both source/runner deallocated,
+monitor paused. Archive/removal of one exact old read-only health control needs
+review/approval; no commands deleted yet.
+
 September23 update01:41UTC: approved7976cec extension installed/hash-verified and
 actually reloaded. Explicit installed-GUI credential reuse and subsequent
 inventory submission needed no re-entry: credential regression PASS alongside
