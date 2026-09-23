@@ -2,7 +2,15 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest02:47UTC: **paused at user's explicit request** after reported Keychain
+Latest02:58UTC: **B03 PostgreSQL source inventory PASS and GUI import verified**.
+After explicit user resumption, retained evidence proved60ba3809 finished before
+the earlier interruption. No duplicate source scan:1.6Mvertices+4Medges/18labels,
+2checks pass,no errors/incomplete checks,2947byte report SHA verified. Both exact
+VMs deallocated and scoped monitor paused. Receipt:
+[inventory evidence](evidence/b03-pg-inventory-pass-20260923.json).
+No target/migration/canonical verification yet; broader ledger5pass/7partial.
+
+Prior02:47UTC: **paused at user's explicit request** after reported Keychain
 read trouble. New inventory60ba3809 had been running; no final counts/report
 verified. Both exact PGVM source/runner now independently deallocated; monitor
 paused and GUI polling stopped. Disks/data/evidence preserved; no target or

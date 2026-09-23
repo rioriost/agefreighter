@@ -583,3 +583,20 @@ container; hash/count acceptance pending import. Source health/start command
 completed with valid CA/IP-SAN and disk10%,swap0; no repeat scan was required.
 Source deallocation requested immediately once retained completion established;
 only runner remains needed for report export. No target/migration.
+
+## September23 02:58UTC — installed-GUI inventory PASS/imported; both VMs off
+
+GUI transferred/imported the exact2947byte report and displayed the hash-verified
+source report. Independent local SHA matches retained manifest. Assertions PASS:
+outcome pass,2passed checks,errors/incompleteChecks empty; all18label counts sum
+to1,600,000vertices+4,000,000edges=5,600,000rows. Count method is a complete
+PostgreSQL mapping stream in one repeatable-read snapshot. No source re-scan,
+credential prompt, Keychain read/reset, or new operation was needed after resume.
+Report warning correctly says counts do not verify unique identity/endpoints
+or migration. Redacted receipt `evidence/b03-pg-inventory-pass-20260923.json`.
+
+Both source and runner independently PowerState/deallocated by02:58:21UTC;
+scoped monitor paused. All source data/disks/current and former evidence retained.
+No target/migration/full canonical digest yet. Next is offline target sizing
+review and specific target/deployment approval; broader ledger remains5pass/
+7partial. Base9/9 qualification is unchanged and is not this B03 variant.
