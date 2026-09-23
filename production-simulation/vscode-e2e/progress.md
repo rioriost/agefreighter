@@ -2,7 +2,19 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest08:26UTC: **B03 PostgreSQL canonical verification continuation authorized**.
+Latest08:44UTC: **B03 PostgreSQL verifier exit0; result import blocked by control capacity**.
+Exact qualification028ec524 finished08:34:52UTC; GUI retained verified phase and
+23224byte result seal00938de546f94d1fe50e372044bef9b423e104919855fc8d934a06b4b42f77fc.
+Result export was not submitted: extension25managed-command cap reached.
+Full report/ranges/root have not been independently imported/validated; no final
+B03 PASS. Runner deallocated and target Stopped verified; source remains off,
+monitor paused. One historical readiness receipt archived/hash-verified locally.
+Native removal preview failed closed because live ARM executionState is Pending
+without retained output/times despite sealed historical success; nothing deleted.
+Scoped maintenance needs explicit review/approval; no verifier/migration replay.
+Existing new-session10:25UTC hardstop remains, no automatic extension.
+
+Prior08:26UTC: **B03 PostgreSQL canonical verification continuation authorized**.
 User approved a new two-hour session after Keychain recovery. Existing runner and
 private target start requested; source remains off, no migration replay. GUI cost
 authorization renewed; fixed stop10:25UTC(begin10:20), cumulative800USD/reserve700.

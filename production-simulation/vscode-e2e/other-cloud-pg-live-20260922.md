@@ -756,3 +756,51 @@ private target and unchanged D4s_v5/disk/NIC/identity checked. External applicat
 updated platform patch settings08:05UTC; preserved without override. Latest guest
 health must be rechecked after startup before executing the verifier. Archive
 60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d rehashed locally.
+
+## September23 08:33UTC — installed-GUI canonical qualification submitted
+
+Runner and target are Running/Ready; source independently remains deallocated.
+GUI reconnected the exact workflow without source re-entry or migration replay.
+Readiness completed exit0: boote44e4208-b324-4826-b108-57123dc481c4,
+fixed646f0d4b361a, idle, disk3.860608995%,swap0/OOM0. Native verifier review
+selected8a23a5109798 with the previously disclosed archive hash and accepted the
+read-only25minute/4GiB action. Existing target SecretStorage was reused without
+prompt; no credential extraction/reset. GUI retained qualification operation
+`028ec524-990f-4ed3-8265-6eb024d5cf57`, submitted08:32:46.205UTC, for the same
+jobd707adf8-7cab-4d73-8e38-ec141e72ac18. No automatic retries. Scoped monitor
+tracks this exact operation; hardstop10:25UTC unchanged. Submitted is not PASS.
+
+## September23 08:44UTC — verifier finished; capacity blocker and safe stop
+
+Exact qualification028ec524-990f-4ed3-8265-6eb024d5cf57 finished exit0 at
+08:34:52UTC. Installed GUI reconciled phase verified,23224byte result SHA
+`00938de546f94d1fe50e372044bef9b423e104919855fc8d934a06b4b42f77fc`.
+The next GUI action failed before export submission at the extension's25managed
+Run Command cap. No qualification/migration replay, no export control created.
+The sealed result remains on the runner disk. Full local range/root assertions
+and installed-GUI final PASS are still pending; exit0 is not final qualification.
+
+Guest health after completion08:35:09UTC showed no active verifier process,
+disk6%,swap0/OOM0. The completed transient unit was gone; no peak RSS measurement
+is claimed. Exact ownership/private-target checks passed before safety stop.
+Recent governance operations on other targets were not altered. Requested only
+runner deallocation and target stop at08:41UTC; runner deallocation Succeeded
+08:41:27.8589076UTC, both deallocated/Stopped independently verified by08:44UTC.
+Source remains off, disks/data/evidence retained. Scoped monitor paused.
+
+Installed GUI archived one unreferenced historical readiness receipt for
+`af-618186b2-cee7-4a82-95b8-962dfff30de3` (September22 14:15:27UTC).
+Local archive1433bytes SHA
+`aee3895eda7371f6b1e12905af8578eacfa489722784106dcd99f790b7a21b08`,
+receipt SHA08486937aec4c7719a3bd96508336d1b994c4a14df79473008e4e07a61dc632a.
+Native removal preview correctly refused: current ARM provisioningState is
+Succeeded but instanceView executionState is Pending,exitCode0, with output and
+start/end times absent. Two other historical readiness controls show the same
+condition; the cause of missing live execution evidence is not established.
+The archive is historical proof, not a claim that current ARM proves success.
+No removal intent or DELETE was submitted; current readiness, migration, counts
+and qualification controls remain preserved. A separately approved exact-scope
+maintenance deletion is needed to free capacity, or a reviewed non-deleting
+export path. Do not weaken the existing removal guard or edit workflow metadata
+to bypass it. Any resumed result retrieval stays inside10:25UTC hardstop and
+must not rerun the verifier, migration or source scan.
