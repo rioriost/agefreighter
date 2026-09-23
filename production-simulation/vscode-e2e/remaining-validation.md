@@ -2,7 +2,30 @@
 
 Updated: 2026-09-23 JST. Status: **not release-qualified; base routes9/9; 7/12 defined branches pass, 5 partial**.
 
-Latest September23 11:43UTC independent review: **B12 passes its defined mixed-layer
+Latest September23 12:35UTC independent review: **B09 cancellation30/30 complete
+at the stated mixed evidence layers; B09 overall remains partial**. The remaining17
+actual native Cancel actions completed12:29:58–12:31:47UTC in an isolated normal
+development host. Every result/baseline/modal/current file and0600 mode, source/
+controller seal,483 loaded-module hash entries and executable/harness pin match.
+Only the declared A14/A15 source-review saves and A17 byte-identical failed-status
+save occur before consent; all post-modal record/report bytes remain unchanged.
+One actual modal per case, no denied effects or controller errors. Prior13 credits,
+failed attempts and the A01 after-click computer-use pipe error are retained;
+no replay or cloud admission is claimed. See the
+[remaining17 receipt](evidence/b09-native-cancel-remaining17-20260923.json) and
+[finite ledger](b09-b10-b12-acceptance-20260923.md).
+
+Expiry/duplicate native qualification, actual lost deployment response, terminal
+bootstrap failure and live readiness removal remain B09 gates. The initial expiry
+fixture failed before a modal because of an unrelated proposed context getter;
+its retained failure has no credit. Lazy-context correction/source review and
+29coordinator regressions pass, not a new expiry result. B10's one active-cloud
+crash remains open, B12 remains PASS, and base9/9 plus extended7pass/5partial are
+unchanged. Source credential reuse now returns normally according to the
+coordinator, without exposing the secret. Compute remains off; the bounded live
+clock has not started and no new-deployment/deletion authority is inferred.
+
+Prior September23 11:43UTC independent review: **B12 passes its defined mixed-layer
 scope**. Normal signed-in native download actions rejected wrong expected SHA
 at approximately11:25UTC and length at approximately11:36UTC. Original input
 seals, exact copied-record differences, unchanged exported records/zero reports
@@ -552,7 +575,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
-| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 approval decisions:13 credited including actual isolated native A18/A19/A29 at11:39UTC; historical quota/artifact refusals credited; running-only receipt gate and consent-binding regressions pass; Pending remains refused |17 cancellation decisions, native expiry/duplicate controller proof, actual lost deployment response/terminal bootstrap failure and live archived removal/GET404 remain; isolated A29 is not live admission/deletion | partial |
+| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 approval decisions all credited at stated mixed layers, including remaining17 native Cancels12:29–12:31UTC and independent full evidence/pin review; historical quota/artifact refusals credited; running-only receipt gate and consent-binding regressions pass; Pending remains refused | Native expiry/duplicate controller proof, actual lost deployment response/terminal bootstrap failure and live archived removal/GET404 remain; isolated A29 is not live admission/deletion | partial |
 | B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and canonical PASS retained; September23 actual isolated VS Code1.139.0 SIGKILL at two boundaries preserves archive/intent;44focused tests pass; later actual native Cancel/recovery in an unsigned-in isolated profile preserves record/report bytes and archives the dead-child lock | Forced crash during signed-in active Azure operation remains unqualified; isolated SIGKILL, dead-child native confirmation and active-cloud evidence remain distinct | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Existing synthetic production-controller/real-host semantic negatives and signed-in retained-failure refusal, plus normal signed-in native fresh wrong-expected-SHA and length refusals at11:25/11:36UTC; independent originals/case/pin/post-state review PASS | Complete for the frozen mixed-layer scope; not all eight cases against Azure, remote corruption, actual network truncation or an instrumented HTTP request count | pass |

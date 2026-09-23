@@ -2,7 +2,38 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest11:43UTC independent review: **B12 defined mixed-layer scope PASS; three
+Latest12:35UTC independent review: **all30 frozen B09 cancellation decisions
+credited at their stated evidence layers**. The remaining17 actual native Cancel
+actions completed12:29:58–12:31:47UTC in an isolated normal-development host;
+the previous13 credits are preserved. All initial/modal/result/current file
+hashes and0600 modes, controller/source seals,483 loaded-module hash entries,
+official executable and companion harness pin match. A14/A15 each allow only
+one exact local SourceDraft review before consent; A17 saves byte-identical
+failed status once. Every modal-to-final record/report is unchanged, with no
+denied effects or controller errors. This is native modal/controller evidence
+with synthetic prerequisites, not17signed-in cloud trials. See the
+[remaining17 receipt](evidence/b09-native-cancel-remaining17-20260923.json) and
+[finite ledger](b09-b10-b12-acceptance-20260923.md).
+
+B09 remains partial for expiry/duplicate, lost deployment response, terminal
+bootstrap failure and live readiness-control lifecycle; B10's single active-cloud
+crash case remains open. B12 stays mixed-layer PASS; base9/9 and extended7pass/
+5partial are unchanged. The first expiry fixture failed before a modal on an
+unrelated proposed context getter; its evidence remains uncredited. The lazy
+context fix is independently reviewed, with29coordinator regression checks and
+typecheck PASS; no proposed API was enabled.
+
+The user confirmed private source-credential entry; the coordinator's ordinary
+installed Prepare/reuse action then returned without another password/Remember
+prompt or error, without reading the secret. This is credential reuse preparation,
+not a source login or inventory result. Per the coordinator's latest report,
+compute remains off and the60-minute live clock has not started. **Current next
+step:** qualify isolated expiry/duplicate interactions, then refresh exact safety/
+stop gates before any approved existing-runner/source start. The
+[live scope](b09-b10-live-20260923.md) does not authorize a new deployment or
+deletion without exact action-time approval.
+
+Prior11:43UTC independent review: **B12 defined mixed-layer scope PASS; three
 additional actual native cancellation decisions PASS**. Normal signed-in3bc0069
 native actions rejected deliberately wrong expected SHA at approximately11:25UTC
 and length at approximately11:36UTC, with unchanged exported records, zero reports
@@ -25,10 +56,11 @@ idle bound. The [execution record](b09-b10-live-20260923.md) still has compute o
 and private source-credential input pending at its preparation checkpoint. This
 approval adds no test credit or authority for new resources, source changes or
 readiness deletion without an exact action-time record-ID approval.
-**Current next step:** private user input in the ordinary installed source-password
-prompt (and the reviewed workflow-scoped Remember choice); no password in chat,
-files or command arguments. The live clock has not started. Root will refresh
-the exact safety/stop gates before any authorized compute start.
+The next step at that preparation checkpoint was private user input in the
+ordinary installed source-password prompt and the reviewed workflow-scoped
+Remember choice; no password in chat, files or command arguments. The live clock
+had not started. Later credential reuse is recorded above, not substituted for
+this historical pending state.
 
 Prior11:16UTC: **B09 consent binding corrected; approved B12 setup awaits normal authentication**.
 Independent review identified an approval-to-submission snapshot gap; the original
