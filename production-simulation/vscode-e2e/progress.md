@@ -2,7 +2,16 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest02:58UTC: **B03 PostgreSQL source inventory PASS and GUI import verified**.
+Latest04:00UTC: **B03 PostgreSQL private target deployment submitted via installed GUI**.
+User explicitly approved E8ds_v5/128GiB PostgreSQL18+AGE, dedicated private subnet,
+same-runnerD4s_v5 resize and5.6Mrow migration/standard verification. Runner started
+03:48:08UTC; source remains off during deployment. Fixed stop05:45UTC(begin05:40),
+cumulative800USD/reserve700, scoped safety monitor active. ARM deployment Running;
+no migration/full canonical verification yet. Broader ledger remains5pass/7partial.
+Latest delayed twoRGcost451.2573221409767USD. See
+[execution record](other-cloud-pg-live-20260922.md).
+
+Prior02:58UTC: **B03 PostgreSQL source inventory PASS and GUI import verified**.
 After explicit user resumption, retained evidence proved60ba3809 finished before
 the earlier interruption. No duplicate source scan:1.6Mvertices+4Medges/18labels,
 2checks pass,no errors/incomplete checks,2947byte report SHA verified. Both exact

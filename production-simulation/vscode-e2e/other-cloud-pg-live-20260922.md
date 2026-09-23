@@ -624,3 +624,35 @@ deadline prompt without inventing an approved deadline. Draft inputs retained;
 no final LoadJob/target plan saved, no credentials generated, no target deployed,
 no VM restart/resize/migration. Await one bundled action-time approval, then
 repeat live placement/quota/pricing/readiness gates before submission.
+
+## September23 03:48UTC — target/migration window explicitly approved
+
+User approved the bundled new private E8ds_v5/128GiB target, dedicated subnet/
+credentials, same-runnerD4s_v5 resize and5.6Mrow migration/standard verification,
+maximum2hours from first compute start. Saved credential reuse reconfirmed through
+installed GUI without another password prompt. Exact ownership/deallocated states
+checked; recent Activity Log contains Resource Health notifications and prior
+deallocation, no new in-scope security changes observed. Refreshed delayed cost:
+446.774812390391USD originalRG+4.48250975058573USD B01=
+451.2573221409767USD, cumulative800USD/reserve700 unchanged.
+Scoped monitor activated before first runner start03:48:08UTC. Fixed conservative
+hardstop05:45UTC(begin05:40), less than2hours. Source stays off until needed.
+New target creation is now authorized but not yet submitted. No dedicated
+canonical verifier installation is included in this action-time approval.
+
+## September23 04:00UTC — private target submitted through installed GUI
+
+Readiness refreshed the runner boot to97569248-10c4-4f01-85e0-c2bc1d3b4915:
+fixed Linux646f0d4b361a, idle, disk3.82691163%, swap0/OOM0. The first review
+correctly failed closed on the changed boot before saving final files or creating
+a target. Operator reviewed the new health and reused unchanged saved inputs;
+no deployment or source-read replay occurred. The final secret-reference-only
+LoadJob and target plan were saved under the ignored dedicated local folder.
+
+Installed GUI submitted target plan hash
+`76fc93db4304e4d4c66835b2968de6ca616cbf2dc91e039bdaf8ece64d6689ad`.
+Independent ARM deployment `afpg-cb2ef280a8914edfb45b` is Running,
+timestamp04:00:19.891143UTC with no current top-level error code. This is not
+deployment success or migration qualification. Existing source VM remains off.
+Continue read-only deployment reconciliation, then approved AGE readiness and
+same-VM resize/migration only within05:45UTC hard bound. No verifier installed.
