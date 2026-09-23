@@ -600,3 +600,27 @@ scoped monitor paused. All source data/disks/current and former evidence retaine
 No target/migration/full canonical digest yet. Next is offline target sizing
 review and specific target/deployment approval; broader ledger remains5pass/
 7partial. Base9/9 qualification is unchanged and is not this B03 variant.
+
+## September23 03:43UTC — stopped-compute target inputs prepared, approval pending
+
+User requested continuation. Both source/runner independently confirmed
+deallocated; no cloud resource mutation performed. Installed-GUI target review
+read the accepted inventory and persisted only partial targetDraft inputs:
+new server`afpg-cb2ef280a8914edfb45b`, existing migration RG, JapanEast/zone1,
+PostgreSQL18/AGE Standard_E8ds_v5 with128GiB storage, same runner laterD4s_v5.
+Proposed delegated subnet10.246.25.0/24 does not overlap the freshly listed
+existing10.246.0.0/16 VNet subnets(.1 through.24). New private DNS/subnet only;
+no public access/peering or source firewall changes are proposed.
+Inventory storage high estimate9,900,772,000bytes plus25% fits128GiB; compute
+selection maintains the prior P1 test configuration, not a throughput guarantee.
+
+Current Azure Retail Prices API has a unique applicable consumption meter each:
+PostgreSQL E8ds_v5=1.200USD/hour, runnerD4s_v5=0.248, existing sourceD8s_v5=0.496.
+Target+runner1.448/hour; allthree1.944/hour, plus retained disks/storage/network.
+Proposed next window is at most2hours from first compute start, cumulative800USD
+ceiling/reserve700 retained. This longer window and exact target/credentials/
+subnet creation have NOT yet been approved. Stopped the GUI at its explicit
+deadline prompt without inventing an approved deadline. Draft inputs retained;
+no final LoadJob/target plan saved, no credentials generated, no target deployed,
+no VM restart/resize/migration. Await one bundled action-time approval, then
+repeat live placement/quota/pricing/readiness gates before submission.
