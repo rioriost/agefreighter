@@ -2,7 +2,15 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest04:00UTC: **B03 PostgreSQL private target deployment submitted via installed GUI**.
+Latest04:27UTC: **B03 PostgreSQL GUI migration submitted, without credential re-entry**.
+Private target provisioned; AGE preload and same-runnerD4s_v5 resize finished.
+Source existing container started with valid TLS and health gates; runner newboot
+disk3.84%,swap0/OOM0. New jobd707adf8-7cab-4d73-8e38-ec141e72ac18,30minute
+service bound, scoped monitor active; counts/full canonical verification pending.
+Fixed stop05:45UTC(begin05:40), cumulative800USD/reserve700 unchanged.
+Broader ledger5pass/7partial remains: submission is not qualification.
+
+Prior04:00UTC: **B03 PostgreSQL private target deployment submitted via installed GUI**.
 User explicitly approved E8ds_v5/128GiB PostgreSQL18+AGE, dedicated private subnet,
 same-runnerD4s_v5 resize and5.6Mrow migration/standard verification. Runner started
 03:48:08UTC; source remains off during deployment. Fixed stop05:45UTC(begin05:40),

@@ -1,8 +1,9 @@
 # B03 PostgreSQL other-cloud selection — offline preparation
 
 September23,2026. Status: **post-reset source inventory PASS/imported; private
-target provisioned; AGE preload restart completed on ARM; same-VM resize in
-progress under the approved05:45UTC hard stop. Migration not started yet**.
+target provisioned; AGE preload and same-VM resize completed; installed GUI
+submitted the new migration at04:27UTC under the approved05:45UTC hard stop.
+Migration/counts/full canonical verification are not yet accepted**.
 Latest outcome supersedes the historical preparation checkpoints below.
 This follows the completed Neo4j other-cloud simulation; it is a separate
 PostgreSQL selection and must not reuse the Neo4j credential or qualification.
@@ -671,3 +672,22 @@ fresh-readiness cycle passed guest health but VM running/provisioning gate stopp
 before any resize submission. Subsequent independent ARM confirms running and
 Succeeded/B2s_v2. Continued the same still-valid authorization, not an uncertain
 mutation replay; a fresh readiness command is pending. No migration or verifier.
+
+## September23 04:27UTC — installed-GUI migration submitted, no re-entry
+
+Same-VM resize completedD4s_v5 with retained disk/NIC/identity preservation SHA
+`ee5c3b4b075c92bd441ea050d0bf23bd8c19ecf89f5561310707ec7726cda01f`.
+GUI reconciled AGE preload finished without replaying its restart. Existing
+sourceVM started04:22UTC; exact existingpostgres:18.1 container started after
+CA/IP-SAN/expiry checks passed, disk10%,swap0/OOM0. No fixture changes.
+New runner bootfc19bb34-c428-43ca-b959-139cb72c16b0, fixed646f0d4b361a,
+disk3.84237553%,idle/swap0/OOM0 accepted through installed GUI.
+
+GUI submitted operation/job`d707adf8-7cab-4d73-8e38-ec141e72ac18` at
+04:27:10.720UTC using reviewed inventory and saved source credential without
+another password prompt. Control`af-2fb1a1a3-42e7-48b1-9242-d1df4e346f89`.
+The create-only new graph load and complete counts verification use the same
+fixed runner; no replacement, retry or resume.30minute service bound remains.
+Scoped heartbeat updated to reconcile only this exact operation and retain the
+05:45UTC hard stop(begin05:40). Submitted is not migration success. Dedicated
+canonical verifier has not been installed or action-time approved for this guest.
