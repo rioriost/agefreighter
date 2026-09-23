@@ -1,7 +1,8 @@
 # B03 PostgreSQL other-cloud selection — offline preparation
 
-September22,2026. Status: **preparation PASS; first installed-GUI inventory FAILED;
-exact source and runner deallocated; no target or migration created**.
+September23,2026. Status: **credential reuse GUI PASS; diagnostic inventory FAILED
+at snapshot-connect/authentication; exact source and runner deallocated;
+no target or migration created**.
 Latest outcome supersedes the historical preparation checkpoints below.
 This follows the completed Neo4j other-cloud simulation; it is a separate
 PostgreSQL selection and must not reuse the Neo4j credential or qualification.
@@ -343,3 +344,59 @@ the safety clock was fixed; start requests for only`af-pgvm-source` and
 Scoped heartbeat activated before start. Approved next actions remain pinned
 646f0d4 Linux upgrade and one inventory/report import, not target or migration.
 Old failed operation and pending read-only status command remain retained.
+
+## September23 01:37UTC — diagnostic runner installed; one inventory submitted
+
+Source VM startup did not automatically start the retained PostgreSQL container.
+After disk10%, no swap/OOM and pinned container identity checks, started only the
+existing container. Public leaf/CA/hostname checks pass; a fresh source-local
+TLS1.3 handshake verifies chain and IP-SAN10.246.1.20. No certificate, credential,
+grant, network or source-data change. Retained fixture manifests still describe
+18tables/5.6Mrows; these are not a new inventory result.
+
+Installed GUI uploaded approved646f0d4 archive to the existing workflow container
+and submitted upgrade`16b27aeb-4ce3-4ace-b92c-2eac37c9fcc1` at01:31:16.412UTC.
+Reconciliation returned finished with exact approved version/SHA, preserving old
+installation. Fresh readiness01:34:09.596UTC: same boot
+`0a11bbe3-8d37-4644-8c13-d0dee31a529a`, idle, disk3.79923%, swap0/OOM0.
+GUI archived failed`bb184697-3121-41d1-be23-fe0c8ff78593` without deletion/replay.
+
+Reviewed source and submitted one complete inventory through the installed GUI
+at01:36:46.590UTC, without another credential prompt:
+operation`3f2b3c12-84d9-4921-b6c7-7e11a175b01c`, command
+`af-2ba232bb-4c61-47da-aeec-d296ef5c7007`. Reviewed configurationSHA remains
+`a2d3038228711c8d455c0b06ee0a0aa69eae8ef8e1400cbfed2e127a994f8498`.
+Submission is not success. Await exact retained outcome; 30minute/4GiB worker
+bound and02:22UTC session hardstop remain unchanged. No target or migration.
+
+## September23 01:41UTC — authentication rejection identified; resources stopped
+
+Exact guest state independently confirms new inventory started
+01:36:53.621890453UTC and failed01:36:53.694531693UTC,exit1,no report.
+Sanitized diagnostic is`[postgresql/snapshot-connect/authentication]`.
+This category comes from typed PostgreSQL SQLSTATE28P01/28000, not keyword
+matching; connection was rejected at authentication, before snapshot creation or
+mapped row inventory. It does not prove whether the supplied password, role
+configuration or another authentication condition is responsible. Do not blame
+user entry or reset credentials without explicit direction. The old coarse
+error cannot retrospectively establish the same cause for September22.
+
+Retained stderr96bytes SHA-256
+`e66d29627bb360a68db463fda03c479c37f4b547630915734fb6708055c67a46`;
+job.json10298bytes,state.json387bytes,worker.claim36bytes. Guest configSHA
+`a89ed9cdc6262b11fd044548618685a6e66a0a62fe5d1aa6f862b0b22be006f5`.
+No credential or CA file remains in the operation-directory listing. The
+supervisor unit's Result=success is not child inventory success: child state is
+failed. Unit inactive/MainPID0,runner disk4%,swap0/OOM0. Initial read-only guest
+diagnostic could not use absent jq; repeated only the bounded evidence read with
+standard tools, without installing utilities or replaying the inventory.
+
+Installed GUI refreshed to phasefailed; latest status command
+`af-477c52ca-9143-4756-aba6-7ecc0e206ea2` is finished. September22 failure remains
+in assessmentHistory. Requested deallocation of only both exact VMs at01:40UTC;
+independent ARM confirms both PowerState/deallocated by01:41UTC. All disks,
+source data, former binaries, upgrade receipts and failure evidence retained.
+No automatic retry, password change, target/migration or security changes.
+Scoped monitor paused after verified stop. Next is explicit credential/role
+reconciliation, not another paid retry with unverified credentials.
+B03 PostgreSQL remains unqualified; base9/9 and broader5pass/7partial unchanged.

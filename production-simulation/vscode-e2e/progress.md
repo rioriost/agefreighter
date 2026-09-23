@@ -2,15 +2,17 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-September23 update01:23UTC: approved7976cec extension installed/hash-verified and
-actually reloaded. User prepared the credential; explicit installed-GUI reuse
-returned without another password prompt. Credential regression PASS alongside
-508unit/14CLI contracts/typecheck/build. The same-resource diagnostic session
-started01:22UTC, hardstop02:22UTC (begin stop02:20UTC), within approved60minutes.
-Only the existing source/runner are starting; next is approved pinned646f0d4
-Linux upgrade and one inventory. No target/migration; prior PostgreSQL
-initialization cause still unknown. Latest delayed twoRG costUSD444.3963173658658,
-800USD ceiling unchanged. Scoped safety monitor active; failed evidence retained.
+September23 update01:41UTC: approved7976cec extension installed/hash-verified and
+actually reloaded. Explicit installed-GUI credential reuse and subsequent
+inventory submission needed no re-entry: credential regression PASS alongside
+508unit/14CLI contracts/typecheck/build. Approved646f0d4 Linux upgrade completed.
+One diagnostic inventory failed immediately with typed category
+`postgresql/snapshot-connect/authentication`,exit1,no report. The particular
+credential/role condition is not established; no password reset or automatic
+retry. Both exact source/runner independently deallocated by01:41UTC, before
+02:22UTC hardstop; scoped monitor paused. All evidence retained, no target or
+migration. B03 PostgreSQL remains unqualified. Latest delayed twoRG
+costUSD444.3963173658658,800USD ceiling unchanged.
 
 Current checkpoint13:27UTC: **B03 Neo4j other-cloud selection now has installed-GUI
 migration, counts and full canonical PASS**:5.6Mrows/18labels/64ranges/root match.
