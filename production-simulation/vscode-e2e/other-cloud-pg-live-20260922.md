@@ -514,3 +514,21 @@ credential reset. Existing failed attempts remain retained; next is one fresh
 GUI inventory after source/runner health checks. Refreshed delayed Cost API:
 original RG442.711240190565USD+B01RG4.37001612271476USD=
 447.08125631327976USD; cumulative800USD/reserve700 unchanged.
+
+## September23 02:43UTC — fresh post-reset inventory submitted
+
+Source startup correctly left restart-disabled PostgreSQL container stopped.
+After exact pinned image/disk10%/swap0/OOM0 checks, started only that existing
+container. Existing CA/leaf verification and IP-SAN10.246.1.20 pass; leaf valid
+untilSeptember29. Runner installed-GUI readiness succeeded, boot
+`08d8a5eb-e188-4606-988c-fcb871407870`, fixed646f0d4b361a, disk3.82055%,idle,
+swap0/OOM0. Preserved both prior failed inventories in assessmentHistory.
+Reviewed unchanged18 mappings; configurationSHA remains
+`a2d3038228711c8d455c0b06ee0a0aa69eae8ef8e1400cbfed2e127a994f8498`.
+
+Installed GUI source-read approval accepted; new inventory
+`60ba3809-4c8c-4d2f-bc34-46c5686e62dc` submitted02:43:11.016UTC via control
+`af-4c315a62-6c06-4a46-a5f7-bb6045d03856`, no password re-entry. Existing
+30minute/4GiB/no-swap worker bounds; accepted is not successful inventory.
+Fresh ARM transfer account check: public HTTPS Enabled, anonymous/shared key
+false, existing approved policy tag unchanged. No new settings or role changes.
