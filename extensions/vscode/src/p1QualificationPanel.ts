@@ -14,7 +14,7 @@ import {developmentArtifact} from "./core/runnerDevelopment";
 import {inspectCSV} from "./guided/csvTransfer";
 import {verifyTransferStorage} from "./core/runnerReportStorage";
 import {downloadReport,reportCapability,reportManifest} from "./core/runnerBlob";
-import {p1ProfileForConfiguration,assertP1VerifierManifest,p1Script,p1ExportScript,verifyP1,assertP1Projection,parseP1Receipt,P1Qualification,requalificationGate} from "./core/p1Qualification";
+import {p1ProfileForConfiguration,assertP1VerifierManifest,p1Script,p1ExportScript,verifyP1,assertP1Projection,parseP1Receipt,P1Qualification,requalificationGate,P1RejectionError,P1RejectedImportError} from "./core/p1Qualification";
 import {escapeHTML} from "./core/report";
 
 export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerControl,store:RunnerStore,azure:AzureSession,id:string,requalify=false):Promise<RunnerRecord>{
@@ -57,7 +57,11 @@ export async function qualifyP1(context:vscode.ExtensionContext,control:RunnerCo
       const manifest=reportManifest({operation:q.operation,sha256:q.sha256!,bytes:q.bytes!});
       await verifyTransferStorage(control,r);
       const text=q.phase==="pass"?await store.readReport(id,manifest):await downloadReport(await azure.reportCapability(r,q.operation,"r"),id,manifest);
-      await store.retainReport(id,manifest,text);verifyP1(text,q.jobId,profile);
+      await store.retainReport(id,manifest,text);
+      try{verifyP1(text,q.jobId,profile);}catch(error){
+        if(error instanceof P1RejectionError)throw new P1RejectedImportError(error.category,manifest,q.jobId,profile);
+        throw error;
+      }
       r={...r,p1Qualification:{...q,phase:"pass"}};await control.persist(r);
       const panel=vscode.window.createWebviewPanel("agefreighter.p1Qualification","Verified P1 migration",vscode.ViewColumn.Beside,{enableScripts:false,localResourceRoots:[]});
       panel.webview.html=`<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'"><h1>P1 full canonical digest: PASS</h1><p>1,600,000 vertices and 4,000,000 edges. All 64 ranges, typed properties, identities and endpoints agree.</p><pre>${escapeHTML(text)}</pre>`;

@@ -91,6 +91,8 @@ suite("AGEFreighter extension", () => {
     for (const command of [
       "agefreighter.newGuidedMigration",
       "agefreighter.sourceCredential",
+      "agefreighter.reviewRunnerCrashLock",
+      "agefreighter.manageReadinessRemoval",
       "agefreighter.validate",
       "agefreighter.plan",
       "agefreighter.profile",

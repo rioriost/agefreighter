@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -21,23 +22,33 @@ export function removalFixture() {
   record = retainReadinessReceipt(record);
   const receipt = record.readinessReceipts![0]!;
   const output = JSON.stringify({ version: 1, ready: true, os: "linux", architecture: "amd64", bootId: id, cliVersion: "2.4.0", archiveSha256: record.artifact.sha256, commit: "abcdef", health: receipt.readiness.health });
-  delete record.guestCommand; delete record.guestReady;
-  const vm: any = { id: record.vmId, location: "japaneast", zones: ["1"], tags: { application: "agefreighter", workflow: id, purpose: "discovery-and-migration" }, properties: { vmId: id, provisioningState: "Succeeded", instanceView: { statuses: [{ code: "PowerState/deallocated" }] } } };
+  const currentOperation = "33333333-3333-4333-8333-333333333333";
+  const checkedAt = new Date(Date.now() - 10_000).toISOString();
+  record.guestCommand = { ...receipt.command, id: `${record.vmId}/runCommands/af-${currentOperation}`, operation: currentOperation, submittedAt: checkedAt };
+  record.guestReady = { ...receipt.readiness, checkedAt };
+  record = retainReadinessReceipt(record);
+  const vm: any = { id: record.vmId, location: "japaneast", zones: ["1"], tags: { application: "agefreighter", workflow: id, purpose: "discovery-and-migration" }, properties: { vmId: id, provisioningState: "Succeeded", instanceView: { statuses: [{ code: "PowerState/running" }] } } };
   const command: any = { id: receipt.command.id, location: "japaneast", properties: { source: { script: guestDispatchScript }, timeoutInSeconds: 60, asyncExecution: false, provisioningState: "Succeeded",
     instanceView: { executionState: "Succeeded", exitCode: 0, startTime: "2026-09-18T05:00:01Z", endTime: "2026-09-18T05:00:02Z", error: "", output } } };
+  const currentCommand = structuredClone(command);
+  currentCommand.id = record.guestCommand!.id;
+  currentCommand.properties.instanceView.startTime = checkedAt;
+  currentCommand.properties.instanceView.endTime = new Date(Date.parse(checkedAt) + 1_000).toISOString();
   const events: string[] = [], archives = new Map<string, string>(), saved: RunnerRecord[] = [];
   let absent = false, deny = false, loseReply = false, failArchive = false, failPersist = false;
   const io: RemovalIO = {
     control: { sleep: async () => {}, list: async () => { throw Error("No list expected"); },
       persist: async r => { events.push("persist"); if (failPersist) throw Error("disk failed"); saved.push(structuredClone(r)); },
-      request: async (_sub, path, method = "GET") => { assert.equal(method, "GET"); events.push(path.includes("runCommands") ? "GET-command" : "GET-vm");
+      request: async (_sub, path, method = "GET") => { assert.equal(method, "GET");
+        if (path.startsWith(currentCommand.id + "?")) { events.push("GET-current-readiness"); return { status: 200, value: currentCommand }; }
+        events.push(path.includes("runCommands") ? "GET-command" : "GET-vm");
         return path.includes("runCommands") ? { status: absent ? 404 : 200, value: command } : { status: 200, value: vm }; } },
     guard: async expected => { events.push("guard"); assert.equal(expected, binding); if (deny) throw Error("account/trust changed"); },
     retain: async (m, text) => { events.push("archive"); if (failArchive) throw Error("archive failed"); verifyReportBytes(Buffer.from(text), m); archives.set(m.operation, text); },
     read: async m => { events.push("read-archive"); const text = archives.get(m.operation); if (!text) throw Error("archive missing"); return verifyReportBytes(Buffer.from(text), m); },
     remove: async (commandId, account) => { assert.equal(commandId, receipt.command.id); assert.equal(account, binding); events.push("DELETE"); if (loseReply) throw Error("sensitive service diagnostics"); }
   };
-  return { record, receipt, vm, command, events, saved, archives, io, binding,
+  return { record, receipt, vm, command, currentCommand, events, saved, archives, io, binding,
     preview: () => previewReceiptRemoval(io, record, receipt.command.id, binding),
     absent: () => { absent = true; }, deny: () => { deny = true; }, loseReply: () => { loseReply = true; },
     failArchive: () => { failArchive = true; }, failPersist: () => { failPersist = true; } };
@@ -66,6 +77,83 @@ test("cancel never archives, persists, or contacts Azure again", async () => {
   assert.equal(f.events.length, before);
 });
 
+test("running removal archives independent current health proof and cannot renew its freshness", async () => {
+  const f = removalFixture(), plan = await f.preview(), archive = JSON.parse(plan.text);
+  assert.equal(archive.kind, "agefreighter-readiness-removal-v2");
+  assert.deepEqual(archive.receipt, f.receipt);
+  assert.deepEqual(archive.observation.currentReadiness.receipt, f.record.readinessReceipts![1]);
+  assert.equal(archive.observation.currentReadiness.command.id, f.currentCommand.id);
+  assert.equal(archive.observation.vm.power, "PowerState/running");
+  assert.equal(plan.expiresAt, Date.parse(f.record.guestReady!.checkedAt) + 300_000);
+  const next = await submitReceiptRemoval(f.io, f.record, plan, true);
+  assert.deepEqual(next.readinessReceipts, f.record.readinessReceipts);
+  assert.deepEqual(next.guestReady, f.record.guestReady);
+  assert.deepEqual(next.guestCommand, f.record.guestCommand);
+});
+
+for (const fault of ["missing", "stale", "future", "busy", "disk", "swap", "oom", "artifact", "different-boot", "unsealed",
+  "status-pointer", "pending", "missing-output", "changed-output", "future-end", "unknown-history", "deployment", "unreconciled-removal"] as const) {
+  test(`independent fresh readiness gate refuses ${fault}`, async () => {
+    const f = removalFixture(), ready = f.record.guestReady!, live = f.currentCommand.properties.instanceView;
+    if (fault === "missing") delete f.record.guestReady;
+    if (fault === "stale") ready.checkedAt = new Date(Date.now() - 301_000).toISOString();
+    if (fault === "future") ready.checkedAt = new Date(Date.now() + 60_000).toISOString();
+    if (fault === "busy") ready.health = { ...ready.health!, idle: false };
+    if (fault === "disk") ready.health = { ...ready.health!, storageUsedPercent: 80 };
+    if (fault === "swap") ready.health = { ...ready.health!, swapUsedBytes: 1 };
+    if (fault === "oom") ready.health = { ...ready.health!, oomEvents: 1 };
+    if (fault === "artifact") f.record.artifact.sha256 = "c".repeat(64);
+    if (fault === "different-boot") {
+      ready.bootId = op;
+      f.record.readinessReceipts = [f.receipt];
+      Object.assign(f.record, retainReadinessReceipt(f.record));
+      live.output = JSON.stringify({ ...JSON.parse(live.output), bootId: op });
+    }
+    if (fault === "unsealed") f.record.readinessReceipts = [f.receipt];
+    if (fault === "status-pointer") f.record.guestCommand!.action = "status";
+    if (fault === "pending") live.executionState = "Pending";
+    if (fault === "missing-output") delete live.output;
+    if (fault === "changed-output") live.output = live.output.replace("abcdef", "fedcba");
+    if (fault === "future-end") live.endTime = new Date(Date.now() + 60_000).toISOString();
+    if (fault === "unknown-history") f.record.assessmentHistory = [{ phase: "unknown" } as any];
+    if (fault === "deployment") f.record.storageDeployment = { phase: "submitted" } as any;
+    if (fault === "unreconciled-removal") f.record.readinessRemovals = [{ commandId: "another", phase: "unknown" } as any];
+    await assert.rejects(f.preview());
+    assert.ok(!f.events.some(e => ["archive", "persist", "DELETE"].includes(e)));
+  });
+}
+
+test("latest readiness cannot be selected for removal even when its live proof succeeds", async () => {
+  const f = removalFixture();
+  await assert.rejects(previewReceiptRemoval(f.io, f.record, f.currentCommand.id, binding), /still referenced/);
+  assert.ok(!f.events.includes("DELETE"));
+});
+
+test("historical Pending without timestamps or output stays blocked despite fresh current idle proof", async () => {
+  const f = removalFixture();
+  f.command.properties.instanceView = { executionState: "Pending", exitCode: 0 };
+  await assert.rejects(f.preview(), /pending or not proven successful/);
+  assert.ok(!f.events.some(e => ["archive", "persist", "DELETE"].includes(e)));
+});
+
+for (const stage of ["approval", "archive"] as const) for (const changed of ["candidate-pending", "current-pending", "current-metadata", "current-receipt", "vm-stopped"] as const) {
+  test(`${changed} during ${stage} prevents deletion`, async () => {
+    const f = removalFixture(), plan = await f.preview();
+    const change = () => {
+      if (changed === "candidate-pending") f.command.properties.instanceView = { executionState: "Pending", exitCode: 0 };
+      if (changed === "current-pending") f.currentCommand.properties.instanceView.executionState = "Pending";
+      if (changed === "current-metadata") f.currentCommand.tags = { changed: "yes" };
+      if (changed === "current-receipt") f.record.readinessReceipts![1]!.sha256 = "c".repeat(64);
+      if (changed === "vm-stopped") f.vm.properties.instanceView.statuses[0].code = "PowerState/deallocated";
+    };
+    if (stage === "approval") change();
+    else { const retain = f.io.retain; f.io.retain = async (m, t) => { await retain(m, t); change(); }; }
+    await assert.rejects(submitReceiptRemoval(f.io, f.record, plan, true));
+    assert.ok(!f.events.includes("DELETE"));
+    assert.ok(!f.events.includes("persist"));
+  });
+}
+
 test("bootstrap-aware successful readiness has its exact script bound without admitting pending output", async () => {
   const f=removalFixture();f.command.properties.source.script=guestReadinessScript;
   const plan=await f.preview();
@@ -76,14 +164,14 @@ test("bootstrap-aware successful readiness has its exact script bound without ad
   assert.ok(!f.events.includes("DELETE"));
 });
 
-for (const fault of ["referenced", "readiness", "active", "unknown", "running-vm", "owner", "vm-instance", "pending", "updating", "failed", "wrong-output", "unknown-field", "foreign", "script", "late-run", "secret-parameter"] as const) {
+for (const fault of ["referenced", "readiness", "active", "unknown", "deallocated-vm", "owner", "vm-instance", "pending", "updating", "failed", "wrong-output", "unknown-field", "foreign", "script", "late-run", "secret-parameter"] as const) {
   test(`removal admission refuses ${fault}`, async () => {
     const f = removalFixture(), p = f.command.properties;
     if (fault === "referenced") f.record.guestCommand = f.receipt.command;
     if (fault === "readiness") f.record.guestReady = f.receipt.readiness;
     if (fault === "active") f.record.migration = { phase: "running" } as any;
     if (fault === "unknown") f.record.upgrade = { phase: "unknown" } as any;
-    if (fault === "running-vm") f.vm.properties.instanceView.statuses[0].code = "PowerState/running";
+    if (fault === "deallocated-vm") f.vm.properties.instanceView.statuses[0].code = "PowerState/deallocated";
     if (fault === "owner") f.vm.tags.workflow = op;
     if (fault === "vm-instance") delete f.vm.properties.vmId;
     if (fault === "pending") p.instanceView.executionState = "Pending";
@@ -157,6 +245,33 @@ test("resource reappearance invalidates an earlier absence observation without d
   const observed = await reconcileReceiptRemoval(f.io, next, plan.commandId);
   assert.equal(observed.readinessRemovals![0]!.phase, "unknown");
   assert.equal(f.events.filter(e => e === "DELETE").length, 1);
+});
+
+test("legacy v1 intent still reconciles by GET with compute stopped and no fresh readiness", async () => {
+  const f = removalFixture(), plan = await f.preview(), archive = JSON.parse(plan.text);
+  archive.kind = "agefreighter-readiness-removal-v1";
+  delete archive.observation.currentReadiness;
+  archive.observation.vm.power = "PowerState/deallocated";
+  const text = JSON.stringify(archive), manifest = { ...plan.manifest, bytes: Buffer.byteLength(text), sha256: createHash("sha256").update(text).digest("hex") };
+  await f.io.retain(manifest, text);
+  f.record.readinessRemovals = [{ commandId: plan.commandId, receiptSHA256: plan.receiptSHA256, archive: manifest,
+    accountBinding: binding, submittedAt: new Date().toISOString(), phase: "unknown" }];
+  f.vm.properties.instanceView.statuses[0].code = "PowerState/deallocated";
+  delete f.record.guestReady;
+  f.absent(); const before = f.events.length;
+  const next = await reconcileReceiptRemoval(f.io, f.record, plan.commandId);
+  assert.equal(next.readinessRemovals![0]!.phase, "absent");
+  assert.deepEqual(f.events.slice(before), ["guard", "read-archive", "GET-command", "persist"]);
+  assert.ok(!f.events.includes("DELETE"));
+});
+
+test("a legacy v1 review cannot authorize a new removal", async () => {
+  const f = removalFixture(), plan = await f.preview(), archive = JSON.parse(plan.text);
+  archive.kind = "agefreighter-readiness-removal-v1";
+  plan.text = JSON.stringify(archive);
+  plan.manifest = { ...plan.manifest, bytes: Buffer.byteLength(plan.text), sha256: createHash("sha256").update(plan.text).digest("hex") };
+  await assert.rejects(submitReceiptRemoval(f.io, f.record, plan, true), /approved evidence/);
+  assert.ok(!f.events.some(e => ["archive", "persist", "DELETE"].includes(e)));
 });
 
 test("malformed guest output never leaks its contents into the UI error", async () => {

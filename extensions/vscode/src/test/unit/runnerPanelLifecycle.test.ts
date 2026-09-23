@@ -71,6 +71,7 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
     "./sourceCredentialPanel": {},
     "./runnerReceiptsPanel": {},
     "./runnerReceiptRemovalPanel": {},
+    "./runnerLockRecoveryPanel": {},
     "./developmentRunner": {}, "./core/runnerPlacement": placement
   };
   const output = {exports: {registerRunnerMigration: (_c: unknown, _o: unknown) => {}}};

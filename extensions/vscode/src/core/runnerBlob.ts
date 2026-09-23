@@ -5,6 +5,23 @@ const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const sha = /^[a-f0-9]{64}$/;
 export const maxReportBytes = 4 * 1024 * 1024;
 export interface ReportManifest { operation: string; sha256: string; bytes: number }
+export type ReportRejectionCategory = "http-status" | "missing-body" | "content-encoding" | "length" | "sha256" | "json" | "transport";
+const rejectionMessages: Record<ReportRejectionCategory, string> = {
+  "http-status": "Report response did not have HTTP status 200.",
+  "missing-body": "Report response had no body.",
+  "content-encoding": "Report response used an unexpected content encoding.",
+  length: "Report length or SHA-256 does not match independent guest evidence (length).",
+  sha256: "Report length or SHA-256 does not match independent guest evidence (SHA-256).",
+  json: "Verified report is not a UTF-8 JSON object.",
+  transport: "Report transport did not complete."
+};
+/** Closed categories and fixed text only: never retain a URL, SAS, or transport cause. */
+export class ReportRejectionError extends Error {
+  constructor(readonly category: ReportRejectionCategory, downloaded = false) {
+    super(`${downloaded ? "Report download could not be verified; evidence remains incomplete. No source operation was replayed. " : ""}${rejectionMessages[category]}`);
+    this.name = "ReportRejectionError";
+  }
+}
 export interface ReportTransfer extends ReportManifest {
   /** Public identity only, never the SAS query string. */
   blob: string;
@@ -53,12 +70,13 @@ export function reportManifest(value: ReportManifest): ReportManifest {
 /** Retain original JSON bytes: parsing/re-serialization can lose int64 values. */
 export function verifyReportBytes(data: Uint8Array, expected: ReportManifest): string {
   reportManifest(expected);
-  if (data.byteLength !== expected.bytes || createHash("sha256").update(data).digest("hex") !== expected.sha256) throw new Error("Report length or SHA-256 does not match independent guest evidence.");
+  if (data.byteLength !== expected.bytes) throw new ReportRejectionError("length");
+  if (createHash("sha256").update(data).digest("hex") !== expected.sha256) throw new ReportRejectionError("sha256");
   try {
     const text = new TextDecoder("utf-8", { fatal: true }).decode(data);
     object(JSON.parse(text));
     return text;
-  } catch { throw new Error("Verified report is not a UTF-8 JSON object."); }
+  } catch { throw new ReportRejectionError("json"); }
 }
 
 /** One bounded GET; no redirects, retries, ARM bearer token, or URL diagnostics. */
@@ -68,19 +86,24 @@ export async function downloadReport(raw: string, workflow: string, expected: Re
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
     const response = await fetcher(url, { method: "GET", redirect: "error", signal: AbortSignal.timeout(25000), headers: { "x-ms-version": "2023-11-03", "accept-encoding": "identity" } });
-    if (response.status !== 200 || !response.body || response.headers.has("content-encoding") && response.headers.get("content-encoding") !== "identity" ||
-      response.headers.has("content-length") && response.headers.get("content-length") !== String(expected.bytes)) {
-      await response.body?.cancel(); throw new Error();
+    const rejected: ReportRejectionCategory | undefined = response.status !== 200 ? "http-status" : !response.body ? "missing-body" :
+      response.headers.has("content-encoding") && response.headers.get("content-encoding") !== "identity" ? "content-encoding" :
+      response.headers.has("content-length") && response.headers.get("content-length") !== String(expected.bytes) ? "length" : undefined;
+    if (rejected) {
+      try { await response.body?.cancel(); } catch { /* Preserve the first rejection, never its raw transport error. */ }
+      throw new ReportRejectionError(rejected);
     }
-    reader = response.body.getReader();
+    reader = response.body!.getReader();
     const parts: Uint8Array[] = []; let bytes = 0;
     while (true) {
       const part = await reader.read(); if (part.done) break;
-      bytes += part.value.byteLength; if (bytes > expected.bytes) throw new Error();
+      bytes += part.value.byteLength; if (bytes > expected.bytes) throw new ReportRejectionError("length");
       parts.push(part.value);
     }
     return verifyReportBytes(Buffer.concat(parts), expected);
-  } catch { throw new Error("Report download could not be verified; evidence remains incomplete. No source operation was replayed."); }
-  finally { try { await reader?.cancel(); } catch { /* Never expose transport errors containing the SAS. */ } reader?.releaseLock(); }
+  } catch (error) { throw new ReportRejectionError(error instanceof ReportRejectionError ? error.category : "transport", true); }
+  finally {
+    try { await reader?.cancel(); } catch { /* Never expose transport errors containing the SAS. */ }
+    try { reader?.releaseLock(); } catch { /* Cleanup must not replace the sanitized outcome. */ }
+  }
 }
-

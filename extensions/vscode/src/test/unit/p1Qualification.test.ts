@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {readFileSync} from "node:fs";
-import {verifyP1,p1Script,p1ExportScript,assertP1Projection,parseP1Receipt,P1Qualification,p1ProfileForConfiguration,p1ProfileSpec,assertP1VerifierManifest,p1FixtureRoot} from "../../core/p1Qualification";
+import {verifyP1,p1Script,p1ExportScript,assertP1Projection,parseP1Receipt,P1Qualification,p1ProfileForConfiguration,p1ProfileSpec,assertP1VerifierManifest,p1FixtureRoot,P1RejectionError} from "../../core/p1Qualification";
 import {sourceWorkflowDraft} from "../../core/runner";
 import {buildSourceDraft} from "../../core/runnerSource";
 import {sourceForm,workflow} from "../sourceFixtures";
@@ -56,6 +56,11 @@ test("corrected reviewed PostgreSQL P1 mappings include identity properties and 
 test("P1 verifier recomputes all 64 canonical leaves and cannot trust a forged summary",()=>{
   verifyP1(JSON.stringify(report()),id);
   for(const change of [(r:any)=>r.actual.leaves.pop(),(r:any)=>r.actual.leaves[0].sha256="a".repeat(64),(r:any)=>r.actual.leaves[0].rows++,(r:any)=>r.actual.jobId="foreign",(r:any)=>r.expected.rootSha256="a".repeat(64),(r:any)=>r.readOnly=false,(r:any)=>r.actual.leaves[0].name+="\0",(r:any)=>r.comparison.status="fail"]){const r=report();change(r);assert.throws(()=>verifyP1(JSON.stringify(r),id));}
+});
+test("P1 structural rejection uses fixed categories without exposing malformed report contents",()=>{
+  for(const text of ['{"private-secret":',"[]","null",JSON.stringify({...report(),comparison:[]})]){
+    assert.throws(()=>verifyP1(text,id),error=>error instanceof P1RejectionError&&error.category==="json-shape"&&!String(error.stack).includes("private-secret")&&!("cause" in error));
+  }
 });
 test("P1 execution and just-in-time export are separate and preserve the pinned loader",()=>{
   const r=sourceWorkflowDraft(id,{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:"subnet",size:"Standard_D4s_v5",source:{type:"csv",location:"local"}});

@@ -254,7 +254,7 @@ verify their checksum and GitHub build-provenance attestation before use.
     require reconciliation, not resubmission. New/changed jobs, active workers,
     stale checkpoints, rejected rows and unhealthy guests block admission.
     **Live GUI/Azure recovery qualification remains pending.** A retained desktop
-    crash lock still requires operator review; it is not automatically removed.
+    crash lock still requires explicit local review; it is not automatically removed.
     Counts verification is not the separate full P1 canonical qualification.
 
 Workflow metadata is held in extension global storage, without source passwords,
@@ -360,10 +360,13 @@ without a sealed receipt are not adopted automatically.
 
 **Archiving alone does not free command slots or authorize deletion.** For a
 separate review, use **AGEFreighter: Review / Reconcile Readiness Control Removal**.
-It requires an already-deallocated, owned VM, no active/uncertain local operation,
-an unreferenced sealed readiness receipt, and matching current ARM success.
+It requires an already-running, owned VM, no active/uncertain local operation,
+an unreferenced sealed readiness receipt and a separate newer readiness receipt
+from the same boot. Both must match current successful ARM evidence. The newer
+receipt must show an idle, healthy guest with the pinned installation, observed
+within five minutes; re-reading old output does not renew that time limit.
 It will not start/stop a VM for cleanup. Pending/Updating ARM evidence blocks it,
-including transient instance views from stopped VMs. Legacy records are not
+including missing historical instance views after a restart. Legacy records are not
 adopted, and migration/verification commands cannot be selected for deletion.
 
 After a native confirmation for one exact command, the extension durably saves
@@ -379,6 +382,28 @@ If durable directory synchronization is unsupported on the extension host,
 removal fails closed. That host requires separate qualification; the archive
 command remains available. This candidate has local regression coverage only;
 installed-GUI/Azure cleanup qualification is still pending.
+
+### Recover an interrupted desktop lock
+
+Use **AGEFreighter: Review Interrupted Runner Lock** only after an interrupted
+extension operation. Newly created locks identify the local process and OS boot
+session. Recovery requires proof that this process no longer exists in the same
+boot session, unchanged workflow/lock evidence, and an explicit confirmation
+within five minutes. Original lock metadata is durably archived before removal;
+workflow records and reports are preserved. Live, uncertain, legacy, malformed
+or different-boot locks remain blocked for investigation.
+
+This action is local only. It does not cancel, reconnect, resume or replay an
+Azure operation: the remote worker may still be running. After recovery, review
+and reconcile the retained operation separately before approving further work.
+A crashed lock-acquisition gate also remains blocked; it is not automatically
+removed. Actual cloud crash/recovery qualification is separate from the isolated
+local Extension Host regression tests.
+
+Hash-valid JSON that fails full P1 canonical validation remains retained as
+rejected evidence, not an accepted result. Import errors identify bounded
+rejection categories without exposing capability URLs or report contents.
+No new PASS tab or successful qualification state is created by a rejected import.
 
 - [AGEFreighter documentation](https://github.com/rioriost/agefreighter/tree/main/docs)
 - [Configuration reference](https://github.com/rioriost/agefreighter/blob/main/docs/reference/configuration.md)

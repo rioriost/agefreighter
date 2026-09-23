@@ -2,7 +2,18 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest08:58UTC: **B03 PostgreSQL other-cloud GUI migration and full canonical PASS**.
+Latest09:23UTC: **B09/B10/B12 parallel implementation and local validation PASS**.
+Three Astra high workers and Astra xhigh review completed the running-readiness
+control-removal gate, explicit archived crash-lock recovery and typed rejected
+P1 import evidence. One supervisor-found lock-contention race was fixed.
+608unit tests,14actual-Go contracts,25real isolated VS Code1.139.0 tests and
+two actual isolated SIGKILL/recovery pairs PASS. All91operator files unchanged;
+no Azure mutation, normal-profile installation or signed-in cloud fault test.
+B09/B10/B12 remain partial, broader ledger6pass/6partial. Next: reviewed candidate
+installation and scoped live approval. See
+[supervised batch](b09-b10-b12-parallel-20260923.md).
+
+Prior08:58UTC: **B03 PostgreSQL other-cloud GUI migration and full canonical PASS**.
 Installed GUI imported the retained23224byte result and displayed full P1 PASS.
 Independent comparison matched all5.6M typed records,18labels,64ranges and
 recomputed expected/actual canonical root. No migration/verifier replay.

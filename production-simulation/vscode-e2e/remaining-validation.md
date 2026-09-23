@@ -2,7 +2,15 @@
 
 Updated: 2026-09-23 JST. Status: **not release-qualified; B01/B03 full canonical PASS; 6/12 defined branches pass, 6 partial**.
 
-Latest September23 08:58UTC: PostgreSQL other-cloud GUI selection has complete
+Latest September23 09:23UTC: supervised B09/B10/B12 implementation and local
+validation PASS:608unit,14actual-Go contracts,25isolated real-host cases and two
+actual isolated SIGKILL/recovery pairs. One contention race found by Astra xhigh
+was corrected. All91operator files unchanged; no normal-profile installation or
+real Azure mutation. Native running-readiness removal, signed-in crash/native
+recovery and fresh invalid-report transfer cases remain unqualified. Ledger stays
+6pass/6partial. See [parallel batch](b09-b10-b12-parallel-20260923.md).
+
+Prior September23 08:58UTC: PostgreSQL other-cloud GUI selection has complete
 migration/counts and full5.6M-record/18label/64range canonical PASS, including
 independently recomputed root. Same retained result imported after approved
 five-control manual maintenance; no verification/migration replay. Source/runner
@@ -500,10 +508,10 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
-| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory recorded; Cosmos cross-window/trust guards and controller stale-preview/lock/reconciliation tests pass; native cancellation checks preserve records; actual successful readiness archive, receipt-selector Cancel and idempotent repeat pass with unchanged prior files | Other approval surfaces/unrepresented faults and live record-removal/recovery remain unqualified; local archive does not authorize deletion | partial |
-| B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and full canonical PASS remain accepted; actual isolated Extension Host SIGKILL now preserves archive/intent and crash lock at two control-removal boundaries, with inert Azure adapters and GET-only controller checks | Forced crash during signed-in active Azure operation and native operator-reviewed crash-lock recovery remain unqualified | partial |
+| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Approval inventory/native cancellation/local archive evidence retained; September23 running-only separate fresh same-boot readiness gate, v2 archive and v1 GET-only compatibility pass77focused tests; historical Pending remains refused | Other approval surfaces/unrepresented faults and live record-removal/recovery remain unqualified; local archive does not authorize deletion | partial |
+| B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and canonical PASS retained; September23 actual isolated VS Code1.139.0 SIGKILL at two boundaries preserves archive/intent, refuses implicit acquisition and passes scripted explicit same-boot dead-owner lock recovery;44focused tests pass | Forced crash during signed-in active Azure operation and actual native operator-reviewed recovery remain unqualified; scripted local recovery is not an operator click | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
-| B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels pass;20production P1 controller tests and12new real-host retained-file cases pass, including11negative reports with no new PASS tab/persistence/redownload; signed-in installed candidate refuses retained P1 failure without retry/new PASS | Other invalid-import/transfer cases still lack signed-in installed-GUI evidence; real isolated host with synthetic reports/inert ARM is not an Azure transfer fault | partial |
+| B12 | Invalid verification must never be PASS | Counts/isolated-host negative panels and signed-in retained-failure refusal retained; September23 typed sanitized rejection/no-replay coverage65focused tests PASS;12real VS Code1.139.0 retained cases include11negatives with no new PASS/persistence/redownload and preserved bytes | Other invalid-import/transfer cases still lack signed-in installed-GUI evidence; real isolated host with synthetic reports/inert ARM is not an Azure transfer fault | partial |
 
 ## First local regression batch
 

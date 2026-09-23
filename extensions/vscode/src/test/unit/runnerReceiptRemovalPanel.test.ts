@@ -12,15 +12,16 @@ function fixture() {
   const commandId = "/a-vm/runCommands/af-22222222-2222-4222-8222-222222222222";
   let record: any = { id, vmId: "a-vm", input: { subscriptionId: id, resourceGroup: "trial" }, readinessReceipts: [{ command: { id: commandId } }] };
   let answer: string | undefined = "Archive and remove this record", duringConfirm = () => {}, currentBinding = binding, failSync = false;
-  const workspace = { isTrusted: true }, events: string[] = [], messages: string[] = [];
-  const store = { list: async () => [record], read: async () => structuredClone(record), exclusive: async (_id: string, fn: () => unknown) => { events.push("lock"); return fn(); },
+  let empty = false;
+  const workspace = { isTrusted: true }, events: string[] = [], messages: string[] = [], confirmations: string[] = [];
+  const store = { list: async () => empty ? [] : [record], read: async () => structuredClone(record), exclusive: async (_id: string, fn: () => unknown) => { events.push("lock"); return fn(); },
     retainReport: async () => { events.push("archive"); }, readReport: async () => "archive", syncEvidenceDirectory: async () => { events.push("sync-dir"); if (failSync) throw Error("sync unsupported"); } };
   const control = { persist: async (r: any) => { events.push("persist"); record = r; } };
   const azure = { runnerAccountBinding: async () => currentBinding, removeRunnerReadiness: async () => { events.push("DELETE"); } };
   const plan = { commandId, receiptSHA256: "a".repeat(64) };
   const modules: Record<string, unknown> = { vscode: { workspace, window: {
     showQuickPick: async (items: any[]) => items[0],
-    showWarningMessage: async () => { events.push("confirm"); duringConfirm(); return answer; },
+    showWarningMessage: async (_message: string, options: { detail: string }) => { events.push("confirm"); confirmations.push(options.detail); duringConfirm(); return answer; },
     showInformationMessage: async (m: string) => { messages.push(m); }
   } }, "./core/runnerReceiptRemoval": {
     previewReceiptRemoval: async () => { events.push("preview"); return plan; },
@@ -32,13 +33,23 @@ function fixture() {
   } };
   const output = { exports: { manageReadinessRemoval: async (_control: unknown, _store: unknown, _azure: unknown) => {} } }, native = createRequire(__filename);
   new Script(code).runInNewContext({ module: output, exports: output.exports, Error, require: (n: string) => n in modules ? modules[n] : n.startsWith("node:") ? native(n) : {} });
-  return { run: () => output.exports.manageReadinessRemoval(control, store, azure), workspace, events, messages,
+  return { run: () => output.exports.manageReadinessRemoval(control, store, azure), workspace, events, messages, confirmations, empty: () => { empty = true; },
     cancel: () => { answer = undefined; }, duringConfirm: (fn: () => void) => { duringConfirm = fn; }, changeAccount: () => { currentBinding = "c".repeat(64); }, failSync: () => { failSync = true; },
     intent: (phase: string) => { record.readinessRemovals = [{ commandId, accountBinding: binding, phase }]; } };
 }
 
 test("native cancellation does not archive, persist or delete", async () => {
   const f = fixture(); f.cancel(); await f.run(); assert.deepEqual(f.events, ["preview", "confirm"]);
+  assert.match(f.confirmations[0]!, /already be running/);
+  assert.match(f.confirmations[0]!, /separate newer same-boot readiness/);
+  assert.match(f.confirmations[0]!, /Pending or changed evidence blocks/);
+  assert.match(f.confirmations[0]!, /cannot be restored/);
+  assert.match(f.confirmations[0]!, /extend an approved runtime window/);
+});
+test("native empty state explains sealed-receipt requirement without review or mutation", async () => {
+  const f = fixture(); f.empty(); await f.run();
+  assert.deepEqual(f.events, []);
+  assert.match(f.messages[0]!, /No sealed readiness receipts/);
 });
 for (const fault of ["trust", "account", "directory-sync"] as const) test(`native removal blocks ${fault} after confirmation`, async () => {
   const f = fixture(); f.duringConfirm(() => { if (fault === "trust") f.workspace.isTrusted = false; if (fault === "account") f.changeAccount(); if (fault === "directory-sync") f.failSync(); });

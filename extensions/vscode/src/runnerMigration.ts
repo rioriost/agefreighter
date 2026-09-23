@@ -15,6 +15,7 @@ import { continueRunnerExecution } from "./runnerExecutionPanel";
 import { requirePanelWorkflow } from "./core/runnerPanelBinding";
 import { archiveRunnerReadiness } from "./runnerReceiptsPanel";
 import { manageReadinessRemoval } from "./runnerReceiptRemovalPanel";
+import { reviewRunnerCrashLock } from "./runnerLockRecoveryPanel";
 import { sourceCredential, forgetSourceCredential } from "./sourceCredentialPanel";
 
 
@@ -23,6 +24,10 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
   const azure = new AzureSession();
   let panel: vscode.WebviewPanel | undefined;
   const store = new RunnerStore(join(context.globalStorageUri.fsPath, "runner-v2"));
+  context.subscriptions.push(vscode.commands.registerCommand("agefreighter.reviewRunnerCrashLock", async () => {
+    try { await reviewRunnerCrashLock(store); }
+    catch { await vscode.window.showErrorMessage("Interrupted runner lock could not be recovered. Evidence was preserved and no Azure operation was replayed."); }
+  }));
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.sourceCredential", async () => {
     try {
       if(!vscode.workspace.isTrusted)throw new Error("Trust this workspace before managing source credentials.");

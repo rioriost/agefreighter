@@ -82,6 +82,10 @@
     },
     "commands": [
       {
+        "command": "agefreighter.reviewRunnerCrashLock",
+        "title": "AGEFreighter: Review Interrupted Runner Lock"
+      },
+      {
         "command": "agefreighter.manageReadinessRemoval",
         "title": "AGEFreighter: Review / Reconcile Readiness Control Removal"
       },

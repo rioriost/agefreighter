@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
-import { mkdir, open, readFile, stat } from "node:fs/promises";
+import { mkdir, open, readFile, readdir, stat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { RunnerStore, RunnerLockedError } from "../../guided/runnerStore";
@@ -37,10 +37,20 @@ export async function run(): Promise<void> {
   record.guestReady = { bootId: id, cliVersion: "2.4.0", archiveSha256: record.artifact.sha256, commit: "abcdef", checkedAt: record.guestCommand.submittedAt, health: { idle: true, storageUsedPercent: 12, swapUsedBytes: 0, oomEvents: 0 } };
   record = retainReadinessReceipt(record);
   const receipt = record.readinessReceipts![0]!;
-  delete record.guestCommand; delete record.guestReady;
-  const vm = { id: record.vmId, location: "japaneast", zones: ["1"], tags: { application: "agefreighter", workflow: id, purpose: "discovery-and-migration" }, properties: { vmId: id, provisioningState: "Succeeded", instanceView: { statuses: [{ code: "PowerState/deallocated" }] } } };
+  // A separate fresh same-boot readiness control is required for historical
+  // control removal. These running/healthy observations are synthetic only.
+  const currentOperation = "33333333-3333-4333-8333-333333333333";
+  const checkedAt = new Date(Date.now() - 10_000).toISOString();
+  record.guestCommand = { ...receipt.command, id: `${record.vmId}/runCommands/af-${currentOperation}`, operation: currentOperation, submittedAt: checkedAt };
+  record.guestReady = { ...receipt.readiness, checkedAt };
+  record = retainReadinessReceipt(record);
+  const vm = { id: record.vmId, location: "japaneast", zones: ["1"], tags: { application: "agefreighter", workflow: id, purpose: "discovery-and-migration" }, properties: { vmId: id, provisioningState: "Succeeded", instanceView: { statuses: [{ code: "PowerState/running" }] } } };
   const command = { id: receipt.command.id, location: "japaneast", properties: { source: { script: guestDispatchScript }, timeoutInSeconds: 60, asyncExecution: false, provisioningState: "Succeeded", instanceView: {
     executionState: "Succeeded", exitCode: 0, startTime: "2026-09-18T05:00:01Z", endTime: "2026-09-18T05:00:02Z", error: "", output: JSON.stringify({ version: 1, ready: true, os: "linux", architecture: "amd64", bootId: id, cliVersion: "2.4.0", archiveSha256: record.artifact!.sha256, commit: "abcdef", health: receipt.readiness.health }) } } };
+  const currentCommand = structuredClone(command);
+  currentCommand.id = record.guestCommand!.id;
+  currentCommand.properties.instanceView.startTime = checkedAt;
+  currentCommand.properties.instanceView.endTime = new Date(Date.parse(checkedAt) + 1000).toISOString();
   const events: string[] = [];
   async function crash(): Promise<never> {
     const saved = await store.read(id), intent = saved.readinessRemovals![0]!;
@@ -59,7 +69,9 @@ export async function run(): Promise<void> {
       sleep: async () => {}, list: async () => { throw Error("Unexpected list"); },
       persist: async r => { await store.write(r); await store.syncEvidenceDirectory(); if (phase === "crash" && point === "before-dispatch") await crash(); },
       request: async (_sub, path, method = "GET") => {
-        assert.equal(method, "GET"); events.push(path.includes("runCommands") ? "GET-command" : "GET-vm");
+        assert.equal(method, "GET");
+        if (path.startsWith(currentCommand.id + "?")) { events.push("GET-current-readiness"); return { status: 200, value: currentCommand }; }
+        events.push(path.includes("runCommands") ? "GET-command" : "GET-vm");
         return path.includes("runCommands") ? { status: phase === "recover" && point === "after-dispatch" ? 404 : 200, value: command } : { status: 200, value: vm };
       }
     },
@@ -81,12 +93,36 @@ export async function run(): Promise<void> {
   await assert.rejects(store.exclusive(id, async () => { throw Error("Must not enter crash-locked action"); }), RunnerLockedError);
   assert.ok((await stat(join(root, "runner-v2", `${id}.lock`))).isFile());
   assert.equal(events.length, 0, "The native lock boundary permits no request");
-  // Separately test the pure recovery controller against read-only fixtures.
-  // Do NOT remove the crash lock or persist over it to simulate operator approval.
+  // Separately test the pure recovery controller while the crash lock remains.
   io.control.persist = async () => { events.push("inert-persist"); };
   const result = await reconcileReceiptRemoval(io, restored, intent.commandId);
   assert.equal(result.readinessRemovals![0]!.phase, point === "after-dispatch" ? "absent" : "submitted");
   assert.deepEqual(events, point === "after-dispatch" ? ["GET-command", "inert-persist"] : ["GET-command"]);
   assert.equal(sha(await readFile(join(root, "runner-v2", `${id}.json`), "utf8")), marker.recordSHA256);
-  await sealed("recovery.json", { pass: true, point, pid: process.pid, vscode: vscode.version, crashLockPreserved: true, archiveSHA256: marker.archiveSHA256, recoveryEvents: events, cloudRequests: 0 });
+  const controllerEvents = [...events];
+  // Explicit scripted approval exercises the production local recovery store.
+  // This is not a real operator click or signed-in active-cloud crash trial.
+  const lockBytes = await readFile(join(root, "runner-v2", `${id}.lock`), "utf8");
+  const cancelledReview = await store.reviewCrashLock(id);
+  assert.equal(cancelledReview.owner.pid, marker.pid);
+  await store.recoverCrashLock(cancelledReview, false);
+  assert.equal(await readFile(join(root, "runner-v2", `${id}.lock`), "utf8"), lockBytes);
+  const review = await store.reviewCrashLock(id);
+  await store.recoverCrashLock(review, true);
+  await assert.rejects(stat(join(root, "runner-v2", `${id}.lock`)), { code: "ENOENT" });
+  assert.deepEqual(events, controllerEvents, "Local lock recovery cannot contact even the inert ARM adapter");
+  assert.equal(sha(await readFile(join(root, "runner-v2", `${id}.json`), "utf8")), marker.recordSHA256);
+  assert.equal(sha(await store.readReport(id, intent.archive)), marker.archiveSHA256);
+  const lockArchives = (await readdir(join(root, "runner-v2"))).filter(name => name.includes(".recovered-lock-"));
+  assert.equal(lockArchives.length, 1);
+  const recoveredArchive = JSON.parse(await readFile(join(root, "runner-v2", lockArchives[0]!), "utf8"));
+  assert.equal(recoveredArchive.originalLock, lockBytes);
+  assert.equal(recoveredArchive.review.lockSHA256, sha(lockBytes));
+  const after = await store.exclusive(id, () => store.read(id));
+  assert.equal(after.readinessRemovals![0]!.phase, "submitted", "Recovery must not replay or rewrite the intent");
+  assert.equal(sha(await readFile(join(root, "runner-v2", `${id}.json`), "utf8")), marker.recordSHA256);
+  await sealed("recovery.json", { pass: true, point, pid: process.pid, vscode: vscode.version,
+    crashLockPreservedBeforeExplicitRecovery: true, scriptedLocalLockRecovery: true, nativeOperatorConfirmationTested: false,
+    lockArchive: lockArchives[0], lockSHA256: sha(lockBytes), recordSHA256: marker.recordSHA256,
+    archiveSHA256: marker.archiveSHA256, recoveryEvents: controllerEvents, cloudRequests: 0 });
 }

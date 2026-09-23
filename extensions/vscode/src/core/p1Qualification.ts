@@ -2,6 +2,7 @@ import {createHash} from "node:crypto";
 import {object,RunnerArtifact,RunnerRecord} from "./runner";
 import {developmentDownload} from "./runnerDevelopment";
 import {diagnosticGate} from "./p1Diagnostic";
+import {ReportManifest,reportManifest} from "./runnerBlob";
 
 export const p1Root="bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70";
 export const p1FixtureRoot="f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f";
@@ -20,6 +21,30 @@ export function assertP1VerifierManifest(raw:Record<string,unknown>,profile:P1Pr
   if(raw.purpose!=="p1-read-only-verifier"||raw.fixtureRoot!==p1FixtureRoot||raw.canonicalRoot!==spec.root||(raw.qualificationProfile??"raw-id")!==profile||(raw.canonicalVersion??(profile==="raw-id"?spec.version:""))!==spec.version||typeof raw.archive!=="string"||!/^[A-Za-z0-9_.-]+\.tar\.gz$/.test(raw.archive))throw new Error("Not the reviewed P1 verifier profile.");
 }
 export interface P1Qualification {profile?:P1Profile;operation:string;commandId:string;jobId:string;artifact:RunnerArtifact;startedAt:string;phase:"submitted"|"unknown"|"verified"|"exporting"|"exported"|"pass"|"failed";exportCommandId?:string;sha256?:string;bytes?:number;replacesFailedOperation?:string}
+
+export type P1RejectionCategory="json-shape"|"profile"|"identity-outcome"|"coverage"|"range"|"canonical-root"|"leaf";
+const p1RejectionMessages:Record<P1RejectionCategory,string>={
+  "json-shape":"P1 report is not a JSON object with the required object fields.",
+  profile:"P1 report profile differs from the reviewed source.",
+  "identity-outcome":"P1 report identity or outcome differs.",
+  coverage:"P1 coverage is incomplete.",
+  range:"Invalid P1 range.",
+  "canonical-root":"P1 canonical root mismatch.",
+  leaf:"P1 leaf mismatch."
+};
+export class P1RejectionError extends Error {
+  constructor(readonly category:P1RejectionCategory){super(p1RejectionMessages[category]);this.name="P1RejectionError";}
+}
+/** The immutable report is evidence of a rejection, never an accepted result.
+ * Contains the guest seal and reviewed identity, not report contents or SAS. */
+export class P1RejectedImportError extends P1RejectionError {
+  readonly evidence:Readonly<{status:"rejected";retained:true;manifest:Readonly<ReportManifest>;jobId:string;profile:P1Profile}>;
+  constructor(category:P1RejectionCategory,manifest:ReportManifest,jobId:string,profile:P1Profile){
+    super(category);this.name="P1RejectedImportError";
+    this.evidence=Object.freeze({status:"rejected",retained:true,manifest:Object.freeze(reportManifest(manifest)),jobId,profile});
+    this.message+=` Rejected evidence is retained; it is not an accepted P1 result. Category: ${category}.`;
+  }
+}
 
 export function requalificationGate(r:RunnerRecord):void {
   diagnosticGate(r);
@@ -65,19 +90,20 @@ export function assertP1Projection(configuration:unknown):void{
 /** Recompute the canonical root from every leaf; do not trust a summary pass. */
 export function verifyP1(text:string,jobId:string,profile:P1Profile="raw-id"):void{
   const spec=p1ProfileSpec(profile);
-  const d=object(JSON.parse(text)),e=object(d.expected),a=object(d.actual),c=object(d.comparison);
-  if((d.qualificationProfile??"raw-id")!==profile)throw new Error("P1 report profile differs from the reviewed source.");
-  if(d.version!==1 || d.jobId!==jobId || d.readOnly!==true || a.jobId!==jobId || e.source!=="fixture" || a.source!=="apache-age" || c.status!=="pass")throw new Error("P1 report identity or outcome differs.");
+  let d:Record<string,unknown>,e:Record<string,unknown>,a:Record<string,unknown>,c:Record<string,unknown>;
+  try{d=object(JSON.parse(text));e=object(d.expected);a=object(d.actual);c=object(d.comparison);}catch{throw new P1RejectionError("json-shape");}
+  if((d.qualificationProfile??"raw-id")!==profile)throw new P1RejectionError("profile");
+  if(d.version!==1 || d.jobId!==jobId || d.readOnly!==true || a.jobId!==jobId || e.source!=="fixture" || a.source!=="apache-age" || c.status!=="pass")throw new P1RejectionError("identity-outcome");
   for(const m of [e,a]){
-    if(m.version!==1 || m.canonicalVersion!==spec.version || m.fixtureRootSha256!==p1FixtureRoot || m.rootSha256!==spec.root || m.rangeRows!==100000 || m.recordCount!==5600000 || !Array.isArray(m.leaves) || m.leaves.length!==64)throw new Error("P1 coverage is incomplete.");
+    if(m.version!==1 || m.canonicalVersion!==spec.version || m.fixtureRootSha256!==p1FixtureRoot || m.rootSha256!==spec.root || m.rangeRows!==100000 || m.recordCount!==5600000 || !Array.isArray(m.leaves) || m.leaves.length!==64)throw new P1RejectionError("coverage");
     const root=createHash("sha256");let rows=0;
-    for(const item of m.leaves){const l=object(item);
-      if(!["v","e"].includes(String(l.kind)) || typeof l.name!=="string" || !/^[A-Za-z_]+$/.test(l.name) || typeof l.sha256!=="string" || !/^[a-f0-9]{64}$/.test(l.sha256) || [l.rangeIndex,l.startKey,l.endKey,l.rows].some(v=>!Number.isSafeInteger(v)||Number(v)<0) || Number(l.rows)<1 || Number(l.rows)>100000)throw new Error("Invalid P1 range.");
+    for(const item of m.leaves){let l:Record<string,unknown>;try{l=object(item);}catch{throw new P1RejectionError("range");}
+      if(!["v","e"].includes(String(l.kind)) || typeof l.name!=="string" || !/^[A-Za-z_]+$/.test(l.name) || typeof l.sha256!=="string" || !/^[a-f0-9]{64}$/.test(l.sha256) || [l.rangeIndex,l.startKey,l.endKey,l.rows].some(v=>!Number.isSafeInteger(v)||Number(v)<0) || Number(l.rows)<1 || Number(l.rows)>100000)throw new P1RejectionError("range");
       root.update([l.kind,l.name,l.rangeIndex,l.startKey,l.endKey,l.rows,l.sha256].join("\0")+"\n");rows+=Number(l.rows);
     }
-    if(rows!==5600000 || root.digest("hex")!==spec.root)throw new Error("P1 canonical root mismatch.");
+    if(rows!==5600000 || root.digest("hex")!==spec.root)throw new P1RejectionError("canonical-root");
   }
-  for(let i=0;i<64;i++)for(const k of ["kind","name","rangeIndex","startKey","endKey","rows","sha256"]){if(object((e.leaves as unknown[])[i])[k]!==object((a.leaves as unknown[])[i])[k])throw new Error("P1 leaf mismatch.");}
+  for(let i=0;i<64;i++)for(const k of ["kind","name","rangeIndex","startKey","endKey","rows","sha256"]){if(object((e.leaves as unknown[])[i])[k]!==object((a.leaves as unknown[])[i])[k])throw new P1RejectionError("leaf");}
 }
 
 /** Isolated executable; does not replace the qualified loader installation. */

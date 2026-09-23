@@ -9,6 +9,7 @@ import { RunnerRecord, sourceWorkflowDraft } from "../../core/runner";
 import { RunnerControl } from "../../core/runnerLifecycle";
 import { reportStorageNames } from "../../core/runnerReportStorage";
 import { qualifyP1 } from "../../p1QualificationPanel";
+import { P1RejectedImportError } from "../../core/p1Qualification";
 
 // Real VS Code, production controller and on-disk store. Only ARM is an inert,
 // GET-only fixture. Synthetic target envelopes are NOT new Azure qualification.
@@ -95,8 +96,18 @@ suite("P1 retained evidence in isolated real Extension Host", () => {
     // fallback to Azure after retained-file corruption. No AzureSession exists.
     const forbidden = new Proxy({}, {get: () => {throw Error("No credentials or network adapter allowed");}});
     const execute = () => qualifyP1(forbidden as vscode.ExtensionContext, control, store, forbidden as AzureSession, id);
+    let rejectionCategory: string | undefined;
     if (scenario.error) {
-      await assert.rejects(execute(), scenario.error);
+      await assert.rejects(execute(), error => {
+        assert.ok(error instanceof Error);assert.match(error.message, scenario.error!);
+        if (!scenario.truncate && !scenario.corruptBytes) {
+          assert.ok(error instanceof P1RejectedImportError);rejectionCategory = error.category;
+          assert.deepEqual(error.evidence, {status: "rejected", retained: true,
+            manifest: {operation: id, sha256: hash(text), bytes: Buffer.byteLength(text)}, jobId: id, profile: "raw-id"});
+          assert.match(error.message, /Rejected evidence is retained; it is not an accepted P1 result/);
+        }
+        return true;
+      });
       assert.equal(persists, 0);
       assert.deepEqual(await readFile(recordPath), beforeRecord);
       assert.deepEqual(await readFile(reportPath), beforeReport);
@@ -108,7 +119,8 @@ suite("P1 retained evidence in isolated real Extension Host", () => {
     assert.equal(panels.length, scenario.error ? 0 : 1, "Only a valid canonical report may create the actual PASS tab");
     assert.equal(requests.length, 2, "Only inert storage ownership GETs; no export, download or replay");
     results.push({scenario: scenario.name, outcome: "pass", passTabs: panels.length, persists,
-      realCloudRequests: 0, inertStorageGETs: requests.length, recordPreservedOnRejection: !!scenario.error});
+      realCloudRequests: 0, inertStorageGETs: requests.length, recordPreservedOnRejection: !!scenario.error,
+      ...(rejectionCategory ? {rejectionCategory, retainedEvidenceStatus: "rejected"} : {})});
     await vscode.commands.executeCommand("workbench.action.closeAllEditors");
   });
 });
