@@ -2,6 +2,12 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
+Latest02:21UTC: user-approved old PGVM health control archived/pushed then deleted;
+reader reset completed and verified-TLS/read-only/18-table access PASS. Dated
+PGVM Keychain item is now applied/login-verified, superseding pending state below.
+Source and runner deallocated, monitor paused, all guest evidence retained.
+No post-reset inventory or migration yet; B03 PostgreSQL remains unqualified.
+
 September23 01:56UTC follow-up: approved PGVM reader reconciliation found login,
 expiry,read-only and18table access settings correct. New dated Keychain credential
 is **pending, not applied**: reset creation hit source VM's25/25managed command

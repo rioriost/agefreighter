@@ -1,8 +1,8 @@
 # B03 PostgreSQL other-cloud selection — offline preparation
 
-September23,2026. Status: **credential reuse GUI PASS; diagnostic inventory FAILED
-at snapshot-connect/authentication; exact source and runner deallocated;
-no target or migration created**.
+September23,2026. Status: **reader password reset and verified-TLS/read-only login
+PASS; exact source and runner deallocated; previous diagnostic inventory FAILED;
+no post-reset inventory, target or migration yet**.
 Latest outcome supersedes the historical preparation checkpoints below.
 This follows the completed Neo4j other-cloud simulation; it is a separate
 PostgreSQL selection and must not reuse the Neo4j credential or qualification.
@@ -450,3 +450,49 @@ with no timestamps/output,not fresh terminal proof. Source is deallocated.
 Before any approved control removal preserve current metadata/script and
 historical evidence; never delete guest evidence or preparation jobs for space.
 No removal performed; pending Keychain value remains unchanged.
+
+## September23 02:18UTC — approved control archived/removed; reset accepted
+
+User specifically approved archive/removal of the old health control and reset
+continuation. Archived full non-secret definition/current view plus historical
+evidence reference in`evidence/pgvm-health-control-archive-20260923.json`, SHA
+`9e0ed0d05f9e38da433389cc4928aed6ac845fa3d45ea83e26a72ab76d1d5d97`,
+committed/pushed`dfc9ce3` before deletion. Azure rejected deletion while VM was
+deallocated (OperationNotAllowed), so started only the source with scoped monitor
+and fixed02:22UTC shutdown,begin02:21UTC. No runner/target start.
+
+Exact control entered Deleting after the approved request; by02:18:06UTC it was
+absent and managed control count24. No other old control or guest evidence was
+removed. Same pending Keychain value was reused; the protected reset command
+was accepted once after capacity recovery. Reset script starts only the existing
+restart-disabled PostgreSQL container if required, changes only reader password,
+checks identical role attributes and verified-TLS read-only/18-table access.
+Dispatch deadline02:19UTC,guest admission deadline02:20UTC,180second command bound;
+no automatic retry. Accepted/Pending is not applied or login-verified yet.
+
+## September23 02:21UTC — reset and login verified; source deallocated
+
+Exact reset command executed02:18:36–02:18:41UTC, Succeeded/exit0 and fixed
+success marker. The same previously pending Keychain value is now **APPLIED AND
+LOGIN VERIFIED**: service`agefreighter-af-pgvm-source-agefreighter_reader-20260923`,
+account`agefreighter_reader`, endpoint10.246.1.20:5432/databasep1source. Its metadata
+was updated to distinguish verified application from pending creation. No secret
+value was printed, copied through chat, read into model context or saved in Git.
+
+`psql` encrypted the password change; login used verify-full with the existing
+CA and IP-SAN. Three assertions pass: exact user/database with read-only default,
+TLS in pg_stat_ssl, and SELECT access on all18tables. Before/after pg_roles JSON
+SHA is identical`bddecc207ed57b59b4e802f24709183cf19850b00ff53a17d3cfed03ec902bcf`.
+Reader-check SHA`bd7c10b69530b76942ffe06edc52707c82b3d2a9a0ae91a33ac51c826c0a9e41`.
+Sanitized receipt retained in`evidence/pgvm-reader-rotation-20260923.json`; guest
+evidence remains at`/var/lib/agefreighter-source/evidence/reader-reset-20260923`.
+Only the explicitly approved old health control was deleted; its full definition
+is archived. New protected reset control and guest evidence remain retained.
+
+Source deallocation requested immediately after success; independently verified
+PowerState/deallocated by02:21:04UTC, before02:22UTC bound. Runner remained
+deallocated throughout credential recovery. Scoped monitor paused after states
+confirmed. No post-reset inventory or migration has run; source-local login is
+not runner-to-source or GUI migration qualification. Next retry must use the
+new canonical PGVM item, never the PGFS or Neo4j credentials, within a reviewed
+bounded session. Broader qualification ledger remains5pass/7partial.

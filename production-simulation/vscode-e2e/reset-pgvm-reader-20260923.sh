@@ -7,11 +7,17 @@ readonly evidence=/var/lib/agefreighter-source/evidence/reader-reset-20260923
 test ! -e "$evidence"
 test "${#AF_READER_PASSWORD}" -eq 64
 [[ "$AF_READER_PASSWORD" =~ ^[a-f0-9]{64}$ ]]
-test "$(date -u +%s)" -lt 1790129100 # 2026-09-23 02:05:00 UTC
+test "$(date -u +%s)" -lt 1790130000 # 2026-09-23 02:20:00 UTC, approved continuation
 test "$(df -P /var/lib/agefreighter-source | awk 'NR==2 {gsub(/%/, "", $5);print $5}')" -lt 80
 test "$(awk '/SwapTotal:/ {print $2}' /proc/meminfo)" -eq 0
 test "$(docker inspect --format '{{.Config.Image}}' "$container")" = 'postgres:18.1@sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f'
-test "$(docker inspect --format '{{.State.Running}}' "$container")" = true
+if test "$(docker inspect --format '{{.State.Running}}' "$container")" != true; then
+  docker start "$container" >/dev/null
+fi
+for n in $(seq 1 20); do
+  docker exec "$container" pg_isready -U postgres -d p1source >/dev/null 2>&1 && break
+  sleep 1
+done
 test "$(docker exec --user postgres "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d p1source -At -c "SELECT rolcanlogin AND NOT rolsuper AND NOT rolcreaterole AND NOT rolcreatedb AND NOT rolreplication AND NOT rolbypassrls AND (rolvaliduntil IS NULL OR rolvaliduntil>now()) FROM pg_roles WHERE rolname='agefreighter_reader'")" = t
 install -d -m 0700 "$evidence"
 trap 'unset AF_READER_PASSWORD' EXIT
