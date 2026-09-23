@@ -1,6 +1,10 @@
 # B09 dedicated two-fault session — September 23
 
-## Live checkpoint — 14:49 UTC: account-only exception needs confirmation
+This is the retained preparation/setup history. Both live fault gates were
+subsequently completed in the [September24 execution](b09-live-faults-20260924.md).
+Use that record for current shutdown and cleanup status.
+
+## Historical checkpoint — 14:49 UTC: account-only exception needs confirmation
 
 The final `x8TTEC` companion is active. Its source-free retained seed is unchanged
 on activation. The normal native storage approval sent one storage deployment

@@ -1,8 +1,26 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-23 JST. Status: **not release-qualified; base routes9/9; 8/12 defined branches pass, 4 partial**.
+Updated: 2026-09-24 JST. Status: **not release-qualified; base routes9/9; 9/12 defined branches pass, 3 partial**.
 
-Latest September23 13:35UTC: **B10's remaining active-cloud crash case PASS**.
+Latest September24 JST: **B09 and B10 complete for their defined scopes**.
+B09's real deployment response withholding retained unknown after actual
+Azure201, then native GET reconciled the same deployment without PUT replay.
+The separately pinned negative archive produced actual terminal bootstrap
+failure; normal native readiness failed with exit1 and retained no guestReady,
+assessment, migration or source state. Independent final review checked90
+response-loss file seals, all three bootstrap/readiness record hashes and the
+actual returned observer script against its approved body. See the
+[response-loss receipt](evidence/b09-response-loss-20260924.json),
+[bootstrap receipt](evidence/b09-bootstrap-failure-20260924.json), and
+[finite acceptance ledger](b09-b10-b12-acceptance-20260923.md).
+Source-panel canStart=false is derived from unchanged production code and the
+retained unready record; physical UI observation is attributed to root. No source
+operation was attempted. B10's existing crash/recovery proof and B12's defined
+mixed-layer PASS remain unchanged. B02/B06/B07 are the three remaining partial
+branches. The [separate cleanup receipt](evidence/b09-trial-cleanup-20260924.json)
+confirms all new trial identities absent and the93normal records unchanged.
+
+Historical September23 13:35UTC: **B10's remaining active-cloud crash case PASS**.
 Independent guest process evidence brackets the exact local Extension Host
 interruption. Native same-operation reconnection/import completed5.6Mrecords
 and18labels with matching report SHA, preserved prior report/history, and no
@@ -635,7 +653,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
-| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 cancellations, isolated original-expiry refusal and same-window/two-window duplicate controller gates credited at stated layers; historical quota/artifact refusals credited; actual signed-in native readiness Cancel/archive/exact removal/GET404 pass with newer evidence preserved | Actual lost deployment response and terminal bootstrap failure remain; isolated scopes and limited B-input attribution stay explicit | partial |
+| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 cancellations, original-expiry and duplicate gates, historical quota/artifact refusals and live readiness archive/removal remain credited; September24 real Azure201 deliberately withheld, same-deployment native GET reconciliation without replay, terminal negative-package failure and normal readiness Failed/exit1 now pass | Complete for the finite mixed-layer scope; injected reply withholding is not observed network loss, negative packaging is not an original-build defect, and isolated/B-input attribution limits remain explicit; cleanup tracked separately | pass |
 | B10 | Close/reload during assessment/load/verification; no replay | Prior active Reload Window and isolated lock/SIGKILL evidence retained; September23 signed-in exact-host crash brackets same active guest child, same-operation reconnect/import5.6M/18labels, preserved report/history and verified bounded shutdown | Complete for defined case; no lock remained in this live run, no new graph migration or every-source/timing claim; control timeline is not an instrumented HTTP trace | pass |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Existing synthetic production-controller/real-host semantic negatives and signed-in retained-failure refusal, plus normal signed-in native fresh wrong-expected-SHA and length refusals at11:25/11:36UTC; independent originals/case/pin/post-state review PASS | Complete for the frozen mixed-layer scope; not all eight cases against Azure, remote corruption, actual network truncation or an instrumented HTTP request count | pass |
@@ -936,18 +954,20 @@ reconciliation observations, **not** B11 fault/recovery acceptance. See the
 
 ### Remaining sequence
 
-1. Keep B01/B03/B04/B05/B08/B10/B11/B12 closed for their defined scopes; do not repeat accepted
+1. Keep B01/B03/B04/B05/B08/B09/B10/B11/B12 closed for their defined scopes; do not repeat accepted
    migration runs merely because the historical sequence above still mentions them.
 2. Finish remaining defined placement admission checks (B02), using dedicated
    unaccepted workflows for negative inputs, not modified accepted resources.
-3. Plan dedicated B06/B07/B09 trials with precise expected refusals,
+3. Plan dedicated B06/B07 trials with precise expected refusals,
    immutable prior evidence, no automatic retry/replay, and negative-control proofs.
    Do not modify accepted resources to manufacture changed ownership or corruption.
 4. The existing-runner/source B09/B10 session completed within its exact60-minute
    maximum: both resources were verified stopped at13:34:49UTC before the13:55UTC
    hard bound. See the [execution record](b09-b10-live-20260923.md) and
    [retained-evidence audit](b10-retained-evidence-audit-20260923.md).
-   B09's two remaining real-service faults require their separate bounded scope.
+   B09's separate approved real-service fault trial also completed its finite
+   acceptance cases on September24 JST; exact cleanup and preserved existing
+   resources are recorded in the [completed trial](b09-live-faults-20260924.md).
    Other new compute needs fresh authorization/cost checks; B01's
    September22 session is complete and its approval is not a general restart permit.
    New access, unpublished software and destructive operations retain their gates.

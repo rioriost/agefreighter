@@ -1,8 +1,27 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+Updated: 2026-09-24 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9); extended branches9pass/3partial**.
 
-Latest continuation: **B10 completion independently revalidated** by43retained
+Latest result: **B09 and B10 complete for their finite acceptance scopes**.
+B09's approved dedicated real-service trial received Azure201 for one reviewed
+deployment PUT, deliberately withheld the reply from the production controller,
+retained unknown, and reconciled the same deployment by native GET without
+replay. Its pinned negative archive then produced terminal bootstrap failure;
+one normal native readiness command failed with exit1 and retained no guestReady
+or source-dispatch state. Root observed the unready GUI. Independent final review
+rehashed all90response-loss files, the three bootstrap/readiness records, and
+checked the returned observer source against its approved request body.
+See the [response-loss receipt](evidence/b09-response-loss-20260924.json),
+[bootstrap receipt](evidence/b09-bootstrap-failure-20260924.json), and
+[finite acceptance ledger](b09-b10-b12-acceptance-20260923.md).
+B10's prior43checks/6negative controls remain valid; no inventory was repeated.
+B12 remains complete at its stated mixed layers. B02/B06/B07 remain partial,
+so this is not release qualification. Exact trial cleanup is complete: all14new
+resource identities are absent, including the automatically created storage
+Event Grid dependency, and all93normal records remain unchanged. See the
+[execution and cleanup record](b09-live-faults-20260924.md).
+
+Historical preparation checkpoint (before the final live trial): **B10 completion independently revalidated** by43retained
 evidence checks and6negative controls, without restarting compute or repeating
 the inventory. Root also confirmed the previous runner deallocated and source
 Stopped, and observed the same imported result in the normal signed-in GUI.
@@ -34,7 +53,7 @@ actual lost deployment response and terminal bootstrap failure; a separate
 new-resource/fault scope is approved, but the newly identified account-only
 policy exception awaits confirmation. No new VM/fault was started.
 Base9/9 unchanged; extended **8pass/4partial**, not release-qualified.
-**Current next step:** resolve the exact storage exception and execute the
+**Historical next step at that checkpoint:** resolve the exact storage exception and execute the
 already-approved bounded B09 two-failure trial;
 do not repeat completed cancellation, expiry, duplicate, B10 or B12 evidence.
 
@@ -53,7 +72,7 @@ Cancellation30/30 and duplicate controller gates remain credited with their
 existing boundaries. B09 still needs actual lost deployment response, terminal
 bootstrap failure and native live readiness-control lifecycle; B10's active-cloud
 crash remains open. B12 PASS, base9/9 and extended7pass/5partial are unchanged.
-**Current next step:** the bounded ordinary signed-in readiness/inventory/crash
+**Historical next step at that checkpoint:** the bounded ordinary signed-in readiness/inventory/crash
 session, with fresh operation/host/health proof before its approved single crash.
 The [execution log](b09-b10-live-20260923.md) records runner-only start around
 12:55UTC, source stopped at that checkpoint, stop initiation13:50UTC and hard

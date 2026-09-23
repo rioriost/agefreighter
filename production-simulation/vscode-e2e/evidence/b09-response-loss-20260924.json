@@ -1,0 +1,574 @@
+{
+  "schemaVersion": 1,
+  "gate": "B09 lost deployment response",
+  "result": "PASS",
+  "reviewedAt": "2026-09-23T21:37:32.913Z",
+  "reviewer": "independent response-loss agent, read-only local audit of pinned runtime and retained coordinator ARM observations",
+  "workflow": "0d8b4bc9-102c-4d74-8270-061ce31ce163",
+  "deploymentId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Resources/deployments/af-0d8b4bc9102c4d748270",
+  "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-0d8b4bc9102c4d748270",
+  "runtimeSHA256": "d4f95188b7169b611dd2e100fce2be1ad3e620dbac7be4cd2caad935934c1fd7",
+  "scopeSHA256": "b47e7bee1caa3e2a5db287d10154ee2325fd5867ffe66ac181fa37c20bea4cc7",
+  "artifactSHA256": "3c33a179916ec08a83ca8ccb3c19e7682862d0382a63b2c05b5369a3cb124e33",
+  "templateSHA256": "13f8c7196e45aa7b8bb200dd1040565c35097ff0d030bac795bce76a4ca01be0",
+  "evidenceLayer": "Signed-in real Azure deployment through unchanged production controller and reviewed disposable transport companion",
+  "mechanism": "adapter-received-response-withheld-from-controller",
+  "timeline": {
+    "nativePositive": "2026-09-23T21:32:02.852Z",
+    "runnerPUTIntent": "2026-09-23T21:32:14.983Z",
+    "azureAcceptance": "2026-09-23T21:32:16.724Z",
+    "productionUnknown": "2026-09-23T21:32:16.752Z",
+    "independentARMSucceeded": "2026-09-23T21:32:57.7907683Z",
+    "nativeRefreshStarted": "2026-09-23T21:33:24.123Z",
+    "nativeRefreshReturned": "2026-09-23T21:33:24.453Z"
+  },
+  "acceptanceHTTPStatus": 201,
+  "unknownRecordSHA256": "26eaa18a64ed794a70e88a037c8bef8134f23eae274059770ac2982ebbffd86c",
+  "reconciledRecordSHA256": "882ebf000b78c6abdef6f262ed68be8f82924d965a07d7b7f0d3990aaea297f3",
+  "armCorrelationId": "073d69f6-946a-45f2-b56f-5fd9e9b57286",
+  "armOperations": [
+    {
+      "id": "B359DF0E3E7D7A26",
+      "state": "Succeeded",
+      "operation": "Create",
+      "targetResourceId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Storage/storageAccounts/af0d8b4bc9102c4d74827006/blobServices/default/containers/af-0d8b4bc9-102c-4d74-8270-061ce31ce163/providers/Microsoft.Authorization/roleAssignments/0d8b4bc9-102c-4d74-8270-061ce31ce163"
+    },
+    {
+      "id": "F773FD594EE07277",
+      "state": "Succeeded",
+      "operation": "Read",
+      "targetResourceId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-0d8b4bc9102c4d748270"
+    },
+    {
+      "id": "987C3093CD614E5F",
+      "state": "Succeeded",
+      "operation": "Create",
+      "targetResourceId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-0d8b4bc9102c4d748270"
+    },
+    {
+      "id": "966B708CC6FBCFBA",
+      "state": "Succeeded",
+      "operation": "Create",
+      "targetResourceId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/networkInterfaces/af-0d8b4bc9102c4d748270"
+    },
+    {
+      "id": "7E2252259201327A",
+      "state": "Succeeded",
+      "operation": "Create",
+      "targetResourceId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/networkSecurityGroups/af-0d8b4bc9102c4d748270"
+    },
+    {
+      "id": "08584114077494348154",
+      "state": "Succeeded",
+      "operation": "EvaluateDeploymentOutput",
+      "targetResourceId": null
+    }
+  ],
+  "runnerPUTProof": {
+    "reviewedTransportInvocations": 1,
+    "basis": "Create-only exact PUT claim, actual HTTP 201 receipt, and pinned single-request/no-replay adapter; production AzureSession issues one fetch without application retry.",
+    "wirePacketCapture": false
+  },
+  "reconciliation": {
+    "phaseBefore": "unknown",
+    "phaseAfter": "provisioned",
+    "sameDeployment": true,
+    "observedStageCalls": [
+      {
+        "kind": "GET",
+        "path": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Resources/deployments/af-0d8b4bc9102c4d748270?api-version=2022-09-01",
+        "at": "2026-09-23T21:33:24.144Z"
+      }
+    ],
+    "noReplay": true
+  },
+  "nativeUI": {
+    "coordinatorObserved": "UNKNOWN; Deploy disabled; Refresh enabled, followed by provisioned after explicit Refresh",
+    "independentAgentCoverage": "Native-return and production handler receipts only; physical UI observations are attributed to coordinator."
+  },
+  "noSourceOrGuestDispatchThroughReconciliation": true,
+  "checksPassed": 23,
+  "checks": [
+    "scope pin",
+    "runtime pin",
+    "one native deploy entry and positive native VM return",
+    "approval before original expiry",
+    "whole original preview seal",
+    "preview artifact identity",
+    "exact workflow/deployment identity retained",
+    "intent exact template and deployment request",
+    "intent before actual successful acceptance",
+    "correct boundary fault declaration",
+    "unchanged production returned unknown",
+    "unknown changes only phase and revision from approved preview",
+    "independent ARM operation accepted and completed exact deployment",
+    "independent operation states and targets within exact scope",
+    "all four explicit created resource targets observed",
+    "native refresh follows unknown return",
+    "native GET reconciliation became provisioned",
+    "reconciliation changed only phase and revision",
+    "refresh exact one GET with no POST or other stage call",
+    "one runner PUT claim remains no alternate effect name",
+    "no source/guest/target state at unknown and reconciliation",
+    "one retained workflow file",
+    "earlier storage claim remains byte-identical"
+  ],
+  "fileSeals": {
+    "companion/scope.json": {
+      "sha256": "b47e7bee1caa3e2a5db287d10154ee2325fd5867ffe66ac181fa37c20bea4cc7",
+      "bytes": 1366,
+      "mode": "0600"
+    },
+    "companion/ledger/native-approved-preview.json": {
+      "sha256": "66a8364cd1302c790dc9837a00ac6babb7defc7d39336c6659145ee392eec4d7",
+      "bytes": 18228,
+      "mode": "0600"
+    },
+    "companion/ledger/runner-put-intent.json": {
+      "sha256": "d6a33b9dc23b4fae48065c95e16b5f4720819899af9cbe4f2c4362bd941cdb39",
+      "bytes": 323,
+      "mode": "0600"
+    },
+    "companion/ledger/azure-acceptance.json": {
+      "sha256": "f2dde7bd18cfbb46965a97100f1d5b0cc3404942fb1c39db72643e7fb652373c",
+      "bytes": 394,
+      "mode": "0600"
+    },
+    "independent/unknown-workflow.json": {
+      "sha256": "26eaa18a64ed794a70e88a037c8bef8134f23eae274059770ac2982ebbffd86c",
+      "bytes": 14248,
+      "mode": "0600"
+    },
+    "independent/reconciled-workflow.json": {
+      "sha256": "882ebf000b78c6abdef6f262ed68be8f82924d965a07d7b7f0d3990aaea297f3",
+      "bytes": 14252,
+      "mode": "0600"
+    },
+    "independent/deployment-accepted.json": {
+      "sha256": "e51099928c0040d9075c249896c30d21ccb47abd5dfe9b91eb553b2b9dc20693",
+      "bytes": 5232,
+      "mode": "0600"
+    },
+    "independent/deployment-operations-accepted.json": {
+      "sha256": "317a53751d60a02db9c72eada5be53a28bf4289cd5332a1be0e944a167ca1bd3",
+      "bytes": 5266,
+      "mode": "0600"
+    },
+    "companion/native-0001.json": {
+      "sha256": "a7738f67b091d2c35827809bd03892e6daca1116528e39002d74fa80b99d27c2",
+      "bytes": 128,
+      "mode": "0600"
+    },
+    "companion/native-0002.json": {
+      "sha256": "ddb47b01179d7dce3c02c2bd74313ec7261506032cf590f42a4e67f6f19bdc1b",
+      "bytes": 4944,
+      "mode": "0600"
+    },
+    "companion/native-0003.json": {
+      "sha256": "f204d7860feaa48a553019608f5951c7b4259492ca1ded2a79e1d0345929579a",
+      "bytes": 130,
+      "mode": "0600"
+    },
+    "companion/native-0004.json": {
+      "sha256": "cde41d23e200022bc5d98fa5f90f9267014ccce639e2bdabef3dd8088f690290",
+      "bytes": 4946,
+      "mode": "0600"
+    },
+    "companion/native-0005.json": {
+      "sha256": "8a86fa94d15ec0b0f3532abfb2f67de1fee55af0886ee4db5d4a2c81518a4086",
+      "bytes": 138,
+      "mode": "0600"
+    },
+    "companion/native-0006.json": {
+      "sha256": "6da36c480022ce169e6f6d38cce36efb8a3fdfedf3e4620c3f98ea1906b23fcf",
+      "bytes": 4954,
+      "mode": "0600"
+    },
+    "companion/native-0007.json": {
+      "sha256": "aa9e92c748f1294be1b0b122ea8b1565b21e3292352072741a1d02c0c7e313bb",
+      "bytes": 125,
+      "mode": "0600"
+    },
+    "companion/native-0008.json": {
+      "sha256": "3451f3900acdcd76f11a4dc83e821c07779d9ec1fa6283bf84e952709061efe2",
+      "bytes": 4941,
+      "mode": "0600"
+    },
+    "companion/native-0009.json": {
+      "sha256": "f77abb63c563b26a0cdbc232c3acb1722011df4733f6dbdd1159c952b201c7c1",
+      "bytes": 127,
+      "mode": "0600"
+    },
+    "companion/native-0010.json": {
+      "sha256": "8c5c398975e85dc1cbaa2ab392408ea1e375be63c6a39930df8c726696e7816f",
+      "bytes": 4942,
+      "mode": "0600"
+    },
+    "companion/native-0011.json": {
+      "sha256": "150b18337454c9b83cf51d161cec63f3e2d4860fb8b55b72895ade970d6249d4",
+      "bytes": 204,
+      "mode": "0600"
+    },
+    "companion/native-0012.json": {
+      "sha256": "e7a247bfee55bf3e1be5bd4a0a14c62adc7139e7ef2bfcf712e58ed1e04f42b4",
+      "bytes": 197,
+      "mode": "0600"
+    },
+    "companion/native-0013.json": {
+      "sha256": "8f5b51d989d88d17dc3a4082654d7b278434b7c5930fbd9bc47ab52259ab0d74",
+      "bytes": 130,
+      "mode": "0600"
+    },
+    "companion/native-0014.json": {
+      "sha256": "d279d38105dc8c8550898023222e5b23b66ed72d5e87c3d275e358ddbe20e895",
+      "bytes": 5866,
+      "mode": "0600"
+    },
+    "companion/native-0015.json": {
+      "sha256": "4c45374d651e7a2166c68068aa4c73415726721ff68d7050eeab11a76a388cf2",
+      "bytes": 130,
+      "mode": "0600"
+    },
+    "companion/native-0016.json": {
+      "sha256": "7830486173dd29953893ff6ab66b4050fa1aa6b37170d2b140598430bbf6d017",
+      "bytes": 17980,
+      "mode": "0600"
+    },
+    "companion/native-0017.json": {
+      "sha256": "2f6c337cfa19714b246b5035dbfb06543d2b2a094cb457ebfdbf07927ea2af88",
+      "bytes": 129,
+      "mode": "0600"
+    },
+    "companion/native-0018.json": {
+      "sha256": "b875eb30b64b54de8e6ad615415d81b15c8e5c32d91bfb4e7397fb3442078056",
+      "bytes": 336,
+      "mode": "0600"
+    },
+    "companion/native-0019.json": {
+      "sha256": "1f9d390b8966705cd879550ab269d1c6c8a72269ecfee47d94cb4caa0ad6525f",
+      "bytes": 329,
+      "mode": "0600"
+    },
+    "companion/native-0020.json": {
+      "sha256": "3705e1682a5e967890fdef3d9c0c613568d51a92838a249e4e318e547c456e00",
+      "bytes": 17977,
+      "mode": "0600"
+    },
+    "companion/native-0021.json": {
+      "sha256": "7ac3c5ed613a7adb3e85e74cf52ca839dca3e1064654d7d8186195f4590585b6",
+      "bytes": 130,
+      "mode": "0600"
+    },
+    "companion/native-0022.json": {
+      "sha256": "727948c677259ad0a64cdc38e01864072c8a38fdeee4cbdb3e633063e3b82fbb",
+      "bytes": 17982,
+      "mode": "0600"
+    },
+    "companion/native-0023.json": {
+      "sha256": "01bf569e07011c1051383ccc1a1e5e56e24449306b0db5d8bdb2301d6edf9808",
+      "bytes": 133,
+      "mode": "0600"
+    },
+    "companion/native-0024.json": {
+      "sha256": "c96a6d11b0c668c4f91f0f082aa47ab64063b2decb23227c3c799102aa2a4f04",
+      "bytes": 18403,
+      "mode": "0600"
+    },
+    "companion/native-0025.json": {
+      "sha256": "58e63c429c88efb314342907972c695f864655e8f2c77dca0175d25ceed8c4b1",
+      "bytes": 135,
+      "mode": "0600"
+    },
+    "companion/native-0026.json": {
+      "sha256": "adc7c7f8c25807232991b8aa7be6890b7ecaaa5e58a9bf892effa8a35ec6b949",
+      "bytes": 18402,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0001.json": {
+      "sha256": "d134a47834ab1f93164f8eae7172ddb6c65b6d19d0a0bd1b96a14ee22ef770ee",
+      "bytes": 66,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0002.json": {
+      "sha256": "03707905c3a8f24704804055155b436bd45a17e35042c341ae48a592bf19f900",
+      "bytes": 262,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0003.json": {
+      "sha256": "fca05fd5622d63226c24815aaec0d9f68be1453f6e50def10e9c0804616bf19d",
+      "bytes": 255,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0004.json": {
+      "sha256": "b53ebeca4480006c4bca1d528860ac7ae844c4a58bd96f53cc20c456340bc318",
+      "bytes": 66,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0005.json": {
+      "sha256": "936b2dab34ea80ddc5e1213998f543b60c13a25df5f6716b0074522c6fa2a3c7",
+      "bytes": 255,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0006.json": {
+      "sha256": "eefe2314762c181b458894b41c7e590e352724fac242a0646df177318aaeda3e",
+      "bytes": 327,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0007.json": {
+      "sha256": "f283686ff2be19d33554caded382f41be5da41e6f8139662271a0085eca43799",
+      "bytes": 62,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0008.json": {
+      "sha256": "ee271c3d9616c84d7b564cd3361ab0a5076326f80e0c9c11d03ac79adf72a16f",
+      "bytes": 160,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0009.json": {
+      "sha256": "6ad4b3aa5a430c88543c11269e87366e3e3852eb01b5c663957316a0e6152d2b",
+      "bytes": 263,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0010.json": {
+      "sha256": "c4afa899731beb6a07b991fdcabe71d2f071a4c01d8024b7e8e418bd35bb4562",
+      "bytes": 248,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0011.json": {
+      "sha256": "b8786d7d4466eb97f318a12981e394962688dfc167bf34a44e219d511c752f25",
+      "bytes": 186,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0012.json": {
+      "sha256": "aba10aea5f8906fa13d403f652e384ba5d128f3dda44f0e5a0d43e55eb87b49c",
+      "bytes": 214,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0013.json": {
+      "sha256": "2e270c998238fc44cd119221b8dccdfd7951ba803dca097e6bbed7f8e3ef51e8",
+      "bytes": 200,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0014.json": {
+      "sha256": "1782a0c0c99463963be2a886aa8b674516ec607f31743f942525edd44f2c0c72",
+      "bytes": 64,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0015.json": {
+      "sha256": "af9017507656ac31a796cefe4b2f2ea5abb34f15c4e7e1702e351f1b889dcb32",
+      "bytes": 255,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0016.json": {
+      "sha256": "131b5cc409866ab8e35f4a5ffe34a3a01b677e8557d7f3a94ec86e3372c4bbea",
+      "bytes": 327,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0017.json": {
+      "sha256": "5fe3af56b5d466bdb46dfab48074f1a0d1674bdb4c3f76a2b54672a0fdadae2a",
+      "bytes": 197,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0018.json": {
+      "sha256": "3395e95bfe73e42135d82fb43b3ca4afb0d134c5eb0c4b99b5fbdc3da2c6998f",
+      "bytes": 260,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0019.json": {
+      "sha256": "ee1417214c9add744095d57c57cdfec125f75b5d4f55afb36e1726ae2c776360",
+      "bytes": 256,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0020.json": {
+      "sha256": "2ff9bae2f678a3fefed1abb4318c6b0dbeaf0bce79805d7d529ef511020e30d5",
+      "bytes": 254,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0021.json": {
+      "sha256": "1cd19e98434a0841e91c35055cd70a84a9efc19ce34186ababf23fa03a5f0525",
+      "bytes": 414,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0022.json": {
+      "sha256": "a0cf57a061e48ffba4d6bfe2264e7d6479befe457410a28c097eb01ba933a591",
+      "bytes": 247,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0023.json": {
+      "sha256": "4bba39e210c9cb98acab8b48e860475e36d7ccea438e4c4fc2fcb70b4ebe2d5e",
+      "bytes": 252,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0024.json": {
+      "sha256": "3e84ff795a5fdf934609a76386ebfc596380290ae06d790ad24bcd1ddf1aa6c7",
+      "bytes": 351,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0025.json": {
+      "sha256": "0926791df67f049e53b7d604d1cbbf31561836497d0c04b310dae52c77ca7005",
+      "bytes": 491,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0026.json": {
+      "sha256": "af31b53c3997a195f5fb190c35723c89f6baf409a0446c534e0bf86602bd058e",
+      "bytes": 390,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0027.json": {
+      "sha256": "6759bd36bcd80dbfdbc669f6291caf5c75c600ef7957d9da05a5302c98b22fcd",
+      "bytes": 491,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0028.json": {
+      "sha256": "0cb47d7cf8452024cc852d9f5fd97173e86725f9de45789c8d88fd5403a5559e",
+      "bytes": 390,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0029.json": {
+      "sha256": "cea3a1b23e7681f320339a6e1c50b299aee149a667cbf53dc6e71415732f94b2",
+      "bytes": 491,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0030.json": {
+      "sha256": "fc4844c79e8366985423fcabcd0f0ac6d7204616947332d249b7aa935fd5bc3a",
+      "bytes": 390,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0031.json": {
+      "sha256": "b74e444e38347b371f356b94d0780bdc36e253661817f3cd06fd6004de1ce4bc",
+      "bytes": 491,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0032.json": {
+      "sha256": "2d469f008f55a0c55f5a01b756e4dfbfcf3e4650455496c335625e101aad69c9",
+      "bytes": 390,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0033.json": {
+      "sha256": "f74057ea9be635f423e181442cdc8de5d3900ca9f9122a5c7a476aff8ca4d26a",
+      "bytes": 263,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0034.json": {
+      "sha256": "1a916a991358c2e16886dd9c3d829f8637d60e9e06b0c96856cdca97c5d67434",
+      "bytes": 248,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0035.json": {
+      "sha256": "d0b44b3a274ea10751ff014220ef1750d6c932399314aa3671b656b3a6f168cc",
+      "bytes": 186,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0036.json": {
+      "sha256": "b91e9083c15955882d5ced05562951579d1686ddd4d6e3b3799044b92286a4e9",
+      "bytes": 214,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0037.json": {
+      "sha256": "af33dcc1090bcc5c66f22c397230207602ac96f2850272418960e8218f20be63",
+      "bytes": 200,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0038.json": {
+      "sha256": "8c81a29a0b8ec324d4be0ef52f04132a6d19205e0f4222302ac927562a23dea6",
+      "bytes": 255,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0039.json": {
+      "sha256": "0fe405fec87489631083da9aaaf7492ea811902b79217818dc050aea5b2de50b",
+      "bytes": 327,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0040.json": {
+      "sha256": "5e6ac0ad73e5fdc72be86aa37fc4d40c5cc8b045d533002dd86b99487184d7e0",
+      "bytes": 197,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0041.json": {
+      "sha256": "bdc5ee2dbb543f0d483bb7bb353badf9a3ca2bff9c7af94a89a0f4a0a824f1ba",
+      "bytes": 260,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0042.json": {
+      "sha256": "c88b4021d0451d9c66ad0ee66bf056ccbd70a54c386109fc281ce96d8067c9a2",
+      "bytes": 256,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0043.json": {
+      "sha256": "13d08bdd33b098792e92a99f689144677693fd2fce9ef459e292d21e19394cc2",
+      "bytes": 254,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0044.json": {
+      "sha256": "330143d9256a94ee08045b105cb9562bc2682c42feb2635d33f38e9a182b9e12",
+      "bytes": 414,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0045.json": {
+      "sha256": "12edb0a6d52fd0aa5090858b60e51913837bafee4753c63577388e21c3cdc404",
+      "bytes": 247,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0046.json": {
+      "sha256": "24ab8ef8604c5aa1d0952aaebc5491194b0426c67cf54303d04eb06ba5d02aeb",
+      "bytes": 252,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0047.json": {
+      "sha256": "0e3ea8769a1c994074f64e2cbf1c0cf9ba2ac5437cc6f9711c2f9e45ca8a0bb1",
+      "bytes": 351,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0048.json": {
+      "sha256": "5d927d8b4176c62be6840e9b430ac8bc4738948dfa87a79e9d908f10c9ff2e44",
+      "bytes": 491,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0049.json": {
+      "sha256": "e9bedf24347561150fd5c7ce5cb8ed5b8e5e9d20e98b679e087897e8e0be0a19",
+      "bytes": 390,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0050.json": {
+      "sha256": "9e27528ea3a9fda203025d15d8ce96fa5a06c0e2e8df1ffcdf616bf6fb9dec14",
+      "bytes": 491,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0051.json": {
+      "sha256": "eb5611b8941388d8f3a5ad6b723acc0090219f6cd667c2e379bc4ca252c87b71",
+      "bytes": 390,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0052.json": {
+      "sha256": "99ca0b10b5d647e0eaf2e89f3b45efdf46fd799d6622fc2eb868b290546a0c6f",
+      "bytes": 252,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0053.json": {
+      "sha256": "c2f06e11dc98bb44e0d0a3d1ae6d0271664dfa41ce15b7e07fb06bbe967ae4a3",
+      "bytes": 267,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0054.json": {
+      "sha256": "a9c4b4dcaaf63c6bd7443933d79c4c9321d8afe015c6b193f54c2b863dfab69b",
+      "bytes": 306,
+      "mode": "0600"
+    },
+    "companion/ledger/stage-0055.json": {
+      "sha256": "9e16b04a58297fa773de60710bf61b5b51159d75d9828f1355a6c839dcf33a26",
+      "bytes": 327,
+      "mode": "0600"
+    },
+    "companion/ledger/storage-put-intent.json": {
+      "sha256": "e5534c19fc5b7149deda35ae75e91cdf85080c9f6c32f1b292902a832cc3ebe7",
+      "bytes": 558,
+      "mode": "0600"
+    }
+  },
+  "limitations": [
+    "This is deliberate withholding after the adapter received Azure acceptance, not observed TCP/TLS loss or an Azure outage.",
+    "Independent ARM observations were obtained by the coordinator and independently validated here; this agent performed no Azure calls.",
+    "This receipt qualifies only deployment response loss. Terminal bootstrap failure and overall B09 remain separate.",
+    "Later source-free bootstrap/readiness observations are outside this reconciliation snapshot."
+  ]
+}

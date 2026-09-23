@@ -1,12 +1,14 @@
 /** Normal disposable host only, never a release command. */
 import assert from "node:assert/strict";
-import { readFile, lstat, realpath, mkdir } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { readFile, lstat, realpath, mkdir, open } from "node:fs/promises";
 import { join } from "node:path";
 import type * as VSCode from "vscode";
 import { AzureSession } from "../../guided/azure";
 import { RunnerStore } from "../../guided/runnerStore";
 import { RunnerRecord } from "../../core/runner";
 import { registerRunnerMigration } from "../../runnerMigration";
+import { validateLostResponseRenewal } from "./deploymentLostResponseRenewal";
 import { validateLostResponseSeed } from "./deploymentLostResponseSeed";
 import { lazyNativeFacade } from "./nativeCancelFacade";
 import { lostResponseNativeFacade } from "./deploymentLostResponseNativeFacade";
@@ -23,8 +25,21 @@ export async function activate(context: VSCode.ExtensionContext) {
   const scope = JSON.parse(await readFile(join(root,"scope.json"),"utf8")) as LostResponseScope;
   assert.ok(Date.now() < Date.parse(scope.expiresAt));
   await retainLostResponseFile(root,"activation.json",{pid:process.pid,at:new Date().toISOString(),scopeSHA256:lostResponseHash(scope),nativeQualification:false});
-  const store = new RunnerStore(join(root,"runner-v2")); const initial=JSON.parse(await readFile(join(root,"initial-record.json"),"utf8")) as RunnerRecord;validateLostResponseSeed(initial,scope);await store.write(initial);
+  const store = new RunnerStore(join(root,"runner-v2"));
+  const seedBytes=await readFile(join(root,"initial-record.json")),initial=JSON.parse(seedBytes.toString()) as RunnerRecord;
+  const renewal=JSON.parse(await readFile(join(root,"renewal.json"),"utf8"));
+  let claim:Buffer|undefined;
+  if(renewal.kind==="ready-storage-renewal"){
+    assert.equal(renewal.schemaVersion,1);validateLostResponseRenewal(renewal.renewal,renewal.previousScope,scope);
+    assert.equal(createHash("sha256").update(seedBytes).digest("hex"),renewal.initialRecordSHA256);
+    claim=await readFile(join(root,"preserved-storage-put-intent.json"));
+    assert.equal(createHash("sha256").update(claim).digest("hex"),renewal.storagePutIntentSHA256);
+  }else assert.deepEqual(renewal,{schemaVersion:1,kind:"none"});
+  validateLostResponseSeed(initial,scope,claim?JSON.parse(claim.toString()):undefined);
   await mkdir(join(root,"ledger"),{mode:0o700});
+  if(claim){const file=await open(join(root,"ledger/storage-put-intent.json"),"wx",0o600);try{await file.writeFile(claim);await file.sync();}finally{await file.close();}
+    const directory=await open(join(root,"ledger"),"r");try{await directory.sync();}finally{await directory.close();}}
+  await store.write(initial);
   const stages = new LostResponseStages(join(root,"ledger"),scope,()=>store.read(scope.workflow),new AzureSession());
   const registry = new Map<string,(...args:unknown[])=>unknown>(); let event = 0;
   const retain = async (kind:string,details:object={}) => retainLostResponseFile(root,`native-${String(++event).padStart(4,"0")}.json`,{kind,...details,at:new Date().toISOString()});
