@@ -1,6 +1,6 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-22 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
+Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
 September23 update: a new60minute same-resource diagnostic/inventory window is
 approved but **not started**. Stopped-compute preparation exposed a credential

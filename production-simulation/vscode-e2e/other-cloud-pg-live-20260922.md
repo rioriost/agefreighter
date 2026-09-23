@@ -314,3 +314,14 @@ validation remains pending; the old extension is still installed. A separately
 pinned updated VSIX must be approved before installation/reload, then credential
 preparation can be verified before spending the new compute window. This fix
 does not identify the prior PostgreSQL initialization failure or qualify B03.
+
+Extension fix committed/pushed as `7976cec`; packaged local candidate
+`production-simulation/work/vscode-credential-build.lKeVSH/agefreighter-2.4.0-7976cec.vsix`
+(ignored), VSIXSHA-256
+`e5865e69c956df4e4e07ab7595dd52094f78af192c2c85404c32b353fcd660d6`,
+bundled extensionSHA-256
+`cb5f1023974fda24435686dbf46c84a681c35161532873dd0b82b6c16a2e6fcf`.
+Archive member checksum matches the locally tested bundle. Requested specific
+unpublished extension installation/reload approval; not installed yet.
+Linux diagnostic candidate remains646f0d4/SHA07ba1744b5da unchanged.
+No compute start, source read, artifact upload or scope expansion occurred.
