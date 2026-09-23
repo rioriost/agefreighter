@@ -350,6 +350,7 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
           const confirmed = await vscode.window.showWarningMessage(`Run ${message.method === "profile" ? "a sampled profile" : record.input.source.type === "csv" ? "a complete CSV inventory (all mapped rows and before/after file hashes; up to 64 files / 10 GiB / 100 million rows)" : record.input.source.type === "neo4j" ? "an exact Neo4j count inventory" : "a complete mapped-record inventory (up to 100 million rows)"} from the Linux runner?`,
             { modal: true, detail: `${record.input.source.type} / ${record.sourceDraft.form.host} / ${record.sourceDraft.form.database}\nRunner: ${record.vmId}\n${record.sourceDraft.warnings.join("\n")}\nGuest limits: 30 minutes, 4 GiB, no swap. Keep the source unchanged. Closing VS Code will not stop the operation.` }, "Approve source reads");
           if (confirmed !== "Approve source reads" || disposed) break;
+          if (!vscode.workspace.isTrusted) throw new Error("Trust the workspace before approving source reads.");
           let password: string | undefined;
           if (["neo4j", "postgresql"].includes(record.input.source.type)) {
             password = await sourceCredential(context, record, record.sourceDraft.form, () => disposed);
@@ -364,12 +365,14 @@ export function openRunnerSource(context: vscode.ExtensionContext, control: Runn
             }
             const secrets = sourceSecrets(record.input.source.type, record.sourceDraft.form, password, sourceCAPEM);
             const next = await store.exclusive(workflow, async () => {
+              const cancelled = () => disposed || !vscode.workspace.isTrusted;
+              if (cancelled()) throw new Error("Source assessment cancelled or workspace trust changed; no source read was submitted.");
               let current = await store.read(workflow);
               if (hash(current.sourceDraft) !== reviewedHash) throw new Error("Source settings changed in another window; review them again.");
               current = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Checking Linux readiness before source reads", cancellable: false },
-                () => ensureAssessmentReadiness(control, current, () => disposed));
-              if (disposed) throw new Error("Source assessment cancelled; no source read was submitted.");
-              return startAssessment(control, current, message.method as "profile" | "inventory", secrets);
+                () => ensureAssessmentReadiness(control, current, cancelled));
+              if (cancelled()) throw new Error("Source assessment cancelled or workspace trust changed; no source read was submitted.");
+              return startAssessment(control, current, message.method as "profile" | "inventory", secrets, cancelled);
             });
             await post({ kind: "assessment", assessment: next.assessment }); watch = "assessment";
           } finally { password = undefined; }

@@ -65,7 +65,8 @@ printf '%s' "$AF_RUNNER_REQUEST" | base64 --decode | /usr/local/bin/agefreighter
 `;
 
 /** Caller holds the workflow lock and has obtained approval for source reads. */
-export async function dispatchGuest(control: RunnerControl, record: RunnerRecord, request: GuestRequest): Promise<RunnerRecord> {
+export async function dispatchGuest(control: RunnerControl, record: RunnerRecord, request: GuestRequest, assertAuthorized: () => void = () => {}): Promise<RunnerRecord> {
+  assertAuthorized();
   if (record.phase !== "provisioned") throw new Error("The runner VM must be provisioned first.");
   if (record.upgrade && record.upgrade.phase !== "finished") throw new Error("Reconcile the guest upgrade before any other operation.");
   if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command; do not resubmit it.");
@@ -111,13 +112,19 @@ export async function dispatchGuest(control: RunnerControl, record: RunnerRecord
   const payload = JSON.stringify(bootBound ? { ...request, expectedBootId: record.guestReady!.bootId } : request);
   if (Buffer.byteLength(payload) > 1024 * 1024) throw new Error("Guest request is too large.");
   const commands = await control.list(record.input.subscriptionId, `${record.vmId}/runCommands?api-version=2024-07-01`);
+  assertAuthorized();
   if (commands.length >= 25) throw new Error(commandCapacityMessage);
   const command: GuestCommand = { id: `${record.vmId}/runCommands/af-${randomUUID()}`, operation: request.operation, action: request.action, phase: "submitted", submittedAt: new Date().toISOString() };
   if ((await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01`)).status !== 404) throw new Error("Guest command resource already exists.");
+  assertAuthorized();
   const submitted: RunnerRecord = { ...record, guestCommand: command };
   // No previous boot proof may authorize reads while a fresh check is pending.
   if (request.action === "ready") delete submitted.guestReady;
   await control.persist(submitted);
+  // A caller's approval can be revoked during the durable write. Keep that
+  // intent for GET-only reconciliation, but do not submit its command. This
+  // check is outside the uncertain-PUT catch because no PUT was attempted.
+  assertAuthorized();
   try {
     const response = await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01`, "PUT", {
       location: record.input.region,

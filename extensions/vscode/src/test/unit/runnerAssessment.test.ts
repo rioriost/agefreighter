@@ -27,6 +27,51 @@ test("assessment intent is durable before dispatch; on-prem source needs only ru
   await assert.rejects(startAssessment(f.control, r, "profile", {}), /retained assessment/);
 });
 
+for (const boundary of ["initial", "principal GET", "role GET", "command list", "collision GET", "intent persist"] as const) test(`assessment trust loss at ${boundary} refuses source PUT without replay`, async () => {
+  const f = fixture(), principal = "22222222-2222-4222-8222-222222222222";
+  const scope = `/subscriptions/${workflow}/resourceGroups/test/providers/Microsoft.DocumentDB/databaseAccounts/fixture`;
+  f.record.input.source = { type: "cosmos-nosql", location: "azure", resourceId: scope };
+  f.record.sourceDraft = buildSourceDraft(f.record.input.source, { ...sourceForm, host: "fixture.documents.azure.com", database: "p1" }, workflow);
+  f.record.cosmosAccess = { phase: "ready", principalId: principal, scope, assignmentId: `${scope}/sqlRoleAssignments/${workflow}`,
+    roleDefinitionId: `${scope}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000001` };
+  let cancelled = boundary === "initial", lists = 0;
+  const persist = f.control.persist;
+  f.control.persist = async r => { await persist(r); if (boundary === "intent persist") cancelled = true; };
+  f.control.list = async () => { lists++; if (boundary === "command list") cancelled = true; return []; };
+  f.control.request = async (_sub, path, method = "GET") => {
+    f.requests.push({ path, method });
+    assert.equal(method, "GET", "no source PUT is permitted after cancellation");
+    if (path === `${f.record.vmId}?api-version=2024-07-01`) {
+      if (boundary === "principal GET") cancelled = true;
+      return { status: 200, value: { tags: { application: "agefreighter", workflow }, identity: { type: "SystemAssigned", principalId: principal } } };
+    }
+    if (path.startsWith(f.record.cosmosAccess!.assignmentId)) {
+      if (boundary === "role GET") cancelled = true;
+      return { status: 200, value: { properties: f.record.cosmosAccess } };
+    }
+    if (boundary === "collision GET") cancelled = true;
+    return { status: 404, value: {} };
+  };
+  await assert.rejects(startAssessment(f.control, f.record, "profile", {}, () => cancelled), /trust changed; no source read was submitted/);
+  assert.equal(f.requests.some(r => r.method === "PUT"), false);
+  if (boundary === "initial") { assert.equal(f.requests.length, 0); assert.equal(lists, 0); }
+  if (boundary !== "intent persist") assert.equal(f.saved.length, 0);
+  else {
+    assert.equal(f.saved.length, 1);
+    const retained = f.saved[0]!;
+    assert.equal(retained.guestCommand?.phase, "submitted");
+    assert.equal(retained.assessment?.phase, "submitted");
+    const before = structuredClone(retained), count = f.requests.length;
+    await refreshAssessment(f.control, retained);
+    await refreshAssessment(f.control, retained);
+    assert.deepEqual(retained, before);
+    assert.equal(f.saved.length, 1);
+    assert.equal(f.requests.length, count + 2);
+    assert.ok(f.requests.slice(count).every(r => r.method === "GET" && r.path.startsWith(retained.guestCommand!.id)));
+    await assert.rejects(startAssessment(f.control, retained, "profile", {}), /retained assessment/);
+  }
+});
+
 test("failed source reconciliation is explicit, idle-gated and retains evidence without dispatch", () => {
   const f = fixture(), now = Date.now();
   const a = { operation: workflow, action: "inventory" as const, phase: "failed" as const, bootId: workflow, configurationSHA256: "c".repeat(64) };
@@ -233,6 +278,13 @@ test("closing the panel during readiness prevents source dispatch", async () => 
   await assert.rejects(ensureAssessmentReadiness(f.control, f.record, () => f.reads() > 0), /cancelled/);
   assert.equal(f.payloads.length, 1); assert.equal(f.payloads[0]!.action, "ready");
   assert.ok(f.saved.every(s => s.assessment === undefined));
+});
+
+test("trust loss during readiness command-list wait cannot submit even the readiness command", async () => {
+  const f = readinessFixture(); let cancelled = false;
+  f.control.list = async () => { cancelled = true; return []; };
+  await assert.rejects(ensureAssessmentReadiness(f.control, f.record, () => cancelled), /cancelled; no source read was submitted/);
+  assert.equal(f.payloads.length, 0); assert.equal(f.saved.length, 0);
 });
 
 test("post-inventory readiness refresh preserves the target and completed inventory for first migration", async () => {

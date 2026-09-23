@@ -3,6 +3,7 @@ import {object,RunnerRecord} from "./runner";
 import {RunnerControl,preflightRunner} from "./runnerLifecycle";
 import {assertIdleHealth} from "./runnerGuest";
 import {targetBudget} from "./runnerTarget";
+import {assessmentActive} from "./runnerAssessment";
 
 export interface RunnerResize {
   phase:"deallocating"|"ready-to-resize"|"resizing"|"ready-to-start"|"starting"|"finished";
@@ -46,7 +47,10 @@ export async function assertRecoveryRunnerIdentity(control:RunnerControl,r:Runne
   if(v.preserved!==r.resize.preservedSHA256 || v.power!=="PowerState/running" || v.provisioning!=="Succeeded" || v.size!==r.target.input.loaderSize)throw new Error("Recovery runner disk/NIC/identity, size or ready state changed.");
 }
 function gate(r:RunnerRecord){
-  if(r.target?.phase!=="provisioned" || r.migration || r.upgrade && r.upgrade.phase!=="finished" || r.guestCommand && ["submitted","unknown"].includes(r.guestCommand.phase))throw new Error("Reconcile target and guest operations before resizing the idle runner.");
+  // A finished ARM Run Command can leave its asynchronous inventory/catalog
+  // worker running. Both initial and retained resize steps must gate that
+  // worker's durable state, not only the short-lived control command.
+  if(r.target?.phase!=="provisioned" || r.migration || assessmentActive(r) || r.upgrade && r.upgrade.phase!=="finished" || r.guestCommand && ["submitted","unknown"].includes(r.guestCommand.phase))throw new Error("Reconcile target and guest operations before resizing the idle runner.");
   targetBudget(r.target.input);
 }
 async function submit(control:RunnerControl,r:RunnerRecord,path:string,method:"POST"|"PATCH",body?:unknown){

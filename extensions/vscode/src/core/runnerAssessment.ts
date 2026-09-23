@@ -24,7 +24,7 @@ export async function ensureAssessmentReadiness(control: RunnerControl, record: 
   const age = Date.now() - Date.parse(record.guestReady.checkedAt);
   // Leave a full minute for the following protected dispatch.
   if (Number.isFinite(age) && age >= 0 && age <= 240000) { assertIdleHealth(record); return record; }
-  let current = await dispatchGuest(control, record, { version: 1, workflow: record.id, operation: randomUUID(), action: "ready" });
+  let current = await dispatchGuest(control, record, { version: 1, workflow: record.id, operation: randomUUID(), action: "ready" }, checkCancelled);
   for (let attempt = 0; attempt < 20; attempt++) {
     checkCancelled();
     current = (await reconcileGuest(control, current)).record;
@@ -65,7 +65,9 @@ export function retainFailedAssessment(record: RunnerRecord, operation: string, 
 }
 
 /** Caller holds the workflow lock, reviewed the form and approved source reads. */
-export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>): Promise<RunnerRecord> {
+export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>, cancelled: () => boolean = () => false): Promise<RunnerRecord> {
+  const checkCancelled = () => { if (cancelled()) throw new Error("Source assessment cancelled or workspace trust changed; no source read was submitted."); };
+  checkCancelled();
   if(record.migration)throw new Error("The retained migration freezes source evidence; reconcile it instead of starting another assessment.");
   assertPostgreSQLTypePreservation(record);
   if (!record.sourceDraft?.canAssess || assessmentActive(record)) throw new Error("A reviewed source and a workflow without a retained assessment are required.");
@@ -75,11 +77,14 @@ export async function startAssessment(control: RunnerControl, record: RunnerReco
   if (action === "inventory" && !record.guestReady?.capabilities?.includes(inventoryCapability)) throw new Error("The installed guest does not advertise complete inventory for this source. Use a reviewed matching runner artifact and refresh readiness; no request was submitted.");
   if (object(record.sourceDraft.configuration.source).type !== record.input.source.type) throw new Error("Source type changed after review.");
   await assertCosmosAccessCurrent(control, record);
+  // Cosmos admission performs asynchronous ARM identity/role reads. Trust or
+  // panel lifetime can change during either read, after the panel's own check.
+  checkCancelled();
   const operation = randomUUID();
   const assessmentHistory = [...record.assessmentHistory ?? [], ...record.assessment ? [record.assessment] : []];
   if (assessmentHistory.length > 16) throw new Error("Assessment history limit reached; retain evidence and review the workflow before continuing.");
   const assessment: Assessment = { operation, action, phase: "submitted", bootId: record.guestReady?.bootId ?? "", configurationSHA256: createHash("sha256").update(JSON.stringify(record.sourceDraft.configuration)).digest("hex") };
-  return dispatchGuest(control, { ...record, assessmentHistory, assessment }, { version: 1, workflow: record.id, operation, action, configuration: record.sourceDraft.configuration, secrets });
+  return dispatchGuest(control, { ...record, assessmentHistory, assessment }, { version: 1, workflow: record.id, operation, action, configuration: record.sourceDraft.configuration, secrets }, checkCancelled);
 }
 
 /** One bounded control step. Repeated clicks reconcile instead of re-running. */

@@ -1,0 +1,23 @@
+{
+  "location": "southeastasia",
+  "tags": {
+    "purpose": "AGEFreighter B02 read-only SKU admission qualification",
+    "qualification": "b02-20260924",
+    "owner": "agefreighter"
+  },
+  "properties": {
+    "addressSpace": {
+      "addressPrefixes": ["10.253.240.0/24"]
+    },
+    "subnets": [
+      {
+        "name": "runner",
+        "properties": {
+          "addressPrefix": "10.253.240.0/27",
+          "defaultOutboundAccess": false,
+          "delegations": []
+        }
+      }
+    ]
+  }
+}

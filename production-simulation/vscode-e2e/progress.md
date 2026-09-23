@@ -2,7 +2,17 @@
 
 Updated: 2026-09-24 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9); extended branches9pass/3partial**.
 
-Latest result: **B09 and B10 complete for their finite acceptance scopes**.
+Latest September24 preparation: B02's actual unknown-zone VM selection now
+passes in the normal installed GUI, with all93previous operator files unchanged.
+The real unavailable-SKU condition is identified; its empty network fixture is
+prepared but not created. B06/B07 admission corrections pass757unit tests,
+typecheck/build/host compilation and independent reviews; their pinned normal
+candidate is not yet installed. One new effect-free GUI draft has18reviewed P1
+mappings. The [combined bounded trial](b02-b06-b07-session-20260924.md) awaits
+specific new authorization; no compute, role or source operation started.
+Totals remain9pass/3partial, not release-qualified.
+
+Previous completed result: **B09 and B10 complete for their finite acceptance scopes**.
 B09's approved dedicated real-service trial received Azure201 for one reviewed
 deployment PUT, deliberately withheld the reply from the production controller,
 retained unknown, and reconciled the same deployment by native GET without

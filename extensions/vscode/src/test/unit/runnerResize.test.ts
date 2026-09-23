@@ -128,3 +128,31 @@ test("ready resize and start phases remain read-only without a new explicit appr
   assert.equal(await advanceResize(f.control,r),r);
   assert.deepEqual(f.events,["GET"]);assert.equal(f.saved.length,saved);
 });
+
+for(const kind of ["assessment","postgresCatalog"] as const)for(const phase of ["submitted","unknown","accepted","running","failed","interrupted","finished"] as const)test(`resize blocks unresolved ${kind} ${phase} after control command finished`,async()=>{
+  const f=fixture();
+  // A finished ARM control command does not make its durable worker idle.
+  f.r.guestCommand={phase:"finished"} as RunnerRecord["guestCommand"];
+  if(kind==="assessment")f.r.assessment={phase} as RunnerRecord["assessment"];
+  else f.r.postgresCatalog={phase} as RunnerRecord["postgresCatalog"];
+  await assert.rejects(startResize(f.control,f.r),/Reconcile target and guest operations/);
+  for(const resizePhase of ["deallocating","ready-to-resize","resizing","ready-to-start","starting","finished"] as const){
+    f.r.resize={phase:resizePhase,size:"Standard_D4s_v5",previousSize:f.r.input.size,preservedSHA256:"a".repeat(64),startedAt:new Date().toISOString()};
+    await assert.rejects(advanceResize(f.control,f.r,true),/Reconcile target and guest operations/);
+    await assert.rejects(advanceResize(f.control,f.r),/Reconcile target and guest operations/);
+  }
+  assert.deepEqual(f.events,[]);assert.equal(f.saved.length,0);
+});
+
+test("sealed successful inventory and catalog permit resize and read-only reconciliation",async()=>{
+  const f=fixture();
+  f.r.assessment={phase:"finished",reportSHA256:"a".repeat(64)} as RunnerRecord["assessment"];
+  f.r.postgresCatalog={phase:"finished",reportSHA256:"b".repeat(64)} as RunnerRecord["postgresCatalog"];
+  f.r.guestCommand={phase:"finished"} as RunnerRecord["guestCommand"];
+  const r=await startResize(f.control,f.r);
+  assert.equal(r.resize?.phase,"deallocating");
+  f.events.length=0;
+  f.vm.properties.instanceView.statuses[0]!.code="PowerState/deallocated";
+  assert.equal((await advanceResize(f.control,r)).resize?.phase,"ready-to-resize");
+  assert.deepEqual(f.events,["GET","persist"]);
+});

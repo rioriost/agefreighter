@@ -2,7 +2,16 @@
 
 Updated: 2026-09-24 JST. Status: **not release-qualified; base routes9/9; 9/12 defined branches pass, 3 partial**.
 
-Latest September24 JST: **B09 and B10 complete for their defined scopes**.
+Latest September24 preparation: **B02 unknown-zone VM selection now PASS** in
+the normal installed GUI, including stale-zone clearing and explicit re-selection;
+all93existing operator files unchanged. Real SKU restrictions and a dedicated
+empty VNet fixture are prepared. B06/B07 trust/admission corrections pass757unit
+tests, typecheck/build/host compilation and independent review; candidate not
+yet installed. The [exact new trial scope](b02-b06-b07-session-20260924.md) is
+prepared for approval; no new cloud resource/grant/source operation started.
+B02/B06/B07 remain partial; preparation is not live completion.
+
+Previous completed September24 JST: **B09 and B10 complete for their defined scopes**.
 B09's real deployment response withholding retained unknown after actual
 Azure201, then native GET reconciled the same deployment without PUT replay.
 The separately pinned negative archive produced actual terminal bootstrap
@@ -646,7 +655,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | ID | Required branch | Existing evidence / current limitation | Remaining acceptance | State |
 |---|---|---|---|---|
 | B01 | Default/separate migration RG; independent network RG | Same-group base P1 PASS; installed separate-group selection, two-scope private target provisioning, same-VM resize and5.6M-row migration/counts PASS; September22 installed-GUI sealed import and independent64range/root comparison PASS | Complete for the defined group-placement branch; not all invalid placement/initial-boot cases (B02/B09), native Gremlin API or production-scale qualification | pass |
-| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI proves known source proposal, region/zone invalidation, Cosmos unknown-zone review, early input rejection, four backend refusals and valid-placement release refusal; six direct real-ARM checks separately recorded | Unknown-zone VM transition, unavailable SKU and quota denial remain unqualified; current offered SKUs/zones and quotas cannot supply those refusal cases | partial |
+| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI placement/default/refusal controls and six direct ARM checks retained; September24 real unknown-zone VM transition now PASS; historical installed target/resize quota denial is credited at its exact path | Real unavailable-SKU GUI refusal/control remains; Southeast Asia restricted zone2 and empty VNet fixture prepared. Initial-runner quota remains local-contract evidence, distinct from historical real target quota refusal | partial |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; location GUI audit/request traces/CLI contracts pass; September22 Neo4j and September23 PostgreSQL other-cloud GUI migrations both pass full5.6M/18label/64range canonical comparison | Defined GUI selections qualified using Azure-hosted endpoint-only simulations; actual third-party-cloud network compatibility is not claimed | pass |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Base/manual routes have full P1 canonical PASS; installed GUI/Linux P1 catalog, explicit mappings and complete inventory/import pass; CSV all18choices/IDs/seals/configuration binding pass,445unit tests/13Go contracts; isolated FK GUI catalog, explicit safe edge/property adoption, reconnect and sealed5vertex/3edge inventory pass | Complete for defined cases; nullable FK remains manual review. Supplemental FK inventory is not another migration/digest qualification; broader value combinations retain local-contract-only scope | pass |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin-shaped NoSQL installed-GUI inventory, private target/resize, migration and complete counts pass; independent full digest generated 05:08:24 UTC and GUI-imported, all 5.6M records / 18 labels / 64 ranges and root match, including typed properties, composite IDs and endpoints | Complete for the defined document-format branch; not native Gremlin API qualification | pass |
