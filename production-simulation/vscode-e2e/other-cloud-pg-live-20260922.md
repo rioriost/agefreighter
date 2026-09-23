@@ -3,7 +3,8 @@
 September23,2026. Status: **post-reset source inventory PASS/imported; private
 target provisioned; AGE preload and same-VM resize completed; installed GUI
 migration/counts PASS imported. Full canonical verification awaits specific
-verifier approval; idle safety stop begins04:45UTC, due04:47UTC if still waiting**.
+verifier approval. Both VMs deallocated and target Stopped verified04:47:37UTC;
+scoped monitor paused. All data, disks and evidence retained**.
 Latest outcome supersedes the historical preparation checkpoints below.
 This follows the completed Neo4j other-cloud simulation; it is a separate
 PostgreSQL selection and must not reuse the Neo4j credential or qualification.
@@ -718,3 +719,21 @@ exact source/runner/target04:45UTC, verify by04:47UTC where Azure latency permit
 conservatively15minutes after report generation. A fresh approved active worker
 supersedes this idle condition, never the original05:45UTC hardstop. All evidence
 retained; broader B03 qualification remains partial.
+
+## September23 04:45–04:47UTC — idle safety stop verified
+
+No new verifier approval or retained qualification operation was present at
+04:45:15UTC; migration/report transfer both remained finished, counts PASS.
+Fresh exact ownership checks matched runner workflow and source fixture tags;
+target Ready/private and no intervening scoped governance change observed.
+At04:45UTC submitted deallocation for only runneraf-cb2ef280a8914edfb45b and
+sourceaf-pgvm-source, plus stop for only targetafpg-cb2ef280a8914edfb45b.
+Both VMs PowerState/deallocated verified04:46:36UTC. Target was then Stopping;
+did not replay stop, and Stopped verified04:47:37UTC after Azure service latency.
+
+No resource, disk, graph, credential or evidence was deleted. No verifier was
+installed/run. Scoped heartbeat paused after all three stopped states verified.
+Complete migration/counts evidence remains PASS, independent64range/root
+qualification remains pending. Azure warns that a stopped Flexible Server
+automatically starts after7days; retained storage continues to incur charges.
+Do not restart merely to inspect evidence or silently extend the original window.

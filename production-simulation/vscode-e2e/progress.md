@@ -2,7 +2,13 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest04:40UTC: **B03 PostgreSQL GUI migration and counts PASS**.
+Latest04:47UTC: **B03 PostgreSQL counts PASS retained; idle safety stop complete**.
+Both exact source/runner VMs deallocated, target Stopped verified04:47:37UTC.
+Disks/data/evidence retained; scoped monitor paused. Independent full64range/root
+verification still awaits specific approval, not installed or run. No final B03
+qualification claim. Flexible Server stop is temporary (automatic start after7days).
+
+Prior04:40UTC: **B03 PostgreSQL GUI migration and counts PASS**.
 Imported sealed9619byte report;1.6Mvertices+4Medges/18labels,zero rejects,
 24checks pass/no errors or incomplete checks. Independent all-label assertions
 and SHA agree. [Counts receipt](evidence/b03-pg-counts-pass-20260923.json).
