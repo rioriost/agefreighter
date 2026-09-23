@@ -1,8 +1,8 @@
 # B03 PostgreSQL other-cloud selection — offline preparation
 
-September23,2026. Status: **reader password reset and verified-TLS/read-only login
-PASS; exact source and runner deallocated; previous diagnostic inventory FAILED;
-no post-reset inventory, target or migration yet**.
+September23,2026. Status: **post-reset source inventory PASS/imported; private
+target provisioned; AGE preload restart completed on ARM; same-VM resize in
+progress under the approved05:45UTC hard stop. Migration not started yet**.
 Latest outcome supersedes the historical preparation checkpoints below.
 This follows the completed Neo4j other-cloud simulation; it is a separate
 PostgreSQL selection and must not reuse the Neo4j credential or qualification.
@@ -656,3 +656,18 @@ timestamp04:00:19.891143UTC with no current top-level error code. This is not
 deployment success or migration qualification. Existing source VM remains off.
 Continue read-only deployment reconciliation, then approved AGE readiness and
 same-VM resize/migration only within05:45UTC hard bound. No verifier installed.
+
+## September23 04:19UTC — target provisioned, AGE preload applied
+
+ARM deployment succeeded04:06:09UTC and installed GUI reconciled provisioned.
+Target ownership/workflow, PostgreSQL18/E8ds_v5/128GiB and public access Disabled
+confirmed. External governance deployed advanced threat protection04:06UTC;
+preserved without override. GUI submitted approved target-only restart04:11:38UTC.
+Fresh ARM now Ready and shared_preload_libraries=pg_stat_statements,age with
+pending restart false. Source VM remains deallocated.
+
+Same-VM resize authorization saved04:14:37UTC with its20minute bound. First
+fresh-readiness cycle passed guest health but VM running/provisioning gate stopped
+before any resize submission. Subsequent independent ARM confirms running and
+Succeeded/B2s_v2. Continued the same still-valid authorization, not an uncertain
+mutation replay; a fresh readiness command is pending. No migration or verifier.
