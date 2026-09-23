@@ -737,3 +737,22 @@ Complete migration/counts evidence remains PASS, independent64range/root
 qualification remains pending. Azure warns that a stopped Flexible Server
 automatically starts after7days; retained storage continues to incur charges.
 Do not restart merely to inspect evidence or silently extend the original window.
+
+## September23 08:26UTC — new user-approved two-hour canonical session
+
+User requested resumption after Keychain recovery and explicitly authorized a new
+two-hour window. No migration replay: only the existing runner and private target
+are needed for the previously described raw-ID verifier and private report import.
+The source VM remains off. Installed GUI recorded renewed cost authorization with
+hardstop10:25UTC(begin10:20), cumulative800USD/reserve700 unchanged; the previous
+authorization remains in history. First compute start request08:26:35UTC, so the
+fixed bound is conservatively less than two hours. Scoped safety monitor was
+activated before start. Qualification has not yet been submitted.
+
+Normal Azure login recovered management access; VS Code Azure Resources shows
+the signed-in account and both expected tenants. No secret extraction or reset.
+Fresh delayed cost461.0327006541777USD across both test groups. Exact ownership,
+private target and unchanged D4s_v5/disk/NIC/identity checked. External application
+updated platform patch settings08:05UTC; preserved without override. Latest guest
+health must be rechecked after startup before executing the verifier. Archive
+60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d rehashed locally.

@@ -2,7 +2,14 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest04:47UTC: **B03 PostgreSQL counts PASS retained; idle safety stop complete**.
+Latest08:26UTC: **B03 PostgreSQL canonical verification continuation authorized**.
+User approved a new two-hour session after Keychain recovery. Existing runner and
+private target start requested; source remains off, no migration replay. GUI cost
+authorization renewed; fixed stop10:25UTC(begin10:20), cumulative800USD/reserve700.
+Scoped monitor active, delayed two-group cost461.0327006541777USD. Canonical not
+yet submitted; all prior counts/evidence preserved. Broader ledger remains partial.
+
+Prior04:47UTC: **B03 PostgreSQL counts PASS retained; idle safety stop complete**.
 Both exact source/runner VMs deallocated, target Stopped verified04:47:37UTC.
 Disks/data/evidence retained; scoped monitor paused. Independent full64range/root
 verification still awaits specific approval, not installed or run. No final B03
