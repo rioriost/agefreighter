@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "scope": "Local regression and isolated real VS Code only; no Azure qualification",
   "observedAt": "2026-09-23T09:23:08Z",
+  "candidate": {
+    "commit": "3bc006939b24725d5114f4384e42bc54e8e3c2cd",
+    "vsix": "agefreighter-2.4.0-b091012-3bc0069.vsix",
+    "bytes": 593651,
+    "sha256": "1a3121acbd22f6938f960b058939e62a226355022213d7d84110c742b1d5e507",
+    "bundleSHA256": "3108910e2933f73b1b1d0edf92458e7384e2008261469c56da2f19789366da67",
+    "installed": false,
+    "installationApproval": "requested"
+  },
   "vscode": {
     "version": "1.139.0",
     "commit": "2242ebbb54efeeb0129e08e919e7e8d43033cd83",
