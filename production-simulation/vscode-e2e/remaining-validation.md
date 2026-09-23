@@ -2,7 +2,14 @@
 
 Updated: 2026-09-23 JST. Status: **not release-qualified; B01/B03 full canonical PASS; 6/12 defined branches pass, 6 partial**.
 
-Latest September23 09:23UTC: supervised B09/B10/B12 implementation and local
+Latest September23 09:41UTC: user-approved3bc0069 candidate installed and actual
+VS Code1.139.0 Reload Window completed; package/bundle hashes match. New command
+activation and native workflow-selector cancellation pass, with all91operator
+files unchanged. No actual unlock, cloud fault, deletion or compute startup;
+B09/B10/B12 remain partial. See
+[installation evidence](evidence/b09-b10-b12-install-20260923.json).
+
+Prior September23 09:23UTC: supervised B09/B10/B12 implementation and local
 validation PASS:608unit,14actual-Go contracts,25isolated real-host cases and two
 actual isolated SIGKILL/recovery pairs. One contention race found by Astra xhigh
 was corrected. All91operator files unchanged; no normal-profile installation or

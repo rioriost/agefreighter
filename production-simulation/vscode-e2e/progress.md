@@ -2,7 +2,16 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest09:23UTC: **B09/B10/B12 parallel implementation and local validation PASS**.
+Latest09:41UTC: **Reviewed B09/B10/B12 candidate installed and reloaded**.
+User-approved3bc0069 VSIX and installed bundle seals match. VS Code1.139.0
+reloaded normally; new host74091 activated the new local-lock command and
+displayed25retained workflows. Selector cancelled before any lock action.
+All91operator files and the unsaved evidence editor preserved. No compute start,
+credentials, network/RBAC changes, deletion or forced-crash trial. B09/B10/B12
+remain partial; base9/9 and broader6pass/6partial unchanged. See
+[installation receipt](evidence/b09-b10-b12-install-20260923.json).
+
+Prior09:23UTC: **B09/B10/B12 parallel implementation and local validation PASS**.
 Three Astra high workers and Astra xhigh review completed the running-readiness
 control-removal gate, explicit archived crash-lock recovery and typed rejected
 P1 import evidence. One supervisor-found lock-contention race was fixed.
