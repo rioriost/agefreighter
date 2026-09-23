@@ -1,5 +1,10 @@
 # B10: one approved active-inventory Extension Host crash
 
+Historical preparation checklist. The separately executed case is now complete;
+see the [live result](b09-b10-live-20260923.md#sealed-import-and-bounded-shutdown--1330utc-onward)
+and [retained-evidence audit](b10-retained-evidence-audit-20260923.md).
+The following instructions record the original scope and do not request a repeat.
+
 Offline preparation from source, September 23, 2026. **No compute, guest
 observation, local process inspection or termination was performed for this
 checklist.** Root reports fresh approval for one bounded session, maximum 60

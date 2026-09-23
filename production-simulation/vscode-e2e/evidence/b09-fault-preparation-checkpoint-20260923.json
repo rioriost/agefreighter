@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-23T14:53:29.369539+00:00",
+  "status": "B09 live faults pending account-only policy exception approval",
+  "b09LostResponsePass": false,
+  "b09TerminalBootstrapFailurePass": false,
+  "b10RetainedAuditPass": true,
+  "originalApprovedAt": "2026-09-23T14:14:51.122892Z",
+  "workflow": "0d8b4bc9-102c-4d74-8270-061ce31ce163",
+  "runtimeSHA256": "9f5b1f389654eb857c7814798463d99bcee2511cc8990217df31abb1f473630e",
+  "scopeSHA256": "35e0cd828ffdfc5e40ab790597543dcc18d2ea0ac1b8af24a2f133ca7c922908",
+  "initialRecordSHA256": "6ad854c0e4ebab4872ba6ee7d0867bb108259540e6ee98253b226a306d86bba7",
+  "negativeArchiveSHA256": "3c33a179916ec08a83ca8ccb3c19e7682862d0382a63b2c05b5369a3cb124e33",
+  "localValidation": {
+    "extensionUnitTests": 727,
+    "extensionUnitFailures": 0,
+    "typecheck": true,
+    "hostCompilation": true,
+    "pythonFixtureObserverARMChecks": 16,
+    "cleanupMockChecks": 12,
+    "independentLocalCheckpointChecks": 13
+  },
+  "normalStore": {
+    "baselineSHA256": "57a3e33802bb6b8bde0bb6b883f895b89aaaed677c0e3919e5f635ed56cf9d5a",
+    "files": 93,
+    "pathModeSizeSHA256Unchanged": true
+  },
+  "current": {
+    "phase": "draft",
+    "storagePhase": "ready",
+    "networkAccess": "Disabled",
+    "storagePutIntentCount": 1,
+    "archiveUploadIntents": 0,
+    "runnerPutIntents": 0,
+    "readinessPutIntents": 0
+  },
+  "independentARMStorage": {
+    "state": "Succeeded",
+    "timestamp": "2026-09-23T14:45:58.040939+00:00",
+    "correlationId": "e9c777a8-5934-447d-82e7-2b1ef564febc",
+    "policy": "StorageAccount_PublicNetwork_Modify",
+    "policySet": "MCAPSGovDeployPolicies"
+  },
+  "additionalException": {
+    "account": "af0d8b4bc9102c4d74827006",
+    "tag": "SecurityControl=Ignore",
+    "publicNetworkAccess": "Enabled",
+    "submitted": false,
+    "approvalPending": true,
+    "anonymousAccessRemainsDisabled": true,
+    "sharedKeysRemainDisabled": true
+  },
+  "limits": {
+    "maxComputeMinutes": 60,
+    "deallocateByMinute": 55,
+    "idleMinutes": 15,
+    "incrementalUSD": 5,
+    "setupExpiresAt": "2026-09-23T18:08:48.982Z"
+  },
+  "guard": {
+    "launched": true,
+    "scriptSHA256": "034629bad84bd77ef06eec52f13984366abf3df92d9c790bf4c591cec8bfbbfb",
+    "computeClockStarted": false
+  },
+  "failedSetupAttemptsRetained": [
+    "native Webview receiver failed before Azure adapter invocation",
+    "test-only what-if URL guard refused before any storage PUT"
+  ],
+  "noProductionSourceChanges": true,
+  "localAuditSHA256": "69087d155cc05c66fba406aa6225460446dd07f3182f3916e7cbdfd3606ddfd5",
+  "scopeDocument": "../b09-fault-session-20260923.md"
+}

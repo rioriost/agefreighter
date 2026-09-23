@@ -1,5 +1,9 @@
 # B09: one disposable VM for two remaining fault observations
 
+Later continuation: the [dedicated session preparation](b09-fault-session-20260923.md)
+now names the fresh workflow and negative artifact. The original design-only
+checkpoint below is historical; live execution still requires its reviewed scope.
+
 **Design only; no execution, artifact construction, fault implementation or
 approval to create resources.** The existing runner/source 60-minute approval
 does not cover this plan. Root must obtain a new action-time approval after

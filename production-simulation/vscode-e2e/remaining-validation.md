@@ -16,8 +16,12 @@ exact approved old control archived/removed, native GET-only absence plus
 independent ARM404, newer/current/history evidence retained. See
 [B09 receipt](evidence/b09-live-readiness-removal-20260923.json).
 B09 now has only two pending gates: actual lost deployment response and terminal
-bootstrap failure. The separate new-resource/fault scope has not yet been
-approved/executed. B12 remains defined mixed-layer PASS. Other partial branches
+bootstrap failure. The separate new-resource/fault scope and cleanup are now
+approved. Only its dedicated transfer storage/scoped role has been created;
+the observed organizational storage-network policy requires an additional
+account-only exception confirmation. No archive upload, new VM or intended
+fault has occurred. See the [live checkpoint](b09-fault-session-20260923.md).
+B12 remains defined mixed-layer PASS. Other partial branches
 B02/B06/B07 are outside this B09/B10/B12 batch.
 
 Prior September23 13:05UTC independent review: **B09 original expired-preview
@@ -932,18 +936,19 @@ reconciliation observations, **not** B11 fault/recovery acceptance. See the
 
 ### Remaining sequence
 
-1. Keep B01/B03/B04/B05/B08/B11/B12 closed for their defined scopes; do not repeat accepted
+1. Keep B01/B03/B04/B05/B08/B10/B11/B12 closed for their defined scopes; do not repeat accepted
    migration runs merely because the historical sequence above still mentions them.
 2. Finish remaining defined placement admission checks (B02), using dedicated
    unaccepted workflows for negative inputs, not modified accepted resources.
-3. Plan dedicated B06/B07/B09/B10 trials with precise expected refusals,
+3. Plan dedicated B06/B07/B09 trials with precise expected refusals,
    immutable prior evidence, no automatic retry/replay, and negative-control proofs.
    Do not modify accepted resources to manufacture changed ownership or corruption.
-4. The newly approved existing-runner/source B09/B10 session has an exact60-minute
-   maximum from first start, stop initiation by minute55 and15-minute idle bound;
-   see [scope and exclusions](b09-b10-b12-live-next-20260923.md) and the
-   [execution record](b09-b10-live-20260923.md). Approval is not an
-   execution result. Other new compute needs fresh authorization/cost checks; B01's
+4. The existing-runner/source B09/B10 session completed within its exact60-minute
+   maximum: both resources were verified stopped at13:34:49UTC before the13:55UTC
+   hard bound. See the [execution record](b09-b10-live-20260923.md) and
+   [retained-evidence audit](b10-retained-evidence-audit-20260923.md).
+   B09's two remaining real-service faults require their separate bounded scope.
+   Other new compute needs fresh authorization/cost checks; B01's
    September22 session is complete and its approval is not a general restart permit.
    New access, unpublished software and destructive operations retain their gates.
 5. Record real signed-in/guest evidence separately from unit or isolated-host

@@ -2,13 +2,15 @@
 
 ## Scope and current verdict
 
-**Native local recovery verified; B10 remains partial.** The production store and native
+**Native local recovery verified at the 09:59UTC checkpoint. B10 subsequently
+completed its distinct active-cloud case; see the [finite acceptance ledger](b09-b10-b12-acceptance-20260923.md#b10-the-one-required-active-cloud-crash-case--complete).**
+The production store and native
 command now support an explicit review of recoverable interrupted local locks.
 Recovery performs no Azure request, dispatch, retry, reconnect, or workflow edit.
 Unit/panel contracts and an isolated real Extension Host SIGKILL/reopen exercise
 pass. The coordinator has now exercised the actual native confirmation dialog
 in an isolated unsigned-in profile, as recorded below. A signed-in crash during
-an active Azure operation remains open.
+an active Azure operation was still open at this local-only checkpoint.
 
 This change does not alter prior accepted canonical reports. No installation,
 credential access, operator-storage mutation, compute start, or live Azure action

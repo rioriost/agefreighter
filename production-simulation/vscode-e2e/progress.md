@@ -2,7 +2,21 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest13:35UTC: **B10 defined active-cloud crash/recovery PASS; B09 exact live
+Latest continuation: **B10 completion independently revalidated** by43retained
+evidence checks and6negative controls, without restarting compute or repeating
+the inventory. Root also confirmed the previous runner deallocated and source
+Stopped, and observed the same imported result in the normal signed-in GUI.
+See the [audit](b10-retained-evidence-audit-20260923.md). B09's remaining two
+cases now have a [concrete dedicated scope and prepared negative artifact](b09-fault-session-20260923.md).
+The user approved this exact trial and cleanup, and completed the dedicated
+Azure sign-in. The corrected, pinned companion passed727local unit tests and
+created only the new transfer storage/scoped role. Azure policy forced public
+network access Disabled; an exact account-only development exception is now
+prepared for additional confirmation. No archive upload, VM deployment or
+intended fault has occurred. The exact-VM deadline guard is running.
+Base9/9 and extended8pass/4partial remain unchanged.
+
+Prior13:35UTC: **B10 defined active-cloud crash/recovery PASS; B09 exact live
 readiness archive/removal lifecycle PASS**. Normal signed-in VS Code submitted
 one read-only inventory, then exact Extension Host74091 was interrupted while
 independent guest snapshots prove the same unit/main/child remained active.
@@ -17,9 +31,11 @@ See [live execution](b09-b10-live-20260923.md),
 
 B10/B12 are complete for their stated scopes. B09 remains partial for only
 actual lost deployment response and terminal bootstrap failure; a separate
-new-resource/fault scope is awaiting user approval. No new VM/fault was started.
+new-resource/fault scope is approved, but the newly identified account-only
+policy exception awaits confirmation. No new VM/fault was started.
 Base9/9 unchanged; extended **8pass/4partial**, not release-qualified.
-**Current next step:** authorize and execute the bounded B09 two-failure trial;
+**Current next step:** resolve the exact storage exception and execute the
+already-approved bounded B09 two-failure trial;
 do not repeat completed cancellation, expiry, duplicate, B10 or B12 evidence.
 
 Prior13:05UTC independent review: **B09 original expired-preview refusal PASS
