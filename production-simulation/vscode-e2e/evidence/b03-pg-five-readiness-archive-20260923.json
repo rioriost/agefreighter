@@ -1,0 +1,346 @@
+{
+  "kind": "b03-pg-approved-five-readiness-controls-maintenance-v1",
+  "workflow": "cb2ef280-a891-4edf-b45b-de75e33eb7b8",
+  "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b",
+  "preparedAt": "2026-09-23T08:50:37.476Z",
+  "authorization": "User explicitly approved approximately five old readiness control removals after archival on September23. Exactly these five are selected.",
+  "caveat": "Historical sealed success is not current terminal proof. ARM instance views report Pending with missing output/times. Separately approved manual maintenance, not native removal qualification; its guards remain unchanged.",
+  "preserve": {
+    "currentReadiness": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-5bc55c08-7d9d-4755-a4fe-4fd5859fb38c",
+    "migration": "d707adf8-7cab-4d73-8e38-ec141e72ac18",
+    "qualification": "028ec524-990f-4ed3-8265-6eb024d5cf57",
+    "resultSHA256": "00938de546f94d1fe50e372044bef9b423e104919855fc8d934a06b4b42f77fc"
+  },
+  "entries": [
+    {
+      "name": "af-618186b2-cee7-4a82-95b8-962dfff30de3",
+      "receipt": {
+        "version": 1,
+        "workflow": "cb2ef280-a891-4edf-b45b-de75e33eb7b8",
+        "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b",
+        "command": {
+          "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-618186b2-cee7-4a82-95b8-962dfff30de3",
+          "operation": "8769b333-51cb-46a4-87d2-1dc66ac375d5",
+          "action": "ready",
+          "phase": "finished",
+          "submittedAt": "2026-09-22T14:15:27.350Z"
+        },
+        "readiness": {
+          "bootId": "8b207a68-b8fc-4bb2-b4a5-10c5ff5348aa",
+          "cliVersion": "2.4.0-dev.d40d6ccc9a4d",
+          "archiveSha256": "2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6",
+          "commit": "d40d6ccc9a4ddf6e2ca626392cd7bf83140ed6c7",
+          "checkedAt": "2026-09-22T14:15:27.350Z",
+          "capabilities": [
+            "csv-inventory-v1",
+            "csv-migration-v1",
+            "neo4j-inventory-v1",
+            "neo4j-migration-v1",
+            "postgresql-inventory-v1",
+            "postgresql-migration-v1",
+            "postgresql-catalog-v1",
+            "cosmos-nosql-inventory-v1",
+            "cosmos-nosql-migration-v1",
+            "postgresql-native-floats-v1",
+            "cosmos-explicit-property-types-v1",
+            "resume-inspection-v1",
+            "explicit-resume-v1"
+          ],
+          "health": {
+            "idle": true,
+            "storageUsedPercent": 3.481684806577867,
+            "swapUsedBytes": 0,
+            "oomEvents": 0
+          }
+        },
+        "sha256": "08486937aec4c7719a3bd96508336d1b994c4a14df79473008e4e07a61dc632a"
+      },
+      "archiveManifest": {
+        "operation": "618186b2-cee7-4a82-95b8-962dfff30de3",
+        "bytes": 1433,
+        "sha256": "aee3895eda7371f6b1e12905af8578eacfa489722784106dcd99f790b7a21b08"
+      },
+      "unreferenced": true,
+      "current": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-618186b2-cee7-4a82-95b8-962dfff30de3",
+        "location": "japaneast",
+        "provisioningState": "Succeeded",
+        "asyncExecution": false,
+        "timeoutInSeconds": 60,
+        "script": "#!/bin/bash\nset -euo pipefail\nset +x\numask 077\nbootstrap_status=0\ntimeout 45 cloud-init status --wait >/dev/null 2>&1 || bootstrap_status=$?\nif [ \"$bootstrap_status\" -eq 124 ]; then\n  printf '%s\\n' '{\"version\":1,\"ready\":false,\"bootstrap\":\"pending\"}'\n  exit 0\nfi\nif [ \"$bootstrap_status\" -ne 0 ]; then\n  printf '%s\\n' 'Linux bootstrap did not complete successfully.' >&2\n  exit 1\nfi\nif [ ! -f /var/lib/agefreighter/bootstrap.complete ] || [ ! -x /usr/local/bin/agefreighter-tools ]; then\n  printf '%s\\n' 'Linux bootstrap installation evidence is missing.' >&2\n  exit 1\nfi\nprintf '%s' \"$AF_RUNNER_REQUEST\" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch\n",
+        "scriptSHA256": "a732e9492b31a8ae80ac2a8360ec4c30189ed694a9606956bb560cb5232a5160",
+        "instanceView": {
+          "executionState": "Pending",
+          "exitCode": 0
+        },
+        "parameterNames": [],
+        "protectedParameterNames": []
+      },
+      "deletionIntent": "One exact ARM readiness control only; guest files and all migration/verification controls are retained."
+    },
+    {
+      "name": "af-36454212-d75d-49d6-82da-46267bfab307",
+      "receipt": {
+        "version": 1,
+        "workflow": "cb2ef280-a891-4edf-b45b-de75e33eb7b8",
+        "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b",
+        "command": {
+          "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-36454212-d75d-49d6-82da-46267bfab307",
+          "operation": "4f5a1a57-1728-4e7a-93c4-8f48723d2632",
+          "action": "ready",
+          "phase": "finished",
+          "submittedAt": "2026-09-23T01:26:39.598Z"
+        },
+        "readiness": {
+          "bootId": "0a11bbe3-8d37-4644-8c13-d0dee31a529a",
+          "cliVersion": "2.4.0-dev.d40d6ccc9a4d",
+          "archiveSha256": "2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6",
+          "commit": "d40d6ccc9a4ddf6e2ca626392cd7bf83140ed6c7",
+          "checkedAt": "2026-09-23T01:26:39.598Z",
+          "capabilities": [
+            "csv-inventory-v1",
+            "csv-migration-v1",
+            "neo4j-inventory-v1",
+            "neo4j-migration-v1",
+            "postgresql-inventory-v1",
+            "postgresql-migration-v1",
+            "postgresql-catalog-v1",
+            "cosmos-nosql-inventory-v1",
+            "cosmos-nosql-migration-v1",
+            "postgresql-native-floats-v1",
+            "cosmos-explicit-property-types-v1",
+            "resume-inspection-v1",
+            "explicit-resume-v1"
+          ],
+          "health": {
+            "idle": true,
+            "storageUsedPercent": 3.5132911216725904,
+            "swapUsedBytes": 0,
+            "oomEvents": 0
+          }
+        },
+        "sha256": "325dc8d9f3a23ca923dbea331c56e394f1caacb938c75c180d4af393c5111b25"
+      },
+      "archiveManifest": {
+        "operation": "36454212-d75d-49d6-82da-46267bfab307",
+        "bytes": 1434,
+        "sha256": "0771d1d252a362d56efb1574f68c849e150ad4b0f1048b302f0fa42bb6044776"
+      },
+      "unreferenced": true,
+      "current": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-36454212-d75d-49d6-82da-46267bfab307",
+        "location": "japaneast",
+        "provisioningState": "Succeeded",
+        "asyncExecution": false,
+        "timeoutInSeconds": 60,
+        "script": "#!/bin/bash\nset -euo pipefail\nset +x\numask 077\nbootstrap_status=0\ntimeout 45 cloud-init status --wait >/dev/null 2>&1 || bootstrap_status=$?\nif [ \"$bootstrap_status\" -eq 124 ]; then\n  printf '%s\\n' '{\"version\":1,\"ready\":false,\"bootstrap\":\"pending\"}'\n  exit 0\nfi\nif [ \"$bootstrap_status\" -ne 0 ]; then\n  printf '%s\\n' 'Linux bootstrap did not complete successfully.' >&2\n  exit 1\nfi\nif [ ! -f /var/lib/agefreighter/bootstrap.complete ] || [ ! -x /usr/local/bin/agefreighter-tools ]; then\n  printf '%s\\n' 'Linux bootstrap installation evidence is missing.' >&2\n  exit 1\nfi\nprintf '%s' \"$AF_RUNNER_REQUEST\" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch\n",
+        "scriptSHA256": "a732e9492b31a8ae80ac2a8360ec4c30189ed694a9606956bb560cb5232a5160",
+        "instanceView": {
+          "executionState": "Pending",
+          "exitCode": 0
+        },
+        "parameterNames": [],
+        "protectedParameterNames": []
+      },
+      "deletionIntent": "One exact ARM readiness control only; guest files and all migration/verification controls are retained."
+    },
+    {
+      "name": "af-85b55af5-9b2b-4b78-8b45-242a0e5739b4",
+      "receipt": {
+        "version": 1,
+        "workflow": "cb2ef280-a891-4edf-b45b-de75e33eb7b8",
+        "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b",
+        "command": {
+          "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-85b55af5-9b2b-4b78-8b45-242a0e5739b4",
+          "operation": "095d94c7-74d9-482c-9a03-0b1ea87d0029",
+          "action": "ready",
+          "phase": "finished",
+          "submittedAt": "2026-09-23T01:34:09.596Z"
+        },
+        "readiness": {
+          "bootId": "0a11bbe3-8d37-4644-8c13-d0dee31a529a",
+          "cliVersion": "2.4.0-dev.646f0d4b361a",
+          "archiveSha256": "07ba1744b5daf7e226915c50d46fa5eda704949fc7d175e2b39a150813f41692",
+          "commit": "646f0d4b361aec55fcc3f44cb689e06fd915d6e1",
+          "checkedAt": "2026-09-23T01:34:09.596Z",
+          "capabilities": [
+            "csv-inventory-v1",
+            "csv-migration-v1",
+            "neo4j-inventory-v1",
+            "neo4j-migration-v1",
+            "postgresql-inventory-v1",
+            "postgresql-migration-v1",
+            "postgresql-catalog-v1",
+            "cosmos-nosql-inventory-v1",
+            "cosmos-nosql-migration-v1",
+            "postgresql-native-floats-v1",
+            "cosmos-explicit-property-types-v1",
+            "resume-inspection-v1",
+            "explicit-resume-v1"
+          ],
+          "health": {
+            "idle": true,
+            "storageUsedPercent": 3.799234515280392,
+            "swapUsedBytes": 0,
+            "oomEvents": 0
+          }
+        },
+        "sha256": "5190ceb12110d936d31d494fa3a37c8bd4258044317a03030e30d5b981ed9a16"
+      },
+      "archiveManifest": {
+        "operation": "85b55af5-9b2b-4b78-8b45-242a0e5739b4",
+        "bytes": 1433,
+        "sha256": "612319062f97f4e176477b182617e475e1da16493073b81a0daa181f052b3337"
+      },
+      "unreferenced": true,
+      "current": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-85b55af5-9b2b-4b78-8b45-242a0e5739b4",
+        "location": "japaneast",
+        "provisioningState": "Succeeded",
+        "asyncExecution": false,
+        "timeoutInSeconds": 60,
+        "script": "#!/bin/bash\nset -euo pipefail\nset +x\numask 077\nbootstrap_status=0\ntimeout 45 cloud-init status --wait >/dev/null 2>&1 || bootstrap_status=$?\nif [ \"$bootstrap_status\" -eq 124 ]; then\n  printf '%s\\n' '{\"version\":1,\"ready\":false,\"bootstrap\":\"pending\"}'\n  exit 0\nfi\nif [ \"$bootstrap_status\" -ne 0 ]; then\n  printf '%s\\n' 'Linux bootstrap did not complete successfully.' >&2\n  exit 1\nfi\nif [ ! -f /var/lib/agefreighter/bootstrap.complete ] || [ ! -x /usr/local/bin/agefreighter-tools ]; then\n  printf '%s\\n' 'Linux bootstrap installation evidence is missing.' >&2\n  exit 1\nfi\nprintf '%s' \"$AF_RUNNER_REQUEST\" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch\n",
+        "scriptSHA256": "a732e9492b31a8ae80ac2a8360ec4c30189ed694a9606956bb560cb5232a5160",
+        "instanceView": {
+          "executionState": "Pending",
+          "exitCode": 0
+        },
+        "parameterNames": [],
+        "protectedParameterNames": []
+      },
+      "deletionIntent": "One exact ARM readiness control only; guest files and all migration/verification controls are retained."
+    },
+    {
+      "name": "af-4972880e-cec5-4a3a-9576-feedaeed1a69",
+      "receipt": {
+        "version": 1,
+        "workflow": "cb2ef280-a891-4edf-b45b-de75e33eb7b8",
+        "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b",
+        "command": {
+          "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-4972880e-cec5-4a3a-9576-feedaeed1a69",
+          "operation": "120a6842-1f34-4ee9-8df3-b34e5f35da07",
+          "action": "ready",
+          "phase": "finished",
+          "submittedAt": "2026-09-23T02:38:27.607Z"
+        },
+        "readiness": {
+          "bootId": "08d8a5eb-e188-4606-988c-fcb871407870",
+          "cliVersion": "2.4.0-dev.646f0d4b361a",
+          "archiveSha256": "07ba1744b5daf7e226915c50d46fa5eda704949fc7d175e2b39a150813f41692",
+          "commit": "646f0d4b361aec55fcc3f44cb689e06fd915d6e1",
+          "checkedAt": "2026-09-23T02:38:27.607Z",
+          "capabilities": [
+            "csv-inventory-v1",
+            "csv-migration-v1",
+            "neo4j-inventory-v1",
+            "neo4j-migration-v1",
+            "postgresql-inventory-v1",
+            "postgresql-migration-v1",
+            "postgresql-catalog-v1",
+            "cosmos-nosql-inventory-v1",
+            "cosmos-nosql-migration-v1",
+            "postgresql-native-floats-v1",
+            "cosmos-explicit-property-types-v1",
+            "resume-inspection-v1",
+            "explicit-resume-v1"
+          ],
+          "health": {
+            "idle": true,
+            "storageUsedPercent": 3.8205521235878503,
+            "swapUsedBytes": 0,
+            "oomEvents": 0
+          }
+        },
+        "sha256": "fcc9825eb89a56217d86fc9a0c45879f45306502434b81e3e3c7c2e315b3c73c"
+      },
+      "archiveManifest": {
+        "operation": "4972880e-cec5-4a3a-9576-feedaeed1a69",
+        "bytes": 1434,
+        "sha256": "91a26182b52d00ef5fb9d58f813865f5c25e9a99105596d18edc74403bbd3f04"
+      },
+      "unreferenced": true,
+      "current": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-4972880e-cec5-4a3a-9576-feedaeed1a69",
+        "location": "japaneast",
+        "provisioningState": "Succeeded",
+        "asyncExecution": false,
+        "timeoutInSeconds": 60,
+        "script": "#!/bin/bash\nset -euo pipefail\nset +x\numask 077\nbootstrap_status=0\ntimeout 45 cloud-init status --wait >/dev/null 2>&1 || bootstrap_status=$?\nif [ \"$bootstrap_status\" -eq 124 ]; then\n  printf '%s\\n' '{\"version\":1,\"ready\":false,\"bootstrap\":\"pending\"}'\n  exit 0\nfi\nif [ \"$bootstrap_status\" -ne 0 ]; then\n  printf '%s\\n' 'Linux bootstrap did not complete successfully.' >&2\n  exit 1\nfi\nif [ ! -f /var/lib/agefreighter/bootstrap.complete ] || [ ! -x /usr/local/bin/agefreighter-tools ]; then\n  printf '%s\\n' 'Linux bootstrap installation evidence is missing.' >&2\n  exit 1\nfi\nprintf '%s' \"$AF_RUNNER_REQUEST\" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch\n",
+        "scriptSHA256": "a732e9492b31a8ae80ac2a8360ec4c30189ed694a9606956bb560cb5232a5160",
+        "instanceView": {
+          "executionState": "Pending",
+          "exitCode": 0
+        },
+        "parameterNames": [],
+        "protectedParameterNames": []
+      },
+      "deletionIntent": "One exact ARM readiness control only; guest files and all migration/verification controls are retained."
+    },
+    {
+      "name": "af-c3637975-69ca-4679-9553-4e9b09d7d637",
+      "receipt": {
+        "version": 1,
+        "workflow": "cb2ef280-a891-4edf-b45b-de75e33eb7b8",
+        "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b",
+        "command": {
+          "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-c3637975-69ca-4679-9553-4e9b09d7d637",
+          "operation": "d9a6d472-6bc4-4096-a605-8a31506d1f8a",
+          "action": "ready",
+          "phase": "finished",
+          "submittedAt": "2026-09-23T02:42:36.454Z"
+        },
+        "readiness": {
+          "bootId": "08d8a5eb-e188-4606-988c-fcb871407870",
+          "cliVersion": "2.4.0-dev.646f0d4b361a",
+          "archiveSha256": "07ba1744b5daf7e226915c50d46fa5eda704949fc7d175e2b39a150813f41692",
+          "commit": "646f0d4b361aec55fcc3f44cb689e06fd915d6e1",
+          "checkedAt": "2026-09-23T02:42:36.454Z",
+          "capabilities": [
+            "csv-inventory-v1",
+            "csv-migration-v1",
+            "neo4j-inventory-v1",
+            "neo4j-migration-v1",
+            "postgresql-inventory-v1",
+            "postgresql-migration-v1",
+            "postgresql-catalog-v1",
+            "cosmos-nosql-inventory-v1",
+            "cosmos-nosql-migration-v1",
+            "postgresql-native-floats-v1",
+            "cosmos-explicit-property-types-v1",
+            "resume-inspection-v1",
+            "explicit-resume-v1"
+          ],
+          "health": {
+            "idle": true,
+            "storageUsedPercent": 3.8213786743729217,
+            "swapUsedBytes": 0,
+            "oomEvents": 0
+          }
+        },
+        "sha256": "eab6a6051461a9abdef5ebb3e82695ddba0258d3f42bd09794073d36f1c7effb"
+      },
+      "archiveManifest": {
+        "operation": "c3637975-69ca-4679-9553-4e9b09d7d637",
+        "bytes": 1434,
+        "sha256": "cecc2aeefdc62039c255423246ddc2c9ff8e30fc39186438b8472c3dc1ee580b"
+      },
+      "unreferenced": true,
+      "current": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-cb2ef280a8914edfb45b/runCommands/af-c3637975-69ca-4679-9553-4e9b09d7d637",
+        "location": "japaneast",
+        "provisioningState": "Succeeded",
+        "asyncExecution": false,
+        "timeoutInSeconds": 60,
+        "script": "#!/bin/bash\nset -euo pipefail\nset +x\numask 077\nbootstrap_status=0\ntimeout 45 cloud-init status --wait >/dev/null 2>&1 || bootstrap_status=$?\nif [ \"$bootstrap_status\" -eq 124 ]; then\n  printf '%s\\n' '{\"version\":1,\"ready\":false,\"bootstrap\":\"pending\"}'\n  exit 0\nfi\nif [ \"$bootstrap_status\" -ne 0 ]; then\n  printf '%s\\n' 'Linux bootstrap did not complete successfully.' >&2\n  exit 1\nfi\nif [ ! -f /var/lib/agefreighter/bootstrap.complete ] || [ ! -x /usr/local/bin/agefreighter-tools ]; then\n  printf '%s\\n' 'Linux bootstrap installation evidence is missing.' >&2\n  exit 1\nfi\nprintf '%s' \"$AF_RUNNER_REQUEST\" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch\n",
+        "scriptSHA256": "a732e9492b31a8ae80ac2a8360ec4c30189ed694a9606956bb560cb5232a5160",
+        "instanceView": {
+          "executionState": "Pending",
+          "exitCode": 0
+        },
+        "parameterNames": [],
+        "protectedParameterNames": []
+      },
+      "deletionIntent": "One exact ARM readiness control only; guest files and all migration/verification controls are retained."
+    }
+  ]
+}
