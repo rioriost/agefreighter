@@ -2,7 +2,29 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest12:46UTC independent review: **B09 same-window and stale two-window
+Latest13:05UTC independent review: **B09 original expired-preview refusal PASS
+in the frozen isolated native/controller scope**. The original preview retained
+its exact15-minute interval,12:48:13.063–13:03:13.063UTC. An early-opened real modal
+returned positive13:03:34.398UTC,21.335seconds after expiry, and the production
+controller refused before submitRunner, persistence or effect attempts. One0600
+record remained byte-identical across initial/modal/final/current checks; runtime,
+loader and all6source seals match, with actual host20115 bound by its log. Root
+observed the exact synthetic workflow in a fresh single-fixture app before the
+late click. Both earlier failed receipts remain unchanged and uncredited. See
+the [expiry receipt](evidence/b09-native-expiry-20260923.json).
+
+Cancellation30/30 and duplicate controller gates remain credited with their
+existing boundaries. B09 still needs actual lost deployment response, terminal
+bootstrap failure and native live readiness-control lifecycle; B10's active-cloud
+crash remains open. B12 PASS, base9/9 and extended7pass/5partial are unchanged.
+**Current next step:** the bounded ordinary signed-in readiness/inventory/crash
+session, with fresh operation/host/health proof before its approved single crash.
+The [execution log](b09-b10-live-20260923.md) records runner-only start around
+12:55UTC, source stopped at that checkpoint, stop initiation13:50UTC and hard
+stop13:55UTC. No deadline extension or new-resource authority follows from these
+isolated GUI results.
+
+Prior12:46UTC independent review: **B09 same-window and stale two-window
 controller gates PASS in the frozen isolated native/inert-effects scope**.
 Actual double-click produced one handler/modal/intent/inert PUT. Two actual
 same-profile windows and host PIDs16461/16672 are independently bound by VS Code
@@ -18,7 +40,7 @@ The second expiry fixture is explicitly **FAIL / no credit**: positive returned
 12:35:37UTC before its12:47:49UTC expiry. One submitRunner entry reached the first
 denied inert request; zero persistence, unchanged private bytes and no cloud
 business request. Its failure is preserved separately from the earlier proposed
-getter activation failure. **Current next step:** one fresh isolated expiry app,
+getter activation failure. The next step at that checkpoint was one fresh isolated expiry app,
 held without GUI switching until the original expiry, then independently review
 the late-confirmation result. Preparation is not a PASS. B09 remains partial for
 expiry, actual lost deployment response, terminal bootstrap failure and live

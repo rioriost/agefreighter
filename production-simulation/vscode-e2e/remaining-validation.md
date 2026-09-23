@@ -2,7 +2,25 @@
 
 Updated: 2026-09-23 JST. Status: **not release-qualified; base routes9/9; 7/12 defined branches pass, 5 partial**.
 
-Latest September23 12:46UTC independent review: **B09 duplicate controller gates
+Latest September23 13:05UTC independent review: **B09 original expired-preview
+controller gate PASS in an isolated normal native host**. Original creation and
+expiry remain12:48:13.063/13:03:13.063UTC; the actual positive returned
+13:03:34.398UTC and was refused before submitRunner/write/effect. Full current
+record bytes and0600 mode agree with original/modal/final evidence; runtime,
+loader,6source seals and actual host identity are independently checked. The
+two earlier failures remain false and byte-identical, not retrospectively passed.
+See the [expiry receipt](evidence/b09-native-expiry-20260923.json).
+
+B09 still needs actual lost deployment response, terminal bootstrap failure and
+native live readiness-control lifecycle. Cancellation30/30 and scoped duplicate
+credits are unchanged. B10's one active-cloud crash remains open; B12 remains
+defined mixed-layer PASS. Base9/9, extended7pass/5partial and not-release-qualified
+status remain. Separate approved runner-only start was around12:55UTC; the live
+window still requires stopping to begin13:50UTC and completion by13:55UTC, with
+no automatic extension. Isolated expiry proof neither starts another inventory
+nor changes those live safety limits.
+
+Prior September23 12:46UTC independent review: **B09 duplicate controller gates
 PASS for the frozen isolated native/inert scope**. Same-window actual repeated
 clicking produced one accepted entry/modal/intent/PUT. Two real windows, separately
 logged host PIDs16461/16672 and one physical profile/store establish the cross-host
@@ -595,7 +613,7 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
-| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 cancellations and isolated same-window/two-window duplicate controller gates credited at stated layers, with B input attribution explicitly limited; historical quota/artifact refusals credited; running-only receipt gate and consent-binding regressions pass; Pending remains refused | Actual native expiry refusal, actual lost deployment response/terminal bootstrap failure and live archived removal/GET404 remain; two expiry attempts retain no credit and isolated A29 is not live admission/deletion | partial |
+| B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 cancellations, isolated original-expiry refusal and same-window/two-window duplicate controller gates credited at stated layers; B input attribution remains limited and2earlier expiry attempts remain failures; historical quota/artifact refusals credited; Pending remains refused | Actual lost deployment response/terminal bootstrap failure and live archived removal/GET404 remain; isolated A29 is not live admission/deletion | partial |
 | B10 | Close/reload during assessment/load/verification; no replay | Active Gremlin inventory/load/verifier Reload Window and canonical PASS retained; September23 actual isolated VS Code1.139.0 SIGKILL at two boundaries preserves archive/intent;44focused tests pass; later actual native Cancel/recovery in an unsigned-in isolated profile preserves record/report bytes and archives the dead-child lock | Forced crash during signed-in active Azure operation remains unqualified; isolated SIGKILL, dead-child native confirmation and active-cloud evidence remain distinct | partial |
 | B11 | Loader/network interruption; explicit same-job recovery | CSV r2 actual SIGTERM + VM reboot; Neo4j network r2 actual connection fault; explicit same-job GUI resumes, complete counts and all 64 canonical ranges PASS in both trials | Complete for these defined faults; not every timing or source | pass |
 | B12 | Invalid verification must never be PASS | Existing synthetic production-controller/real-host semantic negatives and signed-in retained-failure refusal, plus normal signed-in native fresh wrong-expected-SHA and length refusals at11:25/11:36UTC; independent originals/case/pin/post-state review PASS | Complete for the frozen mixed-layer scope; not all eight cases against Azure, remote corruption, actual network truncation or an instrumented HTTP request count | pass |

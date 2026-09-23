@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "scope": "B09 original expired runner-deployment preview refusal",
+  "result": "pass-isolated-native-controller-scope",
+  "overallB09": "partial",
+  "independentFileReviewAt": "2026-09-23T13:05:13.257Z",
+  "retainedRoot": "/private/tmp/af-deployment-expiry-lv4PB9",
+  "launchMode": "normal-development-host-with-single-disposable-fixture",
+  "syntheticWorkflow": "34975c07-d0ce-42cf-80bc-a482bebdbbc4",
+  "hostPID": 20115,
+  "bundleSHA256": "569d42ed709fbfb4a88abc62acd253a59fb0821bb1ab1f1e604acbaa90f6a7a2",
+  "sourceHashes": {
+    "runnerMigration.ts": "0cfdf5c7898cf979972d94a1418c2bc4ef77a2ffe1ba5d10e6d99ca401644498",
+    "core/runnerLifecycle.ts": "92eacd67bad2ca02cc3dc4abbb31d01c27129ef4bd925ae9a17da54b6cc59cef",
+    "guided/runnerStore.ts": "01014e4acef83fae99446132b91744d04db9d8076cedfe721bb18df5202936fb",
+    "test/helpers/nativeDeploymentExpiry.ts": "2bab27df8f8a6e66565aecc5cfe1ec79a0d4f29424ed5e50276e74df852a5320",
+    "test/helpers/nativeDeploymentExpiryRuntime.ts": "418430508e2db24a6ad938ce7d2f420526197b104f92b7b79710a8c3245754ba",
+    "test/helpers/nativeCancelOtherScenarios.ts": "3195936347388f3376d3f533d909638dbf633e6531507d20e640c27bb874d57d"
+  },
+  "retainedFileSHA256": {
+    "preparation.json": "2285e423b37086cd0463fd8ffc1e4c712df9ecd222eacfc6860f9006138a1c5d",
+    "baseline.json": "b499538de00578982d164e7370604ec3680da69f099b8dc241e1a98362c13f71",
+    "modal-opened.json": "60a0855c615fc7f222d338a28517b97159f3208e5e47878a86ba3bff45fa3d83",
+    "result.json": "451c52bd7a49732ae7b94d5fe0d7b76abcf00d822c22ea1cd218eb060cad1e64"
+  },
+  "timeline": {
+    "createdAt": "2026-09-23T12:48:13.063Z",
+    "originalExpiresAt": "2026-09-23T13:03:13.063Z",
+    "modalOpenedAt": "2026-09-23T12:49:08.315Z",
+    "coordinatorObservedUTCBeforeConfirmation": "2026-09-23T13:03:25Z",
+    "nativePositiveReturnedAt": "2026-09-23T13:03:34.398Z",
+    "controllerRefusedAt": "2026-09-23T13:03:34.411Z",
+    "originalExpiryIntervalMs": 900000,
+    "confirmationAfterExpiryMs": 21335
+  },
+  "nativeInteraction": {
+    "coordinatorObservation": "All other fixture applications were closed first. The original modal was held without GUI switching through the real UTC deadline. A fresh accessibility view identified the exact synthetic 34975c07 workflow before the coordinator clicked Create reviewed runner.",
+    "actualAPIChoice": "Create reviewed runner",
+    "modalCount": 1,
+    "supervisorGUIObservation": false,
+    "independentHostLogCheck": "The isolated Extension Host log binds PID20115 startup at 2026-09-23 21:48:12.901 JST, fixture activation at 21:48:13.050 JST and normal exit at 22:04:00.021 JST."
+  },
+  "controller": {
+    "deployEntries": 1,
+    "readOnlyRestoreEntries": 2,
+    "submitRunnerEntries": 0,
+    "workflowWrites": 0,
+    "effectAttempts": 0,
+    "refusal": "The approved preview changed or expired. Reconnect and review deployment again."
+  },
+  "privateStore": {
+    "files": 1,
+    "mode": "0600",
+    "originalModalFinalCurrentSHA256": "cc9ceb8e4cf267a40e7e86ada769663da2eaeca0bed883edc2dc1027d075f20b",
+    "phase": "previewed",
+    "originalRecordPreserved": true,
+    "originalExpiryAndRevisionPreserved": true,
+    "noExtraFiles": true
+  },
+  "independentChecks": [
+    "Original interval is exactly 900000ms; modal opened before and actual positive returned after the unchanged expiry.",
+    "All original/baseline/modal/final/current record bytes and file modes agree.",
+    "Retained runtime hash, preparation source seals and loader pin match reviewed code; real Azure adapter is excluded.",
+    "Expected refusal occurs before submitRunner, persistence or any effect adapter attempt.",
+    "Both earlier failed receipts remain byte-identical and retain pass=false."
+  ],
+  "previousFailedAttempts": [
+    {
+      "root": "/private/tmp/af-deployment-expiry-raa5IR",
+      "file": "activation-failed.json",
+      "sha256": "a4a31943503a997c95986d1510b8ad4fd3246a89ea7c261caf995172305e0c36",
+      "pass": false,
+      "credit": "none",
+      "reason": "Pre-modal activation failed on unrelated proposed extensionRuntime getter; no expiry interaction occurred."
+    },
+    {
+      "root": "/private/tmp/af-deployment-expiry-ZfIGFf",
+      "file": "result.json",
+      "sha256": "a29077bd40a747301973bba6bcd0e3b4e1940d7354387328ba27e1e7b2658317",
+      "pass": false,
+      "credit": "none",
+      "reason": "Early positive at 12:35:37.243Z preceded original 12:47:49.498Z expiry; first inert request denied, zero writes/cloud."
+    }
+  ],
+  "evidenceLayer": "isolated-normal-native-production-controller-with-inert-effects",
+  "signedInCloudQualification": false,
+  "cloudBusinessRequests": 0,
+  "duplicateOrLostReplyOrBootstrapQualificationByThisReceipt": false,
+  "limitations": [
+    "Synthetic original preview, restore selectors and account prerequisites; not normal installed-command or signed-in Azure execution.",
+    "Native click, focus isolation and independent UTC observation are coordinator-reported; supervisor independently verified retained files, hashes, source and actual host logs.",
+    "No fixture clock/expiry rewrite; this is bounded evidence, not a claim of tamperproof OS clocks or continuous monitoring.",
+    "No fixture business request reached Azure; unrelated authorized runner-session activity is tracked separately.",
+    "B09 still requires actual lost deployment response, terminal bootstrap failure and native live readiness-control lifecycle. B10 remains open; B12 defined mixed-layer PASS and all30 cancellation credits are unchanged."
+  ]
+}
