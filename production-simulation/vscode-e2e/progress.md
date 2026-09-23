@@ -2,7 +2,31 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest12:35UTC independent review: **all30 frozen B09 cancellation decisions
+Latest12:46UTC independent review: **B09 same-window and stale two-window
+controller gates PASS in the frozen isolated native/inert-effects scope**.
+Actual double-click produced one handler/modal/intent/inert PUT. Two actual
+same-profile windows and host PIDs16461/16672 are independently bound by VS Code
+logs; B held the original review before A's one submission and its native positive
+return was rejected before any second submit/write/PUT, well before expiry.
+Bundle/source seals and exact current store/intent hashes match. B's triggering
+input is ambiguous: root did not knowingly target a separate B-positive click.
+This proves the stale-approval controller boundary, not deliberate B-button
+targeting, reliable window automation or Azure duplication. See the
+[duplicate receipt](evidence/b09-native-duplicate-20260923.json).
+
+The second expiry fixture is explicitly **FAIL / no credit**: positive returned
+12:35:37UTC before its12:47:49UTC expiry. One submitRunner entry reached the first
+denied inert request; zero persistence, unchanged private bytes and no cloud
+business request. Its failure is preserved separately from the earlier proposed
+getter activation failure. **Current next step:** one fresh isolated expiry app,
+held without GUI switching until the original expiry, then independently review
+the late-confirmation result. Preparation is not a PASS. B09 remains partial for
+expiry, actual lost deployment response, terminal bootstrap failure and live
+readiness lifecycle; B10's one active-cloud crash remains open. Cancellation30/30,
+B12 PASS, base9/9 and extended7pass/5partial are unchanged. No compute start is
+reported and the existing-runner/source live clock has not begun.
+
+Prior12:35UTC independent review: **all30 frozen B09 cancellation decisions
 credited at their stated evidence layers**. The remaining17 actual native Cancel
 actions completed12:29:58–12:31:47UTC in an isolated normal-development host;
 the previous13 credits are preserved. All initial/modal/result/current file
@@ -27,9 +51,9 @@ The user confirmed private source-credential entry; the coordinator's ordinary
 installed Prepare/reuse action then returned without another password/Remember
 prompt or error, without reading the secret. This is credential reuse preparation,
 not a source login or inventory result. Per the coordinator's latest report,
-compute remains off and the60-minute live clock has not started. **Current next
-step:** qualify isolated expiry/duplicate interactions, then refresh exact safety/
-stop gates before any approved existing-runner/source start. The
+compute remained off and the60-minute live clock had not started. The next step
+at that checkpoint was isolated expiry/duplicate qualification, followed by
+refreshing exact safety/stop gates before any approved existing-runner/source start. The
 [live scope](b09-b10-live-20260923.md) does not authorize a new deployment or
 deletion without exact action-time approval.
 
