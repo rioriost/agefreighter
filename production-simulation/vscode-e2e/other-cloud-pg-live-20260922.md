@@ -496,3 +496,21 @@ confirmed. No post-reset inventory or migration has run; source-local login is
 not runner-to-source or GUI migration qualification. Next retry must use the
 new canonical PGVM item, never the PGFS or Neo4j credentials, within a reviewed
 bounded session. Broader qualification ledger remains5pass/7partial.
+
+## September23 02:36UTC — post-reset GUI retry window opened
+
+User entered the applied/login-verified dated PGVM reader credential and chose
+Remember, then requested continuation after the proposed maximum60minute window
+for the same two VMs, inventory and report import only. Installed-GUI
+Prepare / reuse credential returned without another input prompt while both VMs
+were still deallocated. No credential value was inspected by the agent.
+Exact ownership/power states and recent Activity Log reviewed before start;
+recent entries were the prior source deallocation and Resource Health update.
+Scoped safety monitor enabled before first start requests02:36:06UTC. Only
+source`af-pgvm-source` and runner`af-cb2ef280a8914edfb45b` started; both running
+confirmed. Conservative fixed stop03:34UTC, begin03:29UTC, less than60minutes
+from first start. No new target, migration, upgrade, grants/network changes or
+credential reset. Existing failed attempts remain retained; next is one fresh
+GUI inventory after source/runner health checks. Refreshed delayed Cost API:
+original RG442.711240190565USD+B01RG4.37001612271476USD=
+447.08125631327976USD; cumulative800USD/reserve700 unchanged.

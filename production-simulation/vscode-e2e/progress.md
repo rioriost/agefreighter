@@ -2,7 +2,13 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest02:21UTC: user-approved old PGVM health control archived/pushed then deleted;
+Latest02:36UTC: user entered verified new PGVM credential and Remember; actual
+GUI reuse works without re-entry. Approved same-two-VM inventory-only session
+started02:36UTC; fixed stop03:34UTC(begin03:29), scoped monitor active. Both VMs
+running; health gates/fresh GUI inventory next. No target/migration/new install.
+Latest delayed twoRGcost447.08125631327976USD;800USD ceiling unchanged.
+
+Prior02:21UTC: user-approved old PGVM health control archived/pushed then deleted;
 reader reset completed and verified-TLS/read-only/18-table access PASS. Dated
 PGVM Keychain item is now applied/login-verified, superseding pending state below.
 Source and runner deallocated, monitor paused, all guest evidence retained.
