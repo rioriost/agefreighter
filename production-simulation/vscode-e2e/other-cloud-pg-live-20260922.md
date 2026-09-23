@@ -532,3 +532,23 @@ Installed GUI source-read approval accepted; new inventory
 30minute/4GiB/no-swap worker bounds; accepted is not successful inventory.
 Fresh ARM transfer account check: public HTTPS Enabled, anonymous/shared key
 false, existing approved policy tag unchanged. No new settings or role changes.
+
+## September23 02:47UTC — interrupted at user's request; both VMs stopped
+
+User reported a Keychain read problem and explicitly interrupted the work.
+No further Keychain access, credential diagnostics/reset, source reads, retries
+or qualification work were initiated. At02:46:45UTC retained GUI phase was
+running for inventory`60ba3809-4c8c-4d2f-bc34-46c5686e62dc`. Earlier independent
+guest evidence02:44:12UTC had confirmed actual worker start02:43:25.414189071UTC,
+same boot, RSS27196KiB,disk4%,swap0/OOM0. No final report or complete counts were
+verified; this is an interrupted/unqualified trial, not an authentication
+failure or a successful inventory. The reported Keychain issue was not diagnosed.
+
+Fresh exact VM ownership/power states checked and deallocation requested for
+only runner`af-cb2ef280a8914edfb45b` and source`af-pgvm-source` immediately after
+the request. Both independently confirmed PowerState/deallocated by02:47UTC.
+Scoped heartbeat PAUSED and active GUI assessment tab closed to stop automatic
+polling. Source data, OS disks, all operation evidence and prior failure history
+preserved. No target created or migration performed. No resource deletion.
+Do not restart to read evidence or automatically resume/retry; await explicit
+user continuation and a new bounded session. Broader ledger5pass/7partial.

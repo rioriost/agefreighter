@@ -2,7 +2,13 @@
 
 Updated: 2026-09-23 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9)**.
 
-Latest02:36UTC: user entered verified new PGVM credential and Remember; actual
+Latest02:47UTC: **paused at user's explicit request** after reported Keychain
+read trouble. New inventory60ba3809 had been running; no final counts/report
+verified. Both exact PGVM source/runner now independently deallocated; monitor
+paused and GUI polling stopped. Disks/data/evidence preserved; no target or
+migration, no automatic restart/retry. B03 PostgreSQL remains unqualified.
+
+Prior02:36UTC: user entered verified new PGVM credential and Remember; actual
 GUI reuse works without re-entry. Approved same-two-VM inventory-only session
 started02:36UTC; fixed stop03:34UTC(begin03:29), scoped monitor active. Both VMs
 running; health gates/fresh GUI inventory next. No target/migration/new install.
