@@ -1,17 +1,32 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-24 JST. Status: **not release-qualified; base routes9/9; 9/12 defined branches pass, 3 partial**.
+Updated: 2026-09-24 JST. Status: **not release-qualified; base routes 9/9; 10/12 defined branches PASS, 2 partial (B06/B07)**.
 
-Latest September24 preparation: **B02 unknown-zone VM selection now PASS** in
-the normal installed GUI, including stale-zone clearing and explicit re-selection;
-all93existing operator files unchanged. Real SKU restrictions and a dedicated
-empty VNet fixture are prepared. B06/B07 trust/admission corrections pass757unit
-tests, typecheck/build/host compilation and independent review; candidate not
-yet installed. The [exact new trial scope](b02-b06-b07-session-20260924.md) is
-prepared for approval; no new cloud resource/grant/source operation started.
-B02/B06/B07 remain partial; preparation is not live completion.
+Latest September24 live result: **B02 finite placement scope and dedicated
+fixture cleanup complete**. Actual unknown-zone VM transition and unavailable-SKU
+zone2 refusal / zone1 control are now qualified in the normal installed GUI.
+The historical actual target/resize quota denial is credited only at that path;
+initial-runner quota remains local-contract evidence. The original93operator
+files remain unchanged, and the new empty Southeast Asia fixture VNet is absent
+after evidence archival and one exact deletion. Its parent resource group is
+preserved. See [B02 qualification](b02-placement-scope-20260924.md),
+[actual SKU receipt](b02-sku-gui-20260924.json) and
+[cleanup receipt](b02-cleanup-20260924.json).
 
-Previous completed September24 JST: **B09 and B10 complete for their defined scopes**.
+The [bounded B06/B07 trial](b02-b06-b07-session-20260924.md) has expired; its
+guard confirmed compute stopped at 02:11:50 UTC and exact-owner cleanup is
+complete. All 21 identities are independently absent, original 93 records
+preserved and no old-account EventGrid derivative remains. See the
+[cleanup receipt](evidence/b02-b06-b07-trial-cleanup-20260924.json).
+The pinned candidate is installed. B06's actual Restricted Mode
+pre-dialog refusal passes; its first access observer is inconclusive, with no
+supplemental old-scope execution. Principal-change and data-plane denial/propagation,
+plus B07's remaining live refusals, remain pending. A [fresh exact proposal](b06-b07-fresh-scope-20260924.md)
+is prepared without new cloud execution. Both branches remain partial. The
+[live evidence ledger](b06-b07-live-20260924.md) separates each observed result
+from pending work and preserves its evidence layer.
+
+Historical completed September24 JST (before the current trial): **B09 and B10 complete for their defined scopes**.
 B09's real deployment response withholding retained unknown after actual
 Azure201, then native GET reconciled the same deployment without PUT replay.
 The separately pinned negative archive produced actual terminal bootstrap
@@ -215,21 +230,21 @@ eight old Ready targets were safety-stopped, with final state recorded in
 [the cost-safety follow-up](idle-cost-safety-20260922.md). This does not qualify
 B03, B09 or any other missing branch.
 
-B02 isolated follow-up: 13 production handler/preflight integration contracts
+Historical B02 isolated follow-up: 13 production handler/preflight integration contracts
 pass with synthetic ARM and inert UI/storage/release adapters; 476 unit tests,
 typecheck and build PASS. No cloud or installed-GUI changes. Unknown-zone VM,
 unavailable-SKU and quota-denial live coverage remains open; these contracts
 must not be substituted for it. See
 [isolated placement contracts](placement-panel-contract-20260922.md).
 
-B02 latest: post-fix valid-placement/release-refusal control now PASS in the
+Historical B02 control: post-fix valid-placement/release-refusal control now PASS in the
 installed GUI; four backend refusals also complete. Wizard closed, 82 operator
 files unchanged, no cloud mutation/startup. Actual Japan East SKU/quota reads
 show all offered discovery choices available with adequate quotas; no live
 denial can be claimed from that environment. Still need unknown-zone VM and
 unavailable-SKU/quota-denial fixtures. See [current B02](placement-arm-readonly-20260922.md).
 
-B02 installation/live follow-up: approved `7338faa` is installed and reloaded.
+Historical B02 installation/live follow-up: approved `7338faa` is installed and reloaded.
 Four signed-in GUI backend refusal cases now PASS: missing subnet, DB delegation,
 VNet-region mismatch and source-zone mismatch. Updated guidance visually verified;
 all82operator files unchanged, no resource startup/mutation. Unknown-zone VM,
@@ -237,14 +252,14 @@ unavailable SKU/quota denial and post-fix valid-placement release control remain
 pending. Native menu instability prevented the last control after interruption.
 See [installed-GUI evidence](placement-arm-readonly-20260922.md).
 
-B02 next step: install/reload the reviewed ordering correction, then test backend
+Historical B02 next step: install/reload the reviewed ordering correction, then test backend
 refusals in the signed-in GUI without deployment. The original release refusal
 is now actually observed; GET-only placement checks now precede release lookup
 in source, but artifact/approval protection remains required before effects.
 463unit/25isolated-host tests pass; installation/live results pending. Operator
 store unchanged, no cloud startup. See [follow-up](placement-arm-readonly-20260922.md).
 
-Latest B02 batch: 6/6 production preflight cases pass with real read-only Azure
+Historical B02 batch: 6/6 production preflight cases pass with real read-only Azure
 metadata (19GETs), including missing subnet/group, actual delegation, region and
 zone mismatch refusals. These are not installed-GUI backend outcomes. No startup
 or mutation; all82operator files unchanged. GUI capture failed before a new
@@ -655,11 +670,11 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | ID | Required branch | Existing evidence / current limitation | Remaining acceptance | State |
 |---|---|---|---|---|
 | B01 | Default/separate migration RG; independent network RG | Same-group base P1 PASS; installed separate-group selection, two-scope private target provisioning, same-VM resize and5.6M-row migration/counts PASS; September22 installed-GUI sealed import and independent64range/root comparison PASS | Complete for the defined group-placement branch; not all invalid placement/initial-boot cases (B02/B09), native Gremlin API or production-scale qualification | pass |
-| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Installed GUI placement/default/refusal controls and six direct ARM checks retained; September24 real unknown-zone VM transition now PASS; historical installed target/resize quota denial is credited at its exact path | Real unavailable-SKU GUI refusal/control remains; Southeast Asia restricted zone2 and empty VNet fixture prepared. Initial-runner quota remains local-contract evidence, distinct from historical real target quota refusal | partial |
+| B02 | Region/zone defaults, overrides, unknown zone; invalid region/SKU/subnet/quota | Existing installed placement/refusal controls retained; September24 actual unknown-zone VM transition and SEAsia zone2 SKU refusal / zone1 control PASS; historical installed target/resize quota denial credited at its exact path; new fixture archived and deleted with independent absence and parent-RG preservation proof. See [B02 evidence](b02-placement-scope-20260924.md) and [cleanup](b02-cleanup-20260924.json) | Complete for the finite scope. Initial-runner quota remains local-contract evidence; no every-screen live quota claim | pass |
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; location GUI audit/request traces/CLI contracts pass; September22 Neo4j and September23 PostgreSQL other-cloud GUI migrations both pass full5.6M/18label/64range canonical comparison | Defined GUI selections qualified using Azure-hosted endpoint-only simulations; actual third-party-cloud network compatibility is not claimed | pass |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Base/manual routes have full P1 canonical PASS; installed GUI/Linux P1 catalog, explicit mappings and complete inventory/import pass; CSV all18choices/IDs/seals/configuration binding pass,445unit tests/13Go contracts; isolated FK GUI catalog, explicit safe edge/property adoption, reconnect and sealed5vertex/3edge inventory pass | Complete for defined cases; nullable FK remains manual review. Supplemental FK inventory is not another migration/digest qualification; broader value combinations retain local-contract-only scope | pass |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin-shaped NoSQL installed-GUI inventory, private target/resize, migration and complete counts pass; independent full digest generated 05:08:24 UTC and GUI-imported, all 5.6M records / 18 labels / 64 ranges and root match, including typed properties, composite IDs and endpoints | Complete for the defined document-format branch; not native Gremlin API qualification | pass |
-| B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope documented; existing live account-scoped Reader/security rechecked; trust, approval binding and VM principal guards corrected with simulated denial/no-retry coverage; corrected candidate installed and wording verified in signed-in GUI | Live trust/principal-change and data-plane denial/propagation evidence still missing; do not claim other CLI modes GUI-tested | partial |
+| B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope and prior Reader/security evidence retained; trust/principal guards corrected; September24 actual Restricted Mode pre-dialog grant refusal PASS. See [current live ledger](b06-b07-live-20260924.md) | Live principal-change and data-plane denial/propagation remain pending; pre-dialog trust proof does not establish trust loss during an open modal or other CLI modes | partial |
 | B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 cancellations, original-expiry and duplicate gates, historical quota/artifact refusals and live readiness archive/removal remain credited; September24 real Azure201 deliberately withheld, same-deployment native GET reconciliation without replay, terminal negative-package failure and normal readiness Failed/exit1 now pass | Complete for the finite mixed-layer scope; injected reply withholding is not observed network loss, negative packaging is not an original-build defect, and isolated/B-input attribution limits remain explicit; cleanup tracked separately | pass |
@@ -963,13 +978,15 @@ reconciliation observations, **not** B11 fault/recovery acceptance. See the
 
 ### Remaining sequence
 
-1. Keep B01/B03/B04/B05/B08/B09/B10/B11/B12 closed for their defined scopes; do not repeat accepted
+1. Keep B01/B02/B03/B04/B05/B08/B09/B10/B11/B12 closed for their defined scopes; do not repeat accepted
    migration runs merely because the historical sequence above still mentions them.
-2. Finish remaining defined placement admission checks (B02), using dedicated
-   unaccepted workflows for negative inputs, not modified accepted resources.
-3. Plan dedicated B06/B07 trials with precise expected refusals,
-   immutable prior evidence, no automatic retry/replay, and negative-control proofs.
-   Do not modify accepted resources to manufacture changed ownership or corruption.
+2. Preserve B02 finite placement evidence and its completed exact fixture cleanup;
+   do not repeat it or widen the initial-runner quota claim.
+3. Preserve completed exact cleanup of the expired dedicated trial, then obtain
+   fresh authorization for the [new B06/B07 scope](b06-b07-fresh-scope-20260924.md).
+   Preserve prior evidence, no automatic retry/replay and actual negative
+   controls. Retain each result in the [live ledger](b06-b07-live-20260924.md);
+   do not modify accepted resources to manufacture changed ownership or corruption.
 4. The existing-runner/source B09/B10 session completed within its exact60-minute
    maximum: both resources were verified stopped at13:34:49UTC before the13:55UTC
    hard bound. See the [execution record](b09-b10-live-20260923.md) and

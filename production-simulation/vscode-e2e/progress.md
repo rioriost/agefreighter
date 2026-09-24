@@ -1,18 +1,29 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-24 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9); extended branches9pass/3partial**.
+Updated: 2026-09-24 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9); extended branches 10/12 PASS, 2 partial (B06/B07); not release-qualified**.
 
-Latest September24 preparation: B02's actual unknown-zone VM selection now
-passes in the normal installed GUI, with all93previous operator files unchanged.
-The real unavailable-SKU condition is identified; its empty network fixture is
-prepared but not created. B06/B07 admission corrections pass757unit tests,
-typecheck/build/host compilation and independent reviews; their pinned normal
-candidate is not yet installed. One new effect-free GUI draft has18reviewed P1
-mappings. The [combined bounded trial](b02-b06-b07-session-20260924.md) awaits
-specific new authorization; no compute, role or source operation started.
-Totals remain9pass/3partial, not release-qualified.
+Latest September24 live result: **B02 complete for its finite placement scope,
+including dedicated fixture cleanup**. Actual unknown-zone VM selection and
+Southeast Asia unavailable-SKU zone2 refusal / zone1 valid-placement control
+pass in the normal installed GUI. Historical actual private-target/resize quota
+refusal retains its exact-path credit; initial-runner quota remains local-contract
+only. All original93operator files are preserved. The new empty fixture VNet
+was archived before exact deletion; fresh independent GETs prove it absent and
+the existing parent resource group retained. See [B02 qualification](b02-placement-scope-20260924.md)
+and [cleanup receipt](b02-cleanup-20260924.json).
 
-Previous completed result: **B09 and B10 complete for their finite acceptance scopes**.
+The [combined bounded trial](b02-b06-b07-session-20260924.md) has expired. Its
+guard confirmed compute stopped at 02:11:50 UTC. Exact-owner cleanup is complete:
+all 21 identities are independently absent and original 93 records preserved,
+with no old-account EventGrid derivative. See the [cleanup receipt](evidence/b02-b06-b07-trial-cleanup-20260924.json).
+The pinned candidate remains installed.
+B06's actual Restricted Mode pre-dialog refusal passes; the first access
+observer was inconclusive and consumed its attempt. No supplemental old-scope
+observer was run. B06/B07 remain partial. A [fresh exact proposal](b06-b07-fresh-scope-20260924.md)
+and a normal GUI draft with all 18 mappings are prepared, but no new cloud
+execution is authorized by that preparation. Follow [the live evidence ledger](b06-b07-live-20260924.md).
+
+Historical completed result (before the current B02/B06/B07 trial): **B09 and B10 complete for their finite acceptance scopes**.
 B09's approved dedicated real-service trial received Azure201 for one reviewed
 deployment PUT, deliberately withheld the reply from the production controller,
 retained unknown, and reconciled the same deployment by native GET without
@@ -465,7 +476,7 @@ approval (see latest checkpoint above); expired fixture TLS still needs renewal.
 [safety-stop evidence and proposed next trial](idle-cost-safety-20260922.md)
 for final stopped-state verification. Qualification totals are unchanged.
 
-Latest local B02 follow-up: 13 added contracts connect the production preview
+Historical local B02 follow-up: 13 added contracts connect the production preview
 handler and preflight to synthetic ARM replies. SKU/quota denials stop before
 release fetch or persistence; exact quota and unknown-zone reviewed controls
 retain the release gate. Typecheck, 476 unit tests and build PASS. Test-only;
@@ -473,7 +484,7 @@ no installed extension or Azure changes. This does not close the three remaining
 live B02 gaps or change branch totals. See
 [isolated placement contracts](placement-panel-contract-20260922.md).
 
-Latest B02 control: post-fix installed GUI accepts read-only placement checks
+Historical B02 control: post-fix installed GUI accepts read-only placement checks
 then refuses missing 2.4.0 release/checksums; no deployment or preview persistence.
 Unsaved wizard closed and all 82 operator files unchanged. The preceding four GUI
 placement refusals plus this control are complete. Read-only Japan East capacity
@@ -482,7 +493,7 @@ unavailable-SKU/quota-denial cases cannot be qualified there without a different
 fixture. Unknown-zone VM also remains open. B02 partial, 5 pass / 7 partial; see
 [completed control and capacity](placement-arm-readonly-20260922.md).
 
-Latest B02 installed-GUI batch: approved `7338faa` package installed/reloaded,
+Historical B02 installed-GUI batch: approved `7338faa` package installed/reloaded,
 matching JavaScript hash and corrected VNet guidance verified. Four actual GUI
 previews correctly refuse nonexistent subnet, actual DB delegation, VNet-region
 mismatch and source-VM zone mismatch. No startup/mutation/source access or saved
@@ -491,7 +502,7 @@ was interrupted by unreliable native menu input and remains unverified. Unknown
 zone/SKU/quota cases still pending; B02partial, totals5pass/7partial. See
 [installed results](placement-arm-readonly-20260922.md).
 
-Latest B02 follow-up: signed-in GUI recovered and visibly refused a fresh preview
+Historical B02 follow-up: signed-in GUI recovered and visibly refused a fresh preview
 because matching2.4.0release/checksums are unavailable; unsaved wizard closed,
 all82operator files preserved. Moved GET-only placement preflight ahead of release
 lookup locally, retaining mandatory artifact/deployment gates and fresh submit
@@ -500,7 +511,7 @@ pass. Corrected build installation and actual GUI backend refusals remain pendin
 No startup, deployment, source access or release. B02 remains partial; see
 [ordering correction](placement-arm-readonly-20260922.md).
 
-Latest B02 batch: **6/6 unchanged production placement checks pass against real
+Historical B02 batch: **6/6 unchanged production placement checks pass against real
 ARM responses**, 19 GETs, no mutations/startup/source data. Actual nonexistent
 subnet/group, delegated subnet, VNet-region mismatch and source-zone mismatch
 are refused; valid placement passes. This is not installed-GUI rejection proof.

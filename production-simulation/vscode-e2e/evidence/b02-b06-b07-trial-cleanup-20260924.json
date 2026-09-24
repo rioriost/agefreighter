@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "workflow": "0f83d520-cd03-4792-8e38-3f146abfde39",
+  "atUTC": "2026-09-24T05:43:03.683911+00:00",
+  "cleanupComplete": true,
+  "observerAttribution": {
+    "mutations": "root supervisor; B02 subagent earlier removed only the explicitly delegated new B02 fixture VNet",
+    "finalVerification": "B02 subagent independently issued fresh GET-only checks and read local file hashes"
+  },
+  "cleanupExecution": {
+    "helperSHA256": "15424199b98c23a590f1bf1d0ec1b24db7653118d0bcaeb9f6a67457e8f8b780",
+    "manifestSHA256": "2f0e28a3a509531918f6d3fd49d6fee102f3a24c0ea50e9e72fe598117ce2138",
+    "exactResourceCount": 21,
+    "lastDeleteIntentUTC": "2026-09-24T05:38:24.077989+00:00",
+    "canonicalJournalPreserved": true,
+    "uncertainDeletesNotReplayed": true,
+    "rootFinalVerificationSHA256": "d250715ee12b570c9d6d79f18ebd986d169aa3b77985ceb39368e166dda6a83d"
+  },
+  "independentResourceVerification": {
+    "completedAtUTC": "2026-09-24T05:40:55.872368+00:00",
+    "all21ExactIdsAbsent": true,
+    "absentLabels": [
+      "account",
+      "container",
+      "control-268b247558a5a5d7",
+      "control-525fe8fb2bf4e55c",
+      "control-7953646f11cc0ab7",
+      "cosmosRole",
+      "dataDisk",
+      "disk",
+      "dns",
+      "dnsLink",
+      "nic",
+      "nsg",
+      "runnerDeployment",
+      "southeastVnet",
+      "storageDeployment",
+      "subnet",
+      "target",
+      "targetDeployment",
+      "userRole",
+      "vm",
+      "vmRole"
+    ],
+    "receiptSHA256": "47f4d0e59bc575d1f8d0bb241961560befca2b68a9e5a98d19c0a1cab16f987a",
+    "parentAbsenceAndExactServiceMessagesChecked": true
+  },
+  "eventGrid": {
+    "completedAtUTC": "2026-09-24T05:41:45.960716+00:00",
+    "complete": true,
+    "pages": 2,
+    "topics": 26,
+    "oldAccountDerivativeCount": 0,
+    "receiptSHA256": "1b136fdca02a327c57fff930179bc1e2984f8ae5800c4a51e0e2c4369bffb2c1"
+  },
+  "preservedExistingResources": {
+    "sourceAccountId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.DocumentDB/databaseAccounts/afcosmosp120260907",
+    "sourcePrivacy": {
+      "publicNetworkAccess": "Disabled",
+      "disableLocalAuth": true,
+      "ipRules": [],
+      "isVirtualNetworkFilterEnabled": true,
+      "privateEndpointStatuses": [
+        "Approved"
+      ]
+    },
+    "sharedVnetId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/virtualNetworks/vnet-af-vscode-p1",
+    "sharedVnetPresent": true,
+    "resourceGroupId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a",
+    "resourceGroupPresent": true
+  },
+  "operatorPreservation": {
+    "observedAtUTC": "2026-09-24T05:41:46.228180+00:00",
+    "originalFiles": 93,
+    "currentFiles": 95,
+    "originalNamesBytesHashesModesUnchanged": true,
+    "baselineSHA256": "af1200be29f21f408ae01c4f76ae15742c6837f2aaddb53681c95b8b0f73ad94",
+    "oldTrialRecordSHA256": "efb921ad92850c85035315b74934aa977227e9adf62786958824b2ebbafb68a7",
+    "newDraftWorkflow": "b425c32a-3ba3-44bc-8415-a48114993c5c",
+    "newDraftSHA256": "dcce811615159173c763967bc66032953b101612483b949af3803476086fc8f3",
+    "bothTrialAndNewDraftModes": "0600",
+    "receiptSHA256": "5f9af13a77552098959d896122c572e6bf66e9b6ba5881fd2c49148a37a7fb13"
+  },
+  "retainedPreCleanupArchive": {
+    "sha256": "9c0913686978c1aab3640482520bb249e1abd36581ed4699097e7fa14be0a0c9",
+    "members": 164,
+    "bytes": 6563840,
+    "actualArchiveHashRechecked": true,
+    "preserved": true
+  },
+  "qualificationLimits": {
+    "B02": "finite placement scope and fixture cleanup complete",
+    "B06": "partial; actual Restricted Mode pre-dialog refusal retained, before-grant observer inconclusive; no data-plane denial/propagation or stale-principal PASS",
+    "B07": "partial; no new live resize/admission PASS",
+    "cleanupIsNotQualificationCompletion": true,
+    "originalFailedObserverRetainedSHA256": "3d21a33fd8d20fb75716c93bee75fb6942cd5a5fb33a6e618ac88090388be050"
+  }
+}

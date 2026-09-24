@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "observer": "B02 subagent, explicitly delegated exact fixture cleanup by root supervisor",
+  "atUTC": "2026-09-24T00:47:22.881558+00:00",
+  "resourceId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/virtualNetworks/af-b02-sku-20260924",
+  "scope": "Only the newly owned empty B02 Southeast Asia VNet; no VM, PostgreSQL, source, shared VNet, role or resource-group mutation",
+  "preconditions": {
+    "actualGUICaseComplete": true,
+    "rootLeftB02Wizard": true,
+    "pretrialResourceNotFoundMatched": true,
+    "rootPUTAndReadbackMatched": true,
+    "freshPinnedOwnedCheckPassed": true,
+    "originalResourceGuidMatched": true,
+    "exactOwnershipTagsMatched": true,
+    "soleRunnerSubnetEmpty": true,
+    "noAttachments": true
+  },
+  "pinnedCleanupHelperSHA256": "95ffc085555c3006b1c0cb87742a2d17ec347654d229146137b4e334beb7af6a",
+  "preDeletionArchive": {
+    "file": "execution/b02-evidence-before-cleanup.tar",
+    "sha256": "0e5305f4ce9711308c4eee4bbb95f4e6949dd75bde7b521dc8b2d564fbedfddd",
+    "bytes": 849920,
+    "evidenceFiles": 28,
+    "mode": "0600",
+    "fsynced": true,
+    "verifiedBeforeDelete": true,
+    "manifestSHA256": "003c05e97df45300818cb6995b3ea03955046996d93dd67a4521a7a3ac889f99"
+  },
+  "preflightSHA256": "c8e8c2026fcbc6c76134717cd090dde141bbc47e43bbd28c1c6a15446e5520fc",
+  "delete": {
+    "applicationInvocations": 1,
+    "automaticReplay": false,
+    "journalKey": "8c4ffc87c666b98af88d539dfb888889170beacc23414a1aab71b9514f994647",
+    "intent": {
+      "atUTC": "2026-09-24T00:45:15.080367+00:00",
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/virtualNetworks/af-b02-sku-20260924",
+      "label": "southeastVnet",
+      "method": "DELETE"
+    },
+    "reply": {
+      "acceptedIsNotComplete": true,
+      "atUTC": "2026-09-24T00:45:15.890058+00:00",
+      "state": "ok"
+    },
+    "intentSHA256": "2f61daa9b2f8c91171ebcc8c3fb8e1a944691edce79abb117a6c0f3c0f4299ea",
+    "replySHA256": "43935fe82ccc1a99e33af63287a5013f0ac9a2292fb4f383c9513c77af9bbbdb",
+    "acceptedReplyAloneDoesNotProveCompletion": true
+  },
+  "verification": {
+    "receiptSHA256": "9b9bd5d9df0598a04068dcc95e3f4f2563ef9f8cfc9c4abfbac3efba1fb4ceb8",
+    "reads": [
+      {
+        "label": "vnet",
+        "startedUTC": "2026-09-24T00:45:51.392592+00:00",
+        "finishedUTC": "2026-09-24T00:45:51.958511+00:00",
+        "method": "GET",
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/virtualNetworks/af-b02-sku-20260924",
+        "apiVersion": "2024-05-01",
+        "returncode": 1,
+        "errorCode": "ResourceNotFound",
+        "stderrSHA256": "a36ca5424350a51516fc240656412c8440d7a52eec9c487d0a744e211ec7d063"
+      },
+      {
+        "label": "subnet",
+        "startedUTC": "2026-09-24T00:45:51.393974+00:00",
+        "finishedUTC": "2026-09-24T00:45:51.958661+00:00",
+        "method": "GET",
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/virtualNetworks/af-b02-sku-20260924/subnets/runner",
+        "apiVersion": "2024-05-01",
+        "returncode": 1,
+        "errorCode": "ResourceNotFound",
+        "stderrSHA256": "a36ca5424350a51516fc240656412c8440d7a52eec9c487d0a744e211ec7d063"
+      },
+      {
+        "label": "preservedResourceGroup",
+        "startedUTC": "2026-09-24T00:45:51.394092+00:00",
+        "finishedUTC": "2026-09-24T00:45:51.839479+00:00",
+        "method": "GET",
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a",
+        "apiVersion": "2021-04-01",
+        "returncode": 0,
+        "returnedId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a",
+        "provisioningState": "Succeeded"
+      }
+    ],
+    "vnetAbsentByIndependentExactGET": true,
+    "subnetAbsentWithIndependentParentAbsenceProof": true,
+    "subnetErrorInterpretation": "The subnet GET returned ResourceNotFound, with the same parent-VNet missing error digest as the separate VNet GET. It is not labelled ParentResourceNotFound; child absence is supported by the independently proven absence of its exact parent.",
+    "existingResourceGroupPreserved": true
+  },
+  "supersedesCleanupPendingInGUIReceiptSHA256": "958aa068696e2062d5f5eb2f9df2666acea60f602a7f24efa19ddadd54a7fc7c",
+  "finiteB02Qualified": true,
+  "initialRunnerQuotaLiveQualified": false,
+  "fixtureCleanupComplete": true,
+  "combinedB06B07SessionCompleteClaimed": false
+}

@@ -1,0 +1,15 @@
+{
+  "observedAtUTC": "2026-09-24T00:57:14.745597+00:00",
+  "workflow": "0f83d520-cd03-4792-8e38-3f146abfde39",
+  "observer": "root actual CUA native AX and displayed screenshot",
+  "window": "AGEFreighter source assessment \u2014 af-b06-trust-0f83d520cd0347928e38",
+  "restrictedModeObserved": true,
+  "action": "Grant / verify Cosmos Data Reader",
+  "error": "Trust this workspace before reviewing or granting Cosmos data access.",
+  "grantStatus": "Not granted",
+  "cosmosAccess": null,
+  "assessment": null,
+  "recordSHA256": "8b33cf7b39abd64d0eee9ba6b40e7eb7ecac07f40e3d5faadc1ae8b8a1a39eb6",
+  "screenshotFile": null,
+  "scope": "actual pre-dialog production trust refusal; no claim of trust-loss during modal"
+}
