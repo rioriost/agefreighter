@@ -2,7 +2,7 @@
 
 Updated: 2026-09-24 JST. Status: **not release-qualified; base routes 9/9; 10/12 defined branches PASS, 2 partial (B06/B07)**.
 
-Latest September24 live result: **B02 finite placement scope and dedicated
+September24 B02 result retained: **finite placement scope and dedicated
 fixture cleanup complete**. Actual unknown-zone VM transition and unavailable-SKU
 zone2 refusal / zone1 control are now qualified in the normal installed GUI.
 The historical actual target/resize quota denial is credited only at that path;
@@ -17,14 +17,40 @@ The [bounded B06/B07 trial](b02-b06-b07-session-20260924.md) has expired; its
 guard confirmed compute stopped at 02:11:50 UTC and exact-owner cleanup is
 complete. All 21 identities are independently absent, original 93 records
 preserved and no old-account EventGrid derivative remains. See the
-[cleanup receipt](evidence/b02-b06-b07-trial-cleanup-20260924.json).
-The pinned candidate is installed. B06's actual Restricted Mode
-pre-dialog refusal passes; its first access observer is inconclusive, with no
-supplemental old-scope execution. Principal-change and data-plane denial/propagation,
-plus B07's remaining live refusals, remain pending. A [fresh exact proposal](b06-b07-fresh-scope-20260924.md)
-is prepared without new cloud execution. Both branches remain partial. The
-[live evidence ledger](b06-b07-live-20260924.md) separates each observed result
-from pending work and preserves its evidence layer.
+[cleanup receipt](evidence/b02-b06-b07-trial-cleanup-20260924.json). Its first access
+observer remains inconclusive, and its supplemental old-scope probe was not run.
+
+The later [fresh B06/B07 trial](b06-b07-fresh-scope-20260924.md) produced new
+actual evidence on the pinned installed candidate. B06 retains the earlier
+Restricted Mode pre-dialog refusal PASS and now has an independently audited
+[native stale-principal refusal PASS](evidence/b06-stale-principal-refusal-20260924.json).
+The same VM/principal/query returned HTTP403/substatus5302 before the exact
+normal GUI Reader grant and HTTP200 with constant1 afterward. A genuine normal
+GUI inventory then completed and imported its full sealed report: 18 mappings,
+1.6 million vertices and 4 million edges. This corroborates the access transition;
+the observer's strict body-based denial classification remains **inconclusive**
+because service-message principal and action evidence was not retained. Do not
+silently substitute the corroborated result for that pre-agreed strict criterion
+or infer a measured propagation delay. See the [paired access receipt](evidence/b06-same-principal-access-20260924.json).
+
+B07's actual [same-VM resize continuity](evidence/b07-resize-continuity-20260924.json)
+and [attached-empty-disk layout refusal](evidence/b07-layout-refusal-20260924.json)
+pass. Inventory2 and the active-inventory resize refusal were **not executed**:
+the remaining fixed compute window was insufficient for their complete sequence.
+Both exact trial compute resources were independently confirmed stopped at
+08:49:38 UTC, before the 80-minute stop deadline. Cleanup is **complete**:
+the independent audit through 09:43:37 UTC confirmed all 34 exact manifest
+identities absent, 17 unique direct DELETE intents and no duplicate or foreign
+intent. The other 17 absences followed parent deletion. The reviewed stopped-PG
+parent cleanup and GET reconciliation amendments passed 54/54 offline tests;
+database/configuration children remain unenumerated and are not separately
+counted. Existing source privacy settings, shared RG/VNet, the original 25
+subnets, 26 EventGrid topics and 93 operator files are preserved. The final
+private archive has 440 verified members and SHA-256 `965b20c672fc…`.
+See the [fresh cleanup receipt](evidence/b06-b07-fresh-trial-cleanup-20260924.json).
+B06/B07 remain partial and the overall count remains 10/12 PASS. The
+[live evidence ledger](b06-b07-live-20260924.md) retains full archive seals,
+operation-level outcomes and outstanding acceptance boundaries.
 
 Historical completed September24 JST (before the current trial): **B09 and B10 complete for their defined scopes**.
 B09's real deployment response withholding retained unknown after actual
@@ -674,8 +700,8 @@ they prove a precise choice before scheduling redundant infrastructure work.
 | B03 | Private Azure and IP-only discovery | Nine base routes cover private Azure and IP-only on-premises; location GUI audit/request traces/CLI contracts pass; September22 Neo4j and September23 PostgreSQL other-cloud GUI migrations both pass full5.6M/18label/64range canonical comparison | Defined GUI selections qualified using Azure-hosted endpoint-only simulations; actual third-party-cloud network compatibility is not claimed | pass |
 | B04 | Neo4j versions; PostgreSQL recommendations/review; CSV typed mapping | Base/manual routes have full P1 canonical PASS; installed GUI/Linux P1 catalog, explicit mappings and complete inventory/import pass; CSV all18choices/IDs/seals/configuration binding pass,445unit tests/13Go contracts; isolated FK GUI catalog, explicit safe edge/property adoption, reconnect and sealed5vertex/3edge inventory pass | Complete for defined cases; nullable FK remains manual review. Supplemental FK inventory is not another migration/digest qualification; broader value combinations retain local-contract-only scope | pass |
 | B05 | Cosmos explicit and Gremlin documents | Explicit-document base P1 passed; Gremlin-shaped NoSQL installed-GUI inventory, private target/resize, migration and complete counts pass; independent full digest generated 05:08:24 UTC and GUI-imported, all 5.6M records / 18 labels / 64 ranges and root match, including typed properties, composite IDs and endpoints | Complete for the defined document-format branch; not native Gremlin API qualification | pass |
-| B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope and prior Reader/security evidence retained; trust/principal guards corrected; September24 actual Restricted Mode pre-dialog grant refusal PASS. See [current live ledger](b06-b07-live-20260924.md) | Live principal-change and data-plane denial/propagation remain pending; pre-dialog trust proof does not establish trust loss during an open modal or other CLI modes | partial |
-| B07 | Same-VM resize; active-job/incompatible resize denied | Live identity seal match on three surviving resized VMs; installed-GUI completed-migration refusal; 18 added resize rejection regressions | Active-job and incompatible-layout live GUI denial remain untested; do not mutate qualified resources to fabricate them | partial |
+| B06 | Supported Cosmos authentication and RBAC propagation | Fixed managed-identity GUI scope retained; actual Restricted Mode pre-dialog refusal and native stale-principal refusal PASS. Same-principal HTTP403/5302 before exact GUI Reader grant, then HTTP200 constant1 and normal GUI sealed 5.6M-row/18-mapping inventory corroborate access readiness. See [current live ledger](b06-b07-live-20260924.md) | Strict denial observer remains inconclusive: service-message principal/action unavailable. Resolve explicit acceptance-criteria review without relabeling original evidence; no measured propagation delay, open-modal trust-loss or other CLI-mode live claim | partial |
+| B07 | Same-VM resize; active-job/incompatible resize denied | Prior identity/GUI evidence retained; September24 actual same-VM resize continuity and attached-empty-disk native incompatible-layout refusal PASS. See [resize receipt](evidence/b07-resize-continuity-20260924.json) and [layout refusal](evidence/b07-layout-refusal-20260924.json) | Active-inventory resize refusal not executed: inventory2 was omitted to preserve the fixed stop window. Do not infer an active-job PASS from idle layout refusal or simulate state in accepted resources | partial |
 | B08 | CSV multi-file/reconcile, changed/hash mismatch, transfer/folder cancellation | Base CSV P1, picker/transfer Cancel, changed-manifest refusal and full retry/readback pass; Linux corruption/receipt/no-replay checks pass; installed-GUI committed response loss reconciles with HEAD only, unchanged ETag and full readback; normal candidate restored/reconnected | Defined cases complete; injected client response loss is not an actual Azure outage or a new graph migration | pass |
 | B09 | Approval cancellation, expired preview, duplicate windows, lost ARM reply, bootstrap/artifact/quota failure | Frozen30 cancellations, original-expiry and duplicate gates, historical quota/artifact refusals and live readiness archive/removal remain credited; September24 real Azure201 deliberately withheld, same-deployment native GET reconciliation without replay, terminal negative-package failure and normal readiness Failed/exit1 now pass | Complete for the finite mixed-layer scope; injected reply withholding is not observed network loss, negative packaging is not an original-build defect, and isolated/B-input attribution limits remain explicit; cleanup tracked separately | pass |
 | B10 | Close/reload during assessment/load/verification; no replay | Prior active Reload Window and isolated lock/SIGKILL evidence retained; September23 signed-in exact-host crash brackets same active guest child, same-operation reconnect/import5.6M/18labels, preserved report/history and verified bounded shutdown | Complete for defined case; no lock remained in this live run, no new graph migration or every-source/timing claim; control timeline is not an instrumented HTTP trace | pass |
@@ -982,12 +1008,19 @@ reconciliation observations, **not** B11 fault/recovery acceptance. See the
    migration runs merely because the historical sequence above still mentions them.
 2. Preserve B02 finite placement evidence and its completed exact fixture cleanup;
    do not repeat it or widen the initial-runner quota claim.
-3. Preserve completed exact cleanup of the expired dedicated trial, then obtain
-   fresh authorization for the [new B06/B07 scope](b06-b07-fresh-scope-20260924.md).
-   Preserve prior evidence, no automatic retry/replay and actual negative
-   controls. Retain each result in the [live ledger](b06-b07-live-20260924.md);
-   do not modify accepted resources to manufacture changed ownership or corruption.
-4. The existing-runner/source B09/B10 session completed within its exact60-minute
+3. Preserve the later B06/B07 trial's sealed evidence and completed cleanup:
+   all 34 exact manifest identities are independently absent, and existing
+   configuration/records are preserved. See the [fresh cleanup receipt](evidence/b06-b07-fresh-trial-cleanup-20260924.json).
+   Retain the stopped-PG child-enumeration limitation and both private archive
+   seals. The earlier expired trial's completed cleanup remains separate.
+4. Keep B06 partial while reviewing the strict service-message criterion against
+   the independently corroborated access transition. Preserve the original
+   inconclusive observer, actual trust/principal refusals and complete GUI inventory.
+   Keep B07 partial: actual active-inventory resize refusal is still unexecuted.
+   Any further live qualification requires its own concrete authorization, budget
+   and clock; do not recreate this closed trial or manufacture active state. Retain
+   exact outcomes and limits in the [live ledger](b06-b07-live-20260924.md).
+5. The existing-runner/source B09/B10 session completed within its exact60-minute
    maximum: both resources were verified stopped at13:34:49UTC before the13:55UTC
    hard bound. See the [execution record](b09-b10-live-20260923.md) and
    [retained-evidence audit](b10-retained-evidence-audit-20260923.md).
@@ -997,6 +1030,6 @@ reconciliation observations, **not** B11 fault/recovery acceptance. See the
    Other new compute needs fresh authorization/cost checks; B01's
    September22 session is complete and its approval is not a general restart permit.
    New access, unpublished software and destructive operations retain their gates.
-5. Record real signed-in/guest evidence separately from unit or isolated-host
+6. Record real signed-in/guest evidence separately from unit or isolated-host
    results; stop exact owned compute after evidence retention. All mandatory gaps
    and tested/installed artifact parity must be resolved before release qualification.

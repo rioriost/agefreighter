@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "qualification": "B07 same-VM resize continuity only",
+  "observedAtUTC": "2026-09-24T08:39:58.412064+00:00",
+  "workflow": "b425c32a-3ba3-44bc-8415-a48114993c5c",
+  "outcome": "PASS",
+  "overallB07": "PARTIAL",
+  "evidenceLayers": [
+    "normal production workflow retained resize.finished; no synthetic state edits",
+    "independent exact ARM VM GET projections before and after observed size change"
+  ],
+  "scope": {
+    "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415",
+    "location": "japaneast",
+    "zone": "1",
+    "from": "Standard_B2s_v2",
+    "to": "Standard_D4s_v5"
+  },
+  "continuity": {
+    "vmInstanceId": "23915026-aea4-44c4-b780-7990bf298754",
+    "systemAssignedPrincipalSHA256": "ee481f92b17a9074b6bd1b6e768943e0108e50821bbf7df6d0a3e544758a3209",
+    "tenantSHA256": "502b058ffec835b396ac5a6cef1c6acb678cf7fefd6c9b6f42ec37dfe135774d",
+    "osDiskId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourcegroups/rg-af-vscode-p1-20260905-a/providers/microsoft.compute/disks/af-b425c32a3ba344bc8415-os",
+    "osDiskGiB": 64,
+    "osDiskDeleteOption": "Detach",
+    "nicId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourcegroups/rg-af-vscode-p1-20260905-a/providers/microsoft.network/networkinterfaces/af-b425c32a3ba344bc8415",
+    "controller": "SCSI",
+    "dataDisksBeforeAfter": [],
+    "preservedSHA256": "c95a7e52edd3ba23ab8325e31bdeb39198fd2506fca843cbf5f1239c1825d7a8"
+  },
+  "checks": {
+    "sameVMResourceId": true,
+    "sameInstanceId": true,
+    "samePrincipalAndTenant": true,
+    "samePersistentOSDisk": true,
+    "sameSingleNIC": true,
+    "sameLocationZone": true,
+    "sameOwnershipTags": true,
+    "sameSCSIController": true,
+    "noDataDiskBeforeAfter": true,
+    "sameSecurityProfile": true,
+    "actualSizeChangedB2toD4": true,
+    "afterSucceededRunning": true,
+    "normalFinishedNotUnknown": true
+  },
+  "before": {
+    "observedAtUTC": "2026-09-24T08:34:53.355363+00:00",
+    "size": "Standard_B2s_v2",
+    "provisioningState": "Updating",
+    "power": [
+      "PowerState/running"
+    ],
+    "normalResizePresent": false,
+    "limitation": "Before observation saw Updating, so it is not evidence of a stable pre-resize VM. It independently binds the prior B2 size and preserved identities."
+  },
+  "after": {
+    "observedAtUTC": "2026-09-24T08:39:58.412064+00:00",
+    "size": "Standard_D4s_v5",
+    "provisioningState": "Succeeded",
+    "power": [
+      "PowerState/running"
+    ],
+    "normalResize": {
+      "phase": "finished",
+      "size": "Standard_D4s_v5",
+      "previousSize": "Standard_B2s_v2",
+      "preservedSHA256": "c95a7e52edd3ba23ab8325e31bdeb39198fd2506fca843cbf5f1239c1825d7a8",
+      "startedAt": "2026-09-24T08:36:52.174Z",
+      "unknown": false
+    }
+  },
+  "evidenceSeals": {
+    "beforeProjectionSHA256": "35584a4e680bd178ed7a796fb36c58dcf72bb3ef2d9a4395c425b03de717d63f",
+    "afterProjectionSHA256": "a0e443d2af748fa083f694d2d92ca6dffd55289ac23be1774190aac798dc1ffa",
+    "beforeARMResponseSHA256": "4705e3d7b9518feddb6493aad0df4485db86e5e443ccd069fdfb4b173d2b9959",
+    "afterARMResponseSHA256": "d9ac27e341ef4a9c64d3160554bde5553cc9317c1d27b07ad5465eb16c1f58f5",
+    "afterNormalWorkflowSHA256": "c7a092a8098523b15541bd91b0ab828a7c90147e71137c910b2f8b13d8c162d4"
+  },
+  "armIdComparison": "Resource IDs compared case-insensitively; ARM changed the OS disk resource-group segment casing after resize.",
+  "limits": [
+    "The independent agent did not operate or observe the GUI; normal GUI action provenance is retained by the supervisor.",
+    "No guest readiness, source worker, target AGE readiness or migration acceptance is inferred from VM running state.",
+    "Incompatible-layout refusal is not evaluated by this receipt.",
+    "Active-inventory resize refusal remains PENDING; inventory2 and both B07 process observers were deferred."
+  ],
+  "independentAgentCloudMutations": 0
+}

@@ -1,0 +1,300 @@
+{
+  "additionalIndependentPreservation": {
+    "cloudMutations": 0,
+    "currentSubnetCount": 25,
+    "metadataGetCalls": 3,
+    "observedFromUTC": "2026-09-24T09:41:30.789116+00:00",
+    "observedThroughUTC": "2026-09-24T09:41:31.280793+00:00",
+    "oldAndNewWorkflowRecordBytesUnchanged": true,
+    "original93NamesBytesHashesModesUnchanged": true,
+    "originalSubnetCount": 25,
+    "originalSubnetIDsAndPrefixesUnchanged": true,
+    "receiptSHA256": "ba8200f824aecce0a9d53af980af27be730a90fa6f95ab9418a1d53e9e40c1f3",
+    "result": "PASS",
+    "reviewer": "B06 subagent",
+    "sharedVnetAddressSpaceUnchanged": true,
+    "sourceDataQueries": 0,
+    "sourcePrivacyProjectionUnchanged": true
+  },
+  "attribution": {
+    "independentVerification": "B02 subagent fresh read-only ARM observations and local byte/journal audit",
+    "mutations": "root using reviewed bounded helper"
+  },
+  "cleanupAmendment": {
+    "admissionSHA256": "090d8d5dd486eaacab42a5733df172b0dd8b0dbd44c355e264dec1622b6ef777",
+    "deploymentProvenanceChildrenAreDeletionTargets": false,
+    "finalHelperSHA256": "b53cff49d2a41835952e27cb31caaad2ea80a01329298342bf8f17d467f6b57e",
+    "getReconciliation": "At most 12 GET observations with 11 five-second intervals; only Resource GET unavailable is observed again; unknown never means absent; no DELETE retry",
+    "independentOfflineTests": {
+      "cloudRequests": 0,
+      "errors": 0,
+      "failures": 0,
+      "passed": 54,
+      "receiptSHA256": "bfa97b58c28206abb2e87a04d14d7faca9fe79e0189f881da848ae63f94c1a9d",
+      "skipped": 0
+    },
+    "originalHelperSHA256": "b968cc7c539efea4de90bed4b5889ac610c16afac8b020ff3f12a9388e7416fc",
+    "parentCascadeAdmissionRequired": true,
+    "postgresChildInventoryComplete": false,
+    "postgresChildNames": null,
+    "postgresChildrenSeparatelyCounted": false,
+    "postgresLocationAliases": [
+      "japaneast",
+      "Japan East"
+    ],
+    "scope": "Previously authorized whole new trial resource cleanup; no expansion to existing resources",
+    "scopeApprovalSHA256": "3a92464aa60db8d0f7f0de51a0679f76a98c9bf3aeea3af97b4f5056b260c378",
+    "stoppedParentHelperSHA256": "0847c44c39446bff441a39e243cc4a359770f45418bde0703e8a548276e838b3",
+    "stoppedParentPretrialAbsenceOwnershipPlacementAndArchiveRechecked": true
+  },
+  "computeStop": {
+    "beforeStopCutoff": true,
+    "firstVMIntentUTC": "2026-09-24T07:30:33.718565+00:00",
+    "guardConfirmedUTC": "2026-09-24T08:49:31.161033+00:00",
+    "independentlyConfirmedUTC": "2026-09-24T08:49:38.321947+00:00",
+    "maximumComputeUTC": "2026-09-24T09:00:33.718565+00:00",
+    "postgres": "Stopped",
+    "receiptSHA256": "2c7d00db9071b00ee2b4735caecd82ae3290f83c158e94990aa923a2dc34916d",
+    "restartedForCleanup": false,
+    "stopCutoffUTC": "2026-09-24T08:50:33.718565+00:00",
+    "vm": "deallocated"
+  },
+  "eventGrid": {
+    "allOriginalTopicIDsPreserved": true,
+    "completePagination": true,
+    "currentTopics": 26,
+    "exactNewAccountDerivativesRemaining": 0,
+    "retainedOriginalBaselineTopics": 26
+  },
+  "finalPrivateArchive": {
+    "bytes": 70830080,
+    "coverage": "438 trial evidence files, unchanged sealed pre-cleanup archive, and member manifest. Public closing receipts and this archive verification are retained separately.",
+    "everyMemberBytesHashAndModeVerified": true,
+    "file": "b06-b07-next-scope-20260924-final-evidence.tar",
+    "manifestMember": "EVIDENCE-MANIFEST.json",
+    "manifestSHA256": "7b8a2b6b1aaa3b5c58808081f077f8a1e2b7f0cd69c1648d06a6a558d2c1e33d",
+    "mode": "0o600",
+    "nestedPrecleanupArchiveVerifiedMembers": 361,
+    "sealedPrecleanupArchiveNestedUnchanged": true,
+    "sha256": "965b20c672fc6af08d96b30748bb3fae6e1dd1d963e3b96527b899eea1c096ef",
+    "sourceSnapshotUnchangedAfterArchival": true,
+    "trialFiles": 438,
+    "verificationReceiptSHA256": "d5741555234ec493d3e4ca3ed8e87f620b3f7aaec5df35b345b1f4868a0b8466",
+    "verifiedMembers": 440,
+    "verifiedUTC": "2026-09-24T09:50:54.694075+00:00"
+  },
+  "independentCloudMutations": 0,
+  "journal": {
+    "canonicalKeyAndUniqueIdVerified": true,
+    "directDeleteIntents": 17,
+    "duplicateForeignOrMalformedIntents": 0,
+    "orphanReplies": 0,
+    "packetLevelHTTPCountClaimed": false,
+    "remainingAbsencesConfirmedAfterParentCascade": true,
+    "remainingManifestIdentitiesWithoutDirectDeleteIntent": 17
+  },
+  "limitations": [
+    "The stopped PG server refused database enumeration with ServerStoppedError; configuration children were not enumerated. Neither child set was individually enumerated or separately counted. Fresh exact parent absence establishes cascade only.",
+    "No packet-level HTTP request count is inferred from one canonical intent per ID.",
+    "These observations are a time-bounded read-only snapshot after root cleanup.",
+    "Preservation checks cover the retained configuration projections and local bytes; source data was not reread during cleanup verification.",
+    "Final billed cost was not verified. The fixed compute stop and cleanup observations do not constitute an invoice."
+  ],
+  "observedFromUTC": "2026-09-24T09:43:31.763814+00:00",
+  "observedThroughUTC": "2026-09-24T09:43:37.747418+00:00",
+  "pins": {
+    "canonicalJournalFileDigestMapSHA256": "2eb855d35f33afd828eb8926b358efc9a474b8eb36a04754e326fec6c244f115",
+    "finalCleanupHelperSHA256": "b53cff49d2a41835952e27cb31caaad2ea80a01329298342bf8f17d467f6b57e",
+    "independentPrivateAuditSHA256": "74f9114a9fd9a56fe44b532ec16c23896d9df0fbd493d92ddc2eb15f46d73a0b",
+    "independentPublicReadyReceiptSHA256": "04c67bed1d6e665f0382e48bbd17f9e431e694d94372e25927675593b8b0916a",
+    "manifestSHA256": "8da4236485854885c301a38dd1d00d1322ddd0c7b1f824b7b9e797bf8488aecb",
+    "rootFinalVerificationSHA256": "020a20c4b7e2aabbd7d0c9b8123bc765eb9f64d7c484e85a6f778b531b69cd2e"
+  },
+  "preservation": {
+    "existingResourceGroupPresent": true,
+    "existingSharedVnetPresent": true,
+    "newTargetSubnetAbsent": true,
+    "newTrialMatchesFinalWorkflowSnapshot": true,
+    "newTrialRecord": {
+      "bytes": 51076,
+      "mode": "0o600",
+      "sha256": "41d8f136a40bfd037cf1d8164008b907469c2c128bdf73152e961c22968568b6"
+    },
+    "oldTrialRecord": {
+      "bytes": 34472,
+      "mode": "0o600",
+      "sha256": "efb921ad92850c85035315b74934aa977227e9adf62786958824b2ebbafb68a7"
+    },
+    "original93NamesBytesHashesModesUnchanged": true,
+    "sourceDisableLocalAuth": true,
+    "sourceIPRules": [],
+    "sourcePrivateEndpointStates": [
+      "Approved"
+    ],
+    "sourcePublicNetworkAccess": "Disabled"
+  },
+  "qualification": {
+    "B02": "pass-finite-scope",
+    "B06": "partial-strict-denial-evidence-inconclusive",
+    "B07": "partial-active-inventory-resize-refusal-not-executed",
+    "definedBranchesPartial": 2,
+    "definedBranchesPass": 10,
+    "releaseQualified": false
+  },
+  "qualificationStatusNotChangedByCleanup": true,
+  "resources": {
+    "confirmedAbsent": 34,
+    "exactManifestIdentities": 34,
+    "freshReadOnlyGetCallsIncludingParentProofsAndPreservation": 43,
+    "results": {
+      "account": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Storage/storageAccounts/afb425c32a3ba344bc8415a4",
+        "state": "absent"
+      },
+      "container": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Storage/storageAccounts/afb425c32a3ba344bc8415a4/blobServices/default/containers/af-b425c32a-3ba3-44bc-8415-a48114993c5c",
+        "state": "absent"
+      },
+      "control-055fc8e17cdf1cb5": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-59ffee93-c91a-452d-8625-b32fa228ee65",
+        "state": "absent"
+      },
+      "control-1e36fb7604b1c7e2": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-b06-v2-before-01",
+        "state": "absent"
+      },
+      "control-22a6c65d046d3030": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-e2885c2e-b072-4840-ac9a-edf462799560",
+        "state": "absent"
+      },
+      "control-38cad88ac2d33338": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-b50f615d-4cca-4bfb-a679-ff10b58b67fb",
+        "state": "absent"
+      },
+      "control-42ad19f9c5d19af3": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-582b8a36-2ca5-428f-be69-9dba3a0c266e",
+        "state": "absent"
+      },
+      "control-4753915a730a16a7": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-30248c19-7194-4391-a912-5efe2148675b",
+        "state": "absent"
+      },
+      "control-61eef5d4c1d3cd1b": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-66276b06-f4b0-4962-afd6-b2862309dd42",
+        "state": "absent"
+      },
+      "control-64553c390e767557": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-303b6793-10fd-4c0d-926a-63a3ef5954b4",
+        "state": "absent"
+      },
+      "control-828a9531d92c6fd1": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-8460523a-ec04-4f9b-ba45-bc74d5744348",
+        "state": "absent"
+      },
+      "control-82b9adadeb6e6eba": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-b06-v2-before-02",
+        "state": "absent"
+      },
+      "control-9ab1899ae8fb6fc2": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-c5f0000d-36f9-4ba2-854f-a1f842829004",
+        "state": "absent"
+      },
+      "control-ada2d124ff5d8b7b": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-4ec72b43-047f-4a88-a2e5-27e444dfe6c3",
+        "state": "absent"
+      },
+      "control-e1c2f26d67c112ab": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-b06-v2-after-01",
+        "state": "absent"
+      },
+      "control-ec130a6e6e27cf19": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-37fc5716-e4ec-48f2-9195-34e57807fbfb",
+        "state": "absent"
+      },
+      "control-ecc1c4f49a6c1be2": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415/runCommands/af-8255f792-0995-455a-b067-2366ce2a6ff7",
+        "state": "absent"
+      },
+      "cosmosRole": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.DocumentDB/databaseAccounts/afcosmosp120260907/sqlRoleAssignments/a6658672-9ab7-4c8a-9db9-8f6e80031222",
+        "state": "absent"
+      },
+      "dataDisk": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/disks/af-b425c32a3ba344bc8415-b07",
+        "state": "absent"
+      },
+      "disk": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/disks/af-b425c32a3ba344bc8415-os",
+        "state": "absent"
+      },
+      "dns": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/privateDnsZones/af-b425c32a3ba344bc8415.postgres.database.azure.com",
+        "state": "absent"
+      },
+      "dnsLink": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/privateDnsZones/af-b425c32a3ba344bc8415.postgres.database.azure.com/virtualNetworkLinks/runner",
+        "state": "absent"
+      },
+      "event-1377605b51889f0f": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.EventGrid/systemTopics/afb425c32a3ba344bc8415a4-155d63f9-662e-4fa4-a4fc-ce080fea1466",
+        "state": "absent"
+      },
+      "event-1377605b51889f0f-child": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.EventGrid/systemTopics/afb425c32a3ba344bc8415a4-155d63f9-662e-4fa4-a4fc-ce080fea1466/eventSubscriptions/StorageAntimalwareSubscription",
+        "state": "absent"
+      },
+      "nic": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/networkInterfaces/af-b425c32a3ba344bc8415",
+        "state": "absent"
+      },
+      "nsg": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/networkSecurityGroups/af-b425c32a3ba344bc8415",
+        "state": "absent"
+      },
+      "runnerDeployment": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Resources/deployments/af-b425c32a3ba344bc8415",
+        "state": "absent"
+      },
+      "storageDeployment": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Resources/deployments/afb425c32a3ba344bc8415a4-transfer",
+        "state": "absent"
+      },
+      "subnet": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/virtualNetworks/vnet-af-vscode-p1/subnets/afpg-b425c32a3ba344bc8415",
+        "state": "absent"
+      },
+      "target": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.DBforPostgreSQL/flexibleServers/afpg-b425c32a3ba344bc8415",
+        "state": "absent"
+      },
+      "targetDeployment": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Resources/deployments/afpg-b425c32a3ba344bc8415",
+        "state": "absent"
+      },
+      "userRole": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Storage/storageAccounts/afb425c32a3ba344bc8415a4/providers/Microsoft.Authorization/roleAssignments/bcf12608-52ad-4d0d-8938-fcbd93424b95",
+        "state": "absent"
+      },
+      "vm": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415",
+        "state": "absent"
+      },
+      "vmRole": {
+        "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Storage/storageAccounts/afb425c32a3ba344bc8415a4/blobServices/default/containers/af-b425c32a-3ba3-44bc-8415-a48114993c5c/providers/Microsoft.Authorization/roleAssignments/b425c32a-3ba3-44bc-8415-a48114993c5c",
+        "state": "absent"
+      }
+    }
+  },
+  "result": "cleanup-complete-independently-verified",
+  "retainedPredeleteArchive": {
+    "bytes": 55418880,
+    "file": "b06-b07-next-scope-20260924-before-cleanup.tar",
+    "sha256": "7dd1212a15b52fb4f461d8a9733d70bce4a19a73b85f9c55e3ce4e53e3f842ff",
+    "verifiedUnchanged": true
+  },
+  "rootCleanupCompletedUTC": "2026-09-24T09:40:58.648693+00:00",
+  "schemaVersion": 1,
+  "sourceDataQueries": 0,
+  "storageContentQueries": 0,
+  "workflow": "b425c32a-3ba3-44bc-8415-a48114993c5c"
+}

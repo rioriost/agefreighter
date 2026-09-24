@@ -2,7 +2,7 @@
 
 Updated: 2026-09-24 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9); extended branches 10/12 PASS, 2 partial (B06/B07); not release-qualified**.
 
-Latest September24 live result: **B02 complete for its finite placement scope,
+September24 B02 result retained: **complete for its finite placement scope,
 including dedicated fixture cleanup**. Actual unknown-zone VM selection and
 Southeast Asia unavailable-SKU zone2 refusal / zone1 valid-placement control
 pass in the normal installed GUI. Historical actual private-target/resize quota
@@ -19,9 +19,29 @@ with no old-account EventGrid derivative. See the [cleanup receipt](evidence/b02
 The pinned candidate remains installed.
 B06's actual Restricted Mode pre-dialog refusal passes; the first access
 observer was inconclusive and consumed its attempt. No supplemental old-scope
-observer was run. B06/B07 remain partial. A [fresh exact proposal](b06-b07-fresh-scope-20260924.md)
-and a normal GUI draft with all 18 mappings are prepared, but no new cloud
-execution is authorized by that preparation. Follow [the live evidence ledger](b06-b07-live-20260924.md).
+observer was run.
+
+The later [fresh exact scope](b06-b07-fresh-scope-20260924.md) was approved and
+executed. Its amended query returned HTTP403/5302 before the native Reader
+grant and HTTP200 afterward for the same principal; normal GUI inventory
+completed and imported the sealed **5.6 million mapped records / 18 mappings**
+report. The stale-principal refusal, same-VM resize continuity and attached-empty-
+disk layout refusal pass at their stated live/retained-audit layers. **B06 remains
+partial** because the strict denial check lacks retained service-message
+principal/action evidence; **B07 remains partial** because the active-inventory
+resize refusal was not executed within the fixed stop window.
+
+Both compute resources were independently confirmed stopped at **08:49:38 UTC**,
+before minute 80. The fresh trial's cleanup is now **complete**: an independent
+audit through **09:43:37 UTC** confirmed all **34 exact manifest identities
+absent**, with 17 unique direct DELETE intents and the other 17 absences following
+parent deletion. Existing source privacy settings, shared RG/VNet, 25 original
+subnets, 26 original EventGrid topics and 93 original operator files are preserved.
+The stopped PostgreSQL parent's child inventory remains explicitly unenumerated;
+the reviewed cleanup helper passed 54/54 offline tests. Final private evidence
+has 440 verified archive members. See the [fresh cleanup receipt](evidence/b06-b07-fresh-trial-cleanup-20260924.json)
+and [live evidence ledger](b06-b07-live-20260924.md). Overall **10/12 PASS** remains
+unchanged; this closed trial supplies no further runtime authorization.
 
 Historical completed result (before the current B02/B06/B07 trial): **B09 and B10 complete for their finite acceptance scopes**.
 B09's approved dedicated real-service trial received Azure201 for one reviewed
