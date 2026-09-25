@@ -207,7 +207,8 @@ test("Windows refuses offline fixture preparation before reading inputs or creat
     "--record", options.recordPath, "--manifest", options.manifestPath, "--case-root", options.caseRoot,
     "--scenario", options.scenario, "--acknowledge-nonsecret-inputs"], {timeout: 10000, maxBuffer: 4096}), error => {
     const result = error as Error & {stderr: string; stdout: string};
-    assert.equal(result.stdout, ""); assert.match(result.stderr, /B12 setup refused.*requires POSIX private directories/);
+    assert.equal(result.stdout, ""); assert.match(result.stderr, /^B12 setup refused or incomplete\./);
+    assert.match(result.stderr, /No network or GUI action was performed\./);
     assert.ok(!result.stderr.includes(options.recordPath)); assert.ok(!result.stderr.includes(" at ")); return true;
   });
   assert.deepEqual(await readdir(root), []);
