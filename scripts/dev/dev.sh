@@ -126,9 +126,9 @@ wait_ready() {
 
 wait_services() {
 	wait_ready "$AGE_CONTAINER" \
-		pg_isready -U agefreighter -d agefreighter
+		pg_isready -h 127.0.0.1 -U agefreighter -d agefreighter
 	wait_ready "$POSTGRES_CONTAINER" \
-		pg_isready -U agefreighter -d agefreighter
+		pg_isready -h 127.0.0.1 -U agefreighter -d agefreighter
 	wait_ready "$NEO4J_CONTAINER" \
 		cypher-shell -u neo4j -p "$AGEFREIGHTER_DEV_PASSWORD" 'RETURN 1'
 }

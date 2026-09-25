@@ -16,6 +16,7 @@ func TestDevelopmentScriptsHaveValidShellSyntax(t *testing.T) {
 		filepath.Join(root, "dev.sh"),
 		filepath.Join(root, "runtime.sh"),
 		filepath.Join(root, "services.sh"),
+		filepath.Join(root, "pggraph-apple-container.sh"),
 	)
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("sh -n error = %v\n%s", err, output)

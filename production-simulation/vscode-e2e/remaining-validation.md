@@ -1,6 +1,9 @@
 # Remaining guided migration qualification
 
-Updated: 2026-09-25 JST. Status: **not release-qualified; base routes 9/9; all 12 defined branches PASS**.
+Updated: 2026-09-25 JST. Status: **GitHub 2.4.0, Homebrew and Marketplace published and verified; base routes 9/9; all 12 defined branches PASS**.
+Independent Marketplace payload verification is recorded in the
+[M6 execution record](m6-release-20260925.md). Historical checkpoints below
+retain their original qualification and cleanup boundaries.
 
 ## Current qualification — September 25
 

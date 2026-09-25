@@ -42,7 +42,7 @@ wait_ready() {
 	count=0
 	while [ "$count" -lt 60 ]; do
 		if container exec "$container_name" pg_isready \
-			-U postgres -d "$database" >/dev/null 2>&1; then
+			-h 127.0.0.1 -U postgres -d "$database" >/dev/null 2>&1; then
 			return
 		fi
 		count=$((count + 1))
