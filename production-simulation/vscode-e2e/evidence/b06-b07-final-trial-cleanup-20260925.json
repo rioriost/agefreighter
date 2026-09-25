@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "case": "Final bounded B06/B07 trial resource cleanup and preservation",
+  "result": "PASS",
+  "observedWindow": {
+    "startedAtUTC": "2026-09-25T02:49:32.700938+00:00",
+    "finishedAtUTC": "2026-09-25T02:50:02.960793+00:00"
+  },
+  "evidenceAttribution": "Supervising root performed authorized cleanup; independent agent executed the separately pinned GET-only final audit after the retained cleanup completion proof.",
+  "absence": {
+    "finalManifestIdentities": 42,
+    "previouslyRetiredControlIdentities": 10,
+    "totalUniqueTrackedIdentities": 52,
+    "independentlyConfirmedAbsent": 52,
+    "unknownIdentities": 0,
+    "presentIdentities": 0,
+    "parentAbsenceProofUsedWhereRequired": true
+  },
+  "requestAccounting": {
+    "actualUniqueCanonicalDELETEIntents": 26,
+    "earlierControlRetirementDELETEIntents": 10,
+    "finalCleanupDELETEIntents": 16,
+    "extraOrDuplicateCanonicalIntents": 0,
+    "identityCountIsNotDELETERequestCount": true,
+    "independentAuditCloudGETCountIncludingParentProofsAndPagination": 63,
+    "independentAuditCloudMutations": 0,
+    "independentAuditSourceDataQueries": 0,
+    "independentAuditStorageContentQueries": 0,
+    "packetLevelHTTPCountClaimed": false
+  },
+  "preservation": {
+    "originalSharedVnetAnd25SubnetsStableFieldsUnchanged": true,
+    "comparisonExcludedVolatileEtagsAndNormalizedCollectionOrder": true,
+    "original26EventGridTopicSourceAssociationsPreserved": true,
+    "newTrialStorageAccountTopicCount": 0,
+    "existingResourceGroupUnchanged": true,
+    "existingCosmosSourcePrivacyProjectionUnchanged": true,
+    "originalOperatorFiles": 96,
+    "originalNamesBytesModesAndSHA256Preserved": true,
+    "currentTrialExtraFiles": 5,
+    "currentTrialExtraFilesMeaning": "One final normal workflow record and all four imported inventory reports.",
+    "finalNormalWorkflowSHA256": "719f23f8099898c5dfcde938cf9ff186303088de8ea7458559e38e82d8599331",
+    "allFourImportedReports": [
+      {
+        "bytes": 2940,
+        "operation": "0bb518bd-f782-48eb-8234-7128a276443f",
+        "sha256": "5cbe10f11102ff5897ba20098b163d84922ecb8a290e4aa782f5842e84b09e31"
+      },
+      {
+        "bytes": 2939,
+        "operation": "e3b107f3-2da6-49cd-9a2e-84b82275d84a",
+        "sha256": "3364c3d2e301c8e128018a2ef794548a455a9999ab5873414db82c04f95ec1fa"
+      },
+      {
+        "bytes": 2940,
+        "operation": "a2437775-0b18-4c23-b664-b6ad23338329",
+        "sha256": "1e84830e30a4eef21fd5e6037868b7a85fe7a0fadc42761d3cd28286024d85f5"
+      },
+      {
+        "bytes": 2940,
+        "operation": "62ef7018-2374-46bc-8ffd-23811f27e4ea",
+        "sha256": "5db2d92a8e04b2d4551549f9fbcdd718329f361279f69b3d9101221bb3e55452"
+      }
+    ],
+    "normalStoreWritesByIndependentAudit": 0
+  },
+  "pins": {
+    "independentAuditReceiptSHA256": "4b6e7671b654c25e2a235b9d7aca91d974d3badbea165cd7be714a68fa0f0b87",
+    "independentAuditScriptSHA256": "21bec2bdefbf890d0453fbe1a6f9268b385117c74bd098672d024fd6c7e4ce88",
+    "cleanupHelperSHA256": "1d3a1021bfa96a3015ef28a20a55300abcf0d7d0f226b054686469ea54b0733a",
+    "finalManifestSHA256": "96d50eeb73d2c7b290d179d5e5252f8401c05a1b30272a19c291729a0cbea91a",
+    "rootCleanupCompletionProofSHA256": "aa8b4363c2357d1645f86e491ea30515b039cb2d4c7863daeeaaf0ef6b6e74dc"
+  },
+  "delayedBudgetSnapshot": {
+    "observedAtUTC": "2026-09-25T02:24:30.263371+00:00",
+    "finishedAtUTC": "2026-09-25T02:24:35.801310+00:00",
+    "receiptSHA256": "b2ab0b0ecd522b4e5d4300c1e25306f7d0cf42fe304f1b0fc481221d56ffcc00",
+    "scope": "Month-to-date ActualCost for exactly two retained resource groups; excludes other subscription costs.",
+    "automaticRetries": 0,
+    "notFinalInvoice": true,
+    "delayedTwoGroupActualUSD": "642.10044114121599",
+    "approvedWindowBaselineUSD": "571.42950178288922",
+    "olderTrialReserveUSD": "20",
+    "firstSessionReserveUSD": "30",
+    "currentSessionReserveUSD": "30",
+    "noReserveRefundsAssumed": true,
+    "overallActualPlusAllRetainedReserveUSD": "722.10044114121599",
+    "overallLimitUSD": "800",
+    "overallHeadroomUSD": "77.89955885878401",
+    "additionalWindowEntirePositiveDelayedIncreasePlusTwoSessionReservesUSD": "130.67093935832677",
+    "additionalLimitUSD": "400",
+    "additionalHeadroomUSD": "269.32906064167323",
+    "withinBothLimits": true,
+    "attribution": "Assigns entire positive increase across both resource groups to this approval window conservatively; not a measured trial-only charge."
+  },
+  "limits": [
+    "Fifty-two tracked identities confirmed absent does not mean fifty-two DELETE requests. Canonical DELETE intents total twenty-six; parent deletion can remove descendants and account-derived resources may become absent without a separate intent.",
+    "The stopped target database/configuration collections were unavailable. Whole-parent deletion was separately admitted for the exact newly created target; no individual database/configuration enumeration or inspection is claimed.",
+    "No dedicated full-configuration baseline exists here for every pre-existing storage account. Preserved EventGrid topic/source associations do not by themselves prove those accounts’ full settings unchanged.",
+    "The independent audit retains exact parsed GET classifications, response hashes and the complete projected inventory; these are not raw HTTP wire transcripts.",
+    "This receipt proves scoped cleanup and preservation. It does not claim migration correctness or release qualification."
+  ],
+  "rootCleanupCompletedUTC": "2026-09-25T02:49:04.860165Z",
+  "computeStop": {
+    "requestedAtUTC": "2026-09-25T02:22:58.588796Z",
+    "guardConfirmedAtUTC": "2026-09-25T02:24:32.186090Z",
+    "vm": "deallocated",
+    "postgres": "Stopped",
+    "fixedStopAtUTC": "2026-09-25T04:00:24.679169Z",
+    "maximumAtUTC": "2026-09-25T04:10:24.679169Z",
+    "restartedForCleanup": false,
+    "guardResultSHA256": "97aa41f3c74f25218d6425bd3d67a8c8833efc7ffebcbec4878a657a4fa446a7"
+  },
+  "retainedPredeleteArchive": {
+    "file": "b06-b07-final-scope-20260924-before-cleanup.tar",
+    "bytes": 12974080,
+    "sha256": "670adaeb9ef824f895e980d930b633c6c282d56b3566e7cf6712e24b18b2dcbb",
+    "members": 561,
+    "regularFiles": 513,
+    "everyFileIndependentlyVerified": true
+  },
+  "finalPrivateArchive": {
+    "file": "b06-b07-final-scope-20260924-final-evidence.tar",
+    "bytes": 66938880,
+    "sha256": "dc507362a3ad1401ddf0f46fd612af5946d2e75fff1d2f8a6e2ffd35e423396c",
+    "mode": "0600",
+    "regularMembers": 715,
+    "trialEvidenceFiles": 711,
+    "manifestSHA256": "be6b476a309c681565ec1ed0aaa57c53fcf2c0ec74c5b55b55b1f18384b1d0a5",
+    "everyMemberBytesHashModeIndependentlyVerified": true,
+    "precleanupArchiveNestedUnchanged": true,
+    "pinnedLinuxRunnerAndInstalledExtensionIncluded": true,
+    "independentAuditSHA256": "6b340cfb5aca3e91dd818716d7c87393c3099491036b80b23208f371b06dff64",
+    "closingReceiptsRetainedSeparately": true
+  },
+  "cleanupDiskCorrection": {
+    "initialHelperSHA256": "b9d6a3d1f3d795abf8320199b18d861cad4aa8ca6f4b3b6fff1984f8e0fbe437",
+    "executedHelperSHA256": "1d3a1021bfa96a3015ef28a20a55300abcf0d7d0f226b054686469ea54b0733a",
+    "change": "One comparison narrowed to the actual original 64 GiB Standard_LRS OS disk; unchanged exact identity, ownership, attachment, archive and no-replay checks. No broad SKU allowance.",
+    "offlineTestsPassed": 72,
+    "independentReviewSHA256": "46aff825f3fabb2022ff1d94951f1bd42d962b97e223c344a4740204aa0e523b",
+    "timelineReviewSHA256": "7d13e9f80afa85043acd66fe52157bb148b986a512f5dba6bd08850818b5a6f2",
+    "limitation": "Initial actual identity projection reports StandardSSD_LRS, while actual final-resize before/after responses both report the same Standard_LRS disk configuration. Earlier transition time and cause remain unresolved; no lifetime disk-SKU continuity claim."
+  },
+  "qualification": {
+    "B02": "pass-defined-finite-scope",
+    "B06": "pass-defined-fixed-managed-identity-scope",
+    "B07": "pass-defined-finite-scope",
+    "definedBranchesPass": 12,
+    "definedBranchesPartial": 0,
+    "baseRoutesPass": 9,
+    "releaseQualified": false
+  }
+}

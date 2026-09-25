@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "scope": "Exactly four historical successful readiness Run Command definitions from the current trial; not final trial cleanup",
+  "result": "PASS",
+  "authorizationBasis": "Root-reviewed operational amendment within the existing 96-hour / USD400 user authorization; no new user consent asserted",
+  "independentAudit": {
+    "startedAtUTC": "2026-09-25T01:32:20.311870+00:00",
+    "finishedAtUTC": "2026-09-25T01:32:20.754363+00:00",
+    "cloudMutations": 0,
+    "exactDefinitionGETs": 4,
+    "confirmedAbsent": 4,
+    "completeRetainedCollection": true,
+    "retainedBefore": 22,
+    "retainedAfter": 18,
+    "retainedSetEqualsOriginalMinusSelectedFour": true,
+    "lifetimeCountPreserved": 22,
+    "canonicalDELETEIntentCount": 4,
+    "uniqueDELETEIntentCount": 4,
+    "extraDELETEIntentCount": 0,
+    "privateReceiptSHA256": "8e76844a5da448989d1fedff27cef6dc7b6cbd6c7471136ea8d223bf2cbbb93c"
+  },
+  "archive": {
+    "memberCount": 17,
+    "bytes": 440320,
+    "sha256": "a306010922c9a1b2ffce3e3bb76ade93f680e903875b0e9fc1e78fcd173d0795",
+    "fullSelectedDefinitionsAndInstanceViewsPreserved": true,
+    "fullNativeRecordWithHistoricalReceiptsPreserved": true,
+    "importedInventoryReportAndCompleteCensusPreserved": true,
+    "priorInconclusiveObserverResponsesPreserved": true,
+    "fixedPrivateArchiveAndDurablePrivateCopyByteIdentical": true,
+    "privateMode": "0600",
+    "fileAndDirectoryFsyncCompleted": true
+  },
+  "preservation": {
+    "nativeRecordBeforeAndAfterSHA256": "5e4309ac6f0ab5920663bd551dcd2cf0eb0f3f5c6887c4898ff9b7585b57cf4b",
+    "nativeRecordNotRewritten": true,
+    "earlierObserverAttemptsNotRemoved": true,
+    "lifetimeControlIDsNotReset": true
+  },
+  "review": {
+    "helperSHA256": "a33315672c7dd1985eeb6c738f811163cfb838c12c98f18ba99e792e8378a9e1",
+    "offlineTestsPassed": 16,
+    "independentReviewSHA256": "b57edf2abb0cd2f893bdee9e0ca76874b6017209bae74a91378d50af52bf7540",
+    "rootAmendmentSHA256": "45b1787f5e6f73c1b165fc5135c70f59a9c158b3029b9ef11f7251cdc3ce10c9"
+  },
+  "evidenceLimits": [
+    "The independent receipt records strict exact-resource GET classifications and the retained complete collection; it does not retain raw HTTP wire responses for the four absence GETs.",
+    "Successful definition retirement does not establish the next inventory or B07 acceptance.",
+    "Final trial resource cleanup remains open."
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "case": "B06 strict managed-identity access transition and normal GUI full inventory import",
+  "result": "PASS for the defined finite B06 branch",
+  "reviewedAtUTC": "2026-09-25T00:22:20.415575+00:00",
+  "workflowSHA256": "0af99bbd8dc3a8b06eef22e439370b7f963888b0e15adcc33edc743678a77010",
+  "authentication": "Linux runner system-assigned managed identity",
+  "evidenceLayers": {
+    "nativeGUI": "Supervising root agent directly observed the normal Reader grant, imported report status and Hash-verified source report viewer. The reviewing subagent did not perform those GUI actions.",
+    "independentRetainedEvidence": "The reviewing subagent independently compared actual before/after guest receipts, native record bindings, complete report bytes and identical normal-store bytes.",
+    "priorNativeGuardCases": "Earlier accepted Restricted Mode and stale-principal refusals are credited under the explicit final scope; they were not repeated in this session."
+  },
+  "samePrincipalAccess": {
+    "principalSHA256": "b47ce447a612ed8accd236638e4449bea6bea746df10b0190f7fa870f320d2bc",
+    "identifierSealMethod": "SHA-256 of the lowercase UUID encoded as UTF-8",
+    "sameVMAndPrincipalVerified": true,
+    "observerSHA256": "d4e7556b0d068c0cb39461988270af2c1c2ef8dae32a93ed16f875afc348fa6c",
+    "bindingSHA256": "a2bd19bc3528538311b6dd4f8b726bbe0b677fd66c6ffe38bfb356f99f527fd2",
+    "query": "SELECT VALUE 1 FROM c",
+    "querySHA256": "e3992756c83c53bd069a434be4f37c69f45ca46376215980a633e5a84f4a3f8e",
+    "before": {
+      "observedAtUTC": "2026-09-24T13:34:21.673916+00:00",
+      "classification": "rbac-denied",
+      "httpStatus": 403,
+      "substatus": "5302",
+      "guestExitCode": 0,
+      "strictServiceEvidence": {
+        "fieldPath": "Errors[0]",
+        "phraseVariant": "does-not-have-the-required",
+        "servicePrincipalSHA256": "b47ce447a612ed8accd236638e4449bea6bea746df10b0190f7fa870f320d2bc",
+        "readAction": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/executeQuery",
+        "decodedClauseSHA256": "7813d513746d5cdd048a6061618c99f87f69d297739eb914c44890355ca4af73",
+        "strictMatch": true
+      },
+      "responseBytes": 354,
+      "responseSHA256": "f8d576fdaea3f815eba3198d4c42001f1ea9a1495e7c94f6f21d0bbae0192b79",
+      "retainedGuestReceiptSHA256": "fa3017b2463f577bd7108f5f2126d77968737efae6d68fac23e13a97bd53a3cc"
+    },
+    "normalGUIGrant": {
+      "role": "Cosmos DB Built-in Data Reader",
+      "scope": "Exact reviewed source account",
+      "nativePhase": "ready",
+      "submittedAtUTC": "2026-09-24T13:36:52.270Z",
+      "principalSHA256": "b47ce447a612ed8accd236638e4449bea6bea746df10b0190f7fa870f320d2bc",
+      "assignmentIdSHA256": "25419cfe3fc89cb1170e74010fd0bdce8b80de022d18c99e184b093633cdaf8a",
+      "nativeRecordSHA256": "2829bb54303d38cc78ddbe4530683d7733d25fd5e77497a3b575fcaece08ac83",
+      "rawPreGrantARMResponseRetained": false,
+      "preGrantAbsenceEvidence": "Dispatcher verified exact parent presence and role absence; the durable admission outcome is retained separately from the strict data-plane denial, without an archived raw absence response."
+    },
+    "after": {
+      "observedAtUTC": "2026-09-24T13:39:58.963033+00:00",
+      "classification": "read-succeeded",
+      "httpStatus": 200,
+      "guestExitCode": 0,
+      "constantRows": 1,
+      "responseBytes": 50,
+      "responseSHA256": "7c513c4c8c6f0e067a0f1af378e1133b1538c7e2f932354f074baa27c6aa137e",
+      "retainedGuestReceiptSHA256": "fe2e3bec146d00bbc310c84cb5b4bfdd94e3813f9f497135a304846830922ab8"
+    },
+    "queryCalls": {
+      "before": 1,
+      "after": 1,
+      "completeResponses": 2,
+      "automaticRetries": 0,
+      "continuationFollowed": false,
+      "unusedAttempts": "before02, after02 and after03 were not executed; recognized denial and success stopped further calls."
+    }
+  },
+  "normalGUIInventoryImport": {
+    "operation": "0bb518bd-f782-48eb-8234-7128a276443f",
+    "reportGeneratedAtUTC": "2026-09-24T13:50:22.644487284Z",
+    "exportSubmittedAtUTC": "2026-09-25T00:18:17.768Z",
+    "importAndViewerObservedAroundUTC": "2026-09-25T00:20Z",
+    "exactImportClickTimestampAsserted": false,
+    "reportBytes": 2940,
+    "reportSHA256": "5cbe10f11102ff5897ba20098b163d84922ecb8a290e4aa782f5842e84b09e31",
+    "nativeRecordBytes": 40805,
+    "nativeRecordSHA256": "bd02fbfbe25cb651274d3c81c69cfa6d6ef854ef60cb463107caf5f1087eae10",
+    "nativeTransferPhase": "imported",
+    "normalStoreBytesIdentical": true,
+    "normalStoreMode": "0600",
+    "outcome": "pass",
+    "configuredMappings": 18,
+    "allConfiguredMappingsMatchReport": true,
+    "allConfiguredMappingsReachedEOF": true,
+    "vertexRecords": 1600000,
+    "edgeRecords": 4000000,
+    "totalMappedRecords": 5600000,
+    "errors": [],
+    "incompleteChecks": [],
+    "sourceConfigurationSHA256": "409c7f4184284191458f5293c7210f85cc0784d2f59e2f8605fa03c544f1c446",
+    "guestConfigurationSHA256": "e6843c079e727d3cef3da3ac06a98fb822c6ef735809846c1b6d3eb8a5a621d1",
+    "originalOperationAndAssessmentBootPreservedAcrossRestart": true,
+    "newReadinessBootRecordedSeparately": true,
+    "warning": "Inventory counts describe mapped records, not unique identities, endpoint existence or migration verification."
+  },
+  "retainedGuardCases": [
+    {
+      "case": "Restricted Mode pre-dialog refusal",
+      "result": "PASS",
+      "receipt": "b06-restricted-mode-20260924.json",
+      "sha256": "69eef9ac8d470c67929d76b87e96cc8cc666966e741d1fafbac0fa0fa2544244"
+    },
+    {
+      "case": "Changed managed-identity principal refused before new source dispatch",
+      "result": "PASS",
+      "receipt": "b06-stale-principal-refusal-20260924.json",
+      "sha256": "aeaebd7362100a6a632a9675d8b6e354c48d055b908aaf334816da10a8333227"
+    }
+  ],
+  "candidate": {
+    "installedBundleSHA256": "7a2aa5ddf13454ff6dab4d4a8ad2cb9a172842c9c4fbcc7b5d8e94d3f79d1d34",
+    "linuxArchiveSHA256": "07ba1744b5daf7e226915c50d46fa5eda704949fc7d175e2b39a150813f41692",
+    "linuxVersion": "2.4.0-dev.646f0d4b361a"
+  },
+  "independentReviewSeals": {
+    "finiteAcceptanceReviewSHA256": "dc9226772efc4d221975d3355f67d81c68a7e9265844dbd18f3db4a4be676a97",
+    "strictAccessPairReviewSHA256": "29d8b3b52e386765051ce64b5fe582cd763a0a13a2465529d1cbcf52b25241b3",
+    "secondReviewerAccessPairSHA256": "fc429d854bb2fba6b08e987e15e6fce959b0ee81e64168e64f9d1d57deb6264f"
+  },
+  "limits": [
+    "Earlier header-only inconclusive observations remain unchanged; this new actual strict service-clause evidence satisfies the unmet criterion without relabeling the earlier trial.",
+    "Raw Cosmos body and tokens were not retained. Only allowlisted service-derived matched fields, clause hash and response hash support strict denial.",
+    "No permission propagation latency was measured; elapsed time between grant and success is not such a measurement.",
+    "The standalone query observer is not GUI inventory evidence; normal GUI grant/import observation and independent byte verification are separately attributed.",
+    "The retained live trust case is pre-dialog Restricted Mode refusal; open-modal trust loss remains unit-test coverage.",
+    "Other Cosmos credential modes and migration correctness are outside this finite branch.",
+    "B07, final stop/archive/cleanup/preservation and overall release qualification remain separate."
+  ]
+}

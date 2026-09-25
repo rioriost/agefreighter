@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "scope": "Exactly five historical successful readiness definitions and one completed B06 before-grant observation definition; not final trial cleanup",
+  "result": "PASS",
+  "authorizationBasis": "Root-reviewed operational amendment within the existing 96-hour / USD400 user authorization; no new user consent asserted",
+  "independentAudit": {
+    "startedAtUTC": "2026-09-25T02:01:35.891652+00:00",
+    "finishedAtUTC": "2026-09-25T02:01:36.562689+00:00",
+    "cloudMutations": 0,
+    "exactDefinitionGETs": 6,
+    "confirmedAbsent": 6,
+    "completeRetainedCollection": true,
+    "retainedBefore": 24,
+    "retainedAfter": 18,
+    "retainedSetEqualsOriginalMinusSelectedSix": true,
+    "lifetimeCountPreserved": 28,
+    "canonicalDELETEIntentCountIncludingPriorFour": 10,
+    "uniqueDELETEIntentCount": 10,
+    "extraDELETEIntentCount": 0,
+    "privateReceiptSHA256": "106e9a85ea02aac964a32429aaba08deb85acb5e174c9c63a2ceb07c2ec37f6f"
+  },
+  "archive": {
+    "memberCount": 24,
+    "bytes": 819200,
+    "sha256": "e7719618533d81a90431834e6f256b84fd1793a44a141f374d9a119f481d8699",
+    "fullSixDefinitionsAndInstanceViewsPreserved": true,
+    "fullNativeRecordAndImportedInventory3ReportPreserved": true,
+    "completeCurrentAndLifetimeCensusPreserved": true,
+    "B06AuthorizationPreparationApprovedBodySubmitIntentAndStrictResultPreserved": true,
+    "B06PublicReceiptSHA256": "3c2ffa6d343e416dc3e8914ae696477bed47ee1a2eb08e17af90fa2b9a3d8de2",
+    "priorFourDefinitionArchiveAndAuditPreserved": true,
+    "fixedPrivateArchiveAndDurablePrivateCopyByteIdentical": true,
+    "privateMode": "0600",
+    "fileAndDirectoryFsyncCompleted": true
+  },
+  "preservation": {
+    "nativeRecordBeforeAndAfterSHA256": "28b75ce484648a2b1cff103e4b017e335b9dc359e85963a5c305c5d7e25f4085",
+    "nativeRecordNotRewritten": true,
+    "latestReadinessDefinitionPreserved": true,
+    "B07DefinitionsPreserved": true,
+    "B06ObservedResultRemainsArchived": true,
+    "lifetimeControlIDsNotReset": true
+  },
+  "review": {
+    "helperSHA256": "c12afbc55a6de87e008d741aaca80e601445c5ad853ce71e90e146becb93c4e2",
+    "offlineTestsPassed": 20,
+    "independentReviewSHA256": "fd47f960280b7676b538bdc2e3150bf486a319f4546c60c4e188f8058d9c9037",
+    "rootAmendmentSHA256": "47a8b29e0daf1285b06f029459f47d36cfa3b97b2e179b7d7d58982c7ac5369a"
+  },
+  "evidenceLimits": [
+    "Initial readiness GETs reporting Updating were rejected; separate post-import GETs reported Succeeded. No provisioning-state gate was weakened.",
+    "The independent receipt retains exact GET classifications and the complete collection, not raw HTTP wire responses for six absence GETs.",
+    "Definition retirement does not establish any later inventory or B07 acceptance. Final trial resource cleanup remains open."
+  ]
+}

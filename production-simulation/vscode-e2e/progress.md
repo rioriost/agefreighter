@@ -1,6 +1,51 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-24 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9); extended branches 10/12 PASS, 2 partial (B06/B07); not release-qualified**.
+Updated: 2026-09-25 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9); all 12 defined extended branches PASS; not release-qualified**.
+
+## Current qualification — September 25
+
+**B06 is complete for its defined fixed-managed-identity scope.** The new trial
+retained strict service-message principal/action denial, the normal GUI Reader
+grant and matching constant-read success. At approximately 00:20 UTC on
+September 25, root observed the original full inventory imported in the normal
+GUI and opened its verified report. Independent review matched all 2,940 bytes
+to the original seal and normal-store copy: 18 mappings, 1.6 million vertex
+records and 4 million edge records, with no errors or incomplete checks.
+Earlier accepted native trust/principal refusals remain credited. See the
+[scoped B06 receipt](evidence/b06-strict-access-and-import-20260925.json).
+The older inconclusive observer remains inconclusive; no propagation latency,
+open-modal trust-loss execution, alternate credential mode or migration
+verification is inferred from this result.
+
+**B07 passes its defined active-inventory case.** The installed GUI refused the
+resize reconciliation while the real inventory ran. Bounded observations on
+both sides of that action prove the same worker, child process, invocation,
+boot and configuration, with the host GET → GUI → PUT order retained. The same
+inventory was then normally imported and opened in the verified viewer:
+18 mappings, 5.6 million records, no errors or incomplete checks. See the
+[active-case receipt](evidence/b07-active-inventory-refusal-pass-20260925.json)
+and [continuation](b06-b07-continuation-20260925.md). The earlier
+[inconclusive pair](evidence/b07-active-refusal-inconclusive-20260925.json)
+remains inconclusive; only four observer submissions occurred in total.
+This closes B02/B06/B07's finite qualification scope, not release qualification.
+
+The dedicated VM and PostgreSQL were confirmed stopped at 02:24:32 UTC,
+before the fixed 04:00:24 UTC stop deadline. Cleanup completed at 02:49:04 UTC;
+independent GETs confirm all 42 final manifest identities and 10 previously
+retired controls absent. The original 96 operator records, current workflow and
+four reports, shared VNet/25 subnets, original 26 topic/source associations,
+resource group and source privacy projection are preserved. Both private
+archives are retained. See the [final cleanup receipt](evidence/b06-b07-final-trial-cleanup-20260925.json).
+No further source observations or workloads are authorized by the cleanup.
+The final resize retained the same actual Standard HDD disk configuration;
+an earlier SSD metadata discrepancy has unresolved timing/cause and is not
+claimed as lifetime disk-type continuity. Stopped PostgreSQL child enumeration
+was unavailable; only its explicitly approved parent cascade is asserted.
+
+## Historical checkpoints
+
+The following checkpoints retain their original outcomes and branch totals;
+the opening summary above gives the current status.
 
 September24 B02 result retained: **complete for its finite placement scope,
 including dedicated fixture cleanup**. Actual unknown-zone VM selection and
@@ -12,7 +57,7 @@ was archived before exact deletion; fresh independent GETs prove it absent and
 the existing parent resource group retained. See [B02 qualification](b02-placement-scope-20260924.md)
 and [cleanup receipt](b02-cleanup-20260924.json).
 
-The [combined bounded trial](b02-b06-b07-session-20260924.md) has expired. Its
+Historical September 24 combined trial: the [bounded trial](b02-b06-b07-session-20260924.md) has expired. Its
 guard confirmed compute stopped at 02:11:50 UTC. Exact-owner cleanup is complete:
 all 21 identities are independently absent and original 93 records preserved,
 with no old-account EventGrid derivative. See the [cleanup receipt](evidence/b02-b06-b07-trial-cleanup-20260924.json).
@@ -21,7 +66,7 @@ B06's actual Restricted Mode pre-dialog refusal passes; the first access
 observer was inconclusive and consumed its attempt. No supplemental old-scope
 observer was run.
 
-The later [fresh exact scope](b06-b07-fresh-scope-20260924.md) was approved and
+Historical September 24 later trial: the [fresh exact scope](b06-b07-fresh-scope-20260924.md) was approved and
 executed. Its amended query returned HTTP403/5302 before the native Reader
 grant and HTTP200 afterward for the same principal; normal GUI inventory
 completed and imported the sealed **5.6 million mapped records / 18 mappings**
@@ -359,7 +404,7 @@ retry. Both exact source/runner independently deallocated by01:41UTC, before
 migration. B03 PostgreSQL remains unqualified. Latest delayed twoRG
 costUSD444.3963173658658,800USD ceiling unchanged.
 
-Current checkpoint13:27UTC: **B03 Neo4j other-cloud selection now has installed-GUI
+Historical checkpoint13:27UTC: **B03 Neo4j other-cloud selection now has installed-GUI
 migration, counts and full canonical PASS**:5.6Mrows/18labels/64ranges/root match.
 Result retained/imported; source and runner deallocated, target Stopped verified
 by13:25:54UTC and scoped safety monitor paused. All disks/data/evidence retained.
@@ -549,7 +594,7 @@ All457unit tests pass; all82operator files and installed production bundle remai
 unchanged. No cloud startup or mutation. B12 remains partial and branch totals
 stay5pass/7partial. See [host rejection evidence](p1-retained-host-20260922.md).
 
-Current B01 phase: **full canonical qualification PASS; exact compute stopped**.
+Historical B01 phase: **full canonical qualification PASS; exact compute stopped**.
 Installed GUI imported the23,310-byte sealed result and displayed full P1 PASS.
 Independent byte/hash/job checks and both recomputed roots match all64ranges,
 1.6Mvertices+4Medges/18labels with typed properties/identities/endpoints.
@@ -756,7 +801,7 @@ and24targeted regressions pass. No Azure operation, install or deletion.
 See [receipt lifecycle](command-receipt-lifecycle-20260918.md). B09 remains partial:
 this is local evidence preservation, not live record-removal qualification.
 
-Current B04 result (September21, 02:17UTC): **defined FK catalog/adoption/inventory
+Historical B04 result (September21, 02:17UTC): **defined FK catalog/adoption/inventory
 slice PASS**. Installed GUI imported the exact sealed2,087-byte report;
 independent hash/count assertions match five vertices plus three edges/all3labels,
 two passed checks, no errors/incomplete checks. Explicit properties and actual
@@ -842,7 +887,7 @@ Fresh delayed RG cost USD 295.608869711763, below USD 800. B04 remains partial.
 
 Prior restart checkpoint (September 20, approximately 06:10 UTC): user approved restarting
 the existing runner/source and appropriate time extensions; USD 800 unchanged.
-Current session bound is 08:00 UTC / 17:00 JST, with exact-VM auto-shutdown and
+Historical session bound is 08:00 UTC / 17:00 JST, with exact-VM auto-shutdown and
 dedicated safety heartbeat. Source is Ready/private; refreshed installed-GUI
 readiness passes on the new boot (disk 3.71%, idle, zero swap/OOM, pinned build).
 After private reader entry, inventory `3a4ffae1-8727-464b-8968-40bed2f42c69`
@@ -2188,7 +2233,7 @@ Storage-audience fix [CI run 33960028041](https://github.com/rioriost/agefreight
 on `c9d477b5003189082a575ab7afd7a67b1780cdbb` passed all six jobs: Linux/macOS/
 Windows unit tests, source contracts, Extension Host and packaging.
 
-## Review notes for the next implementation stage
+## Historical review notes for the next implementation stage
 
 - Matching release/bootstrap is still mandatory in production. The released 2.4
   artifact remains a production gate. The approved test-only commit/hash-pinned
