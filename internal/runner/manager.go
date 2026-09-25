@@ -487,19 +487,24 @@ func readJSON(path string, value any) error {
 }
 
 type boundedOutput struct {
-	bytes.Buffer
+	// Do not embed bytes.Buffer: its promoted ReadFrom bypasses Write in io.Copy.
+	buffer   bytes.Buffer
 	limit    int
 	overflow bool
 }
 
+func (b *boundedOutput) Bytes() []byte  { return b.buffer.Bytes() }
+func (b *boundedOutput) String() string { return b.buffer.String() }
+func (b *boundedOutput) Len() int       { return b.buffer.Len() }
+
 func (b *boundedOutput) Write(p []byte) (int, error) {
 	size := len(p)
-	remaining := b.limit - b.Len()
+	remaining := b.limit - b.buffer.Len()
 	if size > remaining {
 		b.overflow = true
 		p = p[:remaining]
 	}
-	_, _ = b.Buffer.Write(p)
+	_, _ = b.buffer.Write(p)
 	return size, nil
 }
 

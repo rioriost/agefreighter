@@ -59,9 +59,13 @@ Integration DSNs and connector credentials have no Makefile defaults: an
 unset environment causes the corresponding Go integration test to print an
 explicit skip reason. After `make dev-up`, source `scripts/dev/services.sh`,
 export the AGE, PostgreSQL, and Neo4j variables as shown in CI, and run
-`make coverage`. This keeps the 80% unexcluded repository-wide gate based on
-the live connector contracts rather than counting database code as excluded
-or pretending an absent service passed.
+`make coverage`. This keeps the 90% product gate based on the live connector
+contracts rather than counting database code as excluded or pretending an
+absent service passed. Only the exact non-shipped qualification-tool files in
+`.coverage-exclude` are excluded; their tests still run, and architecture tests
+enforce that product packages cannot depend on them. Set
+`AGEFREIGHTER_PGGRAPH_TEST_DSN` to the pinned PostgreSQL 19 target described
+below to include its integration coverage, as CI does.
 
 Generate deterministic CSV source data without overwriting an existing output
 directory:

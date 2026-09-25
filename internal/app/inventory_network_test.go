@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -97,5 +98,51 @@ func TestNetworkInventoryRejectsPartialOrInvalidStreams(t *testing.T) {
 		if _, err := consumeNetworkInventory(t.Context(), job, iterator, InventoryOptions{}); err == nil {
 			t.Fatal("partial or invalid stream was accepted as exact")
 		}
+	}
+}
+
+type inventoryCloseFailure struct {
+	*scriptedProfileIterator
+	closed bool
+}
+
+func (iterator *inventoryCloseFailure) Close() error {
+	iterator.closed = true
+	return errors.New("PRIVATE-CLOSE-ERROR")
+}
+
+func TestNetworkInventoryCloseFailureCannotPass(t *testing.T) {
+	iterator := &inventoryCloseFailure{
+		scriptedProfileIterator: &scriptedProfileIterator{items: networkInventoryItems()},
+	}
+	doc, err := consumeNetworkInventory(t.Context(), networkInventoryJob(config.SourcePostgreSQL), iterator, InventoryOptions{})
+	if err == nil || err.Error() != "network inventory source close failed" ||
+		doc.Outcome == report.OutcomePass || !iterator.closed {
+		t.Fatalf("close failure = %#v, %v; closed=%v", doc, err, iterator.closed)
+	}
+}
+
+func TestSourceInventoryMissingCredentialsFailBeforeSourceAccess(t *testing.T) {
+	t.Setenv("INVENTORY_MISSING_SECRET", "")
+	for _, connector := range []string{"postgresql", "neo4j-discovery"} {
+		t.Run(connector, func(t *testing.T) {
+			job, err := config.Load(filepath.Join("..", "config", "testdata", "valid", connector+".yaml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			ref := config.SecretRef{Env: "INVENTORY_MISSING_SECRET"}
+			want := "network inventory initialization failed"
+			if job.Source.PostgreSQL != nil {
+				job.Source.PostgreSQL.Connection = ref
+			} else {
+				job.Source.Neo4j.Password = &ref
+				want = "resolve Neo4j source password:"
+			}
+			path := writeLoadJob(t, t.TempDir(), "inventory.yaml", job)
+			doc, err := SourceInventory(t.Context(), path, InventoryOptions{})
+			if err == nil || !strings.HasPrefix(err.Error(), want) || doc.Outcome == report.OutcomePass {
+				t.Fatalf("missing credentials = %#v, %v", doc, err)
+			}
+		})
 	}
 }

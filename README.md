@@ -366,9 +366,11 @@ make dev-up
 See the [development database guide](scripts/dev/README.md) for the lifecycle,
 ports, image digests, and reset safety boundary.
 
-The unexcluded repository-wide statement coverage threshold is 80%. Coverage is a release gate,
-not a substitute for race, fuzz, contract, container integration, and recovery
-tests.
+The product statement coverage threshold is 90%. Only the exact non-shipped
+qualification-tool files listed in `.coverage-exclude` are excluded; their
+tests still run. Architecture tests enforce this boundary. Coverage is a
+release gate, not a substitute for race, fuzz, contract, container integration,
+and recovery tests.
 
 ## Versioning
 

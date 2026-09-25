@@ -133,7 +133,7 @@ func TestProfileCommandValidatesFlagsBeforeReadingJob(t *testing.T) {
 	}
 }
 
-func TestProfileCommandEmitsSourceOnlyReport(t *testing.T) {
+func TestSourceDiagnosticCommandsEmitSourceOnlyReports(t *testing.T) {
 	directory := t.TempDir()
 	vertices := filepath.Join(directory, "vertices.csv")
 	edges := filepath.Join(directory, "edges.csv")
@@ -153,17 +153,39 @@ func TestProfileCommandEmitsSourceOnlyReport(t *testing.T) {
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	var output bytes.Buffer
-	command := NewAgefreighter(&output, &bytes.Buffer{})
-	if err := Execute(command, []string{
-		"profile", "--mode", "exact", "--format", "markdown", path,
-	}); err != nil {
-		t.Fatalf("profile command error = %v", err)
-	}
-	if !strings.Contains(output.String(), "# agefreighter profile report") ||
-		strings.Contains(output.String(), "Alice") ||
-		strings.Contains(output.String(), "p1") {
-		t.Fatalf("profile output = %s", output.String())
+	for _, operation := range []string{"profile", "inventory"} {
+		for _, format := range []string{"json", "markdown"} {
+			t.Run(operation+"/"+format, func(t *testing.T) {
+				args := []string{operation, "--format", format, path}
+				if operation == "profile" {
+					args = append(args, "--mode", "exact")
+				}
+				var output bytes.Buffer
+				command := NewAgefreighter(&output, &bytes.Buffer{})
+				if err := Execute(command, args); err != nil {
+					t.Fatalf("%s command error = %v", operation, err)
+				}
+				if strings.Contains(output.String(), "Alice") || strings.Contains(output.String(), "p1") {
+					t.Fatalf("%s output disclosed source values", operation)
+				}
+				if format == "json" {
+					doc, err := report.Decode(output.Bytes())
+					wantOutcome := report.OutcomePass
+					if operation == "profile" {
+						wantOutcome = report.OutcomeIncomplete
+					}
+					if err != nil || doc.Command != operation || doc.Outcome != wantOutcome {
+						t.Fatalf("report = %#v, %v", doc, err)
+					}
+				} else if !strings.Contains(output.String(), "# agefreighter "+operation+" report") {
+					t.Fatalf("missing report heading: %s", output.String())
+				}
+				command = NewAgefreighter(failingWriter{}, &bytes.Buffer{})
+				if err := Execute(command, args); err == nil || !strings.Contains(err.Error(), "write failed") {
+					t.Fatalf("output failure = %v", err)
+				}
+			})
+		}
 	}
 }
 
