@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "scope": "PGFS source reader credential rotation, not catalog or migration qualification",
+  "source": "afpg-p1-source-20260907",
+  "database": "p1source",
+  "role": "agefreighter_reader",
+  "runner": "af-66a26571953f42219659",
+  "command": "af-pgfs-reader-reset-20260920-r2",
+  "startedAt": "2026-09-20T02:07:31Z",
+  "finishedAt": "2026-09-20T02:07:32Z",
+  "executionState": "Succeeded",
+  "exitCode": 0,
+  "scriptSHA256": "5d68e86955300e96ddbd1f7a2f80f8f7fea20c57579d7a66f034a91198ed4db8",
+  "transactionCommitted": true,
+  "nonPasswordRoleAttributesUnchanged": true,
+  "independentReaderLogin": {
+    "expectedUserDatabaseAndReadOnly": true,
+    "tls": true,
+    "certificateValidation": "verify-full"
+  },
+  "keychainService": "agefreighter-afpg-p1-source-20260907-agefreighter_reader-20260920",
+  "keychainAccount": "agefreighter_reader",
+  "retainedGuestEvidence": "/var/lib/agefreighter/evidence/pgfs-reader-reset-20260920-r2",
+  "files": {
+    "rotation.log": {"bytes": 47, "sha256": "80ca48262758b6bf383d31d8b3a37e4f357fcfc5a22ac9182f4aa626eaf29a6d"},
+    "reader-check.txt": {"bytes": 4, "sha256": "be0d4bbc28f4dff8f1bedc3586a4bd4f6af2ebe3de0d01f541ddd675f09bb69b"},
+    "stderr.log": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "completed": {"bytes": 21, "sha256": "e3249b152e5b505b4e6d65fa058c891ab3e83b15295a227df13b688d9b161aee"},
+    "kernel-oom.txt": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+  },
+  "temporaryProtectedCommandsRemoved": ["af-pgfs-reader-reset-20260920", "af-pgfs-reader-reset-20260920-r2"],
+  "administratorPasswordChanged": false,
+  "grantsOrNetworkChanged": false,
+  "sourceDataChanged": false,
+  "priorCatalogFailurePreserved": true
+}

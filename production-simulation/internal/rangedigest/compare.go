@@ -3,6 +3,10 @@ package rangedigest
 import "fmt"
 
 func Compare(expected, actual Manifest) (Comparison, error) {
+	return compareManifests(expected, actual, CanonicalVersion, "apache-age")
+}
+
+func compareManifests(expected, actual Manifest, canonicalVersion, actualRole string) (Comparison, error) {
 	result := Comparison{
 		Status: "fail", FixtureRoot: expected.FixtureRoot,
 		ExpectedRoot: expected.RootSHA256, ActualRoot: actual.RootSHA256,
@@ -14,10 +18,10 @@ func Compare(expected, actual Manifest) (Comparison, error) {
 		return result, fmt.Errorf("canonical digest mismatch: %s", message)
 	}
 	if expected.Version != ManifestVersion || actual.Version != ManifestVersion ||
-		expected.CanonicalVersion != CanonicalVersion || actual.CanonicalVersion != CanonicalVersion {
+		expected.CanonicalVersion != canonicalVersion || actual.CanonicalVersion != canonicalVersion {
 		return fail("manifest version")
 	}
-	if expected.Source != "fixture" || actual.Source != "apache-age" {
+	if expected.Source != "fixture" || actual.Source != actualRole {
 		return fail("manifest source roles")
 	}
 	if expected.FixtureRoot != actual.FixtureRoot {

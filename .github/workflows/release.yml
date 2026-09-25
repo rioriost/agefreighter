@@ -9,7 +9,7 @@ on:
       version:
         description: "Semantic v2 version to package (dispatch never publishes)"
         required: true
-        default: "v2.3.1"
+        default: "v2.4.0"
         type: string
       dry_run:
         description: "Required safety acknowledgement"
@@ -362,7 +362,8 @@ jobs:
           npm ci
       - name: Test and package VS Code extension
         env:
-          VSCODE_TEST_VERSION: "1.100.0"
+          VERSION: ${{ needs.prepare.outputs.version }}
+          VSCODE_TEST_VERSION: "1.105.0"
         run: |
           set -euo pipefail
           npm run check
@@ -374,7 +375,7 @@ jobs:
             sleep $((attempt * 10))
           done
           npm run package
-          vsix=dist/agefreighter-2.3.1.vsix
+          vsix="dist/agefreighter-${VERSION#v}.vsix"
           unzip -l "$vsix" >dist/vsix-contents.txt
           grep -F 'extension/dist/extension.js' dist/vsix-contents.txt
           if grep -E 'node_modules|\.env|out-test|src/test|\.vscode-test' dist/vsix-contents.txt; then
@@ -388,8 +389,8 @@ jobs:
         with:
           name: release-vscode-extension
           path: |
-            extensions/vscode/dist/agefreighter-2.3.1.vsix
-            extensions/vscode/dist/agefreighter-2.3.1.vsix.spdx.json
+            extensions/vscode/dist/*.vsix
+            extensions/vscode/dist/*.vsix.spdx.json
             extensions/vscode/dist/vsix-contents.txt
           if-no-files-found: error
           retention-days: 14

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "workflow": "b2c7214e-83f5-4613-b378-98d36e0cd97d",
+  "purpose": "Archive completed read-only ARM readiness receipts before freeing command capacity; no guest/data/failed-run evidence is deleted.",
+  "deletionStatus": "Both exact completed ARM readiness receipts deleted after archive was committed and pushed; subsequent GET returned ResourceNotFound for each. Guest evidence and data retained.",
+  "commands": [
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b2c7214e83f54613b378/runCommands/af-284b3c32-b947-4080-af44-9e57b626f2f1",
+      "name": "af-284b3c32-b947-4080-af44-9e57b626f2f1",
+      "location": "japaneast",
+      "instanceView": {
+        "endTime": "2026-09-16T09:53:37+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"3c50ec8b-3ca1-4997-907c-0ed6e2c013dc\",\"cliVersion\":\"2.4.0-dev.7538981cf0fc\",\"commit\":\"7538981cf0fc6c1bed3a50e6476861e84647a003\",\"archiveSha256\":\"6f10538cc70c2125cc669a4d043352efdfce510131e1bec440af3674a4a48d21\",\"ready\":true,\"capabilities\":[\"csv-inventory-v1\",\"csv-migration-v1\",\"neo4j-inventory-v1\",\"neo4j-migration-v1\",\"postgresql-inventory-v1\",\"postgresql-migration-v1\",\"cosmos-nosql-inventory-v1\",\"cosmos-nosql-migration-v1\",\"postgresql-native-floats-v1\",\"cosmos-explicit-property-types-v1\",\"resume-inspection-v1\",\"explicit-resume-v1\"],\"health\":{\"idle\":true,\"storageUsedPercent\":3.5126496195707513,\"swapUsedBytes\":0,\"oomEvents\":0}}\n",
+        "startTime": "2026-09-16T09:53:37+00:00"
+      },
+      "protectedParameterCount": 0
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b2c7214e83f54613b378/runCommands/af-5cda0f77-3b90-4493-bf2a-02b83a977bbf",
+      "name": "af-5cda0f77-3b90-4493-bf2a-02b83a977bbf",
+      "location": "japaneast",
+      "instanceView": {
+        "endTime": "2026-09-16T09:21:45+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"3c50ec8b-3ca1-4997-907c-0ed6e2c013dc\",\"cliVersion\":\"2.4.0-dev.7538981cf0fc\",\"commit\":\"7538981cf0fc6c1bed3a50e6476861e84647a003\",\"archiveSha256\":\"6f10538cc70c2125cc669a4d043352efdfce510131e1bec440af3674a4a48d21\",\"ready\":true,\"capabilities\":[\"csv-inventory-v1\",\"csv-migration-v1\",\"neo4j-inventory-v1\",\"neo4j-migration-v1\",\"postgresql-inventory-v1\",\"postgresql-migration-v1\",\"cosmos-nosql-inventory-v1\",\"cosmos-nosql-migration-v1\",\"postgresql-native-floats-v1\",\"cosmos-explicit-property-types-v1\",\"resume-inspection-v1\",\"explicit-resume-v1\"],\"health\":{\"idle\":true,\"storageUsedPercent\":3.5114282982614653,\"swapUsedBytes\":0,\"oomEvents\":0}}\n",
+        "startTime": "2026-09-16T09:21:44+00:00"
+      },
+      "protectedParameterCount": 0
+    }
+  ]
+}

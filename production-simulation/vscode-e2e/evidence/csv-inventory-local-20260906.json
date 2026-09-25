@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "command": "inventory",
+  "agefreighterVersion": "dev",
+  "generatedAt": "2026-09-06T02:41:29.194611Z",
+  "outcome": "pass",
+  "checks": [
+    {
+      "id": "read-only",
+      "status": "pass",
+      "summary": "source-only scan; target credentials and quarantine were not used"
+    },
+    {
+      "id": "source-counts",
+      "status": "pass",
+      "summary": "all configured CSV mappings reached EOF without rejected records"
+    },
+    {
+      "id": "source-unchanged",
+      "status": "pass",
+      "summary": "all mapped file bytes and metadata matched before and after the complete scan"
+    }
+  ],
+  "warnings": [
+    {
+      "code": "INVENTORY_NOT_MIGRATION_VERIFICATION",
+      "message": "Counts describe mapped records, not unique identities or endpoint existence. Capacity ranges are estimates, not a migration or sizing approval."
+    }
+  ],
+  "errors": [],
+  "incompleteChecks": [],
+  "sections": [
+    {
+      "title": "Capacity indicators",
+      "fields": [
+        {
+          "name": "estimatedGraphBytesRange",
+          "value": "3843130948..7686261896",
+          "status": "pass"
+        },
+        {
+          "name": "estimatedIdentityBytesRange",
+          "value": "716800000..2150400000",
+          "status": "pass"
+        },
+        {
+          "name": "estimatedStagingBytesRange",
+          "value": "1921565474..3843130948",
+          "status": "pass"
+        },
+        {
+          "name": "estimatedTargetRows",
+          "value": "5600000",
+          "status": "pass"
+        },
+        {
+          "name": "estimatedWALBytesRange",
+          "value": "3843130948..15372523792",
+          "status": "pass"
+        },
+        {
+          "name": "method",
+          "value": "complete-stream-range",
+          "status": "pass"
+        },
+        {
+          "name": "recommendedStorageBytesRange",
+          "value": "10324627370..29052316636",
+          "status": "pass"
+        },
+        {
+          "name": "replacementBackupBytesRange",
+          "value": "0..0",
+          "status": "pass"
+        },
+        {
+          "name": "replacementShadowBytesRange",
+          "value": "0..0",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Mapped record counts",
+      "fields": [
+        {
+          "name": "edge:CARRIED_BY",
+          "value": "350000",
+          "status": "pass"
+        },
+        {
+          "name": "edge:CONTAINS",
+          "value": "1000000",
+          "status": "pass"
+        },
+        {
+          "name": "edge:DESTINED_FOR",
+          "value": "350000",
+          "status": "pass"
+        },
+        {
+          "name": "edge:FULFILLS",
+          "value": "450000",
+          "status": "pass"
+        },
+        {
+          "name": "edge:INCLUDED_IN",
+          "value": "350000",
+          "status": "pass"
+        },
+        {
+          "name": "edge:ORIGINATES_AT",
+          "value": "350000",
+          "status": "pass"
+        },
+        {
+          "name": "edge:PLACED_WITH",
+          "value": "450000",
+          "status": "pass"
+        },
+        {
+          "name": "edge:PRODUCED_AT",
+          "value": "300000",
+          "status": "pass"
+        },
+        {
+          "name": "edge:SUPPLIES",
+          "value": "400000",
+          "status": "pass"
+        },
+        {
+          "name": "vertex:Carrier",
+          "value": "1000",
+          "status": "pass"
+        },
+        {
+          "name": "vertex:Customer",
+          "value": "29000",
+          "status": "pass"
+        },
+        {
+          "name": "vertex:Facility",
+          "value": "20000",
+          "status": "pass"
+        },
+        {
+          "name": "vertex:Location",
+          "value": "10000",
+          "status": "pass"
+        },
+        {
+          "name": "vertex:Lot",
+          "value": "500000",
+          "status": "pass"
+        },
+        {
+          "name": "vertex:Product",
+          "value": "200000",
+          "status": "pass"
+        },
+        {
+          "name": "vertex:PurchaseOrder",
+          "value": "450000",
+          "status": "pass"
+        },
+        {
+          "name": "vertex:Shipment",
+          "value": "350000",
+          "status": "pass"
+        },
+        {
+          "name": "vertex:Supplier",
+          "value": "40000",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "title": "Source inventory",
+      "fields": [
+        {
+          "name": "connector",
+          "value": "csv",
+          "status": "pass"
+        },
+        {
+          "name": "countMethod",
+          "value": "csv-complete-stream",
+          "status": "pass"
+        },
+        {
+          "name": "edges",
+          "value": "4000000",
+          "status": "pass"
+        },
+        {
+          "name": "inputBytes",
+          "value": "1168576671",
+          "status": "pass"
+        },
+        {
+          "name": "mappedRecordBytes",
+          "value": "1921565474",
+          "status": "pass"
+        },
+        {
+          "name": "sourceFingerprint",
+          "value": "92e7613a4a059cf1d20a33227c80687e88b7792ff1b30194d7e2a7d4ef9aceb8",
+          "status": "pass"
+        },
+        {
+          "name": "totalRows",
+          "value": "5600000",
+          "status": "pass"
+        },
+        {
+          "name": "vertices",
+          "value": "1600000",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

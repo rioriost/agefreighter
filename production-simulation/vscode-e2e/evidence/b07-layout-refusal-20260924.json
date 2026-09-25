@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "qualification": "B07 incompatible data-disk layout refusal",
+  "workflow": "b425c32a-3ba3-44bc-8415-a48114993c5c",
+  "outcome": "PASS",
+  "overallB07": "PARTIAL",
+  "activeInventoryBranch": "NOT_EXECUTED \u2014 PENDING",
+  "nativeGUI": {
+    "observer": "root, native CUA AX",
+    "observedAtUTC": "2026-09-24T08:42:24.742491+00:00",
+    "menuSelection": "Reconcile resize (read only)",
+    "visibleMessage": "Review persistent disk, single NIC and system identity before resize.",
+    "sourceReceiptSHA256": "3d57e708a84a814a9886fd06f1249561eb75b10c1116203c67bb70494606f6a5",
+    "workflowSnapshotSHA256": "4a55a47c2503aa6c8d4e027d2fb1aeee5959bffe521005c88667fcdf8d61faed"
+  },
+  "fixture": {
+    "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-b425c32a3ba344bc8415",
+    "diskId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/disks/af-b425c32a3ba344bc8415-b07",
+    "createOption": "Empty",
+    "diskGiB": 4,
+    "sku": "StandardSSD_LRS",
+    "zone": "1",
+    "LUN": 0,
+    "attachmentDeleteOption": "Detach",
+    "noMountFormatOrWritePerformed": {
+      "claimedBy": "root controlled execution",
+      "value": true
+    }
+  },
+  "branchAdmission": {
+    "targetProvisioned": true,
+    "retainedResizeFinished": true,
+    "successfulSealedInventory1": true,
+    "guestControlFinished": true,
+    "migrationAbsent": true,
+    "assessmentAndResizeUnchanged": true,
+    "note": "These are retained normal-workflow and root-confirmed idle evidence; no separate process observer was run."
+  },
+  "attachedObservation": {
+    "observedAtUTC": "2026-09-24T08:41:27.660482+00:00",
+    "vmSize": "Standard_D4s_v5",
+    "vmProvisioningState": "Succeeded",
+    "vmPower": "running",
+    "diskState": "Attached",
+    "originalSystemIdentityRetained": true
+  },
+  "detachReconciled": {
+    "observedAtUTC": "2026-09-24T08:43:06.224319+00:00",
+    "vmProvisioningState": "Succeeded",
+    "vmPower": "running",
+    "vmDataDisks": [],
+    "diskState": "Unattached",
+    "diskManagedBy": null,
+    "originalIdentityAndOSDiskRetained": true
+  },
+  "mutationEvidence": {
+    "create-disk": {
+      "intentAtUTC": "2026-09-24T08:39:42.517838+00:00",
+      "replyAtUTC": "2026-09-24T08:39:43.130927+00:00",
+      "acknowledgement": "accepted",
+      "reconciledAtUTC": "2026-09-24T08:40:46.462599+00:00",
+      "intentSHA256": "41655d5d7e6e9dd349a7597b874ad3fab024446376deda8f9ce953cf4568596a",
+      "bodySHA256": "6d3f87a0ee6b08c9833e1f7ce70a900422dd4b523a32c54d88dbed1105adfc6a",
+      "replySHA256": "8c7d9e57ee76c708a9cca60661df80a0550abe8e09e661ed59ab63843fa60ff1",
+      "reconciliationSHA256": "0747b872a4600e93123581dcb3d442a1cadcc4bab56ca7e44c00d3d6b2f27db5",
+      "noReplay": true
+    },
+    "attach-disk": {
+      "intentAtUTC": "2026-09-24T08:40:57.770265+00:00",
+      "replyAtUTC": "2026-09-24T08:40:58.572502+00:00",
+      "acknowledgement": "accepted",
+      "reconciledAtUTC": "2026-09-24T08:41:27.660482+00:00",
+      "intentSHA256": "220fb62cca8659f2e3103ffd5b4c686e3be147ca1b52a53b166dcf6dd3591e96",
+      "bodySHA256": "9f85707e2ce27bee38a1a614c55fcf7f573215dd61c00e993f3da6a526456131",
+      "replySHA256": "91a1c99e0c7d90cfc67160d3ebe8d82e980833a364faf77b203dfd2087f7b69b",
+      "reconciliationSHA256": "c4d203c5f49cbc9987cafdffa601eca9ea90b1e615264de0371bc3ba74667492",
+      "noReplay": true
+    },
+    "detach-disk": {
+      "intentAtUTC": "2026-09-24T08:42:36.348772+00:00",
+      "replyAtUTC": "2026-09-24T08:42:37.150498+00:00",
+      "acknowledgement": "accepted",
+      "reconciledAtUTC": "2026-09-24T08:43:06.224319+00:00",
+      "intentSHA256": "1f3f4d498c309ada50d068ad1f935f439bd5e29a661c6e43c23a4312f51018ce",
+      "bodySHA256": "92c579916556e4699ec28ea8b5b97a40a27a3ad30c22786c6b2db628cba11aa3",
+      "replySHA256": "c8cde2dce16821b327c93633bf62b02fe598bad531e877ef7b24756c3e1dab92",
+      "reconciliationSHA256": "981490df033b49604f5b75932f574f69961e5ec2b570a67a5f6dd0e0ca58e61d",
+      "noReplay": true
+    }
+  },
+  "reviewedPins": {
+    "installedBundle": "7a2aa5ddf13454ff6dab4d4a8ad2cb9a172842c9c4fbcc7b5d8e94d3f79d1d34",
+    "planner": "2f5a91d7087cc8b69826032ae5f411aa3597c667793a3b59b60ef983a92bfa6c",
+    "executor": "ac16f83c0bf9ed203efda716eeb069daa2a5571898978876185a70bee6e9c11f",
+    "actualAuthorizationSHA256": "ab7f8c5c39b6c26e4512c404615c2d5714439da58864ec8b853eaad31fb438ac",
+    "guardManifestSHA256": "7f742b19ba45add08bca9c2f7a5e9c84acf46773e87f4c53f6ce04206d2d132f"
+  },
+  "evidenceLayers": [
+    "Root observed the actual normal GUI refusal via native CUA accessibility.",
+    "Independent agent checked sealed local native-workflow snapshot and exact-ARM attachment/detachment reconciliation receipts.",
+    "Create/attach/detach were performed by root with reviewed one-shot executor; the independent agent performed no cloud or GUI operations."
+  ],
+  "limitations": [
+    "This receipt does not prove the active-inventory resize refusal. Inventory2 and both B07 process observers were not executed.",
+    "The independent agent did not directly observe the GUI or independently repeat ARM GETs for this layout audit.",
+    "Detached fixture disk still exists for separately approved cleanup; detached is not deleted."
+  ]
+}

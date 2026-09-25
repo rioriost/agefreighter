@@ -1,0 +1,40 @@
+{
+  "case": "B02 unknown-zone VM transition",
+  "observer": "root supervisor using normal signed-in installed VS Code UI",
+  "recorder": "B02 subagent; did not independently observe or control GUI",
+  "evidenceLayer": "actual installed GUI using actual ARM metadata; supervisory observation plus independently read post-store receipt",
+  "windowUTC": {
+    "start": "2026-09-23T22:58:25Z",
+    "end": "2026-09-23T23:02:08.211700Z",
+    "basis": "supervisor cost-read to post-store-check bounds; no exact per-click timestamps claimed"
+  },
+  "installedBundleSHA256": "3108910e2933f73b1b1d0edf92458e7384e2008261469c56da2f19789366da67",
+  "observations": [
+    "Known actual af-n44-source candidate inferred Japan East and zone 1",
+    "Changing source group to validation-jpe cleared zone",
+    "Supervisor explicitly selected zone 1 after discovery and before selecting actual vm-agefreighter-validation",
+    "Unknown-zone VM candidate selection cleared that explicit zone, showed unknown-zone review guidance and disabled preview",
+    "Explicit zone 1 and existing trial runner subnet reached matching AGEFreighter 2.4.0 Linux release/checksums refusal",
+    "Unsaved wizard closed"
+  ],
+  "screenshot": "Viewed by supervisor in CUA; no screenshot file retained",
+  "postStoreReceipt": {
+    "path": "production-simulation/work/b02-b06-b07-20260924/b02-unknown-zone-post-state.json",
+    "sha256": "96d5f6ce2ebbb0a79e3f3046d3d58ee3d74d28e6d97d9dc7fc21339c274b56df",
+    "observation": {
+      "at": "2026-09-23T23:02:08.211700+00:00",
+      "count": 93,
+      "exactNamesBytesHashesModesUnchanged": true,
+      "baselineSHA256": "af1200be29f21f408ae01c4f76ae15742c6837f2aaddb53681c95b8b0f73ad94"
+    }
+  },
+  "sourceDatabaseRead": false,
+  "cloudMutation": false,
+  "newWorkflowSaved": false,
+  "pass": true,
+  "limits": [
+    "Does not qualify unavailable SKU",
+    "Does not qualify initial-runner quota refusal",
+    "Does not establish source database identity or connectivity"
+  ]
+}

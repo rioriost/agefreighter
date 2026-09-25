@@ -1,0 +1,58 @@
+{
+  "capturedAt": "2026-09-06T07:33:35.488Z",
+  "reason": "Completed and imported CSV assessment receipts and superseded readiness; no migration or failed evidence removed",
+  "commands": [
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-47ca84c1-12d9-4087-a673-2a38efc2d987",
+      "name": "af-47ca84c1-12d9-4087-a673-2a38efc2d987",
+      "instanceView": {
+        "endTime": "2026-09-06T07:10:48+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"ff26e838-e7b8-4257-bfcf-ab089504d8ea\",\"cliVersion\":\"2.4.0-dev.72f45536b052\",\"commit\":\"72f45536b052e9c226cd2f22e976edc02d1ff2cc\",\"archiveSha256\":\"19e51268d4436272178d07215e6139d92d88e7f4126d071ac4d9b9db6e7dfb80\",\"ready\":true,\"capabilities\":[\"csv-inventory-v1\",\"csv-migration-v1\"],\"health\":{\"idle\":true,\"storageUsedPercent\":6.845370236152959,\"swapUsedBytes\":0,\"oomEvents\":0}}\n",
+        "startTime": "2026-09-06T07:10:48+00:00"
+      }
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-8494b9fd-389e-4090-99c0-27b0c2924314",
+      "name": "af-8494b9fd-389e-4090-99c0-27b0c2924314",
+      "instanceView": {
+        "endTime": "2026-09-06T07:14:03+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"bcb9a509-7558-412a-879e-c80e4ae45a89\",\"action\":\"inventory\",\"phase\":\"accepted\",\"bootId\":\"ff26e838-e7b8-4257-bfcf-ab089504d8ea\",\"configSha256\":\"942f614c596ce05e2da6998380bcd8cb0c288afbfbde348b3fb9f1cb0f936c60\"}\n",
+        "startTime": "2026-09-06T07:14:02+00:00"
+      }
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-01a99ded-7e76-4461-a80c-a802fae2cda4",
+      "name": "af-01a99ded-7e76-4461-a80c-a802fae2cda4",
+      "instanceView": {
+        "endTime": "2026-09-06T07:15:23+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"bcb9a509-7558-412a-879e-c80e4ae45a89\",\"action\":\"inventory\",\"phase\":\"finished\",\"bootId\":\"ff26e838-e7b8-4257-bfcf-ab089504d8ea\",\"configSha256\":\"942f614c596ce05e2da6998380bcd8cb0c288afbfbde348b3fb9f1cb0f936c60\",\"startedAt\":\"2026-09-06T07:14:04.152935811Z\",\"finishedAt\":\"2026-09-06T07:14:25.63457554Z\",\"exitCode\":0,\"reportBytes\":3220,\"reportSha256\":\"a66e2231baf6b785917538ad68a7143deab7ecf9fec1c0bcd7c33b1cc7871af0\"}\n",
+        "startTime": "2026-09-06T07:15:23+00:00"
+      }
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-9493ac38-7919-4a63-bc07-f05ebd92bb79",
+      "name": "af-9493ac38-7919-4a63-bc07-f05ebd92bb79",
+      "instanceView": {
+        "endTime": "2026-09-06T07:18:38+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"bcb9a509-7558-412a-879e-c80e4ae45a89\",\"sha256\":\"a66e2231baf6b785917538ad68a7143deab7ecf9fec1c0bcd7c33b1cc7871af0\",\"bytes\":3220,\"exported\":true}\n",
+        "startTime": "2026-09-06T07:18:36+00:00"
+      }
+    }
+  ]
+}

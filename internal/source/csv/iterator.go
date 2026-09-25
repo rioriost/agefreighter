@@ -77,6 +77,7 @@ type fileMapping struct {
 	start            config.EndpointMapping
 	end              config.EndpointMapping
 	properties       map[string]string
+	propertyTypes    map[string]string
 	format           config.DelimitedOptions
 	fingerprint      string
 	fingerprintInput []byte
@@ -92,11 +93,13 @@ type fingerprintMapping struct {
 	Start            config.EndpointMapping  `json:"start,omitempty"`
 	End              config.EndpointMapping  `json:"end,omitempty"`
 	Properties       map[string]string       `json:"properties,omitempty"`
+	PropertyTypes    map[string]string       `json:"propertyTypes,omitempty"`
 	Format           config.DelimitedOptions `json:"format"`
 }
 
 type compiledProperty struct {
 	name        string
+	valueType   string
 	encodedName []byte
 	index       int
 }
@@ -576,7 +579,7 @@ func (current *openMapping) compile(
 		}
 		current.compiled.properties = append(
 			current.compiled.properties,
-			compiledProperty{name: name, encodedName: encodedName, index: index},
+			compiledProperty{name: name, encodedName: encodedName, index: index, valueType: current.mapping.propertyTypes[name]},
 		)
 	}
 	return nil
@@ -617,7 +620,11 @@ func (iterator *Iterator) mapRecord(
 			if value == nullValue {
 				properties[property.name] = model.Value{Kind: model.ValueNull}
 			} else {
-				properties[property.name] = model.Value{Kind: model.ValueString, String: value}
+				decoded, err := decodeCSVValue(value, property.valueType)
+				if err != nil {
+					return model.Record{}, fmt.Errorf("CSV property %q: %w", property.name, err)
+				}
+				properties[property.name] = decoded
 			}
 		}
 	}
@@ -680,6 +687,26 @@ func encodeCSVProperties(
 	fields []string,
 	nullValue string,
 ) ([]byte, error) {
+	// Preserve the allocation-light legacy string path. Typed mappings use the
+	// same canonical encoder as every other connector (including float syntax).
+	if slices.ContainsFunc(properties, func(p compiledProperty) bool { return p.valueType != "" && p.valueType != "string" }) {
+		values := make(model.Properties, len(properties))
+		for _, property := range properties {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			if fields[property.index] == nullValue {
+				values[property.name] = model.Value{Kind: model.ValueNull}
+				continue
+			}
+			value, err := decodeCSVValue(fields[property.index], property.valueType)
+			if err != nil {
+				return nil, fmt.Errorf("CSV property %q: %w", property.name, err)
+			}
+			values[property.name] = value
+		}
+		return model.EncodeProperties(values)
+	}
 	output := make([]byte, 0, 2+len(properties)*16)
 	output = append(output, '{')
 	for index, property := range properties {
@@ -813,6 +840,7 @@ func buildMappings(ctx context.Context, options IteratorOptions) ([]fileMapping,
 		}
 		mapping.idColumn = vertex.IDColumn
 		mapping.properties = maps.Clone(vertex.Properties)
+		mapping.propertyTypes = maps.Clone(vertex.PropertyTypes)
 		if err := bindFingerprint(&mapping); err != nil {
 			return nil, err
 		}
@@ -844,6 +872,7 @@ func buildMappings(ctx context.Context, options IteratorOptions) ([]fileMapping,
 		mapping.start = edge.Start
 		mapping.end = edge.End
 		mapping.properties = maps.Clone(edge.Properties)
+		mapping.propertyTypes = maps.Clone(edge.PropertyTypes)
 		if err := bindFingerprint(&mapping); err != nil {
 			return nil, err
 		}
@@ -879,6 +908,9 @@ func newFileMapping(
 }
 
 func bindFingerprint(mapping *fileMapping) error {
+	if err := config.ValidateCSVPropertyTypes(mapping.properties, mapping.propertyTypes); err != nil {
+		return err
+	}
 	semantic, err := json.Marshal(fingerprintMapping{
 		Kind:             mapping.kind,
 		Path:             mapping.path,
@@ -889,6 +921,7 @@ func bindFingerprint(mapping *fileMapping) error {
 		Start:            mapping.start,
 		End:              mapping.end,
 		Properties:       mapping.properties,
+		PropertyTypes:    mapping.propertyTypes,
 		Format:           mapping.format,
 	})
 	if err != nil {

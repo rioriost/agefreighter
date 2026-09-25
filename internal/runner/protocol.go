@@ -1,0 +1,341 @@
+// Package runner implements the private Linux execution boundary used by the
+// guided extension. It does not provision resources or accept arbitrary commands.
+package runner
+
+import (
+	"bytes"
+	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
+	"errors"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/rioriost/agefreighter/internal/config"
+	"github.com/rioriost/agefreighter/internal/source/postgres"
+)
+
+const MaxRequestBytes = 1 << 20
+const MaxArtifactBytes = 4 << 20
+const ChunkBytes = 1536 // Base64 plus metadata fits the ARM 4 KiB response bound.
+
+var uuid = regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`)
+
+type Request struct {
+	Version        int               `json:"version"`
+	Workflow       string            `json:"workflow"`
+	Operation      string            `json:"operation"`
+	Action         string            `json:"action"`
+	ExpectedBootID string            `json:"expectedBootId,omitempty"`
+	Configuration  json.RawMessage   `json:"configuration,omitempty"`
+	Secrets        map[string]string `json:"secrets,omitempty"`
+	Offset         int64             `json:"offset,omitempty"`
+	Export         *ReportExport     `json:"export,omitempty"`
+	Import         *CSVImport        `json:"import,omitempty"`
+	Resume         *ResumeBinding    `json:"resume,omitempty"`
+}
+
+type State struct {
+	Version      int            `json:"version"`
+	Workflow     string         `json:"workflow"`
+	Operation    string         `json:"operation"`
+	Action       string         `json:"action"`
+	Phase        string         `json:"phase"`
+	BootID       string         `json:"bootId"`
+	ConfigSHA256 string         `json:"configSha256"`
+	StartedAt    string         `json:"startedAt,omitempty"`
+	FinishedAt   string         `json:"finishedAt,omitempty"`
+	ExitCode     *int           `json:"exitCode,omitempty"`
+	ReportBytes  int64          `json:"reportBytes,omitempty"`
+	ReportSHA256 string         `json:"reportSha256,omitempty"`
+	FileID       string         `json:"fileId,omitempty"`
+	FileBytes    int64          `json:"fileBytes,omitempty"`
+	FileSHA256   string         `json:"fileSha256,omitempty"`
+	JobID        string         `json:"jobId,omitempty"`
+	Fingerprint  string         `json:"fingerprint,omitempty"`
+	Resume       *ResumeBinding `json:"resume,omitempty"`
+}
+
+func Decode(input io.Reader) (Request, error) {
+	data, err := io.ReadAll(io.LimitReader(input, MaxRequestBytes+1))
+	if err != nil || len(data) > MaxRequestBytes {
+		return Request{}, errors.New("runner request exceeds its input bound")
+	}
+	var request Request
+	d := json.NewDecoder(bytes.NewReader(data))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&request); err != nil {
+		return Request{}, errors.New("invalid runner request")
+	}
+	if d.Decode(new(any)) != io.EOF {
+		return Request{}, errors.New("runner request must contain one JSON value")
+	}
+	if request.Version != 1 || !uuid.MatchString(request.Workflow) || !uuid.MatchString(request.Operation) {
+		return Request{}, errors.New("invalid runner protocol version or operation identity")
+	}
+	switch request.Action {
+	case "ready", "profile", "inventory", "postgres-catalog", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume", "resume-migration":
+	default:
+		return Request{}, errors.New("runner operation is not allowed")
+	}
+	if request.Action == "resume-migration" {
+		if !validResumeBinding(request.Resume) || request.Operation == request.Resume.PreviousOperation || len(request.Configuration) != 0 || request.Offset != 0 || request.Import != nil || request.Export != nil || !uuid.MatchString(request.ExpectedBootID) {
+			return Request{}, errors.New("resume requires an explicit original-job binding, fresh operation and boot, never a new configuration")
+		}
+		if _, err := migrationConnection(request.Secrets["AGEFREIGHTER_TARGET_DSN"]); err != nil {
+			return Request{}, err
+		}
+		return request, nil
+	}
+	if request.Resume != nil {
+		return Request{}, errors.New("unexpected resume binding")
+	}
+	if request.Action == "import-csv" {
+		if !safeCSVAction(request) {
+			return Request{}, errors.New("invalid CSV import control")
+		}
+		return request, nil
+	}
+	if request.Import != nil {
+		return Request{}, errors.New("unexpected CSV capability")
+	}
+	if request.Action == "export-report" {
+		if !safeExportAction(request) {
+			return Request{}, errors.New("invalid report export control")
+		}
+		return request, nil
+	}
+	if request.Export != nil {
+		return Request{}, errors.New("unexpected report export capability")
+	}
+	if request.Action == "inspect-resume" {
+		if len(request.Configuration) != 0 || request.Offset != 0 || !uuid.MatchString(request.ExpectedBootID) || len(request.Secrets) != 1 {
+			return Request{}, errors.New("resume inspection accepts only the checked boot and protected target connection")
+		}
+		if _, err := migrationConnection(request.Secrets["AGEFREIGHTER_TARGET_DSN"]); err != nil {
+			return Request{}, err
+		}
+		return request, nil
+	}
+	if request.Action == "ready" || request.Action == "status" || request.Action == "report" {
+		if len(request.Configuration) > 0 || len(request.Secrets) > 0 || request.ExpectedBootID != "" || request.Offset < 0 || request.Action != "report" && request.Offset != 0 {
+			return Request{}, errors.New("read-only request contains unexpected fields")
+		}
+	} else if len(request.Configuration) == 0 || request.Offset != 0 || !uuid.MatchString(request.ExpectedBootID) {
+		return Request{}, errors.New("assessment configuration and checked boot identity are required")
+	}
+	return request, nil
+}
+
+// ValidateConfiguration constrains guest file access and environment injection.
+// Database queries are subsequently checked by the connector's read-only parser.
+func ValidateConfiguration(request Request, workflowRoot string) ([]byte, error) {
+	if request.Action == "postgres-catalog" {
+		catalog, err := postgres.DecodeCatalogRequest(request.Configuration)
+		if err != nil {
+			return nil, err
+		}
+		for name, value := range request.Secrets {
+			if name != "AGEFREIGHTER_SOURCE_DSN" && name != "AGEFREIGHTER_SOURCE_CA_PEM" || len(value) > 64<<10 || strings.ContainsRune(value, 0) {
+				return nil, errors.New("invalid catalog credential set")
+			}
+		}
+		if ca, ok := request.Secrets["AGEFREIGHTER_SOURCE_CA_PEM"]; ok {
+			if err := validateSourceCA([]byte(ca)); err != nil {
+				return nil, err
+			}
+			if catalog.SourceCASHA256 != sum([]byte(ca)) {
+				return nil, errors.New("catalog source CA changed after review")
+			}
+		} else if catalog.SourceCASHA256 != "" {
+			return nil, errors.New("reviewed catalog source CA is missing")
+		}
+		if err := postgres.ValidateCatalogConnection(catalog, request.Secrets["AGEFREIGHTER_SOURCE_DSN"], ""); err != nil {
+			return nil, err
+		}
+		return json.Marshal(catalog)
+	}
+	job, err := config.Parse(request.Configuration)
+	if err != nil {
+		return nil, errors.New("invalid assessment LoadJob configuration")
+	}
+	if job.Trial != nil {
+		return nil, errors.New("trial writes are not supported by assessment")
+	}
+	if request.Action == "migrate-csv" || request.Action == "migrate-source" || request.Action == "resume-migration" {
+		if job.Target.Type != config.TargetApacheAGE || job.Target.Mode != config.LoadCreate || job.Target.Connection.Env != "AGEFREIGHTER_TARGET_DSN" {
+			return nil, errors.New("remote migration requires a reviewed create-mode AGE job")
+		}
+		if request.Action == "migrate-csv" && job.Source.Type != config.SourceCSV {
+			return nil, errors.New("CSV migration requires a reviewed CSV source")
+		}
+		if request.Action == "migrate-source" && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourcePostgreSQL && job.Source.Type != config.SourceCosmos {
+			return nil, errors.New("network migration requires a reviewed Neo4j, PostgreSQL, or Cosmos source")
+		}
+		if request.Action == "resume-migration" && job.Source.Type != config.SourceCSV && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourcePostgreSQL && job.Source.Type != config.SourceCosmos {
+			return nil, errors.New("unsupported recovery source")
+		}
+		if _, err := migrationConnection(request.Secrets["AGEFREIGHTER_TARGET_DSN"]); err != nil {
+			return nil, err
+		}
+		expectedSecrets := 1
+		_, customCA := request.Secrets["AGEFREIGHTER_SOURCE_CA_PEM"]
+		if job.Source.Type == config.SourceNeo4j {
+			expectedSecrets = 2
+			if job.Source.Neo4j == nil || job.Source.Neo4j.Password == nil || job.Source.Neo4j.Password.Env != "AGEFREIGHTER_SOURCE_PASSWORD" || request.Secrets["AGEFREIGHTER_SOURCE_PASSWORD"] == "" {
+				return nil, errors.New("Neo4j migration requires the protected source credential")
+			}
+		} else if job.Source.Type == config.SourcePostgreSQL {
+			expectedSecrets = 2
+			if job.Source.PostgreSQL == nil || job.Source.PostgreSQL.Connection.Env != "AGEFREIGHTER_SOURCE_DSN" || request.Secrets["AGEFREIGHTER_SOURCE_DSN"] == "" {
+				return nil, errors.New("PostgreSQL migration requires the protected source connection")
+			}
+		} else if job.Source.Type == config.SourceCosmos && job.Source.Cosmos == nil {
+			return nil, errors.New("Cosmos migration requires a reviewed source")
+		}
+		if customCA {
+			if job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourcePostgreSQL {
+				return nil, errors.New("custom source CA is allowed only for Neo4j or PostgreSQL")
+			}
+			expectedSecrets++
+		}
+		if len(request.Secrets) != expectedSecrets {
+			return nil, errors.New("migration received an unexpected credential set")
+		}
+	}
+	refs := []config.SecretRef{job.Target.Connection}
+	if job.Source.PostgreSQL != nil {
+		refs = append(refs, job.Source.PostgreSQL.Connection)
+	}
+	if job.Source.Neo4j != nil && job.Source.Neo4j.Password != nil {
+		refs = append(refs, *job.Source.Neo4j.Password)
+	}
+	for _, ref := range refs {
+		if ref.File != "" || !allowedSecret(ref.Env) {
+			return nil, errors.New("runner credentials must use approved environment handles")
+		}
+	}
+	for name, value := range request.Secrets {
+		if !allowedSecret(name) || len(value) > 64<<10 || strings.ContainsRune(value, 0) {
+			return nil, errors.New("invalid runner secret handle or value")
+		}
+	}
+	if value, ok := request.Secrets["AGEFREIGHTER_SOURCE_CA_PEM"]; ok {
+		if err := validateSourceCA([]byte(value)); err != nil {
+			return nil, err
+		}
+		if job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourcePostgreSQL {
+			return nil, errors.New("custom source CA is allowed only for Neo4j or PostgreSQL")
+		}
+	}
+	if request.Action == "inventory" && job.Source.Type != config.SourceNeo4j && job.Source.Type != config.SourceCSV && job.Source.Type != config.SourcePostgreSQL && job.Source.Type != config.SourceCosmos {
+		return nil, errors.New("exact inventory requires a supported source connector; bounded profiles are not totals")
+	}
+	if job.Source.CSV != nil {
+		for _, v := range job.Source.CSV.Vertices {
+			if !insideUploads(workflowRoot, v.Path) {
+				return nil, errors.New("CSV files must belong to this workflow's verified upload directory")
+			}
+		}
+		for _, e := range job.Source.CSV.Edges {
+			if !insideUploads(workflowRoot, e.Path) {
+				return nil, errors.New("CSV files must belong to this workflow's verified upload directory")
+			}
+		}
+	}
+	// Profiling never quarantines or writes to the target. Still bind any future
+	// accidental use of this field to the operation's private directory.
+	job.Errors.QuarantinePath = filepath.Join(workflowRoot, request.Operation, "quarantine.jsonl")
+	return json.Marshal(job)
+}
+
+func allowedSecret(name string) bool {
+	switch name {
+	case "AGEFREIGHTER_SOURCE_DSN", "AGEFREIGHTER_SOURCE_PASSWORD", "AGEFREIGHTER_SOURCE_CA_PEM", "AGEFREIGHTER_TARGET_DSN":
+		return true
+	}
+	return false
+}
+
+func insideUploads(root, path string) bool {
+	if !filepath.IsAbs(path) {
+		return false
+	}
+	rel, err := filepath.Rel(filepath.Join(root, "uploads"), path)
+	return err == nil && rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func validateUploadPaths(configuration []byte, root string) error {
+	var job config.LoadJob
+	if json.Unmarshal(configuration, &job) != nil {
+		return errors.New("invalid retained configuration")
+	}
+	if job.Source.CSV == nil {
+		return nil
+	}
+	paths := []string{}
+	for _, v := range job.Source.CSV.Vertices {
+		paths = append(paths, v.Path)
+	}
+	for _, e := range job.Source.CSV.Edges {
+		paths = append(paths, e.Path)
+	}
+	for _, path := range paths {
+		real, err := filepath.EvalSymlinks(path)
+		if err != nil || !insideUploads(root, real) {
+			return errors.New("CSV upload path is missing or escapes the workflow")
+		}
+		info, err := os.Stat(real)
+		if err != nil || !info.Mode().IsRegular() {
+			return errors.New("CSV upload must be a regular file")
+		}
+		if err := verifyCSVSeal(real); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Arguments(action, path string) ([]string, error) {
+	switch action {
+	case "profile":
+		return []string{"profile", path, "--mode", "sample", "--sample-size", "10000", "--format", "json"}, nil
+	case "inventory":
+		return []string{"inventory", path, "--format", "json"}, nil
+	case "postgres-catalog":
+		return []string{"postgres-catalog", path}, nil
+	case "migrate-csv", "migrate-source":
+		return nil, nil // Fixed prepare/load/verify sequence, not arbitrary arguments.
+	default:
+		return nil, errors.New("runner cannot execute this action")
+	}
+}
+
+func validateSourceCA(data []byte) error {
+	if len(data) == 0 || len(data) > 64<<10 {
+		return errors.New("custom source CA bundle exceeds its bound")
+	}
+	certificates := 0
+	for len(bytes.TrimSpace(data)) > 0 {
+		block, rest := pem.Decode(data)
+		if block == nil || block.Type != "CERTIFICATE" || len(block.Headers) != 0 {
+			return errors.New("custom source CA bundle is not certificate-only PEM")
+		}
+		certificate, err := x509.ParseCertificate(block.Bytes)
+		if err != nil || !certificate.IsCA {
+			return errors.New("custom source CA bundle contains a non-CA certificate")
+		}
+		certificates++
+		if certificates > 16 {
+			return errors.New("custom source CA bundle has too many certificates")
+		}
+		data = rest
+	}
+	if certificates == 0 {
+		return errors.New("custom source CA bundle is empty")
+	}
+	return nil
+}

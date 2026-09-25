@@ -1,0 +1,195 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import test from "node:test";
+import { assembleGuestReport, dispatchGuest, guestDispatchScript, guestReadinessScript, reconcileGuest } from "../../core/runnerGuest";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { RunnerRecord } from "../../core/runner";
+import { RunnerControl } from "../../core/runnerLifecycle";
+
+test("typed Cosmos mappings fail closed on an old Linux runner before any Azure write",async()=>{
+  const f=fixture(),r=record();r.input.source={type:"cosmos-nosql",location:"azure"};
+  r.sourceDraft={configuration:{source:{type:"cosmos-nosql",cosmos:{vertices:[{properties:{score:"/score"},propertyTypes:{score:"float64"}}]}}}} as any;
+  r.guestReady={bootId:op,cliVersion:r.artifact.version,archiveSha256:r.artifact.sha256,commit:"commit",checkedAt:new Date().toISOString(),capabilities:["cosmos-nosql-inventory-v1"]};
+  await assert.rejects(dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action:"inventory",configuration:r.sourceDraft!.configuration}),/explicit property-type preservation/);
+  assert.equal(f.events.length,0);
+  r.guestReady.capabilities!.push("cosmos-explicit-property-types-v1");
+  const result=await dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action:"inventory",configuration:r.sourceDraft!.configuration});assert.equal(result.guestCommand?.phase,"submitted");
+});
+
+const id="11111111-1111-4111-8111-111111111111", op="22222222-2222-4222-8222-222222222222";
+function record(): RunnerRecord {
+  return { schemaVersion:2,id,phase:"provisioned",input:{subscriptionId:id,resourceGroup:"test",region:"japaneast",zone:"1",subnetId:"subnet",size:"Standard_B2s_v2",source:{type:"neo4j",location:"on-premises"}},artifact:{version:"2.4.0",sha256:"a".repeat(64),url:"https://example.invalid/artifact"},vmId:`/subscriptions/${id}/resourceGroups/test/providers/Microsoft.Compute/virtualMachines/runner`,deploymentId:"deployment",template:{},previewHash:"hash",expiresAt:"",updatedAt:"",hourlyComputeUSD:.1 };
+}
+function fixture() {
+  const events:string[]=[],saved:RunnerRecord[]=[], bodies:unknown[]=[];
+  let fail=false, result:unknown=undefined;
+  const control:RunnerControl={sleep:async()=>{},list:async()=>[],persist:async r=>{events.push("persist");saved.push(structuredClone(r));},request:async(_sub,path,method="GET",body)=>{
+    events.push(method+":"+path);
+    if(method==="PUT"){ bodies.push(body);if(fail)throw new Error("sensitive remote failure");return {status:201,value:{}}; }
+    if(result!==undefined)return {status:200,value:{properties:{instanceView:{executionState:"Succeeded",exitCode:0,output:JSON.stringify(result)}}}};
+    return {status:404,value:{}};
+  }};
+  return {control,events,saved,bodies,fail:()=>{fail=true;},result:(r:unknown)=>{result=r;}};
+}
+test("protected dispatch records intent before PUT and never persists secrets",async()=>{
+  const f=fixture(),r=record();r.guestReady={bootId:op,cliVersion:"2.4.0",archiveSha256:r.artifact.sha256,commit:"commit",checkedAt:new Date().toISOString()};
+  const submitted=await dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action:"profile",configuration:{source:"reviewed"},secrets:{AGEFREIGHTER_SOURCE_PASSWORD:"never-public"}});
+  assert.equal(submitted.guestCommand?.phase,"submitted");assert.equal(f.events[1],"persist");assert.ok(f.events[2]!.startsWith("PUT:"));
+  assert.ok(!JSON.stringify(f.saved).includes("never-public"));assert.ok(!guestDispatchScript.includes("never-public"));
+  const body=f.bodies[0] as {properties:{protectedParameters:{value:string}[];parameters?:unknown}};
+  assert.equal(body.properties.parameters,undefined);assert.match(Buffer.from(body.properties.protectedParameters[0]!.value,"base64").toString(),/never-public/);
+  await assert.rejects(dispatchGuest(f.control,submitted,{version:1,workflow:id,operation:op,action:"profile",configuration:{}}),/Reconcile/);
+});
+test("ambiguous transport results reconcile with GET only",async()=>{
+  const f=fixture();f.fail();const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
+  assert.equal(next.guestCommand?.phase,"unknown");const before=f.events.length;await reconcileGuest(f.control,next);assert.ok(f.events.slice(before).every(e=>e.startsWith("GET:")));
+});
+test("PostgreSQL pre-fix guests cannot assess or migrate, but retained evidence remains readable",async()=>{
+  const f=fixture(),r=record();r.input.source.type="postgresql";
+  r.guestReady={bootId:op,cliVersion:"2.4.0",archiveSha256:r.artifact.sha256,commit:"commit",checkedAt:new Date().toISOString(),capabilities:["postgresql-inventory-v1","postgresql-migration-v1"]};
+  for(const action of ["profile","inventory","migrate-source"] as const){
+    await assert.rejects(dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action,configuration:{source:{type:"postgresql"}}}),/native floating-point preservation/);
+  }
+  assert.deepEqual(f.events,[]);
+  const status=await dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action:"status"});
+  assert.equal(status.guestCommand?.action,"status");
+  r.guestReady.capabilities!.push("postgresql-native-floats-v1");
+  const assessed=await dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action:"profile",configuration:{source:{type:"postgresql"}}});
+  assert.equal(assessed.guestCommand?.action,"profile");
+});
+test("managed command capacity fails before intent or PUT without deleting evidence",async()=>{
+  const f=fixture();f.control.list=async()=>Array.from({length:25},()=>({}));
+  await assert.rejects(dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"}),/25 managed Run Command limit/);
+  assert.equal(f.saved.length,0);assert.equal(f.bodies.length,0);assert.equal(f.events.length,0);
+});
+test("old absent status command is retained without replay or a successful receipt", async()=>{
+  const f=fixture(),r=record();
+  r.guestCommand={id:`${r.vmId}/runCommands/af-${op}`,operation:op,action:"status",phase:"unknown",submittedAt:"2020-01-01T00:00:00Z"};
+  const checked=await reconcileGuest(f.control,r);
+  assert.equal(checked.result,undefined);assert.equal(checked.record.guestCommand?.phase,"failed");
+  assert.deepEqual(checked.record.absentStatusCommands,[r.guestCommand]);
+  assert.equal(f.bodies.length,0);assert.equal(f.events.filter(x=>x.startsWith("GET:")).length,1);
+  const again=await reconcileGuest(f.control,checked.record);
+  assert.equal(again.record.absentStatusCommands?.length,1);
+});
+test("404 never clears a mutating, fresh, or invalid-time guest command",async()=>{
+  for(const action of ["profile","inventory","import-csv","export-report","ready","report","status"] as const){
+    for(const submittedAt of ["2020-01-01T00:00:00Z",new Date().toISOString(),"bad",new Date(Date.now()+60000).toISOString()]){
+      if((action==="status"||action==="ready")&&submittedAt.startsWith("2020"))continue;
+      const f=fixture(),r=record();r.guestCommand={id:`${r.vmId}/runCommands/af-${op}`,operation:op,action,phase:"unknown",submittedAt};
+      const checked=await reconcileGuest(f.control,r);assert.deepEqual(checked.record,r);assert.equal(f.saved.length,0);assert.equal(f.bodies.length,0);
+    }
+  }
+});
+test("absent old readiness clears no source work and requires a fresh boot proof",async()=>{
+  const f=fixture(),r=record();r.guestCommand={id:`${r.vmId}/runCommands/af-${op}`,operation:op,action:"ready",phase:"unknown",submittedAt:"2020-01-01T00:00:00Z"};
+  r.guestReady={bootId:op,cliVersion:"2.4.0",archiveSha256:r.artifact.sha256,commit:"commit",checkedAt:new Date().toISOString()};
+  const checked=await reconcileGuest(f.control,r);assert.equal(checked.record.guestReady,undefined);assert.equal(checked.result,undefined);
+  assert.deepEqual(checked.record.absentReadinessCommands,[r.guestCommand]);assert.equal(f.bodies.length,0);
+});
+test("submission preserves only safe HTTP status diagnostics",async()=>{
+  for(const message of ["Azure runner operation returned HTTP 403. Refresh status before retrying.","private-secret in arbitrary remote failure"]){
+    const f=fixture();const request=f.control.request;f.control.request=async(s,p,m,b)=>{if(m==="PUT")throw new Error(message);return request(s,p,m,b);};
+    const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
+    assert.equal(next.guestCommand?.phase,"unknown");assert.equal(next.guestCommand?.failure?.includes("403"),message.includes("403"));assert.ok(!JSON.stringify(f.saved).includes("private-secret"));
+  }
+});
+test("readiness requires matching Linux architecture, release and checksum",async()=>{
+  const f=fixture();const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
+  const ready={version:1,ready:true,os:"linux",architecture:"amd64",bootId:op,cliVersion:"2.4.0",archiveSha256:next.artifact.sha256,commit:"commit"};
+  f.result(ready);assert.equal((await reconcileGuest(f.control,next)).record.guestReady?.bootId,op);
+  f.result({...ready,capabilities:["csv-inventory-v1"]});assert.deepEqual((await reconcileGuest(f.control,next)).record.guestReady?.capabilities,["csv-inventory-v1"]);
+  f.result({...ready,capabilities:[42]});assert.equal((await reconcileGuest(f.control,next)).record.guestReady,undefined);
+  for(const change of [{architecture:"arm64"},{os:"darwin"},{archiveSha256:"wrong"},{cliVersion:"2.3.0"},{ready:false}]){
+    f.result({...ready,...change});const checked=await reconcileGuest(f.control,next);assert.equal(checked.record.guestCommand?.phase,"failed");assert.equal(checked.record.guestReady,undefined);
+  }
+});
+test("all report chunks must agree on operation, length, offset and digest",()=>{
+  const data=Buffer.from(JSON.stringify({sample:"日本語".repeat(500)})),sha=createHash("sha256").update(data).digest("hex");
+  const chunks:unknown[]=[];for(let offset=0;offset<data.length;offset+=1536)chunks.push({version:1,operation:op,offset,total:data.length,sha256:sha,data:data.subarray(offset,offset+1536).toString("base64")});
+  assert.equal(assembleGuestReport(op,chunks,sha),data.toString());
+  assert.throws(()=>assembleGuestReport(op,chunks.slice(1),sha));assert.throws(()=>assembleGuestReport(op,[...chunks].reverse(),sha));assert.throws(()=>assembleGuestReport(op,chunks,"b".repeat(64)));assert.throws(()=>assembleGuestReport(id,chunks,sha));
+});
+test("assessment requires recent matching readiness and pins its boot identity",async()=>{
+  const f=fixture(),r=record();
+  const ready={bootId:op,cliVersion:"2.4.0",archiveSha256:r.artifact.sha256,commit:"commit",checkedAt:new Date().toISOString()};
+  const request={version:1 as const,workflow:id,operation:op,action:"profile" as const,configuration:{},expectedBootId:"untrusted"};
+  for(const change of [{checkedAt:new Date(Date.now()-301000).toISOString()},{checkedAt:"invalid"},{checkedAt:new Date(Date.now()+60000).toISOString()},{archiveSha256:"wrong"},{bootId:"invalid"}]){
+    r.guestReady={...ready,...change};await assert.rejects(dispatchGuest(f.control,r,request),/fresh guest readiness/);
+  }
+  assert.equal(f.events.length,0);
+  r.guestReady=ready;await dispatchGuest(f.control,r,request);
+  const body=f.bodies[0] as {properties:{protectedParameters:{value:string}[]}};
+  assert.equal(JSON.parse(Buffer.from(body.properties.protectedParameters[0]!.value,"base64").toString()).expectedBootId,op);
+});
+test("re-reading readiness cannot renew an old check",async()=>{
+  const f=fixture();const next=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
+  next.guestCommand!.submittedAt="2020-01-01T00:00:00Z";
+  f.result({version:1,ready:true,os:"linux",architecture:"amd64",bootId:op,cliVersion:"2.4.0",archiveSha256:next.artifact.sha256,commit:"commit"});
+  const checked=(await reconcileGuest(f.control,next)).record;
+  assert.equal(checked.guestReady?.checkedAt,"2020-01-01T00:00:00Z");
+  await assert.rejects(dispatchGuest(f.control,checked,{version:1,workflow:id,operation:op,action:"inventory",configuration:{}}),/fresh guest readiness/);
+});
+
+test("only explicit readiness waits for bootstrap, retaining the 60 second command bound",async()=>{
+  for (const action of ["ready", "status"] as const) {
+    const f=fixture(),r=record();
+    r.guestReady={bootId:op,cliVersion:r.artifact.version,archiveSha256:r.artifact.sha256,commit:"old",checkedAt:new Date().toISOString()};
+    const next=await dispatchGuest(f.control,r,{version:1,workflow:id,operation:op,action});
+    const body=f.bodies[0] as any;
+    assert.equal(body.properties.source.script,action==="ready"?guestReadinessScript:guestDispatchScript);
+    assert.equal(body.properties.timeoutInSeconds,60);
+    assert.equal(next.guestReady===undefined,action==="ready");
+    assert.ok(r.guestReady); // Never mutate the earlier evidence in-place.
+  }
+});
+
+test("pending bootstrap is not readiness, and GET reconciliation never retries it",async()=>{
+  const f=fixture();const r=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
+  f.result({version:1,ready:false,bootstrap:"pending"});
+  const before=f.bodies.length;
+  const checked=await reconcileGuest(f.control,r);
+  assert.equal(checked.record.guestCommand?.phase,"bootstrap-pending");
+  assert.equal(checked.record.guestReady,undefined);assert.equal(checked.result,undefined);
+  assert.equal(checked.record.readinessReceipts,undefined);
+  await reconcileGuest(f.control,checked.record);assert.equal(f.bodies.length,before);
+  await assert.rejects(dispatchGuest(f.control,checked.record,{version:1,workflow:id,operation:op,action:"inventory",configuration:{}}),/fresh guest readiness/);
+  // Only a separate explicit readiness request can submit a new command.
+  f.result(undefined);
+  await dispatchGuest(f.control,checked.record,{version:1,workflow:id,operation:op,action:"ready"});
+  assert.equal(f.bodies.length,before+1);
+});
+
+test("malformed bootstrap observations fail closed",async()=>{
+  for (const value of [
+    {version:1,ready:false,bootstrap:"failed"},
+    {version:1,ready:true,bootstrap:"pending"},
+    {version:1,ready:false,bootstrap:"pending",cliVersion:"untrusted"},
+    {version:2,ready:false,bootstrap:"pending"}
+  ]) {
+    const f=fixture(),r=await dispatchGuest(f.control,record(),{version:1,workflow:id,operation:op,action:"ready"});
+    f.result(value);const checked=await reconcileGuest(f.control,r);
+    assert.equal(checked.record.guestCommand?.phase,"failed");assert.equal(checked.record.guestReady,undefined);
+  }
+});
+
+test("readiness shell waits before dispatch, preserves payload and fails closed on missing installation",{skip:process.platform==="win32"},()=>{
+  const dir=mkdtempSync(join(tmpdir(),"af-bootstrap-test-"));
+  try {
+    const marker=join(dir,"complete"),tool=join(dir,"tools");
+    writeFileSync(tool,"#!/bin/bash\ncat\n",{mode:0o700});
+    const script=guestReadinessScript.replaceAll("/var/lib/agefreighter/bootstrap.complete",marker).replaceAll("/usr/local/bin/agefreighter-tools",tool);
+    assert.equal(spawnSync("bash",["-n"],{input:script}).status,0);
+    const run=(status:number,complete:boolean)=>spawnSync("bash",["-c",
+      `timeout() { [ "$*" = '45 cloud-init status --wait' ] || return 99; ${complete?`touch '${marker}';`:""} return ${status}; }\n${script}`],
+      {encoding:"utf8",env:{...process.env,AF_RUNNER_REQUEST:Buffer.from('{"action":"ready"}').toString("base64")}});
+    const pending=run(124,false);assert.equal(pending.status,0);assert.deepEqual(JSON.parse(pending.stdout),{version:1,ready:false,bootstrap:"pending"});
+    for(const exit of [1,2,127,137]) {const failed=run(exit,false);assert.equal(failed.status,1);assert.equal(failed.stdout,"");}
+    assert.equal(run(0,false).status,1);
+    const ready=run(0,true);assert.equal(ready.status,0);assert.equal(ready.stdout,'{"action":"ready"}');
+    rmSync(tool);assert.equal(run(0,true).status,1);
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});

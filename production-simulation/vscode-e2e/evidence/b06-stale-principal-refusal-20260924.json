@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "case": "B06 stale runner principal refused by native source assessment",
+  "date": "2026-09-24",
+  "result": "PASS for this specific native stale-principal branch",
+  "overallB06": "PARTIAL pending complete acceptance-criteria review; this receipt is not a whole-B06 completion claim",
+  "workflow": "b425c32a-3ba3-44bc-8415-a48114993c5c",
+  "evidenceLayers": {
+    "nativeObservation": "Root observed the exact native message after using the previously reviewed held B panel and confirming Approve source reads.",
+    "independentAudit": "Retained identity PATCH intents, bodies, acknowledgements, terminal GETs, and complete before/after native record bytes independently checked locally. No additional cloud or source query was made by this auditor."
+  },
+  "nativeRefusal": {
+    "action": "Approve sampled assessment in held reviewed B panel, then native Approve source reads",
+    "actualVisibleMessage": "The runner managed identity changed after Cosmos access review; no grant or source operation was submitted.",
+    "receiptCapturedAtUTC": "2026-09-24T08:47:56.555740+00:00",
+    "timestampMeaning": "Receipt capture after the GUI observation; not an exact native click timestamp.",
+    "rootReceipt": {
+      "file": "b06-stale-principal-native-refusal.json",
+      "sha256": "91494cdd6f285517705c066c418869c675245e274e07289fa667a3e8f6cfa7a9"
+    },
+    "beforeNativeRecord": {
+      "file": "principal-before-native.json",
+      "sha256": "41d8f136a40bfd037cf1d8164008b907469c2c128bdf73152e961c22968568b6"
+    },
+    "afterNativeRecord": {
+      "file": "principal-after-native.json",
+      "sha256": "41d8f136a40bfd037cf1d8164008b907469c2c128bdf73152e961c22968568b6"
+    },
+    "entireRecordBytesIdentical": true,
+    "nativeRecordSHA256": "41d8f136a40bfd037cf1d8164008b907469c2c128bdf73152e961c22968568b6",
+    "retainedReadinessCheckedAtUTC": "2026-09-24T08:43:31.901Z",
+    "readinessTimeLimit": "No freshness claim is computed using the later receipt capture time. Exact branch attribution and unchanged native bytes support that no additional readiness/source operation was retained during the refusal."
+  },
+  "identityTransition": {
+    "sameOwnedVM": true,
+    "originalPrincipalSHA256": "ee481f92b17a9074b6bd1b6e768943e0108e50821bbf7df6d0a3e544758a3209",
+    "replacementPrincipalSHA256": "04257ab27352e6c8aa3dcc7097856ddfe9ae8c7103c803b1082751fba3cc7402",
+    "principalsDiffer": true,
+    "retainedGrantStillBoundToOriginalPrincipal": true,
+    "retainedGrantPhase": "ready",
+    "retainedGrantAssignmentSHA256": "129ca5d5405c681e3de4de105d57e8967b9064f6de208a37593680e4c6b164d1",
+    "authorizedLocalExecutorPATCHes": [
+      {
+        "stage": "disable-identity",
+        "intentAtUTC": "2026-09-24T08:45:36.287016+00:00",
+        "method": "PATCH",
+        "body": {
+          "identity": {
+            "type": "None"
+          }
+        },
+        "intentSHA256": "1cf48e84045e5c0abd399ff8f1350ef3a30b1eb7e700221db3b1d714b839e83c",
+        "bodySHA256": "132713105a9440c073bc3f20a8076fe649b7cc5b6d5d8a1ef9b36464d820f31e",
+        "planSHA256": "75a47d11757d3b5b2f4a75656f5f92a3b841979ea990d1d1c612d4a0c566d98d",
+        "acknowledgement": {
+          "state": "accepted",
+          "atUTC": "2026-09-24T08:45:37.393182+00:00",
+          "sha256": "1f8bcb762b158d75fd3055536cd0833714c29e7511903eded39fc80afa32a6db"
+        },
+        "terminalGET": {
+          "atUTC": "2026-09-24T08:45:51.866249+00:00",
+          "sha256": "d21924ce7fc495f627f57d84133a4918ca592befa0039561468552f7e4223daf",
+          "responseSHA256": "b6995fe7dda4567639330d7aa1fb740de710f3ef02e23e38210e00afd7776b97",
+          "provisioningState": "Succeeded",
+          "identityState": "absent"
+        },
+        "retainedIntentCountForStage": 1,
+        "noReplay": true
+      },
+      {
+        "stage": "enable-identity",
+        "intentAtUTC": "2026-09-24T08:46:07.928452+00:00",
+        "method": "PATCH",
+        "body": {
+          "identity": {
+            "type": "SystemAssigned"
+          }
+        },
+        "intentSHA256": "4b85de333d921801f05eaaf4b0a028362e43473595bd7982989a7c182d728a15",
+        "bodySHA256": "549477bbb5f7fbe5dd0918a50db066bdd38745dfaa15637e90f211d9d903dd93",
+        "planSHA256": "b405c569cebed7e156ae59c3b3946fe6292107a1cda68e7e920e07ed14a08d5a",
+        "acknowledgement": {
+          "state": "accepted",
+          "atUTC": "2026-09-24T08:46:10.168887+00:00",
+          "sha256": "34bb41f46dadd0affdea7eca6ef4f6110d8c1d1882f933eb763d33124b3525bc"
+        },
+        "terminalGET": {
+          "atUTC": "2026-09-24T08:46:36.876579+00:00",
+          "sha256": "ed90c16d248a191f8cb698e536c27bf720667a75401546f3dd396059b30be06d",
+          "responseSHA256": "18f39302be75d79e2135a6397ddb8a7c6733881e399101de3d565addfe4932cc",
+          "provisioningState": "Succeeded",
+          "identityState": "replacement SystemAssigned"
+        },
+        "retainedIntentCountForStage": 1,
+        "noReplay": true
+      }
+    ],
+    "onceClaimScope": "Exactly one retained create-only intent and acknowledgement for each of the two identity stages, with subsequent read-only terminal reconciliation. No replay is present in the stage journal."
+  },
+  "sourceBindingAfterRefusal": {
+    "operation": "c9a36be4-34b2-4b83-a7b5-338636010ac0",
+    "phase": "finished",
+    "configurationSHA256": "0c4943a49a6a5e4fc549c57924d87ca988aca992e6bec7d7e580770c598bba35",
+    "guestConfigurationSHA256": "f550790417e3c17966a8a406907f703678ea65bd77bef02f99027fe7c8a0dcef",
+    "reportSHA256": "33b8024f6056514f5c023b7980e29652a21a545d92be72eb58fc5e954a5e40f2",
+    "reportBytes": 2940,
+    "assessmentHistoryLength": 0,
+    "replacementGrantPerformed": false,
+    "inventory2Executed": false,
+    "b07ActiveObserversExecuted": false
+  },
+  "codeAttribution": {
+    "path": "extensions/vscode/src/core/runnerCosmosAccess.ts",
+    "function": "assertRunnerPrincipal",
+    "ordering": "startAssessment calls assertCosmosAccessCurrent; it checks current owned VM principal before role verification and before new assessment UUID creation, history update, persistence, or source guest dispatch.",
+    "panelConditions": "Previously reviewed source binding was retained. Existing finished inventory with sealed report allowed admission; no new source review or invented state was used.",
+    "targetCondition": "Existing target does not bypass any source guard; a new source Review would be rejected after target creation."
+  },
+  "limitations": [
+    "The earlier amended pre-grant observer remains strictly inconclusive for its body-based classifier despite actual403/substatus5302. This native stale-principal PASS does not relabel that result.",
+    "The separately retained same-principal403/5302-to200 pair and normal GUI inventory success are separate evidence layers.",
+    "No second inventory or B07 active-job refusal is claimed.",
+    "Identity rotation and the native refusal were carried out by root within the separately approved trial; this audit performed no cloud mutation."
+  ],
+  "relatedEvidence": [
+    "b06-same-principal-access-20260924.json"
+  ]
+}

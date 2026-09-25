@@ -9,5 +9,5 @@
     "sourceMap": true,
     "types": ["node", "vscode", "mocha"]
   },
-  "include": ["src/test/runTest.ts", "src/test/suite/**/*.ts"]
+  "include": ["src/test/runTest.ts", "src/test/runCrashTest.ts", "src/test/suite/**/*.ts"]
 }

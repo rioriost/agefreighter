@@ -1,0 +1,330 @@
+{
+  "workflow": "83c6b829-acdc-4405-aa2d-fb2f2d99af9f",
+  "commands": [
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-2954810e-9a80-4bec-8cba-f1ae04b5c287",
+      "view": {
+        "endTime": "2026-09-05T13:29:31+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"d47258ef-043c-4022-ba09-c50b1a53558d\",\"action\":\"import-csv\",\"phase\":\"accepted\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"fileId\":\"55756d4d-e8ce-4e57-a4cf-65d3066a64e1\",\"fileBytes\":4428974,\"fileSha256\":\"62d18a1c8beccfc9d63bf2d9c5a1b47bdc1b9bb7bc36ac2ceda5cfb2aca9de5e\"}\n",
+        "startTime": "2026-09-05T13:29:31+00:00"
+      },
+      "sha256": "7c3694d824d7f99031abb834a30e3cc112d1c98c47afd372ccc40c063205fd85"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-2a61052a-71f1-400d-bf26-931e61b80787",
+      "view": {
+        "endTime": "2026-09-05T13:27:03+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"831a5d8d-79d2-4f16-b6e7-09a66d683c3d\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"startedAt\":\"2026-09-05T13:26:00.900469154Z\",\"finishedAt\":\"2026-09-05T13:26:02.317975113Z\",\"exitCode\":0,\"fileId\":\"101ca898-5bb5-444a-a0cd-3c6e01b58e7d\",\"fileBytes\":92615438,\"fileSha256\":\"0d8294d1cfa659300c6b3c275aca46757d93dd240ea504587d64420e70d67842\"}\n",
+        "startTime": "2026-09-05T13:27:03+00:00"
+      },
+      "sha256": "aa371f4391108a97ab5ff6a225eea49560dc554abb5444a33a2cda790d8fc5bf"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-2e64e6ee-c517-4188-945e-82b304ad43df",
+      "view": {
+        "endTime": "2026-09-05T13:28:12+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"cliVersion\":\"2.4.0-dev.6ff072c0db71\",\"commit\":\"6ff072c0db71a3ae1e42a72e3c336a04ac284df8\",\"archiveSha256\":\"5fee11ec3fde605ef7e18afaa56131862113348de8ddcb8bc37b52aba1c3620b\",\"ready\":true}\n",
+        "startTime": "2026-09-05T13:28:12+00:00"
+      },
+      "sha256": "62669ee0a6de4f80995bda79854da7daa57ebd001a2c8777b210d15e297de386"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-3edd2487-aade-49df-aaad-80c6541550b6",
+      "view": {
+        "endTime": "2026-09-05T13:04:28+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"c3670bd0-9133-4a84-8545-abbdca3c559f\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"startedAt\":\"2026-09-05T13:03:18.58679761Z\",\"finishedAt\":\"2026-09-05T13:03:21.701423042Z\",\"exitCode\":0,\"fileId\":\"b3b27369-c261-4b24-bcc5-fb82ab91996b\",\"fileBytes\":204764876,\"fileSha256\":\"00d11fffe89b4e5ce19c0046adbfb3fccb1791462a2ce7b3c2211fa347d61890\"}\n",
+        "startTime": "2026-09-05T13:04:28+00:00"
+      },
+      "sha256": "9cc3070f8d99b4b932847b201cd5365c7a2587f43f9cd113ea71883ec94deadb"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-4505389e-423c-4c5a-9502-becf6e7990a1",
+      "view": {
+        "endTime": "2026-09-05T13:26:00+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"831a5d8d-79d2-4f16-b6e7-09a66d683c3d\",\"action\":\"import-csv\",\"phase\":\"accepted\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"fileId\":\"101ca898-5bb5-444a-a0cd-3c6e01b58e7d\",\"fileBytes\":92615438,\"fileSha256\":\"0d8294d1cfa659300c6b3c275aca46757d93dd240ea504587d64420e70d67842\"}\n",
+        "startTime": "2026-09-05T13:26:00+00:00"
+      },
+      "sha256": "53024ebf30a32df890893bf155546bf891b8bd0bef94433d079e0677da27db5d"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-4ed57485-af24-4721-b6d9-0176a1366e5a",
+      "view": {
+        "endTime": "2026-09-05T13:03:18+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"c3670bd0-9133-4a84-8545-abbdca3c559f\",\"action\":\"import-csv\",\"phase\":\"accepted\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"fileId\":\"b3b27369-c261-4b24-bcc5-fb82ab91996b\",\"fileBytes\":204764876,\"fileSha256\":\"00d11fffe89b4e5ce19c0046adbfb3fccb1791462a2ce7b3c2211fa347d61890\"}\n",
+        "startTime": "2026-09-05T13:03:18+00:00"
+      },
+      "sha256": "4010bc9bc1f57147681892849a111f54a92254728b97ae2e4117a74ccf1673fd"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-58fd1055-eb1a-484d-a86a-15a1779f935c",
+      "view": {
+        "endTime": "2026-09-05T13:32:14+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"0ca048d2-d78f-4a5a-ae5a-70a0068365f0\",\"action\":\"import-csv\",\"phase\":\"accepted\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"fileId\":\"45f4c46f-8258-4ee1-bc4e-13414774d3f1\",\"fileBytes\":69294950,\"fileSha256\":\"f52ffd09f781a4cb1c0b435649371d79b0cd9b64f82883fb0fb8b08901f0d1a7\"}\n",
+        "startTime": "2026-09-05T13:32:14+00:00"
+      },
+      "sha256": "5b3327f275451e81208db542998ba1b66439042a7ede97b3704f023ae38d8f1b"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-669a9759-3a6c-451f-b487-2ecf370f7517",
+      "view": {
+        "endTime": "2026-09-05T13:36:03+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"f8929635-7ef9-4d98-be50-aac91008f6dd\",\"action\":\"import-csv\",\"phase\":\"accepted\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"fileId\":\"4ee03588-9b4e-43a9-a7cc-cb6891127756\",\"fileBytes\":2255174,\"fileSha256\":\"4e4bdc6637d633ce6e1e63bcc6a0f2ba936edfd5cadfa532e2073809817d5a31\"}\n",
+        "startTime": "2026-09-05T13:36:02+00:00"
+      },
+      "sha256": "b7c85d1ffccc803b05115d6ade3f5b60ed1f47f69f24be1efc5005843c8301c9"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-71c6464f-208d-4914-b3de-cbc089cc98a9",
+      "view": {
+        "endTime": "2026-09-05T13:01:01+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"0a93d1a6-c995-406d-a35d-60b38798b024\",\"action\":\"import-csv\",\"phase\":\"accepted\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"fileId\":\"2ac632bf-0230-4ae8-bd2d-cb27ec536969\",\"fileBytes\":70714348,\"fileSha256\":\"67d3328f0e2bcc9a9a2f1c71ad51edb8af43148d7abee5becab78c9d91fdee69\"}\n",
+        "startTime": "2026-09-05T13:01:01+00:00"
+      },
+      "sha256": "4ad398009e9822f09c4fb301da76a2854cade9b0231ec8100e4e02d899dc16e6"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-7d978246-5c85-4206-a12d-0a81042188c4",
+      "view": {
+        "endTime": "2026-09-05T13:09:54+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"737ca639-7df1-429d-bf6a-80c8cf3bd9f0\",\"action\":\"import-csv\",\"phase\":\"accepted\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"fileId\":\"9f6aa0fa-ca15-437f-b198-676653e299f5\",\"fileBytes\":6371355,\"fileSha256\":\"4b82abd66754f08749e12d0f2cda3abbcfed46c3016855caf654a1608517a5bd\"}\n",
+        "startTime": "2026-09-05T13:09:53+00:00"
+      },
+      "sha256": "447672936b02c973a650b3e2f4390a81a4aa1ce1e8f26e3423c0af6cc39d7e37"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-7da185e0-1864-40b8-95e0-c36b4529a97b",
+      "view": {
+        "endTime": "2026-09-05T13:06:02+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"cliVersion\":\"2.4.0-dev.6ff072c0db71\",\"commit\":\"6ff072c0db71a3ae1e42a72e3c336a04ac284df8\",\"archiveSha256\":\"5fee11ec3fde605ef7e18afaa56131862113348de8ddcb8bc37b52aba1c3620b\",\"ready\":true}\n",
+        "startTime": "2026-09-05T13:06:02+00:00"
+      },
+      "sha256": "ad14e3955062ef8976484fb39357bce4d84bb4aa637f129e541534cb645d58ed"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-81b3caac-eb8c-46f7-b41f-d90347b82ac8",
+      "view": {
+        "endTime": "2026-09-05T12:50:49+00:00",
+        "error": "invalid runner request\n",
+        "executionMessage": "Execution failed: failed to execute command: command terminated with exit status=1",
+        "executionState": "Failed",
+        "exitCode": 1,
+        "output": "",
+        "startTime": "2026-09-05T12:50:49+00:00"
+      },
+      "sha256": "3e6e56dd6be88ddb37fcb55b9cb590c32df902f4a99bf3cc54637b558d773303"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-82b0dcbc-fba3-417e-8af0-e954baefc682",
+      "view": {
+        "endTime": "2026-09-05T13:07:25+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"c18873e9-8f16-4ce6-86f8-46e7a4d1b14f\",\"action\":\"import-csv\",\"phase\":\"accepted\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"fileId\":\"be727ece-164e-40f5-b210-3e6e4f3879cf\",\"fileBytes\":235855,\"fileSha256\":\"0a2c6e8ecf1fdfe2540c4058202527e458f66e1d7611d75c03d51144089fe88b\"}\n",
+        "startTime": "2026-09-05T13:07:25+00:00"
+      },
+      "sha256": "0331c7d7464f3ffd4eec55ef16c2b870f143675a217d5b2787de45c9f6e079a9"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-8c3b845a-907b-4151-b9ca-cf0df1f20a37",
+      "view": {
+        "endTime": "2026-09-05T13:08:48+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"c18873e9-8f16-4ce6-86f8-46e7a4d1b14f\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"startedAt\":\"2026-09-05T13:07:25.871608676Z\",\"finishedAt\":\"2026-09-05T13:07:25.949935033Z\",\"exitCode\":0,\"fileId\":\"be727ece-164e-40f5-b210-3e6e4f3879cf\",\"fileBytes\":235855,\"fileSha256\":\"0a2c6e8ecf1fdfe2540c4058202527e458f66e1d7611d75c03d51144089fe88b\"}\n",
+        "startTime": "2026-09-05T13:08:48+00:00"
+      },
+      "sha256": "65bfba35b93e6a1df46a72cda966d3ccb1a5d6fdb2085300036cb71aac9e00c3"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-9069e2ad-f098-4696-8595-c52520debd23",
+      "view": {
+        "endTime": "2026-09-05T13:22:35+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"cliVersion\":\"2.4.0-dev.6ff072c0db71\",\"commit\":\"6ff072c0db71a3ae1e42a72e3c336a04ac284df8\",\"archiveSha256\":\"5fee11ec3fde605ef7e18afaa56131862113348de8ddcb8bc37b52aba1c3620b\",\"ready\":true}\n",
+        "startTime": "2026-09-05T13:22:35+00:00"
+      },
+      "sha256": "2446f7cc7f23c701b1bcba07eb5b45ff5ce38905cd13938f73a7901de078de27"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-989007b9-f033-4d6a-a992-7dc7e75bbf21",
+      "view": {
+        "endTime": "2026-09-05T13:02:09+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"0a93d1a6-c995-406d-a35d-60b38798b024\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"startedAt\":\"2026-09-05T13:01:01.573160447Z\",\"finishedAt\":\"2026-09-05T13:01:04.117340132Z\",\"exitCode\":0,\"fileId\":\"2ac632bf-0230-4ae8-bd2d-cb27ec536969\",\"fileBytes\":70714348,\"fileSha256\":\"67d3328f0e2bcc9a9a2f1c71ad51edb8af43148d7abee5becab78c9d91fdee69\"}\n",
+        "startTime": "2026-09-05T13:02:09+00:00"
+      },
+      "sha256": "51a1094c55af0271d19b07f60d9f94ab0cefebbdecfb9b3d6c1fef6ff8198b5a"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-98b9345f-ca55-430d-92b4-ebe3c3599622",
+      "view": {
+        "endTime": "2026-09-05T13:34:53+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"cliVersion\":\"2.4.0-dev.6ff072c0db71\",\"commit\":\"6ff072c0db71a3ae1e42a72e3c336a04ac284df8\",\"archiveSha256\":\"5fee11ec3fde605ef7e18afaa56131862113348de8ddcb8bc37b52aba1c3620b\",\"ready\":true}\n",
+        "startTime": "2026-09-05T13:34:53+00:00"
+      },
+      "sha256": "1ed6c624b0ae57f2ab2ac8428ebecec6c796876e5d44b2840ee9ce062a87324f"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-9f353cd4-6726-42ce-a0b9-cef98e0d9220",
+      "view": {
+        "endTime": "2026-09-05T13:33:36+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"0ca048d2-d78f-4a5a-ae5a-70a0068365f0\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"startedAt\":\"2026-09-05T13:32:14.7814828Z\",\"finishedAt\":\"2026-09-05T13:32:16.052356145Z\",\"exitCode\":0,\"fileId\":\"45f4c46f-8258-4ee1-bc4e-13414774d3f1\",\"fileBytes\":69294950,\"fileSha256\":\"f52ffd09f781a4cb1c0b435649371d79b0cd9b64f82883fb0fb8b08901f0d1a7\"}\n",
+        "startTime": "2026-09-05T13:33:36+00:00"
+      },
+      "sha256": "504a69b992f33b4c4268c2f2d66229dd2fc4797fc4a44b609e7bebc7d35cab39"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-b2c39885-cfe1-481e-9141-06e28bc1dfc9",
+      "view": {
+        "endTime": "2026-09-05T13:11:24+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"737ca639-7df1-429d-bf6a-80c8cf3bd9f0\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"startedAt\":\"2026-09-05T13:09:54.082248445Z\",\"finishedAt\":\"2026-09-05T13:09:54.269938258Z\",\"exitCode\":0,\"fileId\":\"9f6aa0fa-ca15-437f-b198-676653e299f5\",\"fileBytes\":6371355,\"fileSha256\":\"4b82abd66754f08749e12d0f2cda3abbcfed46c3016855caf654a1608517a5bd\"}\n",
+        "startTime": "2026-09-05T13:11:24+00:00"
+      },
+      "sha256": "503b2e05b208b01c019581ffc74293d480032440da2d37b17e88bf09ca9b2aa9"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-b56d3d30-a952-4471-9a80-fbb379c012d3",
+      "view": {
+        "endTime": "2026-09-05T13:38:01+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"f8929635-7ef9-4d98-be50-aac91008f6dd\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"startedAt\":\"2026-09-05T13:36:03.17394847Z\",\"finishedAt\":\"2026-09-05T13:36:03.291049501Z\",\"exitCode\":0,\"fileId\":\"4ee03588-9b4e-43a9-a7cc-cb6891127756\",\"fileBytes\":2255174,\"fileSha256\":\"4e4bdc6637d633ce6e1e63bcc6a0f2ba936edfd5cadfa532e2073809817d5a31\"}\n",
+        "startTime": "2026-09-05T13:38:01+00:00"
+      },
+      "sha256": "45d7b2968e3b1102c7deee58d039303db6fe88307b58455514c8429c34e1a061"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-b5b3ce7d-48a2-4f6f-9b85-2bdea9a2482f",
+      "view": {
+        "endTime": "2026-09-05T13:25:12+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"f9a80244-4364-41bf-a927-76d0d46e393f\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"startedAt\":\"2026-09-05T13:23:51.212501368Z\",\"finishedAt\":\"2026-09-05T13:23:52.310436538Z\",\"exitCode\":0,\"fileId\":\"5c4af3db-bd59-47a3-848c-61c6ab73265d\",\"fileBytes\":71610098,\"fileSha256\":\"2da3ab71851271c5e2895d2ca2b2f9599af5334ae87ed431d5d09f4baa5bcec2\"}\n",
+        "startTime": "2026-09-05T13:25:12+00:00"
+      },
+      "sha256": "e6b10173c5ef28fbd958d1239f3b8e36c91ac55c1c0111ea4878d74f23f9d294"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-e4e704b8-0e3a-447b-8338-aa0838969f9f",
+      "view": {
+        "endTime": "2026-09-05T12:49:34+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"cliVersion\":\"2.4.0-dev.6ff072c0db71\",\"commit\":\"6ff072c0db71a3ae1e42a72e3c336a04ac284df8\",\"archiveSha256\":\"5fee11ec3fde605ef7e18afaa56131862113348de8ddcb8bc37b52aba1c3620b\",\"ready\":true}\n",
+        "startTime": "2026-09-05T12:49:33+00:00"
+      },
+      "sha256": "1d721ccb2e87fcf6829445173e507b184d548b8382dee85c1696ced25becbfb2"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-e82b787a-25c3-4178-8e04-4cb6714fefba",
+      "view": {
+        "endTime": "2026-09-05T12:59:26+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"os\":\"linux\",\"architecture\":\"amd64\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"cliVersion\":\"2.4.0-dev.6ff072c0db71\",\"commit\":\"6ff072c0db71a3ae1e42a72e3c336a04ac284df8\",\"archiveSha256\":\"5fee11ec3fde605ef7e18afaa56131862113348de8ddcb8bc37b52aba1c3620b\",\"ready\":true}\n",
+        "startTime": "2026-09-05T12:59:26+00:00"
+      },
+      "sha256": "e9e54d51dade5da5d2bbfd58c955efffb691573642a195c3e96fa113ed1be2c3"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-f323f8cd-3c30-4a5b-9c0e-099ba5f11386",
+      "view": {
+        "endTime": "2026-09-05T13:23:51+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"f9a80244-4364-41bf-a927-76d0d46e393f\",\"action\":\"import-csv\",\"phase\":\"accepted\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"fileId\":\"5c4af3db-bd59-47a3-848c-61c6ab73265d\",\"fileBytes\":71610098,\"fileSha256\":\"2da3ab71851271c5e2895d2ca2b2f9599af5334ae87ed431d5d09f4baa5bcec2\"}\n",
+        "startTime": "2026-09-05T13:23:50+00:00"
+      },
+      "sha256": "1d1f4a08e9b69907dea27f452867a35290b310de52675f40ad969690f1879845"
+    },
+    {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-83c6b829acdc4405aa2d/runCommands/af-f47854b3-4ed8-4caa-9ccd-4d62c18ce602",
+      "view": {
+        "endTime": "2026-09-05T13:31:09+00:00",
+        "error": "",
+        "executionMessage": "Execution completed",
+        "executionState": "Succeeded",
+        "exitCode": 0,
+        "output": "{\"version\":1,\"workflow\":\"83c6b829-acdc-4405-aa2d-fb2f2d99af9f\",\"operation\":\"d47258ef-043c-4022-ba09-c50b1a53558d\",\"action\":\"import-csv\",\"phase\":\"finished\",\"bootId\":\"f7d689c2-b8ab-4dc5-b946-ad7adf82db81\",\"configSha256\":\"\",\"startedAt\":\"2026-09-05T13:29:31.974828626Z\",\"finishedAt\":\"2026-09-05T13:29:32.148722799Z\",\"exitCode\":0,\"fileId\":\"55756d4d-e8ce-4e57-a4cf-65d3066a64e1\",\"fileBytes\":4428974,\"fileSha256\":\"62d18a1c8beccfc9d63bf2d9c5a1b47bdc1b9bb7bc36ac2ceda5cfb2aca9de5e\"}\n",
+        "startTime": "2026-09-05T13:31:09+00:00"
+      },
+      "sha256": "5ce150035b3cb6bc482c3b640b949bae93662be239eca12643ab6bf196de6cc6"
+    }
+  ]
+}

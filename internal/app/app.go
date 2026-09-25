@@ -11,6 +11,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -46,6 +47,20 @@ func Load(ctx context.Context, path string) (LoadResult, error) {
 	jobID, err := newJobID()
 	if err != nil {
 		return LoadResult{}, err
+	}
+	return execute(ctx, job, jobID, false)
+}
+
+// LoadWithID lets a durable orchestrator retain identity before the first target
+// write. This is create-only, never an implicit resume: the metadata primary key
+// rejects reuse of an existing job ID. Resume remains a separate explicit action.
+func LoadWithID(ctx context.Context, path, jobID string) (LoadResult, error) {
+	if !regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`).MatchString(jobID) {
+		return LoadResult{}, errors.New("a canonical UUID is required for a retained load identity")
+	}
+	job, err := config.Load(path)
+	if err != nil {
+		return LoadResult{JobID: jobID}, fmt.Errorf("load job configuration: %w", err)
 	}
 	return execute(ctx, job, jobID, false)
 }

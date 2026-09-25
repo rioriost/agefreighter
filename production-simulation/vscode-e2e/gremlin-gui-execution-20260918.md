@@ -1,0 +1,890 @@
+# Gremlin installed-GUI migration — full canonical PASS
+
+Latest: September 18 05:13 UTC. **Installed-GUI migration, complete counts and
+full canonical verification PASS: 1.6M vertices + 4M edges / 18 labels / 64 ranges.
+Active assessment/load/verifier Reload Window trials preserve operations without
+replay. Exact runner deallocated and target Stopped are verified.**
+This is Gremlin-shaped Cosmos NoSQL, not native Gremlin API qualification.
+Earlier failures and approvals are retained chronologically below.
+
+The [source preparation](gremlin-source-execution-20260917.md) passed separately.
+Its 5.6M Gremlin-shaped NoSQL documents are not a GUI/target qualification.
+
+## Fresh gates
+
+- USD 800 and `2026-09-20T07:14:35.311Z` remain unchanged. Billing refresh
+  returned 429; do not label a stale billed total current. Keep the existing
+  USD 600 extended-retention reserve and the separately reserved preparation
+  increment. Runner/target execution requires a bounded incremental estimate.
+- All nine VMs are deallocated and all 17 Flexible Servers are Stopped. No RG
+  lock was returned. Cosmos remains private with local/key auth disabled; the
+  isolated container still uses `/partitionKey`. Its temporary writer is absent.
+- An external disk-write activity at September 17 15:56 UTC targeted the retained
+  preparation OS disk. The disk still exists, Reserved/Succeeded, 64 GiB. No
+  restart, modification or attribution was inferred from that event.
+- The installed extension bundle remains
+  `073232d2528ed59271ed33d5a43dba9e77235a4a5757e1555fefdee1b980e618`.
+  Both [pinned runner/verifier archives](gremlin-target-preflight-20260917.md#pinned-local-artifacts)
+  retain their recorded hashes. Neither was rebuilt or executed; the runner
+  archive was subsequently uploaded as recorded below.
+
+## Actual GUI steps
+
+The installed VS Code opened a **new** guided workflow, without a project-folder
+prompt or desktop CLI. Its existing Azure session loaded the authorized
+subscription and listed the dedicated resource group. Cosmos discovery returned
+the expected `afcosmosp120260907` candidate. Selected Japan East, zone 1,
+B2s_v2 and the existing `vnet-af-vscode-p1/runner` subnet.
+
+The initial paste did not populate the subnet field; preflight rejected the
+empty value. After setting and visibly verifying the full ARM ID, normal release
+preflight correctly refused the unpublished AGEFreighter 2.4.0 Linux release.
+No deployment was submitted. Continue via the existing explicitly gated pinned
+development-artifact path, not by weakening release verification.
+
+New local draft: `4043e008-b86e-47b8-8722-1efe637ae12a`.
+In its source form, reviewed migration name `p1-gremlin-20260918`, namespace
+`migration`, host `afcosmosp120260907.documents.azure.com`, database `p1`,
+container `graph-gremlin-p1-20260917`, Gremlin-over-NoSQL format,
+`partitionKey`, and `score=float64,distance_km=float64`. No source assessment
+has started. The accepted explicit-document workflow was not reused.
+
+The initial native approval dialog requested **new** transfer account
+`af4043e008b86e47b887221e`, Japan East / Standard LRS, with a Blob Data Contributor
+grant to the signed-in user on that new account only. Anonymous/shared-key access
+is disabled; the HTTPS endpoint is network-public, not a private endpoint. A
+specific action-time approval was requested before creating the access grant.
+At that initial checkpoint `storageDeployment` was absent. The later approved
+deployment and access recovery are recorded below.
+
+## Next gates
+
+Storage, pinned upload, VM readiness and approved Cosmos Reader have passed as
+recorded below. Correct and qualify complete Gremlin discovery without suppressing
+its safety bounds, then explicitly retain/retry the failed inventory. Next, privately deploy/review the
+target, resize the same runner, load, verify counts, and compare all 64 target
+ranges with the Gremlin root. Include active-operation reload/no-replay evidence
+for B10. Each approval remains bound to its actual artifact/resource/scope.
+B05/B10 remain open; this checkpoint is not source assessment or migration PASS.
+
+## Approved storage deployment — 21:50–21:54 UTC
+
+The user approved the new account and scoped Blob access. The installed GUI
+submitted deployment `af4043e008b86e47b887221e-transfer`, which ARM reports
+Succeeded at `21:50:49Z`. The local workflow retains `submitted` until its
+normal reconciliation and safety checks succeed; it has not been edited by hand.
+The new container's ownership metadata matches the workflow and anonymous access
+is None. The user-only assignment is `f1794e35-cebd-4298-9070-5b28908816de`.
+
+Fresh ARM inspection found **publicNetworkAccess=Disabled**, although the reviewed
+template requested Enabled. TLS 1.2, HTTPS-only, shared-key disabled and anonymous
+access disabled remain the intended controls. A read-only authenticated Blob
+listing failed with a network-rules error. Activity Log separately records a
+successful `Microsoft.Authorization/policies/modify/action` on this exact account
+at `21:50:49.4292566Z`; timing is recorded without asserting the unreturned policy
+definition or modification payload.
+
+No network setting or tag was changed in response. Requested action-time approval
+for this exact trial account's official `SecurityControl=Ignore` tag and public
+HTTPS enablement, preserving existing ownership tags, TLS and data authentication.
+No exception for a different account is reused. Fixed runner upload, VM creation,
+Cosmos Reader grant, assessment and target migration remain pending. Existing
+sources, accepted graphs, preparation evidence and stopped compute are untouched.
+
+## Approved account-only exception and pinned upload
+
+The user explicitly authorized adding the tag and continuing. Applied
+`SecurityControl=Ignore` to **only** `af4043e008b86e47b887221e`, preserving its
+application/purpose/workflow ownership tags, and enabled public HTTPS access.
+Readback confirmed Enabled, HTTPS-only, minimum TLS 1.2, anonymous access disabled
+and shared keys disabled. An authenticated Blob listing succeeded. No source
+firewall, Cosmos networking or other account was changed. The tag is not treated
+as a guarantee against future policy changes; actual resource state was checked.
+
+The installed source-assessment GUI reconciled transfer storage to `ready`.
+Its pinned-development-artifact command selected the exact workflow and reviewed
+the retained manifest, archive size, commit and SHA-256. The immutable upload
+completed and the GUI displayed “Pinned development archive is prepared”.
+The saved workflow records `developmentUpload.phase=ready`:
+
+- Commit: `e70e02068c6865cd701e7ef99afb150dd64ca01f`.
+- SHA-256: `1746ef42794468c90e034cbbe527c1489cb7f8df42eb7646d254929b9f0d4cd8`.
+- Blob length: **37,124,976 bytes**, independently read back through authenticated
+  Blob metadata; its SHA metadata matches the reviewed archive.
+- ETag: `0x8DF1506C741116B`.
+
+This proves an authenticated write and subsequent metadata read, not an independent
+full-byte download or Linux execution. Reconnected to this draft in the installed
+GUI and requested a fresh runner preview. The future VM's scoped Blob Reader and
+unpublished executable remain separate action-time approval gates. No VM, Cosmos
+Reader grant, assessment, target, or migration has yet been submitted.
+
+Fresh GUI preflight passed at `2026-09-17T21:59:17.778Z`: exact VM
+`af-4043e008b86e47b88722`, Japan East / zone 1 / B2s_v2, compute
+**USD 0.109/hour** plus disk/network costs. Its identity would receive only Blob
+Reader on this workflow's transfer container. Requested action-time confirmation
+for that grant and execution of the pinned development binary. No deployment
+approval button was pressed. At this rate even retaining this VM until the outer
+deadline adds less than USD 6.3 compute (under 58 hours); disk/network remain
+additional and covered by the trial reserve, not silently treated as free.
+The 15-minute preview expiry is a preflight freshness limit, not a VM shutdown
+timer. Refresh the preview and safety gates if it expires before approval.
+
+## Approved runner deployment — 22:08 UTC
+
+The user explicitly approved the reviewed VM, pinned development executable and
+container-only Blob Reader. Before submission, the RG still had no lock; the
+transfer account retained its exact workflow tags, public HTTPS enabled and both
+anonymous/shared-key access disabled. Activity Log includes a signed-in user
+storage write at `22:04:35Z` and policy audits; no other changes were inferred.
+The preview remained within its 15-minute validity period and existing cost and
+deadline limits remained unchanged.
+
+The installed GUI's network/cost checkboxes and matching native confirmation were
+accepted. Durable workflow state records `deployment-submitted` at
+`2026-09-17T22:08:18.659Z`, with deployment name `af-4043e008b86e47b88722`.
+ARM initially reports Running with no error; the GUI refresh retained this same
+deployment rather than replaying it. Linux readiness is still pending. No source
+Data Reader grant, assessment or target migration has been started.
+
+ARM deployment completed successfully at `22:08:55.898809Z`; the installed GUI
+reconciled it to `provisioned`. The actual NIC has no public IP and uses the
+reviewed existing runner subnet. The new system identity is
+`5abb7ef3-ee29-4bdc-abf5-dc667cc1d7e7`; its only returned Azure role assignment is
+Storage Blob Data Reader on the exact workflow container.
+
+The first GUI readiness check ran before bootstrap finished. Retained RunCommand
+`af-2fcabb93-4578-442b-8919-f80c9dd55922` exited 127 at `22:09:32Z` because
+`/usr/local/bin/agefreighter-tools` was not yet present. A separate read-only
+diagnostic at `22:10:34Z` found cloud-init done without errors, both expected
+binaries and `bootstrap.complete` present, root disk 4% used, about 288 MiB used
+memory and zero swap. No installer, VM or source operation was restarted. After
+reviewing that evidence, explicitly requested a fresh GUI readiness check; the
+failed initial RunCommand remains retained.
+
+The fresh GUI readiness command `af-4695a9bb-5d89-4019-9736-b4156d107ffc`
+finished successfully. The GUI displays “Pinned Linux guest verified” and the
+durable readiness evidence matches the exact approved commit, version and archive
+SHA-256. Health: idle, disk **3.5095%**, swap **0**, OOM events **0**.
+Boot ID: `df841056-5cdf-4cce-b528-24977fc5b793`.
+
+Opened the source form and reviewed the next permission gate. Proposed Cosmos
+assignment `5311b64f-1c2c-4f8f-b2f7-485b01e1bc44` remains **previewed only**.
+Its role is Built-in Data Reader for the new VM identity on the **whole trial
+Cosmos account**, not just the Gremlin container. Requested explicit action-time
+approval for that broader read scope; no grant was submitted. The configured
+assessment remains bound to `p1/graph-gremlin-p1-20260917`, with no source writes,
+keys or network exposure. The VM remains running at the approved USD 0.109/hour
+while awaiting this next gate; no new deadline or automatic shutdown is implied.
+
+## Approved Reader and complete source inventory — 22:53–22:56 UTC
+
+The user approved the account-scoped Reader. On resuming, the saved GUI workflow
+already recorded the exact assignment submitted at `22:53:49.638Z`; no duplicate
+PUT was performed. GUI reconciliation and independent ARM GET agree on assignment
+`5311b64f-1c2c-4f8f-b2f7-485b01e1bc44`, VM identity
+`5abb7ef3-ee29-4bdc-abf5-dc667cc1d7e7`, Built-in Data Reader and the reviewed
+trial account. Cosmos remains network-private with local/key auth disabled;
+the RG has no lock. The queried activity-log interval returned no additional
+successful non-audit entries; this is a time-specific observation, not assurance
+against ingestion lag. Budget/window and bounded compute reserve are unchanged.
+
+Fresh GUI readiness at `22:54:59.463Z` preserved the same boot and pinned
+installation: idle, disk 3.5095%, swap/OOM zero. Reviewed the exact Gremlin form
+and explicitly approved complete inventory, bounded to **30 minutes / 4 GiB /
+no swap**, reading only `p1/graph-gremlin-p1-20260917` without writes or target.
+The GUI submitted operation `e2d85f21-96e0-40a0-a73c-b529e91016be` at
+`22:56:05.313Z`, RunCommand `af-690e3787-26d6-4edd-896a-564e6e80510f`.
+It reconciled to `accepted`; successful dispatch is not inventory completion.
+Configuration SHA-256: `ccfef301d9431c039ce3cbe8cbe2e1e776e721be4f26d6c0009024f87a1f598c`;
+guest configuration SHA-256: `a6d11000837a6f1cbe37ba38fa123024d2e84c436e61441950023e3217aa8048`.
+The report and active-operation reload evidence remain pending.
+
+## Failed inventory and bounded read-only diagnosis
+
+The retained worker started at `22:56:11.564828809Z` and failed at
+`22:56:12.727945990Z`, exit 1. GUI and the retained status RunCommand
+`af-976bbb09-e466-4a4b-8d93-5214868dc782` agree on failure for the same operation,
+boot and configuration. Guest `stderr.log` contains only:
+`inventory: network inventory mapping resolution failed`.
+`internal/app/inventory.go` deliberately removes the underlying resolution error;
+the precise initial cause cannot be recovered from that message. Do not attribute
+it conclusively to RBAC propagation or the discovery limit below. No retry or
+active-operation reload was performed, and no target exists.
+
+Read-only diagnostics on the same VM used its identity, TLS and the same source
+container, without logging tokens or source values:
+
+- One page of the generated vertex-label query returned HTTP 200, 100 rows,
+  continuation present, **5.63 RU**. This proves current data-plane read access,
+  not that it was already propagated at the earlier failing worker's instant.
+- A separate **101-page / 60-second** bounded probe of that same query returned
+  **10,100 rows**, only **2 distinct labels**, continuation still present,
+  **524.61 RU**, in **3.904 seconds**. It stopped without draining the source.
+- The reviewed GUI configuration has `maxDiscoveryDocuments=10000`. The current
+  unsampled discovery query does not deduplicate on the server; its visitor counts
+  every returned document before deduplicating labels locally. Thus that path
+  necessarily exceeds the configured limit on this fixture, independently of
+  whether it caused the first opaque failure. The configured maximum is not a
+  sample that can safely be promoted to complete discovery.
+- Existing local `TestInterpretGremlin*` tests pass, including deliberate rejection
+  of repeated labels beyond the document cap. That is a guard regression result,
+  not evidence that the current implementation supports this P1 size.
+
+### Required correction and acceptance before another run
+
+Preserve the failed operation and fix exact catalog discovery rather than raising
+or removing its cap, accepting an incomplete label sample, or replacing the GUI
+with manually prepared mappings. Prefer a bounded, fully drained distinct-label
+and edge-endpoint catalog with pagination proved on the real service. Do not
+assume plain DISTINCT or GROUP BY is continuation-safe: the
+[official pagination documentation](https://learn.microsoft.com/ja-jp/cosmos-db/query/pagination)
+requires ORDER BY with DISTINCT for continuation support. Review index/query
+requirements without silently mutating source indexing or broadening access.
+Tests must cover duplicate-heavy input above 10,000 records, late labels/endpoint
+combinations, multiple pages, exhausted/unchanged tokens and cap/error handling.
+Retain typed, non-sensitive resolution failure categories rather than returning
+raw SDK errors with credentials or values. Any changed runner requires new pinned
+artifact review; no alternative executable has been deployed.
+
+Requested deallocation of **only** `af-4043e008b86e47b88722` after diagnostics to
+avoid idle compute charges. Its OS disk, original failed readiness command, failed
+inventory, read-only role and workflow evidence are preserved. No storage, source
+document, graph or permission was deleted. Final ARM instance-view readback
+confirmed `ProvisioningState/succeeded` and **`PowerState/deallocated`**.
+B05 and active-operation B10 remain unqualified.
+
+## Local discovery correction and review — September 18 JST
+
+Implemented an exact catalog enumeration that requests a one-item page and
+excludes previously observed entries with a parameterized `NOT ARRAY_CONTAINS`
+filter. Vertex labels and complete `(label, startLabel, endLabel)` combinations
+are enumerated separately. Query values are parameters, not interpolated source
+text. Continuation is reset only when the exclusion predicate changes; empty
+pages are drained, and completion requires an exhausted query. Existing
+source-immutability requirements remain in force.
+
+The earlier DISTINCT proposal was rejected during review: pinned `azcosmos`
+1.5.0 `ContainerClient.NewQueryItemsPager` documents gateway cross-partition
+support for projections/filtering only, not distributed sorting/aggregation.
+The new approach needs no index, data, permission or network change. It bounds
+returned discovery rows, total pages and catalog entries (including ignored
+endpoint combinations). It does **not** establish a bound on server-side scanned
+rows or request units; real-service latency/RU behavior remains to be measured
+within the existing timeout/budget. The bounded profiling path is unchanged and
+is not relabeled as complete inventory.
+
+Review covered missed late labels, endpoint combinations sharing one edge label,
+empty-page EOF confusion, continuation reuse after query changes, parameter
+aliasing, repeated tokens, ignored-entry memory growth and secret-bearing SDK
+errors. Added fixed resolution-error categories for limits, cancellation,
+deadlines and recognized HTTP status classes; raw errors, response bodies,
+endpoints and credentials are never included or exposed as wrapped causes.
+The original opaque failure remains unattributed.
+
+Local validation:
+
+- Duplicate-heavy modeled source: 30,300 vertex and 30,300 edge records with
+  late catalog entries behind 10,100 duplicates; all three labels and all three
+  endpoint combinations discovered in eight requests including EOF queries.
+- Empty-page draining, fresh predicate continuations, frozen parameters,
+  row/page/catalog limits, invalid JSON, visitor/request failures, cancellation,
+  token cycles and secret-canary redaction tests pass.
+- `go test ./... -count=1` passes; focused Cosmos/app race tests pass.
+- Extension typecheck, all **300** unit tests and compilation pass. No extension
+  source change is required; its existing pinned idle-runner upgrade flow retains
+  old binaries and failed-operation evidence.
+
+During this September 17 23:20 UTC local-validation checkpoint, fresh ARM readback again showed the exact runner
+`af-4043e008b86e47b88722` **deallocated**. This local correction has not restarted
+it or changed any cloud resource. New pinned Linux artifact approval, real
+service inventory, GUI migration, all 64 target digest ranges and active-operation
+reload remain pending. B05/B10 are **not** qualified by these tests.
+
+### Replacement candidate (local only, not yet approved or installed)
+
+Built from the clean committed fix
+`290c6efa3b3e08423d35bf004485dfd6e0f1fd98` using the existing local packaging script.
+Both executables are Linux x86-64 ELF. Retained manifest:
+`production-simulation/work/vscode-runner-build.gR5UPC/manifest.json`.
+
+- Version: `2.4.0-dev.290c6efa3b3e`.
+- Archive: `agefreighter-2.4.0-dev.290c6efa3b3e-linux-amd64.tar.gz`.
+- Size: **37,132,538 bytes**.
+- Independently rehashed SHA-256:
+  `00b66081e7629ecd4b7ad378cc4b134987d0b892d91b751b789354158e63432e`.
+
+Next approval is for upgrading only the existing idle runner with this candidate
+through the installed GUI and explicitly retrying source inventory. Preserve the
+old installation, workflow and failed operation. No new resource, target,
+permission or network change is included. Proposed runner bound: two hours,
+including the existing 30-minute inventory limit; compute at 0.109 USD/hour,
+within the unchanged USD 800/September 20 deadline. Refresh cost/health/governance
+and guest-readiness gates before mutations. No live inventory outcome is claimed.
+
+### Approved replacement attempt — September 17 23:25 UTC onward
+
+The user explicitly approved the exact `290c6efa3b3e`/`00b66081e762...`
+replacement, same-VM upgrade and complete inventory retry. Fresh checks found
+all ten VMs deallocated, all 17 Flexible Servers Stopped, no RG lock, unchanged
+private/key-disabled Cosmos and the exact previously approved VM Data Reader.
+The workflow's transfer account still has its approved tag/public HTTPS setting,
+with anonymous/shared-key access disabled. Recent activity returned the previous
+diagnostic/deallocation operations and resource-health events; no new security
+or governance mutation was identified in that bounded query.
+
+Cost Management again returned HTTP 429. The existing below-USD-650 conservative
+planning envelope is retained, not represented as a fresh bill. This bounded
+same-VM retry adds at most USD 0.218 compute (two hours at USD 0.109/hour), plus
+already-reserved storage/network and existing capped Cosmos throughput. No target
+compute is started. USD 800 and the September 20 outer deadline are unchanged.
+
+Started only `af-4043e008b86e47b88722` and requested new readiness from the installed
+GUI at `23:27:06.447Z`. Stop/deallocate it no later than **September 18 01:26 UTC**,
+even if this attempt is incomplete. Do not overwrite the old installation or
+failed inventory evidence; the normal pinned-upgrade flow archives them.
+
+#### Linux replacement succeeded; retry preparation blocked before source reads
+
+The installed GUI uploaded the approved archive and submitted exactly one
+upgrade at `2026-09-17T23:29:29.837Z`, operation
+`59115851-d876-40fb-ac4c-d0e32e2e2272`. Its Run Command completed Succeeded,
+exit 0, at `23:29:42Z`. The returned version, full commit and archive SHA-256
+match the pinned replacement. The GUI then reconciled `upgrade.phase=finished`.
+The normal upgrade script preserved previous executables and installation
+evidence under `/var/lib/agefreighter/upgrades/59115851-d876-40fb-ac4c-d0e32e2e2272`.
+
+Separate post-upgrade readiness (`23:30:35.159Z`) verified the current boot
+`62fafaf5-90cd-46ce-89f1-76e14e0e674f`, matching installation, idle worker,
+disk **3.7966%**, zero swap and zero OOM. The upgrade's own readiness had correctly
+reported non-idle while its installation lease was held; it was not reused as
+permission to read source data.
+
+In the actual source panel, **Retain failed assessment / prepare fresh attempt**
+refused before the confirmation dialog or any source dispatch: “Refresh successful
+idle Linux guest readiness on the same boot before retaining the failure.”
+Inspection confirmed that `retainFailedAssessment` required the current healthy
+boot to equal the historical failed operation's boot
+`df841056-5cdf-4cce-b528-24977fc5b793`. Consequently a cost-saving deallocation
+followed by restart permanently blocked that explicit retry flow. This is an
+extension workflow defect, not a new Cosmos query failure.
+
+No workflow JSON was manually edited and no old operation was replayed. The
+failed operation/configuration digests are unchanged; assessment history is
+still empty, and target/migration remain absent. Deallocated the exact runner
+again; fresh ARM readback confirms **PowerState/deallocated**. Corrected binaries,
+old installation and guest evidence remain on its retained disk.
+
+#### Extension correction (local only)
+
+The failure-retention gate now checks a freshly reconciled current readiness
+command, matching installed version/archive/commit, valid boot identity, idle
+worker, disk below 80%, and zero swap/OOM. It no longer requires a terminal
+failure to have occurred on the current boot. The original operation and boot
+are copied unchanged into history; no worker is dispatched or resumed. Unknown,
+running, interrupted, unfinished-upgrade, stale/unhealthy and post-target states
+still fail closed. The modal displays both boots and the current version; the
+handler rechecks trust, VM, boot and installation after confirmation.
+
+Regression includes the production panel handler in an inert test environment:
+approved cross-boot retention succeeds without an Azure dispatcher; changed
+boot/artifact/VM/trust, busy state, cancellation and disposal cannot archive the
+failure. Typecheck, all **309** extension unit tests and compilation pass. This
+candidate is not yet installed, and the original installed-GUI failure remains
+the live result. Review/install the pinned VSIX before resuming the already
+approved same-VM inventory retry. Do not rebuild or replace the Linux artifact
+again for this TypeScript-only correction. B05 and active-operation B10 remain open.
+
+Pinned extension candidate from committed tree
+`007d47d1c86f4eef5a270e3a2ba72cdddfbd9f18`:
+
+- VSIX: `production-simulation/work/vscode-gremlin-retry-vsix.AD7yOp/agefreighter-007d47d-gremlin-retry.vsix`.
+- VSIX SHA-256: `123ec15dd3f568b82764307464dc8ddde2ccd5f22093012ba17a82f2f8259e03`.
+- Packaged JavaScript SHA-256: `8be218f0c16c922ec0f38a53cdf8d9eb1a40cdb92952c5538a861c4e99c8de0f`,
+  independently extracted and matched to the local build.
+- Packaging reran all 309 tests/typecheck/build successfully. Requested specific
+  approval to install/reload this unpublished extension; no installation yet.
+
+Azure records successful deallocation at `2026-09-17T23:32:39.4152949Z`.
+No inventory retry, new permission, network change, target creation or migration
+occurred in this attempt. The approved corrected Linux runner stays installed on
+the preserved disk for the next explicitly reviewed GUI continuation.
+
+### Approved extension installation and inventory retry — September 18 00:10 UTC onward
+
+The user explicitly approved the pinned `007d47d` VSIX installation/reload and
+continuation of the same-VM inventory retry. Installed it through VS Code's
+Install from VSIX dialog and reloaded the window. The installed JavaScript
+SHA-256 is `8be218f0c16c922ec0f38a53cdf8d9eb1a40cdb92952c5538a861c4e99c8de0f`,
+matching the reviewed package. The existing Azure session and saved workflow
+reconnected without new credentials or permissions.
+
+Fresh ARM checks confirmed the exact VM was deallocated, its identity/size and
+previously approved Cosmos Reader assignment were unchanged, and no RG lock
+existed. The bounded activity query contained prior diagnostic/deallocation and
+resource-health events, not a newly identified governance mutation. A fresh
+Cost Management query succeeded: RG ActualCost/PreTaxCost for September 5–18
+returned **USD 218.409872486324**. This is delayed billing, not a final bill;
+the conservative planning reserve and USD 800 ceiling remain unchanged.
+
+Started only the existing runner. The original **01:26 UTC September 18** hard
+deallocation bound is unchanged. GUI readiness requested at `00:12:23.225Z`
+returned boot `854014f3-e967-4317-a6be-d236ce91a74f`, correct installed Linux
+artifact, idle worker, disk **3.8055%**, swap 0 and OOM 0. The corrected native
+retention confirmation displayed the historical and current boots. Accepting it
+retained the original failed operation unchanged in `assessmentHistory`, without
+dispatching source work or editing persisted JSON outside the extension.
+
+Reviewed the same source and explicitly approved complete inventory in the GUI:
+
+- Operation: `c5ce0e77-ac49-472a-a112-b10e5d375b0f`.
+- Submitted: `2026-09-18T00:14:15.070Z`.
+- Worker started: `2026-09-18T00:14:18.633607065Z`.
+- Configuration SHA-256: `ccfef301d9431c039ce3cbe8cbe2e1e776e721be4f26d6c0009024f87a1f598c` (unchanged).
+- Guest configuration SHA-256: `998df731018e1997ff2e01bcdddd7d12be48e11802824ccb3a5612e077b24082`.
+- Submit Run Command: `af-3adeacec-9c5f-4525-8936-c3a08f7c733f`, Succeeded/exit 0.
+
+After a guest status response proved **running**, performed actual Developer:
+Reload Window, reconnected through the installed wizard, and reopened the source
+panel. The same operation/boot/configuration remained running. A fresh status
+request at `00:17:35.190Z` (`af-d6b508e4-6cc6-4540-85a8-a6b56eb3f590`) returned
+the same original worker start time. This qualifies the active-assessment
+reload/reconnect portion of B10, not active migration/verification reload or a
+forced crash. No inventory was replayed. Read-only guest health at `00:18:48Z`
+found the same service active/running, PID 1319, cgroup MemoryCurrent 15,122,432
+bytes, disk 4%, swap 0 and no kernel OOM match.
+
+Inventory remains **running, not yet accepted as complete**. Its existing
+30-minute runtime ends around `00:44:19Z`. The five-minute thread heartbeat
+`gremlin-inventory-retry-completion` monitors only this operation: retain/import
+terminal evidence, deallocate this exact VM on terminal outcome or no later than
+01:26 UTC, and disable itself after verified deallocation. No target creation,
+new role, network change, migration or automatic retry is included. The earlier
+source-preparation heartbeat stays paused. B05 still needs complete inventory,
+installed-GUI migration and all 64 target digest ranges.
+
+Local follow-up: extension typecheck and all **309 tests** pass again. Focused
+Cosmos and app Go tests pass. The additional runner package rerun is **not a
+pass**: CSV tests stop at the real filesystem's 80% capacity gate; the Mac data
+volume reports 81% used. No files were deleted and no gate was bypassed. This
+local test-environment limitation is separate from the Azure runner's 4% disk.
+
+### Full inventory accepted and runner deallocated — September 18 00:32 UTC
+
+The completion monitor reconciled the existing operation, without retry or
+replay. Guest state records **finished / exit 0** at
+`2026-09-18T00:25:25.261403327Z`: elapsed **11 minutes 6.63 seconds** from the
+original worker start. The existing 30-minute runtime bound was not changed.
+
+The installed source panel reconciled completion, then performed its normal
+create-only export and exact-byte import. Export Run Command
+`af-5700c6b3-1fb1-4edc-8759-f7fc75d27e24`, submitted at `00:30:00.300Z`, succeeded
+with exit 0. The GUI opened **Hash-verified source report** and explicitly stated
+that this is not migration or sizing approval. The privately retained local file
+is `runner-v2/4043e008-b86e-47b8-8722-1efe637ae12a.report-c5ce0e77-ac49-472a-a112-b10e5d375b0f.json`
+under the extension's global storage. Its **2,944 bytes** and independently
+computed SHA-256 match both guest state and export receipt:
+`c4ec98b8adb7e3a70d5b00d0914a66c6f3e5ca28244958edf4b62d0fe438dba6`.
+
+Acceptance checks:
+
+- Report outcome **pass**; read-only and source-counts checks both **pass**.
+- Errors and incomplete checks are both empty; all report fields pass.
+- Complete-stream totals: **1,600,000 vertices + 4,000,000 edges = 5,600,000 records**.
+- All **18** mapped-label counts independently match the prepared portable
+  manifest, including the exact nine vertex labels and nine edge labels.
+- Every configured mapping reached EOF under the required immutable-source
+  window. This is exact count/discovery evidence, not a full source/target digest.
+- Original failure, replacement archives, current operation and both guest/local
+  evidence remain retained. Target and migration state are still absent.
+
+Read-only guest health at `00:29:56Z` found the completed service inactive/dead,
+Result success, ExecMainStatus 0, disk **4%**, swap **0**, and no kernel OOM match.
+MemoryCurrent was unavailable after exit; the earlier running sample was
+15,122,432 bytes. A continuous memory peak is not claimed. The bounded recent
+activity check found only the expected status Run Command; the latest delayed
+cost remains USD 218.409872486324, below the unchanged USD 800 ceiling.
+
+Deallocated only `af-4043e008b86e47b88722`, preserving its OS disk and all evidence.
+Fresh ARM readback confirmed **VM deallocated / provisioning Succeeded** before
+`00:32:27Z`, well before the unchanged 01:26 UTC bound. After this verification,
+`gremlin-inventory-retry-completion` was set to **PAUSED**. No credentials, RBAC,
+network controls, tags, source documents or other resources were changed.
+
+**Outcome:** the installed-GUI Gremlin-shaped NoSQL complete source inventory
+passes. B05 still requires separate target/capacity review, migration and all
+64 canonical target ranges. Active-assessment reload/reconnect passed; active
+migration/verification reload and forced crash remain open under B10. No new
+base migration route is counted as qualified by this inventory result.
+
+### Target-review admission correction — September 18 JST
+
+On continuation, the installed GUI's **Review / reconcile private target**
+stopped with `Mapped labels do not cover the whole approved inventory.` before
+target inputs, credentials or deployment. Gremlin automatic discovery correctly
+has no manually entered mappings; the extension incorrectly required its full
+18-label inventory to match that empty manual list. No Azure mutation occurred.
+
+The local correction admits the discovered catalog only from the existing
+complete, hash-verified imported inventory, bound to the reviewed configuration,
+operation and Linux artifact version. It checks Gremlin mode, container,
+partition property, discovery bounds, label validity/uniqueness and exact
+vertex/edge/total coverage. Explicit PostgreSQL/Cosmos mappings still require
+their exact manual label set. Capacity totals must agree, and integer summation
+uses BigInt. No sampled profile or synthetic persisted mappings are accepted.
+
+All **314** extension tests, typecheck, compilation and whitespace validation
+pass. Five new tests cover the retained report, private-target preview, malformed
+or incomplete catalogs, mismatched configuration and altered receipt/bytes.
+Read-only evaluation against the actual private workflow/report accepts
+5,600,000 rows, 18 labels and storage high estimate 13,444,452,070 bytes, with
+the original report SHA and unchanged workflow state. The checked-in count-only
+regression fixture is JSON-equivalent to the retained report; its additional
+trailing newline gives it a separate SHA-256
+`f61d5011e0266d6700ed8ee5f853a693911faaffd4ff30af2d10b94e5d952c5b`.
+
+This is a **local correction, not an installed-GUI target-review pass**. The
+runner remains deallocated. Installation/reload of the new pinned unpublished
+VSIX needs action-time approval; private-target provisioning and a new bounded
+runner session require their own review. Existing report, failure evidence,
+Linux artifact, credentials and cloud resources are unchanged.
+
+Pinned replacement package (not installed):
+
+- Source commit: `60ea712de199ab3c4a17c5465560cbb8faa1d8bd`.
+- VSIX: `production-simulation/work/vscode-gremlin-target-vsix.50cerJ/agefreighter-60ea712-gremlin-target.vsix`.
+- VSIX SHA-256: `8f0eabd2a500de6ce0be5228240d8f83d3bbcce1c79822364e472056a820286f`.
+- Bundled JavaScript SHA-256: `90497cab435a6f2082d08cf4097ef77daf5d69e1dc78c5067ca21a33effc0617`.
+- Package prepublish repeated typecheck, all 314 tests and compilation successfully.
+- Next gate: specifically approve installation/reload of this unpublished VSIX,
+  reconnect the same workflow and retry target review using the retained report.
+  No Linux artifact replacement or repeated source inventory is required.
+
+### Approved target-review VSIX installed — September 18 01:42–01:49 UTC
+
+Following specific user approval, installed the pinned `60ea712` VSIX through
+the native Install from VSIX dialog and ran Developer: Reload Window. VS Code
+reported successful installation. The installed `dist/extension.js` hash is
+`90497cab435a6f2082d08cf4097ef77daf5d69e1dc78c5067ca21a33effc0617`, exactly
+the reviewed package. Existing Azure sign-in and workflow reconnection worked.
+The saved report remains imported with operation `c5ce0e77-ac49-472a-a112-b10e5d375b0f`
+and unchanged SHA `c4ec98b8adb7e3a70d5b00d0914a66c6f3e5ca28244958edf4b62d0fe438dba6`.
+
+The installed GUI now passes Gremlin label admission and opens target inputs.
+Reviewed provisional values: server `afpg-4043e008b86e47b88722`, free subnet
+`10.246.22.0/24`, PostgreSQL D4ds_v5 with 128 GiB storage, later same-VM D4s_v5,
+USD 800 ceiling and USD 650 accrued/non-compute reserve. An execution deadline
+of September 18 06:00 UTC was proposed, not granted or applied to a running VM.
+The next safety gate correctly refuses: **Check the running guest before
+approving target deployment.** No target preview was persisted, folder selected,
+credentials generated, source inventory replayed or Azure deployment submitted.
+
+Fresh ARM readback confirms the runner remains deallocated / provisioning
+Succeeded. The original 01:26 UTC inventory VM bound has passed and was not
+extended. Request a new bounded same-VM readiness session before starting it;
+new target/security approval remains separate. Read-only subnet inventory shows
+the proposed /24 unallocated. Recent activity returned only prior deallocation
+and a resource-health update, with no RG lock returned. Billing refresh returned
+429: USD 218.41 is delayed prior evidence, not a newly confirmed current total.
+The conservative USD 650 reserve remains a planning allowance, not an invoice.
+
+**Current result:** installed-GUI label-admission correction passes; full target
+preflight awaits a running, freshly checked guest. B05 migration/digest and B10
+active migration/verification reload remain open. No cloud mutation this turn.
+
+### Approved bounded readiness session — September 18 02:10 UTC onward
+
+The user approved restarting the same runner within a new bound ending
+`2026-09-18T06:00:00Z` (15:00 JST), keeping the USD 800 ceiling. This does not
+extend the outer September 20 deadline or approve a new target implicitly.
+Fresh ownership/identity/private-placement checks passed, with no RG lock or
+activity returned since 01:40 UTC. Cost Management returned USD
+**220.808334109599** for the dedicated RG (September 5–18 query); billing remains
+delayed. Keep the conservative USD 650 accrued/non-compute planning reserve.
+
+Started only `af-4043e008b86e47b88722`, still B2s_v2. Installed-GUI readiness
+operation `ec1408fb-d7d6-411a-9534-0f0962513950`, submitted at
+`02:11:19.634Z`, finished. Fresh boot is
+`2b92af56-b33b-46fa-8368-f972d8bf5752`; pinned CLI/archive remain unchanged.
+Worker idle, disk **3.90265%**, swap **0**, OOM events **0**. The successful
+source inventory/report was reused without rediscovery or replay.
+
+The D4ds_v5 target attempt correctly failed quota preflight before any target
+intent or deployment: PostgreSQL DDSv5 usage **62/64** leaves fewer than four
+vCores. Regional usage is **78/196**; EDSv5 **16/256** has headroom. No resources
+were deleted and no quota increase was requested.
+
+Re-ran the actual GUI review for E8ds_v5 / 128 GiB storage, same-VM D4s_v5,
+Japan East / zone 1, new private server `afpg-4043e008b86e47b88722` and subnet
+`10.246.22.0/24`. The subnet is free inside the existing `10.246.0.0/16` VNet.
+All target preflight checks passed and the native final confirmation displayed
+**USD 1.448/hour** combined compute, plus USD 650 reserve, USD 800 ceiling and
+06:00 UTC deadline. Requested specific approval for the new private target,
+delegated subnet and generated SecretStorage-only credentials. No target was
+submitted at this checkpoint; migration, resize and full verification are still
+separate steps. No source/network/RBAC changes were made.
+
+Selected **Save plan only** in the native confirmation and saved through the
+normal folder dialog. GUI explicitly confirms no Azure resources deployed.
+The retained target phase is `previewed`, plan hash
+`c03975cfcf9ec4346e11ec8c38899396a6489027e45148514c63c7294cbbc47c`.
+Create-only exports under `production-simulation/work/`:
+
+- `agefreighter-4043e008-b86e-47b8-8722-1efe637ae12a-c03975cfcf9e.yaml`,
+  SHA-256 `620b070344e3b7dff4e0d52e5fbadfa28595fa66d5f917fd1ec3470b646ab203`.
+- `agefreighter-4043e008-b86e-47b8-8722-1efe637ae12a-c03975cfcf9e.target.json`,
+  SHA-256 `9a3f1cbf3286d79975fd1ea9f082ac667cde5568468a1c4aa9e88a4c5cb4327e`.
+
+After readiness/preview completed, deallocated only the same runner while
+awaiting the separate target approval. Fresh ARM readback confirms **VM
+deallocated / provisioning Succeeded**. OS disk and all evidence are preserved.
+No active worker, source operation or monitor was started. Continuation must
+refresh boot/guest health and target preflight; the native preview is not a
+durable authorization to skip freshness gates. The 06:00 UTC bound still applies.
+
+### Approved private target deployed — September 18 02:29–03:06 UTC
+
+Following the user's specific private-target approval, refreshed the same
+runner's readiness in the installed GUI: operation
+`a06d9347-7334-4b23-aa8d-4ba930615820`, boot
+`b15b106f-c23b-4f94-9727-f627297f83a3`, disk 3.90413%, idle worker,
+zero swap/OOM, unchanged pinned Linux artifact. Repeated target preflight and
+saved/submitted the reviewed plan through the actual folder/approval dialogs.
+Plan SHA-256: `48093e263ee939cf46b59e7fdff8995d5e17b175f41a39c66ee826b8b1576416`.
+
+Deployment `afpg-4043e008b86e47b88722` succeeded at
+`2026-09-18T02:39:09.848272Z` (correlation
+`fda2c97f-9b97-4f42-9da9-8dff0c0b8057`). The installed GUI subsequently
+reconciled it to **provisioned**, without replay. PostgreSQL 18 / E8ds_v5,
+128 GiB **storage**, Japan East zone 1, dedicated private subnet
+`10.246.22.0/24`; generated credentials stay in SecretStorage. Public access
+and source access scope were not expanded. Governance activity includes a
+policy deployment enabling target threat protection and subnet audit failures;
+these were observed, not bypassed or attributed to an application failure.
+
+AGE preload restart was submitted through the installed GUI at `03:05:27Z`.
+Fresh idle readiness was requested before the separately reviewed same-VM
+resize. Migration has not started and no additional qualification is claimed.
+The exact VM/target now have a five-minute safety monitor; it may reconcile
+existing operations and stop these resources, but cannot start/retry a load.
+Hard stop remains **September 18 06:00 UTC / 15:00 JST**. USD 800 ceiling,
+USD 650 conservative reserve and USD 1.448/hour combined planned compute
+remain unchanged; the latest refresh was throttled, so USD 220.808334109599
+is delayed prior billing evidence, not a real-time total.
+
+### New migration running and active Reload Window — September 18 03:11–03:19 UTC
+
+AGE preload reconciliation finished. The installed GUI completed each separate
+same-VM step (deallocate, size change, start, read-only reconciliation) to
+**D4s_v5**. Preserved NIC/disk/identity binding SHA-256 is
+`52a1faeced2ef41a5c33e0f3243e18aba799abcab563c84f34f6f4adf01dffda`.
+Post-resize readiness `f9382afd-3e11-4c5c-8ef9-54a4784f3c71` passed with
+boot `14b6b096-e4ce-4014-b98b-cc27c45cc93d`, idle worker, disk **3.91945%**,
+swap/OOM zero, unchanged pinned CLI. The initial start preflight correctly
+required this refreshed readiness; it did not dispatch a load prematurely.
+
+Using the installed GUI's explicit new-migration action and native confirmation,
+started job/operation **`c257a458-be95-44be-a3ad-54e2318b1856`** at
+**`2026-09-18T03:13:38.751Z`**, against only the new private target. Expected
+counts remain **1.6M vertices + 4M edges / 18 labels**. Managed identity reads
+the prepared source; the existing target secret uses protected transport.
+Guest configuration SHA-256:
+`d1b014dfbf8c160173d5510594e84368f7de8c0063294bdb78ce8de168b476b2`.
+
+GUI status progressed submitted → accepted → **running**. While running,
+executed actual **Developer: Reload Window**, reopened the migration panel,
+selected the same saved workflow and used only **Refresh retained migration**.
+The GUI and persisted record retain the same job/operation, original start,
+boot and configuration; no new migration, resume, discovery or target deployment
+was submitted. This records the active migration reload/reconnect portion of
+B10, not a forced Extension Host crash or active full-verifier reload pass.
+
+The load/complete-counts service retains its existing **30-minute** bound
+(approximately 03:44 UTC); do not extend or automatically retry it. The scoped
+monitor now tracks this exact job and the earlier 06:00 UTC infrastructure
+stop bound. Full Gremlin verifier installation/execution still requires its
+specific action-time approval after successful counts. Counts and the full
+64-range target digest remain **pending**, not qualification PASS.
+
+Read-only guest inspection after reload confirms the same unit is active/running,
+with its original `03:13:57 UTC` activation, current cgroup memory **25,346,048
+bytes**, disk **4%**, swap **0**, kernel OOM events **0**. The active unit's
+`ExecMainStatus=0` is not a terminal-success receipt. A subsequent GUI status
+reconciliation still reports running; no committed-row count or completion
+claim is inferred from this health sample.
+
+### Migration and complete counts PASS — September 18 03:27–03:32 UTC
+
+The same job completed after the active Reload Window/reconnect. Its exact
+verification report was generated at **03:27:12.38885669 UTC**, approximately
+**13m 33.64s** after GUI submission (includes preparation, load and counts;
+not an isolated load duration). GUI refresh observed finished / exit 0, then
+the normal Transfer/open action exported and imported the sealed report and
+displayed **Counts verification: PASS**.
+
+- Report: **9,618 bytes**, SHA-256
+  `32ad3da4325a99b0b2360ad9a33cc48b54bf512cad006f17bd270edf7eb82bda`;
+  independently recomputed from the retained private Mac report.
+- Fingerprint: `622f6004f5b29ac27d085c3573464bbbfd0c58efc741d2736308d49a603b6a66`.
+- Exact **1,600,000 vertices + 4,000,000 edges**, all **18 labels**, zero rejects.
+  Physical and durable-identity counts agree; all 24 checks pass, errors and
+  incomplete checks are empty. Committed-byte counters remain unavailable and
+  are not inferred from row counts.
+- At 03:28:04 UTC the original guest service was inactive/dead, disk 4%, swap
+  zero and kernel OOM count zero. No migration was resumed or retried.
+- [Redacted count receipt](evidence/gremlin-counts-pass-20260918.json) does not
+  replace the full report or qualify properties/endpoints canonically.
+
+B10 active-migration reload now has successful post-reload completion evidence.
+Active verifier reload and forced Extension Host crash remain open. B05 is
+still partial until all 64 Gremlin target digest ranges/root match.
+Requested specific approval for the pinned `e70e02068c68` Gremlin verifier
+(SHA `ecce5c6c105f786fe17fc698408312512fe11d786d4dcf5f076ad5f84687d0de`),
+read-only / 25 minutes / 4 GiB on this same job, including restarting only this
+VM/target within the existing 06:00 UTC bound. No verifier has been installed
+or executed. Submitted deallocation of only this idle VM and stop of only this
+new target while awaiting approval; all data/disks/evidence are retained.
+
+Fresh ownership tags and VM identity match. No RG locks or unrelated non-policy
+mutations were returned since 03:15 UTC. Billing refresh returned 429; keep the
+USD 220.808334109599 delayed observation and USD 650 planning reserve distinct
+from real-time billing. The USD 800 ceiling is unchanged.
+
+By **03:34:36 UTC**, fresh ARM readback confirms only the exact runner is
+**deallocated / provisioning Succeeded** and only the new target is **Stopped**.
+OS disk, source, migrated graph and all reports remain retained. The scoped
+heartbeat is paused after both stopped states were verified. PostgreSQL may
+auto-start after its platform stop-retention period; this is not deletion or
+a promise of zero storage charges. The full verifier approval remains pending.
+
+### Approved full-verifier session — September 18 04:45 UTC onward
+
+The user specifically approved restarting this exact VM/target and running the
+pinned `e70e02068c68` Gremlin verifier, read-only / 25 minutes / 4 GiB. Its local
+archive hash still matches the approved `ecce5c6c…87d0de`; no artifact was
+rebuilt or replaced. Fresh ownership/identity and private-placement checks
+matched, with VM deallocated and target Stopped before restart. No RG locks;
+activity since 03:34 UTC contained the preceding stop and resource-health
+events, not unrelated resource mutation. Cost refresh remains HTTP 429; the
+USD 650 conservative reserve plus at most the remaining 1.25 hours of USD
+1.448/hour compute stays below the USD 800 ceiling, without claiming real-time
+billing. Hard stop remains **06:00 UTC / 15:00 JST today**.
+
+Started only this VM and target, restored the same saved workflow through the
+installed GUI, and requested fresh Linux readiness. The five-minute safety
+monitor is active for this bounded verifier session, with no automatic replay,
+retry, source mutation or scope expansion. Full verification remains pending.
+
+Fresh GUI readiness passed on boot `0f5d92ea-d4b7-432f-b9a1-d3a25b0f362e`,
+operation `24bb3d4a-7f2f-49b7-970b-cad469331589` at 04:48:14 UTC:
+idle, disk 3.93894%, zero swap/OOM, unchanged pinned loader. Target returned
+Ready. The GUI selected and hash-checked the exact approved verifier manifest
+and accepted its native final confirmation, but **refused before uploading or
+dispatching verification**: `Archive completed ARM receipts before qualification.`
+ARM has exactly **25** managed Run Command records; this is the extension's
+retained-receipt safety guard, not a claim of an Azure service quota. No
+`p1Qualification` operation was persisted and no verifier was run.
+
+Three older, successful, read-only readiness records were identified for a
+separately approved archive/removal: `af-157990d3-b0a8-41a6-ac85-3ed78a9bf7c8`,
+`af-21d089df-b53e-49cd-b9fb-0e561fe15b8e`, and
+`af-8c89c79b-d347-4ec1-823d-7e8dc5da656a`. Their pre-stop execution results
+were Succeeded / exit 0 and are preserved in the
+[redacted readiness archive](evidence/gremlin-readiness-archive-20260918.json).
+No record was deleted. After stopping the VM, ARM InstanceView became Pending
+without output while provisioningState remained Succeeded; do not interpret
+that volatile view as command replay. A future authorized removal must first
+recheck exact records after restart and retain complete sanitized receipts.
+
+Requested approval to remove **only those three completed ARM control records**
+after evidence commit/push; data, job, guest evidence and the current readiness
+record are excluded. Submitted exact VM deallocation and target stop while
+awaiting this new approval. Existing verifier approval remains bound to its
+unchanged binary/job and 06:00 UTC deadline; neither the guard nor deadline
+was bypassed.
+
+At **04:53:52 UTC**, fresh ARM reads verify this VM **deallocated / provisioning
+Succeeded** and target **Stopped**. The scoped heartbeat is paused. No other
+resources, source documents, permissions or networking changed.
+
+### Approved receipt archival and removal — September 18 05:00 UTC onward
+
+The user approved removal of only the three named historical successful readiness
+control records and continuation of the already approved full verifier. Fresh
+ownership/private-placement/lock checks passed; recent activity contained the
+preceding target stop. Billing refresh remains 429, so the USD 650 conservative
+reserve and USD 1.448/hour compute allowance are retained, not called live billing.
+Started only the same VM and target; hard stop remains **06:00 UTC / 15:00 JST**.
+
+After boot, the exact three records again returned their original successful
+execution timestamps, exit 0 and complete readiness outputs. Saved selected
+non-sensitive ARM fields and complete outputs in the
+[ARM readiness archive](evidence/gremlin-readiness-arm-archive-20260918.json),
+committed and pushed as `de7b3db` **before deletion**. Then removed only these
+three control records. Fresh ARM listing has **22** records and none of those
+three names. Current readiness, failed operations, inventory/migration/export
+records, guest evidence, all data and disks remain intact. This control-record
+removal is permanent in Azure; the archived evidence remains available in Git.
+The full verifier is not yet submitted; fresh GUI readiness is in progress.
+
+Fresh readiness `24d93dab-0743-471d-97d7-d3a51d48ded1` at **05:02:35.416 UTC**
+passed on boot `d50634d9-f933-44d3-838c-2daf1292ed5f`: idle, disk **3.94291%**,
+swap/OOM zero and unchanged loader. Independent guest diagnostic found no active
+worker and about 288 MB used memory. Target is Ready. The GUI selected the exact
+already-approved verifier manifest, recomputed its matching archive hash and
+accepted the reviewed native confirmation. Qualification was submitted once at
+**05:04:42.871 UTC**, operation `b0530700-ccd4-4f33-84fa-0854c8f4037b`, profile
+`gremlin-partition64`, for existing job `c257a458-be95-44be-a3ad-54e2318b1856`.
+Its 25-minute service limit and 4-GiB/no-swap limits remain; the infrastructure
+hard stop is 06:00 UTC. No completed digest or B05 PASS is claimed yet.
+
+ARM reported this verifier **Running**, original start **05:05:14 UTC**, before
+actual Developer: Reload Window. Reopened the installed wizard, reconnected to
+the same saved workflow and reconciled the existing qualification only. Operation,
+job, original submission and boot remained unchanged; no second verifier was
+submitted. A concurrent guest health sample at **05:06:37 UTC** found the same
+service active/running, service start **05:05:15 UTC**, cgroup memory
+**1,572,036,608 bytes**, disk **6%**, zero swap and kernel OOM events.
+
+The original ARM command completed **Succeeded / exit 0 at 05:08:24 UTC** with
+a sealed result of **23,309 bytes**, SHA-256
+`cca08711f12ff96007db94001308729ba83c6ab0473166d72b5f22001f5af804`.
+The installed GUI reconciled that exact receipt and submitted only the normal
+result export `af-d94bc0c0-48fb-4994-8168-8895a4fc36d5`; Mac import and independent
+root validation remain pending at this checkpoint. The verifier was not replayed.
+
+### Full canonical GUI qualification PASS — September 18 05:11 UTC
+
+The normal export completed and the installed GUI imported the exact sealed report,
+then displayed **P1 full canonical digest: PASS**. Report generated at
+**05:08:24.606577967 UTC**, 23,309 bytes / SHA-256
+`cca08711f12ff96007db94001308729ba83c6ab0473166d72b5f22001f5af804`.
+Independent Mac validation checked the private report byte length/hash, job,
+read-only flag, every expected/actual leaf, and recomputed both canonical roots:
+
+- **1,600,000 vertices + 4,000,000 edges**, all **18 labels / 64 ranges**.
+- Typed properties, composite identities and physical endpoints agree.
+- Root **`8a048faa36fad90404c263d3ce75073d117e5d96a15f8a614a42347cbd7a0ef4`**.
+- Guest verifier execution was approximately **3m 10s** by ARM timestamps;
+  submission/upload/export/GUI import are separate from that duration.
+- Active-verifier Reload Window/reconnect retained the original operation, then
+  reached full GUI PASS without replay. Forced Extension Host crash is not tested.
+- [Redacted full receipt](evidence/gremlin-full-pass-20260918.json); full private
+  report is retained in extension storage and the VM evidence directory.
+
+This completes **B05's Gremlin-shaped NoSQL document branch**, not native Cosmos
+Gremlin API qualification, production-scale certification or every remaining GUI
+branch. All nine base routes remain qualified. At 05:10:48 UTC the verifier unit
+was inactive/dead; disk 6%, swap zero and kernel OOM events zero. No migration,
+source read or verification was replayed. Recent successful activities match the
+approved starts/readiness/three control-record removals/verifier and diagnostics.
+Submitted deallocation of only this VM and stop of only its target immediately
+after retaining/importing success; all data, disks, source and evidence remain.
+Final stopped-state readback is pending; no deadline extension is used.
+
+At **05:13:54 UTC / 14:13:54 JST**, fresh ARM readback confirms the exact VM
+**ProvisioningState/succeeded + PowerState/deallocated**, and exact target
+**Stopped**, before the 15:00 JST bound. The scoped safety heartbeat is paused
+after verified shutdown. Resources/data/disks and all retained reports remain;
+storage charges continue and the platform may auto-start PostgreSQL after seven
+days. No other resources were stopped or deleted in this session.

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "observer": "root supervisor via actual normal installed VS Code/CUA",
+  "atUTC": "2026-09-24T00:32:27.994156+00:00",
+  "extensionBundleSHA256": "7a2aa5ddf13454ff6dab4d4a8ad2cb9a172842c9c4fbcc7b5d8e94d3f79d1d34",
+  "sourceType": "neo4j",
+  "sourceLocation": "on-premises",
+  "subscription": "67c417f3-5a13-446c-afb9-40cd87f2fdb7",
+  "resourceGroup": "rg-af-vscode-p1-20260905-a",
+  "region": "southeastasia",
+  "size": "Standard_D2s_v5",
+  "subnet": "af-b02-sku-20260924/runner",
+  "refusal": {
+    "zone": "2",
+    "previewSubmittedAtUTC": "2026-09-24T00:28:15.866Z",
+    "resultObservedAtUTC": "2026-09-24T00:28:43.923Z",
+    "message": "The selected discovery SKU is not available in this subscription/zone."
+  },
+  "control": {
+    "zone": "1",
+    "onlyInputDifferenceFromRefusal": "zone",
+    "previewSubmittedAtUTC": "2026-09-24T00:31:36.200Z",
+    "resultObservedAtUTC": "2026-09-24T00:31:49.949Z",
+    "message": "The matching AGEFreighter 2.4.0 Linux release/checksums are not available. No Azure deployment was submitted."
+  },
+  "uiEvidence": {
+    "axObserved": true,
+    "screenshotsViewedThroughCUA": true,
+    "separateScreenshotFilesSaved": false
+  },
+  "operatorStore": {
+    "beforeSHA256": "fb40943295f5d4f3d51c33d7ffd9eda7f3fef2e2e0254c050a4035b126964bbe",
+    "files": 94,
+    "unchangedNamesBytesHashesModes": true
+  },
+  "newWorkflowOrSourceOperation": false,
+  "fixtureVnetCleanupPending": true,
+  "pass": "Actual unavailable-SKU refusal and valid-zone control only; earlier known/unknown-zone and quota evidence retain their stated layers."
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "workflow": "4043e008-b86e-47b8-8722-1efe637ae12a",
+  "operation": "b0530700-ccd4-4f33-84fa-0854c8f4037b",
+  "jobId": "c257a458-be95-44be-a3ad-54e2318b1856",
+  "profile": "gremlin-partition64",
+  "outcome": "pass",
+  "generatedAt": "2026-09-18T05:08:24.606577967Z",
+  "bytes": 23309,
+  "sha256": "cca08711f12ff96007db94001308729ba83c6ab0473166d72b5f22001f5af804",
+  "canonicalRoot": "8a048faa36fad90404c263d3ce75073d117e5d96a15f8a614a42347cbd7a0ef4",
+  "ranges": 64,
+  "labels": 18,
+  "vertices": 1600000,
+  "edges": 4000000,
+  "readOnly": true,
+  "allLeavesIndependentlyMatched": true,
+  "fullReportRetainedPrivately": true,
+  "scope": "Gremlin-shaped Cosmos NoSQL documents; not Gremlin API qualification"
+}

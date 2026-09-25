@@ -9,6 +9,10 @@ dist/
 .local/
 tab_replaced_*
 
+# Guided migration state contains local resource identifiers and bounded
+# operational evidence. Explicitly exported redacted reports may be committed.
+.agefreighter/guided/
+
 # Large production-simulation fixtures and raw telemetry stay local. Reviewed
 # summaries are tracked separately.
 production-simulation/work/

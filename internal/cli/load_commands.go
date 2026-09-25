@@ -14,18 +14,27 @@ import (
 )
 
 func newLoadCommand() *cobra.Command {
-	return &cobra.Command{
+	var jobID string
+	command := &cobra.Command{
 		Use:   "load JOB",
 		Short: "Load a validated job into Apache AGE",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(command *cobra.Command, args []string) error {
-			result, err := app.Load(command.Context(), args[0])
+			var result app.LoadResult
+			var err error
+			if jobID == "" {
+				result, err = app.Load(command.Context(), args[0])
+			} else {
+				result, err = app.LoadWithID(command.Context(), args[0], jobID)
+			}
 			if err != nil {
 				return fmt.Errorf("load job %s: %w", result.JobID, err)
 			}
 			return writeJSON(command, result)
 		},
 	}
+	command.Flags().StringVar(&jobID, "job-id", "", "new durable job UUID retained by an orchestrator (never resumes an existing job)")
+	return command
 }
 
 func newResumeCommand() *cobra.Command {
@@ -68,13 +77,14 @@ func newStatusCommand() *cobra.Command {
 
 func newVerifyCommand() *cobra.Command {
 	var (
-		targetPath  string
-		level       string
-		counts      bool
-		integrity   bool
-		limit       int
-		formatValue string
-		outputPath  string
+		targetPath      string
+		level           string
+		counts          bool
+		integrity       bool
+		requireComplete bool
+		limit           int
+		formatValue     string
+		outputPath      string
 	)
 	command := &cobra.Command{
 		Use:   "verify JOB_ID",
@@ -92,6 +102,9 @@ func newVerifyCommand() *cobra.Command {
 				return fmt.Errorf(
 					"--limit must be within 1..%d", app.MaxIntegrityLimit,
 				)
+			}
+			if requireComplete && !counts && !integrity {
+				return errors.New("--require-complete requires --counts or --integrity")
 			}
 			switch reportcontract.Format(formatValue) {
 			case reportcontract.FormatJSON, reportcontract.FormatMarkdown:
@@ -135,10 +148,7 @@ func newVerifyCommand() *cobra.Command {
 				} else if err := writeExclusiveReport(outputPath, output); err != nil {
 					return err
 				}
-				if document.Outcome == reportcontract.OutcomeFail {
-					return errors.New("deep verification failed")
-				}
-				return nil
+				return verificationOutcomeError(document.Outcome, requireComplete)
 			}
 			result, err := app.Verify(command.Context(), targetPath, args[0])
 			if err != nil {
@@ -159,6 +169,8 @@ func newVerifyCommand() *cobra.Command {
 		&integrity, "integrity", false,
 		"run deterministic bounded identity and endpoint consistency checks",
 	)
+	command.Flags().BoolVar(&requireComplete, "require-complete", false,
+		"return an error unless deep verification is complete and passing")
 	command.Flags().IntVar(
 		&limit, "limit", app.DefaultIntegrityLimit,
 		"maximum identity and physical rows checked per label",
@@ -173,6 +185,16 @@ func newVerifyCommand() *cobra.Command {
 	)
 	_ = command.MarkFlagRequired("target")
 	return command
+}
+
+func verificationOutcomeError(outcome reportcontract.Outcome, requireComplete bool) error {
+	if outcome == reportcontract.OutcomeFail {
+		return errors.New("deep verification failed")
+	}
+	if requireComplete && outcome != reportcontract.OutcomePass {
+		return errors.New("deep verification is incomplete")
+	}
+	return nil
 }
 
 func newReportCommand() *cobra.Command {

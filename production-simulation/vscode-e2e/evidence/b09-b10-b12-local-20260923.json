@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "scope": "Local regression and isolated real VS Code only; no Azure qualification",
+  "observedAt": "2026-09-23T09:23:08Z",
+  "candidate": {
+    "commit": "3bc006939b24725d5114f4384e42bc54e8e3c2cd",
+    "vsix": "agefreighter-2.4.0-b091012-3bc0069.vsix",
+    "bytes": 593651,
+    "sha256": "1a3121acbd22f6938f960b058939e62a226355022213d7d84110c742b1d5e507",
+    "bundleSHA256": "3108910e2933f73b1b1d0edf92458e7384e2008261469c56da2f19789366da67",
+    "installed": false,
+    "installationApproval": "requested"
+  },
+  "vscode": {
+    "version": "1.139.0",
+    "commit": "2242ebbb54efeeb0129e08e919e7e8d43033cd83",
+    "architecture": "arm64"
+  },
+  "review": {
+    "supervisor": "gpt-6-astra xhigh",
+    "implementers": "three gpt-6-astra high",
+    "blockingFindings": 1,
+    "correctedFindings": 1,
+    "remainingBlockingProductionFindings": 0
+  },
+  "regression": {
+    "typecheck": "pass",
+    "unit": {
+      "passed": 608,
+      "failed": 0,
+      "skipped": 0
+    },
+    "bundle": "pass",
+    "actualGoSourceContracts": {
+      "passed": 14,
+      "failed": 0
+    },
+    "realExtensionHost": {
+      "passed": 25,
+      "failed": 0,
+      "profile": "/tmp/af-extension-host-afjSzq",
+      "retainedP1ReportSHA256": "31be3007a1a8f2931a04f0ea0563bf8390426b0be9de7210be6b568ba00e304a"
+    }
+  },
+  "crashHarness": {
+    "profile": "/tmp/af-host-crash-ske6Ed",
+    "exitEvidenceIndependentlyChecked": true,
+    "fixtures": "synthetic ARM only",
+    "nativeOperatorConfirmationTested": false,
+    "cases": [
+      {
+        "point": "before-dispatch",
+        "crash.json": {
+          "sha256": "9dbcd545b957672ca816a27475caaa92d021fa97eed7276584195cf81c91d768",
+          "value": {
+            "point": "before-dispatch",
+            "signal": "SIGKILL",
+            "pid": 66815,
+            "vscode": "1.139.0",
+            "events": [
+              "GET-vm",
+              "GET-command",
+              "GET-current-readiness",
+              "GET-vm",
+              "GET-command",
+              "GET-current-readiness",
+              "GET-vm",
+              "GET-command",
+              "GET-current-readiness"
+            ],
+            "recordSHA256": "97854d5f7d38c78f54f93f485eb15b1bb8b2b3eec353f27cb6a24312094dc676",
+            "archiveSHA256": "430b4dc73a78a5955a0cc4655a4449b15da6178acbef3c3fe9f80b31866e6254"
+          }
+        },
+        "recovery.json": {
+          "sha256": "5806f8fc791648e9d6400be9fd94c96019486f53628b63ae94049945a04b47a9",
+          "value": {
+            "pass": true,
+            "point": "before-dispatch",
+            "pid": 66920,
+            "vscode": "1.139.0",
+            "crashLockPreservedBeforeExplicitRecovery": true,
+            "scriptedLocalLockRecovery": true,
+            "nativeOperatorConfirmationTested": false,
+            "lockArchive": "11111111-1111-4111-8111-111111111111.recovered-lock-4c6f82b3-15d4-4917-94e9-3f623c89bb89.json",
+            "lockSHA256": "da9de7b2bc20eb3fd6e05f47917bc6b4c6533790e1b2d02889a9bd446a87976f",
+            "recordSHA256": "97854d5f7d38c78f54f93f485eb15b1bb8b2b3eec353f27cb6a24312094dc676",
+            "archiveSHA256": "430b4dc73a78a5955a0cc4655a4449b15da6178acbef3c3fe9f80b31866e6254",
+            "recoveryEvents": [
+              "GET-command"
+            ],
+            "cloudRequests": 0
+          }
+        }
+      },
+      {
+        "point": "after-dispatch",
+        "crash.json": {
+          "sha256": "aaea703e5d67156d5e1d245c48bbd342c7b9e53113b54d90cfb525baaa9ff9a3",
+          "value": {
+            "point": "after-dispatch",
+            "signal": "SIGKILL",
+            "pid": 67035,
+            "vscode": "1.139.0",
+            "events": [
+              "GET-vm",
+              "GET-command",
+              "GET-current-readiness",
+              "GET-vm",
+              "GET-command",
+              "GET-current-readiness",
+              "GET-vm",
+              "GET-command",
+              "GET-current-readiness",
+              "synthetic-DELETE"
+            ],
+            "recordSHA256": "1134c5d372fab7aa6740759819edb03421378910522b9c0c4597baa93fa2674e",
+            "archiveSHA256": "309073271b9bb6b886dc2ff66800483d78d3379b178c0ad51111f08fb63c86a9"
+          }
+        },
+        "recovery.json": {
+          "sha256": "216d6d8426e3a785101fbc85a94a8db0070434e4ad1c84390d8f5d8cee53eb8c",
+          "value": {
+            "pass": true,
+            "point": "after-dispatch",
+            "pid": 67159,
+            "vscode": "1.139.0",
+            "crashLockPreservedBeforeExplicitRecovery": true,
+            "scriptedLocalLockRecovery": true,
+            "nativeOperatorConfirmationTested": false,
+            "lockArchive": "11111111-1111-4111-8111-111111111111.recovered-lock-ce117498-1316-43d8-9c5c-6f0f3bf12db7.json",
+            "lockSHA256": "8642b670b374cbbadb667b380932025938da096bb54a57b66a521fd17859459f",
+            "recordSHA256": "1134c5d372fab7aa6740759819edb03421378910522b9c0c4597baa93fa2674e",
+            "archiveSHA256": "309073271b9bb6b886dc2ff66800483d78d3379b178c0ad51111f08fb63c86a9",
+            "recoveryEvents": [
+              "GET-command",
+              "inert-persist"
+            ],
+            "cloudRequests": 0
+          }
+        }
+      }
+    ]
+  },
+  "preservation": {
+    "operatorStoreBefore": {
+      "files": 91,
+      "sha256": "794d6a7e3c88b12a2b70b0373064bd40f2c746318104d0c82697ea8741551709"
+    },
+    "operatorStoreAfter": {
+      "files": 91,
+      "sha256": "794d6a7e3c88b12a2b70b0373064bd40f2c746318104d0c82697ea8741551709"
+    },
+    "unchanged": true
+  },
+  "realAzureRequests": 0,
+  "installedOperatorExtensionChanged": false,
+  "branchStatus": {
+    "B09": "partial",
+    "B10": "partial",
+    "B12": "partial"
+  },
+  "limits": [
+    "No signed-in active Azure crash",
+    "No native operator lock confirmation on retained real operation",
+    "No real Azure control deletion",
+    "No signed-in fresh report transfer fault",
+    "Synthetic rejected reports are not new migration qualifications"
+  ]
+}

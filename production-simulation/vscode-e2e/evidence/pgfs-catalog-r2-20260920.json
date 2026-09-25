@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "qualification": "B04 partial: catalog, reviewed mappings and complete inventory/import passed; live FK recommendations and CSV choice bindings remain open",
+  "workflow": "ae952310-5eba-42b6-9fe3-9db00e93cdac",
+  "operation": "ebe462e6-6995-4c45-a56c-f1d998079008",
+  "submittedAt": "2026-09-20T02:39:19.712Z",
+  "phase": "finished",
+  "configurationSHA256": "d801f9817d9e01f6240ffa6869f700004125fb98376208d4d8989ad66b704cc3",
+  "bindingSHA256": "5f87bf8db5681dc10a5ef25ad4a07a40b4903edb355e05ff06c3fb5723957815",
+  "artifactSHA256": "2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6",
+  "guestCommit": "d40d6ccc9a4ddf6e2ca626392cd7bf83140ed6c7",
+  "bootId": "d789f8b8-0b46-4368-be29-3444288b3cda",
+  "readiness": {
+    "checkedAt": "2026-09-20T02:36:06.825Z",
+    "idle": true,
+    "diskUsedPercent": 3.5110335277372506,
+    "swapUsedBytes": 0,
+    "oomEvents": 0
+  },
+  "report": {
+    "bytes": 23753,
+    "sha256": "08851b472c4471f1a7a597f43956da8b8f94afc1429e2861589665f80b10ace1",
+    "complete": true,
+    "tableCount": 18,
+    "transfer": "imported",
+    "localBytesAndSHA256IndependentlyMatched": true
+  },
+  "adoption": {
+    "explicitlySelectedVertices": 9,
+    "selectedEdges": 0,
+    "requiresGraphIdPropertyAndEdgeReview": true,
+    "fullInventoryStarted": false,
+    "migrationStarted": false
+  },
+  "shutdown": {
+    "verifiedBefore": "2026-09-20T02:43:55Z",
+    "vm": "deallocated",
+    "source": "Stopped",
+    "disksAndEvidencePreserved": true,
+    "sessionBound": "2026-09-20T02:45:00Z"
+  },
+  "inventoryImport": {
+    "observedAt": "2026-09-20T08:45:00Z",
+    "operation": "3a4ffae1-8727-464b-8968-40bed2f42c69",
+    "generatedAt": "2026-09-20T06:13:24.371685639Z",
+    "configurationSHA256": "dfa9355e4d7651d763f6bc04cf7f320cb1adc8709b29dc7d25a71924c9bf9d8a",
+    "bytes": 2947,
+    "sha256": "821638b1e510ff545c424dbfaacf4508d9727c78d9368afc8c34aa98285b9a18",
+    "outcome": "pass",
+    "checksPassed": 2,
+    "errors": 0,
+    "incompleteChecks": 0,
+    "vertices": 1600000,
+    "edges": 4000000,
+    "all18LabelCountsMatchFrozenP1": true,
+    "localBytesAndSHA256IndependentlyMatched": true,
+    "installedGUIReportOpened": true,
+    "rejectedExportEvidenceRetained": true,
+    "sourceReadRepeated": false,
+    "migrationQualification": false,
+    "shutdown": {
+      "observedAt": "2026-09-20T08:45:00Z",
+      "vm": "deallocated",
+      "source": "Stopped",
+      "sourcePublicAccess": "Disabled",
+      "disksAndEvidencePreserved": true,
+      "safetyHeartbeat": "PAUSED",
+      "sessionBound": "2026-09-20T09:10:00Z"
+    }
+  },
+  "offlineMappingReview": {
+    "observedAt": "2026-09-20T03:23:00Z",
+    "vertices": 9,
+    "edges": 9,
+    "frozenFixtureMatchIgnoringOrder": true,
+    "explicitIdentityPropertyProjection": true,
+    "assertP1Projection": "pass",
+    "configurationJSONSHA256": "dfa9355e4d7651d763f6bc04cf7f320cb1adc8709b29dc7d25a71924c9bf9d8a",
+    "actualReloadAndReconnectRetainedMappings": true,
+    "inventorySubmitted": false,
+    "azureStarted": false
+  }
+}

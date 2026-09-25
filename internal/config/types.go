@@ -131,11 +131,12 @@ type DelimitedOptions struct {
 }
 
 type CSVVertex struct {
-	Label      string            `json:"label" yaml:"label"`
-	Path       string            `json:"path" yaml:"path"`
-	IDColumn   string            `json:"idColumn" yaml:"idColumn"`
-	Properties map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
-	Format     *DelimitedOptions `json:"format,omitempty" yaml:"format,omitempty"`
+	Label         string            `json:"label" yaml:"label"`
+	Path          string            `json:"path" yaml:"path"`
+	IDColumn      string            `json:"idColumn" yaml:"idColumn"`
+	Properties    map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
+	PropertyTypes map[string]string `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
+	Format        *DelimitedOptions `json:"format,omitempty" yaml:"format,omitempty"`
 }
 
 type CSVEdge struct {
@@ -145,6 +146,7 @@ type CSVEdge struct {
 	Start            EndpointMapping   `json:"start" yaml:"start"`
 	End              EndpointMapping   `json:"end" yaml:"end"`
 	Properties       map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
+	PropertyTypes    map[string]string `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
 	Format           *DelimitedOptions `json:"format,omitempty" yaml:"format,omitempty"`
 }
 
@@ -200,14 +202,16 @@ type CosmosSource struct {
 }
 
 type CosmosGremlin struct {
-	Enabled                bool   `json:"enabled" yaml:"enabled"`
-	Container              string `json:"container" yaml:"container"`
-	PartitionKeyProperty   string `json:"partitionKeyProperty" yaml:"partitionKeyProperty"`
-	LabelPrefix            string `json:"labelPrefix,omitempty" yaml:"labelPrefix,omitempty"`
-	RelationshipTypePrefix string `json:"relationshipTypePrefix,omitempty" yaml:"relationshipTypePrefix,omitempty"`
-	MaxLabels              int    `json:"maxLabels" yaml:"maxLabels"`
-	MaxProperties          int    `json:"maxProperties" yaml:"maxProperties"`
-	MaxDiscoveryDocuments  int    `json:"maxDiscoveryDocuments" yaml:"maxDiscoveryDocuments"`
+	// PropertyTypes applies to matching user properties on all discovered labels.
+	PropertyTypes          map[string]string `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
+	Enabled                bool              `json:"enabled" yaml:"enabled"`
+	Container              string            `json:"container" yaml:"container"`
+	PartitionKeyProperty   string            `json:"partitionKeyProperty" yaml:"partitionKeyProperty"`
+	LabelPrefix            string            `json:"labelPrefix,omitempty" yaml:"labelPrefix,omitempty"`
+	RelationshipTypePrefix string            `json:"relationshipTypePrefix,omitempty" yaml:"relationshipTypePrefix,omitempty"`
+	MaxLabels              int               `json:"maxLabels" yaml:"maxLabels"`
+	MaxProperties          int               `json:"maxProperties" yaml:"maxProperties"`
+	MaxDiscoveryDocuments  int               `json:"maxDiscoveryDocuments" yaml:"maxDiscoveryDocuments"`
 }
 
 type CosmosDocumentFormat string
@@ -251,6 +255,7 @@ type CosmosVertexQuery struct {
 	Parameters           []CosmosQueryParameter `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	IDField              string                 `json:"idField" yaml:"idField"`
 	Properties           map[string]string      `json:"properties,omitempty" yaml:"properties,omitempty"`
+	PropertyTypes        map[string]string      `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
 	DocumentFormat       CosmosDocumentFormat   `json:"documentFormat,omitempty" yaml:"-"`
 	PartitionKeyProperty string                 `json:"partitionKeyProperty,omitempty" yaml:"-"`
 	MaxProperties        int                    `json:"maxProperties,omitempty" yaml:"-"`
@@ -268,6 +273,7 @@ type CosmosEdgeQuery struct {
 	Start                EndpointMapping        `json:"start" yaml:"start"`
 	End                  EndpointMapping        `json:"end" yaml:"end"`
 	Properties           map[string]string      `json:"properties,omitempty" yaml:"properties,omitempty"`
+	PropertyTypes        map[string]string      `json:"propertyTypes,omitempty" yaml:"propertyTypes,omitempty"`
 	DocumentFormat       CosmosDocumentFormat   `json:"documentFormat,omitempty" yaml:"-"`
 	PartitionKeyProperty string                 `json:"partitionKeyProperty,omitempty" yaml:"-"`
 	MaxProperties        int                    `json:"maxProperties,omitempty" yaml:"-"`

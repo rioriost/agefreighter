@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "observedAtUTC": "2026-09-24T08:21:03.992178+00:00",
+  "workflow": "b425c32a-3ba3-44bc-8415-a48114993c5c",
+  "operation": "c9a36be4-34b2-4b83-a7b5-338636010ac0",
+  "outcome": "PASS",
+  "assessment": {
+    "operation": "c9a36be4-34b2-4b83-a7b5-338636010ac0",
+    "action": "inventory",
+    "phase": "finished",
+    "bootId": "47473777-6820-46b0-926e-d58960edc9f1",
+    "configurationSHA256": "0c4943a49a6a5e4fc549c57924d87ca988aca992e6bec7d7e580770c598bba35",
+    "guestConfigurationSHA256": "f550790417e3c17966a8a406907f703678ea65bd77bef02f99027fe7c8a0dcef",
+    "reportBytes": 2940,
+    "reportSHA256": "33b8024f6056514f5c023b7980e29652a21a545d92be72eb58fc5e954a5e40f2"
+  },
+  "transfer": {
+    "operation": "c9a36be4-34b2-4b83-a7b5-338636010ac0",
+    "phase": "imported",
+    "sha256": "33b8024f6056514f5c023b7980e29652a21a545d92be72eb58fc5e954a5e40f2",
+    "bytes": 2940
+  },
+  "mappingVerification": {
+    "configuredMappings": 18,
+    "reportedMappings": 18,
+    "exactKindAndLabelSetMatch": true,
+    "vertexMappings": 9,
+    "edgeMappings": 9,
+    "counts": {
+      "edge:CARRIED_BY": 350000,
+      "edge:CONTAINS": 1000000,
+      "edge:DESTINED_FOR": 350000,
+      "edge:FULFILLS": 450000,
+      "edge:INCLUDED_IN": 350000,
+      "edge:ORIGINATES_AT": 350000,
+      "edge:PLACED_WITH": 450000,
+      "edge:PRODUCED_AT": 300000,
+      "edge:SUPPLIES": 400000,
+      "vertex:Carrier": 1000,
+      "vertex:Customer": 29000,
+      "vertex:Facility": 20000,
+      "vertex:Location": 10000,
+      "vertex:Lot": 500000,
+      "vertex:Product": 200000,
+      "vertex:PurchaseOrder": 450000,
+      "vertex:Shipment": 350000,
+      "vertex:Supplier": 40000
+    },
+    "vertices": 1600000,
+    "edges": 4000000,
+    "totalRows": 5600000,
+    "reportedTotalsMatchSums": true,
+    "countMethod": "cosmos-nosql-complete-stream",
+    "mappedRecordBytes": 458398000
+  },
+  "reportChecks": [
+    {
+      "id": "read-only",
+      "status": "pass",
+      "summary": "source-only scan; target credentials and quarantine were not used"
+    },
+    {
+      "id": "source-counts",
+      "status": "pass",
+      "summary": "all configured Cosmos mappings reached EOF during the required immutable-source window"
+    }
+  ],
+  "reportErrors": [],
+  "incompleteChecks": [],
+  "limitations": [
+    "Counts describe mapped records, not unique identities or endpoint existence.",
+    "Inventory success is not migration verification or proof of target writes.",
+    "This auditor verified retained local bytes and normal record state; native UI actions were performed and observed by root.",
+    "This receipt does not change the strict inconclusive classification of the separate pre-grant observer."
+  ],
+  "case": "B06 normal installed GUI complete source inventory and sealed import",
+  "overallB06": "PARTIAL: strict pre-grant service-body evidence remains inconclusive",
+  "evidenceLayers": {
+    "nativeGUI": "Root performed and observed normal inventory submission, completion reconciliation and sealed report import.",
+    "independentAudit": "Astra high subagent checked retained complete report bytes, all 18 mappings and native workflow binding locally; no additional cloud or source request.",
+    "independentPrivateReceiptSHA256": "04060bc4c0ce7efa592a59a91f325a4a3d36e9510193cb498008ce74b0c5216a"
+  },
+  "fullReport": {
+    "bytes": 2940,
+    "sha256": "33b8024f6056514f5c023b7980e29652a21a545d92be72eb58fc5e954a5e40f2",
+    "generatedAtUTC": "2026-09-24T08:13:39.029466592Z",
+    "allBytesRetainedPrivately": true
+  },
+  "normalRecord": {
+    "sha256": "65891c0492da65fe149d76745d3b14c8a1a729aecc128f7785a7b35480a54405",
+    "firstRetainedImportedAtUTC": "2026-09-24T08:17:21.708660Z"
+  },
+  "privacy": "No tokens, credentials, source values or full report bytes are included."
+}

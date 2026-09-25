@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "scope": "Redacted completed readiness receipts observed before September 18 stop; not full ARM resource exports",
+  "workflow": "4043e008-b86e-47b8-8722-1efe637ae12a",
+  "vm": "af-4043e008b86e47b88722",
+  "deletionStatus": "User approved; original successful outputs rechecked after restart and archived in gremlin-readiness-arm-archive-20260918.json, committed/pushed as de7b3db before deleting only these three ARM records. Fresh list confirmed 22 records and absence of all three. Guest evidence and data retained.",
+  "postStopObservation": "InstanceView became Pending with no retained output while provisioningState stayed Succeeded. This is not evidence that an old command was replayed.",
+  "commonReadiness": {
+    "version": 1,
+    "os": "linux",
+    "architecture": "amd64",
+    "cliVersion": "2.4.0-dev.290c6efa3b3e",
+    "commit": "290c6efa3b3e08423d35bf004485dfd6e0f1fd98",
+    "archiveSha256": "00b66081e7629ecd4b7ad378cc4b134987d0b892d91b751b789354158e63432e",
+    "ready": true,
+    "capabilities": ["csv-inventory-v1", "csv-migration-v1", "neo4j-inventory-v1", "neo4j-migration-v1", "postgresql-inventory-v1", "postgresql-migration-v1", "cosmos-nosql-inventory-v1", "cosmos-nosql-migration-v1", "postgresql-native-floats-v1", "cosmos-explicit-property-types-v1", "resume-inspection-v1", "explicit-resume-v1"]
+  },
+  "receipts": [
+    {
+      "name": "af-157990d3-b0a8-41a6-ac85-3ed78a9bf7c8",
+      "provisioningState": "Succeeded",
+      "executionState": "Succeeded",
+      "exitCode": 0,
+      "executionMessage": "Execution completed",
+      "error": "",
+      "startTime": "2026-09-18T02:30:11+00:00",
+      "endTime": "2026-09-18T02:30:13+00:00",
+      "bootId": "b15b106f-c23b-4f94-9727-f627297f83a3",
+      "health": {"idle": true, "storageUsedPercent": 3.9041262772214314, "swapUsedBytes": 0, "oomEvents": 0}
+    },
+    {
+      "name": "af-21d089df-b53e-49cd-b9fb-0e561fe15b8e",
+      "provisioningState": "Succeeded",
+      "executionState": "Succeeded",
+      "exitCode": 0,
+      "executionMessage": "Execution completed",
+      "error": "",
+      "startTime": "2026-09-18T03:05:55+00:00",
+      "endTime": "2026-09-18T03:05:55+00:00",
+      "bootId": "b15b106f-c23b-4f94-9727-f627297f83a3",
+      "health": {"idle": true, "storageUsedPercent": 3.9048479670860115, "swapUsedBytes": 0, "oomEvents": 0}
+    },
+    {
+      "name": "af-8c89c79b-d347-4ec1-823d-7e8dc5da656a",
+      "provisioningState": "Succeeded",
+      "executionState": "Succeeded",
+      "exitCode": 0,
+      "executionMessage": "Execution completed",
+      "error": "",
+      "startTime": "2026-09-18T03:12:00+00:00",
+      "endTime": "2026-09-18T03:12:02+00:00",
+      "bootId": "14b6b096-e4ce-4014-b98b-cc27c45cc93d",
+      "health": {"idle": true, "storageUsedPercent": 3.919454476481854, "swapUsedBytes": 0, "oomEvents": 0}
+    }
+  ]
+}

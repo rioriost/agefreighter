@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "case": "B07 active-inventory resize refusal, first bounded observation pair",
+  "result": "INCONCLUSIVE",
+  "operation": "e3b107f3-2da6-49cd-9a2e-84b82275d84a",
+  "normalResize": {
+    "phase": "finished",
+    "previousSize": "Standard_B2s_v2",
+    "size": "Standard_D4s_v5",
+    "nativeRecordSHA256": "c45df4db3524bbc78e90ad11d58537468005ef758a1d53e887652cddb70d6e7b",
+    "preservedStateSHA256": "b15d41e906192b237b9d19d6f3d75717a91e62ddf340bb7b62378a187208d873",
+    "independentARMSnapshotSHA256": "a7e93c754fffe6dc6c9adbc7bb84c7c0a00fb6e8ce03c45ed16e91e92f81cd7b"
+  },
+  "beforeObservation": {
+    "activeInventoryProcessProven": true,
+    "resultSHA256": "7a7ee29990a77e853cb4716ae2ba5b1dae53eec555c6652476ad496c89a26bec",
+    "terminalReconciledAtUTC": "2026-09-25T00:54:02.808768Z"
+  },
+  "nativeGUI": {
+    "attribution": "Directly observed by supervising root agent in the installed normal GUI",
+    "action": "Reconcile resize (read only)",
+    "message": "Reconcile target and guest operations before resizing the idle runner.",
+    "observedAtUTC": "2026-09-25T00:55:09.224081Z",
+    "receiptSHA256": "2f28544c1f7e21a267d62b3143e8928686393b39a86a4cffb9ed262cca32ce01",
+    "normalRecordUnchanged": true,
+    "normalRecordSHA256": "f79a91837a40a84ad6dab1748756ed8d1f5f71e3ff464df205b052fefdebc2cf"
+  },
+  "afterObservation": {
+    "executionState": "Failed",
+    "exitCode": 2,
+    "activeInventoryProcessProven": false,
+    "error": "observation-inconclusive",
+    "retryAuthorized": false,
+    "rawReceiptSHA256": "e9ea2ab6b83996a7541036a50bfb0aa08bf1facff95c04b047dca1d119344d99"
+  },
+  "sameWorkerAcrossRefusalProven": false,
+  "observationsConsumed": 2,
+  "additionalObservationAuthorizedByThisReceipt": false,
+  "subsequentNormalImport": {
+    "reportBytes": 2939,
+    "reportSHA256": "3364c3d2e301c8e128018a2ef794548a455a9999ab5873414db82c04f95ec1fa",
+    "reportGeneratedAtUTC": "2026-09-25T00:54:11.25885432Z",
+    "nativeRecordSHA256": "5e4309ac6f0ab5920663bd551dcd2cf0eb0f3f5c6887c4898ff9b7585b57cf4b",
+    "transferPhase": "imported",
+    "configuredMappings": 18,
+    "totalMappedRecords": 5600000,
+    "errors": [],
+    "incompleteChecks": []
+  },
+  "independentInconclusiveReviewSHA256": "b4e39cbf14656cbe8a4a39f5b1fe322b38400083ea8092566f779d72feea3b28",
+  "limits": [
+    "The native refusal and retained running assessment state do not prove that the guest worker was still active at the GUI action.",
+    "The generic after-observation failure does not establish its cause; host and guest clocks are not assumed equal.",
+    "The completed and imported inventory is retained separately and does not replace the missing cross-action process-continuity evidence.",
+    "The two observation attempts remain consumed, with their original immutable authorization and journal preserved."
+  ]
+}

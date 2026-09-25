@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "keychainService": "agefreighter-af-pgvm-source-agefreighter_reader-20260923",
+  "keychainAccount": "agefreighter_reader",
+  "scope": "Existing PGVM reader password only; no data/grants/network changes",
+  "receipt": {
+    "name": "af-pgvm-reader-reset-20260923",
+    "provisioning": "Succeeded",
+    "view": {
+      "endTime": "2026-09-23T02:18:41+00:00",
+      "error": "",
+      "executionMessage": "Execution completed",
+      "executionState": "Succeeded",
+      "exitCode": 0,
+      "output": "reader_rotated_tls_login_verified_readonly_and_18_table_access_unchanged\nbddecc207ed57b59b4e802f24709183cf19850b00ff53a17d3cfed03ec902bcf  /var/lib/agefreighter-source/evidence/reader-reset-20260923/role-before.json\nbddecc207ed57b59b4e802f24709183cf19850b00ff53a17d3cfed03ec902bcf  /var/lib/agefreighter-source/evidence/reader-reset-20260923/role-after.json\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /var/lib/agefreighter-source/evidence/reader-reset-20260923/rotation.log\nbd7c10b69530b76942ffe06edc52707c82b3d2a9a0ae91a33ac51c826c0a9e41  /var/lib/agefreighter-source/evidence/reader-reset-20260923/reader-check.txt\nf56ae714fc5a908a546cb9361ca5c9640118d85ebd92f4dbfc80207f707bdcff  /var/lib/agefreighter-source/evidence/reader-reset-20260923/completed\n",
+      "startTime": "2026-09-23T02:18:36+00:00"
+    }
+  }
+}

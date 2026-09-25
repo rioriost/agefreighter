@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "offline-retained-B10-evidence-integrity",
+  "pass": true,
+  "checks": [
+    {
+      "check": "receipt hash: inventory-submission.json",
+      "pass": true
+    },
+    {
+      "check": "receipt hash: observer-before.json",
+      "pass": true
+    },
+    {
+      "check": "receipt hash: observer-after.json",
+      "pass": true
+    },
+    {
+      "check": "receipt hash: host-crash.json",
+      "pass": true
+    },
+    {
+      "check": "receipt hash: reconnected-status.json",
+      "pass": true
+    },
+    {
+      "check": "receipt hash: final-import.json",
+      "pass": true
+    },
+    {
+      "check": "receipt hash: final-controls.json",
+      "pass": true
+    },
+    {
+      "check": "receipt hash: verified-stop.json",
+      "pass": true
+    },
+    {
+      "check": "submission operation/configuration binding",
+      "pass": true
+    },
+    {
+      "check": "reconnected status operation/configuration binding",
+      "pass": true
+    },
+    {
+      "check": "final export operation/configuration binding",
+      "pass": true
+    },
+    {
+      "check": "submission time",
+      "pass": true
+    },
+    {
+      "check": "before observer success",
+      "pass": true
+    },
+    {
+      "check": "before worker proof",
+      "pass": true
+    },
+    {
+      "check": "before Before service",
+      "pass": true
+    },
+    {
+      "check": "before Before main identity",
+      "pass": true
+    },
+    {
+      "check": "before After service",
+      "pass": true
+    },
+    {
+      "check": "before After main identity",
+      "pass": true
+    },
+    {
+      "check": "before child identity",
+      "pass": true
+    },
+    {
+      "check": "before observed health",
+      "pass": true
+    },
+    {
+      "check": "after observer success",
+      "pass": true
+    },
+    {
+      "check": "after worker proof",
+      "pass": true
+    },
+    {
+      "check": "after Before service",
+      "pass": true
+    },
+    {
+      "check": "after Before main identity",
+      "pass": true
+    },
+    {
+      "check": "after After service",
+      "pass": true
+    },
+    {
+      "check": "after After main identity",
+      "pass": true
+    },
+    {
+      "check": "after child identity",
+      "pass": true
+    },
+    {
+      "check": "after observed health",
+      "pass": true
+    },
+    {
+      "check": "executor host identity/exit",
+      "pass": true
+    },
+    {
+      "check": "retained timestamp ordering",
+      "pass": true
+    },
+    {
+      "check": "host exit time binding",
+      "pass": true
+    },
+    {
+      "check": "history retained",
+      "pass": true
+    },
+    {
+      "check": "normal store operation/assessment",
+      "pass": true
+    },
+    {
+      "check": "source draft unchanged",
+      "pass": true
+    },
+    {
+      "check": "no target or migration",
+      "pass": true
+    },
+    {
+      "check": "retained report seal: current",
+      "pass": true
+    },
+    {
+      "check": "retained report seal: prior",
+      "pass": true
+    },
+    {
+      "check": "report content matches receipt",
+      "pass": true
+    },
+    {
+      "check": "complete successful source report",
+      "pass": true
+    },
+    {
+      "check": "all 18 labels and 5.6M records",
+      "pass": true
+    },
+    {
+      "check": "sealed imported transfer",
+      "pass": true
+    },
+    {
+      "check": "bounded final controls",
+      "pass": true
+    },
+    {
+      "check": "retained stopped-state evidence",
+      "pass": true
+    }
+  ],
+  "limits": [
+    "No fresh cloud, GUI, process, or credential observation.",
+    "GUI, raw host binding, baseline control count and shutdown remain executor-attributed.",
+    "Timestamp ordering does not independently measure cross-machine clock offset.",
+    "Control receipts support bounded no-replay evidence, not instrumented HTTP counts."
+  ],
+  "inMemoryRejectionChecks": [
+    {
+      "check": "changed receipt bytes",
+      "pass": true
+    },
+    {
+      "check": "changed current report bytes",
+      "pass": true
+    },
+    {
+      "check": "changed prior report bytes",
+      "pass": true
+    },
+    {
+      "check": "removed prior history",
+      "pass": true
+    },
+    {
+      "check": "missing imported transfer",
+      "pass": true
+    },
+    {
+      "check": "different guest child despite resealed receipt",
+      "pass": true
+    }
+  ]
+}

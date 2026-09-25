@@ -65,7 +65,7 @@ type fingerprintSource struct {
 func sourceIdentity(dsn string) (string, error) {
 	connection, err := pgx.ParseConfig(dsn)
 	if err != nil {
-		return "", errors.New("parse PostgreSQL source connection")
+		return "", initializationFailure(nil, "connection-parse", err)
 	}
 	source := fingerprintSource{
 		Database: connection.Database,

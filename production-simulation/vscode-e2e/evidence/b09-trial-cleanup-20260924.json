@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "status": "COMPLETE",
+  "dateJST": "2026-09-24",
+  "workflow": "0d8b4bc9-102c-4d74-8270-061ce31ce163",
+  "scope": "Only approved dedicated trial resources and exact storage-bound automatically created Event Grid dependency; pre-existing resources preserved",
+  "absenceVerifiedAt": "2026-09-23T21:59:02.058174+00:00",
+  "exactResourceCount": 14,
+  "resources": {
+    "account": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Storage/storageAccounts/af0d8b4bc9102c4d74827006",
+      "armCode": "ResourceNotFound",
+      "savedResponseSHA256": "f8b9fdef0f34f9e70fe6e7861b50b3bf6e4bd935cf3204c641e2bff1b7719f66",
+      "cliRenderedNotFound": true
+    },
+    "container": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Storage/storageAccounts/af0d8b4bc9102c4d74827006/blobServices/default/containers/af-0d8b4bc9-102c-4d74-8270-061ce31ce163",
+      "armCode": "ParentResourceNotFound",
+      "savedResponseSHA256": "02701935055f03c498d249ad8c3e443d6a1683f2f61c755719eef7f12df9bc57",
+      "cliRenderedNotFound": true
+    },
+    "disk": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/disks/af-0d8b4bc9102c4d748270-os",
+      "armCode": "ResourceNotFound",
+      "savedResponseSHA256": "63992c481a1b782100768bb7383a9276efddf9908d39eb7f1a2af73cdaebfbb7",
+      "cliRenderedNotFound": true
+    },
+    "nic": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/networkInterfaces/af-0d8b4bc9102c4d748270",
+      "armCode": "ResourceNotFound",
+      "savedResponseSHA256": "80a9d010dedfa937dd37e870a7cae0f79017d3d135a98903d958e2cfa6a87926",
+      "cliRenderedNotFound": true
+    },
+    "nsg": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Network/networkSecurityGroups/af-0d8b4bc9102c4d748270",
+      "armCode": "ResourceNotFound",
+      "savedResponseSHA256": "9e9a0e3df3458ddfea52c8bb52babe5e2336e8d17cd87ff4e7a6a6bafb25ab13",
+      "cliRenderedNotFound": true
+    },
+    "runnerDeployment": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Resources/deployments/af-0d8b4bc9102c4d748270",
+      "armCode": "DeploymentNotFound",
+      "savedResponseSHA256": "7e44ee37a08e2196bf6c2e28bbde60da4eed62240cc77778d2ea156a390b71f3",
+      "cliRenderedNotFound": true
+    },
+    "storageDeployment": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Resources/deployments/af0d8b4bc9102c4d74827006-transfer",
+      "armCode": "DeploymentNotFound",
+      "savedResponseSHA256": "c33b090942a4beeb3b46db60aee9da6f8250e8854f1c4ef6e447b3aeb997cdc6",
+      "cliRenderedNotFound": true
+    },
+    "userRole": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Storage/storageAccounts/af0d8b4bc9102c4d74827006/providers/Microsoft.Authorization/roleAssignments/71ba66e0-e9d6-4b98-9329-2bba3fd06443",
+      "armCode": "ResourceNotFound",
+      "savedResponseSHA256": "cfaccc56306beb38f693d8fd2736aa22d9efdeba0540ce1a9e979a8d2b70914b",
+      "cliRenderedNotFound": true
+    },
+    "vm": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-0d8b4bc9102c4d748270",
+      "armCode": "ResourceNotFound",
+      "savedResponseSHA256": "570a589610b07d689ff69315fcb809cfcf6fff13d300da94f0d79cc2e265b48f",
+      "cliRenderedNotFound": true
+    },
+    "vmRole": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Storage/storageAccounts/af0d8b4bc9102c4d74827006/blobServices/default/containers/af-0d8b4bc9-102c-4d74-8270-061ce31ce163/providers/Microsoft.Authorization/roleAssignments/0d8b4bc9-102c-4d74-8270-061ce31ce163",
+      "armCode": "ParentResourceNotFound",
+      "savedResponseSHA256": "8842dba37bad3b56879ee0b79e7f4964f6796f90b94f00122acede6cae7f5cd8",
+      "cliRenderedNotFound": true
+    },
+    "control-0": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-0d8b4bc9102c4d748270/runCommands/af-b09-observe-01",
+      "armCode": "ResourceNotFound",
+      "savedResponseSHA256": "9eaecf3cc5ced96b998a816fc9f5e60b8d92c0a9122fc2419572b06c9d3f94d7",
+      "cliRenderedNotFound": true
+    },
+    "control-1": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-0d8b4bc9102c4d748270/runCommands/af-b243c3b8-7a47-4205-9877-1a0509f56b61",
+      "armCode": "ResourceNotFound",
+      "savedResponseSHA256": "4935182c4e9099bb8c5b58074ec932fc48dd6f84c975521ce08c66433087356f",
+      "cliRenderedNotFound": true
+    },
+    "eventgrid-topic": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.EventGrid/systemTopics/af0d8b4bc9102c4d74827006-04ce89ac-6214-40ac-b57a-fe4afc32f82f",
+      "armCode": "ResourceNotFound",
+      "savedResponseSHA256": "a5a041589a20fb6e4bf98d0c663b39f8f6c1d70ce0446c94599df8d77229ec1e",
+      "cliRenderedNotFound": true
+    },
+    "eventgrid-child": {
+      "id": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.EventGrid/systemTopics/af0d8b4bc9102c4d74827006-04ce89ac-6214-40ac-b57a-fe4afc32f82f/eventSubscriptions/StorageAntimalwareSubscription",
+      "armCode": "ParentResourceNotFound",
+      "savedResponseSHA256": "3d956c6e10f81f79b31225c3b8d13bac5df4fa654be08c0d3995c6a9e2caee76",
+      "cliRenderedNotFound": true
+    }
+  },
+  "absenceEvidence": "Azure CLI rendered Not Found with structured ARM missing-resource code; numeric HTTP status line was not separately retained.",
+  "parentAbsenceIndependentlyVerifiedForChildCodes": true,
+  "finalVerificationSHA256": "e0b2b4d30721f43bb78c980cb14e13c4a2672646cfee954d146cb185e3194969",
+  "shutdown": {
+    "runnerPUTIntentAt": "2026-09-23T21:32:14.983Z",
+    "deallocationIntentAt": "2026-09-23T21:38:12.648903+00:00",
+    "azureDeallocateSucceededAt": "2026-09-23T21:38:25.550Z",
+    "guardVerifiedDeallocatedBy": "2026-09-23T21:38:35.160441+00:00",
+    "maximumComputeMinutes": 60,
+    "deallocationStartRequiredByMinute": 55,
+    "guardResult": "DEALLOCATED",
+    "guardResultSHA256": "2286e80e349e8b4e32379886b7b4a26b0b54a7b80e341bcce67e2b6061c72655"
+  },
+  "cleanup": {
+    "acceptedExplicitDELETERequests": 10,
+    "explicitRejectedControlDELETERequests": 1,
+    "rejectedControlDELETECode": "OperationNotAllowed",
+    "rejectedControlDELETERetried": false,
+    "vmRestarted": false,
+    "eventGridExplicitDELETERequests": 0,
+    "eventGridRemovedWithStorageAccount": true,
+    "originalFrozenHelperSHA256": "2bf6abe286d9409d0c258528a6ef1e99f2c1807009cd5346906112cf4511ba6d",
+    "parentContinuationSHA256": "6c5ca24c462ac71f48ac10b8d90b87615d1400d8a05d3d14b9c4d3a44d0ae4db",
+    "originalManifestSHA256": "d7e30c70571f03a5aed74d23ca41e90ef7127b5976fe9625722ffa1d72dabc9c",
+    "intentFiles": {
+      "account-intent.json": "55245bc6a537abe3268d1a20bb6a6b0d3eb126c7cd60db040320c1a05bd429f8",
+      "container-intent.json": "675b2d6d77331fbd1c0eee084db2bb22346665082f455b3e4b56d023f6204330",
+      "control-0-intent.json": "4b7bcc445a2149db489cf892af5d6159dfca2d1015a66f3d531a6d42551296b9",
+      "disk-intent.json": "732d201c7f57ea14c9cf0e61a7dd60901b94be4df8f8b67b5c90053eb61632cb",
+      "nic-intent.json": "59226663c07a8663e88a9cb22539b08348b10bc7b32b2c1be2fe13b183e3d4f8",
+      "nsg-intent.json": "ddb6f5042c73ae6fb42c3491d2149f614464bb2a8c0d03be3c7c2a495122212f",
+      "runnerDeployment-intent.json": "d93480bec67c6b93c737b1ed9958c427be44074c501369b05ae6782caaea225f",
+      "storageDeployment-intent.json": "d5cd4ee4673fb762b4c1f6a4e0254359f1f3ad1d62a1d190b536b467e2d8fa7b",
+      "userRole-intent.json": "2ce885e32edff681a2da5d26640aadb184225adb694d4d3a2bda59d4bffc239a",
+      "vm-intent.json": "5256d2afff56dee44c173eb9d19650a894747375bab9a7ceb74a2e3b5c0c63c1",
+      "vmRole-intent.json": "f47099f2619ea847f6530a141b96ec41e60a73a509c5243edbff7b9179d0c305"
+    },
+    "limitation": "Frozen cleanup final reporting rejects ParentResourceNotFound. Completion is established by separate exact-resource GET verification with independently absent parent resources, not by the helper exit code."
+  },
+  "retention": {
+    "companionFiles": 102,
+    "manifestSHA256": "50372540b77e1f01327cdceaa7186d82311c2aef9eab2eadb55b2c87ff37730c",
+    "privateDirectory": "production-simulation/work/b09-fault-resume-20260924",
+    "authenticationCachesCopied": false
+  },
+  "preserved": {
+    "normalStore": {
+      "files": 93,
+      "pathModeBytesMatch": true,
+      "baselineSHA256": "57a3e33802bb6b8bde0bb6b883f895b89aaaed677c0e3919e5f635ed56cf9d5a"
+    },
+    "previousB10VM": "deallocated",
+    "sourceDatabase": "Stopped",
+    "observedAt": "2026-09-23T21:46:33.913315+00:00",
+    "existingResourceObservationSHA256": "0b5a412db24907d0943c4bd62282a843c760c7541eb187b6e32c87087e12fc3c",
+    "existingVMDisksAndDataOutsideCleanupScope": true
+  },
+  "cost": {
+    "incrementalApprovedCeilingUSD": 5,
+    "cumulativeApprovedCeilingUSD": 800,
+    "delayedObservedGroupTotalUSD": 511.6100860486454,
+    "finalTrialInvoiceNotYetEstablished": true
+  },
+  "independentFinalReview": {
+    "status": "PASS",
+    "auditSHA256": "c7729d81e9b1de5560f7f71198bf9d2e15364a5747dc8f6b6307d89136097ff3",
+    "cloudMutationsByReviewer": 0
+  }
+}

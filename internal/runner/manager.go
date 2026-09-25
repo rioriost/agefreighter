@@ -1,0 +1,540 @@
+package runner
+
+import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/rioriost/agefreighter/internal/report"
+	"github.com/rioriost/agefreighter/internal/source/postgres"
+)
+
+type Manager struct {
+	Root             string
+	UnitDirectory    string
+	CLI              string
+	Tools            string
+	BootID           func() (string, error)
+	Start            func(context.Context, string) error
+	blobTransport    http.RoundTripper                                        // Test seam; production uses standard TLS validation.
+	csvCapacity      func(string) (float64, float64, error)                   // Test seam; nil reads the actual guest filesystem.
+	healthProbe      func(context.Context) (*GuestHealth, error)              // Test seam; nil uses local Linux evidence.
+	versionProbe     func(context.Context) (string, error)                    // Test seam; nil executes the installed CLI.
+	migrationPrepare func(context.Context, []byte, string) error              // Test seam; nil uses verified PostgreSQL TLS preparation.
+	resumeProbe      func(context.Context, Request) (ResumeInspection, error) // Test seam; nil reads retained target metadata.
+	workerInactive   func(context.Context, string) error                      // Test seam; nil checks systemd, never stops a worker.
+	resumeComplete   func(context.Context, State, []byte, string) error       // Test seam; nil validates final target generation read-only.
+}
+
+func (m Manager) paths(workflow, operation string) (string, string, error) {
+	if !uuid.MatchString(workflow) || !uuid.MatchString(operation) {
+		return "", "", errors.New("invalid operation identity")
+	}
+	root := filepath.Join(m.Root, workflow)
+	return root, filepath.Join(root, operation), nil
+}
+
+func (m Manager) Submit(ctx context.Context, request Request) (State, error) {
+	unlock, err := m.dispatchLock()
+	if err != nil {
+		return State{}, err
+	}
+	defer unlock()
+	if _, err := Arguments(request.Action, ""); err != nil {
+		return State{}, err
+	}
+	root, dir, err := m.paths(request.Workflow, request.Operation)
+	if err != nil {
+		return State{}, err
+	}
+	configuration, err := ValidateConfiguration(request, root)
+	if err != nil {
+		return State{}, err
+	}
+	boot, err := m.BootID()
+	if err != nil {
+		return State{}, errors.New("cannot read guest boot identity")
+	}
+	if !uuid.MatchString(request.ExpectedBootID) || boot != request.ExpectedBootID {
+		return State{}, errors.New("guest boot identity changed; check readiness again")
+	}
+	if err := os.MkdirAll(root, 0700); err != nil {
+		return State{}, err
+	}
+	// Private parent plus UUID-only paths prevent other principals choosing files.
+	if err := privateDirectory(root); err != nil {
+		return State{}, err
+	}
+	if request.Action == "migrate-csv" || request.Action == "migrate-source" || request.Action == "postgres-catalog" {
+		probe := m.health
+		if m.healthProbe != nil {
+			probe = m.healthProbe
+		}
+		health, err := probe(ctx)
+		if err != nil || health == nil || !health.Idle || health.StorageUsedPercent >= 80 || health.SwapUsedBytes != 0 || health.OOMEvents != 0 {
+			return State{}, errors.New("operation requires current idle, storage, swap and OOM safety evidence")
+		}
+	}
+	if err := os.Mkdir(dir, 0700); err != nil {
+		return State{}, errors.New("operation already exists or cannot be created; query its status, do not replay")
+	}
+	if err := writeNew(filepath.Join(root, "active"), []byte(request.Operation)); err != nil {
+		return State{}, errors.New("workflow has an active or unreconciled operation")
+	}
+	state := State{Version: 1, Workflow: request.Workflow, Operation: request.Operation, Action: request.Action, Phase: "accepted", BootID: boot, ConfigSHA256: sum(configuration)}
+	if request.Action == "migrate-csv" || request.Action == "migrate-source" {
+		state.JobID = request.Operation
+	}
+	if err := writeNewJSON(filepath.Join(dir, "state.json"), state); err != nil {
+		return State{}, err
+	}
+	if err := writeNew(filepath.Join(dir, "job.json"), configuration); err != nil {
+		return State{}, err
+	}
+	if err := writeNewJSON(filepath.Join(dir, "secrets.json"), request.Secrets); err != nil {
+		return State{}, err
+	}
+	unit, err := m.unit(request.Workflow, request.Operation, root)
+	if err != nil {
+		return State{}, err
+	}
+	name := unitName(request.Operation)
+	if err := writeNew(filepath.Join(m.UnitDirectory, name), []byte(unit)); err != nil {
+		return State{}, err
+	}
+	// State and unit exist before starting. A lost start response is not permission
+	// to launch again, even if the short ARM dispatch reports failure.
+	if err := m.Start(ctx, name); err != nil {
+		return state, errors.New("guest start result is uncertain; inspect retained operation")
+	}
+	return state, nil
+}
+
+func (m Manager) Status(workflow, operation string) (State, error) {
+	_, dir, err := m.paths(workflow, operation)
+	if err != nil {
+		return State{}, err
+	}
+	var state State
+	if err := readJSON(filepath.Join(dir, "state.json"), &state); err != nil {
+		return State{}, errors.New("operation state is unavailable")
+	}
+	if state.Version != 1 || state.Workflow != workflow || state.Operation != operation {
+		return State{}, errors.New("operation state identity mismatch")
+	}
+	if state.Phase == "accepted" || state.Phase == "running" {
+		boot, err := m.BootID()
+		if err != nil {
+			return State{}, errors.New("cannot read guest boot identity")
+		}
+		if boot != state.BootID {
+			state.Phase = "interrupted"
+		}
+	}
+	return state, nil
+}
+
+// Work is invoked by a persistent, disabled-at-boot systemd service. The exclusive
+// worker marker survives crashes: restarting the unit cannot repeat source work.
+func (m Manager) Work(ctx context.Context, workflow, operation string) error {
+	root, dir, err := m.paths(workflow, operation)
+	if err != nil {
+		return err
+	}
+	state, err := m.Status(workflow, operation)
+	if err != nil {
+		return err
+	}
+	if state.Phase != "accepted" {
+		return errors.New("operation cannot be automatically resumed")
+	}
+	if err := writeNew(filepath.Join(dir, "worker.claim"), []byte(state.BootID)); err != nil {
+		return errors.New("worker already claimed; automatic replay is forbidden")
+	}
+	if state.Action == "import-csv" {
+		return m.workCSV(ctx, root, dir, state)
+	}
+	secretsPath := filepath.Join(dir, "secrets.json")
+	// Once the worker has claimed the operation, every normal return path must
+	// remove the transient protected transport. Evidence never needs secrets.
+	defer os.Remove(secretsPath)
+	configuration, err := os.ReadFile(filepath.Join(dir, "job.json"))
+	if err != nil || sum(configuration) != state.ConfigSHA256 {
+		return errors.New("assessment configuration changed")
+	}
+	var secrets map[string]string
+	if err := readJSON(secretsPath, &secrets); err != nil {
+		return errors.New("source secrets unavailable")
+	}
+	if _, err := ValidateConfiguration(Request{Workflow: workflow, Operation: operation, Action: state.Action, Configuration: configuration, Secrets: secrets}, root); err != nil {
+		return err
+	}
+	secrets, sourceCAPath, err := stageSourceCA(dir, secrets)
+	if err != nil {
+		return err
+	}
+	if sourceCAPath != "" {
+		defer os.Remove(sourceCAPath)
+	}
+	// Resolve real upload paths before invoking a connector. A symlink cannot
+	// turn a lexically contained CSV path into access outside this workflow.
+	if err := validateUploadPaths(configuration, root); err != nil {
+		return err
+	}
+	state.Phase = "running"
+	state.StartedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	if err := replaceJSON(filepath.Join(dir, "state.json"), state); err != nil {
+		return err
+	}
+	if state.Action == "migrate-csv" || state.Action == "migrate-source" || state.Action == "resume-migration" {
+		return m.workMigration(ctx, root, dir, state, configuration, secrets)
+	}
+	args, err := Arguments(state.Action, filepath.Join(dir, "job.json"))
+	if err != nil {
+		return err
+	}
+	timeout := 30 * time.Minute
+	if state.Action == "postgres-catalog" {
+		timeout = 3 * time.Minute
+	}
+	deadline, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	cmd := exec.CommandContext(deadline, m.CLI, args...)
+	cmd.Dir = dir
+	cmd.Env = []string{"PATH=/usr/local/bin:/usr/bin:/bin", "LANG=C.UTF-8", "HOME=" + dir}
+	keys := make([]string, 0, len(secrets))
+	for key := range secrets {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		cmd.Env = append(cmd.Env, key+"="+secrets[key])
+	}
+	stdout, stderr := &boundedOutput{limit: MaxArtifactBytes}, &boundedOutput{limit: 64 << 10}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	runErr := cmd.Run()
+	exit := 0
+	if runErr != nil {
+		exit = 1
+		var ee *exec.ExitError
+		if errors.As(runErr, &ee) {
+			exit = ee.ExitCode()
+		}
+	}
+	state.ExitCode = &exit
+	state.FinishedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	state.Phase = "failed"
+	// Raw stderr stays on the guest. It is never an ARM or webview response.
+	if err := writeNew(filepath.Join(dir, "stderr.log"), stderr.Bytes()); err != nil {
+		return err
+	}
+	if !stdout.overflow {
+		if err := validateWorkerReport(state.Action, configuration, stdout.Bytes()); err == nil {
+			data, err := redactedReport(stdout.Bytes(), secrets)
+			if err != nil {
+				return err
+			}
+			// Redacting a short secret may expand the JSON beyond the input
+			// bound. Such output cannot become a retrievable terminal artifact.
+			if len(data) <= MaxArtifactBytes && validateWorkerReport(state.Action, configuration, data) == nil {
+				if err := writeNew(filepath.Join(dir, "report.json"), data); err != nil {
+					return err
+				}
+				state.ReportBytes = int64(len(data))
+				state.ReportSHA256 = sum(data)
+				if exit == 0 {
+					state.Phase = "finished"
+				} // Not equivalent to report outcome pass.
+			}
+		}
+	}
+	if err := replaceJSON(filepath.Join(dir, "state.json"), state); err != nil {
+		return err
+	}
+	// Erase only this operation's transient secret transport, never its evidence.
+	if err := os.Remove(secretsPath); err != nil {
+		return err
+	}
+	active, err := os.ReadFile(filepath.Join(root, "active"))
+	if err != nil || string(active) != operation {
+		return errors.New("workflow lease changed; operator reconciliation required")
+	}
+	return os.Remove(filepath.Join(root, "active"))
+}
+
+func validateWorkerReport(action string, configuration, data []byte) error {
+	if action == "postgres-catalog" {
+		request, err := postgres.DecodeCatalogRequest(configuration)
+		if err != nil {
+			return err
+		}
+		_, err = postgres.DecodeCatalog(data, request.Schemas)
+		return err
+	}
+	_, err := report.Decode(data)
+	return err
+}
+
+func stageSourceCA(dir string, input map[string]string) (map[string]string, string, error) {
+	data, ok := input["AGEFREIGHTER_SOURCE_CA_PEM"]
+	if !ok {
+		return input, "", nil
+	}
+	if err := validateSourceCA([]byte(data)); err != nil {
+		return nil, "", err
+	}
+	path := filepath.Join(dir, "source-ca.pem")
+	if err := writeNew(path, []byte(data)); err != nil {
+		return nil, "", errors.New("cannot stage protected source CA")
+	}
+	secrets := make(map[string]string, len(input))
+	for key, value := range input {
+		if key != "AGEFREIGHTER_SOURCE_CA_PEM" {
+			secrets[key] = value
+		}
+	}
+	secrets["SSL_CERT_FILE"] = path
+	if dsn, exists := secrets["AGEFREIGHTER_SOURCE_DSN"]; exists {
+		u, err := url.Parse(dsn)
+		if err != nil {
+			_ = os.Remove(path)
+			return nil, "", errors.New("cannot bind custom CA to PostgreSQL source")
+		}
+		query := u.Query()
+		if query.Get("sslmode") != "verify-full" || query.Has("sslrootcert") {
+			_ = os.Remove(path)
+			return nil, "", errors.New("custom CA requires a reviewed PostgreSQL TLS connection")
+		}
+		query.Set("sslrootcert", path)
+		u.RawQuery = query.Encode()
+		secrets["AGEFREIGHTER_SOURCE_DSN"] = u.String()
+	}
+	return secrets, path, nil
+}
+
+type ArtifactChunk struct {
+	Version   int    `json:"version"`
+	Operation string `json:"operation"`
+	Offset    int64  `json:"offset"`
+	Total     int64  `json:"total"`
+	SHA256    string `json:"sha256"`
+	Data      string `json:"data"`
+}
+
+func (m Manager) Report(workflow, operation string, offset int64) (ArtifactChunk, error) {
+	data, state, err := m.reportData(workflow, operation)
+	if err != nil {
+		return ArtifactChunk{}, err
+	}
+	if offset < 0 || offset >= state.ReportBytes {
+		return ArtifactChunk{}, errors.New("complete report artifact is unavailable or offset invalid")
+	}
+	end := min(offset+ChunkBytes, int64(len(data)))
+	return ArtifactChunk{Version: 1, Operation: operation, Offset: offset, Total: int64(len(data)), SHA256: state.ReportSHA256, Data: base64.StdEncoding.EncodeToString(data[offset:end])}, nil
+}
+
+func (m Manager) reportData(workflow, operation string) ([]byte, State, error) {
+	state, err := m.Status(workflow, operation)
+	if err != nil {
+		return nil, State{}, err
+	}
+	if state.Phase != "finished" && state.Phase != "failed" || state.ReportBytes <= 0 || state.ReportBytes > MaxArtifactBytes {
+		return nil, State{}, errors.New("complete report artifact is unavailable")
+	}
+	_, dir, _ := m.paths(workflow, operation)
+	path := filepath.Join(dir, "report.json")
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Size() != state.ReportBytes {
+		return nil, State{}, errors.New("report artifact changed")
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, State{}, errors.New("report artifact unavailable")
+	}
+	defer f.Close()
+	data, err := io.ReadAll(io.LimitReader(f, MaxArtifactBytes+1))
+	if err != nil || int64(len(data)) != state.ReportBytes || sum(data) != state.ReportSHA256 {
+		return nil, State{}, errors.New("report artifact changed")
+	}
+	return data, state, nil
+}
+
+func unitName(operation string) string { return "agefreighter-assessment-" + operation + ".service" }
+
+func (m Manager) unit(workflow, operation, root string) (string, error) {
+	for _, path := range []string{m.Tools, root} {
+		if !regexpSafePath(path) {
+			return "", errors.New("unsafe runner installation path")
+		}
+	}
+	return fmt.Sprintf(`[Unit]
+Description=AGEFreighter read-only assessment
+After=network-online.target
+[Service]
+Type=exec
+ExecStart=%s runner worker --workflow %s --operation %s
+WorkingDirectory=%s
+Restart=no
+RuntimeMaxSec=1800
+TimeoutStopSec=30
+KillMode=control-group
+MemoryMax=4G
+MemorySwapMax=0
+CPUQuota=200%%
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=%s
+PrivateTmp=yes
+StandardOutput=null
+StandardError=null
+`, m.Tools, workflow, operation, root, root), nil // No [Install]: boot never resumes work.
+}
+
+func regexpSafePath(path string) bool {
+	return filepath.IsAbs(path) && !strings.ContainsAny(path, " \t\r\n\"'%%\\")
+}
+func sum(data []byte) string { digest := sha256.Sum256(data); return hex.EncodeToString(digest[:]) }
+func privateDirectory(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil || !info.IsDir() || info.Mode().Perm()&0077 != 0 {
+		return errors.New("runner directory must be private and not a symlink")
+	}
+	return nil
+}
+func writeNew(path string, data []byte) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if err == nil {
+		err = f.Sync()
+	}
+	closeErr := f.Close()
+	if err != nil {
+		return err
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	return syncDirectory(filepath.Dir(path))
+}
+func writeNewJSON(path string, value any) error {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	return writeNew(path, data)
+}
+func replaceJSON(path string, value any) error {
+	f, err := os.CreateTemp(filepath.Dir(path), ".state-*")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	defer os.Remove(name)
+	err = json.NewEncoder(f).Encode(value)
+	if err == nil {
+		err = f.Sync()
+	}
+	if closeErr := f.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return err
+	}
+	if err := os.Rename(name, path); err != nil {
+		return err
+	}
+	return syncDirectory(filepath.Dir(path))
+}
+func syncDirectory(path string) error {
+	dir, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	return dir.Sync()
+}
+func readJSON(path string, value any) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	data, err := io.ReadAll(io.LimitReader(f, MaxRequestBytes+1))
+	if err != nil || len(data) > MaxRequestBytes {
+		return errors.New("retained JSON exceeds bound")
+	}
+	return json.Unmarshal(data, value)
+}
+
+type boundedOutput struct {
+	// Do not embed bytes.Buffer: its promoted ReadFrom bypasses Write in io.Copy.
+	buffer   bytes.Buffer
+	limit    int
+	overflow bool
+}
+
+func (b *boundedOutput) Bytes() []byte  { return b.buffer.Bytes() }
+func (b *boundedOutput) String() string { return b.buffer.String() }
+func (b *boundedOutput) Len() int       { return b.buffer.Len() }
+
+func (b *boundedOutput) Write(p []byte) (int, error) {
+	size := len(p)
+	remaining := b.limit - b.buffer.Len()
+	if size > remaining {
+		b.overflow = true
+		p = p[:remaining]
+	}
+	_, _ = b.buffer.Write(p)
+	return size, nil
+}
+
+func redactedReport(data []byte, secrets map[string]string) ([]byte, error) {
+	var value any
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	if err := decoder.Decode(&value); err != nil {
+		return nil, err
+	}
+	var redact func(any) any
+	redact = func(value any) any {
+		switch v := value.(type) {
+		case string:
+			for _, secret := range secrets {
+				if secret != "" {
+					v = strings.ReplaceAll(v, secret, "[REDACTED]")
+				}
+			}
+			return v
+		case []any:
+			for i := range v {
+				v[i] = redact(v[i])
+			}
+		case map[string]any:
+			for key, item := range v {
+				v[key] = redact(item)
+			}
+		}
+		return value
+	}
+	return json.Marshal(redact(value))
+}

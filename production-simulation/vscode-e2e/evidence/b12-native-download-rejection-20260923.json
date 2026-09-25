@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "branch": "B12",
+  "result": "pass-defined-mixed-layer-scope",
+  "independentFileReviewAt": "2026-09-23T11:43:15.369Z",
+  "nativeObservationSource": "Coordinator actual native interaction and retained observed-result files; supervisor independently verified local inputs, post-state and installed pins",
+  "implementation": "3bc006939b24725d5114f4384e42bc54e8e3c2cd",
+  "productionBundleSHA256": "3108910e2933f73b1b1d0edf92458e7384e2008261469c56da2f19789366da67",
+  "nativeCommand": "agefreighter.continueRunnerExecution",
+  "nativeAction": "Qualify / reconcile full P1 digest (development only)",
+  "workflow": "cb2ef280-a891-4edf-b45b-de75e33eb7b8",
+  "qualification": "028ec524-990f-4ed3-8265-6eb024d5cf57",
+  "jobId": "d707adf8-7cab-4d73-8e38-ec141e72ac18",
+  "originalRecordSHA256": "58f295e4e6c72a66d31dd90cafdaf3ec761f7a2a89d2e7bcbab988428755590f",
+  "independentExportReceiptSHA256": "feac8b05ecd8178ab8a91c69a6e98c1abb09dc5cc836952686e7644776a9bda0",
+  "originalReport": {
+    "bytes": 23224,
+    "sha256": "00938de546f94d1fe50e372044bef9b423e104919855fc8d934a06b4b42f77fc"
+  },
+  "cases": [
+    {
+      "scenario": "wrong-sha256",
+      "retainedRoot": "/private/tmp/af-b12-202609231101",
+      "nativeObservationApproximateMinuteUTC": "2026-09-23T11:25Z",
+      "coordinatorPostFilesVerifiedAt": "2026-09-23T11:26:17.656Z",
+      "category": "sha256",
+      "expectedReportSHA256": "10938de546f94d1fe50e372044bef9b423e104919855fc8d934a06b4b42f77fc",
+      "expectedReportBytes": 23224,
+      "caseSHA256": "268209fddecc6006849159832033555e0b3cdb74fe634fb71f8fa13d46797349",
+      "observationSHA256": "c609685dc751b1ec0e48d7824ef6e3c166258cc8fdf9c2be1c3f584e429cc6e4",
+      "unchangedRecordSHA256": "5e1f53791b8edd49a0befda6a663011439c354242e56cfba08a53e258b5e548b",
+      "phase": "exported",
+      "storeFiles": 1,
+      "reportFiles": 0,
+      "newPass": false,
+      "nativeQualificationActions": 1
+    },
+    {
+      "scenario": "wrong-length",
+      "retainedRoot": "/private/tmp/af-b12-202609231102",
+      "nativeObservationApproximateMinuteUTC": "2026-09-23T11:36Z",
+      "coordinatorPostFilesVerifiedAt": "2026-09-23T11:36:53.540Z",
+      "category": "length",
+      "expectedReportSHA256": "00938de546f94d1fe50e372044bef9b423e104919855fc8d934a06b4b42f77fc",
+      "expectedReportBytes": 23225,
+      "caseSHA256": "843ed5fd232467bf3bdc99f23aa0d50b13a217b62673258243de2344924bfb21",
+      "observationSHA256": "6d6b8382fbeee7de7b4931d7f338e724b2a77fbc0da983acc5a14014e2ac0771",
+      "unchangedRecordSHA256": "14ddab0047f428a5973f0e3bf2fe7819f79b6a5bf86273343256dd976f5d5ed5",
+      "phase": "exported",
+      "storeFiles": 1,
+      "reportFiles": 0,
+      "newPass": false,
+      "nativeQualificationActions": 1
+    }
+  ],
+  "independentlyVerified": {
+    "bothOriginalRawFileHashes": true,
+    "independentReceiptIdentityAndOriginalSeal": true,
+    "exactOriginalToCaseChangesOnlyPhaseAndExpectedSeal": true,
+    "originalFilesMode": "0400",
+    "caseRecordsMode": "0600",
+    "bothInstalledBundleHashes": true,
+    "bothPostRecordsAndNoAdditionalStoreFiles": true
+  },
+  "operatorPreservation": {
+    "source": "Coordinator retained after-action observation; not a new supervisor read of the normal operator store",
+    "files": 91,
+    "aggregatePathModeContentSHA256": "794d6a7e3c88b12a2b70b0373064bd40f2c746318104d0c82697ea8741551709"
+  },
+  "priorAuthenticationBlocker": "Retained as history; superseded by successful ordinary interactive sign-in before the two native actions, not counted as a report rejection",
+  "acceptanceBasis": "These two genuine signed-in fresh-download rejections plus prior synthetic production-controller/real-host semantic cases and signed-in retained-failure refusal",
+  "networkRequestCountInstrumented": false,
+  "limitations": [
+    "One qualification action was invoked per case; no independent network request-count trace was captured",
+    "Wrong expected length may reject Content-Length before reading the body; no network truncation was observed",
+    "Wrong expected SHA is not evidence of remote Blob corruption",
+    "Not all eight negative semantic classes were exercised against Azure",
+    "No compute start, source read, Blob modification or new migration qualification belongs to this trial"
+  ]
+}

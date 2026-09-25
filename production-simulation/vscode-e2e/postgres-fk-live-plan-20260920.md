@@ -1,0 +1,302 @@
+# Isolated PostgreSQL FK GUI qualification proposal
+
+Status: **PASS for the defined isolated FK catalog/adoption/inventory slice**.
+September21 installed GUI imported the sealed report: five vertices, three edges,
+all three reviewed labels; both checks pass, no errors or incomplete checks.
+Explicit mapping/property adoption and Reload Window/reconnect also passed.
+The nullable FK remains manual-review-only. This is not migration qualification.
+Exact VM deallocated and source Stopped/private verified by02:20:24UTC;
+safety monitor disabled. All evidence and the fixture are retained.
+No new resource, software update, grant, target or migration is authorized.
+
+## Why a separate fixture is needed
+
+The accepted P1 source has no foreign keys. Adding constraints to its tables
+would change the qualified source and is not necessary. Local PostgreSQL catalog
+tests already cover FK and conservative rejection rules; actual installed-GUI
+discovery, imported proposals, explicit adoption and mapped inventory still need
+live evidence with real constraints.
+
+## Proposed bounded scope
+
+1. After explicit approval and fresh cost/governance checks, start the existing
+   source and provision one new private B2s_v2 discovery VM with workflow-owned
+   transfer storage in the existing test RG/network, for at most 30 minutes from
+   the first compute start request. Preserve the USD 800 ceiling. Obtain the
+   exact GUI preview/resource identities and artifact approval before deployment.
+   Do not create a target or run a migration.
+2. In `p1source`, create a new dedicated schema `af_fk_qualification_20260920`
+   only if absent. Stop on an existing schema rather than reusing/overwriting it.
+   Two tiny synthetic tables: two suppliers and three products, bigint primary
+   keys; products have one validated, non-null supplier FK and a second nullable
+   supplier FK. No P1 tables, rows, constraints or accepted graphs are changed.
+3. Grant the existing reader USAGE on this new schema and SELECT on its two
+   tables only. This is an explicit new privilege scope requiring approval;
+   credentials, role attributes and existing grants stay unchanged.
+4. Use a fresh isolated workflow/operation under the product's normal reviewed
+   runner provisioning rules. Do not reset, edit or repurpose completed operator
+   records. Review confirmed that `runnerNames` derives resource names from the
+   workflow ID, preflight requires proposed resources to be absent, and
+   `startCatalog` rejects a retained catalog/assessment/target. Reusing a completed
+   workflow or rebinding an existing VM is not an available qualified route.
+   No cloned records, reuse implementation or hand-written guest shortcuts.
+5. Through installed GUI, approve read-only catalog discovery of this schema
+   only; import the sealed report. Expect two vertex candidates, one safe FK
+   edge candidate and manual-review warning for the nullable FK. Verify no
+   automatic selection or adoption and no P1/out-of-schema proposals.
+6. Explicitly select safe candidates with both endpoints. Review source/target
+   direction, identity-only default properties and then map intended properties.
+   Reload/reconnect, verify persistence, run bounded mapped inventory and import
+   the sealed result: five vertices and three safe-FK edges. Counts are not a
+   migration or canonical-digest qualification.
+7. Stop/deallocate the exact compute immediately after terminal outcome or
+   the time bound. Preserve schema, records, logs and seals; no automatic cleanup
+   or broader grants. Record actual results without closing unrelated branches.
+
+## Review / approval gate
+
+Local review resolved the runner choice: one new workflow-owned VM/storage is
+needed with the existing implementation. A new runner must not be inferred
+authorized from a source-fixture approval. The user must approve the resource,
+privilege and data-change scope plus bounded runtime; native action-time gates
+then bind exact generated identities and pinned artifact before mutation.
+This is a tiny supplemental schema-behavior trial, not another P1 graph migration.
+No source write, new resource or Azure restart occurred during this design review.
+
+## Execution preparation — 2026-09-20
+
+- Fresh installed-GUI workflow: `24bd714a-70ee-4865-82db-90d6f4760650`,
+  confirmed against the retained record filename before deployment.
+- The GUI selected the existing approved subscription/test RG, PostgreSQL source,
+  Japan East/zone 1, B2s_v2 and existing nondelegated runner subnet.
+- Schema input is restricted to `af_fk_qualification_20260920`, database
+  `p1source`, existing `agefreighter_reader`. No password has been requested.
+- The user approved the storage confirmation for `af24bd714a70ee486582db90`.
+  At 09:05–09:10 UTC, ARM and installed-GUI reconciliation confirmed successful
+  creation and account-only Blob Data Contributor for the signed-in user.
+  Anonymous access and shared keys are disabled. Public network access remains
+  Disabled, so provisioning success does not establish transfer readiness.
+- Fresh cost query returned HTTP 429; the last confirmed delayed RG month-to-date
+  total is USD 295.608869711763. The USD 800 ceiling remains unchanged.
+- Source is stopped with public access disabled; RG locks are absent. The
+  30-minute compute clock has not started. Do not use the old session's deadline
+  or restart its completed workflow.
+- The create-only fixture SQL is retained beside this plan. It uses one bounded
+  transaction, fails if the schema already exists, creates no new role/password,
+  and grants only USAGE plus SELECT on the two new tables. It has not run.
+- Requested approval for the established `SecurityControl=Ignore` exception and
+  authenticated public HTTPS on this exact new account, plus upload of the pinned
+  `d40d6ccc9a4d` Linux archive (37,197,546 bytes, SHA-256
+  `2321022975f85c73068a54fd21a287e2802d5bc33fa21eb9323c142dd7262ff6`).
+  The installed GUI displays the exact workflow-container/archive destination;
+  upload confirmation is open but not submitted. No tag/network change yet.
+- Storage reconciliation restored database/user defaults in the unreviewed source
+  form, as in the earlier catalog trial. Re-enter and verify `p1source` /
+  `agefreighter_reader` immediately before catalog review; never submit defaults.
+  No credentials were entered and no source operation was submitted.
+
+## Approved launch — 09:12–09:14 UTC
+
+- User separately approved the exact account's tag/network exception and archive
+  upload. Merged only `SecurityControl=Ignore`, preserving ownership tags; ARM
+  confirmed HTTPS-only/TLS1.2, public network Enabled, anonymous/shared keys false.
+  Installed-GUI upload is ready; independent Blob metadata matches the pinned
+  SHA-256 and 37,197,546 bytes.
+- User separately approved VM `af-24bd714a70ee486582db`, its pinned development
+  installation and workflow-container-only Blob Reader grant. GUI submitted
+  deployment at `2026-09-20T09:12:40.285Z` and reconciled provisioned at
+  `2026-09-20T09:13:50.615Z`. B2s_v2, Japan East/zone1, USD0.109/hour compute;
+  no public IP or SSH ingress. Source start was requested for the same session.
+- Hard shutdown deadline **2026-09-20T09:42:00Z (18:42 JST)**, less than 30 minutes
+  after the first request. Updated the safety heartbeat to this exact VM/source
+  and deadline; configured the VM's Azure auto-shutdown for 09:42 UTC. Never
+  extend automatically. No target creation or migration is authorized here.
+- Fresh RG error activity and locks were empty. Guest readiness command
+  `af-dfb8a74c-b018-40ea-b0b1-08767edfacdc` is submitted; wait/reconcile it, do not
+  replay. Source still Starting at the first poll. Fixture setup helper passed
+  shell syntax and Swift type checks but has not been submitted. It uses protected
+  administrator parameters and the committed create-only SQL, without credential
+  rotation or accepted P1 modifications.
+
+## Fixture ready / catalog credential gate — 09:17 UTC
+
+- Installed GUI verified pinned guest readiness at `2026-09-20T09:13:58.372Z`,
+  boot `62fcab5d-c9b4-49e8-8bd6-c4779cde7770`. Guest was idle, disk 3.4811%,
+  swap-used zero and OOM events zero. Source reconciled Ready/private.
+- Submitted only `af-pg-fk-fixture-20260920` using protected administrator
+  parameters and script SHA-256
+  `d50f3af2a0675197981b0ea7cd7b0a746e54bdd9d2d97b7c8e0bbd4a4d0e688c`.
+  ARM terminal execution Succeeded/exit0 with marker
+  `isolated_fixture_created_scoped_grants_committed` proves the bounded SQL
+  transaction and its postconditions completed. No credential rotation or P1
+  mutation; the dedicated schema and its five rows are retained.
+- Installed-GUI catalog confirmation displays the exact `p1source` database,
+  existing reader, new runner and only `af_fk_qualification_20260920`. The user
+  approved the read in VS Code; its private password box is open. Requested the
+  existing PostgreSQL reader Keychain entry, never a Neo4j/admin credential.
+  No catalog dispatch yet. Stop on 15-minute idle credential wait or the hard
+  09:42 UTC deadline; no automatic restart or extension.
+- User subsequently entered the password; installed GUI accepted catalog operation
+  `511d0745-b0dd-43c7-b88f-b1144947df44`, configuration SHA-256
+  `20dfdcadf0fd093633f3d959a8d6cf8193cfe082eb5d24bfde8aa1a36870a6d8`.
+  Read-only guest evidence independently confirms fixture completion at
+  `2026-09-20T09:16:14Z`, committed SQL log checksum
+  `f89018bf71b8fa9d82803d34392fbfc6785bcf83ea31e0018550a28056192524`,
+  checksum verification OK, disk4%, memory267,403,264 bytes, no swap.
+- Catalog completed at `2026-09-20T09:17:57.378559415Z`, exit0, 1,966-byte
+  report SHA-256 `67c10b4481d64c89ceb8b9118b7419df01740a923ceca710fdb8d974f1be8ee4`.
+  Installed GUI reconciled finished and displays the sealed transfer approval.
+  Requested explicit transfer/import of the synthetic two-table schema/key
+  metadata to this workflow's storage and Mac; no row/password/AI transfer.
+  No candidate count or safety-warning acceptance is claimed before import.
+- Cost refresh succeeded: delayed RG September actual cost **USD302.628107546835**,
+  under the unchanged USD800 ceiling. Hard stop remains09:42UTC.
+
+## Safety monitor reconciliation — 09:31–09:33 UTC
+
+- The user had already submitted the exact report transfer via installed GUI;
+  the retained export was submitted09:20:08.585UTC and finished09:20:18UTC,
+  exit0. This monitor reconciled that existing operation only, without replay.
+- Installed GUI imported the 1,966-byte sealed catalog. Independent local SHA-256
+  matches `67c10b4481d64c89ceb8b9118b7419df01740a923ceca710fdb8d974f1be8ee4`.
+  Complete scope contains only `products` and `suppliers` in the dedicated schema.
+- GUI shows exactly two vertex candidates and one directed edge candidate from
+  products to suppliers through `products_supplier_fk`; the nullable
+  `products_optional_supplier_fk` is a manual-review warning rather than a safe
+  edge proposal. All three checkboxes remain unselected and adoption disabled.
+  No automatic adoption, P1 proposal, new inventory or migration occurred.
+- ARM verifies VM running and source Ready/private; RG error activity since
+  launch is empty. There is no active mapped inventory. Preserve all evidence
+  and enforce the 15-minute idle-user-wait limit after the export worker ended
+  (09:35:18UTC), before the unchanged09:42UTC hard limit.
+- Read-only guest check at09:32:34UTC showed disk4%, memory270,102,528bytes,
+  no swap, no active workflow marker and no OOM kernel entries.
+- At09:35:35UTC, the record still had no adopted source draft or assessment.
+  Requested deallocation of only the exact VM and stop of only the existing
+  source. Both requests were accepted; initial states deallocating/Stopping.
+  Retained schema, imported catalog, guest logs and disks; no deletion or restart.
+- By09:37:30UTC, ARM independently verified `PowerState/deallocated` and source
+  `Stopped` with public network Disabled, before the09:42UTC bound. Disabled the
+  safety heartbeat after both states were verified. Do not restart solely to
+  read evidence. Further paid execution needs a new bounded session; offline
+  candidate review remains possible. Source Flexible Server reports its normal
+  automatic restart after seven days; this stopped-state observation is not a
+  claim of indefinite shutdown. Latest delayed RG cost remainsUSD302.628107546835.
+
+## Explicit adoption and bounded restart — September 21
+
+- While both resources were stopped, selected the two vertex candidates and the
+  safe products-to-suppliers FK in the installed GUI. Explicitly adopted them;
+  nullable `products_optional_supplier_fk` was not adopted.
+- Reviewed properties: products `id`, `name`, `supplier_id`,
+  `optional_supplier_id`; suppliers `id`, `name`; edge `id`, `supplier_id`.
+  Directed edge starts at products.id and ends at suppliers via supplier_id.
+  Generated queries reference only the dedicated schema, never P1 tables.
+- Actual Developer: Reload Window followed by reconnect to the same saved
+  workflow restored all three mappings/properties. The full sourceDraft JSON
+  SHA-256 stayed `d4182257cf899b3ab89979ee9542994d2059217e5868bf91e93ae26a26a7d8d7`.
+  No live inventory existed at this checkpoint. GUI approval requires new review.
+- Fresh pre-start checks: exact VM deallocated, source Stopped/private, no RG
+  locks or error activity since 00:30 UTC. Cost refresh returned HTTP429;
+  last confirmed delayed RG actual cost USD302.628107546835, USD800 cap unchanged.
+- User approved restarting only the existing VM/source for read-only mapped
+  inventory, at most 30 minutes from first start. First requests 01:39:15 UTC;
+  hard stop **2026-09-21T02:08:00Z (11:08 JST)**. Both starts accepted.
+  Updated the existing safety monitor and exact VM daily shutdown to02:08UTC.
+  Fresh readiness must verify the new boot and health before inventory dispatch.
+  Stop on terminal outcome, fifteen-minute idle input wait or hard bound.
+
+## Fresh readiness / inventory credential gate — 01:42 UTC
+
+- Installed GUI reconciled readiness `af-c171ebeb-32b7-46f5-8c81-3da5f8a01e9d`
+  at01:40:45.019UTC, new boot `8addef7d-9bbc-4f23-b3d8-b3f9f10b5139`;
+  pinned Linux version/archive unchanged, idle true, disk3.522%, no swap/OOM.
+- Independent guest diagnostic01:42:01UTC: total used memory245,882,880bytes,
+  swap0, root4%; source Ready with public network Disabled. No worker replay.
+- Re-reviewed the restored mappings in the installed GUI and approved complete
+  read-only inventory for exact existing runner/source/database. Private password
+  input opened01:42:30UTC; requested the existing PostgreSQL reader Keychain item,
+  never Neo4j/admin credentials. No inventory dispatch as of this checkpoint.
+- Preserve hard stop02:08UTC and fifteen-minute idle input limit01:57:30UTC.
+  No source data, grants, software, network or target changes occurred.
+
+## Idle-input safety stop — September21 01:58 UTC
+
+- Monitoring found no assessment/worker and the same private GUI password prompt.
+  At01:57:45UTC, the fifteen-minute idle limit01:57:30UTC had passed. Cancelled
+  the unsubmitted prompt to prevent late submission into a stopping session;
+  no credentials were read or stored and no source inventory was dispatched.
+- Read-only diagnostic01:55:02UTC: memory264,630,272bytes, root4%, swap0,
+  no OOM kernel messages. RG locks/error activity absent; listed operations
+  match authorized starts/readiness/diagnostics plus a resolved health event.
+- Cost refresh succeeded: delayed RG September actual **USD326.07607295488**,
+  below the unchanged USD800 cap. This is delayed billing, not final total.
+- Requested only exact VM deallocation and source stop by01:58:17UTC. VM
+  deallocated verified immediately; source Stopping/private at01:59:29UTC.
+  Retained fixture, disks, catalog and local workflow. sourceDraft SHA remains
+  `d4182257cf899b3ab89979ee9542994d2059217e5868bf91e93ae26a26a7d8d7`.
+  Mapped five-vertex/three-edge inventory remains pending, not a failed read
+  or completed qualification. No retry, new target or migration was started.
+- By02:01:16UTC, source Stopped/private was independently verified, completing
+  both stopped-state checks before02:08UTC. Disabled the safety heartbeat.
+  Flexible Server reports normal automatic restart after seven days; this is
+  not an indefinite-shutdown guarantee. Further live inventory requires a new
+  bounded session with the user available for private credential entry.
+
+## Reapproved read-only session — September21 02:10 UTC
+
+- User explicitly approved another maximum30minute restart of only the same
+  VM/source for the pending5vertex/3edge mapped inventory. USD800 cap unchanged.
+- Before starting: VM deallocated, source Stopped/private and no RG locks.
+  Fresh delayed September RG cost USD326.07607295488. Activity since prior stop
+  showed tag writes on other retained storage accounts, not this workflow's
+  account/VM/source, plus resource-health events. No governance setting changed.
+- First start requests02:10:41UTC, both accepted. New hard stop
+  **2026-09-21T02:39:00Z (11:39 JST)**, within30minutes. Updated existing safety
+  monitor and exact VM shutdown schedule to02:39UTC. Preserve all earlier evidence.
+  Fresh readiness must pass before source reads; fifteen-minute idle-input rule
+  remains. No install, grants, network changes, new resources, target or migration.
+- Fresh GUI readiness operation `63c31fe8-dbfb-4d07-be82-1c602710aac7` finished;
+  new boot `7ef882c4-1b87-462e-9ec6-f6be6c9bbd83`, checked02:11:53.156UTC,
+  pinned version/archive unchanged, idle true, disk3.706%, swap0/OOM0.
+  Independent guest diagnostic02:12:36UTC: used memory243,122,176bytes, root4%,
+  swap0 and no OOM kernel entries. Source Ready/private confirmed.
+- Restored mappings were reviewed without modification, exact source read
+  confirmation accepted and private password input displayed at02:13UTC.
+  At02:13:53UTC, no inventory exists. Asked user for the existing PostgreSQL
+  reader credential privately. Stop if still idle at02:28UTC, or hard02:39UTC.
+- User entered the credential; GUI submitted inventory
+  `5a0a140b-1b4a-4785-bd6b-c3c451865b6e` at02:14:01.245UTC on the same new boot.
+  Source configuration SHA `710c5a4116ed02c71a30a84ead13f30e8d5b5809f03676fb88a4d6da1434ae5b`;
+  guest configuration SHA `396f2016f3e748503e7ada144ba26255fa64aad023de4b84a2d192a72842b44b`.
+- GUI status reconciliation finished by02:15:41UTC; sealed report2,087bytes,
+  SHA `d6d4ea9c5c696a9daed453ce877b8a7743b4041aae9a7a0b74a4daac78d75390`.
+  Opened exact transfer preview to the existing workflow container and asked
+  user approval for transfer/import; no report content/count acceptance yet.
+  No replay or migration. Stop by02:30UTC if still idle awaiting transfer input,
+  or after successful import, terminal failure or hard02:39UTC.
+
+## Sealed mapped inventory accepted — September21 02:17 UTC
+
+- User approved exact report transfer. Reconciled the same export command
+  `af-ce28bc71-94b1-4022-b682-dafe46250153` without replay and imported through
+  installed GUI. The Hash-verified source report view displayed the retained
+  result. Independent local bytes/SHA match the2,087-byte original seal.
+- Report generated02:14:13.408745188UTC; outcome pass, read-only and source-counts
+  checks pass, all fields pass, errors/incompleteChecks empty. Complete stream
+  used one PostgreSQL repeatable-read snapshot. Exact counts: products3,
+  suppliers2, safe products-to-suppliers edge3; five vertices plus three edges.
+- Independent assertions verified exact size/SHA, all three labels, both checks,
+  no errors/incomplete fields, finished operation and GUI-imported transfer.
+  Warning `INVENTORY_NOT_MIGRATION_VERIFICATION` remains: counts do not establish
+  unique identity or endpoint existence, and no target/migration/digest is implied.
+- Together with prior sealed catalog display, explicit adoption/property review,
+  and actual Reload Window/reconnect, the defined isolated FK slice passes.
+  Nullable FK was not silently accepted; accepted P1 data/records were untouched.
+- Fresh pre-stop RG locks/error activity empty. Exact source stop and VM
+  deallocation requested by02:18:07UTC, well before02:39UTC; evidence preserved.
+- VM `PowerState/deallocated` and source `Stopped`/public network Disabled
+  independently verified by02:20:24UTC, under ten minutes after first start
+  request and before the02:39UTC hard bound. Disabled the existing safety monitor.
+  No resources/disks/schema/evidence deleted. The normal seven-day automatic
+  Flexible Server restart remains a platform caveat, not indefinite shutdown.

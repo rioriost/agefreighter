@@ -1,0 +1,50 @@
+{
+  "evidenceVersion": 1,
+  "scope": "B03 Neo4j 5.26 other-cloud GUI selection, Azure-hosted endpoint-only simulation",
+  "workflow": "b775b1b2-81ca-40fc-b669-f136cde904b8",
+  "jobId": "99ae1d29-f7b4-43f2-a91a-149464617a22",
+  "migrationFinishedAt": "2026-09-22T13:05:07.174569205Z",
+  "countsReport": {
+    "bytes": 9619,
+    "sha256": "a66aa8c3a183c2d64e7b87c18a9c42462147adaf862bf00d2ce97f5cf512cc31",
+    "guiOutcome": "pass",
+    "vertices": 1600000,
+    "edges": 4000000,
+    "labels": 18,
+    "rejects": 0,
+    "passedChecks": 24,
+    "errors": [],
+    "incompleteChecks": []
+  },
+  "canonicalVerification": {
+    "operation": "6fb20b39-3206-45ad-be99-6b235c31a69e",
+    "profile": "raw-id",
+    "verifierCommit": "8a23a5109798ec906109532e4cc6c32308b3c824",
+    "archiveSha256": "60ed56a6773e6cbb64f7a0c03bc407f8aea135c7f1a75d7b8494db17cf09f79d",
+    "generatedAt": "2026-09-22T13:14:46.652297517Z",
+    "bytes": 23226,
+    "sha256": "c40ba2ae35168726d3943c5d66ac84573b788a66b01a39deab38d987a3d74852",
+    "readOnly": true,
+    "guiOutcome": "pass",
+    "recordCount": 5600000,
+    "ranges": 64,
+    "fixtureRootSha256": "f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f",
+    "expectedRootSha256": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70",
+    "actualRootSha256": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70",
+    "independentLeafComparison": "pass",
+    "independentRootRecomputation": "pass"
+  },
+  "shutdown": {
+    "verifiedBy": "2026-09-22T13:25:54Z",
+    "sourceVm": "PowerState/deallocated",
+    "runnerVm": "PowerState/deallocated",
+    "target": "Stopped",
+    "disksDataAndEvidence": "retained"
+  },
+  "limitations": [
+    "Not a real third-party-cloud network compatibility test",
+    "PostgreSQL other-cloud selection has no additional live migration qualification",
+    "Pre-load inventory reports aggregate counts, not per-label coverage",
+    "No peak RSS measurement was captured during the short verifier run"
+  ]
+}

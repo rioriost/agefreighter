@@ -1,0 +1,139 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { buildSourceDraft, sourceSecrets } from "../../core/runnerSource";
+import { csvFile, sourceForm, workflow } from "../sourceFixtures";
+
+test("frozen P1 PostgreSQL other-cloud draft preserves every property, identity and endpoint", () => {
+  const bytes = readFileSync("../../production-simulation/vscode-e2e/fixtures/postgresql-p1-mappings.json");
+  assert.equal(createHash("sha256").update(bytes).digest("hex"), "ac02ab254bb85f929abe033407c4d3358c2addca91c20864c4dce8be4d072e8f");
+  const mappings = JSON.parse(bytes.toString("utf8")) as typeof sourceForm.mappings;
+  const form = { ...sourceForm, name: "othercloud-pg-p1-r1", host: "192.0.2.20", port: 5432, database: "p1source", username: "agefreighter_reader", mappings };
+  const draft = buildSourceDraft({ type: "postgresql", location: "other-cloud" }, form, workflow);
+  assert.deepEqual(draft.configuration, buildSourceDraft({ type: "postgresql", location: "on-premises" }, form, workflow).configuration);
+  assert.equal(draft.canAssess, true);
+  const pg = (draft.configuration.source as any).postgresql;
+  assert.equal(pg.vertices.length, 9); assert.equal(pg.edges.length, 9);
+  assert.deepEqual(pg.connection, { env: "AGEFREIGHTER_SOURCE_DSN" });
+  for (const mapping of mappings) {
+    const generated = [...pg.vertices, ...pg.edges].find(m => m.label === mapping.label);
+    assert.ok(generated);
+    assert.deepEqual({ ...generated.properties }, Object.fromEntries(mapping.properties.split(",").map(p => p.split("="))));
+    assert.equal(generated.properties.source_key, "source_key");
+    assert.ok(generated.query.startsWith("SELECT "));
+    assert.ok(generated.query.endsWith(`FROM "p1"."${mapping.collection}" ORDER BY "${mapping.identity}"`));
+    if (mapping.kind === "vertex") assert.equal(generated.idField, "external_id");
+    else {
+      assert.equal(generated.externalIdField, "relationship_id");
+      assert.deepEqual(generated.start, { label: mapping.startLabel, field: mapping.startField });
+      assert.deepEqual(generated.end, { label: mapping.endLabel, field: mapping.endField });
+    }
+  }
+  assert.ok(!/resourceId|subscriptionId|192\.0\.2\.20|password/i.test(JSON.stringify(draft.configuration)));
+});
+
+test("Gremlin GUI declarations survive review without changing undeclared source configuration",()=>{
+  const selection={type:"cosmos-nosql",location:"azure"} as const;
+  const form={...sourceForm,host:"account.documents.azure.com",cosmosFormat:"gremlin"};
+  const before=buildSourceDraft(selection,form,workflow);
+  const after=buildSourceDraft(selection,{...form,gremlinPropertyTypes:"score=float64,distance_km=float64"},workflow);
+  assert.equal((before.configuration.source as any).cosmos.gremlin.propertyTypes,undefined);
+  assert.deepEqual({...((after.configuration.source as any).cosmos.gremlin.propertyTypes)},{score:"float64",distance_km:"float64"});
+  assert.equal(after.form.gremlinPropertyTypes,"score=float64,distance_km=float64");
+  assert.ok(after.warnings.some(w=>w.includes("all discovered labels")));
+  assert.notDeepEqual(before.configuration,after.configuration);
+});
+test("Gremlin GUI rejects structural, duplicate, unsupported and oversized type declarations",()=>{
+  const form={...sourceForm,host:"account.documents.azure.com",cosmosFormat:"gremlin"};
+  for(const gremlinPropertyTypes of ["id=string","label=string","partitionKey=string","_sink=string","score=date","score=float64,score=int64","score",Array.from({length:129},(_,i)=>`field${i}=float64`).join(",")]) {
+    assert.throws(()=>buildSourceDraft({type:"cosmos-nosql",location:"azure"},{...form,gremlinPropertyTypes},workflow));
+  }
+});
+
+test("Cosmos explicit numeric declarations survive the GUI mapping and draft fingerprint",()=>{
+  const selection={type:"cosmos-nosql",location:"azure"} as const;
+  const form={...sourceForm,host:"account.documents.azure.com",cosmosFormat:"explicit",labelField:"label"};
+  const before=buildSourceDraft(selection,form,workflow);
+  const mappings=form.mappings.map(m=>({...m,properties:m.kind==="vertex"?"score=score:float64":"distance_km=distance_km:float64"}));
+  const after=buildSourceDraft(selection,{...form,mappings},workflow),c=(after.configuration.source as any).cosmos;
+  assert.deepEqual({...c.vertices[0].propertyTypes},{score:"float64"});assert.deepEqual({...c.edges[0].propertyTypes},{distance_km:"float64"});
+  assert.notDeepEqual(before.configuration,after.configuration);
+  assert.throws(()=>buildSourceDraft(selection,{...form,mappings:mappings.map(m=>({...m,properties:"bad=bad:date"}))},workflow));
+});
+
+test("Neo4j 4/5 form creates TLS discovery with environment handles and no ARM lookup", () => {
+  for (const location of ["azure", "on-premises", "other-cloud"] as const) {
+    const draft = buildSourceDraft({ type: "neo4j", location }, sourceForm, workflow);
+    const neo = (draft.configuration.source as any).neo4j;
+    assert.equal(neo.uri, "neo4j+s://source.example.com:7687"); assert.equal(neo.discovery.enabled, true);
+    assert.deepEqual(neo.password, { env: "AGEFREIGHTER_SOURCE_PASSWORD" });
+    assert.equal(draft.canAssess, true); assert.ok(!JSON.stringify(draft).includes("resourceId"));
+  }
+});
+test("PostgreSQL table mappings generate only quoted read queries and mapped endpoints", () => {
+  const draft = buildSourceDraft({ type: "postgresql", location: "on-premises" }, { ...sourceForm, port: 5432 }, workflow);
+  const pg = (draft.configuration.source as any).postgresql;
+  assert.equal(pg.vertices[0].query, 'SELECT "id", "full_name", "age" FROM "public"."people" ORDER BY "id"');
+  assert.equal(pg.edges[0].start.field, "from_id"); assert.equal(pg.readMode, "cursor");
+  assert.deepEqual(pg.connection, { env: "AGEFREIGHTER_SOURCE_DSN" });
+  assert.throws(() => buildSourceDraft({ type: "postgresql", location: "azure" }, { ...sourceForm, mappings: [{ ...sourceForm.mappings[0], collection: 'people; DROP TABLE secret' }] }, workflow), /PostgreSQL table/);
+});
+for (const type of ["neo4j", "postgresql"] as const) {
+  test(`${type} other-cloud and on-premises produce identical endpoint-only LoadJobs`, () => {
+    const form = {...sourceForm, port: type === "postgresql" ? 5432 : 7687};
+    const local = buildSourceDraft({type, location: "on-premises"}, form, workflow);
+    const cloud = buildSourceDraft({type, location: "other-cloud"}, form, workflow);
+    assert.deepEqual(cloud.configuration, local.configuration);
+    assert.equal(cloud.canAssess, local.canAssess);
+    assert.ok(!JSON.stringify(cloud.configuration).includes("resourceId"));
+  });
+}
+test("explicit mappings warn about identity-only fields without silently changing graph properties",()=>{
+  const raw={...sourceForm,port:5432};
+  const before=buildSourceDraft({type:"postgresql",location:"azure"},raw,workflow);
+  assert.ok(before.warnings.some(w=>w.includes("stable ID field is used for identity only")));
+  const rows=raw.mappings.map(m=>({...m,properties:`${m.properties},identity_copy=${m.identity}`}));
+  const after=buildSourceDraft({type:"postgresql",location:"azure"},{...raw,mappings:rows},workflow);
+  assert.ok(!after.warnings.some(w=>w.includes("stable ID field is used for identity only")));
+  assert.equal((before.configuration.source as any).postgresql.vertices[0].properties.identity_copy,undefined);
+  assert.equal((after.configuration.source as any).postgresql.vertices[0].properties.identity_copy,rows[0]!.identity);
+});
+test("Cosmos explicit mappings bind labels and escape JSON pointers; Gremlin uses bounded discovery", () => {
+  const form = { ...sourceForm, host: "account.documents.azure.com", mappings: [{ ...sourceForm.mappings[0], identity: "a/b~c" }] };
+  const cosmos = (buildSourceDraft({ type: "cosmos-nosql", location: "azure" }, form, workflow).configuration.source as any).cosmos;
+  assert.equal(cosmos.credential, "default-azure"); assert.equal(cosmos.vertices[0].idField, "/a~1b~0c");
+  assert.deepEqual(cosmos.vertices[0].parameters, [{ name: "@label", value: "Person" }]);
+  const gremlin = (buildSourceDraft({ type: "cosmos-nosql", location: "azure" }, { ...form, cosmosFormat: "gremlin" }, workflow).configuration.source as any).cosmos;
+  assert.equal(gremlin.gremlin.maxDiscoveryDocuments, 10000); assert.equal(gremlin.vertices, undefined);
+});
+test("CSV mappings use selected identities and explicit types, but cannot run before upload", () => {
+  const form = { ...sourceForm, mappings: [{ ...sourceForm.mappings[0], collection: csvFile.id, properties: "age=age:int64,active=active:boolean,tags=tags:string[]" }] };
+  const draft = buildSourceDraft({ type: "csv", location: "local" }, form, workflow, [csvFile]);
+  const csv = (draft.configuration.source as any).csv;
+  assert.equal(draft.canAssess, false); assert.deepEqual({ ...csv.vertices[0].propertyTypes }, { age: "int64", active: "boolean", tags: "string[]" });
+  assert.equal(csv.defaults.nullValue, "\\N");
+  assert.ok(draft.warnings.some(w => w.includes("CSV upload alone") && w.includes("full-content verification seal")));
+  assert.ok(!draft.warnings.some(w => w.includes("upload is not enabled")));
+  assert.equal(csv.vertices[0].path, `/var/lib/agefreighter/workflows/${workflow}/uploads/${csvFile.id}.csv`);
+  assert.throws(() => buildSourceDraft({ type: "csv", location: "local" }, form, workflow, []), /picker/);
+});
+test("source forms reject URL credentials, invalid ports, duplicate labels, properties and unmapped endpoints", () => {
+  for (const edit of [{ host: "https://user:pass@host" }, { port: 0 }, { port: 65536 }, { namespace: "a\nb" }]) {
+    assert.throws(() => buildSourceDraft({ type: "neo4j", location: "on-premises" }, { ...sourceForm, ...edit }, workflow));
+  }
+  for (const mappings of [[sourceForm.mappings[0], sourceForm.mappings[0]], [{ ...sourceForm.mappings[0], properties: "name=a,name=b" }], [sourceForm.mappings[0], { ...sourceForm.mappings[1], startLabel: "Unknown" }]]) {
+    assert.throws(() => buildSourceDraft({ type: "postgresql", location: "azure" }, { ...sourceForm, mappings }, workflow));
+  }
+});
+test("passwords are separate from forms and PostgreSQL URI preserves special characters with strict TLS", () => {
+  const password = "p@ss:/?#% secret";
+  const form = { ...sourceForm, host: "2001:db8::1", port: 5432, username: "reader@tenant", database: "a/b" };
+  const secrets = sourceSecrets("postgresql", form, password, "-----BEGIN CERTIFICATE-----\nprotected-ca\n-----END CERTIFICATE-----\n");
+  const uri = new URL(secrets.AGEFREIGHTER_SOURCE_DSN!);
+  assert.equal(decodeURIComponent(uri.password), password); assert.equal(uri.hostname, "[2001:db8::1]"); assert.equal(uri.searchParams.get("sslmode"), "verify-full");
+  assert.match(secrets.AGEFREIGHTER_SOURCE_CA_PEM!, /BEGIN CERTIFICATE/);
+  assert.equal(decodeURIComponent(uri.pathname.slice(1)), "a/b");
+  assert.ok(!JSON.stringify(buildSourceDraft({ type: "postgresql", location: "on-premises" }, form, workflow)).includes(password));
+  assert.deepEqual(sourceSecrets("cosmos-nosql", sourceForm), {});
+});

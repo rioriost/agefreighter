@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "scope": "B08 desktop CSV transfer only; not guest import or migration",
+  "workflow": "19a5ce10-4de7-4b3d-9104-7629ce18804c",
+  "codeCommit": "a459140",
+  "vscode": "1.138.0",
+  "extensionBundleSHA256": "eb453a1bca36ec7a9f6e1b3dd3cb5c9cc9bf2b78d2cc63c6d74b1dcbdc9243c7",
+  "storageAccount": "af19a5ce104de74b3d910476",
+  "networkDisabledRefusal": "pass",
+  "exception": {"userApproved": true, "SecurityControl": "Ignore", "publicNetworkAccess": "Enabled", "anonymousAccess": false, "sharedKeyAccess": false, "httpsOnly": true, "minimumTLS": "TLS1_2"},
+  "cancel": {
+    "mechanism": "installed native notification Cancel",
+    "observedPercentBeforeClick": 15,
+    "exactCancellationPercent": null,
+    "file": "8b0bb41a-9e62-4112-b130-d44a68e15daf",
+    "committedBlocksAfterCancel": 0,
+    "uncommittedBlocksAfterCancel": 57,
+    "uncommittedBytesAfterCancel": 478150656,
+    "retainedPhases": ["uploaded", "uploaded", "uploaded", "prepared", "not-attempted"],
+    "assessmentStarted": false,
+    "migrationStarted": false
+  },
+  "changedManifestRefusal": {
+    "outcome": "pass",
+    "file": "f3fff72d-c509-405e-bb7e-63fa023fd33b",
+    "changedSHA256": "10c62d8063a416f3bfc80cf8732231bea01be0ef12fa342e94723daf93185287",
+    "restoredSHA256": "0ecaaca3879b11a4bc76835c23f37cda9bfac7d5ed457ad50937170876d861fe",
+    "frozenSourceModified": false,
+    "existingCommittedBlobsUnchanged": true
+  },
+  "retry": {"explicitNativeConfirmation": true, "sameDestination": true, "mode": "re-send bounded blocks; not byte-offset resume", "finalPhases": ["uploaded", "uploaded", "uploaded", "uploaded", "uploaded"], "assessmentStarted": false, "migrationStarted": false},
+  "fullBlobReadback": {
+    "completedAt": "2026-09-16T13:36:17.109Z",
+    "totalBytes": 1840125623,
+    "outcome": "pass",
+    "files": [
+      {"name": "01-Supplier.csv", "bytes": 8797607, "sha256": "0ecaaca3879b11a4bc76835c23f37cda9bfac7d5ed457ad50937170876d861fe", "etag": "0x8DF13F66AC14F34", "etagUnchanged": true},
+      {"name": "02-Lot.csv", "bytes": 106546013, "sha256": "1ecc45118235d4897ef1b72372cb48b7a5a09a121f5ce17a0f7f0c18dce8d616", "etag": "0x8DF13F66B966237", "etagUnchanged": true},
+      {"name": "03-Shipment.csv", "bytes": 77866011, "sha256": "8c22cab4796d589d1aff15aa898485f242d27b5c6d2524e10e95ad65922a33e9", "etag": "0x8DF13F66C2B7458", "etagUnchanged": true},
+      {"name": "04-transport-only-repeated-CONTAINS.csv", "bytes": 1638118385, "sha256": "2b540ccbb5e095054fc817448c454a513991ae37c1ee7eb1393edd4c5292ece6", "etag": "0x8DF13F762CC8249", "transportOnlyNeverMigrate": true},
+      {"name": "05-not-attempted-after-cancel.csv", "bytes": 8797607, "sha256": "0ecaaca3879b11a4bc76835c23f37cda9bfac7d5ed457ad50937170876d861fe", "etag": "0x8DF13F76346F163", "transportOnlyNeverMigrate": true}
+    ]
+  },
+  "preservation": {"priorJSONFiles": 64, "priorAggregateSHA256": "917a29e7457ef2b6f235970141cdc4c262c10543329aa04d189e7c18ee4fc8f8", "unchanged": true},
+  "remaining": ["live guest import hash-mismatch/receipt denial", "live lost committed-acknowledgement reconciliation"],
+  "overallB08": "partial"
+}

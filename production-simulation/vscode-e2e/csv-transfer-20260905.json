@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "outcome": "pass",
+  "scope": "Installed VS Code GUI CSV upload plus independent authenticated full-byte readback; not guest import or migration qualification",
+  "completedUTC": "2026-09-05T10:17:36.961Z",
+  "extensionCommit": "c9d477b5003189082a575ab7afd7a67b1780cdbb",
+  "installedBundleSHA256": "92d50336ae387cb1be19c81fcc60551f948ede95085943bc393c32840622c7a7",
+  "vsCodeVersion": "1.136.1",
+  "workflow": "83c6b829-acdc-4405-aa2d-fb2f2d99af9f",
+  "resourceGroup": "rg-af-vscode-p1-20260905-a",
+  "storageAccount": "af83c6b829acdc4405aa2dfb",
+  "network": {
+    "userApprovedException": "SecurityControl=Ignore",
+    "exceptionScope": "storage account only; resource group unchanged",
+    "publicNetworkAccess": "Enabled",
+    "allowBlobPublicAccess": false,
+    "allowSharedKeyAccess": false,
+    "anonymousReadHTTP": 409
+  },
+  "upload": {
+    "path": "Actual installed extension GUI, existing Azure account with Storage-scoped session",
+    "files": 18,
+    "bytes": 1168576671,
+    "allRetainedPhases": "uploaded",
+    "conditionalCreateOnly": true
+  },
+  "readback": {
+    "path": "Independent streamed GET of every GUI-uploaded blob using Azure CLI Entra credential",
+    "files": 18,
+    "bytes": 1168576671,
+    "allSizesAndSHA256MatchApprovedLocalManifests": true,
+    "redirectsAllowed": false
+  },
+  "files": [
+    {"name":"CARRIED_BY.csv","bytes":70714348,"sha256":"67d3328f0e2bcc9a9a2f1c71ad51edb8af43148d7abee5becab78c9d91fdee69"},
+    {"name":"CONTAINS.csv","bytes":204764876,"sha256":"00d11fffe89b4e5ce19c0046adbfb3fccb1791462a2ce7b3c2211fa347d61890"},
+    {"name":"Carrier.csv","bytes":235855,"sha256":"0a2c6e8ecf1fdfe2540c4058202527e458f66e1d7611d75c03d51144089fe88b"},
+    {"name":"Customer.csv","bytes":6371355,"sha256":"4b82abd66754f08749e12d0f2cda3abbcfed46c3016855caf654a1608517a5bd"},
+    {"name":"DESTINED_FOR.csv","bytes":71610098,"sha256":"2da3ab71851271c5e2895d2ca2b2f9599af5334ae87ed431d5d09f4baa5bcec2"},
+    {"name":"FULFILLS.csv","bytes":92615438,"sha256":"0d8294d1cfa659300c6b3c275aca46757d93dd240ea504587d64420e70d67842"},
+    {"name":"Facility.csv","bytes":4428974,"sha256":"62d18a1c8beccfc9d63bf2d9c5a1b47bdc1b9bb7bc36ac2ceda5cfb2aca9de5e"},
+    {"name":"INCLUDED_IN.csv","bytes":69294950,"sha256":"f52ffd09f781a4cb1c0b435649371d79b0cd9b64f82883fb0fb8b08901f0d1a7"},
+    {"name":"Location.csv","bytes":2255174,"sha256":"4e4bdc6637d633ce6e1e63bcc6a0f2ba936edfd5cadfa532e2073809817d5a31"},
+    {"name":"Lot.csv","bytes":106546013,"sha256":"1ecc45118235d4897ef1b72372cb48b7a5a09a121f5ce17a0f7f0c18dce8d616"},
+    {"name":"ORIGINATES_AT.csv","bytes":71551502,"sha256":"c800d3f1a91b22a031b1f15defd642a1ce2f348997dd810605b49685e247ad2f"},
+    {"name":"PLACED_WITH.csv","bytes":93316872,"sha256":"2b8eabad2560284a3e4d0d40aaa2d59b68b1ef8e9461c1ff192c63b96775d2f0"},
+    {"name":"PRODUCED_AT.csv","bytes":60663819,"sha256":"7199a6098084393e12847f22c9c35169c55e1c79059191b44a0c550ad163b8c7"},
+    {"name":"Product.csv","bytes":44016348,"sha256":"7a26c6418933a76aab1a4f29841ccacbde938810b3358eb2a2f5ce61814da7cf"},
+    {"name":"PurchaseOrder.csv","bytes":104281885,"sha256":"f27b93ece7bdb8a04b2901ac9aa3d8e239ec5e18d2de76887b86c590ef0fe0af"},
+    {"name":"SUPPLIES.csv","bytes":79245546,"sha256":"c93692ccb1d207d1d00ddb5771689a24006ac78f1c8cbb031cd686ca469923b1"},
+    {"name":"Shipment.csv","bytes":77866011,"sha256":"8c22cab4796d589d1aff15aa898485f242d27b5c6d2524e10e95ad65922a33e9"},
+    {"name":"Supplier.csv","bytes":8797607,"sha256":"0ecaaca3879b11a4bc76835c23f37cda9bfac7d5ed457ad50937170876d861fe"}
+  ],
+  "notYetQualified": ["Linux guest CSV import", "source assessment", "target deployment", "migration", "post-migration canonical verification"]
+}

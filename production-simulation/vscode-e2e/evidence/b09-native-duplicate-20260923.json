@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "scope": "B09 finite same-window duplicate and stale two-window approval controller gates",
+  "result": "pass-defined-isolated-native-controller-scope",
+  "overallB09": "partial",
+  "independentFileReviewAt": "2026-09-23T12:46:33.548Z",
+  "evidenceLayer": "isolated-normal-native-production-controller-with-inert-effects",
+  "frozenAcceptance": "Real same-window repeated activation and two real windows sharing one private profile/store; no second submission from stale approval. Not an Azure duplication trial.",
+  "reviewedBundleSHA256": "3216a5ede03b09f8d84b89836d1320b8a5de23d5efed0d6ccc1c3a1993ec50a4",
+  "independentChecks": [
+    "Retained runtime matches preparation and loader hash pin; all six recorded source seals match reviewed source.",
+    "Real profile/store paths match the declared fresh private root.",
+    "Only phase and updatedAt differ between original review and A's exact persisted intent.",
+    "Exactly one create-only inert PUT receipt matches the original deployment ID/body and persisted intent hash.",
+    "Current store contains exactly one 0600 workflow file matching final record/hash; no residual lock or extra file.",
+    "Both real modal API returns precede the unchanged original expiry; no timestamp renewal or expiry-based duplicate credit."
+  ],
+  "cases": [
+    {
+      "id": "same-window-repeated-activation",
+      "retainedRoot": "/private/tmp/af-deployment-duplicate-jlvWnh",
+      "originalRecordSHA256": "61a7c4efa477bbe0747ff498e8f5f59ad8fa4be0474f2d53f4c70cae9a04c69f",
+      "finalRecordSHA256": "d39bb2282a128a32c727f4ba2e40bf65e6006e10b140e9b7f3fc02a7a1883834",
+      "originalExpiresAt": "2026-09-23T12:48:27.300Z",
+      "controllerResultSHA256": "a7dff529da28a96b6ab87f17bd44fe99fa60334bc755cf46083ef118b242bf4e",
+      "inertPUTReceiptSHA256": "43b60e40b6c6a2623558b3629b55f79a9f04df5c58e99917288c6db3febd144e",
+      "hostObservations": [
+        {
+          "role": "A",
+          "pid": 15316,
+          "modalOpenedAt": "2026-09-23T12:33:52.894Z",
+          "modalReturnedAt": "2026-09-23T12:34:11.250Z",
+          "deployEntries": 1,
+          "submitEntries": 1,
+          "storeWrites": 1,
+          "inertPUTs": 1,
+          "resultSHA256": "7ad8a27a46d8de7d940f325137aaea8f24de3daf01038fc0a757b7ca995f01ff"
+        }
+      ],
+      "independentNativeObservation": "Coordinator reports an actual double-click on Approve, one observed native modal and positive confirmation. Retained evidence records one accepted deploy-handler entry, one modal, one intent write and one inert PUT.",
+      "result": "pass-observed-double-click-produces-one-submission",
+      "limitations": [
+        "One deploy-handler entry was observed, not two. This qualifies actual repeated-click single-submission behavior; backend busy-drop under two handler messages remains separately labelled local regression evidence."
+      ]
+    },
+    {
+      "id": "two-window-stale-approval",
+      "retainedRoot": "/private/tmp/af-deployment-duplicate-qlkYKc",
+      "originalRecordSHA256": "fb429d63110c250b29b9f150f07c4ec2d2f1a20bf90ff965dfcc3352bb5140f9",
+      "finalRecordSHA256": "eb55f27340cf58f5a7c1d81773afa6624f96b5901316e5547294d4979585b190",
+      "originalExpiresAt": "2026-09-23T12:52:12.137Z",
+      "controllerResultSHA256": "aa9762326c0465aca5d044cb1ac57c90e3ddc72aaa3a08a9fff2edc6e210a50f",
+      "inertPUTReceiptSHA256": "4f1fa1b742d244e69aa598d9b2ee3e54997d4252cccf88e23c2d21cb86aff806",
+      "hostObservations": [
+        {
+          "role": "A",
+          "pid": 16461,
+          "modalOpenedAt": "2026-09-23T12:39:17.208Z",
+          "modalReturnedAt": "2026-09-23T12:39:27.932Z",
+          "deployEntries": 1,
+          "submitEntries": 1,
+          "storeWrites": 1,
+          "inertPUTs": 1,
+          "resultSHA256": "1f4743447abebd32b6f8ab2b3a698daeae92d76d5a9ca9deb65ea7ed5ee53247"
+        },
+        {
+          "role": "B",
+          "pid": 16672,
+          "modalOpenedAt": "2026-09-23T12:38:31.516Z",
+          "modalReturnedAt": "2026-09-23T12:39:55.481Z",
+          "deployEntries": 1,
+          "submitEntries": 0,
+          "storeWrites": 0,
+          "inertPUTs": 0,
+          "resultSHA256": "8444c65f57eb85defd1b03dbc5481ff9e03331932bdfa3e71e8ed038f5edfa1d"
+        }
+      ],
+      "independentNativeObservation": "Coordinator observed two windows opened through native File > New Window, with B's modal held first. Isolated VS Code window1/window2 Extension Host logs independently match PIDs 16461/16672 and their fixture activations. Both host-provided storage URIs and resolved store/profile paths are identical.",
+      "result": "pass-stale-native-API-positive-refused-before-submit-write-or-PUT",
+      "limitations": [
+        "B's native showWarningMessage returned Create reviewed runner at 12:39:55.481Z, but the coordinator did not knowingly issue a separately targeted B-positive click; Cmd+grave/Window-menu interaction during lag leaves the triggering input attribution ambiguous.",
+        "The unchanged pinned runtime forwards the real native API and never injects a positive result. B's old review was held across A's intent and rejected before submission; this establishes the frozen controller gate, not deliberate B-button targeting or reliable cross-window automation."
+      ]
+    }
+  ],
+  "windowHostLogChecks": [
+    {
+      "window": "window1",
+      "hostPID": 16461,
+      "startedAtJST": "2026-09-23 21:37:12.004",
+      "fixtureActivatedAtJST": "2026-09-23 21:37:12.123"
+    },
+    {
+      "window": "window2",
+      "hostPID": 16672,
+      "startedAtJST": "2026-09-23 21:37:54.814",
+      "fixtureActivatedAtJST": "2026-09-23 21:37:55.142"
+    }
+  ],
+  "twoWindowSequence": {
+    "bModalOpenedAt": "2026-09-23T12:38:31.516Z",
+    "aModalReturnedAt": "2026-09-23T12:39:27.932Z",
+    "bModalReturnedAt": "2026-09-23T12:39:55.481Z",
+    "bRefusedAt": "2026-09-23T12:39:55.493Z",
+    "bSubmitEntries": 0,
+    "bStoreWrites": 0,
+    "bInertPUTs": 0
+  },
+  "retainedRuntimeVerdictBoundary": "Original controller-result files retain actualNativeInteractionQualifiedByThisFile=false. Independent host/window observations supplement them; those original files are not rewritten.",
+  "failedExpiry": {
+    "root": "/private/tmp/af-deployment-expiry-ZfIGFf",
+    "resultSHA256": "a29077bd40a747301973bba6bcd0e3b4e1940d7354387328ba27e1e7b2658317",
+    "createdAt": "2026-09-23T12:32:49.498Z",
+    "expiresAt": "2026-09-23T12:47:49.498Z",
+    "returnedAt": "2026-09-23T12:35:37.243Z",
+    "submitEntries": 1,
+    "storeWrites": 0,
+    "effectAttempts": [
+      "Azure.runnerRequest"
+    ],
+    "privateStoreUnchanged": true,
+    "cloudRequests": 0,
+    "result": "fail-no-expiry-credit",
+    "nativeChoice": "Create reviewed runner",
+    "reason": "Native positive confirmation returned before the original expiry. submitRunner was entered, but the first Azure.runnerRequest was denied by the inert boundary; zero workflow writes and no cloud business request.",
+    "interactionAttribution": "Coordinator suspects cloned-application GUI binding ambiguity; this cause is not independently established."
+  },
+  "unchangedCredits": {
+    "cancellationDecisions": 30,
+    "b12": "pass-defined-mixed-layer",
+    "b10": "partial"
+  },
+  "remainingB09": [
+    "Original expired-preview native refusal",
+    "Actual lost deployment response with same-operation reconciliation and no PUT replay",
+    "Actual terminal guest-bootstrap failure and unready source-dispatch gate",
+    "Native eligible readiness-control archive/removal/GET404 lifecycle"
+  ],
+  "signedInCloudEvidence": false,
+  "realAzureDuplicationQualified": false,
+  "lostDeploymentReplyQualified": false,
+  "safety": "No fixture business request reached Azure and no operator store or credentials were accessed by the fixtures/reviewer. This is not a capture or claim about all VS Code background networking.",
+  "supervisorActivity": "Read-only evidence/source/log verification; no GUI interaction, cloud call, installation or commit."
+}

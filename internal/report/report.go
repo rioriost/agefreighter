@@ -189,7 +189,7 @@ func validate(document Document) error {
 		return fmt.Errorf("unsupported report schema version %d", document.SchemaVersion)
 	}
 	switch document.Command {
-	case "report", "doctor", "verify", "profile", "optimize", "check-cypher":
+	case "report", "doctor", "verify", "profile", "inventory", "optimize", "check-cypher":
 	default:
 		return fmt.Errorf("unsupported report command %q", document.Command)
 	}
@@ -230,7 +230,7 @@ func validate(document Document) error {
 		if document.Target == nil {
 			return fmt.Errorf("%s report requires a target", document.Command)
 		}
-	case "profile", "check-cypher":
+	case "profile", "inventory", "check-cypher":
 	}
 	if document.Job != nil {
 		if !validUUID(document.Job.ID) {

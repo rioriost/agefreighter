@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "case": "B07 active-inventory same-VM resize refusal, final bounded observation pair",
+  "result": "PASS",
+  "scope": "This receipt qualifies the finite active-inventory refusal branch. Full import of the same inventory and subsequently completed, independently verified trial cleanup are recorded separately below.",
+  "preparedAtUTC": "2026-09-25T02:20:25.898487+00:00",
+  "workflow": "8e9f853a-7e9b-4570-8045-952341217524",
+  "operation": "62ef7018-2374-46bc-8ffd-23811f27e4ea",
+  "vmId": "/subscriptions/67c417f3-5a13-446c-afb9-40cd87f2fdb7/resourceGroups/rg-af-vscode-p1-20260905-a/providers/Microsoft.Compute/virtualMachines/af-8e9f853a7e9b45708045",
+  "normalWorkflow": {
+    "phase": "provisioned",
+    "assessmentPhaseAtFreeze": "accepted",
+    "guestControlActionAtFreeze": "inventory",
+    "guestControlPhaseAtFreeze": "finished",
+    "targetPhase": "provisioned",
+    "resizePhase": "finished",
+    "vmSize": "Standard_D4s_v5",
+    "previousVMSize": "Standard_B2s_v2",
+    "frozenRecordSHA256": "d3dd1ef349df76ed8147cea929890dcd42abb45e3e1aa771974ae7ae378de1ad",
+    "unchangedAcrossNativeRefusal": true,
+    "independentLiveByteComparison": "Matched the frozen record during the independent post-after-terminal audit, before normal completion reconciliation resumed.",
+    "noNewResizeIntentInNormalRecord": true
+  },
+  "nativeGUI": {
+    "attribution": "Supervising root agent directly observed the installed normal GUI; sub-agent independently audited the retained receipt and byte seals.",
+    "action": "Reconcile resize (read only)",
+    "message": "Reconcile target and guest operations before resizing the idle runner.",
+    "observedAtUTC": "2026-09-25T02:15:03.718696+00:00",
+    "receiptSHA256": "6974cbfd601a097dbec8832057ee0313f7b84de68c3d969075b1a0c52b9c5402"
+  },
+  "launchProvenance": {
+    "kind": "Three genuine retained artifacts: submitted normal record, terminal ARM launch response, accepted current normal record. No historical normal snapshot was reconstructed.",
+    "submittedNormalRecordSHA256": "abefaf4f239ce7e71ce914a2bf0159d03328de4fd69d7b4a2af6b49bf389a635",
+    "terminalLaunchARMRawSHA256": "b6d7d82f55d27ee73f61d7a0f5b69f910cfcc964b884e5de31ce67f679ae600d",
+    "launchEvidenceSHA256": "b0a43267880d6d8b469e91c4c9388e72da8e569438148fdc096e403b75d93145",
+    "launchARMExecutionState": "Succeeded",
+    "launchARMExitCode": 0,
+    "launchOutputPhase": "accepted",
+    "sourceDraftAndConfigurationUnchanged": true
+  },
+  "observations": {
+    "before": {
+      "activeInventoryProcessProven": true,
+      "executionState": "Succeeded",
+      "exitCode": 0,
+      "guestStartedUTC": "2026-09-25T02:13:55.502591+00:00",
+      "guestFinishedUTC": "2026-09-25T02:13:55.552722+00:00",
+      "terminalGETCompletedUTC": "2026-09-25T02:14:27.703167+00:00",
+      "intentAtUTC": "2026-09-25T02:13:23.799764+00:00",
+      "intentSHA256": "a367c3b1344bdc47c468b8124333d410f4a97e1503aa4f3d753c72df25b84b43",
+      "bodySHA256": "157c2502cd3a3792b6c5f91fbbe6c73b4a23ae681da4ad94b1f0c80e59721aaa",
+      "terminalReceiptSHA256": "f216ae0d93613a64fd32f643602084639a7afca6088abb6a75ccd3e90e1756ed",
+      "resultSHA256": "7244617539b9dfc80e9bf6faa426b9db4f77e8ca7df604af4bece96e27a5b8b8",
+      "terminalGETReceiptSHA256": "0a26eab47dee789e2a590523d0ff249ac43634141deb172399b0d9ddd6a34ba5",
+      "terminalARMRawSHA256": "1c7ed33eb87ddf58d84711b8836751092ff13e171ba3645add0c7fc5011ecdaa"
+    },
+    "after": {
+      "activeInventoryProcessProven": true,
+      "executionState": "Succeeded",
+      "exitCode": 0,
+      "guestStartedUTC": "2026-09-25T02:15:55.281176+00:00",
+      "guestFinishedUTC": "2026-09-25T02:15:55.333592+00:00",
+      "terminalGETCompletedUTC": "2026-09-25T02:16:37.774869+00:00",
+      "intentAtUTC": "2026-09-25T02:15:24.047865+00:00",
+      "intentSHA256": "2eaa534833b3428d36960ab2c22024494a2a25886bb5109cbaa2217665e9d2b0",
+      "bodySHA256": "48a470bd833c630bc2ad01708b5d90c0c79e2a458b193263cc088d9e7af4ffd1",
+      "terminalReceiptSHA256": "9c268df2b15b7bf94147728b47906ad3e712728a297282701d40b394a26227c5",
+      "resultSHA256": "8e9dbeeadfe8c0f03f42bc9c086a10e157153ae7594c04fedd01a2477dfccd84",
+      "terminalGETReceiptSHA256": "1e8b4cd41e70f123d36b1036b07ce4746ee0b5c9659ebbad72ad4adc7d49af47",
+      "terminalARMRawSHA256": "a4523de6252cfd0a8c33e51c85f750d64e40cba7d6af4c8f09af0e8503e1ffb2"
+    }
+  },
+  "workerContinuity": {
+    "invocationId": "06fe3b9be17c495e9b5ac8b393ef3c18",
+    "unit": "agefreighter-assessment-62ef7018-2374-46bc-8ffd-23811f27e4ea.service",
+    "bootId": "a158e465-3d30-4752-9a4a-aa289610edfa",
+    "guestConfigurationSHA256": "43723acfd1b2a90cbe24aa1c4ad3523c264bde107c37963f34ab855832e4f0ae",
+    "bindingSHA256": "48f57e7434985e8a7f549c27e50a682215a104fb714859a259e9aa347fd34266",
+    "main": {
+      "pid": 10445,
+      "ppid": 1,
+      "startTicks": "531796",
+      "executable": "/usr/local/bin/agefreighter-tools"
+    },
+    "child": {
+      "pid": 10452,
+      "ppid": 10445,
+      "startTicks": "531800",
+      "executable": "/usr/local/bin/agefreighter"
+    },
+    "allFourProcessIdentitySnapshotsMatch": true,
+    "beforeAndAfterOperationState": "running",
+    "sameWorkerAcrossRefusalProven": true
+  },
+  "rootCausalBracket": {
+    "beforeGETCompletedUTC": "2026-09-25T02:14:27.703167+00:00",
+    "nativeGUIObservedUTC": "2026-09-25T02:15:03.718696+00:00",
+    "afterPUTIntentUTC": "2026-09-25T02:15:24.047865+00:00",
+    "rootCausalBracketVerified": true,
+    "hostGuestClockEqualityAssumed": false
+  },
+  "noReplayAndAccounting": {
+    "canonicalJournal": "Original trial b07-dispatcher/execution, shared across both sessions and both observation pairs.",
+    "exactUniquePUTIntents": 4,
+    "priorInconclusiveOperation": "e3b107f3-2da6-49cd-9a2e-84b82275d84a",
+    "priorConsumedObservations": 2,
+    "inventory3Operation": "a2437775-0b18-4c23-b664-b6ad23338329",
+    "inventory3ObserverIntents": 0,
+    "currentPairObservations": 2,
+    "oneExplicitCLIInvocationPerDurableIntent": true,
+    "packetLevelHTTPCountClaimed": false,
+    "additionalObservationAuthorizedByThisReceipt": false
+  },
+  "authorityAndPins": {
+    "originalUserTaskApprovalSHA256": "dd8455ae1934c9fd98c6e526731eb466a841b9531a76f11f2e10fa06ac4f1c03",
+    "originalFirstVMIntentUTC": "2026-09-24T13:22:49.071935Z",
+    "sessionResumeIntentUTC": "2026-09-25T00:10:24.679169Z",
+    "rootBoundedAmendmentSHA256": "70c3503796841fdbe14947456efca6eea998fbed734ae1c088fd14c99ce628b8",
+    "amendmentMeaning": "Root operational bound under the original 96-hour/additional-USD400 user task authorization; no new user-consent claim.",
+    "authorizationSHA256": "29c56c7e53453da8401d63b07115077940141350281fb6f45a24bc0bf1de1acd",
+    "preparationSHA256": "01554acb2a9ba7af3c0b6d8b6c67bc62274783ee402a25fade226c96ed55f120",
+    "dispatcherSHA256": "44c1b5fbbe384279c5935c32347ae5cf841e7b96476c17cc2ccec7f70da5ed36",
+    "observerSHA256": "f1e939a229cf56ab9dbe67ad8fef0661334629f89016b041f2824cf7fe40cae5",
+    "builderSHA256": "7a95d7bd018a0ae4e8cdacc76dc3b4aa317f8f8bd81be310a95d34aff8164a27",
+    "baseSHA256": "0d35975ef67274123a481a57a37fccf6f5df8683ad02bf1ea62fa7ca5b170e37",
+    "installedNormalBundleSHA256": "7a2aa5ddf13454ff6dab4d4a8ad2cb9a172842c9c4fbcc7b5d8e94d3f79d1d34"
+  },
+  "historicalEvidencePreserved": {
+    "inconclusivePairReceipt": "b07-active-refusal-inconclusive-20260925.json",
+    "positiveResizeReceipt": "b07-resize-continuity-20260924.json",
+    "incompatibleLayoutReceipt": "b07-layout-refusal-20260924.json"
+  },
+  "remainingSeparateChecks": {
+    "currentInventoryCompletionAndNormalImport": "PASS after branch qualification: the same operation completed and was normally imported; see currentInventoryCompletionAndImport.",
+    "trialCleanup": "COMPLETE after branch qualification; see finalCleanup and the separate final cleanup receipt. Cleanup was pending at the original branch checkpoint; this receipt itself authorizes no mutation."
+  },
+  "limitations": [
+    "Two bounded guest observations with process-identity continuity and a host-side causal bracket; no continuous monitoring or independent general-health claim.",
+    "Normal GUI observation is attributed to the supervising root; independent audit used retained bytes and actual ARM output.",
+    "The process observers do not query source data, pause or alter the worker, or initiate a resize.",
+    "Prior inconclusive evidence remains inconclusive and is not replaced by this result."
+  ],
+  "independentAudit": {
+    "pinnedBothPhaseLoaderPassed": true,
+    "exactBeforeAndAfterBodyRegenerationPassed": true,
+    "actualARMOutputsMatchSealedResults": true,
+    "allExactFourCanonicalIntentsChecked": true,
+    "cloudCalls": 0,
+    "guiCalls": 0
+  },
+  "currentInventoryCompletionAndImport": {
+    "result": "PASS",
+    "operation": "62ef7018-2374-46bc-8ffd-23811f27e4ea",
+    "reportGeneratedAtUTC": "2026-09-25T02:18:58.488787096Z",
+    "normalGUIImportObservedAtUTC": "2026-09-25T02:22:29.938203Z",
+    "guiAttribution": "Root directly observed the normal imported state and verified report viewer; the independent reviewer audited retained full bytes and the normal-store report.",
+    "reportBytes": 2940,
+    "reportSHA256": "5db2d92a8e04b2d4551549f9fbcdd718329f361279f69b3d9101221bb3e55452",
+    "importedNormalRecordBytes": 58742,
+    "importedNormalRecordSHA256": "719f23f8099898c5dfcde938cf9ff186303088de8ea7458559e38e82d8599331",
+    "normalStoreFullReportBytesMatch": true,
+    "assessmentPhase": "finished",
+    "reportTransferPhase": "imported",
+    "sourceDraftUnchangedFromActiveCase": true,
+    "mappingCount": 18,
+    "vertexMappings": 9,
+    "edgeMappings": 9,
+    "vertices": 1600000,
+    "edges": 4000000,
+    "totalMappedRecords": 5600000,
+    "reportOutcome": "pass",
+    "errors": [],
+    "incompleteChecks": [],
+    "limitation": "Counts describe mapped records, not unique identities, endpoint existence or migration correctness.",
+    "independentReviewSHA256": "f79c78600d08be69ee4a6030f34399c6d79a3cf7a17e60f0d61b4c73c97fd7df"
+  },
+  "followUp": {
+    "previousBranchReceiptSHA256": "d1ca5e61f3fd24e1f1bd10bcce8f218303bcbd5532faef434a03f8ff8055ce1a",
+    "updatedAtUTC": "2026-09-25T02:29:12.675409+00:00",
+    "change": "Added the subsequent actual inventory4 completion/import; existing branch evidence, historical inconclusive result and cleanup-pending boundary are preserved."
+  },
+  "finalCleanup": {
+    "result": "complete-independently-verified",
+    "receipt": "b06-b07-final-trial-cleanup-20260925.json",
+    "rootCompletedAtUTC": "2026-09-25T02:49:04.860165Z",
+    "independentAuditSHA256": "4b6e7671b654c25e2a235b9d7aca91d974d3badbea165cd7be714a68fa0f0b87",
+    "qualificationCheckpointPendingFieldsAreHistorical": true
+  }
+}

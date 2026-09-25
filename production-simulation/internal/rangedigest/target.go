@@ -16,6 +16,16 @@ func TargetManifest(
 	jobID string,
 	rangeRows int64,
 ) (Manifest, error) {
+	return targetManifest(ctx, dsn, manifestPath, jobID, rangeRows, false)
+}
+
+// P1TargetManifest compares the bounded P1 fixture independently of ingestion
+// order. P3 deliberately keeps its existing streaming memory profile.
+func P1TargetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeRows int64) (Manifest, error) {
+	return targetManifest(ctx, dsn, manifestPath, jobID, rangeRows, true)
+}
+
+func targetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeRows int64, unorderedP1 bool) (Manifest, error) {
 	if ctx == nil {
 		return Manifest{}, errors.New("context is required")
 	}
@@ -25,6 +35,9 @@ func TargetManifest(
 	fixtureManifest, err := fixturemodel.Verify(manifestPath)
 	if err != nil {
 		return Manifest{}, err
+	}
+	if unorderedP1 && (fixtureManifest.Plan.Phase != fixturemodel.PhaseP1 || fixtureManifest.Plan.VertexTotal != 1_600_000 || fixtureManifest.Plan.EdgeTotal != 4_000_000) {
+		return Manifest{}, errors.New("unordered target digest is restricted to the bounded P1 fixture")
 	}
 	builder, err := newRangeBuilder(rangeRows)
 	if err != nil {
@@ -86,12 +99,16 @@ func TargetManifest(
 		if err != nil {
 			return Manifest{}, fmt.Errorf("query target vertex %q: %w", spec.Label, err)
 		}
-		count, err := digestTargetVertices(ctx, rows, spec.Label, builder, endpoints)
+		sink := targetSink(builder, unorderedP1, spec.Count)
+		count, err := digestTargetVertices(ctx, rows, spec.Label, sink, endpoints)
 		if err != nil {
 			return Manifest{}, err
 		}
 		if count != spec.Count {
 			return Manifest{}, fmt.Errorf("target vertex %q rows=%d expected=%d", spec.Label, count, spec.Count)
+		}
+		if err := finishTargetSink(ctx, sink); err != nil {
+			return Manifest{}, err
 		}
 		if err := builder.end(); err != nil {
 			return Manifest{}, err
@@ -124,14 +141,18 @@ func TargetManifest(
 		if err != nil {
 			return Manifest{}, fmt.Errorf("query target edge %q: %w", spec.Type, err)
 		}
+		sink := targetSink(builder, unorderedP1, spec.Count)
 		count, err := digestTargetEdges(
-			ctx, rows, spec, vertices, builder, endpoints,
+			ctx, rows, spec, vertices, sink, endpoints,
 		)
 		if err != nil {
 			return Manifest{}, err
 		}
 		if count != spec.Count {
 			return Manifest{}, fmt.Errorf("target edge %q rows=%d expected=%d", spec.Type, count, spec.Count)
+		}
+		if err := finishTargetSink(ctx, sink); err != nil {
+			return Manifest{}, err
 		}
 		if err := builder.end(); err != nil {
 			return Manifest{}, err
@@ -143,7 +164,9 @@ func TargetManifest(
 
 func resolveLabelGeneration(
 	ctx context.Context,
-	connection *pgx.Conn,
+	connection interface {
+		Query(context.Context, string, ...any) (pgx.Rows, error)
+	},
 	graphGeneration int64,
 	name string,
 	kind string,
@@ -180,7 +203,7 @@ func digestTargetVertices(
 	ctx context.Context,
 	rows pgx.Rows,
 	label string,
-	builder *rangeBuilder,
+	builder canonicalSink,
 	endpoints *targetEndpointIndex,
 ) (int64, error) {
 	defer rows.Close()
@@ -214,7 +237,7 @@ func digestTargetEdges(
 	rows pgx.Rows,
 	spec fixturemodel.EdgeSpec,
 	vertices map[string]fixturemodel.VertexSpec,
-	builder *rangeBuilder,
+	builder canonicalSink,
 	endpoints *targetEndpointIndex,
 ) (int64, error) {
 	defer rows.Close()

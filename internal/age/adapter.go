@@ -71,7 +71,7 @@ func Open(ctx context.Context, dsn string, options PoolOptions) (*Adapter, error
 	config.MinConns = options.MinConnections
 	config.MaxConns = options.MaxConnections
 	config.ConnConfig.ConnectTimeout = options.ConnectTimeout
-	config.AfterConnect = initializeSession
+	config.AfterConnect = InitializeSession
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
@@ -119,7 +119,9 @@ func (adapter *Adapter) releaseLoadSlot() {
 	<-adapter.loadSlots
 }
 
-func initializeSession(ctx context.Context, connection *pgx.Conn) error {
+// InitializeSession also serves hosted-target preparation. It does not require
+// the superuser-only LOAD command, which Flexible Server administrators cannot use.
+func InitializeSession(ctx context.Context, connection *pgx.Conn) error {
 	preloadStatus, err := probePreloadStatus(ctx, connection)
 	if err != nil {
 		return err

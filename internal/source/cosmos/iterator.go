@@ -577,7 +577,7 @@ func (iterator *Iterator) buildProperties(
 		if !ok {
 			return nil, nil, 0, fmt.Errorf("Cosmos document is missing property %q", property.name)
 		}
-		value, err := convertValue(raw, 0)
+		value, err := convertDeclaredValue(raw, property.declaredType)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("Cosmos property %q: %w", property.name, err)
 		}

@@ -1,0 +1,337 @@
+import {
+  AzureSubscription,
+  getConfiguredAuthProviderId,
+  getSessionFromVSCode,
+  VSCodeAzureSubscriptionProvider
+} from "@microsoft/vscode-azext-azureauth";
+import * as vscode from "vscode";
+import { createHash } from "node:crypto";
+import { RunnerRecord } from "../core/runner";
+import { issueCSVCapability, issueReportCapability } from "./blobCapabilities";
+import { CSVManifest, uploadCSV, uploadRunnerArchive } from "./csvTransfer";
+import { storageCredential } from "./storageCredential";
+import { armToken } from "./armToken";
+import { postgresQuotaAPIVersion } from "../core/runnerTargetPreflight";
+import { AzureAccessError, existingAzureAccess } from "../core/azureAccess";
+import {
+  AzureLocationSummary,
+  parseAzureResourceID,
+  parseLocations,
+  parseResourcePage,
+  ResourceSummary
+} from "../core/azure";
+import {
+  ComputeSkuCapability,
+  parseComputeSkus,
+  parsePostgresCapabilities,
+  parseQuotaUsages,
+  parseRetailRates,
+  PostgresCapabilities,
+  QuotaUsage,
+  RetailRate
+} from "../core/proposal";
+
+export interface AzureSubscriptionSummary {
+  id: string;
+  name: string;
+  tenantId: string;
+  accountLabel: string;
+}
+
+export interface AzurePlacement {
+  resourceId: string;
+  location: string;
+  zone?: string;
+  confidence: "verified";
+}
+
+export interface AzureRecommendationData {
+  postgres: PostgresCapabilities;
+  computeSkus: ComputeSkuCapability[];
+  postgresQuota: QuotaUsage[];
+  computeQuota: QuotaUsage[];
+}
+
+export class AzureSession implements vscode.Disposable {
+  private readonly provider = new VSCodeAzureSubscriptionProvider();
+  private subscriptionsByID = new Map<string, AzureSubscription>();
+
+  public dispose(): void {
+    this.provider.dispose();
+  }
+
+  public async subscriptions(): Promise<AzureSubscriptionSummary[]> {
+    this.subscriptionsByID.clear();
+    const access = await existingAzureAccess({
+      accounts: async () => vscode.authentication.getAccounts(getConfiguredAuthProviderId()),
+      session: async (account, options) => !!await getSessionFromVSCode([], undefined, { ...options, account })
+    });
+    if (access !== "ready") {
+      throw new AzureAccessError(access);
+    }
+    const subscriptions = await this.provider.getSubscriptions(true);
+    this.subscriptionsByID = new Map(subscriptions.map((subscription) => [subscription.subscriptionId, subscription]));
+    return subscriptions.map((subscription) => ({
+      id: subscription.subscriptionId,
+      name: subscription.name,
+      tenantId: subscription.tenantId,
+      accountLabel: subscription.account.label
+    }));
+  }
+
+  public async placement(subscriptionID: string, resourceID: string): Promise<AzurePlacement> {
+    const subscription = await this.subscription(subscriptionID);
+    const parsed = parseAzureResourceID(resourceID);
+    if (parsed.subscriptionId.toLocaleLowerCase() !== subscriptionID.toLocaleLowerCase()) {
+      throw new Error("The source resource ID belongs to a different subscription.");
+    }
+    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
+    const url = new URL(`${endpoint}/subscriptions/${encodeURIComponent(subscriptionID)}` +
+      `/resourceGroups/${encodeURIComponent(parsed.resourceGroup)}/resources`);
+    url.searchParams.set("api-version", "2021-04-01");
+    const resources = await this.armResourcePages(subscription, url);
+    const resource = resources.find((item) => item.id.toLocaleLowerCase() === resourceID.toLocaleLowerCase());
+    if (!resource) {
+      throw new Error("The source resource was not found in the selected subscription and resource group.");
+    }
+    return {
+      resourceId: resource.id,
+      location: resource.location,
+      zone: resource.zones.length === 1 ? resource.zones[0] : undefined,
+      confidence: "verified"
+    };
+  }
+
+  public async locations(subscriptionID: string): Promise<AzureLocationSummary[]> {
+    const subscription = await this.subscription(subscriptionID);
+    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
+    const url = new URL(`${endpoint}/subscriptions/${encodeURIComponent(subscriptionID)}/locations`);
+    url.searchParams.set("api-version", "2022-12-01");
+    const payload = await this.armValuePages(subscription, url);
+    return parseLocations(payload);
+  }
+
+  public async storagePrincipal(subscriptionID: string): Promise<string> {
+    const subscription = await this.subscription(subscriptionID);
+    const token = await this.armToken(subscription);
+    try {
+      // Identity hint from the trusted credential provider, not an authorization
+      // decision. The exact account-scoped grant is shown for explicit approval.
+      const claims = JSON.parse(Buffer.from(token.split(".")[1]!, "base64url").toString("utf8"));
+      if (claims.tid !== subscription.tenantId || claims.idtyp === "app" || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(claims.oid)) throw new Error();
+      return claims.oid as string;
+    } catch { throw new Error("The signed-in user object ID cannot be determined safely. Storage role creation is blocked."); }
+  }
+
+  public async reportCapability(record: RunnerRecord, operation: string, permission: "r" | "c"): Promise<string> {
+    const subscription = await this.subscription(record.input.subscriptionId);
+    if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("Artifact transfer currently requires public Azure cloud.");
+    return issueReportCapability(record, operation, permission, this.storageCredential(subscription));
+  }
+
+  public async csvCapability(record: RunnerRecord, manifest: CSVManifest): Promise<string> {
+    const subscription = await this.subscription(record.input.subscriptionId);
+    if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("CSV transfer currently requires public Azure cloud.");
+    return issueCSVCapability(record, manifest, this.storageCredential(subscription));
+  }
+
+  public async uploadRunnerArchive(record: RunnerRecord, path: string, manifest: CSVManifest): Promise<void> {
+    const subscription = await this.subscription(record.input.subscriptionId);
+    if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("Development artifact transfer requires public Azure cloud.");
+    return uploadRunnerArchive(record, path, manifest, this.storageCredential(subscription));
+  }
+
+  public async uploadCSV(record: RunnerRecord, path: string, manifest: CSVManifest, progress: (bytes: number) => void, signal?: AbortSignal): Promise<void> {
+    const subscription = await this.subscription(record.input.subscriptionId);
+    if (subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "") !== "https://management.azure.com") throw new Error("CSV transfer currently requires public Azure cloud.");
+    return uploadCSV(record, path, manifest, this.storageCredential(subscription), fetch, progress, signal);
+  }
+
+  private storageCredential(subscription: AzureSubscription) {
+    return storageCredential(subscription.account.id, async scopes =>
+      subscription.authentication.getSessionWithScopes(scopes));
+  }
+
+  private armToken(subscription: AzureSubscription): Promise<string> {
+    return armToken(subscription.account.id, subscription.environment.resourceManagerEndpointUrl,
+      async scopes => subscription.authentication.getSessionWithScopes(scopes));
+  }
+
+  /** Control-plane requests only. Never accepts an arbitrary host or forwards redirects. */
+  public async runnerRequest(subscriptionID: string, path: string, method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET", body?: unknown): Promise<{ status: number; value: unknown; poll?: string }> {
+    const subscription = await this.subscription(subscriptionID);
+    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
+    const url = new URL(path, endpoint);
+    if (url.protocol !== "https:" || url.origin !== new URL(endpoint).origin ||
+        !url.pathname.toLowerCase().startsWith(`/subscriptions/${subscriptionID.toLowerCase()}/`)) {
+      throw new Error("The runner operation is outside the selected subscription.");
+    }
+    const token = await this.armToken(subscription);
+    const response = await fetch(url, {
+      method, redirect: "error", signal: AbortSignal.timeout(30_000),
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    if (!response.ok && response.status !== 404) throw new Error(`Azure runner operation returned HTTP ${response.status}. Refresh status before retrying.`);
+    const payload = await response.text();
+    if (payload.length > 8 * 1024 * 1024) throw new Error("Azure runner response exceeded the safety limit.");
+    return { status: response.status, value: payload ? JSON.parse(payload) as unknown : {},
+      poll: response.headers.get("location") ?? response.headers.get("azure-asyncoperation") ?? undefined };
+  }
+
+  /** Fresh non-secret identity binding for a native destructive-action review. */
+  public async runnerAccountBinding(subscriptionID: string): Promise<string> {
+    await this.subscriptions();
+    const s = await this.subscription(subscriptionID);
+    return createHash("sha256").update(JSON.stringify([s.subscriptionId, s.tenantId, s.account.id, s.environment.resourceManagerEndpointUrl])).digest("hex");
+  }
+
+  /** Narrow deletion transport. The lifecycle performs archive/admission checks. */
+  public async removeRunnerReadiness(subscriptionID: string, commandId: string, accountBinding: string): Promise<void> {
+    if (!/^\/subscriptions\/[a-f0-9-]{36}\/resourceGroups\/[a-zA-Z0-9_.()-]+\/providers\/Microsoft\.Compute\/virtualMachines\/af-[a-f0-9]{20}\/runCommands\/af-[a-f0-9-]{36}$/.test(commandId) ||
+        !commandId.startsWith(`/subscriptions/${subscriptionID}/`) || !vscode.workspace.isTrusted ||
+        await this.runnerAccountBinding(subscriptionID) !== accountBinding || !vscode.workspace.isTrusted) throw new Error("Removal scope, workspace trust or Azure account changed.");
+    const response = await this.runnerRequest(subscriptionID, `${commandId}?api-version=2024-07-01`, "DELETE");
+    if (![200, 202, 204, 404].includes(response.status)) throw new Error("Removal response is uncertain; reconcile without replay.");
+  }
+
+  public async runnerList(subscriptionID: string, path: string): Promise<unknown[]> {
+    const subscription = await this.subscription(subscriptionID);
+    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
+    const url = new URL(path, endpoint);
+    if (url.origin !== new URL(endpoint).origin || !url.pathname.toLowerCase().startsWith(`/subscriptions/${subscriptionID.toLowerCase()}/`)) throw new Error("Invalid inventory scope.");
+    return (await this.armValuePages(subscription, url)).value;
+  }
+
+  public async recommendationData(subscriptionID: string, location: string): Promise<AzureRecommendationData> {
+    if (!/^[a-z0-9-]{1,64}$/i.test(location)) {
+      throw new Error("The Azure region name is invalid.");
+    }
+    const subscription = await this.subscription(subscriptionID);
+    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
+    const base = `${endpoint}/subscriptions/${encodeURIComponent(subscriptionID)}/providers`;
+    const postgresCapabilities = new URL(`${base}/Microsoft.DBforPostgreSQL/locations/${encodeURIComponent(location)}/capabilities`);
+    postgresCapabilities.searchParams.set("api-version", "2024-08-01");
+    const computeSkus = new URL(`${base}/Microsoft.Compute/skus`);
+    computeSkus.searchParams.set("api-version", "2021-07-01");
+    computeSkus.searchParams.set("$filter", `location eq '${location}'`);
+    const postgresQuota = new URL(`${base}/Microsoft.DBforPostgreSQL/locations/${encodeURIComponent(location)}/resourceType/flexibleServers/usages`);
+    // The documented stable route is not deployed in every subscription.
+    // This supported preview was verified against the selected Japan East RP;
+    // missing/failed quota evidence still blocks deployment, never bypasses it.
+    postgresQuota.searchParams.set("api-version", postgresQuotaAPIVersion);
+    const computeQuota = new URL(`${base}/Microsoft.Compute/locations/${encodeURIComponent(location)}/usages`);
+    computeQuota.searchParams.set("api-version", "2025-04-01");
+    const [postgresPayload, computePayload, postgresQuotaPayload, computeQuotaPayload] = await Promise.all([
+      this.armValuePages(subscription, postgresCapabilities),
+      this.armValuePages(subscription, computeSkus),
+      this.armValuePages(subscription, postgresQuota),
+      this.armValuePages(subscription, computeQuota)
+    ]);
+    return {
+      postgres: parsePostgresCapabilities(postgresPayload),
+      computeSkus: parseComputeSkus(computePayload, location),
+      postgresQuota: parseQuotaUsages(postgresQuotaPayload),
+      computeQuota: parseQuotaUsages(computeQuotaPayload)
+    };
+  }
+
+  public async retailRates(location: string, skuNames: string[]): Promise<RetailRate[]> {
+    if (!/^[a-z0-9-]{1,64}$/i.test(location) || skuNames.some((sku) => !/^[A-Za-z0-9_]{1,128}$/.test(sku))) {
+      throw new Error("The retail-price lookup parameters are invalid.");
+    }
+    const filters = skuNames.map((sku) => `armSkuName eq '${sku}'`).join(" or ");
+    const url = new URL("https://prices.azure.com/api/retail/prices");
+    url.searchParams.set("currencyCode", "USD");
+    url.searchParams.set("$filter", `armRegionName eq '${location}' and priceType eq 'Consumption' and (${filters})`);
+    const items: unknown[] = [];
+    let nextURL: URL | undefined = url;
+    for (let pageNumber = 0; nextURL && pageNumber < 20; pageNumber += 1) {
+      if (nextURL.protocol !== "https:" || nextURL.hostname !== "prices.azure.com") {
+        throw new Error("Azure Retail Prices returned an unsafe continuation link.");
+      }
+      const response = await fetch(nextURL, { signal: AbortSignal.timeout(30_000) });
+      if (!response.ok) {
+        throw new Error(`Azure Retail Prices returned ${response.status}.`);
+      }
+      const payload = await response.json() as Record<string, unknown>;
+      if (!Array.isArray(payload.Items)) {
+        throw new Error("Azure Retail Prices returned an invalid response.");
+      }
+      items.push(...payload.Items);
+      nextURL = typeof payload.NextPageLink === "string" && payload.NextPageLink
+        ? new URL(payload.NextPageLink)
+        : undefined;
+    }
+    if (nextURL) {
+      throw new Error("Azure Retail Prices pagination exceeded the safety limit.");
+    }
+    return parseRetailRates({ Items: items });
+  }
+
+  private async subscription(subscriptionID: string): Promise<AzureSubscription> {
+    let subscription = this.subscriptionsByID.get(subscriptionID);
+    if (!subscription) {
+      await this.subscriptions();
+      subscription = this.subscriptionsByID.get(subscriptionID);
+    }
+    if (!subscription) {
+      throw new Error("Select an Azure subscription visible in the VS Code Azure account.");
+    }
+    return subscription;
+  }
+
+  private async armResourcePages(subscription: AzureSubscription, firstURL: URL): Promise<ResourceSummary[]> {
+    const payload = await this.armPages(subscription, firstURL, (value) => {
+      const page = parseResourcePage(value);
+      return { items: page.resources, nextLink: page.nextLink };
+    });
+    return payload;
+  }
+
+  private async armValuePages(subscription: AzureSubscription, firstURL: URL): Promise<{ value: unknown[] }> {
+    const values = await this.armPages(subscription, firstURL, (value) => {
+      if (value === null || typeof value !== "object" || !Array.isArray((value as { value?: unknown }).value)) {
+        throw new Error("Azure Resource Manager returned an invalid paged response.");
+      }
+      const page = value as { value: unknown[]; nextLink?: unknown };
+      if (page.nextLink !== undefined && typeof page.nextLink !== "string") {
+        throw new Error("Azure Resource Manager returned an invalid continuation link.");
+      }
+      return { items: page.value, nextLink: page.nextLink };
+    });
+    return { value: values };
+  }
+
+  private async armPages<T>(
+    subscription: AzureSubscription,
+    firstURL: URL,
+    parse: (value: unknown) => { items: T[]; nextLink?: string }
+  ): Promise<T[]> {
+    const endpoint = subscription.environment.resourceManagerEndpointUrl.replace(/\/$/, "");
+    const endpointOrigin = new URL(endpoint).origin;
+    const items: T[] = [];
+    let nextURL: URL | undefined = firstURL;
+    for (let pageNumber = 0; nextURL && pageNumber < 100; pageNumber += 1) {
+      if (nextURL.protocol !== "https:" || nextURL.origin !== endpointOrigin) {
+        throw new Error("Azure Resource Manager returned an unsafe continuation link.");
+      }
+      const token = await this.armToken(subscription);
+      const response = await fetch(nextURL, {
+        redirect: "error",
+        headers: { authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(30_000)
+      });
+      if (!response.ok) {
+        throw new Error(`Azure Resource Manager returned ${response.status}.`);
+      }
+      const page = parse(await response.json() as unknown);
+      items.push(...page.items);
+      nextURL = page.nextLink ? new URL(page.nextLink) : undefined;
+    }
+    if (nextURL) {
+      throw new Error("Azure Resource Manager pagination exceeded the safety limit.");
+    }
+    return items;
+  }
+}

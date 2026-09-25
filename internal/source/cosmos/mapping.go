@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
 
 	"github.com/rioriost/agefreighter/internal/config"
@@ -32,8 +33,9 @@ func (kind mappingKind) String() string {
 
 // compiledProperty binds a property name to its parsed JSON Pointer.
 type compiledProperty struct {
-	name    string
-	pointer pointer
+	name         string
+	pointer      pointer
+	declaredType string
 }
 
 // compiledMapping is a config.CosmosVertexQuery/CosmosEdgeQuery compiled
@@ -57,7 +59,8 @@ type compiledMapping struct {
 	end        config.EndpointMapping // edge only
 	endField   pointer                // edge only
 
-	properties []compiledProperty
+	properties    []compiledProperty
+	propertyTypes map[string]string
 
 	documentFormat       config.CosmosDocumentFormat
 	partitionKeyProperty string
@@ -101,7 +104,7 @@ func buildMappings(
 		if err != nil {
 			return nil, fmt.Errorf("Cosmos vertex mapping %q idField: %w", vertex.Label, err)
 		}
-		properties, err := compileProperties(vertex.Properties)
+		properties, err := compileDocumentProperties(vertex.DocumentFormat, vertex.PartitionKeyProperty, vertex.MaxProperties, vertex.Properties, vertex.PropertyTypes)
 		if err != nil {
 			return nil, fmt.Errorf("Cosmos vertex mapping %q: %w", vertex.Label, err)
 		}
@@ -118,6 +121,7 @@ func buildMappings(
 			parameters:           parameters,
 			idField:              idField,
 			properties:           properties,
+			propertyTypes:        maps.Clone(vertex.PropertyTypes),
 			documentFormat:       vertex.DocumentFormat,
 			partitionKeyProperty: vertex.PartitionKeyProperty,
 			maxProperties:        vertex.MaxProperties,
@@ -165,7 +169,7 @@ func buildMappings(
 		if err != nil {
 			return nil, fmt.Errorf("Cosmos edge mapping %q end field: %w", edge.Label, err)
 		}
-		properties, err := compileProperties(edge.Properties)
+		properties, err := compileDocumentProperties(edge.DocumentFormat, edge.PartitionKeyProperty, edge.MaxProperties, edge.Properties, edge.PropertyTypes)
 		if err != nil {
 			return nil, fmt.Errorf("Cosmos edge mapping %q: %w", edge.Label, err)
 		}
@@ -187,6 +191,7 @@ func buildMappings(
 			end:                  edge.End,
 			endField:             endField,
 			properties:           properties,
+			propertyTypes:        maps.Clone(edge.PropertyTypes),
 			documentFormat:       edge.DocumentFormat,
 			partitionKeyProperty: edge.PartitionKeyProperty,
 			maxProperties:        edge.MaxProperties,
@@ -234,6 +239,20 @@ func validateDocumentFormat(
 }
 
 func compileProperties(properties map[string]string) ([]compiledProperty, error) {
+	return compileTypedProperties(properties, nil)
+}
+
+func compileDocumentProperties(format config.CosmosDocumentFormat, partition string, maximum int, properties, types map[string]string) ([]compiledProperty, error) {
+	if format == config.CosmosDocumentGremlin {
+		return nil, config.ValidateCosmosGremlinPropertyTypes(partition, maximum, types)
+	}
+	return compileTypedProperties(properties, types)
+}
+
+func compileTypedProperties(properties, types map[string]string) ([]compiledProperty, error) {
+	if err := config.ValidateCosmosPropertyTypes(properties, types); err != nil {
+		return nil, err
+	}
 	names := make([]string, 0, len(properties))
 	for name := range properties {
 		names = append(names, name)
@@ -245,7 +264,7 @@ func compileProperties(properties map[string]string) ([]compiledProperty, error)
 		if err != nil {
 			return nil, fmt.Errorf("property %q: %w", name, err)
 		}
-		compiled = append(compiled, compiledProperty{name: name, pointer: parsed})
+		compiled = append(compiled, compiledProperty{name: name, pointer: parsed, declaredType: types[name]})
 	}
 	return compiled, nil
 }

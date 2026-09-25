@@ -18,6 +18,14 @@ import (
 )
 
 func FixtureManifest(ctx context.Context, manifestPath string, rangeRows int64) (Manifest, error) {
+	return fixtureManifest(ctx, manifestPath, rangeRows, false)
+}
+
+func GremlinFixtureManifest(ctx context.Context, manifestPath string, rangeRows int64) (Manifest, error) {
+	return fixtureManifest(ctx, manifestPath, rangeRows, true)
+}
+
+func fixtureManifest(ctx context.Context, manifestPath string, rangeRows int64, gremlin bool) (Manifest, error) {
 	if ctx == nil {
 		return Manifest{}, errors.New("context is required")
 	}
@@ -36,6 +44,9 @@ func FixtureManifest(ctx context.Context, manifestPath string, rangeRows int64) 
 		}
 		paths := fixturePaths(fixtureManifest, "node", spec.Label)
 		rows, err := digestFixtureFiles(ctx, root, paths, func(row []string) (int64, []byte, error) {
+			if gremlin {
+				return gremlinFixtureVertex(spec, row)
+			}
 			return fixtureVertex(spec.Label, row)
 		}, builder)
 		if err != nil {
@@ -58,6 +69,9 @@ func FixtureManifest(ctx context.Context, manifestPath string, rangeRows int64) 
 		}
 		paths := fixturePaths(fixtureManifest, "edge", spec.Type)
 		rows, err := digestFixtureFiles(ctx, root, paths, func(row []string) (int64, []byte, error) {
+			if gremlin {
+				return gremlinFixtureEdge(spec, vertices, row)
+			}
 			return fixtureEdge(spec, vertices, row)
 		}, builder)
 		if err != nil {
@@ -70,7 +84,11 @@ func FixtureManifest(ctx context.Context, manifestPath string, rangeRows int64) 
 			return Manifest{}, err
 		}
 	}
-	return builder.result("fixture", fixtureManifest.RootSHA256, "", ""), nil
+	result := builder.result("fixture", fixtureManifest.RootSHA256, "", "")
+	if gremlin {
+		result.CanonicalVersion = GremlinCanonicalVersion
+	}
+	return result, nil
 }
 
 func fixturePaths(manifest fixturemodel.Manifest, kind, name string) []string {

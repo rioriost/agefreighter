@@ -1,0 +1,51 @@
+{
+  "route": "AZ-COSMOS",
+  "qualificationOutcome": "not-qualified",
+  "countsOutcome": "pass",
+  "diagnosisOutcome": "cause-identified",
+  "workflow": "7b79f05d-1dc1-40a6-b3dc-6c8129d4e0c1",
+  "job": "7fa558e4-8027-4335-9a2b-564f70b3df02",
+  "retainedFailedVerification": "cb0c7805-5d5e-4ccd-bff8-1d39b6015b0f",
+  "diagnosticOperation": "815f2755-4a47-46cb-af1a-3c32e5dbd04f",
+  "diagnosticSubmittedAt": "2026-09-14T13:20:05.918Z",
+  "diagnosticCommit": "9c1109514c76d0eb016c255cc5a2c1eb305c054b",
+  "diagnosticArchiveSHA256": "a39b9f9a698969acc8f02e45a74478f26e58cb74271d33028de881fca1f5e110",
+  "diagnosticArchiveBytes": 7245271,
+  "installedVSIXSHA256": "a12533d820b5d44ab4e3fb7fddaca294c8051743590af076b67bb33a93391723",
+  "extensionUnitTestsPassed": 192,
+  "failureReceipt": {
+    "version": 1,
+    "outcome": "fail",
+    "stage": "target-digest",
+    "code": "source-key-order"
+  },
+  "failureReceiptBytes": 81,
+  "failureReceiptSHA256": "a2f1d1bd51827f85b3c42f1412f4791d2db41058d786c10b5261f0354e721d21",
+  "independentReceiptHashVerification": true,
+  "targetReadOnly": true,
+  "migrationReplayed": false,
+  "oldFailureAndMarkerPreserved": true,
+  "loaderReplaced": false,
+  "graphChanged": false,
+  "preflight": {
+    "checkedAt": "2026-09-14T13:18:16.283Z",
+    "storageUsedPercent": 5.100700409266001,
+    "swapUsedBytes": 0,
+    "oomEvents": 0,
+    "idle": false,
+    "idleExplanation": "Old failed qualification marker retained; fixed diagnostic script checks matching marker, inactive old service and absent loader/verifier processes before starting a separately locked operation."
+  },
+  "interpretation": "Target traversal ordered by allocated graph ID is not in strictly increasing fixture source-key order. This identifies a verifier ordering failure; it does not establish data integrity or data corruption.",
+  "nextGate": "Correct P1-only canonical traversal ordering, preserve typed-property and endpoint checks, and independently requalify the same committed graph with a new retained operation.",
+  "budgetUSD": 800,
+  "deadline": "2026-09-16T07:14:35.311Z",
+  "qualifiedRoutes": 6,
+  "totalRoutes": 9,
+  "costSavingState": {
+    "confirmedAt": "2026-09-14T13:24:11Z",
+    "trialVMsDeallocated": 12,
+    "flexibleServersStopped": 10,
+    "resourcesDeleted": false,
+    "cosmosAndStorageChargesContinue": true
+  }
+}

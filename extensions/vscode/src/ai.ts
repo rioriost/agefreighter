@@ -119,7 +119,7 @@ export function registerAI(
         request,
         stream,
         token,
-        `You are the AGEFreighter migration assistant inside VS Code. Deterministic work is performed only by the AGEFreighter CLI. You may explain, compare, and recommend, but never claim that a command ran or a target changed. Do not request credential values. Available workspace migration jobs: ${JSON.stringify(inventory)}. User request: ${request.prompt}`
+        `You are the AGEFreighter migration assistant inside VS Code. Deterministic work is performed only by the AGEFreighter CLI. You may explain, compare, and recommend, but never claim that a command ran or a target changed. Do not request credential values. Use the following installed-version workflow when explaining how to begin; do not require users to author YAML for a new guided Neo4j migration.\n\n${helpText()}\n\nAvailable existing workspace migration jobs: ${JSON.stringify(inventory)}. User request: ${request.prompt}`
       );
     }
   );
@@ -154,9 +154,16 @@ async function explainWithModel(
 
 function helpText(): string {
   return [
-    "AGEFreighter keeps migration execution deterministic in the CLI.",
+    "Start with **AGEFreighter: New Guided Migration** from the Command Palette or the **+** button in the AGEFreighter view.",
     "",
-    "Use `/validate` and `/plan` before connecting to a database. Use `/profile` and `/doctor` for bounded source and target evidence. `/status` and `/report` require the durable job UUID.",
+    "1. Use your existing Azure login in VS Code. No project folder or local AGEFreighter installation is needed to open the guided workflow.",
+    "2. Select Neo4j, PostgreSQL, Cosmos DB for NoSQL, or local CSV files. For Azure sources, select the subscription, resource group and candidate. A VM candidate is not a verified database.",
+    "3. Review a Linux discovery VM in an existing source-reachable subnet. Check region, zone, SKU, quota, release checksum and costs, then explicitly approve deployment. No source firewall or public access is added.",
+    "4. The intended next steps are remote assessment, target sizing, output-folder/LoadJob selection, approved same-VM resize and target deployment, migration, then evidence-backed verification.",
+    "",
+    "This preview implements source selection and approval-gated runner provisioning only. Remote source assessment, CSV upload, target deployment, resizing, migration and verification are not enabled yet. The matching 2.4.x Linux release must exist before runner deployment. No source password is collected and no LoadJob is generated yet. Never put credentials in chat.",
+    "",
+    "For an **existing LoadJob**, `/validate`, `/plan`, `/profile`, and `/doctor` remain available. `/status` and `/report` require the durable job UUID. Guided drafts are not listed as executable jobs.",
     "",
     "Start, resume, verify, and cleanup are intentionally available only as explicit commands from the AGEFreighter view or Command Palette. They always require direct confirmation and run in a visible terminal."
   ].join("\n");

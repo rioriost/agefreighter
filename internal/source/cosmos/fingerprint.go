@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
+	"github.com/rioriost/agefreighter/internal/config"
 )
 
 // fingerprintParameter is the canonical, order-preserving JSON shape used
@@ -34,6 +36,7 @@ type fingerprintMapping struct {
 	EndNamespace         string                 `json:"endNamespace,omitempty"`
 	EndField             string                 `json:"endField,omitempty"`
 	Properties           map[string]string      `json:"properties,omitempty"`
+	PropertyTypes        map[string]string      `json:"propertyTypes,omitempty"`
 	DocumentFormat       string                 `json:"documentFormat,omitempty"`
 	PartitionKeyProperty string                 `json:"partitionKeyProperty,omitempty"`
 	MaxProperties        int                    `json:"maxProperties,omitempty"`
@@ -83,6 +86,9 @@ func bindFingerprint(
 			PartitionKeyProperty: mapping.partitionKeyProperty,
 			MaxProperties:        mapping.maxProperties,
 		}
+		if mapping.documentFormat == config.CosmosDocumentGremlin {
+			entry.PropertyTypes = mapping.propertyTypes
+		}
 		if len(mapping.parameters) > 0 {
 			entry.Parameters = make([]fingerprintParameter, len(mapping.parameters))
 			for parameterIndex, parameter := range mapping.parameters {
@@ -109,6 +115,12 @@ func bindFingerprint(
 			entry.Properties = make(map[string]string, len(mapping.properties))
 			for _, property := range mapping.properties {
 				entry.Properties[property.name] = property.pointer.raw
+				if property.declaredType != "" {
+					if entry.PropertyTypes == nil {
+						entry.PropertyTypes = make(map[string]string)
+					}
+					entry.PropertyTypes[property.name] = property.declaredType
+				}
 			}
 		}
 		manifest.Mappings[index] = entry

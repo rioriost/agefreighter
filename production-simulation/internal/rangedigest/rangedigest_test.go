@@ -2,12 +2,29 @@ package rangedigest
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	fixturemodel "github.com/rioriost/agefreighter/production-simulation/internal/fixture"
 )
+
+func TestOutOfOrderTargetKeysRemainRejected(t *testing.T) {
+	b, err := newRangeBuilder(100000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := b.begin("v", "Supplier"); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.add(2, []byte("second\n")); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.add(1, []byte("first\n")); !errors.Is(err, ErrSourceKeyOrder) {
+		t.Fatal("expected identifiable ordering failure", err)
+	}
+}
 
 func TestFixtureManifestIsIndependentOfShardLayout(t *testing.T) {
 	t.Parallel()

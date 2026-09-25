@@ -1,6 +1,7 @@
 package architecture_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"os"
@@ -14,6 +15,8 @@ import (
 type goPackage struct {
 	ImportPath string
 	Deps       []string
+	Dir        string
+	GoFiles    []string
 }
 
 func TestDependencyBoundaries(t *testing.T) {
@@ -45,6 +48,50 @@ func TestDependencyBoundaries(t *testing.T) {
 	}
 }
 
+func TestCoverageExclusionsMatchQualificationTools(t *testing.T) {
+	root := findModuleRoot(t)
+	data, err := os.ReadFile(filepath.Join(root, ".coverage-exclude"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var excluded []string
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "#") {
+			excluded = append(excluded, line)
+		}
+	}
+	command := exec.Command("go", "list", "-json", "./production-simulation/...")
+	command.Dir = root
+	output, err := command.Output()
+	if err != nil {
+		t.Fatalf("list qualification packages: %v", err)
+	}
+	var expected []string
+	decoder := json.NewDecoder(bytes.NewReader(output))
+	for {
+		var pkg goPackage
+		if err := decoder.Decode(&pkg); err != nil {
+			if err == io.EOF {
+				break
+			}
+			t.Fatalf("decode qualification package: %v", err)
+		}
+		for _, name := range pkg.GoFiles {
+			path, err := filepath.Rel(root, filepath.Join(pkg.Dir, name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			expected = append(expected, filepath.ToSlash(path))
+		}
+	}
+	slices.Sort(excluded)
+	slices.Sort(expected)
+	if len(expected) == 0 || !slices.Equal(excluded, expected) {
+		t.Fatalf("coverage exclusions must contain exactly the non-shipped qualification files:\ngot %v\nwant %v", excluded, expected)
+	}
+}
+
 func findModuleRoot(t *testing.T) string {
 	t.Helper()
 	current, err := os.Getwd()
@@ -67,6 +114,10 @@ func assertPackageBoundaries(t *testing.T, pkg goPackage) {
 	t.Helper()
 	const module = "github.com/rioriost/agefreighter"
 
+	if !isPackageOrChild(pkg.ImportPath, module+"/production-simulation") &&
+		containsPackageOrChild(pkg.Deps, module+"/production-simulation") {
+		t.Errorf("%s depends on excluded qualification tooling", pkg.ImportPath)
+	}
 	if isPackageOrChild(pkg.ImportPath, module+"/internal/source") &&
 		containsPackageOrChild(pkg.Deps, module+"/internal/age") {
 		t.Errorf("%s depends on internal/age", pkg.ImportPath)

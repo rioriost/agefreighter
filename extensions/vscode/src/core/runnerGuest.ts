@@ -1,0 +1,233 @@
+import { createHash, randomUUID } from "node:crypto";
+import { catalogActive, object, RunnerRecord } from "./runner";
+import { RunnerControl } from "./runnerLifecycle";
+import { csvCapability, reportCapability, reportManifest } from "./runnerBlob";
+import { CSVManifest, validateCSVManifest } from "../guided/csvTransfer";
+import { commandCapacityMessage, retainReadinessReceipt } from "./runnerReceipts";
+
+export interface GuestCommand {
+  id: string;
+  operation: string;
+  action: "ready" | "profile" | "inventory" | "postgres-catalog" | "status" | "report" | "export-report" | "import-csv" | "migrate-csv" | "migrate-source" | "inspect-resume" | "resume-migration";
+  phase: "submitted" | "unknown" | "finished" | "failed" | "bootstrap-pending";
+  submittedAt: string;
+  failure?: string;
+}
+export interface GuestHealth { idle:boolean; storageUsedPercent:number; swapUsedBytes:number; oomEvents:number }
+export interface GuestReadiness { bootId: string; cliVersion: string; archiveSha256: string; commit: string; checkedAt: string; capabilities?: string[]; health?:GuestHealth }
+export interface GuestRequest { version: 1; workflow: string; operation: string; action: GuestCommand["action"]; expectedBootId?: string; configuration?: unknown; secrets?: Record<string, string>; offset?: number; export?: { url: string; sha256: string; bytes: number }; import?: CSVManifest & { url: string }; resume?: import("./runnerExecution").RunnerMigration["resume"] }
+
+const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+
+/** Require declared-type support; read-only evidence controls remain available. */
+export function assertPostgreSQLTypePreservation(record: RunnerRecord): void {
+  if(record.input.source.type==="cosmos-nosql"){
+    const c=object(object(record.sourceDraft?.configuration.source??{}).cosmos??{});
+    const typed=[...(Array.isArray(c.vertices)?c.vertices:[]),...(Array.isArray(c.edges)?c.edges:[])].some(m=>Object.keys(object(object(m).propertyTypes??{})).length>0);
+    if(typed&&!record.guestReady?.capabilities?.includes("cosmos-explicit-property-types-v1"))throw new Error("This Cosmos mapping requires a reviewed Linux runner with explicit property-type preservation. Retain old jobs; never resume them with changed types.");
+  }
+  if (record.input.source.type === "postgresql" && !record.guestReady?.capabilities?.includes("postgresql-native-floats-v1")) {
+    throw new Error("This PostgreSQL runner lacks native floating-point preservation. Use a reviewed fixed Linux artifact and a fresh workflow, target and job; retain old results without replay.");
+  }
+}
+
+// Constant script: credentials/configuration never occur in source, public
+// parameters, resource IDs, status records, or command-line arguments.
+export const guestDispatchScript = `#!/bin/bash
+set -euo pipefail
+set +x
+umask 077
+printf '%s' "$AF_RUNNER_REQUEST" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch
+`;
+
+// Only the explicit, source-free readiness control may wait for cloud-init.
+// Leave 15 seconds of the existing 60-second ARM bound for dispatch. A timeout
+// observes pending bootstrap; it never starts/restarts bootstrap or a worker.
+export const guestReadinessScript = `#!/bin/bash
+set -euo pipefail
+set +x
+umask 077
+bootstrap_status=0
+timeout 45 cloud-init status --wait >/dev/null 2>&1 || bootstrap_status=$?
+if [ "$bootstrap_status" -eq 124 ]; then
+  printf '%s\\n' '{"version":1,"ready":false,"bootstrap":"pending"}'
+  exit 0
+fi
+if [ "$bootstrap_status" -ne 0 ]; then
+  printf '%s\\n' 'Linux bootstrap did not complete successfully.' >&2
+  exit 1
+fi
+if [ ! -f /var/lib/agefreighter/bootstrap.complete ] || [ ! -x /usr/local/bin/agefreighter-tools ]; then
+  printf '%s\\n' 'Linux bootstrap installation evidence is missing.' >&2
+  exit 1
+fi
+printf '%s' "$AF_RUNNER_REQUEST" | base64 --decode | /usr/local/bin/agefreighter-tools runner dispatch
+`;
+
+/** Caller holds the workflow lock and has obtained approval for source reads. */
+export async function dispatchGuest(control: RunnerControl, record: RunnerRecord, request: GuestRequest, assertAuthorized: () => void = () => {}): Promise<RunnerRecord> {
+  assertAuthorized();
+  if (record.phase !== "provisioned") throw new Error("The runner VM must be provisioned first.");
+  if (record.upgrade && record.upgrade.phase !== "finished") throw new Error("Reconcile the guest upgrade before any other operation.");
+  if (record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase)) throw new Error("Reconcile the pending guest command; do not resubmit it.");
+  if (request.version !== 1 || request.workflow !== record.id || !uuid.test(request.operation) || !["ready", "profile", "inventory", "postgres-catalog", "status", "report", "export-report", "import-csv", "migrate-csv", "migrate-source", "inspect-resume", "resume-migration"].includes(request.action)) throw new Error("Invalid guest request identity or action.");
+  if (catalogActive(record) && !["ready", "status", "report", "export-report", "postgres-catalog"].includes(request.action)) throw new Error("Reconcile the retained catalog before other source work.");
+  if (request.action === "postgres-catalog") {
+    const c = record.postgresCatalog;
+    if (record.input.source.type !== "postgresql" || record.assessment || record.target || record.migration || !record.guestReady?.capabilities?.includes("postgresql-catalog-v1") || !c || c.phase !== "submitted" || c.operation !== request.operation || c.bootId !== record.guestReady.bootId || c.configurationSHA256 !== createHash("sha256").update(JSON.stringify(request.configuration)).digest("hex")) throw new Error("Catalog requires its reviewed, boot-bound execution intent.");
+    assertIdleHealth(record);
+  }
+  if(request.action!=="resume-migration" && request.resume!==undefined)throw new Error("Unexpected recovery binding.");
+  if(request.action==="resume-migration"){
+    const m=record.migration;
+    if(!record.guestReady?.capabilities?.includes("explicit-resume-v1") || !m?.resume || JSON.stringify(m.resume)!==JSON.stringify(request.resume) || m.operation!==request.operation || m.phase!=="submitted" || m.operation===m.resume.previousOperation || m.jobId!==m.resume.jobId || request.configuration!==undefined || request.offset!==undefined)throw new Error("Resume requires an explicitly sealed new continuation for the original job.");
+    assertPostgreSQLTypePreservation(record);
+  }
+  if (["ready", "status", "report", "export-report"].includes(request.action) && (request.configuration !== undefined || request.secrets !== undefined || request.expectedBootId !== undefined)) throw new Error("Read-only guest controls cannot contain source credentials.");
+  if (request.action === "export-report") {
+    if (!request.export || request.offset !== undefined) throw new Error("Invalid report export capability.");
+    reportCapability(request.export.url, record.id, request.operation, "c");
+    reportManifest({ ...request.export, operation: request.operation });
+  } else if (request.export !== undefined) throw new Error("Unexpected report export capability.");
+  if (request.action === "import-csv") {
+    if (!request.import || request.configuration !== undefined || request.secrets !== undefined || request.offset !== undefined) throw new Error("Unexpected CSV import fields.");
+    validateCSVManifest(request.import); csvCapability(request.import.url, record.id, request.import.file, request.import.sha256);
+  } else if (request.import !== undefined) throw new Error("Unexpected CSV import capability.");
+  const assessment = ["profile", "inventory", "migrate-csv", "migrate-source"].includes(request.action);
+  if (assessment) assertPostgreSQLTypePreservation(record);
+  if(request.action==="migrate-csv" || request.action==="migrate-source"){
+    assertIdleHealth(record);
+    const type=object(record.sourceDraft?.configuration.source).type;
+    const capability=request.action==="migrate-csv"?"csv-migration-v1":`${type}-migration-v1`;
+    if(!record.guestReady?.capabilities?.includes(capability) || record.migration?.operation!==request.operation || record.migration.phase!=="submitted" || record.target?.phase!=="provisioned" || record.resize?.phase!=="finished")throw new Error("Migration requires an approved retained execution intent and prepared target/runner.");
+  }
+  if(request.action==="inspect-resume" && (!record.guestReady?.capabilities?.includes("resume-inspection-v1") || record.migration?.operation!==request.operation || request.configuration!==undefined || request.offset!==undefined || Object.keys(request.secrets??{}).join()!=="AGEFREIGHTER_TARGET_DSN"))throw new Error("Resume inspection requires a capable runner, retained migration and only the protected target connection.");
+  const bootBound = assessment || request.action === "postgres-catalog" || request.action === "import-csv" || request.action === "inspect-resume" || request.action === "resume-migration";
+  if (bootBound) {
+    const ready = record.guestReady;
+    const age = ready ? Date.now() - Date.parse(ready.checkedAt) : NaN;
+    if (!ready || !uuid.test(ready.bootId) || !Number.isFinite(age) || age < 0 || age > 5 * 60 * 1000 || ready.cliVersion !== record.artifact.version || ready.archiveSha256 !== record.artifact.sha256 || assessment && request.configuration === undefined) throw new Error("Verify fresh guest readiness and review source configuration first.");
+  }
+  // Bind execution to the verified boot, not a value supplied by a webview.
+  const payload = JSON.stringify(bootBound ? { ...request, expectedBootId: record.guestReady!.bootId } : request);
+  if (Buffer.byteLength(payload) > 1024 * 1024) throw new Error("Guest request is too large.");
+  const commands = await control.list(record.input.subscriptionId, `${record.vmId}/runCommands?api-version=2024-07-01`);
+  assertAuthorized();
+  if (commands.length >= 25) throw new Error(commandCapacityMessage);
+  const command: GuestCommand = { id: `${record.vmId}/runCommands/af-${randomUUID()}`, operation: request.operation, action: request.action, phase: "submitted", submittedAt: new Date().toISOString() };
+  if ((await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01`)).status !== 404) throw new Error("Guest command resource already exists.");
+  assertAuthorized();
+  const submitted: RunnerRecord = { ...record, guestCommand: command };
+  // No previous boot proof may authorize reads while a fresh check is pending.
+  if (request.action === "ready") delete submitted.guestReady;
+  await control.persist(submitted);
+  // A caller's approval can be revoked during the durable write. Keep that
+  // intent for GET-only reconciliation, but do not submit its command. This
+  // check is outside the uncertain-PUT catch because no PUT was attempted.
+  assertAuthorized();
+  try {
+    const response = await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01`, "PUT", {
+      location: record.input.region,
+      properties: { source: { script: request.action === "ready" ? guestReadinessScript : guestDispatchScript }, protectedParameters: [{ name: "AF_RUNNER_REQUEST", value: Buffer.from(payload).toString("base64") }], timeoutInSeconds: 60, asyncExecution: false }
+    });
+    if (response.status < 200 || response.status >= 300) throw new Error();
+    return submitted;
+  } catch (error) {
+    // Only preserve our bounded HTTP status message, never arbitrary SDK text,
+    // credentials, request bodies or remote diagnostics.
+    const http = error instanceof Error && /^Azure runner operation returned HTTP (\d{3})\. Refresh status before retrying\.$/.exec(error.message);
+    const failure = http ? `Azure returned HTTP ${http[1]}; reconcile before retrying.` : "Guest submission was not confirmed; reconcile before retrying.";
+    const unknown: RunnerRecord = { ...submitted, guestCommand: { ...command, phase: "unknown", failure } };
+    await control.persist(unknown);
+    return unknown;
+  }
+}
+
+/** GET only. A failed or absent control response never repeats a source read. */
+export async function reconcileGuest(control: RunnerControl, record: RunnerRecord): Promise<{ record: RunnerRecord; result?: unknown }> {
+  const command = record.guestCommand;
+  if (!command) throw new Error("No retained guest command to reconcile.");
+  if (!command.id.startsWith(`${record.vmId}/runCommands/af-`) || !uuid.test(command.id.slice(`${record.vmId}/runCommands/af-`.length))) throw new Error("Guest command does not belong to this VM.");
+  const response = await control.request(record.input.subscriptionId, `${command.id}?api-version=2024-07-01&$expand=instanceView`);
+  if (response.status === 404) {
+    const age = Date.now() - Date.parse(command.submittedAt);
+    // A missing status-only command can be replaced by a later explicit status
+    // read. This says nothing about the underlying operation's success and
+    // never permits replay of import/profile/inventory/export requests.
+    if (command.action === "status" && ["submitted", "unknown"].includes(command.phase) && Number.isFinite(age) && age >= 300000) {
+      const next: RunnerRecord = { ...record,
+        absentStatusCommands: [...record.absentStatusCommands ?? [], { ...command }],
+        guestCommand: { ...command, phase: "failed" } };
+      await control.persist(next); return { record: next };
+    }
+    if (command.action === "ready" && ["submitted", "unknown"].includes(command.phase) && Number.isFinite(age) && age >= 300000) {
+      const next: RunnerRecord = { ...record,
+        absentReadinessCommands: [...record.absentReadinessCommands ?? [], { ...command }],
+        guestCommand: { ...command, phase: "failed" } };
+      // Readiness reads no source and launches no worker. A separate explicit
+      // check must prove the current boot; an absent command proves nothing.
+      delete next.guestReady;
+      await control.persist(next); return { record: next };
+    }
+    return { record };
+  }
+  const properties = object(object(response.value).properties);
+  const view = properties.instanceView ? object(properties.instanceView) : {};
+  if (!["Succeeded", "Failed", "Canceled", "TimedOut"].includes(String(view.executionState))) return { record };
+  let next: RunnerRecord = { ...record, guestCommand: { ...command, phase: "failed" } };
+  let result: unknown;
+  if (view.executionState === "Succeeded" && view.exitCode === 0 && typeof view.output === "string" && Buffer.byteLength(view.output) < 4096) {
+    try {
+      result = JSON.parse(view.output);
+      const value = object(result);
+      if (value.version !== 1) throw new Error();
+      if (command.action === "ready") {
+        if (value.ready === false && value.bootstrap === "pending" && Object.keys(value).length === 3) {
+          next.guestCommand = { ...command, phase: "bootstrap-pending" };
+          delete next.guestReady;
+          await control.persist(next);
+          return { record: next }; // No readiness receipt or source permission.
+        }
+        if (value.ready !== true || value.os !== "linux" || value.architecture !== "amd64" || value.cliVersion !== record.artifact.version || value.archiveSha256 !== record.artifact.sha256 || typeof value.bootId !== "string" || !uuid.test(value.bootId) || typeof value.commit !== "string") throw new Error();
+        if (record.artifact.development && value.commit !== record.artifact.development.commit) throw new Error();
+        // Re-reading an old ARM response must never refresh its validity.
+        if (value.capabilities !== undefined && (!Array.isArray(value.capabilities) || value.capabilities.length > 32 || value.capabilities.some(x => typeof x !== "string" || !/^[a-z0-9-]{1,64}$/.test(x)))) throw new Error();
+        next.guestReady = { bootId: value.bootId, cliVersion: value.cliVersion, archiveSha256: value.archiveSha256, commit: value.commit, checkedAt: command.submittedAt,
+          capabilities: value.capabilities as string[] | undefined };
+        if(value.health!==undefined){
+          const h=object(value.health);
+          if(typeof h.idle!=="boolean" || typeof h.storageUsedPercent!=="number" || !Number.isFinite(h.storageUsedPercent) || h.storageUsedPercent<0 || h.storageUsedPercent>100 || !Number.isSafeInteger(h.swapUsedBytes) || Number(h.swapUsedBytes)<0 || !Number.isSafeInteger(h.oomEvents) || Number(h.oomEvents)<0)throw new Error();
+          next.guestReady.health=h as unknown as GuestHealth;
+        }
+      } else if (value.operation !== command.operation || command.action !== "report" && value.workflow !== record.id) throw new Error();
+      next.guestCommand = { ...command, phase: "finished" };
+    } catch { result = undefined; }
+  }
+  if (command.action === "ready" && next.guestCommand?.phase !== "finished") delete next.guestReady;
+  if (command.action === "ready" && next.guestCommand?.phase === "finished") next = retainReadinessReceipt(next);
+  await control.persist(next);
+  return { record: next, result };
+}
+
+export function assertIdleHealth(record:RunnerRecord,now=Date.now()):void{
+  const r=record.guestReady,h=r?.health,age=r?now-Date.parse(r.checkedAt):NaN;
+  if(!r || r.archiveSha256!==record.artifact.sha256 || r.cliVersion!==record.artifact.version || !Number.isFinite(age) || age<0 || age>300000 || !h || h.idle!==true || !Number.isFinite(h.storageUsedPercent) || h.storageUsedPercent<0 || h.storageUsedPercent>=80 || h.swapUsedBytes!==0 || h.oomEvents!==0)throw new Error("Refresh Linux readiness: idle worker, disk below 80%, no swap/OOM and matching installation are required.");
+}
+
+/** Assemble all chunks and verify the independently retained artifact hash. */
+export function assembleGuestReport(operation: string, chunks: unknown[], expectedSHA256: string): string {
+  let offset = 0, total: number | undefined;
+  const parts: Buffer[] = [];
+  if (!chunks.length || chunks.length > 2800) throw new Error("Incomplete guest report.");
+  for (const raw of chunks) {
+    const chunk = object(raw);
+    if (chunk.version !== 1 || chunk.operation !== operation || chunk.offset !== offset || chunk.sha256 !== expectedSHA256 || !Number.isSafeInteger(chunk.total) || Number(chunk.total) < 1 || Number(chunk.total) > 4 * 1024 * 1024 || total !== undefined && chunk.total !== total || typeof chunk.data !== "string") throw new Error("Guest report chunk identity mismatch.");
+    total = Number(chunk.total);
+    const data = Buffer.from(chunk.data, "base64");
+    if (!data.length || data.length > 1536 || data.toString("base64") !== chunk.data) throw new Error("Invalid guest report chunk.");
+    parts.push(data); offset += data.length;
+  }
+  const data = Buffer.concat(parts);
+  if (offset !== total || createHash("sha256").update(data).digest("hex") !== expectedSHA256) throw new Error("Incomplete or changed guest report.");
+  return new TextDecoder("utf-8", { fatal: true }).decode(data);
+}

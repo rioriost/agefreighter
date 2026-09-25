@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "scenario": "AZ-N44",
+  "outcome": "pass",
+  "workflow": "1f480fe1-490d-4789-bc18-8d8aadae427b",
+  "source": {
+    "kind": "Neo4j on Azure VM",
+    "neo4jVersion": "4.4.48",
+    "region": "japaneast",
+    "zone": "1",
+    "vertices": 1600000,
+    "edges": 4000000,
+    "inventoryOperation": "9b39fedc-404f-479d-bcda-aad965bbba6c",
+    "inventoryReportSHA256": "ebad8e837eef7f15c14bcdc20e350aa74c3e8e5f31f12f11600544a6d111a67b",
+    "inventoryOutcome": "pass"
+  },
+  "runner": {
+    "version": "2.4.0-dev.70e49155160a",
+    "archiveSHA256": "1a47db5069e33d70549fc17bbdb0dca406ca3820e104f7b0ab3baca1efc3867b",
+    "buildCommit": "70e49155160a56e23e26b225f42338fdc4eeecbf",
+    "initialSKU": "Standard_B2s_v2",
+    "migrationSKU": "Standard_D4s_v5",
+    "region": "japaneast",
+    "zone": "1",
+    "sameVMResizePreservationSHA256": "115f703120fe3ab935c788869926f2250c0ce7b2a151421612abaa5eb21b957d",
+    "diskUsedPercentBeforeQualification": 3.5197,
+    "swapBytesBeforeQualification": 0,
+    "bootOOMEventsBeforeQualification": 0
+  },
+  "target": {
+    "service": "Azure Database for PostgreSQL Flexible Server",
+    "postgresqlMajor": "18",
+    "sku": "Standard_D4ds_v5",
+    "storageGiB": 128,
+    "region": "japaneast",
+    "zone": "1",
+    "publicNetworkAccess": "Disabled",
+    "ageEnabled": true,
+    "storageUsedPercentBeforeStop": 13.9579
+  },
+  "migration": {
+    "jobId": "45e2d8bb-641b-424d-9074-d55e14b6ac2a",
+    "guestStartedAt": "2026-09-06T12:33:18.94271862Z",
+    "guestFinishedAt": "2026-09-06T12:37:25.384258304Z",
+    "recordsRead": 5600000,
+    "recordsCommitted": 5600000,
+    "verticesCommitted": 1600000,
+    "edgesCommitted": 4000000,
+    "rejects": 0,
+    "configurationSHA256": "30b51a5f3a4a95ef6c83a2db45a0d31e53e4ad5748fd10387ee43d510e0d2ebd",
+    "fingerprint": "1714f24b4953b671b0c0ff38f3ece5f0815da62be9b0ccaab756e6cb0f840654",
+    "countsReportSHA256": "587685bad7ac7d7c8767dc0a20176098fa85d8f0b473af68b0d81e94e1324b95",
+    "countsOutcome": "pass"
+  },
+  "canonicalVerification": {
+    "operation": "8ba594f6-98c9-4006-be9b-b13888db3d60",
+    "readOnly": true,
+    "verifierCommit": "03f31785b7473975af037b361ebc08b3a23a2c22",
+    "verifierArchiveSHA256": "460804d405285a202be5812b04f540939d05c853789ac3f570b13684f5d01177",
+    "generatedAt": "2026-09-06T12:55:27.476958858Z",
+    "records": 5600000,
+    "ranges": 64,
+    "fixtureRootSHA256": "f74220f6c58f0c1a62f80a567520ffcde43a2499ba48100667ee7b78ff4e2e2f",
+    "expectedRootSHA256": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70",
+    "actualRootSHA256": "bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70",
+    "reportBytes": 23214,
+    "reportSHA256": "0b8ca5db3bc3b4bb78c2afd4bdb24fda1edcb40aa976498054eb1697d47d3fed",
+    "comparison": "pass"
+  },
+  "governance": {
+    "authorizedCeilingUSD": 800,
+    "authorizedDeadline": "2026-09-09T08:55:00Z",
+    "failedAzureActivityEventsSinceMigrationStart": 0,
+    "sourceVMFinalPowerState": "deallocated",
+    "runnerVMFinalPowerState": "deallocated",
+    "targetFinalState": "Stopped",
+    "rawReportsRetainedPrivately": true,
+    "resourcesDeleted": false,
+    "secretsIncluded": false
+  }
+}
