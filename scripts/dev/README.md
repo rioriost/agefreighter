@@ -35,7 +35,9 @@ make dev-reset
 ```
 
 `dev-up` is idempotent and initializes deterministic fixtures after readiness
-checks. `dev-down` preserves all volumes. `dev-reset` deletes only the three
+checks. PostgreSQL readiness uses TCP loopback, not the temporary Unix-socket
+server used during image initialization. `dev-down` preserves all volumes.
+`dev-reset` deletes only the three
 documented containers and volumes, then recreates the deterministic fixtures.
 
 The runtime and platform can be selected explicitly:

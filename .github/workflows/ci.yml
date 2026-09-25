@@ -73,7 +73,7 @@ jobs:
             "$PGGRAPH_IMAGE" >/dev/null
           for _ in $(seq 1 60); do
             if docker exec "$PGGRAPH_CONTAINER" \
-              pg_isready -U postgres -d agefreighter >/dev/null 2>&1; then
+              pg_isready -h 127.0.0.1 -U postgres -d agefreighter >/dev/null 2>&1; then
               exit 0
             fi
             sleep 1
