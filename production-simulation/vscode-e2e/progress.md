@@ -1,7 +1,7 @@
 # Guided migration P1 qualification progress
 
-Updated: 2026-09-25 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9); all 12 defined extended branches PASS; GitHub 2.4.0 and Homebrew published and verified**.
-Marketplace verification is tracked separately in the
+Updated: 2026-09-25 JST. Overall outcome: **all nine defined P1 base routes qualified (9/9); all 12 defined extended branches PASS; GitHub 2.4.0, Homebrew and Marketplace published and verified**.
+Independent Marketplace payload verification is recorded in the
 [M6 execution record](m6-release-20260925.md). Historical test and cleanup
 statements below retain their original scope and dates.
 
