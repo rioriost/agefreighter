@@ -1,0 +1,2 @@
+# This qualification fixture is byte-sealed; retain its LF bytes on Windows.
+production-simulation/vscode-e2e/fixtures/postgresql-p1-mappings.json text eol=lf

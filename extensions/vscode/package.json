@@ -60,7 +60,7 @@
           "type": "string",
           "default": "agefreighter",
           "scope": "resource",
-          "description": "Local CLI path for existing LoadJob commands (2.3.1 recommended). The runner-first guided workflow does not use a desktop CLI."
+          "description": "Local CLI path for existing LoadJob commands (2.4.0 recommended). The runner-first guided workflow does not use a desktop CLI."
         },
         "agefreighter.readTimeoutSeconds": {
           "type": "number",
@@ -218,7 +218,7 @@
     "viewsWelcome": [
       {
         "view": "agefreighter.jobs",
-        "contents": "Select a source, then review a private Linux discovery/migration VM. Use your existing Azure login; no desktop CLI or project folder is required to open the wizard.\n[New guided migration](command:agefreighter.newGuidedMigration)\nThis preview supports source forms, approval-gated runner/storage provisioning, CSV transfer, remote assessment, target deployment, migration and verification controls. Azure qualification remains path-specific.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
+        "contents": "Select a source, then review a private Linux discovery/migration VM. Use your existing Azure login; no desktop CLI or project folder is required to open the wizard.\n[New guided migration](command:agefreighter.newGuidedMigration)\nConfigure a source, review runner/storage provisioning and target deployment, then explicitly migrate, recover and verify. See the installed guide for supported platforms and qualification scope.\n[Read the installed version's guide](command:agefreighter.openDocumentation)"
       }
     ],
     "menus": {
@@ -369,13 +369,14 @@
     "compile": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
+    "pretest:unit": "npm run compile",
     "test:unit": "tsx --test src/test/unit/*.test.ts",
     "test:source-contract": "tsx --test src/test/runnerSource.contract.ts",
     "test:host:compile": "tsc -p tsconfig.test.json",
     "test:host": "npm run compile && npm run test:host:compile && node out-test/test/runTest.js",
     "test:host:crash": "npm run compile && npm run test:host:compile && node out-test/test/runCrashTest.js",
     "test": "npm run typecheck && npm run test:unit",
-    "check": "npm run test && npm run compile",
+    "check": "npm run test",
     "vscode:prepublish": "npm run check",
     "package": "vsce package --out dist/agefreighter-2.4.0.vsix"
   },

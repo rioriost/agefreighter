@@ -7,7 +7,7 @@ import { runInNewContext } from "node:vm";
 import test from "node:test";
 import { prepareLostResponseCompanion } from "../helpers/deploymentLostResponseCompanion";
 import { otherCancellationFixture,otherNativeCancelCases } from "../helpers/nativeCancelOtherScenarios";
-test("build and inert compiled activation retain only draft, native command hooks and lazy context; no authentication/network or live credit",async()=>{
+test("build and inert compiled activation retain only draft, native command hooks and lazy context; no authentication/network or live credit",{skip:process.platform!=="darwin"?"The native companion is explicitly scoped to macOS /private/tmp":false},async()=>{
   const root=await mkdtemp("/private/tmp/af-deployment-lost-response-"),artifactRoot=await mkdtemp("/private/tmp/af-lost-response-artifact-");
   try{
     const record=otherCancellationFixture(otherNativeCancelCases[0]).record;record.input.source={type:"csv",location:"local"};

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import test,{TestContext} from "node:test";
+import test,{describe,TestContext} from "node:test";
 import {createHash,randomBytes} from "node:crypto";
 import {chmod,link,lstat,mkdir,mkdtemp,readFile,readdir,rm,symlink,writeFile} from "node:fs/promises";
 import {join,resolve} from "node:path";
+import {tmpdir} from "node:os";
 import {execFile} from "node:child_process";
 import {promisify} from "node:util";
 import {sourceWorkflowDraft,RunnerRecord} from "../../core/runner";
@@ -39,6 +40,9 @@ async function fixture(t:TestContext,change:(r:RunnerRecord)=>void=()=>{}){
 }
 async function absent(path:string){await assert.rejects(lstat(path),error=>(error as NodeJS.ErrnoException).code==="ENOENT");}
 
+// Every case below creates POSIX-only private fixture directories. Preserve the
+// complete success and negative contract on supported hosts, not a Windows mock.
+describe("POSIX offline download fixture", {skip: process.platform === "win32"}, () => {
 for(const phase of ["exported","pass"] as const)for(const scenario of ["wrong-sha256","wrong-length"] as const)test(`offline ${scenario} case from ${phase} changes only declared expectations`,async t=>{
   const f=await fixture(t,r=>{r.p1Qualification!.phase=phase;});f.options.scenario=scenario;
   const result=await prepareP1DownloadCase(f.options),storage=join(result.userDataDir,"User","globalStorage","rioriost.agefreighter","runner-v2");
@@ -186,4 +190,25 @@ test("CLI argument failure is sanitized and does not create a case",async t=>{
     const result=error as Error&{stderr:string;stdout:string};assert.equal(result.stdout,"");
     assert.match(result.stderr,/B12 setup refused/);assert.ok(!result.stderr.includes("private-not-for-output"));assert.ok(!result.stderr.includes(" at "));return true;
   });await absent(f.options.caseRoot);
+});
+
+});
+
+test("Windows refuses offline fixture preparation before reading inputs or creating a case", {skip: process.platform !== "win32"}, async t => {
+  const root = await mkdtemp(join(tmpdir(), "af-b12-unsupported-"));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const options: DownloadCaseInput = {recordPath: join(root, "missing-record.json"), manifestPath: join(root, "missing-receipt.json"),
+    caseRoot: join(root, "af-b12-000000000000"), scenario: "wrong-length", acknowledgeNonsecretInputs: true};
+  await assert.rejects(disposableCaseParent(), /requires POSIX private directories/);
+  await assert.rejects(prepareP1DownloadCase(options), /requires POSIX private directories/);
+  assert.deepEqual(await readdir(root), []);
+  const helper = resolve(__dirname, "../helpers/prepareP1DownloadCase.ts");
+  await assert.rejects(promisify(execFile)(process.execPath, [require.resolve("tsx/cli"), helper,
+    "--record", options.recordPath, "--manifest", options.manifestPath, "--case-root", options.caseRoot,
+    "--scenario", options.scenario, "--acknowledge-nonsecret-inputs"], {timeout: 10000, maxBuffer: 4096}), error => {
+    const result = error as Error & {stderr: string; stdout: string};
+    assert.equal(result.stdout, ""); assert.match(result.stderr, /B12 setup refused.*requires POSIX private directories/);
+    assert.ok(!result.stderr.includes(options.recordPath)); assert.ok(!result.stderr.includes(" at ")); return true;
+  });
+  assert.deepEqual(await readdir(root), []);
 });

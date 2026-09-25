@@ -3,6 +3,20 @@
 Date: 2026-09-05. This design supersedes the local-CLI reference path and the
 optional-runner policy in the earlier guided migration plans.
 
+Current checkpoint (2026-09-25): R1–R5 are implemented. The defined P1 base
+routes are 9/9 and finite extended branches B01–B12 are 12/12 PASS, at their
+recorded evidence layers. See the [current qualification ledger](../../production-simulation/vscode-e2e/remaining-validation.md)
+and [user guide](../../extensions/vscode/README.md). M6 compatibility, packaging
+and publication remain separate release gates. The dated implementation
+checkpoints below preserve earlier observations; their pending statements are
+not the current runtime status.
+
+The shipping guided scope is private PostgreSQL 18/AGE, HA-off and create-only;
+Cosmos means NoSQL, including supported Gremlin-shaped documents. PostgreSQL
+catalog/FK proposals and private-CA transport are implemented with explicit
+review. General control retirement and automatic resource shutdown/cleanup
+are not provided. Finite P1 results are not production-capacity guarantees.
+
 ## Roles and complete workflow
 
 The macOS/Windows extension is the control plane. A dedicated Linux x64 VM is
@@ -68,7 +82,7 @@ The preview currently offers **existing migration resource groups only**, in a
 subscription-backed dropdown. Operators needing a dedicated new group can
 create it in Azure and refresh the list. This keeps new-RG permissions, policy,
 tags, metadata-location approval and partial-creation recovery out of the current
-VM-only deployment boundary. This is an implementation/approval boundary, not
+runner/target deployment boundary. This is an implementation/approval boundary, not
 a networking restriction: a VM and its VNet may reside in different RGs. Creating
 a new RG does not itself require peering, and selecting an existing RG does not
 prove source reachability. Future inline RG creation can reuse an existing VNet
@@ -123,10 +137,11 @@ the guest is running the requested size or that bootstrap succeeded.
 - R4: sizing, same-VM resize, target deployment, LoadJob export/finalization.
 - R5: durable remote load/resume/verification, reconnect and lifecycle controls.
 
-R1/R2 can be packaged for review while R3-R5 remain visibly disabled. A runner
-deployment is not a completed assessment or a migration. Release must wait for
-the four source integration paths, Linux guest tests, controlled private-network
-deployment and failure-injection evidence. No production-scale rerun is implied.
+These were staged implementation gates; R1–R5 are now implemented and the
+defined integration/failure cases are recorded in the qualification ledger.
+A runner deployment is not a completed assessment or migration. Final release
+checks must preserve the tested evidence layers and packaged-artifact identity.
+No production-scale rerun is implied.
 
 Review: this removes desktop binary/version drift and reuses private connectivity.
 The main risks are private-subnet egress, source credential delegation, Burstable
@@ -167,7 +182,7 @@ No live Azure resource was created or changed during this implementation check.
 Controlled integration with a published pinned Linux artifact and R3–R5 work
 are required before release; this is not an end-to-end completion claim.
 
-## Current R3 implementation checkpoint — 2026-09-05
+## Historical R3 implementation checkpoint — 2026-09-05
 
 The source-form controller now extends that earlier preview. A local-only draft
 can be reviewed before VM creation or release availability; blank artifact and

@@ -13,9 +13,9 @@ openCypher queries while retaining PostgreSQL's relational capabilities.
 is Microsoft's managed PostgreSQL service and can enable the AGE extension.
 The PostgreSQL 19 target stores lossless properties in relational `jsonb`
 columns and exposes them through `GRAPH_TABLE`; it does not install AGE and it
-does not provide Cypher. This target remains experimental while PostgreSQL 19
-is pre-release. Version 2.3.1 is qualified against the digest-pinned official
-PostgreSQL 19 Beta 3 image; PostgreSQL 19 GA requires a fresh qualification.
+does not provide Cypher. This target remains experimental: the retained 2.3.1
+qualification used the digest-pinned official PostgreSQL 19 Beta 3 image. That
+beta-image evidence does not qualify a PostgreSQL 19 GA build.
 
 This branch does not preserve the Python API, CLI, configuration, or defaults
 from agefreighter 1.x. The 2.x implementation is maintained on `main`; the 1.x
@@ -53,7 +53,7 @@ desired [GitHub release](https://github.com/rioriost/agefreighter/releases),
 extract it, and install both binaries:
 
 ```sh
-tar -xzf agefreighter_v2.3.1_darwin_arm64.tar.gz
+tar -xzf agefreighter_v2.4.0_darwin_arm64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
@@ -62,17 +62,17 @@ sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 Download the `linux_amd64` or `linux_arm64` archive for the host architecture:
 
 ```sh
-tar -xzf agefreighter_v2.3.1_linux_amd64.tar.gz
+tar -xzf agefreighter_v2.4.0_linux_amd64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
 ### Windows
 
-Download `agefreighter_v2.3.1_windows_amd64.zip`, extract
+Download `agefreighter_v2.4.0_windows_amd64.zip`, extract
 `agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
 `PATH`.
 
-> **Windows signing status:** The Windows binaries in v2.3.1 are intentionally
+> **Windows signing status:** The Windows binaries in v2.4.0 are intentionally
 > provided without an Authenticode signature. The SignPath Foundation
 > application was not approved, so Windows code signing remains planned for a
 > later release through a future eligible application or another signing
@@ -81,12 +81,12 @@ Download `agefreighter_v2.3.1_windows_amd64.zip`, extract
 > use. See the [code signing policy](docs/code-signing-policy.md).
 
 ```powershell
-Expand-Archive .\agefreighter_v2.3.1_windows_amd64.zip -DestinationPath .\agefreighter
+Expand-Archive .\agefreighter_v2.4.0_windows_amd64.zip -DestinationPath .\agefreighter
 Get-AuthenticodeSignature .\agefreighter\agefreighter.exe
 .\agefreighter\agefreighter.exe version
 ```
 
-For v2.3.1, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
+For v2.4.0, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
 
 ### Build from source
 
@@ -95,8 +95,8 @@ With the Go version declared in `go.mod` installed:
 ```sh
 git clone https://github.com/rioriost/agefreighter.git
 cd agefreighter
-git checkout v2.3.1
-make build VERSION=2.3.1
+git checkout v2.4.0
+make build VERSION=2.4.0
 ```
 
 See the [installation guide](docs/reference/installation.md) for archive names,
@@ -104,16 +104,32 @@ checksum and provenance verification, and source-build details.
 
 ### Visual Studio Code
 
-AGEFreighter 2.3.1 also provides the open-source **AGEFreighter** VS Code
-extension. It discovers migration jobs, guides deterministic CLI operations,
-renders bounded reports, and optionally lets the user's selected VS Code chat
-model explain redacted evidence. Migration execution, checkpoints, and every
-target mutation remain in the separately installed Go CLI.
+AGEFreighter 2.4.0 includes an open-source VS Code extension with two workflows:
 
-Install [AGEFreighter from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rioriost.agefreighter)
-after installing the CLI, then open the AGEFreighter activity-bar view. See the
-[VS Code extension guide](docs/reference/vscode-extension.md) for workspace
-trust, remote environments, AI privacy boundaries, and local VSIX installation.
+- **Guided Azure runner:** configure CSV, Neo4j, PostgreSQL or Cosmos DB for
+  NoSQL, approve a private Linux runner, review complete source inventory and a
+  private PostgreSQL 18/AGE target, then explicitly migrate, recover and verify.
+  This path uses the Azure account in VS Code and does not need a desktop CLI.
+- **Existing LoadJob:** discover workspace jobs and run the separately installed
+  CLI in a visible terminal. PostgreSQL 19 SQL/PGQ remains available through this
+  advanced path, subject to its separate experimental qualification.
+
+AI assistance is optional and receives only bounded, redacted evidence. It
+cannot start, resume or clean up migrations. Target creation, source reads,
+migration and recovery retain separate reviews and durable evidence.
+
+Install the matching VSIX from the [GitHub release](https://github.com/rioriost/agefreighter/releases)
+with `code --install-extension agefreighter-2.4.0.vsix`, then open the AGEFreighter
+activity-bar view. See the [extension guide](docs/reference/vscode-extension.md)
+for the two workflows, prerequisites and operating limits. Marketplace
+availability is separate from the GitHub release and must be checked there.
+
+The defined P1 qualification has nine base routes and twelve finite extended
+branches passing; the [evidence ledger](production-simulation/vscode-e2e/remaining-validation.md)
+records their exact scope and evidence layers. This is not a claim of native
+Cosmos Gremlin API support, every remote network/credential combination, or
+production-scale throughput. Release packaging and publication are tracked
+separately from these test results.
 
 ## Quick Usage
 

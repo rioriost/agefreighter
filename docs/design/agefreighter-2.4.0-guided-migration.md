@@ -4,15 +4,25 @@ Current architecture: [runner-first redesign](agefreighter-2.4.0-runner-first.md
 The Linux discovery VM becomes the migration VM after sizing. The local-CLI
 reference implementation described below is historical, not the new guided path.
 
-Status: reviewed and approved for implementation on `codex/2.4.0-guided-migration`
+Current checkpoint (2026-09-25): the runner-first implementation has completed
+all nine defined P1 base routes and twelve finite extended branches. The
+[qualification ledger](../../production-simulation/vscode-e2e/remaining-validation.md)
+records live, isolated-host and local-contract evidence separately. M6 release
+checks and publication remain distinct from this qualification result.
+
+The milestone plan and reviews below are historical design records. The
+[current user guide](../../extensions/vscode/README.md) governs executable steps
+and supported limits; the guided target is private PostgreSQL 18/AGE, HA-off
+and create-only. Other CLI target modes are not guided provisioning options.
 
 2026-09-05 revision: the [source-first discovery and networking design](agefreighter-2.4.0-source-discovery-networking.md)
 supersedes the initial Neo4j-first scope, early workspace requirement, and
 discovery-network sequence below. It adds guided CSV, separate source/target
 subscriptions, late folder selection and a separately approved private discovery
-runner. That revision is a reviewed design, not completed runtime functionality.
+runner. The optional-runner/local profiling sequence was subsequently superseded
+by the runner-first design; these earlier plans are retained for context.
 
-## Outcome
+## Original planned outcome
 
 AGEFreighter 2.4.0 replaces the extension's YAML-first happy path with a
 guided, resumable workspace. An operator supplies a source connection and a
@@ -304,7 +314,7 @@ Gate: existing YAML-first workflows remain compatible and every external
   report, but receives no credentials/raw records and cannot deploy, load,
   resume, verify deeply, or clean up.
 
-## Plan review
+## Historical plan review
 
 The requested experience is feasible, but the initial five-step description
 left six material risks. This reviewed plan makes the following corrections:

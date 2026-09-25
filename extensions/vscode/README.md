@@ -5,9 +5,11 @@ migration logic or credentials into an AI model.
 
 AGEFreighter migrates CSV, PostgreSQL, Neo4j, and Azure Cosmos DB graph data to
 Apache AGE or PostgreSQL 19 SQL/PGQ property graphs. This extension is a guided
-interface to the deterministic Go engine and its durable checkpoints. The new
-guided path is being moved to a dedicated Linux Azure VM; advanced existing
-LoadJob commands continue to use a separately installed local CLI.
+interface to the deterministic Go engine and its durable checkpoints. The
+guided path runs on a dedicated Linux Azure VM; advanced existing LoadJob
+commands continue to use a separately installed local CLI. Guided target
+provisioning creates private PostgreSQL 18/Apache AGE servers. PostgreSQL 19
+SQL/PGQ remains a separate advanced LoadJob/CLI path.
 
 The development engine includes the 2.3.1 PostgreSQL native floating-point fix.
 Old PostgreSQL checkpoints are not replayed with the changed fingerprint;
@@ -25,7 +27,7 @@ retain failed-run evidence and use a fresh job and target for corrective tests.
   deployment IDs and reconcile unknown status without replaying a create.
 - Configure all four source types using fields and vertex/edge mappings, without
   supplying a LoadJob file. Save an owner-only local draft before VM creation.
-- Approve a sampled remote profile or complete Neo4j/CSV inventory
+- Approve a sampled remote profile or complete Neo4j/PostgreSQL/Cosmos/CSV inventory
   after guest readiness. Passwords use a native private prompt and protected
   dispatch; no password is saved with the form. CSV requires a full-hash guest seal.
 - Prepare workflow-owned transfer storage with explicit account-scoped user
@@ -143,7 +145,9 @@ verify their checksum and GitHub build-provenance attestation before use.
 4. Optionally select **Configure source & assessment** after entering the runner
    placement fields, before creating any VM. This saves a local draft and opens
    the selected source's form. PostgreSQL table/column mappings and Cosmos
-   explicit/Gremlin formats are supported; schema/FK suggestions are still pending.
+   explicit/Gremlin-shaped NoSQL formats are supported. After guest readiness,
+   PostgreSQL catalog discovery can propose mappings and supported FK edges for
+   explicit review; other relationships require manual mapping.
    Known Cosmos property types can be declared as `score=score:float64` (or the
    other supported scalar/array types). Undeclared fields retain JSON inference;
    declarations require an updated Linux runner and a fresh job if changed.
@@ -161,7 +165,7 @@ verify their checksum and GitHub build-provenance attestation before use.
    **Refresh guest command**. This checks the matching installation and boot
    identity, not source connectivity or migration readiness. Reopen **Configure
    source & assessment**, review the settings and approve sampled source reads
-   or exact Neo4j inventory. A native password prompt follows approval where
+   or a complete source inventory. A native password prompt follows approval where
    needed. **Refresh assessment status** submits/reconciles one bounded status
    check without repeating the source operation. Successful terminal manifests
    remain in the workflow history when a subsequent assessment is approved.
@@ -207,8 +211,9 @@ verify their checksum and GitHub build-provenance attestation before use.
     for the secret-reference-only LoadJob and target plan. Save-only performs no
     deployment. Separately approved deployment is create-only and uses generated
     credentials in VS Code SecretStorage/ARM secure parameters. Reopen the control
-    to reconcile an uncertain submission; it does not replay it. This initial
-    target path requires the VNet in the migration RG. Target creation alone does
+    to reconcile an uncertain submission; it does not replay it. The existing VNet
+    may be in a separate network resource group; only the reviewed new delegated subnet is deployed there, with
+    permission checked in both groups. Target creation alone does
     not resize the VM, prepare AGE or start/verify migration.
     Target database/configuration writes are serialized. If the retained
     deployment failed **only** on `shared_preload_libraries` with `ServerIsBusy`,
@@ -218,10 +223,12 @@ verify their checksum and GitHub build-provenance attestation before use.
     the failed deployment and existing resources; uncertain repair responses
     are read-only reconciled, never automatically retried. Other failures or
     custom settings require operator review. Any required restart stays separate.
-11. **Continue / verify Linux migration** is a development preview. With a
-    matching migration-capable guest and complete inventory, separately approve
-    the AGE preload restart and each idle same-VM resize step. Unknown responses
-    are reconciled without replay; NIC, identity and disk must remain unchanged.
+11. **Continue / verify Linux migration** requires a matching migration-capable
+    guest and complete inventory. Separately approve the AGE preload restart
+    and an idle same-VM resize. The resize approval covers deallocation, size
+    change and restart within its retained deadline. Unknown responses are
+    reconciled without replay; NIC, identity and managed disk bindings are checked.
+    An active inventory or migration blocks resize before a resize intent.
 12. Separately approve a new create-mode migration. The job UUID is retained
     before writes. The fixed Linux worker prepares AGE over verified TLS, loads,
     then runs complete counts verification. Reconnect with **Refresh retained
@@ -229,9 +236,9 @@ verify their checksum and GitHub build-provenance attestation before use.
     counts report is not an independent full-property digest. PostgreSQL uses one
     exported repeatable-read snapshot; Cosmos requires the disclosed source-
     immutability window. Failed runs
-    require operator reconciliation; this preview never automatically resumes.
-13. **Inspect same-job recovery (read only; does not resume)** is an additional
-    development control for failed/interrupted migrations. It requires a pinned
+    require operator reconciliation; the workflow never automatically resumes.
+13. **Inspect same-job recovery (read only; does not resume)** is available for
+    failed/interrupted migrations. It requires a pinned
     guest advertising `resume-inspection-v1` and fresh guest readiness. It uses
     the retained guest configuration and the protected target credential, never
     a new source configuration or source password. Target metadata is read in a
@@ -253,39 +260,60 @@ verify their checksum and GitHub build-provenance attestation before use.
     committed generation and runs complete counts verification. Lost responses
     require reconciliation, not resubmission. New/changed jobs, active workers,
     stale checkpoints, rejected rows and unhealthy guests block admission.
-    **Live GUI/Azure recovery qualification remains pending.** A retained desktop
-    crash lock still requires explicit local review; it is not automatically removed.
+    The defined CSV process/reboot and Neo4j network-interruption recovery cases
+    passed installed-GUI migration, counts and complete canonical verification.
+    This does not cover every source or interruption timing. A retained desktop
+    crash lock requires explicit local review; it is not automatically removed.
     Counts verification is not the separate full P1 canonical qualification.
 
 Workflow metadata is held in extension global storage, without source passwords,
 before output-folder selection. The VM uses persistent managed OS storage and
-has no public IP. Evidence/disks are retained; this preview has no automatic
+has no public IP. Evidence/disks are retained; the guided workflow has no automatic
 cleanup, stop or delete action. Operators remain responsible for resource costs.
 
-**Current development-build limit:** source forms, runner provisioning and
-protected remote assessment controls are implemented, but not all paths are
-live-Azure qualified. ARM success is not guest readiness. A finished assessment
-worker is not a passing migration. Transfer storage/RBAC, bulk reports and CSV
-upload/import are implemented. Complete PostgreSQL and Cosmos mapped-record
-inventories now run on the Linux guest: PostgreSQL holds one exported
-repeatable-read snapshot, while Cosmos requires an immutable-source window.
-Their label/capacity evidence and create-only migration dispatch are locally
-tested. The commit-pinned Linux binary has also completed exact 5.6-million-row
-source inventories for Azure PostgreSQL-on-VM, Flexible Server, Cosmos and the
-IP/port-only PostgreSQL simulation. These are source-read results, not target,
-migration or canonical-verification qualifications; their P1 GUI paths remain
-unqualified. Automatic schema/FK
-recommendations remain open. CSV and Neo4j 4.4 full P1 GUI paths have passed;
-Neo4j 5.26 is retained immediately before migration. Full canonical property
-digest acceptance is still required independently for every remaining path.
-Neo4j and PostgreSQL source forms can bind an optional private-PKI CA bundle:
-VS Code stores only its local path and digest in the private workflow record,
-rechecks the exact PEM bytes for every approved source operation, and transports
-them as a protected parameter. The Linux worker validates 1-16 CA certificates,
-uses the temporary bundle with hostname verification still enabled, and removes
-it after the operation. Do not publish this as a complete guided migration workflow.
-The [runner-first plan](https://github.com/rioriost/agefreighter/blob/codex/2.4.0-guided-migration/docs/design/agefreighter-2.4.0-runner-first.md)
-tracks the remaining gates.
+## Qualification and current limits
+
+The September 25, 2026 qualification ledger records **9/9 defined P1 base routes
+and 12/12 finite extended branches PASS**. The base migrations include complete
+canonical verification of 5.6 million mapped records, not counts alone. Extended
+branches combine the explicitly recorded live GUI, isolated-host and local
+contract evidence; a branch PASS does not make every negative case a live Azure
+test. See the [qualification ledger](../../production-simulation/vscode-e2e/remaining-validation.md)
+and [progress record](../../production-simulation/vscode-e2e/progress.md).
+Final release packaging, compatibility checks and publication are separate M6
+gates; these qualification totals alone do not certify a published release.
+
+- The guided target is a new private PostgreSQL 18/AGE Flexible Server with HA
+  disabled, using an existing reachable VNet and reviewed delegated subnet.
+  Inline resource-group creation, automatic peering/VPN/firewall changes and
+  automatic stop/delete are not provided. Cost estimates and deadlines do not
+  themselves stop Azure billing.
+- Cosmos support is **Cosmos DB for NoSQL**, including supported Gremlin-shaped
+  documents accessed through NoSQL. It is not native Cosmos Gremlin API support.
+  Guided source access uses the owned runner's system-assigned managed identity
+  and a separately reviewed Data Reader grant. The finite access test does not
+  establish other credential modes or a propagation-time guarantee.
+- PostgreSQL catalog discovery proposes mappings for explicit review, including
+  supported foreign-key edges. Nullable/composite or otherwise unsupported
+  relationships still require manual mapping; proposals never silently choose
+  graph semantics. Neo4j/PostgreSQL private-CA bundles use protected transport
+  with hostname verification enabled.
+- A retained report import is distinct from migration and full verification.
+  PostgreSQL inventory uses a repeatable-read snapshot; Cosmos requires the
+  disclosed source-immutability window. P1 results do not guarantee throughput,
+  capacity or correctness for every production dataset.
+- Managed Run Command capacity remains bounded. The native archive/removal
+  action covers eligible successful, unreferenced historical readiness controls;
+  it is not general automatic command retirement. Longer qualification sessions
+  also required separately reviewed archive-first retirement of other controls.
+  Preserve evidence and current/active controls; a full command list blocks new
+  dispatch rather than silently deleting history.
+- On-premises and other-cloud GUI choices were qualified with Azure-hosted
+  endpoint-only simulations, not every third-party network topology.
+- B02 initial-runner quota refusal retains local-contract evidence. B12 invalid
+  verification covers its stated mixed-layer cases. Historical inconclusive
+  probes remain inconclusive. Same-VM resize and active-job refusal do not imply
+  continuous worker monitoring or lifetime disk-SKU continuity.
 
 ## Existing LoadJob workflow (advanced)
 
@@ -330,9 +358,11 @@ sent by this extension. See [Privacy and security](PRIVACY.md).
 ## Workspace trust and remote development
 
 Job discovery works in restricted mode. No AGEFreighter process runs until the
-workspace is trusted. The extension runs where the workspace extension host
-runs, so Remote SSH, Dev Containers, and Codespaces need the AGEFreighter CLI
-installed in that remote environment.
+workspace is trusted. Advanced LoadJob commands run where the workspace
+extension host runs, so Remote SSH, Dev Containers and Codespaces need the CLI
+in that environment. The guided Azure runner path does not require a desktop
+CLI; it still requires supported local files and trusted execution. Local GUI
+qualification does not establish every remote-host topology.
 
 Virtual workspaces are not supported because the CLI requires filesystem paths.
 
@@ -380,8 +410,9 @@ Coordinate exclusive access to the VM/control record during this review; these
 checks cannot prevent another Azure client from modifying it between requests.
 If durable directory synchronization is unsupported on the extension host,
 removal fails closed. That host requires separate qualification; the archive
-command remains available. This candidate has local regression coverage only;
-installed-GUI/Azure cleanup qualification is still pending.
+command remains available. The defined installed-GUI/Azure readiness
+archive/removal lifecycle passed in B09; this is not general resource cleanup
+or qualification of every extension-host filesystem.
 
 ### Recover an interrupted desktop lock
 
@@ -389,7 +420,16 @@ Use **AGEFreighter: Review Interrupted Runner Lock** only after an interrupted
 extension operation. Newly created locks identify the local process and OS boot
 session. Recovery requires proof that this process no longer exists in the same
 boot session, unchanged workflow/lock evidence, and an explicit confirmation
-within five minutes. Original lock metadata is durably archived before removal;
+within five minutes. Windows local-lock recovery is unsupported because this
+implementation cannot obtain the required Windows boot identity. Read-only
+review refuses that unknown identity before recovery; it does not clear the
+lock. Durable POSIX directory synchronization is also unavailable on Windows,
+so readiness-control removal fails closed before any control DELETE. A report
+archive may already have been saved when that synchronization check refuses
+removal. Preserve the evidence and investigate manually. Ordinary lock release
+and read-only reconciliation are separate operations.
+
+On supported hosts, original lock metadata is durably archived before removal;
 workflow records and reports are preserved. Live, uncertain, legacy, malformed
 or different-boot locks remain blocked for investigation.
 

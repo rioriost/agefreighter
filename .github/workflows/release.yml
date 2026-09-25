@@ -363,7 +363,7 @@ jobs:
       - name: Test and package VS Code extension
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-          VSCODE_TEST_VERSION: "1.100.0"
+          VSCODE_TEST_VERSION: "1.105.0"
         run: |
           set -euo pipefail
           npm run check

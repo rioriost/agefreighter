@@ -2,6 +2,34 @@
 
 ## 2.4.0
 
+- Add the runner-first guided workflow for CSV, Neo4j, PostgreSQL and Cosmos DB
+  for NoSQL: reviewed source mappings, protected credentials, complete inventory,
+  private PostgreSQL 18/AGE target planning, same-VM resize, migration, explicit
+  same-job recovery and hash-verified report import. Advanced LoadJob commands
+  remain available through the local CLI.
+- Add PostgreSQL catalog and reviewed FK mapping suggestions, private-CA
+  transport, typed CSV/Cosmos properties and connector capability gates.
+- Preserve durable operation/job identity across reconnects, refuse active-job
+  resize and incompatible layouts, and reconcile uncertain submissions without
+  automatic replay. Review and archive eligible historical readiness controls
+  before explicitly removing them.
+- Complete the defined installed-GUI P1 base matrix (9/9) and finite extended
+  branches (12/12), including the final Cosmos managed-identity access and active
+  inventory resize-refusal cases. Full canonical migration verification remains
+  separate from inventory/counts; each branch retains its stated evidence layer
+  and limitations. See the [qualification ledger](../../production-simulation/vscode-e2e/remaining-validation.md).
+- Guided targets remain private PostgreSQL 18/AGE, single-server/HA-off and
+  create-only. Native Cosmos Gremlin API, automatic network exposure, general
+  command retirement and automatic compute shutdown/cleanup are not added.
+  M6 packaging/compatibility and actual release publication remain separate
+  from the completed qualification matrix.
+
+### Historical development checkpoints
+
+The entries below preserve their observations at the time they were written.
+Their pending, disabled and unqualified labels describe intermediate builds,
+not the current feature status summarized above.
+
 - Add optional Cosmos `propertyTypes` through `name=field:type` mappings. Preserve
   declared floats even when JSON spells them as integers, bind types to resume
   fingerprints, and block typed jobs on runners without the new capability.

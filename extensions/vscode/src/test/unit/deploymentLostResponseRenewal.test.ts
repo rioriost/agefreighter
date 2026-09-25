@@ -35,7 +35,7 @@ test("ready seed preserves old storage state only with exact canonical PUT claim
   for(const phase of ["submitted","unknown","failed","previewed"] as const)assert.throws(()=>validateLostResponseSeed({...f.record,storageDeployment:{...f.record.storageDeployment!,phase}},f.current,f.claim));
   for(const name of ["guestCommand","guestReady","developmentUpload","sourceDraft","migration"])assert.throws(()=>validateLostResponseSeed({...f.record,[name]:{}},f.current,f.claim));
 });
-test("compiled renewal restores exact storage claim before any API and blocks even a forged local storage resubmit",async()=>{
+test("compiled renewal restores exact storage claim before any API and blocks even a forged local storage resubmit",{skip:process.platform!=="darwin"?"The native companion is explicitly scoped to macOS /private/tmp":false},async()=>{
   const prior=await mkdtemp("/private/tmp/af-deployment-lost-response-"),root=await mkdtemp("/private/tmp/af-deployment-lost-response-"),assets=await mkdtemp("/private/tmp/af-renewal-assets-");
   try{
     const f=fixture(),bytes=Buffer.from("INERT RENEWAL UNIT FIXTURE"),sha=createHash("sha256").update(bytes).digest("hex");

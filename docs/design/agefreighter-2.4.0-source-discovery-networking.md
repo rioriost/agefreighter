@@ -6,12 +6,22 @@ and the optional-runner ordering below are retained as design history only.
 
 Date: 2026-09-05
 
-Status: design reviewed against the current implementation and official Azure
-interfaces; implementation pending. This document supersedes the source,
-workspace, and discovery-network assumptions in the original guided plan.
-It does not authorize a live deployment or a source firewall change.
+Historical status (2026-09-05): this revision was reviewed before its source,
+workspace and discovery-network changes were implemented. It did not authorize
+live deployment or source firewall changes.
 
-## Required experience
+Current checkpoint (2026-09-25): the active runner-first workflow implements
+four source forms, reviewed PostgreSQL catalog/FK proposals, complete inventory,
+protected CA/credential transport and independent source/network/target resource
+groups. The [finite qualification ledger](../../production-simulation/vscode-e2e/remaining-validation.md)
+is 9/9 base routes and 12/12 defined branches PASS. M6 release checks remain
+separate. Optional local discovery and public-exception automation described
+below are historical proposals, not enabled alternatives. See the
+[current guide](../../extensions/vscode/README.md) for supported controls and
+limits; native Cosmos Gremlin API and automatic firewall/peering changes are
+not supported by the guided path.
+
+## Reviewed experience in the original revision
 
 Opening **New guided migration** opens the source-type selector immediately.
 An open project folder, a LoadJob file, and a successful Azure subscription
@@ -238,7 +248,7 @@ production-scale simulation is implied by this revision.
 Result: design is implementable with these gates. This revision changes no
 installed extension, source firewall, Azure resource, or running migration.
 
-## Evidence
+## Historical design-review evidence
 
 Repository baseline inspected: `155d7db` on
 `codex/2.4.0-guided-migration`.

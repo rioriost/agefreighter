@@ -82,7 +82,7 @@ async function fixture(t: TestContext) {
     current: () => record, set: (r: RunnerRecord) => { record = structuredClone(r); }, status: (code: number) => {acceptanceStatus = code;} };
 }
 
-test("staged companion completes storage/artifact/preflight, withholds one accepted deployment, and reconciles without replay", async t => {
+test("staged companion completes storage/artifact/preflight, withholds one accepted deployment, and reconciles without replay", {skip: process.platform === "win32"}, async t => {
   const f = await fixture(t);
   await f.storage();
   f.current().developmentUpload = {artifact: f.artifact, phase: "prepared"};
@@ -113,7 +113,7 @@ test("staged companion completes storage/artifact/preflight, withholds one accep
   assert.equal(f.events.filter(e => e.method === "PUT" && e.path?.startsWith(approved.deploymentId + "?")).length, 1);
 });
 
-test("only one exact normal source-free readiness control reaches the inert adapter", async t => {
+test("only one exact normal source-free readiness control reaches the inert adapter", {skip: process.platform === "win32"}, async t => {
   const f = await fixture(t); f.preview(); f.current().phase = "provisioned";
   const submitted = await dispatchGuest(f.control, f.current(), {version: 1, workflow: id, operation, action: "ready"});
   const checked = (await reconcileGuest(f.control, submitted)).record;
@@ -148,7 +148,7 @@ test("foreign scope, forbidden mutation, expired window and source state fail be
   }
 });
 
-test("template and deployment body mutations cannot borrow native approval", async t => {
+test("template and deployment body mutations cannot borrow native approval", {skip: process.platform === "win32"}, async t => {
   for (const mutation of ["template", "body", "record", "foreign-path"] as const) {
     const f = await fixture(t); f.preview(); await f.stages.approvePreview();
     f.current().phase = "deployment-submitted";
@@ -181,11 +181,25 @@ test("wrong artifact metadata and readiness script/payload cannot reach transpor
   }
 });
 
-test("a rejected Azure deployment response leaves uncertainty without an acceptance receipt or replay", async t => {
+test("a rejected Azure deployment response leaves uncertainty without an acceptance receipt or replay", {skip: process.platform === "win32"}, async t => {
   const f = await fixture(t); await f.storage(); f.preview(); await f.stages.approvePreview(); f.status(403);
   const unknown = await submitRunner(f.control, f.current());
   assert.equal(unknown.phase, "unknown");
   assert.ok(!(await readdir(f.root)).includes("azure-acceptance.json"));
   assert.equal(f.events.filter(e => e.method === "PUT" && e.path?.startsWith(unknown.deploymentId + "?")).length, 1);
   await assert.rejects(submitRunner(f.control, unknown));
+});
+
+// Native Windows directory fsync is intentionally not bypassed by the companion.
+test("Windows directory durability refusal prevents any staged transport and retains the consumed file", {skip: process.platform !== "win32"}, async t => {
+  const f = await fixture(t); f.preview();
+  await assert.rejects(f.stages.approvePreview(), {code: "EPERM", syscall: "fsync"});
+  assert.deepEqual(f.events, []);
+  const path = join(f.root, "native-approved-preview.json"), retained = await readFile(path);
+  assert.equal(JSON.parse(retained.toString()).record.id, id);
+  await assert.rejects(f.stages.approvePreview(), {code: "EEXIST"});
+  assert.deepEqual(await readFile(path), retained);
+  const readiness = await fixture(t); readiness.preview(); readiness.current().phase = "provisioned";
+  await assert.rejects(dispatchGuest(readiness.control, readiness.current(), {version: 1, workflow: id, operation, action: "ready"}), {code: "EPERM", syscall: "fsync"});
+  assert.deepEqual(readiness.events, [], "No transport or normal intent persists without a durable admission event");
 });

@@ -1,52 +1,84 @@
 # VS Code extension
 
 AGEFreighter includes an open-source VS Code extension in
-[`extensions/vscode`](../../extensions/vscode). It is a presentation and
-orchestration layer for a separately installed AGEFreighter CLI, not a second
-migration engine.
+[`extensions/vscode`](../../extensions/vscode). It presents and orchestrates the
+deterministic Go engine; it is not a second migration engine. Guided operations
+run on a dedicated Linux Azure VM. Existing LoadJob commands use a separately
+installed CLI in the extension-host environment.
 
-## Guided source setup (2.4.0)
+## Guided migration (2.4.0)
 
-Run **AGEFreighter: New Guided Migration** to enter a Neo4j endpoint and source
-placement in a form. The extension uses the Azure account already signed into
-VS Code, stores the Neo4j password outside the workspace through SecretStorage,
-generates a protected draft, and runs CLI validation and bounded profiling.
-The operator signs in before opening the workflow; the extension has no
-secondary Azure login action.
+1. Run **AGEFreighter: New Guided Migration** without first selecting a project
+   folder or CLI. Choose CSV, Neo4j, PostgreSQL or Cosmos DB for NoSQL. For
+   Neo4j/PostgreSQL, choose Azure, on-premises or another cloud; Cosmos uses
+   Azure and CSV uses local files.
+2. Reuse the Azure account signed into VS Code. Select the source and reviewed
+   runner subscription, existing resource group/subnet, region and zone. ARM
+   discovery identifies candidates and placement, not database readiness.
+   On-premises/other-cloud endpoints require explicit operator placement and
+   existing private connectivity; no automatic peering/firewall change occurs.
+3. Save the source form and explicit mappings. Review and approve transfer
+   storage/file uploads where needed, then the pinned Linux runner deployment
+   after fresh what-if, quota, SKU, network and cost checks. Credentials use a
+   native private prompt; workflow-scoped encrypted reuse is optional. No
+   source password belongs in the form, YAML, logs or model context.
+4. Verify Linux guest readiness and installation. PostgreSQL catalog discovery
+   can propose mappings for explicit adoption. Review source settings and
+   approve complete source inventory; import its size/hash-verified report.
+   Cosmos requires a separately reviewed managed-identity Data Reader grant and
+   a source-immutability window. CSV requires full-hash guest file seals.
+5. Review a new private PostgreSQL 18/AGE target, non-overlapping delegated
+   subnet, same-VM migration size, cumulative budget/reserve and deadline.
+   Select an output folder only when saving the reviewed LoadJob and target
+   plan. Save-only makes no deployment; target creation is separately approved.
+   The target is single-server/HA-off and create-only. An existing VNet may be
+   in a separate network resource group, with permissions checked in both groups.
+6. Separately approve AGE readiness/restart, idle same-VM resize and migration.
+   Durable operation/job IDs precede writes. Lost responses are reconciled by
+   ID without automatic replay; active inventory/migration blocks resize.
+7. Reconnect to the retained operation, import counts/full verification reports,
+   and review complete evidence. Failed jobs require explicit same-job recovery
+   inspection and approval; reload does not automatically resume a load.
 
-For an Azure-hosted source, select the target subscription and provide the
-source ARM resource ID. Its region and logical availability zone are accepted
-only when Azure Resource Manager verifies them. For an on-premises or other
-cloud source, enter its physical location; the eventual nearest-region value is
-a recommendation that the operator must confirm. The extension then checks
-PostgreSQL 18 capabilities, PostgreSQL and Compute quotas, zonal VM SKUs, and
-bounded USD retail rates and saves a 24-hour proposal without deploying it.
+The operator signs in through VS Code; the extension does not start an
+independent Azure CLI login. Neither a provisioned VM, a completed inventory,
+a successful report transfer nor a counts pass alone is full migration
+qualification. The pinned Linux release must match the extension requirements;
+unavailable release artifacts block runner creation. The development-artifact
+opt-in is for qualification only and does not publish or attest a release.
 
-The source profile preserves lower-bound and incomplete status. Azure resource
-creation stays disabled until sizing totals, SKU/quota/AGE availability, cost,
-network reachability, and an ARM what-if result have passed their review gates.
-See the [guided migration contract](vscode-guided-migration-contract.md).
+See the [full installed guide](../../extensions/vscode/README.md) for exact
+buttons, CA/credential handling, bounded polling, report recovery, command
+capacity and supported limitations. The [version-2 runner contract](vscode-runner-contract.md)
+is active; the [version-1 contract](vscode-guided-migration-contract.md) is
+retained as history. **Open Documentation** opens the bundled guide.
 
-This development build ends at the proposal. Guided Azure deployment, automatic
-migration, and final verification are still being implemented. The generated
-draft is kept out of the existing executable-job list. Chat `/help` and
-**AGEFreighter: Open Documentation** describe the installed build's workflow;
-the documentation command opens its bundled guide.
+The defined P1 qualification matrix has nine base routes and twelve finite
+extended branches passing. The [evidence ledger](../../production-simulation/vscode-e2e/remaining-validation.md)
+keeps their evidence layers and limits, including endpoint-only network
+simulations and mixed-layer negatives. This is not every source/network/auth
+combination or production-scale throughput qualification. Packaging,
+compatibility and release publication are separate M6 checks.
 
 ## Install
 
-Install the CLI first. The guided path requires the 2.4.0 `inventory` command;
-the existing LoadJob-first features remain compatible with 2.3.0 or newer.
-Then install **AGEFreighter** from the Visual Studio Marketplace, or install a
-reviewed local package:
+Install the matching reviewed release VSIX:
 
 ```sh
 code --install-extension agefreighter-2.4.0.vsix
 ```
 
-If the CLI is not on `PATH`, run **AGEFreighter: Select CLI Binary**. In Remote
-SSH, Dev Containers, or Codespaces, install and select the binary in the remote
-extension-host environment.
+GitHub release assets and Marketplace publication have separate availability.
+Check the actual publication result rather than assuming one implies the other.
+Use VS Code 1.105 or newer. The guided workflow needs no local CLI; the advanced
+LoadJob workflow needs a compatible installed CLI (2.4.0 is recommended).
+PostgreSQL checkpoints predating the 2.3.1 floating-point fix must not be resumed
+with the changed fingerprint.
+
+If the advanced CLI is not on `PATH`, run **AGEFreighter: Select CLI Binary**.
+In Remote SSH, Dev Containers or Codespaces, advanced commands use a CLI in that
+remote extension-host environment. The guided local-file flow and each remote
+host topology have their own support/qualification boundaries.
 
 ## Deterministic workflow
 
@@ -100,6 +132,17 @@ tests do not call a language model or connect to a database.
 The VSIX contains the bundled extension JavaScript, documentation, license,
 icons, and manifest only. It does not contain `node_modules`, source fixtures,
 the CLI, credentials, or local paths.
+
+## Windows lifecycle limits
+
+The guided cloud worker is Linux. Windows local-lock recovery is unsupported:
+the extension cannot obtain the boot identity needed to review an interrupted
+lock safely. It preserves that lock and requires manual investigation.
+Readiness-control removal also fails closed because this implementation cannot
+establish durable POSIX evidence-directory synchronization on Windows. An
+archive may remain, but no control DELETE is sent. Ordinary workflow lock
+release and read-only reconciliation are separate from these limitations and
+from the CLI signing status below.
 
 ## Windows binary status
 

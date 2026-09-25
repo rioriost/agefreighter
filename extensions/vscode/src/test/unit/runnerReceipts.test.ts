@@ -95,7 +95,7 @@ test("production reconcile captures only successful ready controls, including lo
   }
 });
 
-test("durable archive is create-only, hash-verified, and survives state replacement", async () => {
+test("durable archive is create-only, hash-verified, and survives state replacement", {skip: process.platform === "win32"}, async () => {
   const root = await mkdtemp(join(tmpdir(), "af-readiness-"));
   try {
     const store = new RunnerStore(root), record = retainReadinessReceipt(fixture());
@@ -110,4 +110,18 @@ test("durable archive is create-only, hash-verified, and survives state replacem
     await assert.rejects(store.retainReport(record.id, archive.manifest, archive.text + " "));
     assert.equal(await store.readReport(record.id, archive.manifest), archive.text);
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("Windows retains readable receipt bytes but refuses to certify directory durability", {skip: process.platform !== "win32"}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "af-readiness-unsupported-"));
+  try {
+    const store = new RunnerStore(root), record = retainReadinessReceipt(fixture());
+    const archive = readinessArchive(record, record.readinessReceipts![0]!);
+    await store.write(record); await store.retainReport(record.id, archive.manifest, archive.text);
+    await assert.rejects(store.syncEvidenceDirectory(), {code: "EPERM", syscall: "fsync"});
+    assert.equal(await new RunnerStore(root).readReport(record.id, archive.manifest), archive.text);
+    assert.deepEqual(await store.read(record.id), record);
+    await assert.rejects(store.retainReport(record.id, archive.manifest, archive.text + " "));
+    assert.equal(await store.readReport(record.id, archive.manifest), archive.text);
+  } finally { await rm(root, {recursive: true, force: true}); }
 });

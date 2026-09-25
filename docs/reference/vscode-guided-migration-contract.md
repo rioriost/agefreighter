@@ -4,6 +4,26 @@
 > [version-2 runner-first contract](vscode-runner-contract.md). Existing v1 drafts
 > are retained, not reinterpreted as deployable runner state.
 
+## Current routing (2.4.0)
+
+The active source selector supports CSV, Neo4j, PostgreSQL and Cosmos DB for
+NoSQL. It opens without a workspace or desktop CLI, stores version-2 workflow
+records in private extension global storage, and runs approved operations on a
+pinned Linux Azure runner. Source passwords use native protected prompts and
+optional scoped SecretStorage, not the historical webview password message.
+Target review creates private PostgreSQL 18/AGE with HA disabled; explicit
+resize, migration, same-job recovery and sealed verification are implemented.
+
+Use the [current operating guide](vscode-extension.md) and
+[runner contract](vscode-runner-contract.md) for executable behavior. The
+[qualification ledger](../../production-simulation/vscode-e2e/remaining-validation.md)
+records 9/9 defined base routes and 12/12 finite branches PASS. M6 release checks
+and actual publication remain separate. The following v1 actions, workspace
+paths, 24-hour proposal and desktop CLI prerequisites are historical protocol
+facts, not options exposed by the current wizard.
+
+## Historical version-1 contract
+
 This contract supplements the [VS Code CLI contract](vscode-extension-cli-contract.md)
 for the 2.4.0 guided migration workspace.
 

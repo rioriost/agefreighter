@@ -26,7 +26,7 @@ async function fixture() {
     identity: (value: string | undefined) => { identity = value; }, onBoot: (fn: () => Promise<void>) => { onBoot = fn; } };
 }
 
-test("explicit recovery archives reviewed metadata privately and preserves workflow/reports without replay", async () => {
+test("explicit recovery archives reviewed metadata privately and preserves workflow/reports without replay", {skip: process.platform === "win32"}, async () => {
   const f = await fixture();
   try {
     const report = join(f.root, `${id}.report-${token}.json`);
@@ -106,7 +106,7 @@ for (const kind of ["expired", "backward-clock", "tampered-review", "record", "s
   });
 }
 
-test("recovery rechecks metadata after the durable archive and refuses an in-place change", async () => {
+test("recovery rechecks metadata after the durable archive and refuses an in-place change", {skip: process.platform === "win32"}, async () => {
   const f = await fixture(); try {
     const review = await f.store.reviewCrashLock(id); let checks = 0;
     f.onBoot(async () => { if (++checks === 2) await writeFile(f.lock, JSON.stringify({ ...f.owner, token: id })); });
@@ -116,7 +116,7 @@ test("recovery rechecks metadata after the durable archive and refuses an in-pla
   } finally { await f.cleanup(); }
 });
 
-test("shared recovery gate blocks a fresh acquisition and concurrent recovery", async () => {
+test("shared recovery gate blocks a fresh acquisition and concurrent recovery", {skip: process.platform === "win32"}, async () => {
   const f = await fixture(); try {
     const review = await f.store.reviewCrashLock(id), second = new RunnerStore(f.root, f.environment), otherReview = await second.reviewCrashLock(id);
     let release!: () => void, entered!: () => void;
@@ -177,4 +177,30 @@ test("actual exited local process lock requires explicit recovery; current proce
     await assert.rejects(store.exclusive(id, async () => assert.fail("Automatic replay")), RunnerLockedError);
     await store.recoverCrashLock(review, true); await assert.rejects(stat(f.lock), { code: "ENOENT" });
   } finally { await f.cleanup(); }
+});
+
+test("Windows synthetic reviewed-owner recovery preserves evidence when directory durability is unavailable", {skip: process.platform !== "win32"}, async () => {
+  const f = await fixture();
+  try {
+    const beforeLock = await readFile(f.lock), beforeRecord = await readFile(f.recordPath);
+    const review = await f.store.reviewCrashLock(id);
+    await assert.rejects(f.store.recoverCrashLock(review, true), {code: "EPERM", syscall: "fsync"});
+    assert.deepEqual(await readFile(f.lock), beforeLock); assert.deepEqual(await readFile(f.recordPath), beforeRecord);
+    const archives = (await readdir(f.root)).filter(name => name.includes(".recovered-lock-"));
+    assert.equal(archives.length, 1, "The file is retained but directory durability was not established");
+    assert.equal(JSON.parse(await readFile(join(f.root, archives[0]!), "utf8")).originalLock, beforeLock.toString());
+    await assert.rejects(f.store.recoverCrashLock(review, true), RunnerLockedError);
+    await assert.rejects(f.store.exclusive(id, async () => assert.fail("Never bypass the retained owner lock")), RunnerLockedError);
+  } finally { await f.cleanup(); }
+});
+
+test("Windows production lock review refuses unavailable boot identity without archiving or unlinking", {skip: process.platform !== "win32"}, async () => {
+  const f = await fixture();
+  try {
+    assert.equal(await runnerLockEnvironment.bootIdentity(), undefined);
+    const names = await readdir(f.root), lock = await readFile(f.lock), record = await readFile(f.recordPath);
+    await assert.rejects(new RunnerStore(f.root).reviewCrashLock(id), RunnerLockedError);
+    assert.deepEqual(await readdir(f.root), names);
+    assert.deepEqual(await readFile(f.lock), lock); assert.deepEqual(await readFile(f.recordPath), record);
+  } finally {await f.cleanup();}
 });

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { RunnerStore } from "../../guided/runnerStore";
@@ -287,7 +287,7 @@ test("trust/account failure after intent persists unknown without dispatch", asy
   assert.ok(!f.events.includes("DELETE"));
 });
 
-test("new store instance recovers a durable uncertain intent and archive with GET only", async () => {
+test("new store instance recovers a durable uncertain intent and archive with GET only", {skip: process.platform === "win32"}, async () => {
   const root = await mkdtemp(join(tmpdir(), "af-removal-reload-"));
   try {
     const f = removalFixture(), store = new RunnerStore(root), plan = await f.preview();
@@ -302,4 +302,21 @@ test("new store instance recovers a durable uncertain intent and archive with GE
     assert.equal(next.readinessRemovals![0]!.phase, "absent");
     assert.equal(f.events.filter(e => e === "DELETE").length, 1);
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("Windows archive durability failure prevents removal intent and DELETE while retaining evidence", {skip: process.platform !== "win32"}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "af-removal-unsupported-"));
+  try {
+    const f = removalFixture(), store = new RunnerStore(root), plan = await f.preview();
+    await store.write(f.record);
+    const before = await readFile(join(root, `${id}.json`));
+    f.io.control.persist = async () => assert.fail("No removal intent before durable archive");
+    f.io.retain = async (m, text) => {await store.retainReport(id, m, text); await store.syncEvidenceDirectory();};
+    f.io.read = m => store.readReport(id, m);
+    await assert.rejects(submitReceiptRemoval(f.io, f.record, plan, true), {code: "EPERM", syscall: "fsync"});
+    assert.equal(f.events.filter(e => e === "DELETE").length, 0);
+    assert.deepEqual(await readFile(join(root, `${id}.json`)), before);
+    assert.equal((await new RunnerStore(root).read(id)).readinessRemovals, undefined);
+    assert.equal(await store.readReport(id, plan.manifest), plan.text);
+  } finally { await rm(root, {recursive: true, force: true}); }
 });

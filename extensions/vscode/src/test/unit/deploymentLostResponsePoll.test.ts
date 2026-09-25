@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp,readFile,readdir,rm } from "node:fs/promises";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { describeLostResponsePoll,validateLostResponsePoll } from "../helpers/deploymentLostResponsePoll";
 import { LostResponseStages } from "../helpers/deploymentLostResponseStages";
 import { otherCancellationFixture,otherNativeCancelCases } from "../helpers/nativeCancelOtherScenarios";
@@ -28,8 +29,8 @@ for(const [name,change] of [
   ["fragment",(p:string)=>p+"#secret"],
   ["oversize opaque",(p:string)=>p.replace("A".repeat(326),"A".repeat(1025))]
 ] as const)test(`signed poll rejects ${name} with fixed redacted errors`,()=>{assert.throws(()=>validateLostResponsePoll(change(signed()),sub,region),{message:"Unapproved what-if polling URL; sanitized shape receipt retained"});});
-test("stage learns poll only from approved what-if, redacts GET/header receipts, and enforces shared chain budget",async()=>{
-  const root=await mkdtemp("/private/tmp/af-poll-unit-");
+test("stage learns poll only from approved what-if, redacts GET/header receipts, and enforces shared chain budget",{skip:process.platform==="win32"?"The test companion requires POSIX directory fsync":false},async()=>{
+  const root=await mkdtemp(join(tmpdir(),"af-poll-unit-"));
   try{
     const f=otherCancellationFixture(otherNativeCancelCases[0]),r=sourceWorkflowDraft(f.record.id,f.record.input);r.input.source={type:"csv",location:"local"};r.storageDeployment=storageDraft(r,sub);
     const poll=signed(r.input.subscriptionId),second=poll.replace("A".repeat(326),"B".repeat(326));let next=poll,calls=0;
