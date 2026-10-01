@@ -4,10 +4,12 @@ import { RunnerControl } from "./runnerLifecycle";
 import { assertIdleHealth, assertPostgreSQLTypePreservation, dispatchGuest, reconcileGuest } from "./runnerGuest";
 import { csvAssessmentReady } from "./runnerCSV";
 import { assertCosmosAccessCurrent, cosmosAccessReady } from "./runnerCosmosAccess";
+import { reportStorageNames } from "./runnerReportStorage";
 
 export interface Assessment {
   operation: string; action: "profile" | "inventory"; phase: "submitted" | "unknown" | "accepted" | "running" | "finished" | "failed" | "interrupted";
   configurationSHA256: string; bootId: string; guestConfigurationSHA256?: string; reportSHA256?: string; reportBytes?: number;
+  autoReport?: { storageId: string; deploymentHash: string };
 }
 const sha = /^[a-f0-9]{64}$/;
 /** After interactive credential entry, refresh only VM health, never source reads.
@@ -65,7 +67,8 @@ export function retainFailedAssessment(record: RunnerRecord, operation: string, 
 }
 
 /** Caller holds the workflow lock, reviewed the form and approved source reads. */
-export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>, cancelled: () => boolean = () => false): Promise<RunnerRecord> {
+export async function startAssessment(control: RunnerControl, record: RunnerRecord, action: "profile" | "inventory", secrets: Record<string, string>, cancelled: () => boolean = () => false,
+  autoReport?: Assessment["autoReport"]): Promise<RunnerRecord> {
   const checkCancelled = () => { if (cancelled()) throw new Error("Source assessment cancelled or workspace trust changed; no source read was submitted."); };
   checkCancelled();
   if(record.migration)throw new Error("The retained migration freezes source evidence; reconcile it instead of starting another assessment.");
@@ -84,6 +87,10 @@ export async function startAssessment(control: RunnerControl, record: RunnerReco
   const assessmentHistory = [...record.assessmentHistory ?? [], ...record.assessment ? [record.assessment] : []];
   if (assessmentHistory.length > 16) throw new Error("Assessment history limit reached; retain evidence and review the workflow before continuing.");
   const assessment: Assessment = { operation, action, phase: "submitted", bootId: record.guestReady?.bootId ?? "", configurationSHA256: createHash("sha256").update(JSON.stringify(record.sourceDraft.configuration)).digest("hex") };
+  if (autoReport) {
+    if (autoReport.storageId !== reportStorageNames(record).id || record.storageDeployment?.phase !== "ready" || autoReport.deploymentHash !== record.storageDeployment.hash) throw new Error("The approved automatic report destination changed.");
+    assessment.autoReport = { ...autoReport };
+  }
   return dispatchGuest(control, { ...record, assessmentHistory, assessment }, { version: 1, workflow: record.id, operation, action, configuration: record.sourceDraft.configuration, secrets }, checkCancelled);
 }
 
@@ -92,6 +99,7 @@ export async function refreshAssessment(control: RunnerControl, record: RunnerRe
   const assessment = record.assessment;
   if (!assessment) throw new Error("No retained source assessment.");
   const pending = record.guestCommand && ["submitted", "unknown"].includes(record.guestCommand.phase);
+  if (!pending && assessment.phase === "finished" && assessment.reportSHA256 && assessment.reportBytes) return record;
   if (!pending) return dispatchGuest(control, record, { version: 1, workflow: record.id, operation: assessment.operation, action: "status" });
   if (record.guestCommand!.operation !== assessment.operation || !["profile", "inventory", "status"].includes(record.guestCommand!.action)) throw new Error("Reconcile the other pending guest control first.");
   const checked = await reconcileGuest(control, record);

@@ -4,6 +4,9 @@ import { Script } from "node:vm";
 import { assertPlacementSelection, placementCatalog } from "../../core/runnerPlacement";
 import { RunnerInput } from "../../core/runner";
 import { runnerHTML } from "../../core/runnerView";
+import { executionActions, executionSummary, resizeStatusMessage } from "../../core/runnerExecutionActions";
+import { otherCancellationFixture, otherNativeCancelCases } from "../helpers/nativeCancelOtherScenarios";
+import { targetStatusMessage } from "../../core/runnerTarget";
 
 const subscription = "11111111-1111-4111-8111-111111111111";
 const otherSubscription = "22222222-2222-4222-8222-222222222222";
@@ -40,17 +43,18 @@ class Element {
   disabled = false;
   checked = false;
   hidden = false;
+  className = "";
   private selected: string | undefined;
   constructor(readonly tag: string, readonly id = "") {}
   get value(): string { return this.selected ?? (this.tag === "select" ? this.options[0]?.value ?? "" : ""); }
   set value(value: string) { this.selected = this.tag !== "select" || this.options.some(option => option.value === value) ? value : ""; }
   replaceChildren(): void { this.options.length = 0; this.selected = undefined; }
   append(element: Element): void { this.options.push(element); }
-  addEventListener(event: string, handler: () => void): void { this.handlers.set(event, [...this.handlers.get(event) ?? [], handler]); }
+  addEventListener(event: string, handler: () => void, capture = false): void { const previous = this.handlers.get(event) ?? []; this.handlers.set(event, capture ? [handler, ...previous] : [...previous, handler]); }
   trigger(event: string): void { for (const handler of this.handlers.get(event) ?? []) handler(); }
 }
 
-function view() {
+function view(now = Date.now()) {
   const html = runnerHTML("https://webview.example");
   const elements = new Map<string, Element>();
   for (const match of html.matchAll(/<(\w+)[^>]*\bid="([^"]+)"[^>]*>/g)) elements.set(match[2]!, new Element(match[1]!, match[2]!));
@@ -62,9 +66,12 @@ function view() {
   }
   const future = new Element("button");
   let listener: ((event: { data: unknown }) => void) | undefined;
+  let tick = () => {};
   const messages: Record<string, unknown>[] = [];
   const script = /<script nonce="[^"]+">([\s\S]+)<\/script>/.exec(html)![1]!;
   new Script(script).runInNewContext({
+    Date: class extends Date { static now() { return now; } },
+    setInterval: (callback: () => void) => { tick = callback; },
     document: { getElementById: (id: string) => elements.get(id), createElement: (tag: string) => new Element(tag),
       querySelectorAll: (selectors: string) => [...elements.values()].filter(el => selectors.split(',').includes(el.tag)), querySelector: () => future },
     window: { addEventListener: (_event: string, fn: typeof listener) => { listener = fn; } },
@@ -75,7 +82,7 @@ function view() {
   receive({ kind: "busy", value: false });
   const choose = (id: string, value: string) => { elements.get(id)!.value = value; elements.get(id)!.trigger("change"); };
   const fillCatalog = (scope = "runner", sub = subscription) => { receive({ kind: "placementOptions", scope, subscription: sub, catalog }); receive({ kind: "busy", value: false }); };
-  return { el: (id: string) => elements.get(id)!, choose, fillCatalog, receive, messages };
+  return { el: (id: string) => elements.get(id)!, choose, fillCatalog, receive, messages, advance: (ms: number) => { now += ms; tick(); } };
 }
 
 test("pending bootstrap shows an explicit check action and never dispatches from a status message", () => {
@@ -95,16 +102,130 @@ test("changing a retained source clears readiness and blocks old workflow contro
   const record = {id: subscription, phase: "provisioned", input: {source: {type: "csv"}}, guestReady: {checkedAt: "old-check"}, guestCommand: {phase: "finished"}};
   v.receive({kind: "record", record});
   assert.match(v.el("guestStatus").textContent, /old-check/);
-  assert.equal(v.el("continueExecution").disabled, false);
+  assert.equal(v.el("execute-start").disabled, true, "a runner alone is not a migration target");
   v.el("guestReady").trigger("click");
   assert.deepEqual(v.messages.at(-1), {action: "guestReady", workflow: subscription});
   v.receive({kind: "busy", value: false});
   v.choose("type", "neo4j");
   assert.doesNotMatch(v.el("guestStatus").textContent, /old-check|verified/);
-  for (const id of ["guestReady", "guestRefresh", "reviewTarget", "continueExecution", "refresh", "deploy"]) assert.equal(v.el(id).disabled, true, id);
+  for (const id of ["guestReady", "guestRefresh", "reviewTarget", "execute-start", "refresh", "deploy"]) assert.equal(v.el(id).disabled, true, id);
   // Even a synthetic stale click cannot send the previous workflow ID.
-  v.el("continueExecution").trigger("click");
-  assert.deepEqual(v.messages.at(-1), {action: "continueExecution"});
+  v.el("execute-start").trigger("click");
+  assert.deepEqual(v.messages.at(-1), {action: "executionAction", step: "start"});
+});
+
+test("migration and verification use direct ordered buttons with optional groups", () => {
+  const html = runnerHTML("https://webview.example"), v = view();
+  assert.doesNotMatch(html, /id="continueExecution"|5–6\. Migrate/);
+  assert.ok(html.indexOf("<h2>5. Migrate") < html.indexOf("<h2>6. Verify"));
+  let previous = 0;
+  for (const action of executionActions) {
+    const index = html.indexOf(`id="execute-${action.id}"`);
+    assert.ok(index > previous); previous = index;
+    assert.ok(html.includes(`aria-describedby="execute-${action.id}-status"`));
+    assert.equal(v.el(`execute-${action.id}`).disabled, true);
+    v.el(`execute-${action.id}`).trigger("click");
+    assert.deepEqual(v.messages.at(-1), { action: "executionAction", step: action.id });
+    v.receive({ kind: "busy", value: false });
+  }
+  assert.match(html, /Optional: recovery and diagnostics/);
+  assert.match(html, /Optional: full P1 qualification \(development only\)/);
+});
+
+test("target progress never claims readiness or enables migration until provisioning completes", () => {
+  const v = view(), r = otherCancellationFixture(otherNativeCancelCases.find(c => c.id === "A21")!).record;
+  delete r.targetRestart; delete r.resize;
+  r.target!.phase = "submitted";
+  const display = () => v.receive({kind: "record", record: {...r, targetPhase: r.target!.phase, targetMessage: targetStatusMessage(r), execution: executionSummary(r)}});
+  display();
+  v.el("reviewTarget").trigger("click");
+  v.receive({kind: "progress", active: true, text: targetStatusMessage(r)});
+  v.receive({kind: "busy", value: false});
+  assert.match(v.el("activity").textContent, /Creating.*stays unavailable/);
+  assert.equal(v.el("reviewTarget").disabled, true);
+  assert.equal(v.el("stopWatch").disabled, false);
+  assert.equal(v.el("execute-preload").disabled, true);
+  v.receive({kind: "progress", active: false, text: "Monitoring stopped. Resume target review."});
+  assert.equal(v.el("reviewTarget").disabled, false);
+  assert.equal(v.el("execute-preload").disabled, true);
+  r.target!.phase = "provisioned"; display();
+  v.receive({kind: "progress", active: false, text: targetStatusMessage(r)});
+  assert.match(v.el("targetSummary").textContent, /5-1.*Migration has not started/);
+  assert.equal(v.el("execute-preload").disabled, false);
+  assert.equal(v.el("execute-start").disabled, true);
+  v.el("reviewTarget").trigger("click");
+  v.receive({kind: "busy", value: false});
+  assert.equal(v.el("activity").textContent, "Action finished. Review the current step status.");
+});
+
+for (const phase of ["submitted", "unknown"] as const) test(`preload ${phase} displays waiting feedback until the next required step is ready`, () => {
+  const v = view(), r = otherCancellationFixture(otherNativeCancelCases.find(c => c.id === "A21")!).record;
+  delete r.resize; delete r.targetRestart;
+  const display = () => v.receive({kind: "record", record: {...r, execution: executionSummary(r)}});
+  display();
+  v.el("execute-preload").trigger("click");
+  r.targetRestart = {phase, submittedAt: new Date().toISOString()};
+  display();
+  const text = executionSummary(r).actions.preload!.detail;
+  v.receive({kind: "progress", active: true, text});
+  assert.match(v.el("activity").textContent, phase === "submitted" ? /Restarting PostgreSQL/ : /uncertain/);
+  assert.equal(v.el("operationProgress").hidden, false);
+  assert.equal(v.el("execute-resize").disabled, true);
+  assert.equal(v.el("stopWatch").disabled, false);
+  r.targetRestart.phase = "finished"; display();
+  v.receive({kind: "progress", active: false, text: executionSummary(r).actions.preload!.detail});
+  v.receive({kind: "busy", value: false});
+  assert.match(v.el("activity").textContent, /preload is applied.*PostgreSQL is Ready/);
+  assert.equal(v.el("operationProgress").hidden, true);
+  assert.equal(v.el("execute-resize").disabled, false);
+  assert.equal(v.el("execute-start").disabled, true);
+});
+
+test("resize working feedback covers every automatic phase and enables readiness only at completion", () => {
+  const v = view(), r = otherCancellationFixture(otherNativeCancelCases.find(c => c.id === "A21")!).record;
+  const resize = r.resize!;
+  delete r.resize; delete r.guestReady;
+  r.targetRestart = {phase: "finished", submittedAt: new Date().toISOString()};
+  const display = () => v.receive({kind: "record", record: {...r, execution: executionSummary(r)}});
+  display(); v.el("execute-resize").trigger("click");
+  v.receive({kind: "progress", active: true, text: "Working... Checking current prices for the approved resize..."});
+  assert.match(v.el("activity").textContent, /Working.*Checking current prices/);
+  for (const phase of ["deallocating", "ready-to-resize", "resizing", "ready-to-start", "starting", "finished"] as const) {
+    r.resize = {...resize, phase, unknown: false}; display();
+    const active = phase !== "finished";
+    v.receive({kind: "progress", active, text: (active ? "Working... " : "") + resizeStatusMessage(r)});
+    assert.equal(v.el("operationProgress").hidden, !active);
+    assert.equal(v.el("execute-readiness").disabled, true);
+    assert.equal(v.el("stopWatch").disabled, false);
+  }
+  v.receive({kind: "busy", value: false});
+  assert.match(v.el("activity").textContent, /resize complete.*5-3/);
+  assert.equal(v.el("execute-readiness").disabled, false);
+  assert.equal(v.el("execute-start").disabled, true);
+  r.resize = {...resize, phase: "resizing", unknown: true}; display();
+  v.receive({kind: "progress", active: false, text: resizeStatusMessage(r)});
+  assert.match(v.el("activity").textContent, /uncertain.*paused.*5-7/);
+  assert.equal(v.el("execute-readiness").disabled, true);
+  assert.equal(v.el("execute-resizeRefresh").disabled, false);
+});
+
+test("readiness expiry changes the next action and blocks start without cloud messages", () => {
+  const r = otherCancellationFixture(otherNativeCancelCases.find(c => c.id === "A21")!).record;
+  r.targetRestart = { phase: "finished", submittedAt: new Date().toISOString() };
+  const now = Date.parse(r.guestReady!.checkedAt), v = view(now);
+  v.receive({ kind: "record", record: { ...r, execution: executionSummary(r, now) } });
+  assert.equal(v.el("execute-start").disabled, false);
+  assert.equal(v.el("execute-start").textContent, `5-4. Start new ${r.input.source.type} migration`);
+  assert.equal(v.el("execute-start").className, "");
+  const before = v.messages.length;
+  v.advance(300001);
+  assert.equal(v.messages.length, before);
+  assert.equal(v.el("execute-start").disabled, true);
+  assert.match(v.el("execute-start-status").textContent, /expired.*5-3/);
+  assert.equal(v.el("execute-readiness").className, "");
+  assert.match(v.el("migrationSummary").textContent, /Next: 5-3/);
+  v.el("execute-readiness").trigger("click");
+  assert.deepEqual(v.messages.at(-1), { action: "executionAction", workflow: r.id, step: "readiness" });
 });
 
 test("renewing a preview retains the workflow ID and requires fresh deployment consent", () => {

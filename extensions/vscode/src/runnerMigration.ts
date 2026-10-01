@@ -2,21 +2,25 @@ import { runnerHTML } from "./core/runnerView";
 import * as vscode from "vscode";
 import { createHash, generateKeyPairSync, randomUUID } from "node:crypto";
 import { AzureSession } from "./guided/azure";
-import { assertFreshPreview, assertPreviewableDraft, object, parseRunnerInput, previewHash, releaseArtifact, retainDraftSetup, RunnerRecord, runnerNames, runnerTemplate, sourceWorkflowDraft } from "./core/runner";
+import { assertFreshPreview, assertPreviewableDraft, object, parseRunnerInput, previewHash, releaseArtifact, retainDraftSetup, RunnerRecord, runnerNames, runnerTemplate, sourceWorkflowDraft, runnerReleaseVersion } from "./core/runner";
 import { preflightRunner, refreshRunner, RunnerControl, submitRunner, whatIfRunner } from "./core/runnerLifecycle";
 import { RunnerLockedError, RunnerStore } from "./guided/runnerStore";
 import { basename, join } from "node:path";
-import { assertPlacementSelection, placementCatalog } from "./core/runnerPlacement";
+import { assertPlacementSelection, discoverComputeSubnets, placementCatalog } from "./core/runnerPlacement";
 import { dispatchGuest, reconcileGuest } from "./core/runnerGuest";
 import { openRunnerSource } from "./runnerSourcePanel";
 import { developmentEnabled, prepareDevelopmentRunner, upgradeDevelopmentRunner } from "./developmentRunner";
-import { reviewRunnerTarget } from "./runnerTargetPanel";
+import { reviewRunnerTarget, TargetReviewFeedback } from "./runnerTargetPanel";
 import { continueRunnerExecution } from "./runnerExecutionPanel";
 import { requirePanelWorkflow } from "./core/runnerPanelBinding";
 import { archiveRunnerReadiness } from "./runnerReceiptsPanel";
 import { manageReadinessRemoval } from "./runnerReceiptRemovalPanel";
 import { reviewRunnerCrashLock } from "./runnerLockRecoveryPanel";
 import { sourceCredential, forgetSourceCredential } from "./sourceCredentialPanel";
+import { watchRunnerState, watchTargetState } from "./runnerWatch";
+import { targetPending, targetStatusMessage } from "./core/runnerTarget";
+import { sourceReportSummary } from "./core/runnerSourceReport";
+import { executionSummary, parseExecutionAction } from "./core/runnerExecutionActions";
 
 
 /** Guided execution has no dependency on the local process runner or workspace. */
@@ -74,9 +78,13 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
     try { await azure.subscriptions(); await upgradeDevelopmentRunner(sharedControl, store, azure); }
     catch (error) { await vscode.window.showErrorMessage(error instanceof Error ? error.message : "Runner upgrade requires evidence review."); }
   }));
-  context.subscriptions.push(vscode.commands.registerCommand("agefreighter.reviewRunnerTarget", async () => {
-    try { await azure.subscriptions(); await reviewRunnerTarget(context,sharedControl,store,azure); }
-    catch(error){ await vscode.window.showErrorMessage(error instanceof Error?error.message:"Target review could not complete. No automatic retry was made."); }
+  const reviewTarget = async (workflow?: string, feedback?: TargetReviewFeedback) => {
+    try { await azure.subscriptions(); await reviewRunnerTarget(context,sharedControl,store,azure,workflow,feedback); }
+    catch (error) { output.error("Private target review failed", error); throw error; }
+  };
+  context.subscriptions.push(vscode.commands.registerCommand("agefreighter.reviewRunnerTarget", async (workflow?: string) => {
+    try { await reviewTarget(workflow); }
+    catch(error){ void vscode.window.showErrorMessage(error instanceof Error?error.message:"Target review could not complete. No automatic retry was made."); }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("agefreighter.continueRunnerExecution", async () => {
     try { await azure.subscriptions(); await continueRunnerExecution(context,sharedControl,store,azure); }
@@ -89,6 +97,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
     let current: RunnerRecord | undefined;
     let busy = false;
     let disposed = false;
+    let watching: number | undefined, monitorGeneration = 0;
     let pendingCSV: { id: string; name: string; path: string }[] = [];
     const control: RunnerControl = { ...sharedControl, persist: async record => {
       await sharedControl.persist(record);
@@ -98,21 +107,46 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
       { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [] });
     const owner = panel;
     const post = (value: unknown) => disposed ? undefined : owner.webview.postMessage(value);
-    const display = (record: RunnerRecord) => post({ kind: "record", record: {
+    const display = async (record: RunnerRecord) => {
+      const a = record.assessment;
+      const summary = a?.reportSHA256 && a.reportBytes && record.reportTransfers?.some(t => t.operation === a.operation && t.phase === "imported")
+        ? sourceReportSummary(record, await store.readReport(record.id, { operation: a.operation, sha256: a.reportSHA256, bytes: a.reportBytes })) : undefined;
+      return post({ kind: "record", record: {
       id: record.id, phase: record.phase, input: record.input, vmId: record.vmId,
       deploymentId: record.deploymentId, version: record.artifact.version, sha256: record.artifact.sha256,
       hourlyComputeUSD: record.hourlyComputeUSD, expiresAt: record.expiresAt, updatedAt: record.updatedAt,
-      previewHash: record.previewHash, guestCommand: record.guestCommand, guestReady: record.guestReady
-    } });
+      previewHash: record.previewHash, guestCommand: record.guestCommand, guestReady: record.guestReady,
+      assessment: record.assessment, sourceReport: summary, targetPhase: record.target?.phase, migrationPhase: record.migration?.phase,
+      targetMessage: record.target ? targetStatusMessage(record) : undefined,
+      execution: executionSummary(record)
+    } }); };
     owner.webview.html = runnerHTML(owner.webview.cspSource);
     owner.onDidDispose(() => { disposed = true; if (panel === owner) panel = undefined; });
+    owner.onDidChangeViewState(async event => {
+      if (!event.webviewPanel.visible || busy || !current || disposed) return;
+      const workflow = current.id;
+      try {
+        const record = await store.read(workflow);
+        if (!disposed && !busy && current?.id === workflow) { current = record; await display(record); }
+      } catch (error) {
+        await post({ kind: "error", text: error instanceof Error ? error.message : "The saved workflow could not be refreshed." });
+      }
+    }, undefined, context.subscriptions);
     owner.webview.onDidReceiveMessage(async raw => {
+      if (object(raw).action === "selectionChanged" && !busy) {
+        monitorGeneration++; current = undefined;
+        await post({ kind: "progress", active: false, text: "Selection changed. Review the new source and runner placement; retained cloud work was not cancelled." }); return;
+      }
+      if (object(raw).action === "stopWatch") {
+        monitorGeneration++; await post({ kind: "progress", active: false, text: "Automatic refresh stopped. Cloud resources and operations are unchanged." }); return;
+      }
       if (busy || disposed) return;
       busy = true;
+      let actionSucceeded = false;
       await post({ kind: "busy", value: true });
       try {
         const message = object(raw);
-        if (["deploy", "refresh", "guestReady", "guestRefresh", "reviewTarget", "continueExecution"].includes(String(message.action))) {
+        if (["deploy", "refresh", "guestReady", "guestRefresh", "reviewTarget", "continueExecution", "executionAction"].includes(String(message.action))) {
           requirePanelWorkflow(current, message.workflow);
         }
         switch (message.action) {
@@ -134,6 +168,21 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             const subscription = selection(message.subscription);
             if (message.scope !== "runner" && message.scope !== "both") throw new Error("Invalid placement-list scope.");
             await post({ kind: "placementOptions", subscription, scope: message.scope, catalog: await catalog(subscription) });
+            break;
+          }
+          case "selectSubnet": {
+            const subscription = selection(message.subscription), region = selection(message.region);
+            const subnets = await discoverComputeSubnets(control, subscription, region, typeof message.sourceId === "string" ? message.sourceId : undefined);
+            if (!subnets.length) throw new Error("No available non-delegated compute subnets were found in this region. Create or request a suitable subnet, then choose again.");
+            const selected = await vscode.window.showQuickPick(subnets.map(subnet => ({
+              label: `${subnet.vnet} / ${subnet.name}`,
+              description: `${subnet.prefixes.join(", ")} — ${subnet.resourceGroup}`,
+              detail: subnet.containsSource ? "Contains the source VM. Source-subnet firewall rules may block another VM here; review before selecting."
+                : subnet.attachedInterfaces ? `${subnet.attachedInterfaces} attached IP configurations. Review source connectivity.`
+                : "No attached IP configurations. Suitable for review as a dedicated runner subnet; connectivity is not yet verified.",
+              subnet
+            })), { placeHolder: "Choose the runner subnet — not the future PostgreSQL delegated subnet", matchOnDescription: true, matchOnDetail: true });
+            if (selected && !disposed) await post({ kind: "subnet", subscription, region, sourceId: message.sourceId, subnet: selected.subnet });
             break;
           }
           case "sources": {
@@ -162,6 +211,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             const picked = await vscode.window.showQuickPick((await store.list()).map(record => ({ label: `${record.input.source.type} — ${record.phase}`,
               description: record.id, record })), { placeHolder: "Reconnect to a retained runner workflow (no replay)" });
             if (picked) {
+              monitorGeneration++;
               current = picked.record;
               await post({ kind: "restoreInput", input: current.input, files: current.sourceFiles?.map(file => file.name) ?? [] });
               await display(current);
@@ -174,10 +224,9 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
             const draft = typeof message.draftId === "string" ? await store.read(message.draftId) : undefined;
             if (draft) assertPreviewableDraft(draft, input);
             const id = draft?.id ?? randomUUID();
-            // Matching released software is a mandatory prerequisite. Never install a
-            // stale version or execute mutable repository source on a customer VM.
-            const version = String(context.extension.packageJSON.version);
-            if (!/^2\.4\.\d+(?:-[a-z0-9.]+)?$/.test(version)) throw new Error("Runner release version is invalid.");
+            // UI patches retain the reviewed Linux release/protocol. Never fall
+            // back to an arbitrary available release or mutable repository source.
+            const version = runnerReleaseVersion;
             // Surface read-only placement failures even when a matching release
             // is unavailable. Artifact validation still precedes pricing,
             // what-if, persistence and every approved deployment.
@@ -280,7 +329,7 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
               await control.persist(draft);
             }
             await display(current!);
-            openRunnerSource(context, control, store, current!.id, azure);
+            openRunnerSource(context, control, store, current!.id, azure, reviewTarget);
             break;
           }
           case "guestRefresh": {
@@ -292,21 +341,68 @@ export function registerRunnerMigration(context: vscode.ExtensionContext, output
           }
           case "reviewTarget": {
             if(!current)throw new Error("Select a retained migration workflow first.");
-            await reviewRunnerTarget(context,control,store,azure,current.id);
-            current=await store.read(current.id);await display(current);break;
+            const id=current.id, generation=monitorGeneration;
+            const stopped=()=>disposed||generation!==monitorGeneration||!vscode.workspace.isTrusted;
+            try{
+              await reviewRunnerTarget(context,control,store,azure,id,{
+                cancelled:stopped,
+                progress:async(record,text,active)=>{
+                  if(disposed||generation!==monitorGeneration)return;
+                  current=record;await display(record);await post({kind:"progress",text,active});
+                }
+              });
+            }finally{
+              if(!disposed && current?.id===id){current=await store.read(id);await display(current);}
+            }
+            break;
           }
+          case "executionAction":
           case "continueExecution": {
             if(!current)throw new Error("Select a retained migration workflow first.");
-            await continueRunnerExecution(context,control,store,azure,current.id);
-            current=await store.read(current.id);await display(current);break;
+            const step=message.action==="executionAction"?parseExecutionAction(message.step):undefined;
+            const id=current.id, generation=monitorGeneration;
+            try{
+              await continueRunnerExecution(context,control,store,azure,id,step,async(record,progress)=>{
+                if(disposed||generation!==monitorGeneration)return;
+                current=record;await display(record);
+                if(progress)await post({kind:"progress",...progress});
+              },()=>disposed||generation!==monitorGeneration);
+            }finally{
+              if(!disposed && current?.id===id){current=await store.read(id);await display(current);}
+            }
+            break;
           }
           default: throw new Error("Unsupported guided migration operation.");
         }
+        actionSucceeded = true;
       } catch (error) {
         await post({ kind: "error", text: error instanceof Error ? error.message : "The operation could not be completed. No automatic retry was made." });
       } finally {
         busy = false;
         await post({ kind: "busy", value: false });
+      }
+      const monitorTarget = !!current && targetPending(current) && ["restore", "refresh", "ready", "accounts"].includes(String(object(raw).action));
+      if (actionSucceeded && !disposed && watching !== monitorGeneration && current && (monitorTarget || ["deployment-submitted", "unknown"].includes(current.phase) ||
+          current.guestCommand?.action === "ready" && ["submitted", "unknown"].includes(current.guestCommand.phase))) {
+        const workflow = current.id, generation = monitorGeneration;
+        watching = generation;
+        const attached = () => !disposed && current?.id === workflow && generation === monitorGeneration;
+        const stopped = () => !attached() || !vscode.workspace.isTrusted;
+        await post({ kind: "progress", active: true, text: monitorTarget ? targetStatusMessage(current) : "Automatically refreshing Azure deployment / Linux readiness. No operation will be resubmitted." });
+        const watch = monitorTarget ? watchTargetState : watchRunnerState;
+        void watch(sharedControl, store, workflow, stopped, async record => {
+          if (stopped()) return;
+          current = record; await display(record);
+          await post({ kind: "progress", active: monitorTarget ? targetPending(record) : true, text: monitorTarget ? targetStatusMessage(record) : `Last checked ${new Date().toLocaleTimeString()}: runner ${record.phase}; ${record.guestCommand?.action ?? "deployment"} ${record.guestCommand?.phase ?? ""}.` });
+        }).then(async () => {
+          if (attached()) await post({ kind: "progress", active: false, text: !vscode.workspace.isTrusted
+            ? "Workspace trust revoked. Monitoring stopped; Azure resources and operations are unchanged."
+            : monitorTarget
+            ? targetStatusMessage(current!)+(targetPending(current!) ? " Monitoring stopped or reached its time limit. Use Review / reconcile private target to resume; Azure work was not cancelled." : "")
+            : "Automatic refresh finished or reached its time limit. Review the current step below; Refresh remains available." });
+        }).catch(async error => {
+          if (attached()) await post({ kind: "error", text: error instanceof Error ? error.message : "Automatic refresh stopped. Use Refresh to reconcile retained evidence." });
+        }).finally(() => { if (watching === generation) watching = undefined; });
       }
     }, undefined, context.subscriptions);
   }));

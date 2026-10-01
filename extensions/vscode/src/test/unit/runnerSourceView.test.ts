@@ -31,6 +31,24 @@ function view() {
   return { html, el: (id: string) => elements.get(id)!, all, send: (data: unknown) => receivers.forEach(receive => receive({ data })), messages };
 }
 
+test("target error replaces working feedback and re-enables the source panel", () => {
+  const v = view();
+  v.send({kind: "init", type: "neo4j", form: sourceForm});
+  v.send({kind: "reportResult", summary: {canReviewTarget: true, title: "Passed", detail: "Review target", vertices: "100000", edges: "250000"}});
+  v.send({kind: "busy", value: false});
+  v.el("reviewTarget").trigger("click");
+  assert.equal(v.messages.at(-1).action, "reviewTarget");
+  assert.equal(v.el("reviewTarget").disabled, true);
+  assert.match(v.el("activity").textContent, /working/);
+  assert.equal(v.el("operationProgress").hidden, false);
+  v.send({kind: "error", text: "Azure VM provisioning is still Updating after Linux readiness."});
+  v.send({kind: "busy", value: false});
+  assert.match(v.el("error").textContent, /still Updating/);
+  assert.match(v.el("activity").textContent, /needs attention/);
+  assert.equal(v.el("operationProgress").hidden, true);
+  assert.equal(v.el("reviewTarget").disabled, false);
+});
+
 test("CSV choices serialize immutable file IDs rather than duplicate display names or list order", () => {
   const files = [csvFile, { id: "33333333-3333-4333-8333-333333333333", name: csvFile.name }];
   const form = { ...sourceForm, mappings: sourceForm.mappings.map((m, i) => ({ ...m, collection: files[i]!.id })) };

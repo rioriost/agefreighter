@@ -16,8 +16,15 @@ export function targetComputeRate(rates: RetailRate[], input: TargetInput, now=D
 }
 
 /** Read-only checks, repeated immediately before a separately approved target PUT. */
-export async function preflightTarget(control:RunnerControl,record:RunnerRecord,input:TargetInput):Promise<void>{
-  targetBudget(input);
+export async function preflightTarget(control:RunnerControl,record:RunnerRecord,input:TargetInput,
+  options:{cancelled?:()=>boolean;progress?:(message:string)=>void}={}):Promise<void>{
+  const check=()=>{
+    if(options.cancelled?.())throw new Error("Target review cancelled or workspace trust changed. No target deployment was submitted.");
+    targetBudget(input);
+    const ready=record.guestReady,age=ready?Date.now()-Date.parse(ready.checkedAt):NaN;
+    if(!ready || !Number.isFinite(age) || age<0 || age>300000 || ready.cliVersion!==record.artifact.version || ready.archiveSha256!==record.artifact.sha256)throw new Error("Fresh matching guest readiness is required for target planning.");
+  };
+  check();
   const sub=record.input.subscriptionId,base=`/subscriptions/${sub}`;
   const networkGroup=targetNetworkGroup(record);
   // Both groups must already exist. No inferred group creation or peering.
@@ -25,12 +32,28 @@ export async function preflightTarget(control:RunnerControl,record:RunnerRecord,
     const result=await control.request(sub,`${base}/resourceGroups/${group}?api-version=2021-04-01`);
     if(result.status!==200)throw new Error("Both migration and network resource groups must exist and be readable.");
   }
-  const vmResponse=await control.request(sub,`${record.vmId}?api-version=2024-07-01&$expand=instanceView`),vm=object(vmResponse.value),p=object(vm.properties),tags=object(vm.tags);
-  if(vmResponse.status!==200 || tags.application!=="agefreighter" || tags.workflow!==record.id || tags.purpose!=="discovery-and-migration" || vm.location!==record.input.region || !Array.isArray(vm.zones) || vm.zones.length!==1 || vm.zones[0]!==record.input.zone || p.provisioningState!=="Succeeded")throw new Error("Runner ownership, placement or provisioning evidence changed.");
-  const statuses=object(p.instanceView).statuses;
-  if(!Array.isArray(statuses) || !statuses.some(x=>object(x).code==="PowerState/running"))throw new Error("Check the running guest before approving target deployment.");
-  const ready=record.guestReady,age=ready?Date.now()-Date.parse(ready.checkedAt):NaN;
-  if(!ready || !Number.isFinite(age) || age<0 || age>300000 || ready.cliVersion!==record.artifact.version || ready.archiveSha256!==record.artifact.sha256)throw new Error("Fresh matching guest readiness is required for target planning.");
+  const command=record.guestCommand;
+  const finishedReadiness=command?.action==="ready" && command.phase==="finished" &&
+    command.id.startsWith(`${record.vmId}/runCommands/af-`) && command.submittedAt===record.guestReady!.checkedAt;
+  const until=Date.now()+60000;
+  const pending=()=>new Error("Azure VM provisioning is still Updating after Linux readiness. No target deployment was submitted. Wait for Azure to finish, then review the saved target inputs.");
+  let p:Record<string,unknown>;
+  for(let attempt=0;;attempt++){
+    check();
+    if(attempt>0 && Date.now()>=until)throw pending();
+    const vmResponse=await control.request(sub,`${record.vmId}?api-version=2024-07-01&$expand=instanceView`),vm=object(vmResponse.value),tags=object(vm.tags);
+    p=object(vm.properties);
+    check();
+    if(vmResponse.status!==200 || tags.application!=="agefreighter" || tags.workflow!==record.id || tags.purpose!=="discovery-and-migration" || vm.location!==record.input.region || !Array.isArray(vm.zones) || vm.zones.length!==1 || vm.zones[0]!==record.input.zone)throw new Error("Runner ownership or placement evidence changed.");
+    const statuses=object(p.instanceView).statuses;
+    if(!Array.isArray(statuses) || !statuses.some(x=>object(x).code==="PowerState/running"))throw new Error("Check the running guest before approving target deployment.");
+    if(p.provisioningState==="Succeeded")break;
+    // A finished guest receipt can precede the parent VM's ARM completion.
+    if(p.provisioningState!=="Updating" || !finishedReadiness)throw new Error("Runner provisioning has not succeeded. Review the VM status and completed Linux readiness before target deployment.");
+    if(attempt>=20 || Date.now()>=until)throw pending();
+    options.progress?.("Linux readiness passed. Waiting for Azure VM provisioning to finish; status reads only, no operation is resubmitted.");
+    await control.sleep(Math.max(0,Math.min(3000,until-Date.now())));
+  }
   const nics=object(p.networkProfile).networkInterfaces;
   if(!Array.isArray(nics) || nics.length!==1)throw new Error("Review the runner's single NIC before target deployment.");
   const nicId=object(nics[0]).id;
@@ -51,4 +74,5 @@ export async function preflightTarget(control:RunnerControl,record:RunnerRecord,
     const q=quota.find(x=>x.name.toLowerCase()===name.toLowerCase());
     if(!q || q.limit-q.current<sku.vCores)throw new Error("PostgreSQL regional or family quota is insufficient or unavailable.");
   }
+  check();
 }

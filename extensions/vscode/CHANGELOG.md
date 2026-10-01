@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.4.1
+
+- Show **Working...** immediately after step 5-2 approval, including price,
+  readiness and capacity checks, then deallocation, resize and startup.
+  One approval runs the bounded sequence without another Start action;
+  cancellation, expiry and uncertain-response stops remain explicit, with
+  no automatic replay or migration.
+- Show explicit PostgreSQL restarting / uncertain-status feedback in step 5-1
+  and monitor the retained restart with bounded, cancellable read-only checks.
+  Advance only after PostgreSQL is Ready and AGE preload is applied; never
+  replay a restart or automatically resize or migrate.
+- Monitor retained private-target deployments with bounded, cancellable GET-only
+  reads after submission and on reconnect. Reflect pending, failed and completed
+  provisioning in the guided panels; unlock step 5-1 only after confirmed
+  provisioning. Replace the generic "Ready for the next step" message with
+  neutral action-completion feedback. Cancellation never replays or cancels
+  Azure work, and AGE preparation, resize and migration remain separately approved.
+- Wait for the owned runner VM's transient ARM `Updating` state after completed
+  Linux readiness using bounded, cancellable GET-only polling. Keep ownership,
+  placement, readiness freshness and budget gates active; never replay a command.
+  Return target-review failures to the source panel immediately instead of
+  leaving it working until a separate error notification is dismissed.
+- Split guided execution into **5. Migrate** and **6. Verify**, with direct,
+  numbered required buttons and adjacent prerequisite/status guidance. Move
+  optional cost/status tools, recovery and development-only P1 qualification
+  into separate expandable groups; preserve native approvals and no-replay gates.
+- Add an explicit post-resize Linux readiness step, including reconciliation
+  of pending checks. Show readiness expiry before migration. Verification opens
+  and evaluates the retained counts report without rerunning the migration.
+- Improve guided feedback, approved storage/report handling, runner subnet
+  selection, available target CIDR choices, GiB sizing and duration-based UTC
+  deadline entry. Preserve explicit source-read, cost and scoped-RBAC approvals.
+- Retain the pinned 2.4.0 Linux runner protocol for this UI-only extension update;
+  existing workflows and hash-pinned runner artifacts are not upgraded implicitly.
+
 ## 2.4.0
 
 - Add the runner-first guided workflow for CSV, Neo4j, PostgreSQL and Cosmos DB

@@ -5,6 +5,8 @@ import { RunnerControl } from "../../core/runnerLifecycle";
 import { buildSourceDraft } from "../../core/runnerSource";
 import { assessmentActive, ensureAssessmentReadiness, refreshAssessment, startAssessment, retainFailedAssessment } from "../../core/runnerAssessment";
 import { workflow, sourceForm, csvFile } from "../sourceFixtures";
+import { reportStorageNames } from "../../core/runnerReportStorage";
+import { storageDraft } from "../../core/runnerStorageLifecycle";
 
 function fixture() {
   const record: RunnerRecord = { schemaVersion: 2, id: workflow, phase: "provisioned", input: { subscriptionId: workflow, resourceGroup: "test", region: "japaneast", zone: "1", subnetId: "subnet", size: "Standard_B2s_v2", source: { type: "neo4j", location: "on-premises" } }, artifact: { version: "2.4.0", sha256: "a".repeat(64), url: "https://example.invalid/archive" }, vmId: `/subscriptions/${workflow}/resourceGroups/test/providers/Microsoft.Compute/virtualMachines/runner`, deploymentId: "deployment", template: {}, previewHash: "hash", expiresAt: "", updatedAt: "", hourlyComputeUSD: 0.1,
@@ -25,6 +27,25 @@ test("assessment intent is durable before dispatch; on-prem source needs only ru
   assert.ok(!JSON.stringify(f.saved).includes('"private"'));
   assert.ok(f.requests.every(request => request.path.startsWith(f.record.vmId + "/runCommands/")));
   await assert.rejects(startAssessment(f.control, r, "profile", {}), /retained assessment/);
+});
+
+test("automatic report approval is durable before source dispatch and rejects a changed destination", async () => {
+  const f = fixture();
+  f.record.storageDeployment = { ...storageDraft(f.record, workflow), phase: "ready" };
+  const approval = { storageId: reportStorageNames(f.record).id, deploymentHash: f.record.storageDeployment.hash };
+  await assert.rejects(startAssessment(f.control, f.record, "inventory", {}, () => false, { ...approval, storageId: "/foreign" }), /destination changed/);
+  await assert.rejects(startAssessment(f.control, f.record, "inventory", {}, () => false, { ...approval, deploymentHash: "changed" }), /destination changed/);
+  assert.equal(f.requests.length, 0); assert.equal(f.saved.length, 0);
+  const r = await startAssessment(f.control, f.record, "inventory", {}, () => false, approval);
+  assert.deepEqual(r.assessment?.autoReport, approval);
+  assert.deepEqual(f.saved[0]?.assessment?.autoReport, approval);
+});
+
+test("refreshing a sealed terminal assessment does not create an unnecessary pending status command", async () => {
+  const f = fixture();
+  f.record.assessment = { operation: workflow, action: "inventory", phase: "finished", bootId: workflow, configurationSHA256: "a".repeat(64), reportSHA256: "b".repeat(64), reportBytes: 100 };
+  assert.equal(await refreshAssessment(f.control, f.record), f.record);
+  assert.equal(f.requests.length, 0); assert.equal(f.saved.length, 0);
 });
 
 for (const boundary of ["initial", "principal GET", "role GET", "command list", "collision GET", "intent persist"] as const) test(`assessment trust loss at ${boundary} refuses source PUT without replay`, async () => {

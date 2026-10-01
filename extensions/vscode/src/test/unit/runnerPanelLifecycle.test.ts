@@ -9,6 +9,11 @@ import * as runner from "../../core/runner";
 import { requirePanelWorkflow } from "../../core/runnerPanelBinding";
 import * as placement from "../../core/runnerPlacement";
 import { preflightRunner, RunnerControl } from "../../core/runnerLifecycle";
+import * as executionActions from "../../core/runnerExecutionActions";
+import * as target from "../../core/runnerTarget";
+import type { TargetReviewFeedback } from "../../runnerTargetPanel";
+import type { ExecutionProgress } from "../../runnerExecutionPanel";
+import { otherCancellationFixture, otherNativeCancelCases } from "../helpers/nativeCancelOtherScenarios";
 
 // Execute the production message handler with inert UI/storage/Azure adapters.
 // This tests lifecycle/dispatch only, not signed-in or live cloud behavior.
@@ -27,21 +32,28 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
   let fileDialogs = 0;
   const previewSteps: string[] = [];
   const workspace = {isTrusted: true};
-  const submitted: runner.RunnerRecord[] = [], requests: Parameters<RunnerControl["request"]>[] = [];
+  const submitted: runner.RunnerRecord[] = [], requests: Parameters<RunnerControl["request"]>[] = [], executions: unknown[][] = [];
   let developmentOptIn = true, deploymentAdapter = false;
   let confirmation: string | undefined = "Create reviewed runner";
   let duringConfirm = async () => {}, duringPersist = async () => {};
+  let targetReview = async (..._args: unknown[]) => {effects++;};
+  let execute = async (..._args: unknown[]) => {};
+  let nativeError = async (_message: string): Promise<unknown> => undefined;
+  const targetErrors: unknown[][] = [], sourceReviews: ((workflow: string) => Promise<void>)[] = [];
   let submit = async (_control: RunnerControl, _r: runner.RunnerRecord): Promise<runner.RunnerRecord> => {effects++; throw Error("Unexpected deployment");};
   let refresh = async (_control: unknown, r: runner.RunnerRecord) => r;
+  let watch = async (_control: unknown, _store: unknown, _workflow: string, _cancelled: () => boolean, _progress: (r: runner.RunnerRecord) => Promise<void>) => {};
+  let targetWatch = async (..._args: Parameters<typeof watch>) => {};
   const modules: Record<string, unknown> = {
     "vscode": {ViewColumn: {One: 1}, workspace, commands: {registerCommand: (name: string, handler: () => unknown) => {commands.set(name, handler); return {}; }}, window: {
       showQuickPick: async () => ({record: structuredClone(stored)}),
       showWarningMessage: async () => {await duringConfirm(); return confirmation;},
       showOpenDialog: async () => {fileDialogs++; return undefined;},
+      showErrorMessage: (message: string) => nativeError(message),
       createWebviewPanel: () => {
         const p = {messages: [] as Record<string, any>[], receive: async (_m: unknown) => {}, dispose: () => {}};
         panels.push(p);
-        return {reveal: () => {}, onDidDispose: (fn: () => void) => {p.dispose = fn;}, webview: {cspSource: "test", html: "", postMessage: async (m: Record<string, any>) => {p.messages.push(m);}, onDidReceiveMessage: (fn: typeof p.receive) => {p.receive = fn;} }};
+        return {reveal: () => {}, onDidChangeViewState: () => {}, onDidDispose: (fn: () => void) => {p.dispose = fn;}, webview: {cspSource: "test", html: "", postMessage: async (m: Record<string, any>) => {p.messages.push(m);}, onDidReceiveMessage: (fn: typeof p.receive) => {p.receive = fn;} }};
       }
     }},
     "./guided/azure": {AzureSession: class {
@@ -74,10 +86,14 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
       submitRunner: async (control: RunnerControl, r: runner.RunnerRecord) => {submitted.push(r); return submit(control, r);}
     },
     "./core/runnerGuest": {dispatchGuest: () => {effects++; throw Error("Unexpected dispatch");}},
-    "./runnerSourcePanel": {openRunnerSource: () => {effects++;}},
-    "./runnerTargetPanel": {reviewRunnerTarget: () => {effects++;}},
-    "./runnerExecutionPanel": {continueRunnerExecution: () => {effects++;}},
+    "./runnerSourcePanel": {openRunnerSource: (...args: unknown[]) => {effects++;assert.equal(typeof args[5], "function");sourceReviews.push(args[5] as (workflow: string) => Promise<void>);}},
+    "./runnerTargetPanel": {reviewRunnerTarget: (...args: unknown[]) => targetReview(...args)},
+    "./runnerExecutionPanel": {continueRunnerExecution: async (...args: unknown[]) => {executions.push(args);effects++;await execute(...args);}},
+    "./core/runnerExecutionActions": executionActions,
+    "./core/runnerTarget": target,
     "./sourceCredentialPanel": {},
+    "./runnerWatch": {watchRunnerState: (...args: Parameters<typeof watch>) => watch(...args), watchTargetState: (...args: Parameters<typeof watch>) => targetWatch(...args)},
+    "./core/runnerSourceReport": {},
     "./runnerReceiptsPanel": {},
     "./runnerReceiptRemovalPanel": {},
     "./runnerLockRecoveryPanel": {},
@@ -93,14 +109,171 @@ function fixture(preview?: {preflightError?: string; checksum?: string; arm?: Pi
     if (name.startsWith("node:")) return nativeRequire(name);
     throw Error("Unexpected dependency: " + name);
   }});
-  output.exports.registerRunnerMigration({subscriptions: [], globalStorageUri: {fsPath: "unused-inert-store"}, extension: {packageJSON: {version: "2.4.0"}}}, {});
-  return {record, panels, writes, previewSteps, workspace, submitted, requests,
+  output.exports.registerRunnerMigration({subscriptions: [], globalStorageUri: {fsPath: "unused-inert-store"}, extension: {packageJSON: {version: "2.4.1"}}}, {error: (...args: unknown[]) => targetErrors.push(args)});
+  return {record, panels, writes, previewSteps, workspace, submitted, requests, executions, sourceReviews, targetErrors,
+    setTargetReview: (fn: typeof targetReview) => {targetReview = fn;},
+    setExecution: (fn: typeof execute) => {execute = fn;},
+    setNativeError: (fn: typeof nativeError) => {nativeError = fn;},
+    reviewTargetCommand: () => commands.get("agefreighter.reviewRunnerTarget")!(),
     changeStored: (fn: (r: runner.RunnerRecord) => void) => fn(stored),
     setConfirm: (fn: typeof duringConfirm) => {duringConfirm = fn;}, cancel: () => {confirmation = undefined;},
     setPersist: (fn: typeof duringPersist) => {duringPersist = fn;}, disableDevelopment: () => {developmentOptIn = false;},
     setSubmit: (fn: typeof submit) => {submit = fn; deploymentAdapter = true;},
+    setWatch: (fn: typeof watch) => {watch = fn;},
+    setTargetWatch: (fn: typeof targetWatch) => {targetWatch = fn;},
     fileDialogs: () => fileDialogs, effects: () => effects, setRefresh: (fn: typeof refresh) => {refresh = fn;}, open: () => {commands.get("agefreighter.newGuidedMigration")!(); return panels.at(-1)!;}};
 }
+
+test("source target review uses the throwing callback rather than the notification-handling command", async () => {
+  const f = fixture(), panel = f.open();
+  f.changeStored(r => {r.input = runner.parseRunnerInput(input);});
+  await panel.receive({action: "restore"});
+  await panel.receive({action: "configureSource", workflow: id, input});
+  assert.equal(f.sourceReviews.length, 1, JSON.stringify(panel.messages));
+  f.setNativeError(async () => assert.fail("Source errors belong in the source panel"));
+  f.setTargetReview(async (...args) => {assert.equal(args[4], id);throw Error("Runner provisioning pending");});
+  await assert.rejects(f.sourceReviews[0]!(id), /Runner provisioning pending/);
+  assert.equal(f.targetErrors.length, 1);
+});
+
+test("palette target review does not wait for its error notification to be dismissed", async () => {
+  const f = fixture();
+  let dismiss!: () => void, shown = false;
+  const notification = new Promise<void>(resolve => {dismiss = resolve;});
+  f.setTargetReview(async () => {throw Error("Runner provisioning pending");});
+  f.setNativeError(async message => {shown = true;assert.match(message, /provisioning pending/);await notification;});
+  let completed = false;
+  const pending = Promise.resolve(f.reviewTargetCommand()).then(() => {completed = true;});
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(shown, true);
+  assert.equal(completed, true, "native notification must not hold the command open");
+  dismiss(); await pending;
+});
+
+for (const [step, text] of [["preload", "Restarting PostgreSQL..."], ["resize", "Working... Stopping and deallocating the runner VM..."]] as const)
+test(`${step} forwards progress and ignores late updates after stopping its monitor`, async () => {
+  const f = fixture(), panel = f.open();
+  await panel.receive({action: "restore"});
+  f.setExecution(async (...args) => {
+    assert.equal(args[5], step);
+    const update = args[6] as (record: runner.RunnerRecord, progress?: ExecutionProgress) => Promise<void>;
+    const cancelled = args[7] as () => boolean;
+    await update(f.record, {text, active: true});
+    assert.equal(panel.messages.at(-1)!.text, text);
+    assert.equal(panel.messages.at(-1)!.active, true);
+    await panel.receive({action: "stopWatch"});
+    assert.equal(cancelled(), true);
+    const count = panel.messages.length;
+    await update(f.record, {text: "Late execution completion", active: false});
+    assert.equal(panel.messages.length, count);
+  });
+  await panel.receive({action: "executionAction", workflow: id, step});
+  assert.equal(panel.messages.at(-1)!.kind, "busy"); assert.equal(panel.messages.at(-1)!.value, false);
+});
+
+test("reconnecting to a submitted target monitors it and publishes the newly enabled step 5-1", async () => {
+  const f = fixture(), panel = f.open();
+  f.record.target = otherCancellationFixture(otherNativeCancelCases.find(c => c.id === "A21")!).record.target;
+  f.record.target!.phase = "submitted";
+  let watches = 0;
+  f.setTargetWatch(async (_c, _s, workflow, stopped, progress) => {
+    watches++; assert.equal(workflow, id); assert.equal(stopped(), false);
+    f.record.target!.phase = "provisioned"; await progress(f.record);
+  });
+  await panel.receive({action: "restore"});
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(watches, 1);
+  const records = panel.messages.filter(m => m.kind === "record");
+  assert.equal(records[0]!.record.execution.actions.preload.enabled, false);
+  assert.equal(records.at(-1)!.record.execution.actions.preload.enabled, true);
+  assert.match(panel.messages.at(-1)!.text, /5-1.*Migration has not started/);
+  assert.equal(panel.messages.at(-1)!.active, false);
+  assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+});
+
+for (const boundary of ["stopWatch", "selectionChanged", "dispose", "trust"] as const) test(`target reconnect ignores late progress after ${boundary}`, async () => {
+  const f = fixture(), panel = f.open();
+  f.record.target = otherCancellationFixture(otherNativeCancelCases.find(c => c.id === "A21")!).record.target;
+  f.record.target!.phase = "submitted";
+  let stopped = () => false, update = async (_r: runner.RunnerRecord) => {}, finish = () => {};
+  f.setTargetWatch(async (_c, _s, _id, cancelled, progress) => {
+    stopped = cancelled; update = progress; await new Promise<void>(resolve => { finish = resolve; });
+  });
+  await panel.receive({action: "restore"});
+  if (boundary === "dispose") panel.dispose();
+  else if (boundary === "trust") f.workspace.isTrusted = false;
+  else await panel.receive({action: boundary});
+  assert.equal(stopped(), true);
+  const count = panel.messages.length;
+  await update(f.record); finish();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(panel.messages.length, count + (boundary === "trust" ? 1 : 0));
+  if (boundary === "trust") {
+    assert.equal(panel.messages.at(-1)!.active, false);
+    assert.match(panel.messages.at(-1)!.text, /trust revoked.*Monitoring stopped/);
+  }
+  assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+});
+
+test("immediate target reconnect starts a new generation without accepting the old monitor's result", async () => {
+  const f = fixture(), panel = f.open();
+  f.record.target = otherCancellationFixture(otherNativeCancelCases.find(c => c.id === "A21")!).record.target;
+  f.record.target!.phase = "submitted";
+  const watches: { cancelled: () => boolean; progress: (r: runner.RunnerRecord) => Promise<void>; finish: () => void }[] = [];
+  f.setTargetWatch(async (_c, _s, _id, cancelled, progress) => {
+    await new Promise<void>(resolve => { watches.push({cancelled, progress, finish: resolve}); });
+  });
+  await panel.receive({action: "restore"});
+  await panel.receive({action: "restore"});
+  assert.equal(watches.length, 2); assert.equal(watches[0]!.cancelled(), true); assert.equal(watches[1]!.cancelled(), false);
+  const count = panel.messages.length;
+  await watches[0]!.progress(f.record); watches[0]!.finish();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(panel.messages.length, count);
+  await panel.receive({action: "accounts"});
+  assert.equal(watches.length, 2, "old completion must not clear the current monitor's generation");
+  watches[1]!.finish();
+  await new Promise<void>(resolve => setImmediate(resolve));
+});
+
+test("cancelling an explicit target review does not immediately restart monitoring", async () => {
+  const f = fixture(), panel = f.open();
+  f.record.target = otherCancellationFixture(otherNativeCancelCases.find(c => c.id === "A21")!).record.target;
+  f.record.target!.phase = "previewed";
+  await panel.receive({action: "restore"});
+  let watches = 0;
+  f.setTargetWatch(async () => { watches++; });
+  f.setTargetReview(async (...args) => {
+    const feedback = args[5] as TargetReviewFeedback;
+    f.record.target!.phase = "submitted";
+    await feedback.progress!(f.record, target.targetStatusMessage(f.record), true);
+    await panel.receive({action: "stopWatch"});
+    assert.equal(feedback.cancelled!(), true);
+  });
+  await panel.receive({action: "reviewTarget", workflow: id});
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(watches, 0);
+  assert.equal(panel.messages.at(-1)!.kind, "busy"); assert.equal(panel.messages.at(-1)!.value, false);
+});
+
+test("editing placement cancels the old monitor and ignores its late progress without changing retained work", async () => {
+  const f = fixture();
+  f.record.guestCommand = { id: "ready", action: "ready", operation: id, phase: "submitted", submittedAt: new Date().toISOString() };
+  let stopped = () => false, progress = async (_r: runner.RunnerRecord) => {}, finish = () => {};
+  f.setWatch(async (_control, _store, _workflow, cancelled, update) => {
+    stopped = cancelled; progress = update; await new Promise<void>(resolve => { finish = resolve; });
+  });
+  const panel = f.open();
+  await panel.receive({ action: "restore" });
+  assert.equal(stopped(), false);
+  await panel.receive({ action: "selectionChanged" });
+  assert.equal(stopped(), true);
+  const count = panel.messages.length;
+  await progress(f.record); finish();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(panel.messages.length, count);
+  assert.equal(f.writes.length, 0); assert.equal(f.effects(), 0);
+});
 
 async function deploymentFixture() {
   const f = fixture();
@@ -329,7 +502,7 @@ test("closing and opening a new wizard does not select the retained job", async 
   const next = f.open();
   await next.receive({action: "ready"});
   assert.ok(!next.messages.some(m => m.kind === "record" || m.kind === "restoreInput"));
-  for (const action of ["deploy", "refresh", "guestReady", "guestRefresh", "reviewTarget", "continueExecution"]) {
+  for (const action of ["deploy", "refresh", "guestReady", "guestRefresh", "reviewTarget", "continueExecution", "executionAction"]) {
     await next.receive({action, workflow: id});
     assert.ok(next.messages.some(m => m.kind === "error" && /Reconnect/.test(m.text)));
   }
@@ -353,7 +526,7 @@ test("late work in a disposed panel cannot post to or block the next panel", asy
 
 test("invalidated messages cannot fall back to host-side current workflow", async () => {
   const f = fixture(), panel = f.open(); await panel.receive({action: "restore"});
-  for (const action of ["deploy", "refresh", "guestReady", "guestRefresh", "reviewTarget", "continueExecution"]) {
+  for (const action of ["deploy", "refresh", "guestReady", "guestRefresh", "reviewTarget", "continueExecution", "executionAction"]) {
     await panel.receive({action});
     assert.ok(panel.messages.at(-2)?.kind === "error");
   }
@@ -368,4 +541,20 @@ test("account refresh restores fields before presenting saved readiness", async 
   const start = panel.messages.length; await panel.receive({action: "accounts"});
   assert.deepEqual(panel.messages.slice(start).map(m => m.kind), ["busy", "subscriptions", "restoreInput", "record", "busy"]);
   assert.equal(f.effects(), 0); assert.equal(f.writes.length, 0);
+});
+
+test("direct execution messages bind the workflow and allow only recognized steps", async () => {
+  const f = fixture(), panel = f.open(); await panel.receive({ action: "restore" });
+  for (const step of [undefined, "delete-all", "__proto__", { action: "start" }]) {
+    await panel.receive({ action: "executionAction", workflow: id, step });
+    assert.match(panel.messages.at(-2)!.text, /Unsupported migration/);
+  }
+  await panel.receive({ action: "executionAction", workflow: "foreign", step: "start" });
+  assert.equal(f.effects(), 0);
+  for (const action of executionActions.executionActions) {
+    await panel.receive({ action: "executionAction", workflow: id, step: action.id });
+    const args = f.executions.at(-1)!;
+    assert.equal(args[4], id); assert.equal(args[5], action.id);
+  }
+  assert.equal(f.executions.length, executionActions.executionActions.length);
 });

@@ -31,7 +31,8 @@ test("native cancellation fixture subset stays within frozen uncredited IDs", ()
 test("A18 cost fixture passes production review validation without changing its baseline", () => {
   const fixture = cancellationFixture(nativeCancelCases[0]), before = JSON.stringify(fixture.record);
   targetBudget(fixture.record.target!.input);
-  const reviewed = renewTargetAuthorization(fixture.record, { deadline: fixture.inputValues[0]!, budgetUSD: Number(fixture.inputValues[1]), additionalReserveUSD: Number(fixture.inputValues[2]), hourlyUSD: 2 });
+  const reviewed = renewTargetAuthorization(fixture.record, { deadline: new Date(Date.now()+3600_000).toISOString(), budgetUSD: Number(fixture.inputValues[0]), additionalReserveUSD: Number(fixture.inputValues[1]), hourlyUSD: 2 });
+  assert.deepEqual(fixture.selectionIndexes,[0]);
   assert.equal(reviewed.costAuthorizations?.length, 1);
   assert.equal(JSON.stringify(fixture.record), before);
 });

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isIP } from "node:net";
 import { object, RunnerRecord, validateWhatIf } from "./runner";
 import { extractCapacityEvidence, extractInventoryEvidence } from "./guided";
 import { csvAssessmentReady } from "./runnerCSV";
@@ -28,6 +29,28 @@ export interface RunnerTarget {
   /** Present only for a same-subscription VNet in a different existing group. */
   networkDeployment?: { deploymentId: string; resourceGroup: string; vnetId: string; template: Record<string,unknown> };
   configurationRepair?: {phase:"submitted"|"unknown"|"finished";submittedAt:string;originalDeploymentState:"Failed";failureCode:"ServerIsBusy";resourceId:string;previousValue:string;desiredValue:string};
+}
+export function targetPending(record: RunnerRecord): boolean {
+  return !!record.target && (["submitted", "unknown"].includes(record.target.phase) ||
+    !!record.target.configurationRepair && record.target.configurationRepair.phase !== "finished");
+}
+
+export function targetStatusMessage(record: RunnerRecord): string {
+  const target = record.target;
+  if (target?.configurationRepair && target.configurationRepair.phase !== "finished")
+    return `AGE preload setting repair: ${target.configurationRepair.phase}. Migration remains blocked until the retained repair is reconciled.`;
+  switch (target?.phase) {
+    case "previewed": return "Target plan saved; deployment has not been approved. Complete step 4 before migration.";
+    case "submitted": return "Creating the private PostgreSQL target in Azure. Step 5-1 stays unavailable until deployment completes.";
+    case "unknown": return "Target deployment status is not yet confirmed. Reconcile the retained deployment; do not submit it again.";
+    case "failed": return "Private target deployment failed. Review the retained failure in step 4; migration is blocked. No deployment was retried.";
+    case "provisioned":
+      if (record.migration) return "Private target provisioned. Review the retained migration in steps 5 and 6.";
+      return record.targetRestart?.phase === "finished"
+        ? "Private target provisioned. Follow the remaining steps in 5. Migrate. Migration has not started."
+        : "Private target deployment complete. Continue with 5-1. AGE preload preparation. Migration has not started.";
+    default: return "Review the private target and migration sizing in step 4.";
+  }
 }
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const sha = /^[a-f0-9]{64}$/;
@@ -118,21 +141,70 @@ export function sourceTargetEvidence(record:RunnerRecord,reportJSON:string):Targ
   return record.input.source.type==="csv"?csvTargetEvidence(record,reportJSON):record.input.source.type==="neo4j"?neo4jTargetEvidence(record,reportJSON):mappedNetworkTargetEvidence(record,reportJSON);
 }
 
-function cidr(value: string): [number,number] {
+function cidr(value: string, existing=false): [number,number] {
   const parts=/^(\d+)\.(\d+)\.(\d+)\.(\d+)\/(\d+)$/.exec(value);
   if(!parts)throw new Error("Use a canonical IPv4 subnet CIDR.");
   const n=parts.slice(1).map(Number), bits=n[4]!;
-  if(n.slice(0,4).some(x=>x>255) || bits<8 || bits>28)throw new Error("Use an IPv4 subnet between /8 and /28.");
+  if(n.slice(0,4).some(x=>x>255) || bits<(existing?0:8) || bits>(existing?32:28))throw new Error(existing?"Invalid existing IPv4 network prefix.":"Use an IPv4 subnet between /8 and /28.");
   const start=n[0]!*16777216+n[1]!*65536+n[2]!*256+n[3]!, size=2**(32-bits);
   if(start%size!==0)throw new Error("Subnet CIDR contains host bits.");
   return [start,start+size-1];
 }
-export function validateTargetSubnet(prefix: string, vnet: unknown): void {
-  const [start,end]=cidr(prefix), p=object(object(vnet).properties), space=object(p.addressSpace);
-  if(!Array.isArray(space.addressPrefixes) || !space.addressPrefixes.some(x=>{try{const[a,b]=cidr(String(x));return start>=a && end<=b;}catch{return false;}}))throw new Error("Target subnet must fit the existing runner VNet address space.");
+function ipv4Ranges(values:unknown): [number,number][] {
+  if(!Array.isArray(values) || !values.length)throw new Error("Complete VNet and subnet address prefixes are required.");
+  return values.flatMap(value=>{
+    if(typeof value!=="string")throw new Error("Complete VNet and subnet address prefixes are required.");
+    const [address,bits,...rest]=value.split("/");
+    if(isIP(address!)===6 && bits!==undefined && /^\d+$/.test(bits) && Number(bits)<=128 && !rest.length)return [];
+    return [cidr(value,true)];
+  });
+}
+function targetNetworkRanges(vnet:unknown): {space:[number,number][];used:[number,number][]} {
+  const p=object(object(vnet).properties),space=ipv4Ranges(object(p.addressSpace).addressPrefixes);
+  if(!space.length)throw new Error("The runner VNet needs IPv4 address space for a private PostgreSQL target.");
   if(!Array.isArray(p.subnets))throw new Error("Complete existing subnet evidence is required.");
-  for(const subnet of p.subnets){const sp=object(object(subnet).properties), prefixes=Array.isArray(sp.addressPrefixes)?sp.addressPrefixes:[sp.addressPrefix];
-    for(const item of prefixes){const[a,b]=cidr(String(item));if(start<=b && end>=a)throw new Error("Target subnet overlaps an existing subnet; no network mutation is allowed.");}}
+  const used=p.subnets.flatMap(subnet=>{
+    const sp=object(object(subnet).properties);
+    return ipv4Ranges(sp.addressPrefixes??[sp.addressPrefix]);
+  });
+  return {space,used};
+}
+export function validateTargetSubnet(prefix: string, vnet: unknown): void {
+  const [start,end]=cidr(prefix),{space,used}=targetNetworkRanges(vnet);
+  if(!space.some(([a,b])=>start>=a && end<=b))throw new Error("Target subnet must fit the existing runner VNet address space.");
+  if(used.some(([a,b])=>start<=b && end>=a))throw new Error("Target subnet overlaps an existing subnet; no network mutation is allowed.");
+}
+/** Bounded free /28 choices for the single-server target; never reuse an existing subnet. */
+export function availableTargetSubnets(vnet:unknown): string[] {
+  const {space,used}=targetNetworkRanges(vnet),choices=new Set<string>();
+  used.sort((a,b)=>a[0]-b[0]);
+  for(const [start,end] of space.sort((a,b)=>a[0]-b[0])){
+    let cursor=Math.ceil(start/16)*16;
+    const blocked:[number,number][]=[...used,[end+1,end+1]];
+    for(const [a,b] of blocked){
+      const limit=Math.min(end,a-1);
+      while(cursor+15<=limit && choices.size<16){
+        choices.add(`${[24,16,8,0].map(shift=>Math.floor(cursor/2**shift)%256).join(".")}/28`);
+        cursor+=16;
+      }
+      cursor=Math.max(cursor,Math.ceil((b+1)/16)*16);
+      if(cursor>end || choices.size===16)break;
+    }
+    if(choices.size===16)break;
+  }
+  return [...choices];
+}
+
+const targetStorageSizes=[128,256,512,1024];
+export function targetStorageSizing(storageHighBytes:string): {highGiB:string;requiredGiB:string;options:number[]} {
+  if(!/^\d+$/.test(storageHighBytes))throw new Error("A complete high storage estimate is required.");
+  const high=BigInt(storageHighBytes),gib=1024n**3n;
+  const roundedGiB=(numerator:bigint,denominator:bigint)=>{
+    const hundredths=(numerator*100n+denominator-1n)/denominator;
+    return `${hundredths/100n}.${String(hundredths%100n).padStart(2,"0")}`;
+  };
+  return {highGiB:roundedGiB(high,gib),requiredGiB:roundedGiB(high*125n,gib*100n),
+    options:targetStorageSizes.filter(size=>high*125n<=BigInt(size)*gib*100n)};
 }
 
 export function targetBudget(input: TargetInput, now=Date.now()): void {
@@ -161,9 +233,9 @@ export function renewTargetAuthorization(record: RunnerRecord, input: Pick<Targe
 export function targetPreview(record: RunnerRecord, input: TargetInput, evidence: TargetEvidence): RunnerTarget {
   if(record.target || record.phase!=="provisioned" || !["csv","neo4j","postgresql","cosmos-nosql"].includes(record.input.source.type) || evidence.sourceType && evidence.sourceType!==record.input.source.type || !sha.test(evidence.reportSHA256))throw new Error("Use an assessed supported-source workflow without an existing target intent.");
   if(!/^[a-z][a-z0-9-]{2,61}[a-z0-9]$/.test(input.serverName) || !/^Standard_[DE]\d+[a-z]*_v[56]$/.test(input.postgresSKU) || !["GeneralPurpose","MemoryOptimized"].includes(input.postgresTier) ||
-    !["Standard_D4s_v5","Standard_D8s_v5","Standard_D16s_v5"].includes(input.loaderSize) || ![128,256,512,1024].includes(input.storageGiB))throw new Error("Review a supported private target and x64/SCSI loader size.");
+    !["Standard_D4s_v5","Standard_D8s_v5","Standard_D16s_v5"].includes(input.loaderSize) || !targetStorageSizes.includes(input.storageGiB))throw new Error("Review a supported private target and x64/SCSI loader size.");
   cidr(input.subnetCIDR);targetBudget(input);
-  if(!/^\d+$/.test(evidence.storageHighBytes) || BigInt(evidence.storageHighBytes)*125n>BigInt(input.storageGiB)*1024n**3n*100n)throw new Error("Target storage does not cover the high estimate plus 25% headroom.");
+  if(!targetStorageSizing(evidence.storageHighBytes).options.includes(input.storageGiB))throw new Error("Target storage does not cover the high estimate plus 25% headroom.");
   const base=`/subscriptions/${record.input.subscriptionId}/resourceGroups/${record.input.resourceGroup}`, vnetId=record.input.subnetId.replace(/\/subnets\/[^/]+$/i,"");
   const networkGroup=targetNetworkGroup(record);
   const suffix=record.id.replaceAll("-","").slice(0,20), subnetName=`afpg-${suffix}`, dnsName=`af-${suffix}.postgres.database.azure.com`;

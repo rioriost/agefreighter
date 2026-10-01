@@ -51,5 +51,5 @@ export function cancellationFixture(scenario: NativeCancelCase, now = Date.now()
   record.target.phase = "provisioned";
   responses.set(record.target.serverId, { tags: { workflow: id, application: "agefreighter", purpose: "migration-target" }, properties: { state: "Ready" } });
   responses.set(`${record.target.serverId}/configurations/shared_preload_libraries`, { properties: { value: "pg_stat_statements,age", isConfigPendingRestart: true } });
-  return { record, responses, inputValues: [new Date(now + 3600_000).toISOString(), "800", "50"], selectionIndexes: [] };
+  return { record, responses, inputValues: ["800", "50"], selectionIndexes: scenario.id==="A18"?[0]:[] };
 }

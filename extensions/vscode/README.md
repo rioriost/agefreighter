@@ -65,12 +65,17 @@ retain failed-run evidence and use a fresh job and target for corrective tests.
   input is complete. Saved inputs are not deployment authorization.
 - Active source operations are monitored while their panel is open, including
   after reconnect. Migration execution watches the retained job automatically.
-  Polling is bounded to 30 minutes/15 status steps; failures stop the watcher.
+  Polling is bounded to 30 minutes/120 checks. Pending ARM receipts are checked
+  every 15 seconds; new guest status commands are spaced at least two minutes
+  apart to conserve the retained-command budget. Failures stop the watcher.
   Cancel stops watching, not the Linux job. No migration is automatically retried
   or resumed. Existing receipt-capacity and service time limits still apply.
-- A single approval for a specific sealed report covers export, bounded polling
-  and hash-verified import. Reopen a pending transfer without repeating export or
-  its approval. Report import is not full migration qualification.
+- New source-read approvals also cover automatic export and hash-verified import
+  of that operation's report to the named workflow storage. Required storage is
+  prepared first, with separate cost/network/RBAC consent. Existing operations
+  without this approval retain the manual transfer action. Reopening a pending
+  transfer never repeats export. Report integrity and assessment outcome are
+  displayed separately; incomplete or sampled reports do not enable target review.
 - The native same-VM resize approval now covers deallocation, resize and restart
   of that exact idle runner, for at most 20 minutes or the earlier target deadline.
   A retained, unchanged grant can continue after reconnect; uncertainty never
@@ -106,7 +111,7 @@ VS Code workspace trust is required for deployment, but opening the wizard does
 not require an output folder. The final flow will choose that folder only after
 target review. CSV files can be selected earlier without upload.
 
-**Advanced local LoadJob commands only:** CLI 2.3.1 is recommended; select it with
+**Advanced local LoadJob commands only:** CLI 2.4.0 or 2.4.1 is recommended; select it with
 **AGEFreighter: Select CLI Binary**, or put it on `PATH`. Installing the extension
 does not install or upgrade the desktop CLI.
 
@@ -121,7 +126,13 @@ Linux and Windows release archives are available from the
 Windows CLI binaries are provided without an Authenticode signature;
 verify their checksum and GitHub build-provenance attestation before use.
 
-## Start a new migration in 2.4.0
+## Start a new migration in 2.4.1
+
+Extension 2.4.1 is a guided-UI update and retains the pinned **2.4.0 Linux
+runner** release/protocol. Updating the extension does not upgrade existing
+runners or rewrite saved workflows. New released runners still require the
+reviewed 2.4.0 archive and checksum; no fallback release is selected.
+Explicitly approved, hash-pinned development artifacts remain separate.
 
 1. Open the AGEFreighter view and choose **+ / New Guided Migration**, or run
    **AGEFreighter: New Guided Migration** from the Command Palette. You can
@@ -142,6 +153,11 @@ verify their checksum and GitHub build-provenance attestation before use.
    groups & regions**. RG boundaries do not require VNet peering: a VNet may be
    in another RG in the same subscription. Network connectivity is checked
    separately. Listing a region does not guarantee VM/service capacity there.
+   **Choose runner subnet from Azure** lists same-region, non-delegated compute
+   subnets, showing VNet, CIDR, RG and attached IP configurations. The source VM's
+   subnet is explicitly marked; no subnet is silently selected. Use the subnet
+   intended for the runner, not the future target's delegated subnet. Advanced
+   ARM-ID entry and restored IDs remain available and are rechecked at preview.
 4. Optionally select **Configure source & assessment** after entering the runner
    placement fields, before creating any VM. This saves a local draft and opens
    the selected source's form. PostgreSQL table/column mappings and Cosmos
@@ -158,30 +174,39 @@ verify their checksum and GitHub build-provenance attestation before use.
    network prerequisites and costs, then confirm **Approve & deploy discovery VM**.
    The 15-minute preview must still match and a fresh what-if must show only new,
    expected resources. No existing resource is overwritten.
-5. **Refresh deployment status** or **Reconnect to a saved workflow** after a
-   reload. Closing VS Code does not cancel Azure deployment or stop charges.
+5. Deployment and submitted readiness receipts refresh automatically for up to
+   ten minutes. **Refresh deployment status** and **Reconnect to a saved workflow**
+   remain available. Closing VS Code does not cancel deployment or stop charges.
    Unknown results are reconciled by ID; they are not resubmitted automatically.
-6. Once the VM is provisioned, use **Check Linux guest readiness**, followed by
-   **Refresh guest command**. This checks the matching installation and boot
+6. Once the VM is provisioned, use **Check Linux guest readiness**; its receipt
+   refreshes automatically. **Refresh guest command** is the manual fallback.
+   This checks the matching installation and boot
    identity, not source connectivity or migration readiness. Reopen **Configure
    source & assessment**, review the settings and approve sampled source reads
    or a complete source inventory. A native password prompt follows approval where
    needed. **Refresh assessment status** submits/reconciles one bounded status
    check without repeating the source operation. Successful terminal manifests
    remain in the workflow history when a subsequent assessment is approved.
-   Neo4j and PostgreSQL sources using a private CA can select a certificate-only
-   PEM bundle. Its bytes are never put in the generated LoadJob or webview; the
+   Neo4j and PostgreSQL sources using a private/self-signed CA must select a
+   certificate-only PEM bundle unless Linux already trusts that CA.
+   Its bytes are never put in the generated LoadJob or webview; the
    bundle is hash-bound to review, rechecked before each operation and sent to
    Linux only through the protected command channel. Hostname verification stays
    enabled. For Cosmos, separately choose **Grant / verify Cosmos Data Reader**
    after readiness. This creates and GET-verifies one account-scoped built-in
    Data Reader assignment for the owned runner identity; it never grants writes,
    uses account keys, or starts source reads.
-7. In the source editor, **Prepare / refresh transfer storage** has its own
-   network/cost/RBAC approval. It creates a new Standard LRS account, disables
+7. Required storage is prepared automatically before approved assessment or CSV
+   upload, with its own network/cost/RBAC approval. **Prepare / refresh transfer
+   storage** is available under storage details for manual reconciliation.
+   It creates a new Standard LRS account, disables
    anonymous/shared-key access, and grants your signed-in user Storage Blob Data
    Contributor on that account only. Its HTTPS endpoint is network-public, not a
    private endpoint. RBAC propagation and network access can delay readiness.
+   Enterprise policies are never bypassed. Provisioning success does not prove
+   runner/desktop data-plane connectivity; administrators must approve restricted
+   networks. Cancellation before source dispatch leaves any approved resources
+   retained, but does not start source reads.
 8. For CSV, **Upload reviewed CSV files** hashes the selected data and asks before
    sending contents to Azure. Maximum 2 GiB/file and 10 GiB/workflow. Retrying an
    interrupted desktop upload reconciles the same content-addressed blocks and
@@ -198,20 +223,59 @@ verify their checksum and GitHub build-provenance attestation before use.
    prefix sample by exact totals does not make it deployable.
    Failed/reboot-interrupted guest imports require
    evidence review; automatic lease repair/restart is not implemented.
-9. **Transfer / open verified report** first exports the terminal report, then
-   reconciles and imports it on a subsequent click. It retains original JSON
+9. New approved assessments automatically transfer, verify and open their report.
+   **Transfer / open verified report** remains available for existing workflows,
+   reopening reports and reconciling retained transfers. Pending controls are
+   reconciled without replay before export. It retains original JSON
    bytes (including int64 values) in private extension storage and opens a
    script-disabled escaped viewer. A report import is not migration approval.
+   The result highlights pass/incomplete/failure, exact counts when eligible and
+   the next action. A persistent feedback area and action-local errors remain
+   visible while scrolling. Stop-monitoring controls never cancel the guest job.
 10. For a complete, imported source inventory, **Review / reconcile private
     migration target** opens native fields for a new PostgreSQL 18/AGE server, non-overlapping
     delegated subnet, target storage, same-VM migration size, authorized deadline
-    and cost reserve. It rechecks private placement, service/SKU and both quotas,
-    and unique live Linux/PostgreSQL prices. Review the single-server/no-HA trial
+    and cost reserve. The subnet picker reads the exact runner VNet and offers
+    up to 16 free IPv4 `/28` ranges for the single-server target, excluding all
+    existing subnets. A saved valid CIDR remains available; a saved overlapping
+    CIDR must be replaced through the picker. No free range or unreadable network
+    evidence blocks planning with an explanation, rather than guessing or
+    changing the VNet. Selection does not reserve a range; it is checked again
+    immediately before deployment.
+    Storage estimates, 25% headroom and choices are displayed in **GiB**.
+    Displayed estimates round up to two decimals; eligibility uses exact bytes
+    and excludes undersized choices. The deadline picker offers **1 hour,
+    6 hours, 12 hours, 1 day, 2 days or 3 days**, calculated from selection time
+    into UTC for the final approval. Reusing saved inputs preserves an unexpired
+    deadline; expired deadlines require an explicit new selection.
+    **Review a new cost authorization** uses the same duration choices.
+    These deadlines are authorization gates, not automatic shutdown or deletion.
+    It rechecks private placement, service/SKU and both quotas,
+    and unique live Linux/PostgreSQL prices. After a completed Linux readiness
+    check, the owned VM can briefly remain `Updating` in Azure. Target review
+    shows a cancellable progress notification and polls that VM with GET-only
+    reads for a 60-second window (an in-flight ARM request retains its transport
+    timeout). Ownership, placement, running state, readiness freshness and budget
+    must still match. Timeout or cancellation stops before target deployment,
+    preserving saved inputs and without resubmitting the readiness command.
+    Errors return to the invoking guided panel and release its busy state
+    without waiting for a separate notification to be dismissed.
+    Review the single-server/no-HA trial
     configuration and additional retained-resource costs; then select a folder
     for the secret-reference-only LoadJob and target plan. Save-only performs no
     deployment. Separately approved deployment is create-only and uses generated
-    credentials in VS Code SecretStorage/ARM secure parameters. Reopen the control
-    to reconcile an uncertain submission; it does not replay it. The existing VNet
+    credentials in VS Code SecretStorage/ARM secure parameters. Target review
+    automatically monitors the retained deployment with GET-only reads every
+    15 seconds, for at most 30 minutes/120 checks (in-flight requests retain their
+    transport timeout). Reconnecting to a pending target resumes read-only
+    monitoring. The panel distinguishes creation in progress, unknown status,
+    failure and completion; **5. Migrate** remains gated until provisioning is
+    confirmed. Completion points to **5-1**, not to a finished migration.
+    **Stop automatic refresh**, notification cancellation or closing the panel
+    stops monitoring only, not Azure provisioning or resource charges.
+    At cancellation or the limit, use **Review / reconcile private target** to
+    resume monitoring; no deployment, restart, resize or migration is replayed.
+    The existing VNet
     may be in a separate network resource group; only the reviewed new delegated subnet is deployed there, with
     permission checked in both groups. Target creation alone does
     not resize the VM, prepare AGE or start/verify migration.
@@ -223,17 +287,54 @@ verify their checksum and GitHub build-provenance attestation before use.
     the failed deployment and existing resources; uncertain repair responses
     are read-only reconciled, never automatically retried. Other failures or
     custom settings require operator review. Any required restart stays separate.
-11. **Continue / verify Linux migration** requires a matching migration-capable
-    guest and complete inventory. Separately approve the AGE preload restart
-    and an idle same-VM resize. The resize approval covers deallocation, size
-    change and restart within its retained deadline. Unknown responses are
-    reconciled without replay; NIC, identity and managed disk bindings are checked.
-    An active inventory or migration blocks resize before a resize intent.
-12. Separately approve a new create-mode migration. The job UUID is retained
-    before writes. The fixed Linux worker prepares AGE over verified TLS, loads,
-    then runs complete counts verification. Reconnect with **Refresh retained
-    migration**, then **Transfer / open migration verification**. A passing
-    counts report is not an independent full-property digest. PostgreSQL uses one
+11. **5. Migrate** shows direct buttons in required execution order, without an
+    action-selection menu: **5-1. Apply / reconcile AGE preload restart**,
+    **5-2. Approve / continue same-VM resize sequence**,
+    **5-3. Check Linux guest readiness again**, then **5-4. Start new [source]
+    migration**. Each button has its current status or prerequisite below it;
+    the next available required action is highlighted. Step **5-1** shows
+    **Restarting PostgreSQL...** while the approved restart is pending, or an
+    explicit uncertain-status message if its acknowledgement was lost. It
+    monitors with read-only checks every 15 seconds, for up to 30 minutes/120
+    checks (in-flight requests retain their transport timeout). Completion
+    requires both PostgreSQL `Ready` and the AGE preload setting applied;
+    step 5-2 stays blocked until then. Cancellation or closing the panel stops
+    monitoring, not an already submitted restart. At the limit or after
+    cancellation, select **5-1** again to reconcile without another restart.
+    One **5-2** approval automatically starts the bounded resize sequence;
+    there is no second Start button. **Working...** appears immediately after
+    approval, including the current-price and Linux-readiness checks before
+    deallocation. Progress then distinguishes **Stopping and deallocating**,
+    **Changing the runner VM size**, and **Starting the resized runner VM**.
+    Completion directs you to **5-3**; migration does not start automatically.
+    The resize approval covers deallocation, size change and restart within
+    its retained deadline (up to 20 minutes/80 checks, or the earlier target
+    deadline; in-flight requests retain their transport timeout). Cancellation
+    stops further automatic steps, not a request already submitted to Azure.
+    An uncertain response pauses the sequence and points to read-only **5-7**
+    rather than retrying a write. Pending/expired sequences can be explicitly
+    continued through **5-2**, with a new approval if needed.
+    Unknown responses are reconciled without replay; NIC, identity and managed
+    disk bindings are checked. An active inventory or migration blocks resize.
+    Resizing invalidates previous readiness. Step 5-3 checks the installation,
+    idle worker, disk below 80% and zero swap/OOM; the result lasts five minutes.
+    A pending readiness check is reconciled, not replaced. An unrelated pending
+    command must first be reconciled with optional **5-8**. Cancelling the monitor
+    leaves submitted evidence intact and never starts migration.
+12. Step **5-4** separately approves one new create-mode migration. The job UUID
+    is retained before writes. The fixed Linux worker prepares AGE over verified
+    TLS, loads, then runs complete counts verification. **6. Verify** contains
+    **6-1. Verify the migration**: it transfers, hash-checks, evaluates and opens
+    that retained report, without rerunning migration or the verification worker.
+    A finished migration or imported report alone is not a passing result.
+    Optional cost renewal/status reconciliation and recovery/diagnostics are
+    in separate expandable groups under **5. Migrate**. Use **5-6. Refresh
+    retained migration** when automatic monitoring has stopped. Development-only
+    full P1 qualification and its diagnostics are separate optional controls
+    under **6. Verify**, not steps for an ordinary or smaller demo dataset.
+    The Command Palette's **Continue / Verify Linux Migration** command remains
+    available for advanced use. A passing counts report is not an independent
+    full-property digest. PostgreSQL uses one
     exported repeatable-read snapshot; Cosmos requires the disclosed source-
     immutability window. Failed runs
     require operator reconciliation; the workflow never automatically resumes.
