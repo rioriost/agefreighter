@@ -17,6 +17,8 @@ import type { CosmosAccess } from "./runnerCosmosAccess";
 
 export type SourceKind = "neo4j" | "postgresql" | "cosmos-nosql" | "csv";
 export type SourceLocation = "azure" | "on-premises" | "other-cloud" | "local";
+// UI-only extension patches do not implicitly change the pinned Linux protocol.
+export const runnerReleaseVersion = "2.4.0";
 export const discoverySizes = ["Standard_B2s_v2", "Standard_D2s_v5", "Standard_D4s_v5"] as const;
 export interface SourceSelection {
   type: SourceKind;

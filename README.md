@@ -53,7 +53,7 @@ desired [GitHub release](https://github.com/rioriost/agefreighter/releases),
 extract it, and install both binaries:
 
 ```sh
-tar -xzf agefreighter_v2.4.0_darwin_arm64.tar.gz
+tar -xzf agefreighter_v2.4.1_darwin_arm64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
@@ -62,17 +62,17 @@ sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 Download the `linux_amd64` or `linux_arm64` archive for the host architecture:
 
 ```sh
-tar -xzf agefreighter_v2.4.0_linux_amd64.tar.gz
+tar -xzf agefreighter_v2.4.1_linux_amd64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
 ### Windows
 
-Download `agefreighter_v2.4.0_windows_amd64.zip`, extract
+Download `agefreighter_v2.4.1_windows_amd64.zip`, extract
 `agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
 `PATH`.
 
-> **Windows signing status:** The Windows binaries in v2.4.0 are intentionally
+> **Windows signing status:** The Windows binaries in v2.4.1 are intentionally
 > provided without an Authenticode signature. The SignPath Foundation
 > application was not approved, so Windows code signing remains planned for a
 > later release through a future eligible application or another signing
@@ -81,12 +81,12 @@ Download `agefreighter_v2.4.0_windows_amd64.zip`, extract
 > use. See the [code signing policy](docs/code-signing-policy.md).
 
 ```powershell
-Expand-Archive .\agefreighter_v2.4.0_windows_amd64.zip -DestinationPath .\agefreighter
+Expand-Archive .\agefreighter_v2.4.1_windows_amd64.zip -DestinationPath .\agefreighter
 Get-AuthenticodeSignature .\agefreighter\agefreighter.exe
 .\agefreighter\agefreighter.exe version
 ```
 
-For v2.4.0, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
+For v2.4.1, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
 
 ### Build from source
 
@@ -95,8 +95,8 @@ With the Go version declared in `go.mod` installed:
 ```sh
 git clone https://github.com/rioriost/agefreighter.git
 cd agefreighter
-git checkout v2.4.0
-make build VERSION=2.4.0
+git checkout v2.4.1
+make build VERSION=2.4.1
 ```
 
 See the [installation guide](docs/reference/installation.md) for archive names,
@@ -104,7 +104,7 @@ checksum and provenance verification, and source-build details.
 
 ### Visual Studio Code
 
-AGEFreighter 2.4.0 includes an open-source VS Code extension with two workflows:
+AGEFreighter 2.4.1 includes an open-source VS Code extension with two workflows:
 
 - **Guided Azure runner:** configure CSV, Neo4j, PostgreSQL or Cosmos DB for
   NoSQL, approve a private Linux runner, review complete source inventory and a
@@ -119,10 +119,15 @@ cannot start, resume or clean up migrations. Target creation, source reads,
 migration and recovery retain separate reviews and durable evidence.
 
 Install the matching VSIX from the [GitHub release](https://github.com/rioriost/agefreighter/releases)
-with `code --install-extension agefreighter-2.4.0.vsix`, then open the AGEFreighter
+with `code --install-extension agefreighter-2.4.1.vsix`, then open the AGEFreighter
 activity-bar view. See the [extension guide](docs/reference/vscode-extension.md)
 for the two workflows, prerequisites and operating limits. Marketplace
 availability is separate from the GitHub release and must be checked there.
+
+Version 2.4.1 adds ordered migration/verification buttons and visible, bounded
+target, restart and resize progress. The guided Linux runner remains pinned to
+2.4.0; updating the extension does not upgrade existing runners or replay work.
+See the [2.4.1 release notes](docs/releases/2.4.1.md).
 
 The defined P1 qualification has nine base routes and twelve finite extended
 branches passing; the [evidence ledger](production-simulation/vscode-e2e/remaining-validation.md)

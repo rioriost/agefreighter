@@ -34,6 +34,7 @@ function fixture(acknowledged=false){
   "./core/runner":{object},
   "./core/runnerAssessment":{assessmentActive:()=>false},
   "./runnerWatch":{watchRetainedOperation:async()=>{}},
+  "./runnerStorageFlow":{prepareRequiredStorage:async()=>structuredClone(record)},
   "./core/runnerSourceView":{runnerSourceHTML:()=>"test"},
   "./core/runnerReportStorage":{reportStorageNames:()=>({origin:"https://test.invalid"}),verifyTransferStorage:async()=>{}},
   "./guided/csvTransfer":{CSVTransferCancelledError,inspectCSV:async(file:string)=>({file,bytes:10,sha256:(changed?"b":"a").repeat(64)})}

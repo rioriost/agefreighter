@@ -74,7 +74,7 @@ for (const scenario of otherNativeCancelCases) test(`${scenario.id} actual produ
         },
         showInformationMessage: async () => deny("unexpected information"),
         showErrorMessage: async () => deny("unexpected native error"),
-        createWebviewPanel: () => ({ onDidDispose() {}, reveal() {}, webview: { cspSource: "synthetic", html: "",
+        createWebviewPanel: () => ({ onDidDispose() {}, onDidChangeViewState() {}, reveal() {}, webview: { cspSource: "synthetic", html: "",
           onDidReceiveMessage: (fn: typeof receive) => { receive = fn; }, postMessage: async (message: Record<string, unknown>) => { posts.push(message); } } })
       } };
     const context = { subscriptions: [], extension: { packageJSON: { version: "2.4.0" } }, globalStorageUri: { fsPath: root },

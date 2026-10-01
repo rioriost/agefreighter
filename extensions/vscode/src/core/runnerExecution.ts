@@ -6,6 +6,7 @@ import {TargetEvidence,sourceTargetEvidence,targetBudget} from "./runnerTarget";
 import {assessCountsVerification,VerificationDecision} from "./runnerVerification";
 import {sourceSecrets} from "./runnerSource";
 import {assertCosmosAccessCurrent,cosmosAccessReady} from "./runnerCosmosAccess";
+import {assessmentActive} from "./runnerAssessment";
 
 export interface RunnerMigration {
   operation:string; jobId:string; phase:"submitted"|"accepted"|"running"|"finished"|"failed"|"interrupted";
@@ -17,6 +18,26 @@ export interface RunnerMigration {
 }
 export function recoveryIdentity(r:RunnerRecord):string{return createHash("sha256").update(JSON.stringify({vm:r.vmId,placement:r.input,runnerIdentity:r.resize?.preservedSHA256,target:r.target?.serverId,serverName:r.target?.input.serverName,subnet:r.target?.subnetId,dns:r.target?.dnsId,source:r.sourceDraft,ca:r.sourceCA})).digest("hex");}
 const sha=/^[a-f0-9]{64}$/;
+/** Explicit, source-free post-resize check. Pending readiness is reconciled,
+ * never replaced; caller holds the workflow lock. */
+export async function checkMigrationReadiness(control:RunnerControl,r:RunnerRecord,cancelled:()=>boolean=()=>false):Promise<RunnerRecord>{
+  const assertActive=()=>{if(cancelled())throw new Error("Readiness check stopped. Any submitted receipt is retained; no migration was started.");};
+  assertActive();
+  if(r.target?.phase!=="provisioned" || r.resize?.phase!=="finished" || r.migration || assessmentActive(r))throw new Error("Complete target/resize and reconcile source work before checking new-migration readiness.");
+  const pending=r.guestCommand && ["submitted","unknown"].includes(r.guestCommand.phase);
+  if(pending && r.guestCommand?.action!=="ready")throw new Error("Reconcile the other pending guest command in step 5-8 first.");
+  let current=pending?r:await dispatchGuest(control,r,{version:1,workflow:r.id,operation:randomUUID(),action:"ready"},assertActive);
+  for(let attempt=0;attempt<20;attempt++){
+    assertActive();
+    current=(await reconcileGuest(control,current)).record;
+    if(current.guestCommand?.phase==="failed")throw new Error("Linux readiness failed. Review retained evidence; no migration was started.");
+    if(current.guestCommand?.phase==="bootstrap-pending")throw new Error("Linux bootstrap is still pending. Wait, then explicitly check step 5-3 again.");
+    if(current.guestCommand?.phase==="finished"){assertIdleHealth(current);assertActive();return current;}
+    if(attempt<19)await control.sleep(3000);
+  }
+  return current;
+}
+
 /** ARM may return a location display name instead of its canonical name. */
 export function sameAzureLocation(actual:unknown,expected:string):boolean{
   return typeof actual==="string" && actual.length>0 && actual.replace(/\s/g,"").toLowerCase()===expected.replace(/\s/g,"").toLowerCase();
@@ -66,11 +87,16 @@ export async function applyTargetPreload(control:RunnerControl,r:RunnerRecord,ap
   if(response.status!==200 || tags.workflow!==r.id || tags.application!=="agefreighter" || !["migration-target","csv-migration-target"].includes(String(tags.purpose)))throw new Error("Target ownership changed.");
   const config=await control.request(sub,`${id}/configurations/shared_preload_libraries?api-version=2024-08-01`),p=object(object(config.value).properties);
   if(config.status!==200 || p.value!=="pg_stat_statements,age" || typeof p.isConfigPendingRestart!=="boolean")throw new Error("Approved target preload configuration changed or is unavailable.");
-  if(!p.isConfigPendingRestart && object(server.properties).state==="Ready"){
+  const state=object(server.properties).state;
+  if(!p.isConfigPendingRestart && state==="Ready"){
     const next:RunnerRecord={...r,targetRestart:{phase:"finished",submittedAt:r.targetRestart?.submittedAt??new Date().toISOString()}};await control.persist(next);return next;
   }
+  if(r.targetRestart && !["Ready","Restarting","Updating","Starting"].includes(String(state)))throw new Error(`PostgreSQL is ${typeof state==="string"?state:"unavailable"}, not restarting or Ready. Review the retained target; no restart was replayed.`);
+  if(r.targetRestart?.phase==="finished"){
+    const next:RunnerRecord={...r,targetRestart:{...r.targetRestart,phase:"unknown"}};await control.persist(next);return next;
+  }
   if(r.targetRestart || !approved)return r;
-  if(object(server.properties).state!=="Ready")throw new Error("Wait for target provisioning to finish before restart.");
+  if(state!=="Ready")throw new Error("Wait for target provisioning to finish before restart.");
   const next:RunnerRecord={...r,targetRestart:{phase:"submitted",submittedAt:new Date().toISOString()}};await control.persist(next);
   try{const response=await control.request(sub,`${id}/restart?api-version=2024-08-01`,"POST",{});if(response.status<200||response.status>=300)throw new Error();}
   catch{next.targetRestart!.phase="unknown";await control.persist(next);}

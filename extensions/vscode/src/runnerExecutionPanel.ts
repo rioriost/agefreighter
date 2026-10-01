@@ -5,7 +5,7 @@ import {RunnerControl} from "./core/runnerLifecycle";
 import {RunnerStore} from "./guided/runnerStore";
 import {AzureSession} from "./guided/azure";
 import {startResize,advanceResize} from "./core/runnerResize";
-import {migrationPreflight,startMigration,refreshMigration,verifyMigrationReport,applyTargetPreload} from "./core/runnerExecution";
+import {migrationPreflight,startMigration,refreshMigration,verifyMigrationReport,applyTargetPreload,checkMigrationReadiness} from "./core/runnerExecution";
 import {escapeHTML} from "./core/report";
 import {targetComputeRate} from "./core/runnerTargetPreflight";
 import {renewTargetAuthorization} from "./core/runnerTarget";
@@ -21,11 +21,22 @@ import { watchRetainedOperation } from "./runnerWatch";
 import { transferApprovedReport } from "./runnerReportFlow";
 import { authorizeResize, resizeAuthorized } from "./core/resizeAuthorization";
 import { boundedWatch } from "./core/boundedWatch";
+import { pickTargetDeadline } from "./runnerTargetInputs";
+import { executionActions, ExecutionAction, executionActionLabel, executionActionState, parseExecutionAction, resizeStatusMessage } from "./core/runnerExecutionActions";
+import { reconcileGuest } from "./core/runnerGuest";
+import { RunnerRecord } from "./core/runner";
+
+export interface ExecutionProgress { text: string; active: boolean }
+class ExecutionMonitoringStopped extends Error {}
 
 /** A bounded resize may group its explicitly approved steps. Reconnecting alone
  * never launches/resumes a migration or replays an uncertain operation. */
-export async function continueRunnerExecution(context:vscode.ExtensionContext,control:RunnerControl,store:RunnerStore,azure:AzureSession,workflow?:string):Promise<void>{
+export async function continueRunnerExecution(context:vscode.ExtensionContext,control:RunnerControl,store:RunnerStore,azure:AzureSession,workflow?:string,requestedAction?:ExecutionAction,onUpdate?:(record:RunnerRecord,progress?:ExecutionProgress)=>Promise<void>,cancelled:()=>boolean=()=>false):Promise<void>{
   if(!vscode.workspace.isTrusted)throw new Error("Trust this workspace before controlling migration resources.");
+  if(requestedAction!==undefined)parseExecutionAction(requestedAction);
+  const assertActive=()=>{if(cancelled()||!vscode.workspace.isTrusted)throw new Error("Execution review stopped or workspace trust changed. Reconcile any retained operation; nothing will be replayed.");};
+  const originalControl=control;
+  control={...control,request:(...args)=>{assertActive();return originalControl.request(...args);}};
   const selected=workflow?{id:workflow}:await vscode.window.showQuickPick((await store.list()).filter(r=>r.target?.phase==="provisioned").map(r=>({label:r.id,description:`${r.input.source.type} — ${r.input.resourceGroup} — ${r.migration?.phase??r.resize?.phase??"resize required"}`,id:r.id})),{placeHolder:"Select the retained private target"});
   if(!selected)return;
   let r=await store.read(selected.id);
@@ -34,14 +45,21 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
   const resumeInspectionLabel="Inspect same-job recovery (read only; does not resume)";
   const resumeLabel="Explicitly resume the retained job and counts verification";
   const recoveryReadyLabel="Refresh recovery readiness (read only)";
-  const action=await vscode.window.showQuickPick([renewLabel,"Apply / reconcile AGE preload restart","Reconcile resize (read only)","Approve / continue same-VM resize sequence",startLabel,"Refresh retained migration (never replay)",recoveryReadyLabel,resumeInspectionLabel,resumeLabel,"Transfer / open migration verification","Diagnose retained target (read only)","Archive empty-target preparation failure","Qualify / reconcile full P1 digest (development only)","Diagnose retained P1 failure (read only)","Requalify with reviewed P1 ordering fix (read only)"],{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
+  const label=(id:ExecutionAction)=>id==="start"?startLabel:id==="renew"?renewLabel:id==="verify"?"Transfer / open migration verification":executionActionLabel(id);
+  const action=requestedAction?label(requestedAction):await vscode.window.showQuickPick(executionActions.map(item=>label(item.id)),{placeHolder:`Runner: ${r.resize?.phase??"not resized"}; migration: ${r.migration?.phase??"not started"}`});
   if(!action)return;
-  const confirm=(title:string,detail:string)=>vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");
+  assertActive();
+  if(requestedAction){
+    r=await store.read(r.id);
+    const state=executionActionState(r,requestedAction);
+    if(!state.enabled)throw new Error(state.detail);
+  }
+  const confirm=async(title:string,detail:string)=>{const result=await vscode.window.showWarningMessage(title,{modal:true,detail},"Approve this step");assertActive();return result;};
   const price=async()=>{if(!r.target)throw new Error("No retained target plan.");const input=r.target.input;if(targetComputeRate(await azure.retailRates(r.input.region,[input.loaderSize,input.postgresSKU]),input)!==input.hourlyUSD)throw new Error("Compute price changed; review the cost plan before further mutation.");};
   if(action===renewLabel){
     if(!r.target)throw new Error("No retained target plan.");
     const ask=(prompt:string,value:string)=>vscode.window.showInputBox({prompt,value,ignoreFocusOut:true});
-    const deadline=await ask("New explicitly approved UTC deadline (ISO 8601; maximum 96 hours from now)",new Date(Date.now()+96*3600000-60000).toISOString());if(deadline===undefined)return;
+    const deadline=await pickTargetDeadline();if(deadline===undefined)return;
     const budget=await ask("Approved cumulative workflow cost ceiling, USD (not an additional allowance)",String(r.target.input.budgetUSD));if(budget===undefined)return;
     const reserve=await ask("Reserve within this ceiling for accrued charges, retained storage/network and delayed billing, USD",String(r.target.input.additionalReserveUSD));if(reserve===undefined)return;
     const candidate={deadline,budgetUSD:Number(budget),additionalReserveUSD:Number(reserve),hourlyUSD:targetComputeRate(await azure.retailRates(r.input.region,[r.target.input.loaderSize,r.target.input.postgresSKU]),r.target.input)};
@@ -50,20 +68,122 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
     r=await store.exclusive(r.id,async()=>{const latest=await store.read(r.id);const next=renewTargetAuthorization(latest,candidate);await control.persist(next);return next;});
   }else if(action==="Apply / reconcile AGE preload restart"){
     const approved=!!r.targetRestart || await confirm("Apply the AGE preload configuration?",`Restart only ${r.target?.serverId} if its approved preload parameter requires it. This is before migration. Existing data is retained. An already submitted restart is reconciled by read only.`)==="Approve this step";
-    r=await store.exclusive(r.id,async()=>applyTargetPreload(control,await store.read(r.id),approved));
+    const initial=r;
+    let receipt=r.targetRestart?.submittedAt;
+    await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"5-1. AGE preload / PostgreSQL restart — cancel stops monitoring only",cancellable:true},async(progress,token)=>{
+      const stopped=()=>token.isCancellationRequested||cancelled()||!vscode.workspace.isTrusted;
+      const assertMonitoring=()=>{if(stopped())throw new ExecutionMonitoringStopped("AGE preload monitoring stopped.");};
+      const publish=async(current:RunnerRecord,text:string,active:boolean)=>{
+        progress.report({message:text});
+        await onUpdate?.(current,{text,active});
+      };
+      const status=(current:RunnerRecord)=>executionActionState(current,"preload").detail;
+      const preloadControl:RunnerControl={...control,
+        request:(...args)=>{assertMonitoring();return control.request(...args);},
+        persist:async current=>{
+          if(!receipt && current.targetRestart?.phase==="submitted")assertMonitoring();
+          await control.persist(current);
+          receipt??=current.targetRestart?.submittedAt;
+          if(!stopped())await publish(current,status(current),current.targetRestart?.phase!=="finished");
+        }
+      };
+      const reconcile=(allowRestart:boolean)=>store.exclusive(initial.id,async()=>{
+        assertMonitoring();
+        const current=await store.read(initial.id);
+        assertMonitoring();
+        if(current.vmId!==initial.vmId || current.artifact.sha256!==initial.artifact.sha256 ||
+          current.target?.serverId!==initial.target?.serverId || current.target?.hash!==initial.target?.hash ||
+          JSON.stringify(current.target?.input)!==JSON.stringify(initial.target?.input) ||
+          receipt!==undefined && current.targetRestart?.submittedAt!==receipt)
+          throw new Error("Preload restart scope or retained receipt changed; monitoring stopped without replay.");
+        receipt??=current.targetRestart?.submittedAt;
+        return applyTargetPreload(preloadControl,current,allowRestart);
+      });
+      try{
+        assertMonitoring();
+        await publish(r,r.targetRestart?status(r):"Checking the private PostgreSQL target and approved AGE preload setting...",true);
+        r=await reconcile(approved);
+        if(r.targetRestart && r.targetRestart.phase!=="finished"){
+          await publish(r,status(r),!stopped());
+          await boundedWatch({deadline:Date.now()+30*60000,intervalMs:15000,maxSteps:120,sleep:control.sleep,cancelled:stopped,
+            step:()=>reconcile(false),done:current=>current.targetRestart?.phase==="finished",
+            progress:async current=>{r=current;if(!stopped())await publish(current,status(current),current.targetRestart?.phase!=="finished");}});
+        }
+      }catch(error){if(!(error instanceof ExecutionMonitoringStopped))throw error;}
+      r=await store.read(initial.id);
+      const text=r.targetRestart?.phase==="finished"?status(r)+" Continue with the next required migration step."
+        :r.targetRestart?status(r)+` Monitoring ${stopped()?"stopped":"reached its time limit"}; Azure work was not cancelled. Use 5-1 to resume read-only monitoring.`
+        :"AGE preload preparation stopped. No restart was submitted.";
+      await publish(r,text,false);
+    });
+  }else if(action==="Check Linux guest readiness again"){
+    r=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"5-3. Checking Linux readiness after resize",cancellable:true},
+      async(_p,token)=>store.exclusive(r.id,async()=>checkMigrationReadiness(control,await store.read(r.id),()=>cancelled()||token.isCancellationRequested||!vscode.workspace.isTrusted)));
+  }else if(action==="Refresh pending guest command"){
+    r=await store.exclusive(r.id,async()=>(await reconcileGuest(control,await store.read(r.id))).record);
   }else if(action==="Reconcile resize (read only)"){
     r=await store.exclusive(r.id,async()=>advanceResize(control,await store.read(r.id)));
   }else if(action==="Approve / continue same-VM resize sequence"){
     if(!r.target)throw new Error("Review the private target first.");
     if(!resizeAuthorized(r) && await confirm("Complete the bounded same-VM resize sequence?",`${r.vmId}\n${r.resize?.phase??"Deallocate before resizing"} → ${r.target.input.loaderSize}. This one approval covers deallocation, size change and restart of this exact idle VM, for up to 20 minutes or the earlier target deadline. The same NIC, disk and identity are preserved. No source VM, credentials or migration are changed. Deadline ${r.target.input.deadline}; cumulative ceiling USD ${r.target.input.budgetUSD}. Uncertain submissions are not replayed. Cancel stops the sequence monitor; reopen to reconcile retained state.`)!=="Approve this step")return;
-    await price();
-    r=await store.exclusive(r.id,async()=>{const latest=await store.read(r.id);if(latest.vmId!==r.vmId || latest.target?.hash!==r.target?.hash || JSON.stringify(latest.target?.input)!==JSON.stringify(r.target?.input))throw new Error("Resize scope changed during review.");const next=resizeAuthorized(latest)?latest:authorizeResize(latest);await control.persist(next);return next;});
-    await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Completing approved same-VM resize",cancellable:true},async(_p,token)=>{
-      await boundedWatch({deadline:Date.parse(r.resizeAuthorization!.deadline),intervalMs:15000,maxSteps:80,sleep:control.sleep,cancelled:()=>token.isCancellationRequested||!vscode.workspace.isTrusted,
-        step:()=>store.exclusive(r.id,async()=>{let current=await store.read(r.id);if(!resizeAuthorized(current))throw new Error("Resize authorization expired or changed.");if(current.resize)return advanceResize(control,current,true);current=await ensureAssessmentReadiness(control,current,()=>token.isCancellationRequested||!vscode.workspace.isTrusted);if(!resizeAuthorized(current))throw new Error("Resize authorization expired before submission.");return startResize(control,current);}),
-        done:current=>current.resize?.phase==="finished"||current.resize?.unknown===true});
+    const reviewed=r;
+    await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"5-2. Working on approved same-VM resize",cancellable:true},async(progress,token)=>{
+      const stopped=()=>token.isCancellationRequested||cancelled()||!vscode.workspace.isTrusted;
+      const assertMonitoring=()=>{if(stopped())throw new ExecutionMonitoringStopped("Resize sequence monitoring stopped.");};
+      const publish=async(current:RunnerRecord,text:string,active:boolean)=>{
+        progress.report({message:text});await onUpdate?.(current,{text,active});
+      };
+      const report=async(current:RunnerRecord)=>{
+        const active=current.resize?.phase!=="finished" && !current.resize?.unknown;
+        await publish(current,(active?"Working... ":"")+resizeStatusMessage(current),active);
+      };
+      try{
+        assertMonitoring();
+        await publish(r,"Working... Checking current prices for the approved resize...",true);
+        await price();assertMonitoring();
+        r=await store.exclusive(reviewed.id,async()=>{
+          assertMonitoring();
+          const latest=await store.read(reviewed.id);
+          assertMonitoring();
+          if(latest.vmId!==reviewed.vmId || JSON.stringify(latest.input)!==JSON.stringify(reviewed.input) ||
+            JSON.stringify(latest.artifact)!==JSON.stringify(reviewed.artifact) || latest.target?.serverId!==reviewed.target?.serverId ||
+            latest.target?.hash!==reviewed.target?.hash || JSON.stringify(latest.target?.input)!==JSON.stringify(reviewed.target?.input))
+            throw new Error("Resize scope changed during review.");
+          const next=resizeAuthorized(latest)?latest:authorizeResize(latest);await control.persist(next);return next;
+        });
+        const binding=r.resizeAuthorization!.binding;
+        const assertAuthorization=()=>{
+          assertMonitoring();
+          if(!resizeAuthorized(r) || r.resizeAuthorization!.binding!==binding)throw new Error("Resize authorization expired or changed; no further operation was submitted.");
+        };
+        const resizeControl:RunnerControl={...control,
+          request:(...args)=>{assertAuthorization();return control.request(...args);},
+          list:(...args)=>{assertAuthorization();return control.list(...args);},
+          persist:async current=>{
+            if(current.resize && ["deallocating","resizing","starting"].includes(current.resize.phase) &&
+              (current.resize.phase!==r.resize?.phase || current.resize.startedAt!==r.resize?.startedAt))assertAuthorization();
+            await control.persist(current);r=current;if(!stopped())await report(current);
+          }
+        };
+        await report(r);
+        await boundedWatch({deadline:Date.parse(r.resizeAuthorization!.deadline),intervalMs:15000,maxSteps:80,sleep:control.sleep,cancelled:stopped,
+          step:()=>store.exclusive(reviewed.id,async()=>{
+            assertMonitoring();r=await store.read(reviewed.id);assertAuthorization();
+            if(r.resize)return advanceResize(resizeControl,r,true);
+            await publish(r,"Working... Checking Linux guest readiness before resizing...",true);
+            r=await ensureAssessmentReadiness(resizeControl,r,stopped);
+            assertAuthorization();
+            await publish(r,"Working... Checking runner placement, size availability and quota...",true);
+            return startResize(resizeControl,r);
+          }),
+          progress:async current=>{r=current;if(!stopped())await report(current);},
+          done:current=>current.resize?.phase==="finished"||current.resize?.unknown===true});
+      }catch(error){if(!(error instanceof ExecutionMonitoringStopped))throw error;}
+      r=await store.read(reviewed.id);
+      const text=r.resize?.phase==="finished" || r.resize?.unknown ? resizeStatusMessage(r)
+        :`${r.resize?resizeStatusMessage(r):"No VM resize was submitted."} Sequence monitoring ${stopped()?"stopped":"reached its authorization or time limit"}. Submitted Azure work was not cancelled. Use 5-2 to review and continue; completed operations will not be replayed.`;
+      await publish(r,text,false);
     });
-    r=await store.read(r.id);
   }else if(action===startLabel||action===resumeLabel){
     const a=r.assessment;if(!a?.reportSHA256 || !a.reportBytes)throw new Error("Import complete source inventory first.");
     const report=await store.readReport(r.id,{operation:a.operation,sha256:a.reportSHA256,bytes:a.reportBytes});
@@ -78,6 +198,7 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
       if(sourcePassword===undefined)return;
     }
     try { r=await store.exclusive(r.id,async()=>{
+      assertActive();
       let latest=await store.read(r.id);
       const key=`runner-target/${r.id}/${createHash("sha256").update(latest.target!.serverId).digest("hex")}`,password=await context.secrets.get(key);
       if(!password)throw new Error("The retained target credential is unavailable.");
@@ -127,7 +248,7 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
       const view=vscode.window.createWebviewPanel("agefreighter.targetDiagnostic","AGEFreighter target diagnostic",vscode.ViewColumn.Beside,{enableScripts:false,localResourceRoots:[]});
       view.webview.html=`<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'"><h1>Read-only target diagnostic</h1><pre>${escapeHTML(JSON.stringify(r.targetDiagnostic.result,null,2))}</pre>`;
     }
-  }else{
+  }else if(action==="Transfer / open migration verification"){
     const m=r.migration;if(!m?.reportSHA256 || !m.reportBytes)throw new Error("Refresh the terminal migration verification manifest first.");
     const manifest={operation:m.operation,sha256:m.reportSHA256,bytes:m.reportBytes};
     if(!r.reportTransfers?.some(t=>t.operation===m.operation) && await confirm("Transfer and verify the retained migration report?",`${m.jobId}\n${manifest.bytes} bytes; SHA-256 ${manifest.sha256}. Retained privately on this Mac, not sent to an AI model. This never reruns migration.`)!=="Approve this step")return;
@@ -144,12 +265,14 @@ export async function continueRunnerExecution(context:vscode.ExtensionContext,co
       const text=await store.readReport(r.id,manifest);
       showMigrationVerification(r.migration.verification,text);
     }
-  }
+  }else throw new Error("Unsupported migration or verification step.");
+  await onUpdate?.(r);
   if(r.migration && !["finished","failed","interrupted"].includes(r.migration.phase)){
-    await watchRetainedOperation(control,store,r.id,"migration",undefined,async current=>{
+    await watchRetainedOperation(control,store,r.id,"migration",cancelled,async current=>{
       if(["failed","interrupted"].includes(current.migration?.phase??""))await invalidateStaleSourceCredential(context,await store.read(current.id));
+      await onUpdate?.(current);
     });
     r=await store.read(r.id);
   }
-  void vscode.window.showInformationMessage(`Target preload: ${r.targetRestart?.phase??"not checked"}; runner resize: ${r.resize?.phase??"not started"}; migration: ${r.migration?.phase??"not started"}; counts: ${r.migration?.verification?.outcome??"not verified"}. Independent P1 property digest is a separate qualification gate.`);
+  if(!requestedAction)void vscode.window.showInformationMessage(`Target preload: ${r.targetRestart?.phase??"not checked"}; runner resize: ${r.resize?.phase??"not started"}; migration: ${r.migration?.phase??"not started"}; counts: ${r.migration?.verification?.outcome??"not verified"}. Independent P1 property digest is a separate qualification gate.`);
 }

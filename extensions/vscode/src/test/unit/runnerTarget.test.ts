@@ -3,7 +3,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { sourceWorkflowDraft, RunnerRecord } from "../../core/runner";
-import { csvTargetEvidence, mappedNetworkTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, targetBudget, renewTargetAuthorization, submitTarget, refreshTarget, targetResourceIds, TargetInput, repairBusyTargetPreload } from "../../core/runnerTarget";
+import { csvTargetEvidence, mappedNetworkTargetEvidence, neo4jTargetEvidence, targetPreview, assertTargetFresh, validateTargetSubnet, availableTargetSubnets, targetStorageSizing, targetBudget, renewTargetAuthorization, submitTarget, refreshTarget, targetResourceIds, TargetInput, repairBusyTargetPreload } from "../../core/runnerTarget";
 import { RunnerControl } from "../../core/runnerLifecycle";
 import { buildSourceDraft } from "../../core/runnerSource";
 const id="11111111-1111-4111-8111-111111111111",op="22222222-2222-4222-8222-222222222222",file="33333333-3333-4333-8333-333333333333";
@@ -145,6 +145,50 @@ test("network, deadline, price and storage gates reject unsafe proposals",()=>{
   for(const prefix of ["10.0.1.0/24","10.0.0.0/16","10.0.2.1/24","10.1.0.0/24","256.0.0.0/24"])assert.throws(()=>validateTargetSubnet(prefix,vnet));
   const {r,text,input}=fixture();for(const patch of [{hourlyUSD:NaN},{budgetUSD:1},{deadline:"bad"},{deadline:"2020-01-01T00:00:00Z"},{additionalReserveUSD:-1}])assert.throws(()=>targetBudget({...input,...patch}));
   const e=csvTargetEvidence(r,text);assert.throws(()=>targetPreview(r,input,{...e,storageHighBytes:String(200*1024**3)}),/storage/);
+});
+test("target candidates exclude existing source/runner ranges and preserve network evidence",()=>{
+  const vnet={properties:{addressSpace:{addressPrefixes:["10.76.0.0/16"]},subnets:[
+    {properties:{addressPrefix:"10.76.1.0/24"}},{properties:{addressPrefixes:["10.76.2.0/24","10.76.0.0/28"]}}
+  ]}},before=JSON.stringify(vnet),choices=availableTargetSubnets(vnet);
+  assert.equal(choices.length,16);assert.equal(new Set(choices).size,choices.length);
+  assert.equal(choices[0],"10.76.0.16/28");assert.equal(choices.at(-1),"10.76.3.0/28");
+  for(const choice of choices)validateTargetSubnet(choice,vnet);
+  assert.equal(JSON.stringify(vnet),before);
+});
+test("target candidates handle multiple spaces, small occupied ranges and dual-stack networks",()=>{
+  const vnet={properties:{addressSpace:{addressPrefixes:["10.0.1.0/28","10.0.2.0/27","fd00::/48"]},subnets:[
+    {properties:{addressPrefixes:["10.0.1.0/29","fd00:0:0:1::/64"]}},
+    {properties:{addressPrefix:"10.0.2.17/32"}}
+  ]}};
+  assert.deepEqual(availableTargetSubnets(vnet),["10.0.2.0/28"]);
+  validateTargetSubnet("10.0.2.0/28",vnet);
+  assert.throws(()=>validateTargetSubnet("10.0.2.16/28",vnet),/overlap/);
+});
+test("subnet discovery is bounded for large occupied ranges and reports exhausted space",()=>{
+  assert.deepEqual(availableTargetSubnets({properties:{addressSpace:{addressPrefixes:["10.0.0.0/28"]},subnets:[{properties:{addressPrefix:"10.0.0.0/28"}}]}}),[]);
+  const choices=availableTargetSubnets({properties:{addressSpace:{addressPrefixes:["10.0.0.0/8"]},subnets:[{properties:{addressPrefix:"10.0.0.0/9"}}]}});
+  assert.equal(choices.length,16);assert.equal(choices[0],"10.128.0.0/28");
+  assert.deepEqual(availableTargetSubnets({properties:{addressSpace:{addressPrefixes:["255.255.255.240/28"]},subnets:[]}}),["255.255.255.240/28"]);
+});
+test("incomplete or malformed network evidence never produces subnet choices",()=>{
+  for(const properties of [
+    {addressSpace:{addressPrefixes:["10.0.0.0/16"]}},
+    {addressSpace:{addressPrefixes:["10.0.0.0/16"]},subnets:[{properties:{}}]},
+    {addressSpace:{addressPrefixes:["10.0.0.0/16"]},subnets:[{properties:{addressPrefixes:[]}}]},
+    {addressSpace:{addressPrefixes:["10.0.1.0/16"]},subnets:[]},
+    {addressSpace:{addressPrefixes:["fd00::/48"]},subnets:[]},
+    {addressSpace:{addressPrefixes:["10.0.0.0/16"]},subnets:[{properties:{addressPrefix:"bad"}}]},
+  ])assert.throws(()=>availableTargetSubnets({properties}));
+});
+test("GiB sizing rounds display upward but filters choices with exact byte headroom",()=>{
+  assert.deepEqual(targetStorageSizing("5734400000"),{highGiB:"5.35",requiredGiB:"6.68",options:[128,256,512,1024]});
+  const boundary=128n*1024n**3n*100n/125n;
+  assert.equal(targetStorageSizing(String(boundary)).options[0],128);
+  assert.equal(targetStorageSizing(String(boundary+1n)).options[0],256);
+  assert.deepEqual(targetStorageSizing(String(1024n*1024n**3n)).options,[]);
+  assert.deepEqual(targetStorageSizing("0"),{highGiB:"0.00",requiredGiB:"0.00",options:[128,256,512,1024]});
+  assert.equal(targetStorageSizing("9007199254740993").highGiB,"8388608.01");
+  for(const bad of ["-1","NaN","1.5",""])assert.throws(()=>targetStorageSizing(bad),/estimate/);
 });
 test("a renewed authorization preserves target identity and records the expired cost window",()=>{
   const {r,text,input}=fixture(),now=Date.parse("2026-09-12T07:00:00Z");

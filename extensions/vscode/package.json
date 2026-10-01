@@ -2,7 +2,7 @@
   "name": "agefreighter",
   "displayName": "AGEFreighter",
   "description": "Plan, run, recover, and review validated graph migrations with the AGEFreighter CLI.",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "publisher": "rioriost",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -378,7 +378,7 @@
     "test": "npm run typecheck && npm run test:unit",
     "check": "npm run test",
     "vscode:prepublish": "npm run check",
-    "package": "vsce package --out dist/agefreighter-2.4.0.vsix"
+    "package": "vsce package --out dist/agefreighter-2.4.1.vsix"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

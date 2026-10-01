@@ -9,7 +9,7 @@ on:
       version:
         description: "Semantic v2 version to package (dispatch never publishes)"
         required: true
-        default: "v2.4.0"
+        default: "v2.4.1"
         type: string
       dry_run:
         description: "Required safety acknowledgement"

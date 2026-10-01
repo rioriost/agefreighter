@@ -126,7 +126,7 @@ async function preparedCase(caseRoot: string, scenario: IntegratedNativeCancelCa
       };
       if (name === "showQuickPick") return async (items: unknown[]) => {
         let choice: unknown;
-        if (fixture.action) choice = items.find(item => item === fixture.action);
+        if (fixture.action && items.includes(fixture.action)) choice = fixture.action;
         else choice = items[fixture.selectionIndexes[pickIndex++]!];
         assert.ok(choice !== undefined, "Declared synthetic selection must exist");
         events.push({ type: "synthetic-selection", choice }); return choice;

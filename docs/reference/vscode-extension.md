@@ -6,7 +6,7 @@ deterministic Go engine; it is not a second migration engine. Guided operations
 run on a dedicated Linux Azure VM. Existing LoadJob commands use a separately
 installed CLI in the extension-host environment.
 
-## Guided migration (2.4.0)
+## Guided migration (2.4.1)
 
 1. Run **AGEFreighter: New Guided Migration** without first selecting a project
    folder or CLI. Choose CSV, Neo4j, PostgreSQL or Cosmos DB for NoSQL. For
@@ -29,14 +29,23 @@ installed CLI in the extension-host environment.
    a source-immutability window. CSV requires full-hash guest file seals.
 5. Review a new private PostgreSQL 18/AGE target, non-overlapping delegated
    subnet, same-VM migration size, cumulative budget/reserve and deadline.
+   Choose a discovered free CIDR and a duration instead of typing a subnet or
+   UTC timestamp; estimates and storage sizes use GiB.
    Select an output folder only when saving the reviewed LoadJob and target
    plan. Save-only makes no deployment; target creation is separately approved.
    The target is single-server/HA-off and create-only. An existing VNet may be
    in a separate network resource group, with permissions checked in both groups.
-6. Separately approve AGE readiness/restart, idle same-VM resize and migration.
+6. In **5. Migrate**, follow the required buttons in order: **5-1** AGE preload
+   restart, **5-2** same-VM resize, **5-3** fresh Linux readiness, then **5-4**
+   new migration. Target provisioning and preload restart show cancellable,
+   bounded monitoring. One resize approval starts the bounded deallocate,
+   resize and start sequence immediately, with phase-specific progress.
    Durable operation/job IDs precede writes. Lost responses are reconciled by
    ID without automatic replay; active inventory/migration blocks resize.
-7. Reconnect to the retained operation, import counts/full verification reports,
+7. In **6. Verify**, use **6-1** to import and evaluate the retained, hash-checked
+   counts report without rerunning a worker. Optional status, cost, recovery and
+   development-only P1 actions are grouped separately. Reconnect to the retained
+   operation, import counts/full verification reports,
    and review complete evidence. Failed jobs require explicit same-job recovery
    inspection and approval; reload does not automatically resume a load.
 
@@ -65,11 +74,13 @@ compatibility and release publication are separate M6 checks.
 Install the matching reviewed release VSIX:
 
 ```sh
-code --install-extension agefreighter-2.4.0.vsix
+code --install-extension agefreighter-2.4.1.vsix
 ```
 
 GitHub release assets and Marketplace publication have separate availability.
 Check the actual publication result rather than assuming one implies the other.
+The 2.4.1 extension retains the pinned 2.4.0 Linux runner; it does not upgrade
+existing runners or implicitly authorize any new cloud operation.
 Use VS Code 1.105 or newer. The guided workflow needs no local CLI; the advanced
 LoadJob workflow needs a compatible installed CLI (2.4.0 is recommended).
 PostgreSQL checkpoints predating the 2.3.1 floating-point fix must not be resumed
@@ -147,6 +158,6 @@ from the CLI signing status below.
 ## Windows binary status
 
 The extension itself is TypeScript/JavaScript. The separately downloaded
-AGEFreighter 2.4.0 Windows CLI binaries remain unsigned because the SignPath
+AGEFreighter 2.4.1 Windows CLI binaries remain unsigned because the SignPath
 Foundation application was not approved. They are still distributed; verify
 the release checksum and GitHub provenance before selecting the executable.

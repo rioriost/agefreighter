@@ -32,6 +32,7 @@ test("build and inert compiled activation retain only draft, native command hook
       #webview=new NativeWebview(); #disposeListener?:()=>void;
       get webview(){return this.#webview;}
       onDidDispose(listener:()=>void){this.#disposeListener=listener;return new Disposable();}
+      onDidChangeViewState(){return new Disposable();}
       dispose(){this.#disposeListener?.();}
     }
     let panel:NativePanel|undefined;

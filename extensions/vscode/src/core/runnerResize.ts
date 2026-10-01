@@ -71,7 +71,8 @@ export async function startResize(control:RunnerControl,r:RunnerRecord):Promise<
   delete next.guestReady;
   return submit(control,next,`${r.vmId}/deallocate?api-version=2024-07-01`,"POST");
 }
-/** Pending phases are GET-only. Ready phases require a new explicit approval. */
+/** Pending phases are GET-only. Ready phases require explicit approval, including
+ * a still-valid bounded sequence grant checked by the caller. */
 export async function advanceResize(control:RunnerControl,r:RunnerRecord,approved=false):Promise<RunnerRecord>{
   gate(r);if(!r.resize)throw new Error("No retained resize.");
   const v=await inspect(control,r),p=r.resize;
