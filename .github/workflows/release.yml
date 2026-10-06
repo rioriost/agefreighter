@@ -382,7 +382,7 @@ jobs:
             printf 'VSIX contains excluded development or secret material\n' >&2
             exit 1
           fi
-          npm audit --omit=dev --audit-level=high
+          npm audit --include=dev --audit-level=low
           npm sbom --omit=dev --sbom-format spdx >"$vsix.spdx.json"
       - name: Upload VS Code package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

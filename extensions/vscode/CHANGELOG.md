@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Upgrade VS Code packaging and Extension Host test tooling to remove vulnerable
+  development dependency paths, and update `qs` to a fixed version. Remove the
+  obsolete `serialize-javascript` override in favor of Mocha's fixed dependency.
+- Audit runtime and development dependencies at all severity levels in CI and
+  release packaging. Development packaging continues to use Node.js 24 in CI.
+
 ## 2.4.1
 
 - Show **Working...** immediately after step 5-2 approval, including price,

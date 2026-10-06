@@ -385,17 +385,14 @@
     "@types/node": "^24.10.1",
     "@types/vscode": "^1.105.0",
     "@vscode/test-electron": "^3.1.0",
-    "@vscode/vsce": "^3.9.2",
+    "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
-    "mocha": "^11.7.5",
+    "mocha": "^12.0.2",
     "tsx": "^4.23.12",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@azure/storage-blob": "12.33.0",
     "@microsoft/vscode-azext-azureauth": "^5.1.1"
-  },
-  "overrides": {
-    "serialize-javascript": "7.0.5"
   }
 }
