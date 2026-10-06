@@ -124,6 +124,10 @@ activity-bar view. See the [extension guide](docs/reference/vscode-extension.md)
 for the two workflows, prerequisites and operating limits. Marketplace
 availability is separate from the GitHub release and must be checked there.
 
+Watch the narrated step-by-step Neo4j migration guide for the 2.4.1 VS Code
+extension: [Japanese narration](https://youtu.be/0lFDoJ-4iCI) or
+[English narration](https://youtu.be/TURZ1gU18SY).
+
 Version 2.4.1 adds ordered migration/verification buttons and visible, bounded
 target, restart and resize progress. The guided Linux runner remains pinned to
 2.4.0; updating the extension does not upgrade existing runners or replay work.
