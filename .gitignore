@@ -21,3 +21,5 @@ production-simulation/results/raw/
 *.coverprofile
 *.out
 *.test
+
+docs/vscode-ext-screenshots
