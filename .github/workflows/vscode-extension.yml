@@ -57,8 +57,8 @@ jobs:
         run: npm ci
       - name: Typecheck, unit test, and bundle
         run: npm run check
-      - name: Audit shipped runtime dependencies
-        run: npm audit --omit=dev --audit-level=high
+      - name: Audit runtime and development dependencies
+        run: npm audit --include=dev --audit-level=low
 
   source-contract:
     runs-on: ubuntu-24.04
