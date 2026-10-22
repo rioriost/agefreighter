@@ -301,7 +301,7 @@ the delivery sequence.
 
 ## Requirements
 
-- Go 1.27 or newer
+- Go 1.27.3 or newer
 - Apple Container 1.0 for local database integration tests
 - Docker on Linux for CI database integration tests
 - Azure CLI and Azure Developer CLI for Cosmos DB integration tests
