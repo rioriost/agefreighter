@@ -89,6 +89,37 @@ func TestStructuralGrammarTransitionAndPayloadMatrix(t *testing.T) {
 	}
 }
 
+func TestPredicateOperandAndReverseOperator(t *testing.T) {
+	for _, test := range []struct {
+		kind tokenKind
+		text string
+		want bool
+	}{
+		{tokenIdentifier, "name", true},
+		{tokenEscapedIdentifier, "name", true},
+		{tokenString, "name", true},
+		{tokenNumber, "42", true},
+		{tokenParameter, "$value", true},
+		{tokenParameter, "$<invalid-parameter>", false},
+		{tokenPunctuation, "[", true},
+		{tokenPunctuation, "{", true},
+		{tokenPunctuation, "(", true},
+		{tokenPunctuation, ")", false},
+		{tokenOperator, "=", false},
+	} {
+		if got := expressionOperand(token{kind: test.kind, text: test.text}); got != test.want {
+			t.Errorf("expressionOperand(%q) = %t, want %t", test.text, got, test.want)
+		}
+	}
+	for operator, want := range map[string]string{
+		"=": "=", "<": ">", "<=": ">=", ">": "<", ">=": "<=", "<>": "",
+	} {
+		if got := reversePredicateOperator(operator); got != want {
+			t.Errorf("reversePredicateOperator(%q) = %q, want %q", operator, got, want)
+		}
+	}
+}
+
 func TestPatternProjectionAndExpressionGrammar(t *testing.T) {
 	patterns := []struct {
 		input string

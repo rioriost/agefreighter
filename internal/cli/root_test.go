@@ -293,6 +293,12 @@ func TestWriteExclusiveReport(t *testing.T) {
 	directory := t.TempDir()
 	path := filepath.Join(directory, "report.json")
 	data := []byte("{\"safe\":true}\n")
+	if err := writeExclusiveReport("", data); err == nil {
+		t.Fatal("writeExclusiveReport() accepted an empty path")
+	}
+	if err := writeExclusiveReport(filepath.Join(directory, "missing", "report.json"), data); err == nil {
+		t.Fatal("writeExclusiveReport() accepted a missing parent directory")
+	}
 	if err := writeExclusiveReport(path, data); err != nil {
 		t.Fatalf("writeExclusiveReport() error = %v", err)
 	}
