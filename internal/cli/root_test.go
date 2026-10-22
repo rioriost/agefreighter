@@ -18,6 +18,7 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
 	"github.com/rioriost/agefreighter/internal/report"
+	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -322,6 +323,50 @@ func TestWriteExclusiveReport(t *testing.T) {
 	}
 	if err := writeExclusiveReport(link, data); err == nil {
 		t.Fatal("writeExclusiveReport() followed a symlink")
+	}
+}
+
+func TestRenderDiagnosticOutput(t *testing.T) {
+	document := report.New("check-cypher", time.Now())
+	document.Checks = []report.Check{{
+		ID: "compatibility", Status: report.CheckPass, Summary: "compatible",
+	}}
+	document.Outcome = report.OutcomePass
+
+	var output bytes.Buffer
+	command := &cobra.Command{}
+	command.SetContext(t.Context())
+	command.SetOut(&output)
+	if err := renderDiagnosticOutput(command, document, report.FormatJSON, ""); err != nil {
+		t.Fatalf("render JSON: %v", err)
+	}
+	if _, err := report.Decode(output.Bytes()); err != nil {
+		t.Fatalf("decode rendered JSON: %v", err)
+	}
+
+	path := filepath.Join(t.TempDir(), "diagnostic.md")
+	if err := renderDiagnosticOutput(command, document, report.FormatMarkdown, path); err != nil {
+		t.Fatalf("render Markdown file: %v", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || !strings.Contains(string(data), "compatibility") {
+		t.Fatalf("read rendered Markdown: %v, %q", err, data)
+	}
+	if err := renderDiagnosticOutput(command, document, report.FormatMarkdown, path); err == nil {
+		t.Fatal("renderDiagnosticOutput() overwrote a report")
+	}
+	if err := renderDiagnosticOutput(command, document, "xml", ""); err == nil {
+		t.Fatal("renderDiagnosticOutput() accepted an unsupported format")
+	}
+	command.SetOut(failingWriter{})
+	if err := renderDiagnosticOutput(command, document, report.FormatJSON, ""); err == nil {
+		t.Fatal("renderDiagnosticOutput() ignored output failure")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	command.SetContext(ctx)
+	if err := renderDiagnosticOutput(command, document, report.FormatJSON, ""); !errors.Is(err, context.Canceled) {
+		t.Fatalf("renderDiagnosticOutput() after cancellation = %v", err)
 	}
 }
 
