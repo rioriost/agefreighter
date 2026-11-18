@@ -470,6 +470,11 @@ timeout increase, forced plan, speculative statistics fix or success-shaped
 retry was used to make this case green. A subsequent bounded read-only
 diagnostic during retirement could no longer resolve either target endpoint;
 no execution plan or statistics were captured and retirement was not delayed.
+A separate local PostgreSQL17 temporary-table probe returned all 20,000
+endpoint references against 100,000 identities in 839 / 139 / 83 milliseconds
+with neither / identity-only / both tables analyzed. It did **not** reproduce
+the HorizonDB timeout or establish its cause; persistent source tables were
+untouched and this diagnostic adds no qualification cases.
 
 Both source/loader pairs ran concurrently on the retained D8ds v5, each with a
 one-core/two-GiB source and three-core/two-GiB loader. This is **not four isolated
@@ -497,9 +502,18 @@ Fresh actual MTD was USD120.6432; the conservative full-window/reserve envelope
 was **USD538.0052**, not a final bill. Independent current-lease retain jobs
 passed before execution, honoring Cost Management backoff. Evidence preservation
 preceded early lease closure at **13:35:00 UTC**. Exact-new-group-only independent
-cleanup job `2ce526f4-4a53-42de-aa75-a35fb46947e2` is running; final absence has
-not yet been verified. The retained VM's separate shutdown is Enabled at
-**15:34 UTC / November 19 00:34 JST**.
+cleanup job `2ce526f4-4a53-42de-aa75-a35fb46947e2` **Completed**, having issued DELETE at
+13:35:44 UTC and polled the owned group until its final 404 at 14:13:55 UTC,
+within the forty-five-minute bound. Separate operator requests confirmed final
+404s for the disposable group and **both** target clusters at **14:14:02 UTC
+/ 23:14:02 JST**. The excluded old group, VM, OS disk, Cosmos account and
+evidence Storage account were verified present. The retained VM's separate
+shutdown remained Enabled at **15:34 UTC / November 19 00:34 JST**.
+The idle retained VM was then **deallocated, not deleted**, independently
+verified at **14:16:05 UTC / 23:16:05 JST**, with its protected OS disk still
+attached and the external shutdown schedule unchanged.
+No new target or disposable group remains from this wave; retained resources
+and delayed postings can still incur charges.
 
 The campaign now has **39/60 passing P0 cases, one failed case and twenty
 unexecuted cases; 7/12 fully qualified routes, zero complete phases**.

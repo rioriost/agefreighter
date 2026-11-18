@@ -180,6 +180,18 @@
         "targetEndpointsNoLongerResolvedDuringRetirement": true,
         "queryPlanOrStatisticsCaptured": false,
         "retirementDelayedOrReversed": false
+      },
+      "localSyntheticQueryProbe": {
+        "scope": "Local PostgreSQL17 temporary tables only, not HorizonDB",
+        "identityRows": 100000,
+        "edgeReferences": 20000,
+        "unanalyzedExecutionMilliseconds": 838.676,
+        "identityAnalyzedExecutionMilliseconds": 138.894,
+        "bothTablesAnalyzedExecutionMilliseconds": 82.727,
+        "allPlansReturnedRows": 20000,
+        "horizonTimeoutReproduced": false,
+        "persistentSourceTablesChanged": false,
+        "rootCauseEstablished": false
       }
     },
     {
@@ -283,11 +295,27 @@
     "finalBillKnown": false
   },
   "retirement": {
-    "status": "in-progress",
+    "status": "verified-absent",
     "leaseId": "48b7cdca-6333-40c0-8ac2-7b12291ba2c5",
     "earlyClosedAtUtc": "2026-11-18T13:35:00.968884+00:00",
+    "publishedClosedLeaseSourceSha256": "52d1f72071f2af4b5532d9a3cf272364c6bc4bc77d16f5a73f01c5f4a34c8a0e",
+    "guardConfigSha256": "a11cba631367ffa5a743c61e0b25640d94b67453d793026ccd0ba28aa110c2eb",
     "guardJob": "2ce526f4-4a53-42de-aa75-a35fb46947e2",
+    "guardJobStatus": "Completed",
+    "deleteRequestedAtUtc": "2026-11-18T13:35:44.8377696+00:00",
+    "ownedResourceFinalHTTP404AtUtc": "2026-11-18T14:13:55.6688195+00:00",
+    "independentOperatorVerifiedAtUtc": "2026-11-18T14:14:02.691729+00:00",
+    "resourceGroupFinalHTTP404": true,
+    "pg17FinalHTTP404": true,
+    "pg18FinalHTTP404": true,
+    "excludedOldGroupVMDiskCosmosStorageVerifiedPresent": true,
     "scope": "exact disposable scale resource group only",
+    "retainedVM": {
+      "powerState": "PowerState/deallocated",
+      "verifiedAtUtc": "2026-11-18T14:16:05.712103+00:00",
+      "deleteAttempted": false,
+      "protectedOSDiskStillAttached": true
+    },
     "externalVMShutdownUTC": "15:34",
     "retainedResourcesAndDelayedPostingsMayStillIncurCharges": true
   },
