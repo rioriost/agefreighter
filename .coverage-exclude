@@ -7,6 +7,7 @@ production-simulation/cmd/fixturegen/main.go
 production-simulation/cmd/p1runnerverify/main.go
 production-simulation/cmd/portablefixture/main.go
 production-simulation/cmd/rangedigest/main.go
+production-simulation/internal/fixture/delta.go
 production-simulation/internal/fixture/generate.go
 production-simulation/internal/fixture/model.go
 production-simulation/internal/fixture/verify.go
@@ -20,6 +21,8 @@ production-simulation/internal/rangedigest/gremlin_documents.go
 production-simulation/internal/rangedigest/gremlin_fixture.go
 production-simulation/internal/rangedigest/gremlin_target.go
 production-simulation/internal/rangedigest/p1_order.go
+production-simulation/internal/rangedigest/scale_target.go
+production-simulation/internal/rangedigest/scenario.go
 production-simulation/internal/rangedigest/target.go
 production-simulation/internal/rangedigest/target_endpoint_index.go
 production-simulation/internal/rangedigest/types.go
