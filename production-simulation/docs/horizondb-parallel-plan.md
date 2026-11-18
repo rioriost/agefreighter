@@ -1,8 +1,9 @@
 # HorizonDB qualification and parallel execution plan
 
 Prepared 2026-11-18. **P0-P3 execution is approved; technical and cost
-promotion gates remain mandatory. Both CSV P0 routes passed all five
-scenarios: ten of sixty P0 cases, two of twelve routes, no complete phase.**
+promotion gates remain mandatory. CSV and PostgreSQL-source P0 routes passed
+all five scenarios: twenty of sixty P0 cases, four of twelve routes, no
+complete phase.**
 After successful tiny qualification and publication of 2.4.2, the user
 approved all four larger phases on 2026-11-18. Existing tiny HorizonDB clusters
 may be reused, or deleted if replacing them with new clusters is preferable.
@@ -181,9 +182,10 @@ go run ./production-simulation/cmd/rangedigest target --scale --manifest BASE/ma
   --job-id JOB_UUID --dsn-env TARGET_DSN --output actual.json
 ```
 
-`horizondb-p0-csv-targets.bicep` contains only the two disposable CSV targets,
-their AGE parameter groups, Entra configuration and sole approved NAT firewall
-rule. It never redeploys the old VM, disks, VNet or Cosmos account. Create with
+`horizondb-p0-csv-targets.bicep` supports the CSV and PostgreSQL-source waves
+and contains only the two disposable targets, their AGE parameter groups,
+Entra configuration and sole approved NAT firewall rule. It never redeploys
+the old VM, disks, VNet or Cosmos account. Create with
 default parameter groups first, then associate AGE groups after writer creation.
 A fresh exact-group lease and successful independent guard/cost admission are
 mandatory before provisioning; this template is not an automatic campaign.
@@ -322,12 +324,13 @@ evidence Storage account were explicitly verified present; the retained VM's
 external shutdown remained Enabled at 10:45 UTC. Retained resources and delayed
 cost postings mean this is not a zero-bill claim.
 
-This is **10/60 unique P0 cases and 2/12 P0 routes**. The earlier repeated
-clean-create samples are not two additional unique cases. Other P0 routes and
-P1-P3 remain incomplete and are not queued. Further admission still requires
+At this checkpoint, this was **10/60 unique P0 cases and 2/12 P0 routes**.
+The earlier repeated clean-create samples are not two additional unique cases.
+The PostgreSQL-source continuation below adds another ten cases. Other P0 routes
+and P1-P3 remain incomplete and are not queued. Further admission still requires
 the outstanding technical and actual remaining-work cost gates.
 
-### PostgreSQL P0 route preparation
+### PostgreSQL P0 five-scenario qualification
 
 The shared five-scenario harness also has an explicitly gated PostgreSQL-source
 adapter. It streams hash-verified portable CSV through native COPY into new,
@@ -335,9 +338,62 @@ run-scoped base/append/upsert schemas, checks effective PostgreSQL 17 and every
 table count, and never overwrites the retained tiny schema. Effective connection
 targets, including URI overrides and fallbacks, must remain the dedicated local
 fixture database. A separate opt-in source-only preflight performs no HorizonDB
-migration and does not advance route coverage. Target execution still requires
-a fresh independent lease and all effective-version and canonical gates above;
-no PostgreSQL-source P0 pass is claimed by this preparation.
+migration and does not advance route coverage. Target execution requires a
+fresh independent lease and all effective-version and canonical gates above.
+
+The actual source reported PostgreSQL **17.6**. Native candidate
+`b26fd80d343bdb4facdfe361109620613c9fef0c` passed all ten target cases on
+HorizonDB PG17.11 and PG18.6 / AGE 1.8.0 without skips or rejected/failed batches.
+All eighteen leaves per case matched the independent raw-fixture oracle, and
+every scenario root matched both PostgreSQL majors **and the earlier CSV
+routes**. See [the redacted evidence](horizondb-p0-postgres-modes-20261118.json).
+
+| Scenario | PG17 load + verification | PG18 load + verification | Final records |
+|---|---:|---:|---:|
+| Create | 37.176 s | 37.565 s | 458,000 |
+| Replace | 243.597 s | 231.068 s | 458,000 |
+| Append 1% | 26.432 s | 26.492 s | 462,580 |
+| Upsert 1% | 26.611 s | 27.127 s | 462,580 |
+| SIGKILL / same-job resume | 36.201 s | 36.356 s | 458,000 |
+
+Both workers were actually SIGKILLed at 120,000 committed records and resumed
+the same UUID for the remaining 338,000. Replace changed generation; incremental
+modes retained it and ended at 101%. Peak process RSS was 156,921,856 bytes
+(about 150 MiB), whole-cgroup memory 535,601,152 bytes (about 511 MiB), swap/OOM
+zero and disk 13%. Existing fifteen-second telemetry and resource/progress
+fences remained active. The large create/replace/recovery timing variation
+across these waves is not a P3 forecast or long-running token-renewal proof.
+
+The previous disposable group was absent and old active guard jobs were
+quiescent before replacement. The new lease was published before creating
+replacement resources, and all four independent schedules were verified enabled.
+Fresh actual MTD remained USD120.6432; the conservative full-window plus reserve
+envelope was USD471.5271, below USD3750. Completed guard job
+`d4f8d94f-741a-4c86-8ddc-7b8a95f8dd16` verified the current configuration and
+budget/retain decision. The initial target deadline was 12:00 UTC (21:00 JST);
+the retained VM's external stop was explicitly moved to 12:15 UTC (21:15 JST).
+No new VM or public ingress was created.
+
+The HorizonDB quota CLI returned `BadRequest`; this is not unlimited quota.
+The service's [quota guidance][horizon-quota] describes support-mediated
+increases, not a published numeric entitlement. Both actual eight-vCore writer
+allocations reached Ready before migration; this proves these two allocations,
+not four-lane or larger capacity.
+
+All allowlisted nonsecret raw evidence was privately uploaded and independently
+digest-read-back verified: 32,772 bytes, SHA-256
+`ab5bf0ff07c784f78d97a88ae62b2290c9e177f0f455ba72cd2c139d779f5c28`.
+After preservation the lease closed early at 10:18:39 UTC. Independent
+exact-group retirement job `3519f548-edcc-4887-a2c3-5d58082377a2` is in progress;
+no final-404 claim is made for this wave yet.
+
+The campaign is now **20/60 unique P0 cases and 4/12 P0 routes**, with zero
+complete phases. The remaining forty P0 cases are the Neo4j 4.4/5.26 and both
+Cosmos layouts into both target majors. They and P1-P3 are not queued; the
+remaining bulk adapters, four-lane controller, long-running credential,
+disposable-worker snapshot, RU and fault/promotion gates remain outstanding.
+
+[horizon-quota]: https://learn.microsoft.com/azure/horizondb/configure-maintain/how-to-request-quota-increase
 
 Keep the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Inspect only the approved subscription and confirm the

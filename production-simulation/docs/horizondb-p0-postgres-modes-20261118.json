@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "dateUTC": "2026-11-18",
+  "region": "japaneast",
+  "status": "partial-pass",
+  "coverage": "Two PostgreSQL-source P0 routes, five scenarios each; not a complete twelve-route P0 phase",
+  "candidateCommit": "b26fd80d343bdb4facdfe361109620613c9fef0c",
+  "binarySha256": "450eba42aa318b3ab62ae16b78f883d96aa2c9f79f6d3c45fd936f36532945e1",
+  "publishedReleaseBinary": false,
+  "source": {
+    "type": "postgresql",
+    "effectiveVersion": "17.6",
+    "readMode": "copy",
+    "connectionBoundary": "dedicated local fixture database",
+    "immutableDatasets": {"baseRecords": 458000, "appendRecords": 4580, "upsertRecords": 4580},
+    "sourceCOPYHashesAndTableCountsVerified": true
+  },
+  "dataset": {
+    "phase": "p0",
+    "seed": 20260829,
+    "shards": 4,
+    "vertices": 100000,
+    "edges": 358000,
+    "fixtureRootSha256": "f5c55737a9b8abe9259937920c43504351db48c56b29afd031a813e403b20b1d",
+    "appendVertices": 1000,
+    "appendEdges": 3580,
+    "upsertVertices": 1000,
+    "upsertEdges": 3580,
+    "finalVerticesAfterIncrementalCases": 101000,
+    "finalEdgesAfterIncrementalCases": 361580
+  },
+  "targetVersions": {
+    "17": {"postgresql": "17.11", "age": "1.8.0"},
+    "18": {"postgresql": "18.6", "age": "1.8.0"}
+  },
+  "targetCompute": {
+    "vCoresPerWriter": 8,
+    "writersPerTarget": 1,
+    "highAvailability": false
+  },
+  "verification": {
+    "method": "Independent raw-fixture scenario oracle versus read-only SQL canonical snapshot of actual AGE properties and physical endpoints",
+    "allEighteenLeavesComparedPerCase": true,
+    "allPostgreSQLMajorPairsMatch": true,
+    "allCSVScenarioRootsMatch": true,
+    "rejectedRows": 0,
+    "failedBatches": 0,
+    "replaceChangedGeneration": true,
+    "appendAndUpsertPreservedGeneration": true,
+    "canonicalRoots": {
+      "create": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+      "replace": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+      "append": "8b645c2f59670d8b677fc8acdd22cd77ee52ca3fedbd550130c6a89a68440675",
+      "upsert": "7061ff76ae2dbeeb35a188d3f6d366f28486f2d33c230adfc470419b8b53762a",
+      "resume": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4"
+    }
+  },
+  "cases": [
+    {
+      "targetPostgreSQLMajor": 17, "mode": "create", "status": "pass",
+      "jobId": "45dfe28c-3d2e-4155-8b99-29734ce6f573",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 37.176
+    },
+    {
+      "targetPostgreSQLMajor": 17, "mode": "replace", "status": "pass",
+      "jobId": "a18ba443-8c37-40c1-9838-db135f2f50f3",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 243.597
+    },
+    {
+      "targetPostgreSQLMajor": 17, "mode": "append", "status": "pass",
+      "jobId": "f560f190-1721-4570-a46c-678f43b1a3cf",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 26.432
+    },
+    {
+      "targetPostgreSQLMajor": 17, "mode": "upsert", "status": "pass",
+      "jobId": "17ebc018-29ee-4638-a6e0-32241cdb0f3b",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 26.611
+    },
+    {
+      "targetPostgreSQLMajor": 17, "mode": "resume", "status": "pass",
+      "jobId": "063b3175-4053-418d-8e8c-aa9067e7dcb6",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 17,
+      "loadAndVerificationSeconds": 36.201,
+      "recovery": {
+        "fault": "SIGKILL", "committedBeforeKill": 120000,
+        "durableCommittedBeforeResume": 120000, "recordsCommittedAfterResume": 338000,
+        "sameJobId": true
+      }
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "create", "status": "pass",
+      "jobId": "e5eb2dbd-7a46-4a41-b26e-9a4e8e07c598",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 37.565
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "replace", "status": "pass",
+      "jobId": "9c450a44-8765-44e0-92f6-a226243b86d5",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 231.068
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "append", "status": "pass",
+      "jobId": "e21dfab0-1ff1-454f-9bfc-363df17e7c31",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 26.492
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "upsert", "status": "pass",
+      "jobId": "1568138b-bfab-4cfc-ab4f-9da00f84aea0",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 27.127
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "resume", "status": "pass",
+      "jobId": "2c2808e0-174e-4744-95ef-6acb99ac6ec2",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 17,
+      "loadAndVerificationSeconds": 36.356,
+      "recovery": {
+        "fault": "SIGKILL", "committedBeforeKill": 120000,
+        "durableCommittedBeforeResume": 120000, "recordsCommittedAfterResume": 338000,
+        "sameJobId": true
+      }
+    }
+  ],
+  "loader": {
+    "vmSKU": "Standard_D8ds_v5",
+    "cpuQuotaCores": 6,
+    "hardMemoryLimitBytes": 2147483648,
+    "maximumProcessRSSBytes": 156921856,
+    "maximumCgroupMemoryBytes": 535601152,
+    "swapBytes": 0,
+    "oomEvents": 0,
+    "maximumDiskPercent": 13,
+    "metricIntervalSeconds": 15,
+    "progressStallLimitSeconds": 840
+  },
+  "transport": {
+    "tls": "verify-full",
+    "authentication": "managed-identity",
+    "longRunningTokenRenewalQualified": false,
+    "horizonIngress": "approved single static NAT IPv4 only"
+  },
+  "retainedRawEvidence": {
+    "bytes": 32772,
+    "sha256": "ab5bf0ff07c784f78d97a88ae62b2290c9e177f0f455ba72cd2c139d779f5c28",
+    "blob": "afhs-20261118/p0-postgresql/r20261118p0pg03/0950dbddccb3/p0-postgresql-modes-evidence-0950dbddccb3.tar.xz",
+    "privateManagedIdentityReadBack": "passed"
+  },
+  "retirement": {
+    "status": "in-progress",
+    "leaseId": "c5866b78-d5ef-4814-ab05-00e52a0130ca",
+    "earlyClosedAtUtc": "2026-11-18T10:18:39.695221+00:00",
+    "guardJob": "3519f548-edcc-4887-a2c3-5d58082377a2",
+    "deleteObservationLimitMinutes": 45,
+    "deletionScope": "new disposable qualification resource group only",
+    "excludedVMExternalShutdownUTC": "12:15"
+  },
+  "completedRoutes": ["postgresql-pg17", "postgresql-pg18"],
+  "uniqueCompletedP0ScenarioCases": 10,
+  "campaign": {
+    "completedRoutes": ["csv-pg17", "csv-pg18", "postgresql-pg17", "postgresql-pg18"],
+    "uniqueCompletedP0ScenarioCases": 20,
+    "remainingP0ScenarioCases": 40,
+    "completedPhases": [],
+    "largerPhasesExecuted": false
+  }
+}
