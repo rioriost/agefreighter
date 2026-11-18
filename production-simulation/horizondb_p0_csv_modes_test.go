@@ -379,17 +379,22 @@ func horizonInterruptedCSV(t *testing.T, ctx context.Context, conn *pgx.Conn, pa
 	var exit *exec.ExitError
 	err = <-done
 	reaped = true
-	if !errors.As(err, &exit) || exit.Success() {
+	if !errors.As(err, &exit) || exit.ExitCode() != -1 {
 		t.Fatalf("expected a killed worker, got %v", err)
 	}
 	writeTinyJSON(t, filepath.Join(output, name+"-fault.json"), map[string]any{
 		"fault": "SIGKILL", "jobId": id, "committedBeforeKill": committed, "nextBatchBeforeKill": batch,
 		"checkpointBeforeKill": checkpoint, "injectedAtUtc": time.Now().UTC(),
+		"processTermination": exit.ProcessState.String(),
 	})
 	before, err := app.Status(ctx, path, id)
 	if err != nil || before.Status == meta.JobCommitted || before.CommittedRows < committed || before.CommittedRows >= 458_000/2 {
 		t.Fatalf("durable killed-worker state differs: %+v / %v", before, err)
 	}
+	writeTinyJSON(t, filepath.Join(output, name+"-resume.json"), map[string]any{
+		"jobId": id, "durableCommittedRowsBeforeResume": before.CommittedRows,
+		"resumeStartedAtUtc": time.Now().UTC(),
+	})
 	result, err := app.Resume(ctx, path, id)
 	if err != nil || result.JobID != id || uint64(before.CommittedRows)+result.Metrics.RecordsCommitted != 458_000 {
 		t.Fatalf("resume did not preserve the exact job/checkpoint: %+v / %v", result, err)
