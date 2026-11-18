@@ -41,10 +41,17 @@ func Verify(manifestPath string) (Manifest, error) {
 		return Manifest{}, errors.New("manifest is incomplete")
 	}
 	canonicalPlan, err := BuildPlan(manifest.Plan.Phase)
+	if manifest.Delta != nil {
+		digest, digestErr := hex.DecodeString(manifest.Delta.BaseRoot)
+		if digestErr != nil || len(digest) != sha256.Size {
+			return Manifest{}, errors.New("delta base root must be a SHA-256 digest")
+		}
+		canonicalPlan, err = deltaPlan(manifest.Plan.Phase, manifest.Delta.Kind)
+	}
 	if err != nil || !reflect.DeepEqual(manifest.Plan, canonicalPlan) {
 		return Manifest{}, errors.New("manifest plan does not match the canonical phase model")
 	}
-	if manifest.RootSHA256 != manifestRoot(manifest.Files) {
+	if manifest.RootSHA256 != manifestDigest(manifest) {
 		return Manifest{}, errors.New("manifest root digest does not match its file table")
 	}
 	if err := verifyCardinality(manifest); err != nil {

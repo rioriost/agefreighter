@@ -37,6 +37,8 @@ func TestRunUsageAndErrors(t *testing.T) {
 		{"generate", "extra"},
 		{"verify"},
 		{"verify", "--manifest", "missing.json"},
+		{"delta", "--base", "missing.json", "--kind", "append", "--output", "unused"},
+		{"delta", "--kind", "upsert"},
 	}
 	for index, args := range tests {
 		stdout := new(bytes.Buffer)

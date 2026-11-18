@@ -13,24 +13,28 @@ import (
 // resolves physical endpoints, avoiding a client-sized vertex index or sort.
 // Target sort/temp-storage costs still belong in the phase promotion gate.
 func ScaleTargetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeRows int64, gremlin bool) (Manifest, error) {
+	return ScaleScenarioTargetManifest(ctx, dsn, Scenario{Base: manifestPath}, jobID, rangeRows, gremlin)
+}
+
+func ScaleScenarioTargetManifest(ctx context.Context, dsn string, paths Scenario, jobID string, rangeRows int64, gremlin bool) (Manifest, error) {
 	if ctx == nil || dsn == "" || jobID == "" {
 		return Manifest{}, errors.New("context, target DSN and job ID are required")
 	}
-	f, err := fixture.Verify(manifestPath)
+	input, err := readScenario(paths)
 	if err != nil {
 		return Manifest{}, err
 	}
-	switch f.Plan.Phase {
+	switch input.base.Plan.Phase {
 	case fixture.PhaseP0, fixture.PhaseP1, fixture.PhaseP2, fixture.PhaseP3:
 	default:
-		return Manifest{}, errors.New("scale target digest requires an approved P0-P3 base fixture")
+		return Manifest{}, errors.New("scale target digest requires an approved P0-P3 fixture scenario")
 	}
 	conn, err := pgx.Connect(ctx, dsn)
 	if err != nil {
 		return Manifest{}, err
 	}
 	defer conn.Close(context.Background())
-	return scaleTargetSnapshot(ctx, conn, f, jobID, rangeRows, gremlin)
+	return scaleTargetSnapshot(ctx, conn, input.final, jobID, rangeRows, gremlin)
 }
 
 func scaleTargetSnapshot(ctx context.Context, conn *pgx.Conn, f fixture.Manifest, jobID string, rangeRows int64, gremlin bool) (Manifest, error) {

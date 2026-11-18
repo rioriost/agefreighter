@@ -143,16 +143,49 @@ Candidate `8546bf3754884508ab3fa439bb37b86b67b21289` also adds a bounded-client-
 SQL canonical verifier for P0-P3 base fixtures. Its bounded Gremlin, streaming
 Gremlin and streaming ordinary-identity SQL contracts passed against isolated
 PostgreSQL databases without changing the original tiny fixtures. SQL-contract
-evidence is not a HorizonDB migration result. Append/upsert expected oracles
-are not implemented by this base-fixture verifier.
+evidence is not a HorizonDB migration result. Subsequent scenario preparation
+now adds separately pinned append/upsert fixtures and a streaming full-graph
+oracle, without changing the qualified base fixture hashes.
 
-The opt-in P0 harness currently covers **only CSV clean-create into PG17 and
+The executed opt-in P0 harness covered **only CSV clean-create into PG17 and
 PG18**, not all twelve routes or any complete phase. Both cases actually passed,
-as recorded below. Full-phase execution still
-requires immutable one-percent deltas and their independent oracles, all-source
-bulk seeders, long-running credential-renewal evidence, the isolated-lane
-controller and fault/telemetry orchestration. Do not count this preparation or
-the two bounded cases as a complete P0 pass.
+as recorded below. A new explicitly gated CSV sequence covers create, replace,
+one-percent append/upsert and process-kill/resume; its implementation is not
+itself live qualification evidence. Full-phase execution still requires all-source
+bulk seeders, long-running credential-renewal evidence, isolated-lane control and
+the remaining faults/telemetry. Do not count preparation or the original two
+bounded cases as a complete P0 pass.
+
+The immutable delta generator is limited to the approved P0-P2 incremental
+scenarios. It inherits the base seed/sharding, pins the base SHA-256, refuses
+existing outputs, and includes its mode/provenance in its digest. Append uses
+new key/ID suffixes and all four old/new endpoint combinations. Upsert changes
+one percent of existing records without changing their identities or endpoints.
+The independent oracle streams raw fixture rows, overlays those updates and
+unions appended rows, yielding 101% after append/upsert, never 102%. SQL target
+verification uses the corresponding final per-label counts and actual endpoints.
+Offline P0 parity against the production CSV connector, Gremlin appended
+partition decoding and the unchanged original base hash are checked; none of
+these offline checks is an additional HorizonDB migration pass.
+
+Example reproducible preparation, always using new output paths:
+
+```bash
+go run ./production-simulation/cmd/fixturegen delta --base BASE/manifest.json --kind append --output APPEND
+go run ./production-simulation/cmd/fixturegen delta --base BASE/manifest.json --kind upsert --output UPSERT
+go run ./production-simulation/cmd/rangedigest fixture --manifest BASE/manifest.json \
+  --append-manifest APPEND/manifest.json --upsert-manifest UPSERT/manifest.json --output expected.json
+go run ./production-simulation/cmd/rangedigest target --scale --manifest BASE/manifest.json \
+  --append-manifest APPEND/manifest.json --upsert-manifest UPSERT/manifest.json \
+  --job-id JOB_UUID --dsn-env TARGET_DSN --output actual.json
+```
+
+`horizondb-p0-csv-targets.bicep` contains only the two disposable CSV targets,
+their AGE parameter groups, Entra configuration and sole approved NAT firewall
+rule. It never redeploys the old VM, disks, VNet or Cosmos account. Create with
+default parameter groups first, then associate AGE groups after writer creation.
+A fresh exact-group lease and successful independent guard/cost admission are
+mandatory before provisioning; this template is not an automatic campaign.
 
 ### P0 CSV clean-create results
 

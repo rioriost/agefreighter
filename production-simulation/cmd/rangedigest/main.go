@@ -48,6 +48,9 @@ func runFixture(ctx context.Context, args []string, stdout, stderr io.Writer) er
 	flags := flag.NewFlagSet("fixture", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	manifestPath := flags.String("manifest", "", "fixture manifest path")
+	appendPath := flags.String("append-manifest", "", "optional immutable one-percent append manifest")
+	upsertPath := flags.String("upsert-manifest", "", "optional immutable one-percent upsert manifest")
+	gremlin := flags.Bool("gremlin", false, "partition-qualified Gremlin canonical identities")
 	rangeRows := flags.Int64("range-rows", 100_000, "canonical records per range")
 	output := flags.String("output", "", "new output manifest")
 	if err := flags.Parse(args); err != nil {
@@ -56,7 +59,8 @@ func runFixture(ctx context.Context, args []string, stdout, stderr io.Writer) er
 	if flags.NArg() != 0 || *manifestPath == "" || *output == "" {
 		return errors.New("fixture requires --manifest and --output")
 	}
-	manifest, err := rangedigest.FixtureManifest(ctx, *manifestPath, *rangeRows)
+	manifest, err := rangedigest.ScenarioManifest(ctx,
+		rangedigest.Scenario{Base: *manifestPath, Append: *appendPath, Upsert: *upsertPath}, *rangeRows, *gremlin)
 	if err != nil {
 		return err
 	}
@@ -70,6 +74,10 @@ func runTarget(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	flags := flag.NewFlagSet("target", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	manifestPath := flags.String("manifest", "", "fixture manifest path")
+	appendPath := flags.String("append-manifest", "", "optional immutable one-percent append manifest")
+	upsertPath := flags.String("upsert-manifest", "", "optional immutable one-percent upsert manifest")
+	scale := flags.Bool("scale", false, "bounded-client-memory P0-P3 SQL verifier")
+	gremlin := flags.Bool("gremlin", false, "partition-qualified identities; requires --scale")
 	rangeRows := flags.Int64("range-rows", 100_000, "canonical records per range")
 	jobID := flags.String("job-id", "", "committed agefreighter job ID")
 	dsnEnvironment := flags.String("dsn-env", "", "environment variable containing target DSN")
@@ -82,15 +90,23 @@ func runTarget(ctx context.Context, args []string, stdout, stderr io.Writer) err
 		*dsnEnvironment == "" || *output == "" {
 		return errors.New("target requires --manifest, --job-id, --dsn-env, and --output")
 	}
+	if !*scale && (*appendPath != "" || *upsertPath != "" || *gremlin) {
+		return errors.New("scenario or Gremlin target verification requires --scale")
+	}
 	dsn := os.Getenv(*dsnEnvironment)
 	if dsn == "" {
 		return fmt.Errorf("DSN environment variable %s is empty", *dsnEnvironment)
 	}
 	exportContext, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
-	manifest, err := rangedigest.TargetManifest(
-		exportContext, dsn, *manifestPath, *jobID, *rangeRows,
-	)
+	var manifest rangedigest.Manifest
+	var err error
+	if *scale {
+		manifest, err = rangedigest.ScaleScenarioTargetManifest(exportContext, dsn,
+			rangedigest.Scenario{Base: *manifestPath, Append: *appendPath, Upsert: *upsertPath}, *jobID, *rangeRows, *gremlin)
+	} else {
+		manifest, err = rangedigest.TargetManifest(exportContext, dsn, *manifestPath, *jobID, *rangeRows)
+	}
 	if err != nil {
 		return err
 	}
@@ -202,5 +218,6 @@ func printSummary(writer io.Writer, manifest rangedigest.Manifest) error {
 func usage(writer io.Writer) {
 	fmt.Fprintln(writer, "usage: rangedigest fixture --manifest PATH --output NEW_PATH [--range-rows N]")
 	fmt.Fprintln(writer, "       rangedigest target --manifest PATH --job-id UUID --dsn-env NAME --output NEW_PATH [--range-rows N]")
+	fmt.Fprintln(writer, "       fixture/target: [--append-manifest PATH] [--upsert-manifest PATH] [--gremlin]; scenario targets require --scale")
 	fmt.Fprintln(writer, "       rangedigest compare --expected PATH --actual PATH [--output NEW_PATH]")
 }

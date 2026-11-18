@@ -29,6 +29,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		err = runGenerate(ctx, args[1:], stdout, stderr)
 	case "verify":
 		err = runVerify(args[1:], stdout, stderr)
+	case "delta":
+		err = runDelta(ctx, args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		usage(stdout)
 		return 0
@@ -40,6 +42,27 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+func runDelta(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	flags := flag.NewFlagSet("delta", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	base := flags.String("base", "", "pinned base fixture manifest")
+	kind := flags.String("kind", "", "append or upsert; exactly one percent")
+	output := flags.String("output", "", "new output directory")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 || *base == "" || *output == "" || (*kind != "append" && *kind != "upsert") {
+		return errors.New("delta requires --base, --kind append|upsert and --output")
+	}
+	manifest, err := fixture.GenerateDelta(ctx, *base, *output, fixture.DeltaKind(*kind))
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(stdout, "phase=%s delta=%s vertices=%d edges=%d root_sha256=%s\n",
+		manifest.Plan.Phase, manifest.Delta.Kind, manifest.Plan.VertexTotal, manifest.Plan.EdgeTotal, manifest.RootSHA256)
+	return nil
 }
 
 func runGenerate(ctx context.Context, args []string, stdout, stderr io.Writer) error {
@@ -95,4 +118,5 @@ func runVerify(args []string, stdout, stderr io.Writer) error {
 func usage(writer io.Writer) {
 	fmt.Fprintln(writer, "usage: fixturegen generate [flags]")
 	fmt.Fprintln(writer, "       fixturegen verify --manifest PATH")
+	fmt.Fprintln(writer, "       fixturegen delta --base PATH --kind append|upsert --output NEW_DIRECTORY")
 }

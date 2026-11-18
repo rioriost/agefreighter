@@ -15,7 +15,7 @@ func gremlinFixtureID(spec fixture.VertexSpec, key int64, id string) ([]byte, er
 	if key < spec.FirstKey || key >= spec.FirstKey+spec.Count {
 		return nil, fmt.Errorf("Gremlin endpoint outside frozen label range")
 	}
-	partition := spec.Label + "-" + strconv.FormatInt((key-spec.FirstKey)%64, 10)
+	partition := spec.Label + "-" + strconv.FormatInt((key-spec.FirstKey+spec.IDOffset)%64, 10)
 	return json.Marshal([2]string{partition, id})
 }
 
