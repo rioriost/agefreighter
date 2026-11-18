@@ -21,9 +21,16 @@ unrestricted availability and sufficient regional/family quota.
 An isolated tiny-only environment is being provisioned using
 [`horizondb-tiny.bicep`](../infra/horizondb-tiny.bicep), after successful ARM
 validation and a Create-only what-if. It contains two two-vCore single-writer
-clusters, one private runner VM, private DNS/endpoints and a serverless Cosmos
-fixture account with local authentication disabled. The public IP is used only
-by the outbound NAT, not assigned to a VM. These preparation steps are not
+clusters, one private runner VM and a private-endpoint serverless Cosmos
+fixture account with local authentication disabled. HorizonDB Private Link
+creation failed because the network provider called the incompatible
+`2026-01-20-preview` cluster API for a `2026-10-01-preview` cluster. The explicit
+`allowTinyNATFallback=true` alternative permits only the runner NAT's single
+static IPv4 in each pool firewall, with verified TLS and Entra authentication.
+It never adds an all-Azure or Internet-wide firewall rule. The public IP remains
+outbound-only for the VM, which has no public IP or inbound access.
+The default template still requests private-only HorizonDB access.
+These preparation steps are not
 migration qualification. The larger configurations below remain
 **conditional cost scenarios, not validated deployment recommendations**;
 their complete SKU restrictions and remaining monthly budget are unverified.
@@ -349,6 +356,16 @@ the template once with its default `configureAGE=false`, then with
 restart both pools to apply the static preload change and check actual SQL
 readiness. Do not redeploy the first-pass settings over initialized pools.
 Source bootstrap refuses non-tiny VM metadata and existing credentials.
+The live suite also fences sources to the dedicated local PostgreSQL/Neo4j
+ports and run-scoped Cosmos account naming. Pool resources must omit tags;
+the live resource provider rejects them despite the published generic schema.
+Poll the actual authentication operation to completion and verify its persisted
+state is `Enabled`; an accepted response or a previous `Succeeded` resource
+state is insufficient. A documented `PATCH` enabled Entra authentication on
+the current resources when the initial `PUT` had not left it enabled.
+If Private Link fails with the API mismatch above, explicitly select the
+NAT-only fallback and verify the sole firewall rule matches the owned NAT IP.
+Cosmos must remain private and the VM must retain deny-all inbound rules.
 Install the guarded pool-stop helper as a five-hour emergency systemd timer;
 the VM has a separate UTC auto-shutdown schedule. Stopping compute retains data
 and does not authorize deleting resources or evidence.

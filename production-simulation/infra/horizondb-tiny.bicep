@@ -22,6 +22,9 @@ param shutdownTime string
 @description('Enable only on a second deployment after pools finish initial creation.')
 param configureAGE bool = false
 
+@description('Explicit fallback only when HorizonDB Private Link fails; permit only this runner NAT IPv4.')
+param allowTinyNATFallback bool = false
+
 @description('Runner principal ID from the first deployment; empty skips administrator creation.')
 param administratorObjectId string = ''
 
@@ -206,7 +209,7 @@ resource clusters 'Microsoft.HorizonDb/clusters@2026-10-01-preview' = [for versi
   tags: tags
   properties: {
     postgreSqlVersion: version
-    network: { publicAccess: 'Disabled' }
+    network: { publicAccess: allowTinyNATFallback ? 'Enabled' : 'Disabled' }
     backup: {
       geoRedundancy: 'Disabled'
       retentionDays: 7
@@ -252,6 +255,14 @@ resource authentications 'Microsoft.HorizonDb/clusters/authentications@2026-10-0
   name: '${clusters[i].name}/microsoftEntra'
   properties: { state: 'Enabled' }
   dependsOn: [pools[i]]
+}]
+
+resource horizonFirewallRules 'Microsoft.HorizonDb/clusters/pools/firewallRules@2026-10-01-preview' = [for (version, i) in versions: if (allowTinyNATFallback) {
+  name: '${pools[i].name}/tiny-runner-nat-only'
+  properties: {
+    startIpAddress: outboundIP.properties.ipAddress
+    endIpAddress: outboundIP.properties.ipAddress
+  }
 }]
 
 resource administrators 'Microsoft.HorizonDb/clusters/microsoftEntraAdministrators@2026-10-01-preview' = [for (version, i) in versions: if (!empty(administratorObjectId)) {
@@ -339,7 +350,7 @@ resource links 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01
   dependsOn: [zones[i]]
 }]
 
-resource horizonEndpoints 'Microsoft.Network/privateEndpoints@2024-07-01' = [for (version, i) in versions: {
+resource horizonEndpoints 'Microsoft.Network/privateEndpoints@2024-07-01' = [for (version, i) in versions: if (!allowTinyNATFallback) {
   name: '${prefix}-pg${version}-pe'
   location: location
   tags: tags
@@ -358,7 +369,7 @@ resource horizonEndpoints 'Microsoft.Network/privateEndpoints@2024-07-01' = [for
   dependsOn: [pools[i]]
 }]
 
-resource horizonDNS 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-07-01' = [for (version, i) in versions: {
+resource horizonDNS 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-07-01' = [for (version, i) in versions: if (!allowTinyNATFallback) {
   name: '${horizonEndpoints[i].name}/horizon'
   properties: {
     privateDnsZoneConfigs: [
