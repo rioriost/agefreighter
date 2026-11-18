@@ -172,6 +172,16 @@ func TestHorizonDBP0CSVModeIntegration(t *testing.T) {
 						"jobId": id, "candidateCommit": commit, "mode": name, "config": path,
 					})
 					start := time.Now().UTC()
+					stopProgress, err := horizonCSVProgress(ctx, cancel, u.String(), id,
+						filepath.Join(output, job.Metadata.Name+"-progress.jsonl"))
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer func() {
+						if err := stopProgress(); err != nil {
+							t.Error(err)
+						}
+					}()
 					var result app.LoadResult
 					if name == "resume" {
 						result = horizonInterruptedCSV(t, ctx, conn, path, id, output, job.Metadata.Name)
@@ -234,6 +244,74 @@ func TestHorizonDBP0CSVModeIntegration(t *testing.T) {
 			t.Fatal("CSV execution paused after a failed route")
 		}
 	}
+}
+
+func horizonCSVProgress(ctx context.Context, cancelCase context.CancelFunc, dsn, id, path string) (func() error, error) {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return nil, err
+	}
+	monitorCtx, stop := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() {
+		err := func() (err error) {
+			defer func() {
+				if errors.Is(err, context.Canceled) && monitorCtx.Err() != nil {
+					err = nil
+				}
+				err = errors.Join(err, file.Close())
+			}()
+			conn, err := pgx.Connect(monitorCtx, dsn)
+			if err != nil {
+				return err
+			}
+			defer conn.Close(context.Background())
+			ticker := time.NewTicker(15 * time.Second)
+			defer ticker.Stop()
+			encoder := json.NewEncoder(file)
+			lastProgress, previous := time.Now(), int64(-1)
+			for {
+				var table *string
+				if err := conn.QueryRow(monitorCtx, `SELECT to_regclass('agefreighter_meta.load_job')::text`).Scan(&table); err != nil {
+					return err
+				}
+				var rows, batch int64
+				state, checkpoint := "waiting-for-job", ""
+				if table != nil {
+					err := conn.QueryRow(monitorCtx, `SELECT committed_rows,next_batch_id,status,resume_token
+						FROM agefreighter_meta.load_job WHERE job_id=$1::uuid`, id).Scan(&rows, &batch, &state, &checkpoint)
+					if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+						return err
+					}
+				}
+				if rows > previous {
+					previous, lastProgress = rows, time.Now()
+				}
+				if err := encoder.Encode(map[string]any{
+					"atUtc": time.Now().UTC(), "jobId": id, "status": state,
+					"committedRows": rows, "nextBatchId": batch, "sourceCheckpoint": checkpoint,
+				}); err != nil {
+					return err
+				}
+				if time.Since(lastProgress) >= 14*time.Minute {
+					return errors.New("committed progress stalled for fourteen minutes")
+				}
+				select {
+				case <-monitorCtx.Done():
+					return monitorCtx.Err()
+				case <-ticker.C:
+				}
+			}
+		}()
+		if err != nil {
+			cancelCase()
+		}
+		done <- err
+	}()
+	return func() error {
+		stop()
+		return <-done
+	}, nil
 }
 
 func horizonModeJobID(t *testing.T) string {
