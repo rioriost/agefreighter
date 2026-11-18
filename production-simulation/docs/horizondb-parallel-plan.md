@@ -38,6 +38,9 @@ Public HorizonDB access was disabled after qualification. These tiny results
 do not validate the larger configurations below, which remain
 **conditional cost scenarios, not validated deployment recommendations**;
 their complete SKU restrictions and remaining monthly budget are unverified.
+The protected 2.4.2 release gates subsequently passed. After the live Cosmos
+gate completed, the one-job Azure runner was removed and its VM was
+deallocated, retaining its disks and qualification evidence.
 
 SQL preflight observed PostgreSQL 17.11 and 18.6, AGE 1.8.0 available,
 the AGE library already preloaded and `pending_restart=false`. However,
@@ -401,13 +404,14 @@ installed five-hour timer is not an effective HorizonDB cost control.
 The VM has a separate UTC auto-shutdown schedule. Neither timeout nor a failed
 stop attempt authorizes deleting resources or evidence.
 
-Retain SQL version observations and full outcomes. Only after every
-required tiny route passes may the release proceed: finalize the compatibility
-evidence/release notes and installation examples, merge the reviewed change,
-then create the v2.4.2 tag and use the existing signing, notarization, quality,
-Cosmos, packaging and provenance gates. Restore the offline protected Azure
-runner rather than skipping its gate. No tag or published release has been
-created while these prerequisites are blocked.
+SQL version observations and full outcomes were retained. The `v2.4.2` tag
+was created only after all required tiny routes passed and the qualified
+change was merged. The protected
+[release workflow](https://github.com/rioriost/agefreighter/actions/runs/44221531718)
+then passed signing, notarization, quality, live Cosmos, packaging and
+provenance gates and published 2.4.2 on 2026-11-18. The protected Azure runner
+was restored for its gate rather than bypassing it. P0-P3 execution and
+resource deletion remain separately gated and unauthorized.
 
 [extensions]: https://learn.microsoft.com/azure/horizondb/extensions/concepts-extensions-by-engine
 [quickstart]: https://learn.microsoft.com/azure/horizondb/configure-maintain/quickstart-create-cluster
