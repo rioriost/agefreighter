@@ -31,6 +31,27 @@ func P1GremlinTargetManifest(ctx context.Context, dsn, manifestPath, jobID strin
 	return gremlinTargetSnapshot(ctx, conn, f, jobID, rangeRows)
 }
 
+// TinyGremlinTargetManifest retains the P1 boundary while admitting only the
+// separately approved tiny fixture for live managed-service qualification.
+func TinyGremlinTargetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeRows int64) (Manifest, error) {
+	if ctx == nil || dsn == "" || jobID == "" {
+		return Manifest{}, errors.New("context, target DSN and job ID are required")
+	}
+	f, err := fixture.Verify(manifestPath)
+	if err != nil {
+		return Manifest{}, err
+	}
+	if f.Plan.Phase != fixture.PhaseTiny || f.Plan.VertexTotal != 160 || f.Plan.EdgeTotal != 400 {
+		return Manifest{}, errors.New("Gremlin target digest is restricted to the approved tiny fixture")
+	}
+	conn, err := pgx.Connect(ctx, dsn)
+	if err != nil {
+		return Manifest{}, err
+	}
+	defer conn.Close(context.Background())
+	return gremlinTargetSnapshot(ctx, conn, f, jobID, rangeRows)
+}
+
 // A single read-only snapshot prevents vertices and edges coming from different
 // database states. The internal entry point also admits tiny SQL-contract tests.
 func gremlinTargetSnapshot(ctx context.Context, conn *pgx.Conn, f fixture.Manifest, jobID string, rangeRows int64) (Manifest, error) {

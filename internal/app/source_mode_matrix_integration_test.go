@@ -136,14 +136,8 @@ func runSourceModeMatrix(
 		defer cancel()
 		_ = connection.Close(closeCtx)
 	})
-	if _, err := connection.Exec(t.Context(), "LOAD 'age'"); err != nil {
-		t.Fatalf("load AGE extension: %v", err)
-	}
-	if _, err := connection.Exec(
-		t.Context(),
-		`SET search_path = ag_catalog, "$user", public`,
-	); err != nil {
-		t.Fatalf("set AGE search path: %v", err)
+	if err := age.InitializeSession(t.Context(), connection); err != nil {
+		t.Fatalf("initialize AGE verification session: %v", err)
 	}
 
 	phases := []struct {

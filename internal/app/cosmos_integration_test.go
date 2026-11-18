@@ -196,14 +196,8 @@ func TestCosmosLiveIntegration(t *testing.T) {
 		t.Fatalf("connect AGE for verification: %v", err)
 	}
 	defer connection.Close(context.Background())
-	if _, err := connection.Exec(ctx, "LOAD 'age'"); err != nil {
-		t.Fatalf("load AGE extension: %v", err)
-	}
-	if _, err := connection.Exec(
-		ctx,
-		`SET search_path = ag_catalog, "$user", public`,
-	); err != nil {
-		t.Fatalf("set AGE search path: %v", err)
+	if err := age.InitializeSession(ctx, connection); err != nil {
+		t.Fatalf("initialize AGE verification session: %v", err)
 	}
 	assertCypherCount(t, connection, graph, "MATCH (n:Person) RETURN count(n)", 6)
 	assertCypherCount(

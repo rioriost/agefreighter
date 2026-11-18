@@ -18,6 +18,7 @@ var supportedTargetVersionSeries = [...]targetVersionSeries{
 	{PostgreSQLMajor: 16, AGEMajor: 1, AGEMinor: 6},
 	{PostgreSQLMajor: 17, AGEMajor: 1, AGEMinor: 6},
 	{PostgreSQLMajor: 17, AGEMajor: 1, AGEMinor: 7},
+	{PostgreSQLMajor: 17, AGEMajor: 1, AGEMinor: 8},
 	{PostgreSQLMajor: 18, AGEMajor: 1, AGEMinor: 7},
 	{PostgreSQLMajor: 18, AGEMajor: 1, AGEMinor: 8},
 }

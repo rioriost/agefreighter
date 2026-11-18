@@ -2,13 +2,14 @@
 
 agefreighter 2.x deliberately has a narrow target compatibility boundary.
 Unsupported versions fail during the selected Apache AGE or native SQL/PGQ
-capability probe before any graph is changed.
+capability probe before any graph is changed. Version admission is distinct
+from the live release qualification recorded below.
 
 | Component | Supported | Release qualification |
 |---|---|---|
 | Go | 1.27.x | Linux and macOS CI |
-| PostgreSQL for Apache AGE | 14.x through 18.x, in the exact pairings below | Weekly and manually runnable target matrix |
-| Apache AGE target | 1.6.x through 1.8.x, in the exact pairings below | Weekly and manually runnable target matrix |
+| PostgreSQL for Apache AGE | 14.x through 18.x, in the exact pairings below | Pinned-image matrix; separate managed HorizonDB qualification |
+| Apache AGE target | 1.6.x through 1.8.x, in the exact pairings below | Pinned-image matrix; separate managed HorizonDB qualification |
 | Native PostgreSQL property-graph target | 19 Beta 3, experimental and digest-pinned | Apple Container arm64 and protected Linux amd64 SQL/PGQ suites |
 | PostgreSQL source | 17.x | PostgreSQL 17.6 pinned image |
 | Neo4j source | 4.4.48 and 5.26.30 | Fourteen-pair migration matrix using pinned official Community images |
@@ -16,9 +17,10 @@ capability probe before any graph is changed.
 | Cosmos DB for Apache Gremlin backing documents | Current `_isEdge`, `_vertexId`, `_sink`, and `_value` document layout through the NoSQL API | Controlled Azure integration environment |
 
 As of 2026-08-28, PostgreSQL majors 14 through 18 are supported upstream.
-agefreighter qualifies only the following Apache AGE release pairings; a
-supported PostgreSQL major and a supported AGE series do not form a supported
-target unless the exact pair appears here.
+agefreighter admits only the following Apache AGE release pairings, with live
+qualification status recorded per target. A supported PostgreSQL major and a
+supported AGE series do not form an admitted target unless the exact pair
+appears here.
 
 Neo4j support status and migration-source compatibility are deliberately
 separate. Neo4j 4.4 is upstream end-of-life, but remains an important migration
@@ -39,6 +41,46 @@ patch using the following official Community image indexes.
 | 17.x | 1.7.x | `apache/age@sha256:92a5d223965bc2e436f9eee436e0bd2c0d81f3b59124b3d197ec94706f3450a8` | PostgreSQL 17.11, AGE 1.7.0 |
 | 18.x | 1.7.x | `apache/age@sha256:e7de1717e487dac7c1be93a1cd5360a2cf07ff4170342c2af2ac4713c21baf00` | PostgreSQL 18.1, AGE 1.7.0 |
 | 18.x | 1.8.x | `apache/age@sha256:c7255d32a10de6b5d84daa12346aa545e062b223fa3e574fe96a5c428f249894` | PostgreSQL 18.6, AGE 1.8.0 |
+| 17.x | 1.8.x | Azure HorizonDB managed service; admitted starting in 2.4.2 | PostgreSQL 17.11, AGE 1.8.0; twelve-route tiny qualification below |
+| 18.x | 1.8.x | Azure HorizonDB managed service | PostgreSQL 18.6, AGE 1.8.0; twelve-route tiny qualification below |
+
+Azure HorizonDB became generally available in November 2026. Its
+[extension matrix](https://learn.microsoft.com/azure/horizondb/extensions/concepts-extensions-by-engine)
+lists AGE 1.8.0 for PostgreSQL 17 and PostgreSQL 18. PostgreSQL 18 and AGE
+remain marked Preview in that service documentation; service GA does not
+change those individual feature statuses. The PostgreSQL 18 pinned-image
+result above does not qualify HorizonDB.
+
+The managed-service qualification records the actual server and extension
+versions, region, compute configuration, build, and results instead of a
+container-image digest. It requires the six source configurations (CSV,
+PostgreSQL 17, both Neo4j versions, Cosmos NoSQL, and Gremlin backing documents
+through the NoSQL API) against both managed target versions. No native Cosmos
+Gremlin protocol support is implied. The PostgreSQL 17 admission change is
+covered by unit and diagnostic-probe regressions, but those are not substitutes
+for this twelve-path live qualification.
+
+On 2026-11-18, all twelve managed-service routes passed in Japan East with
+exactly 160 vertices and 400 edges per route, zero failed batches, built-in
+verification and full canonical digest comparisons. Each target used one
+2-vCore writer without HA, HorizonDB build `532bbf654b7`, verified TLS and
+managed-identity authentication. The 24 selected existing top-level mode,
+typed-property and recovery scenarios also passed (66 including subtests),
+without skips. Failed preparation attempts and the two corrected test-harness
+issues are retained separately; they are not counted as passes. See the
+[machine-readable qualification evidence](../../production-simulation/docs/horizondb-tiny-20261118.json)
+and the
+[HorizonDB qualification plan](../../production-simulation/docs/horizondb-parallel-plan.md).
+This qualifies only tiny and the smaller listed regressions, not P0-P3 capacity,
+throughput, HA or Private Link. The live Private Link creation failed with a
+provider API-version mismatch; HorizonDB used a dedicated single-NAT-IPv4
+firewall during qualification, then public access was disabled again. Cosmos
+remained private. Pool stop/restart APIs returned `PowerOperationNotEnabled`;
+no automatic HorizonDB compute-cost cap is claimed.
+
+HorizonDB is an explicit CLI LoadJob target. The VS Code guided provisioning
+workflow still deploys its existing private PostgreSQL 18 Flexible Server
+target, and its pinned 2.4.0 Linux runner is not implicitly upgraded.
 
 Apache AGE 1.4.x and 1.5.x release artifacts for currently supported
 PostgreSQL majors were also evaluated. They are not supported migration
@@ -101,6 +143,8 @@ that target as newer than supported; upgrade every writer before the first 2.2
 
 Compatibility does not imply support for arbitrary Neo4j patches or combinations
 within other PostgreSQL or AGE major/minor lines. Adding a source requires a
-pinned official multi-architecture Neo4j image. Adding a target requires a
-pinned official multi-architecture AGE release image. Both changes require a
-complete cross-product compatibility run and an update to this document.
+pinned official multi-architecture Neo4j image. Adding a container target
+requires a pinned official multi-architecture AGE release image and a complete
+cross-product compatibility run. Managed
+HorizonDB targets require the separate live qualification described above.
+Both require an update to this document before claiming qualification.

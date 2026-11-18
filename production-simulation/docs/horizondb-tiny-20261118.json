@@ -1,0 +1,188 @@
+{
+  "dateUTC": "2026-11-18",
+  "region": "japaneast",
+  "qualification": "pass",
+  "dataset": {
+    "phase": "tiny",
+    "seed": 20260829,
+    "vertices": 160,
+    "edges": 400
+  },
+  "targetCompute": {
+    "vCoresPerWriter": 2,
+    "writersPerTarget": 1,
+    "highAvailability": false
+  },
+  "transport": {
+    "tls": "verify-full",
+    "authentication": "managed-identity",
+    "horizonIngress": "dedicated NAT single IPv4 only",
+    "cosmosIngress": "private endpoint"
+  },
+  "versions": {
+    "pg17": {
+      "postgresql": "PostgreSQL 17.11 (Azure HorizonDB (532bbf654b7)(release)) on x86_64-pc-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit",
+      "age": "1.8.0"
+    },
+    "pg18": {
+      "postgresql": "PostgreSQL 18.6 (Azure HorizonDB (532bbf654b7)(release)) on x86_64-pc-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit",
+      "age": "1.8.0"
+    }
+  },
+  "runs": {
+    "outcome": "pass",
+    "routes": 12,
+    "verticesPerRoute": 160,
+    "edgesPerRoute": 400,
+    "tinyCommit": "8c1b504702484c56df7aea40e647715276a014d9",
+    "regressionCommit": "421aff6cabf1ec5614d457cddb959bca99726eb8",
+    "regressions": [
+      {
+        "suite": "regression-r2-pg17-core",
+        "topLevelPassed": 8,
+        "passed": 21
+      },
+      {
+        "suite": "regression-r2-pg17-neo44",
+        "topLevelPassed": 2,
+        "passed": 6
+      },
+      {
+        "suite": "regression-r2-pg17-neo526",
+        "topLevelPassed": 2,
+        "passed": 6
+      },
+      {
+        "suite": "regression-r2-pg18-core",
+        "topLevelPassed": 8,
+        "passed": 21
+      },
+      {
+        "suite": "regression-r2-pg18-neo44",
+        "topLevelPassed": 2,
+        "passed": 6
+      },
+      {
+        "suite": "regression-r2-pg18-neo526",
+        "topLevelPassed": 2,
+        "passed": 6
+      }
+    ]
+  },
+  "routes": [
+    {
+      "target": "pg17",
+      "source": "cosmos",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "29f6d7e8c209acb01054a8976fb462209d8c41b03a19b696052296c9dab0ba13"
+    },
+    {
+      "target": "pg17",
+      "source": "csv",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "e538d00a61d0ff4248cc7a8b80817c52d64422d4dd3f94f6ba584e211f1a32e5"
+    },
+    {
+      "target": "pg17",
+      "source": "gremlin",
+      "records": 560,
+      "expectedRootSha256": "1657c8a13b6add49113b06fc522ee495a3f66fd647e76d86f2cacb2eb34d874e",
+      "actualRootSha256": "1657c8a13b6add49113b06fc522ee495a3f66fd647e76d86f2cacb2eb34d874e",
+      "reportSha256": "fb997699cf4e4326f8fed062df0202b03f673a62a716b78c73201f2e1a953d69"
+    },
+    {
+      "target": "pg17",
+      "source": "neo4j44",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "0d7d3eacf9f057b641da9db10a28c3cef3cac1c9c3c1dd8c550bbb1910e75791"
+    },
+    {
+      "target": "pg17",
+      "source": "neo4j526",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "ca0458264dfec4ef8f486566577a32ee40f14dcc954f906e965c57c613b47f03"
+    },
+    {
+      "target": "pg17",
+      "source": "postgresql",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "5220ab9aba1cca67c2490cb96081cfc67bf14549c8ea79f634120c04b61d8312"
+    },
+    {
+      "target": "pg18",
+      "source": "cosmos",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "c77118286eb84e4f13adf50fa34bbcdc9b90420d2b264ea02377a08938b4c37a"
+    },
+    {
+      "target": "pg18",
+      "source": "csv",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "d10745eb6efd02963f62628cb6f828213dcd0c2cca21d969b9586dd7f2fcc3e4"
+    },
+    {
+      "target": "pg18",
+      "source": "gremlin",
+      "records": 560,
+      "expectedRootSha256": "1657c8a13b6add49113b06fc522ee495a3f66fd647e76d86f2cacb2eb34d874e",
+      "actualRootSha256": "1657c8a13b6add49113b06fc522ee495a3f66fd647e76d86f2cacb2eb34d874e",
+      "reportSha256": "422b11d717d84cf5507451cb47adb8688846f2ae5150ed081b5f52f23834ce1e"
+    },
+    {
+      "target": "pg18",
+      "source": "neo4j44",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "26cdfa684df55b476497f8f6d665b8236ff6ea7bdc5fa237abaa2608d4a492a6"
+    },
+    {
+      "target": "pg18",
+      "source": "neo4j526",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "48837ac05b997decabd876acfef07695aa0fdcf57bcb71170c24afbbadbc72db"
+    },
+    {
+      "target": "pg18",
+      "source": "postgresql",
+      "records": 560,
+      "expectedRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "actualRootSha256": "540b4940682daf607a909198048457212302efd1c54f701697c556dd57e77cd1",
+      "reportSha256": "a02332da24269e4276c513a4c514fcd5b53c16964ac328b5622c73c714842933"
+    }
+  ],
+  "priorAttempts": [
+    {
+      "outcome": "failed",
+      "passedRoutes": 10,
+      "failedRoutes": 2,
+      "cause": "Qualification query used cross-partition ORDER BY unsupported by the Go SDK; corrected to supported unordered query plus bounded canonical sorting."
+    },
+    {
+      "outcome": "failed",
+      "cause": "Existing connector assertions used superuser-only LOAD; changed assertion setup to the existing hosted AGE initializer, preserving all assertions."
+    }
+  ],
+  "largerPhasesExecuted": false,
+  "retainedRawEvidence": {
+    "sha256": "15c2a4a572caeceaf9d9137396b050017e676d82f70587e05b7ee0d680398582",
+    "bytes": 20440,
+    "format": "tar.xz"
+  }
+}
