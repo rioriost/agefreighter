@@ -42,6 +42,14 @@ func TestHorizonDBTinyIntegration(t *testing.T) {
 			t.Fatalf("required tiny qualification environment variable %s is missing", name)
 		}
 	}
+	if err := validateTinySources(
+		os.Getenv("AGEFREIGHTER_POSTGRES_TEST_DSN"),
+		os.Getenv("AGEFREIGHTER_NEO4J44_URI"),
+		os.Getenv("AGEFREIGHTER_NEO4J526_URI"),
+		os.Getenv("AGEFREIGHTER_COSMOS_TEST_ENDPOINT"),
+	); err != nil {
+		t.Fatal(err)
+	}
 	ctx := t.Context()
 	root := os.Getenv(required[0])
 	if err := os.Mkdir(root, 0700); err != nil {
@@ -129,7 +137,7 @@ func TestHorizonDBTinyIntegration(t *testing.T) {
 	for _, major := range []int{17, 18} {
 		t.Run(fmt.Sprintf("pg%d", major), func(t *testing.T) {
 			host := os.Getenv(fmt.Sprintf("AGEFREIGHTER_HORIZON_PG%d_HOST", major))
-			if !strings.HasSuffix(host, ".japaneast.horizondb.azure.com") {
+			if !strings.HasPrefix(host, "afht-") || !strings.HasSuffix(host, ".japaneast.horizondb.azure.com") {
 				t.Fatal("actual Japan East HorizonDB hostname required")
 			}
 			token, err := credential.GetToken(ctx, policy.TokenRequestOptions{
@@ -208,6 +216,40 @@ func TestHorizonDBTinyIntegration(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func validateTinySources(postgres, neo44, neo526, cosmos string) error {
+	pg, err := url.Parse(postgres)
+	if err != nil || pg.Scheme != "postgresql" || pg.Host != "127.0.0.1:5432" || pg.Path != "/source" {
+		return fmt.Errorf("dedicated local tiny PostgreSQL source required")
+	}
+	if neo44 != "bolt://127.0.0.1:7687" || neo526 != "bolt://127.0.0.1:7688" {
+		return fmt.Errorf("dedicated local tiny Neo4j sources required")
+	}
+	c, err := url.Parse(cosmos)
+	if err != nil || c.Scheme != "https" || !strings.HasPrefix(c.Hostname(), "afht") ||
+		!strings.HasSuffix(c.Hostname(), ".documents.azure.com") {
+		return fmt.Errorf("run-scoped tiny Cosmos source required")
+	}
+	return nil
+}
+
+func TestTinySourcesRejectUnrelatedEndpoints(t *testing.T) {
+	pg := "postgresql://postgres:fixture@127.0.0.1:5432/source?sslmode=disable"
+	n44, n526 := "bolt://127.0.0.1:7687", "bolt://127.0.0.1:7688"
+	cosmos := "https://afhttiny.documents.azure.com:443/"
+	if err := validateTinySources(pg, n44, n526, cosmos); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][4]string{
+		{"postgresql://database.example/source", n44, n526, cosmos},
+		{pg, "bolt://database.example:7687", n526, cosmos},
+		{pg, n44, n526, "https://unrelated.documents.azure.com"},
+	} {
+		if err := validateTinySources(args[0], args[1], args[2], args[3]); err == nil {
+			t.Fatal("accepted an unrelated source endpoint")
+		}
 	}
 }
 

@@ -5,6 +5,7 @@ targetScope = 'resourceGroup'
 @maxLength(30)
 param prefix string
 
+@allowed(['japaneast'])
 param location string = 'japaneast'
 
 param administratorUsername string = 'afrunner'
@@ -229,7 +230,6 @@ resource ageParameters 'Microsoft.HorizonDb/parameterGroups@2026-10-01-preview' 
 
 resource pools 'Microsoft.HorizonDb/clusters/pools@2026-10-01-preview' = [for (version, i) in versions: {
   name: '${clusters[i].name}/writer'
-  tags: tags
   properties: {
     computeModel: {
       type: 'Provisioned'
