@@ -31,6 +31,21 @@ func TestHorizonDBP0CSVModeIntegration(t *testing.T) {
 	if os.Getenv("AGEFREIGHTER_REQUIRE_HORIZON_P0_CSV_MODES") != "1" {
 		t.Skip("explicit P0 CSV mode execution and a fresh independent lease required")
 	}
+	horizonP0ModeIntegration(t, "csv")
+}
+
+func TestHorizonDBP0PostgresModeIntegration(t *testing.T) {
+	if os.Getenv("AGEFREIGHTER_REQUIRE_HORIZON_P0_POSTGRES_MODES") != "1" {
+		t.Skip("explicit P0 PostgreSQL source execution and a fresh independent lease required")
+	}
+	horizonP0ModeIntegration(t, "postgresql")
+}
+
+func horizonP0ModeIntegration(t *testing.T, source string) {
+	t.Helper()
+	if source != "csv" && source != "postgresql" {
+		t.Fatal("source has no qualified P0 fixture adapter")
+	}
 	output := os.Getenv("AGEFREIGHTER_HORIZON_SCALE_OUTPUT")
 	run := os.Getenv("AGEFREIGHTER_HORIZON_SCALE_RUN_ID")
 	commit := os.Getenv("AGEFREIGHTER_HORIZON_CANDIDATE_COMMIT")
@@ -56,26 +71,13 @@ func TestHorizonDBP0CSVModeIntegration(t *testing.T) {
 	if err := os.Mkdir(output, 0700); err != nil {
 		t.Fatal(err)
 	}
-	paths := rangedigest.Scenario{Base: filepath.Join(output, "base", "manifest.json"),
-		Append: filepath.Join(output, "append", "manifest.json"), Upsert: filepath.Join(output, "upsert", "manifest.json")}
-	if _, err := fixture.Generate(t.Context(), fixture.GenerateConfig{
-		Phase: fixture.PhaseP0, Output: filepath.Dir(paths.Base), Shards: 4, Workers: 2, Seed: 20260829,
-	}); err != nil {
-		t.Fatal(err)
-	}
-	for path, kind := range map[string]fixture.DeltaKind{paths.Append: fixture.DeltaAppend, paths.Upsert: fixture.DeltaUpsert} {
-		if _, err := fixture.GenerateDelta(t.Context(), paths.Base, filepath.Dir(path), kind); err != nil {
+	paths, exports, directories := horizonP0Fixtures(t, output)
+	if source == "postgresql" {
+		ctx, cancel := context.WithTimeout(t.Context(), 15*time.Minute)
+		defer cancel()
+		if err := seedHorizonP0Postgres(ctx, paths, exports, directories, run, output); err != nil {
 			t.Fatal(err)
 		}
-	}
-	exports, directories := map[string]portable.Manifest{}, map[string]string{}
-	for name, path := range map[string]string{"base": paths.Base, "append": paths.Append, "upsert": paths.Upsert} {
-		dir := filepath.Join(output, "portable-"+name)
-		p, err := portable.Export(t.Context(), path, dir)
-		if err != nil {
-			t.Fatal(err)
-		}
-		exports[name], directories[name] = p, dir
 	}
 	credential, err := azidentity.NewManagedIdentityCredential(nil)
 	if err != nil {
@@ -154,9 +156,14 @@ func TestHorizonDBP0CSVModeIntegration(t *testing.T) {
 					if name == "upsert" {
 						expectedPaths.Upsert = paths.Upsert
 					}
-					job := tinyJob(exports[dataset], directories[dataset], "csv", major)
-					job.Metadata.Name = fmt.Sprintf("horizon-p0-csv-pg%d-%s-%s", major, name, run)
-					job.Target.Graph = fmt.Sprintf("hs_p0_csv_pg%d_%s", major, run)
+					job := tinyJob(exports[dataset], directories[dataset], source, major)
+					if source == "postgresql" {
+						if err := horizonP0PostgresQueries(&job, "hs_p0_pg_"+run+"_"+dataset); err != nil {
+							t.Fatal(err)
+						}
+					}
+					job.Metadata.Name = fmt.Sprintf("horizon-p0-%s-pg%d-%s-%s", source, major, name, run)
+					job.Target.Graph = fmt.Sprintf("hs_p0_%s_pg%d_%s", source, major, run)
 					job.Target.Connection = config.SecretRef{File: secret}
 					job.Target.Mode = config.LoadMode(name)
 					if name == "resume" {
@@ -184,7 +191,7 @@ func TestHorizonDBP0CSVModeIntegration(t *testing.T) {
 					}()
 					var result app.LoadResult
 					if name == "resume" {
-						result = horizonInterruptedCSV(t, ctx, conn, path, id, output, job.Metadata.Name)
+						result = horizonInterruptedP0(t, ctx, conn, path, id, output, job.Metadata.Name)
 					} else {
 						result, err = app.LoadWithID(ctx, path, id)
 						if err != nil {
@@ -228,7 +235,7 @@ func TestHorizonDBP0CSVModeIntegration(t *testing.T) {
 					}
 					comparison, compareErr := rangedigest.Compare(expected, actual)
 					writeTinyJSON(t, filepath.Join(output, job.Metadata.Name+"-verification.json"), map[string]any{
-						"coverage": "P0 CSV only; no complete twelve-route phase claim", "mode": name,
+						"coverage": "P0 " + source + " only; no complete twelve-route phase claim", "mode": name,
 						"candidateCommit": commit, "jobId": id, "startedAtUtc": start, "completedAtUtc": time.Now().UTC(),
 						"expected": expected, "actual": actual, "comparison": comparison, "postgresql": pg, "age": age,
 						"committedRows": stored.CommittedRows, "generation": generation,
@@ -241,9 +248,35 @@ func TestHorizonDBP0CSVModeIntegration(t *testing.T) {
 				}
 			}
 		}) {
-			t.Fatal("CSV execution paused after a failed route")
+			t.Fatal("P0 execution paused after a failed route")
 		}
 	}
+}
+
+func horizonP0Fixtures(t *testing.T, output string) (rangedigest.Scenario, map[string]portable.Manifest, map[string]string) {
+	t.Helper()
+	paths := rangedigest.Scenario{Base: filepath.Join(output, "base", "manifest.json"),
+		Append: filepath.Join(output, "append", "manifest.json"), Upsert: filepath.Join(output, "upsert", "manifest.json")}
+	if _, err := fixture.Generate(t.Context(), fixture.GenerateConfig{
+		Phase: fixture.PhaseP0, Output: filepath.Dir(paths.Base), Shards: 4, Workers: 2, Seed: 20260829,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for path, kind := range map[string]fixture.DeltaKind{paths.Append: fixture.DeltaAppend, paths.Upsert: fixture.DeltaUpsert} {
+		if _, err := fixture.GenerateDelta(t.Context(), paths.Base, filepath.Dir(path), kind); err != nil {
+			t.Fatal(err)
+		}
+	}
+	exports, directories := map[string]portable.Manifest{}, map[string]string{}
+	for name, path := range map[string]string{"base": paths.Base, "append": paths.Append, "upsert": paths.Upsert} {
+		dir := filepath.Join(output, "portable-"+name)
+		p, err := portable.Export(t.Context(), path, dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		exports[name], directories[name] = p, dir
+	}
+	return paths, exports, directories
 }
 
 func horizonCSVProgress(ctx context.Context, cancelCase context.CancelFunc, dsn, id, path string) (func() error, error) {
@@ -324,7 +357,7 @@ func horizonModeJobID(t *testing.T) string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
 
-func horizonInterruptedCSV(t *testing.T, ctx context.Context, conn *pgx.Conn, path, id, output, name string) app.LoadResult {
+func horizonInterruptedP0(t *testing.T, ctx context.Context, conn *pgx.Conn, path, id, output, name string) app.LoadResult {
 	t.Helper()
 	binary, err := os.Executable()
 	if err != nil {
@@ -335,7 +368,7 @@ func horizonInterruptedCSV(t *testing.T, ctx context.Context, conn *pgx.Conn, pa
 		t.Fatal(err)
 	}
 	defer log.Close()
-	child := exec.CommandContext(ctx, binary, "-test.run=^TestHorizonDBP0CSVModeWorker$", "-test.v")
+	child := exec.CommandContext(ctx, binary, "-test.run=^TestHorizonDBP0ModeWorker$", "-test.v")
 	child.Env = append(os.Environ(), "AGEFREIGHTER_HORIZON_MODE_WORKER=1",
 		"AGEFREIGHTER_HORIZON_WORKER_CONFIG="+path, "AGEFREIGHTER_HORIZON_WORKER_JOB="+id)
 	child.Stdout, child.Stderr = log, log
@@ -402,7 +435,7 @@ func horizonInterruptedCSV(t *testing.T, ctx context.Context, conn *pgx.Conn, pa
 	return result
 }
 
-func TestHorizonDBP0CSVModeWorker(t *testing.T) {
+func TestHorizonDBP0ModeWorker(t *testing.T) {
 	if os.Getenv("AGEFREIGHTER_HORIZON_MODE_WORKER") != "1" {
 		t.Skip("only the explicitly admitted process-recovery parent may start this worker")
 	}
@@ -411,10 +444,17 @@ func TestHorizonDBP0CSVModeWorker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !filepath.IsAbs(path) || job.Source.Type != config.SourceCSV || job.Target.Type != config.TargetApacheAGE ||
-		job.Target.Mode != config.LoadCreate || !strings.HasPrefix(job.Target.Graph, "hs_p0_csv_") ||
-		job.Target.Connection.File == "" || os.Getenv("AGEFREIGHTER_REQUIRE_HORIZON_P0_CSV_MODES") != "1" {
-		t.Fatal("worker is outside its admitted CSV create scope")
+	source, gate := "", ""
+	switch job.Source.Type {
+	case config.SourceCSV:
+		source, gate = "csv", "AGEFREIGHTER_REQUIRE_HORIZON_P0_CSV_MODES"
+	case config.SourcePostgreSQL:
+		source, gate = "postgresql", "AGEFREIGHTER_REQUIRE_HORIZON_P0_POSTGRES_MODES"
+	}
+	if source == "" || !filepath.IsAbs(path) || job.Target.Type != config.TargetApacheAGE ||
+		job.Target.Mode != config.LoadCreate || !strings.HasPrefix(job.Target.Graph, "hs_p0_"+source+"_") ||
+		job.Target.Connection.File == "" || os.Getenv(gate) != "1" {
+		t.Fatal("worker is outside its admitted source/create scope")
 	}
 	if _, err := app.LoadWithID(t.Context(), path, id); err != nil {
 		t.Fatal(err)

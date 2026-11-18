@@ -6,6 +6,9 @@ param leaseId string
 param configureAGE bool = false
 param administratorObjectId string
 
+@allowed(['csv', 'postgresql'])
+param source string = 'csv'
+
 var versions = ['17', '18']
 var prefix = 'afhs-20261118'
 var tags = {
@@ -13,7 +16,7 @@ var tags = {
   campaign: prefix
   qualificationLease: leaseId
   phase: 'p0'
-  source: 'csv'
+  source: source
 }
 
 resource clusters 'Microsoft.HorizonDb/clusters@2026-10-01-preview' = [for version in versions: {
@@ -33,7 +36,7 @@ resource parameters 'Microsoft.HorizonDb/parameterGroups@2026-10-01-preview' = [
   tags: tags
   properties: {
     postgreSqlVersion: version
-    description: 'Bounded approved P0 CSV mode qualification.'
+    description: 'Bounded approved P0 ${source} mode qualification.'
     parameters: [
       { name: 'azure.extensions', value: 'age' }
       { name: 'shared_preload_libraries', value: 'age' }

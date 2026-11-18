@@ -327,6 +327,18 @@ clean-create samples are not two additional unique cases. Other P0 routes and
 P1-P3 remain incomplete and are not queued. Further admission still requires
 the outstanding technical and actual remaining-work cost gates.
 
+### PostgreSQL P0 route preparation
+
+The shared five-scenario harness also has an explicitly gated PostgreSQL-source
+adapter. It streams hash-verified portable CSV through native COPY into new,
+run-scoped base/append/upsert schemas, checks effective PostgreSQL 17 and every
+table count, and never overwrites the retained tiny schema. Effective connection
+targets, including URI overrides and fallbacks, must remain the dedicated local
+fixture database. A separate opt-in source-only preflight performs no HorizonDB
+migration and does not advance route coverage. Target execution still requires
+a fresh independent lease and all effective-version and canonical gates above;
+no PostgreSQL-source P0 pass is claimed by this preparation.
+
 Keep the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Inspect only the approved subscription and confirm the
 current account before writes. Do not copy tokens or passwords into logs,
