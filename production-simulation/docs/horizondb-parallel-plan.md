@@ -182,7 +182,7 @@ go run ./production-simulation/cmd/rangedigest target --scale --manifest BASE/ma
   --job-id JOB_UUID --dsn-env TARGET_DSN --output actual.json
 ```
 
-`horizondb-p0-csv-targets.bicep` supports the CSV and PostgreSQL-source waves
+`horizondb-p0-csv-targets.bicep` supports CSV, PostgreSQL and Neo4j source waves
 and contains only the two disposable targets, their AGE parameter groups,
 Entra configuration and sole approved NAT firewall rule. It never redeploys
 the old VM, disks, VNet or Cosmos account. Create with
@@ -422,6 +422,19 @@ lease, version, canonical, generation, resource and actual process-kill gates.
 The paired source suites start on opposite PostgreSQL majors before swapping.
 This preparation is not a migration result or larger-phase admission; the
 campaign coverage above remains unchanged until actual target cases pass.
+
+Both source-only preflights passed for candidate
+`5f5438f92da28dfaa71cd68fb7a72b7f626e7d46`, but its first actual target
+attempts correctly failed the exact-count gate: each first create read and
+committed zero records. The in-memory preflight had an internal `InitialQuery`
+that is deliberately absent from serialized job configurations; the persisted
+keyset query compared its first key with null and returned no rows.
+The adapter now puts the first-page null guard in the persisted query itself,
+and source preflights reload the written configuration before scanning.
+A focused regression checks preservation of both vertex and edge query plans
+across serialization for both source versions and all three datasets.
+These failed attempts are retained, are not successful P0 cases, and require
+a fresh candidate/preflight and new run IDs before retrying.
 
 Keep the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Inspect only the approved subscription and confirm the

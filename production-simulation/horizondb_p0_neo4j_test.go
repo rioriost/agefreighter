@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -115,14 +116,13 @@ func horizonP0Neo4jQueries(job *config.LoadJob, manifest portable.Manifest, sour
 			columns = append(columns, value+" AS "+name)
 		}
 		projection := " RETURN " + strings.Join(columns, ",") + " ORDER BY source_key LIMIT $pageRows"
-		query := match + " WHERE " + entity + ".source_key > $afterKey" + projection
-		initial := match + projection
+		query := match + " WHERE $afterKey IS NULL OR " + entity + ".source_key > $afterKey" + projection
 		if table.Kind == "node" {
 			n.Vertices = append(n.Vertices, config.VertexQuery{Label: table.Name, KeyField: "source_key",
-				Query: query, InitialQuery: initial, IDField: "external_id", Properties: props})
+				Query: query, IDField: "external_id", Properties: props})
 		} else {
 			n.Edges = append(n.Edges, config.EdgeQuery{Label: table.Name, KeyField: "source_key",
-				Query: query, InitialQuery: initial, ExternalIDField: "relationship_id", Properties: props,
+				Query: query, ExternalIDField: "relationship_id", Properties: props,
 				Start: config.EndpointMapping{Label: table.StartLabel, Field: "start_id"},
 				End:   config.EndpointMapping{Label: table.EndLabel, Field: "end_id"}})
 		}
@@ -147,6 +147,12 @@ func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Sce
 		}
 		job := tinyJob(manifest, directories[dataset], source, 17)
 		if err := horizonP0Neo4jQueries(&job, manifest, source, run, dataset); err != nil {
+			return err
+		}
+		configPath := filepath.Join(output, "neo4j-"+dataset+"-source.json")
+		writeTinyJSON(t, configPath, job)
+		job, err = config.Load(configPath)
+		if err != nil {
 			return err
 		}
 		scopes[dataset], err = horizonP0Neo4jScope(source, run, dataset)
@@ -331,7 +337,8 @@ func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Sce
 			"fixtureRootSha256": manifest.FixtureRoot, "tablesVerified": len(manifest.Tables)}
 	}
 	body, err := json.MarshalIndent(map[string]any{"source": source, "sourceVersion": version,
-		"maximumSeedBatchRows": horizonP0Neo4jSeedRows, "productionIteratorVerified": true, "datasets": datasets}, "", "  ")
+		"maximumSeedBatchRows": horizonP0Neo4jSeedRows, "productionIteratorVerified": true,
+		"configRoundTripVerified": true, "datasets": datasets}, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -401,8 +408,13 @@ func TestHorizonP0Neo4jConfigScope(t *testing.T) {
 			}
 			path := filepath.Join(t.TempDir(), "job.json")
 			writeTinyJSON(t, path, job)
-			if _, err := config.Load(path); err != nil {
+			loaded, err := config.Load(path)
+			if err != nil {
 				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(n.Vertices, loaded.Source.Neo4j.Vertices) ||
+				!reflect.DeepEqual(n.Edges, loaded.Source.Neo4j.Edges) {
+				t.Fatal("serialized migration lost the source-preflight keyset query plan")
 			}
 		}
 		for _, run := range []string{"tiny", "r20261118p0neo04` MATCH (n) DETACH DELETE n //"} {
