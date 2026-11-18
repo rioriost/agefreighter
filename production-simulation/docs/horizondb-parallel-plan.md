@@ -402,6 +402,27 @@ disposable-worker snapshot, RU and fault/promotion gates remain outstanding.
 
 [horizon-quota]: https://learn.microsoft.com/azure/horizondb/configure-maintain/how-to-request-quota-increase
 
+### Neo4j P0 route preparation
+
+The explicitly gated Neo4j adapter targets only dedicated loopback fixtures:
+4.4.48 on port 7689 and 5.26.30 on port 7690, never the retained tiny instances.
+It streams hash-verified portable documents in batches of at most 512 into
+new run-scoped labels/types, checks every actual creation/table count and scans
+each dataset with the production keyset iterator. Scalar projections preserve
+the ordinary external IDs, typed properties and actual physical edge endpoints;
+bookkeeping labels never enter discovery. Base/append endpoint lookups exclude
+the upsert-only copies, preventing duplicate physical endpoint matches.
+
+The source-only preflight requires
+`AGEFREIGHTER_REQUIRE_HORIZON_P0_NEO4J_SOURCE=1`; the separately gated five-mode
+target suite requires `AGEFREIGHTER_REQUIRE_HORIZON_P0_NEO4J_MODES=1`.
+Both select `neo4j44` or `neo4j526` through
+`AGEFREIGHTER_HORIZON_NEO4J_SOURCE`. The shared target suite retains the exact
+lease, version, canonical, generation, resource and actual process-kill gates.
+The paired source suites start on opposite PostgreSQL majors before swapping.
+This preparation is not a migration result or larger-phase admission; the
+campaign coverage above remains unchanged until actual target cases pass.
+
 Keep the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Inspect only the approved subscription and confirm the
 current account before writes. Do not copy tokens or passwords into logs,

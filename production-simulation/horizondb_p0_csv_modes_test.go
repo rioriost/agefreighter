@@ -41,9 +41,21 @@ func TestHorizonDBP0PostgresModeIntegration(t *testing.T) {
 	horizonP0ModeIntegration(t, "postgresql")
 }
 
+func TestHorizonDBP0Neo4jModeIntegration(t *testing.T) {
+	if os.Getenv("AGEFREIGHTER_REQUIRE_HORIZON_P0_NEO4J_MODES") != "1" {
+		t.Skip("explicit P0 Neo4j source execution and a fresh independent lease required")
+	}
+	source := os.Getenv("AGEFREIGHTER_HORIZON_NEO4J_SOURCE")
+	if source != "neo4j44" && source != "neo4j526" {
+		t.Fatal("explicit pinned Neo4j source required")
+	}
+	horizonP0ModeIntegration(t, source)
+}
+
 func horizonP0ModeIntegration(t *testing.T, source string) {
 	t.Helper()
-	if source != "csv" && source != "postgresql" {
+	isNeo4j := source == "neo4j44" || source == "neo4j526"
+	if source != "csv" && source != "postgresql" && !isNeo4j {
 		t.Fatal("source has no qualified P0 fixture adapter")
 	}
 	output := os.Getenv("AGEFREIGHTER_HORIZON_SCALE_OUTPUT")
@@ -79,11 +91,22 @@ func horizonP0ModeIntegration(t *testing.T, source string) {
 			t.Fatal(err)
 		}
 	}
+	if isNeo4j {
+		ctx, cancel := context.WithTimeout(t.Context(), 15*time.Minute)
+		defer cancel()
+		if err := seedHorizonP0Neo4j(t, ctx, paths, exports, directories, source, run, output); err != nil {
+			t.Fatal(err)
+		}
+	}
 	credential, err := azidentity.NewManagedIdentityCredential(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, major := range []int{17, 18} {
+	majors := []int{17, 18}
+	if source == "neo4j526" {
+		majors = []int{18, 17}
+	}
+	for _, major := range majors {
 		if !t.Run(fmt.Sprintf("pg%d", major), func(t *testing.T) {
 			host := os.Getenv(fmt.Sprintf("AGEFREIGHTER_HORIZON_PG%d_HOST", major))
 			if !strings.HasPrefix(host, fmt.Sprintf("afhs-20261118-pg%d.", major)) ||
@@ -159,6 +182,11 @@ func horizonP0ModeIntegration(t *testing.T, source string) {
 					job := tinyJob(exports[dataset], directories[dataset], source, major)
 					if source == "postgresql" {
 						if err := horizonP0PostgresQueries(&job, "hs_p0_pg_"+run+"_"+dataset); err != nil {
+							t.Fatal(err)
+						}
+					}
+					if isNeo4j {
+						if err := horizonP0Neo4jQueries(&job, exports[dataset], source, run, dataset); err != nil {
 							t.Fatal(err)
 						}
 					}
@@ -450,6 +478,14 @@ func TestHorizonDBP0ModeWorker(t *testing.T) {
 		source, gate = "csv", "AGEFREIGHTER_REQUIRE_HORIZON_P0_CSV_MODES"
 	case config.SourcePostgreSQL:
 		source, gate = "postgresql", "AGEFREIGHTER_REQUIRE_HORIZON_P0_POSTGRES_MODES"
+	case config.SourceNeo4j:
+		source, gate = os.Getenv("AGEFREIGHTER_HORIZON_NEO4J_SOURCE"), "AGEFREIGHTER_REQUIRE_HORIZON_P0_NEO4J_MODES"
+		if job.Source.Neo4j == nil || job.Source.Neo4j.SourceID != "horizon-p0-"+source {
+			t.Fatal("worker Neo4j source identity differs")
+		}
+		if err := validateHorizonP0Neo4jURI(source, job.Source.Neo4j.URI); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if source == "" || !filepath.IsAbs(path) || job.Target.Type != config.TargetApacheAGE ||
 		job.Target.Mode != config.LoadCreate || !strings.HasPrefix(job.Target.Graph, "hs_p0_"+source+"_") ||
