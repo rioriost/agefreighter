@@ -75,53 +75,64 @@ func TestHorizonDBTinyIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	seedTinyPostgres(t, ctx, exported, explicitDir)
-	for _, name := range []string{"AGEFREIGHTER_NEO4J44_URI", "AGEFREIGHTER_NEO4J526_URI"} {
-		seedTinyNeo4j(t, ctx, exported, explicitDir, name)
+	reuse := os.Getenv("AGEFREIGHTER_HORIZON_TINY_REUSE_FIXTURE")
+	if reuse != "" {
+		previous, err := fixture.Verify(filepath.Join(reuse, "fixture", "manifest.json"))
+		if err != nil || previous.RootSHA256 != f.RootSHA256 {
+			t.Fatalf("immutable retry fixture differs: %v", err)
+		}
+		t.Log("reusing unchanged source fixtures; no source writes or cleanup")
+	} else {
+		seedTinyPostgres(t, ctx, exported, explicitDir)
+		for _, name := range []string{"AGEFREIGHTER_NEO4J44_URI", "AGEFREIGHTER_NEO4J526_URI"} {
+			seedTinyNeo4j(t, ctx, exported, explicitDir, name)
+		}
 	}
 	credential, err := azidentity.NewManagedIdentityCredential(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	client, err := azcosmos.NewClient(os.Getenv("AGEFREIGHTER_COSMOS_TEST_ENDPOINT"), credential, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer client.Close()
-	database, err := client.NewDatabase("agefreighter")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, input := range []struct {
-		name, path string
-		manifest   portable.Manifest
-	}{{"tiny-explicit", explicitDir, exported}, {"tiny-gremlin", gremlinDir, gremlin}} {
-		container, err := database.NewContainer(input.name)
+	if reuse == "" {
+		client, err := azcosmos.NewClient(os.Getenv("AGEFREIGHTER_COSMOS_TEST_ENDPOINT"), credential, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		pager := container.NewQueryItemsPager("SELECT VALUE 1 FROM c", azcosmos.NewPartitionKey(), &azcosmos.QueryOptions{PageSizeHint: 1})
-		for pager.More() {
-			page, err := pager.NextPage(ctx)
+		defer client.Close()
+		database, err := client.NewDatabase("agefreighter")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, input := range []struct {
+			name, path string
+			manifest   portable.Manifest
+		}{{"tiny-explicit", explicitDir, exported}, {"tiny-gremlin", gremlinDir, gremlin}} {
+			container, err := database.NewContainer(input.name)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(page.Items) != 0 {
-				t.Fatal("refusing to overwrite an existing Cosmos fixture")
-			}
-		}
-		for _, table := range input.manifest.Tables {
-			for _, doc := range tinyDocuments(t, input.path, table) {
-				body, err := json.Marshal(doc)
+			pager := container.NewQueryItemsPager("SELECT VALUE 1 FROM c", azcosmos.NewPartitionKey(), &azcosmos.QueryOptions{PageSizeHint: 1})
+			for pager.More() {
+				page, err := pager.NextPage(ctx)
 				if err != nil {
 					t.Fatal(err)
 				}
-				pk, ok := doc["partitionKey"].(string)
-				if !ok || pk == "" {
-					t.Fatal("fixture partition key missing")
+				if len(page.Items) != 0 {
+					t.Fatal("refusing to overwrite an existing Cosmos fixture")
 				}
-				if _, err := container.CreateItem(ctx, azcosmos.NewPartitionKeyString(pk), body, nil); err != nil {
-					t.Fatal(err)
+			}
+			for _, table := range input.manifest.Tables {
+				for _, doc := range tinyDocuments(t, input.path, table) {
+					body, err := json.Marshal(doc)
+					if err != nil {
+						t.Fatal(err)
+					}
+					pk, ok := doc["partitionKey"].(string)
+					if !ok || pk == "" {
+						t.Fatal("fixture partition key missing")
+					}
+					if _, err := container.CreateItem(ctx, azcosmos.NewPartitionKeyString(pk), body, nil); err != nil {
+						t.Fatal(err)
+					}
 				}
 			}
 		}
@@ -134,6 +145,7 @@ func TestHorizonDBTinyIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	runSuffix := strconv.FormatInt(time.Now().UnixNano(), 36)
 	for _, major := range []int{17, 18} {
 		t.Run(fmt.Sprintf("pg%d", major), func(t *testing.T) {
 			host := os.Getenv(fmt.Sprintf("AGEFREIGHTER_HORIZON_PG%d_HOST", major))
@@ -174,6 +186,8 @@ func TestHorizonDBTinyIntegration(t *testing.T) {
 			for _, source := range []string{"csv", "postgresql", "neo4j44", "neo4j526", "cosmos", "gremlin"} {
 				t.Run(source, func(t *testing.T) {
 					job := tinyJob(exported, explicitDir, source, major)
+					job.Metadata.Name += "-" + runSuffix
+					job.Target.Graph += "_" + runSuffix
 					path := filepath.Join(root, job.Metadata.Name+".json")
 					writeTinyJSON(t, path, job)
 					if _, err := config.Load(path); err != nil {
@@ -190,7 +204,7 @@ func TestHorizonDBTinyIntegration(t *testing.T) {
 					if _, err := app.Verify(ctx, path, result.JobID); err != nil {
 						t.Fatal(err)
 					}
-					targetDigest := rangedigest.TargetManifest
+					targetDigest := rangedigest.TinyTargetManifest
 					want := expected
 					if source == "gremlin" {
 						targetDigest = rangedigest.TinyGremlinTargetManifest
@@ -353,7 +367,7 @@ func tinyJob(manifest portable.Manifest, dir, source string, major int) config.L
 						End:   config.EndpointMapping{Label: table.EndLabel, Field: "end_id"}, Properties: props})
 			}
 		} else if source == "cosmos" {
-			query := fmt.Sprintf("SELECT * FROM c WHERE c.label = '%s' ORDER BY c.source_key", table.Name)
+			query := fmt.Sprintf("SELECT * FROM c WHERE c.label = '%s'", table.Name)
 			if table.Kind == "node" {
 				job.Source.Cosmos.Vertices = append(job.Source.Cosmos.Vertices,
 					config.CosmosVertexQuery{Container: "tiny-explicit", Label: table.Name, Query: query,

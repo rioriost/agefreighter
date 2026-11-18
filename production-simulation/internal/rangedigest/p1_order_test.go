@@ -5,7 +5,31 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/rioriost/agefreighter/production-simulation/internal/fixture"
 )
+
+func TestTargetOrderingKeepsSeparatePhaseBounds(t *testing.T) {
+	tiny := fixture.Plan{Phase: fixture.PhaseTiny, VertexTotal: 160, EdgeTotal: 400}
+	p1 := fixture.Plan{Phase: fixture.PhaseP1, VertexTotal: 1_600_000, EdgeTotal: 4_000_000}
+	for _, tt := range []struct {
+		plan  fixture.Plan
+		phase fixture.Phase
+		valid bool
+	}{
+		{tiny, fixture.PhaseTiny, true},
+		{p1, fixture.PhaseP1, true},
+		{tiny, fixture.PhaseP1, false},
+		{p1, fixture.PhaseTiny, false},
+		{fixture.Plan{Phase: fixture.PhaseTiny, VertexTotal: 161, EdgeTotal: 400}, fixture.PhaseTiny, false},
+		{fixture.Plan{Phase: fixture.PhaseTiny, VertexTotal: 160, EdgeTotal: 401}, fixture.PhaseTiny, false},
+		{p1, "", true},
+	} {
+		if err := validateTargetOrdering(tt.plan, tt.phase); (err == nil) != tt.valid {
+			t.Fatalf("plan=%+v phase=%q: %v", tt.plan, tt.phase, err)
+		}
+	}
+}
 
 func TestP1OrderIndependentAndStrict(t *testing.T) {
 	ordered, _ := newRangeBuilder(2)

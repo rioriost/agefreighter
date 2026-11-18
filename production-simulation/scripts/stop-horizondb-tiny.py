@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -36,6 +37,7 @@ token = read_json(
 headers = {"Authorization": "Bearer " + token, "Content-Length": "0"}
 prefix = tags["run"]
 operations = []
+pool_urls = []
 for version in ("17", "18"):
     base = (
         "https://management.azure.com/subscriptions/"
@@ -48,12 +50,22 @@ for version in ("17", "18"):
         + version
         + "/pools/writer"
     )
+    pool_urls.append(base + "?api-version=2026-10-01-preview")
     request = urllib.request.Request(
         base + "/stop?api-version=2026-10-01-preview",
         headers=headers,
         method="POST",
     )
-    with http.open(request, timeout=60) as response:
+    try:
+        response = http.open(request, timeout=60)
+    except urllib.error.HTTPError as error:
+        if error.code == 501:
+            raise SystemExit(
+                "Pool power operations are unavailable; this timer cannot bound "
+                "HorizonDB charges. Explicit owned-resource cleanup approval is required."
+            ) from error
+        raise
+    with response:
         operation = response.headers.get("Azure-AsyncOperation") or response.headers.get("Location")
         if response.status == 202 and not operation:
             raise RuntimeError("Pool stop accepted without a polling URL")
@@ -73,4 +85,7 @@ for operation in operations:
         time.sleep(10)
     else:
         raise TimeoutError("Tiny pool stop did not complete")
+for url in pool_urls:
+    if read_json(url, {"Authorization": headers["Authorization"]})["properties"]["state"] != "Stopped":
+        raise RuntimeError("Pool stop completed without a persisted Stopped state")
 print("Both dedicated tiny pools stopped; data and evidence retained.")

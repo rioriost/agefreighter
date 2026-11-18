@@ -35,6 +35,16 @@ migration qualification. The larger configurations below remain
 **conditional cost scenarios, not validated deployment recommendations**;
 their complete SKU restrictions and remaining monthly budget are unverified.
 
+SQL preflight observed PostgreSQL 17.11 and 18.6, AGE 1.8.0 available,
+the AGE library already preloaded and `pending_restart=false`. However,
+pool restart returned HTTP 501 `PowerOperationNotEnabled`, explicitly stating
+that start, stop and restart are unavailable for these clusters.
+The emergency timer therefore **cannot cap HorizonDB charges on these
+clusters**. Their four total vCores continue at approximately $0.825624/hour,
+plus storage/networking, until supported lifecycle control or explicitly
+approved cleanup is available. The six-hour figure below is not an enforced
+upper bound. Do not start any larger phase without a verified lifecycle path.
+
 Restore the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Then inspect only the approved subscription and confirm
 the current account before any write. Do not copy tokens or passwords into
@@ -349,12 +359,21 @@ fixture output, non-HorizonDB targets or a generated dataset outside 160/400.
 It seeds isolated PostgreSQL/Neo4j/Cosmos fixtures, verifies all twelve exact
 loads and retains full target canonical comparisons. Offline configuration
 checks do not count as live results.
+The first live attempt passed ten routes; the two explicit Cosmos queries
+failed because the Go SDK cannot merge cross-partition `ORDER BY` responses.
+Use supported unordered cross-partition queries and bounded, source-key-sorted
+canonical verification, not a row-count-only substitute. A deliberate retry
+may set `AGEFREIGHTER_HORIZON_TINY_REUSE_FIXTURE` to the earlier output directory:
+its verified fixture hash must match, no sources are reseeded or deleted, and
+the new output directory and target graph names remain unique.
 
 The HorizonDB API requires default parameters during pool creation. Deploy
 the template once with its default `configureAGE=false`, then with
-`configureAGE=true` and the observed runner `administratorObjectId`. Explicitly
-restart both pools to apply the static preload change and check actual SQL
-readiness. Do not redeploy the first-pass settings over initialized pools.
+`configureAGE=true` and the observed runner `administratorObjectId`. Check SQL
+preload settings and `pending_restart`. Restart only if required and supported;
+the current resources applied the immediate association without a pending
+restart despite the unavailable power-operation API. Do not redeploy the
+first-pass settings over initialized pools.
 Source bootstrap refuses non-tiny VM metadata and existing credentials.
 The live suite also fences sources to the dedicated local PostgreSQL/Neo4j
 ports and run-scoped Cosmos account naming. Pool resources must omit tags;
@@ -366,9 +385,11 @@ the current resources when the initial `PUT` had not left it enabled.
 If Private Link fails with the API mismatch above, explicitly select the
 NAT-only fallback and verify the sole firewall rule matches the owned NAT IP.
 Cosmos must remain private and the VM must retain deny-all inbound rules.
-Install the guarded pool-stop helper as a five-hour emergency systemd timer;
-the VM has a separate UTC auto-shutdown schedule. Stopping compute retains data
-and does not authorize deleting resources or evidence.
+Install a guarded pool-stop deadline only after actual stop/start support has
+been verified for the intended resource model. The current HTTP 501 means the
+installed five-hour timer is not an effective HorizonDB cost control.
+The VM has a separate UTC auto-shutdown schedule. Neither timeout nor a failed
+stop attempt authorizes deleting resources or evidence.
 
 Retain SQL version observations and full outcomes. Only after every
 required tiny route passes may the release proceed: finalize the compatibility

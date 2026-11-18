@@ -16,16 +16,35 @@ func TargetManifest(
 	jobID string,
 	rangeRows int64,
 ) (Manifest, error) {
-	return targetManifest(ctx, dsn, manifestPath, jobID, rangeRows, false)
+	return targetManifest(ctx, dsn, manifestPath, jobID, rangeRows, "")
 }
 
 // P1TargetManifest compares the bounded P1 fixture independently of ingestion
 // order. P3 deliberately keeps its existing streaming memory profile.
 func P1TargetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeRows int64) (Manifest, error) {
-	return targetManifest(ctx, dsn, manifestPath, jobID, rangeRows, true)
+	return targetManifest(ctx, dsn, manifestPath, jobID, rangeRows, fixturemodel.PhaseP1)
 }
 
-func targetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeRows int64, unorderedP1 bool) (Manifest, error) {
+// TinyTargetManifest admits unordered cross-partition reads only at the
+// separately approved tiny bound, without widening the P1 or P3 entry points.
+func TinyTargetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeRows int64) (Manifest, error) {
+	return targetManifest(ctx, dsn, manifestPath, jobID, rangeRows, fixturemodel.PhaseTiny)
+}
+
+func validateTargetOrdering(plan fixturemodel.Plan, phase fixturemodel.Phase) error {
+	if phase == fixturemodel.PhaseP1 && (plan.Phase != phase || plan.VertexTotal != 1_600_000 || plan.EdgeTotal != 4_000_000) {
+		return errors.New("unordered target digest is restricted to the bounded P1 fixture")
+	}
+	if phase == fixturemodel.PhaseTiny && (plan.Phase != phase || plan.VertexTotal != 160 || plan.EdgeTotal != 400) {
+		return errors.New("unordered target digest is restricted to the approved tiny fixture")
+	}
+	if phase != "" && phase != fixturemodel.PhaseP1 && phase != fixturemodel.PhaseTiny {
+		return errors.New("unsupported unordered target fixture")
+	}
+	return nil
+}
+
+func targetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeRows int64, unorderedPhase fixturemodel.Phase) (Manifest, error) {
 	if ctx == nil {
 		return Manifest{}, errors.New("context is required")
 	}
@@ -36,8 +55,8 @@ func targetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeR
 	if err != nil {
 		return Manifest{}, err
 	}
-	if unorderedP1 && (fixtureManifest.Plan.Phase != fixturemodel.PhaseP1 || fixtureManifest.Plan.VertexTotal != 1_600_000 || fixtureManifest.Plan.EdgeTotal != 4_000_000) {
-		return Manifest{}, errors.New("unordered target digest is restricted to the bounded P1 fixture")
+	if err := validateTargetOrdering(fixtureManifest.Plan, unorderedPhase); err != nil {
+		return Manifest{}, err
 	}
 	builder, err := newRangeBuilder(rangeRows)
 	if err != nil {
@@ -99,7 +118,7 @@ func targetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeR
 		if err != nil {
 			return Manifest{}, fmt.Errorf("query target vertex %q: %w", spec.Label, err)
 		}
-		sink := targetSink(builder, unorderedP1, spec.Count)
+		sink := targetSink(builder, unorderedPhase != "", spec.Count)
 		count, err := digestTargetVertices(ctx, rows, spec.Label, sink, endpoints)
 		if err != nil {
 			return Manifest{}, err
@@ -141,7 +160,7 @@ func targetManifest(ctx context.Context, dsn, manifestPath, jobID string, rangeR
 		if err != nil {
 			return Manifest{}, fmt.Errorf("query target edge %q: %w", spec.Type, err)
 		}
-		sink := targetSink(builder, unorderedP1, spec.Count)
+		sink := targetSink(builder, unorderedPhase != "", spec.Count)
 		count, err := digestTargetEdges(
 			ctx, rows, spec, vertices, sink, endpoints,
 		)
