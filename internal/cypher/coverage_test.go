@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -84,6 +85,139 @@ func TestStructuralGrammarTransitionAndPayloadMatrix(t *testing.T) {
 			tokens := lexSingleTokens(t, test.payload)
 			if got := validateClausePayload(test.clause, tokens); got != test.want {
 				t.Fatalf("validateClausePayload(%q, %q) = %t, want %t", test.clause, test.payload, got, test.want)
+			}
+		})
+	}
+}
+
+func TestPredicateOperandAndReverseOperator(t *testing.T) {
+	for _, test := range []struct {
+		kind tokenKind
+		text string
+		want bool
+	}{
+		{tokenIdentifier, "name", true},
+		{tokenEscapedIdentifier, "name", true},
+		{tokenString, "name", true},
+		{tokenNumber, "42", true},
+		{tokenParameter, "$value", true},
+		{tokenParameter, "$<invalid-parameter>", false},
+		{tokenPunctuation, "[", true},
+		{tokenPunctuation, "{", true},
+		{tokenPunctuation, "(", true},
+		{tokenPunctuation, ")", false},
+		{tokenOperator, "=", false},
+	} {
+		if got := expressionOperand(token{kind: test.kind, text: test.text}); got != test.want {
+			t.Errorf("expressionOperand(%q) = %t, want %t", test.text, got, test.want)
+		}
+	}
+	for operator, want := range map[string]string{
+		"=": "=", "<": ">", "<=": ">=", ">": "<", ">=": "<=", "<>": "",
+	} {
+		if got := reversePredicateOperator(operator); got != want {
+			t.Errorf("reversePredicateOperator(%q) = %q, want %q", operator, got, want)
+		}
+	}
+}
+
+func TestStatementBoundsAndSubqueryWarnings(t *testing.T) {
+	empty := analyzeStatement(statement{}, "query.cypher", 1, Options{})
+	if empty.Classification != Unknown || len(empty.Findings) == 0 ||
+		empty.Findings[0].Evidence != "empty query" {
+		t.Fatalf("empty statement = %#v", empty)
+	}
+	oversized := analyzeStatement(
+		statement{tokens: make([]token, MaxTokens+1)},
+		"query.cypher", 1, Options{},
+	)
+	if oversized.Classification != Unknown || len(oversized.Findings) == 0 ||
+		oversized.Findings[0].Code != "AGE16-X004" {
+		t.Fatalf("oversized statement = %#v", oversized)
+	}
+	for _, test := range []struct {
+		query    string
+		evidence string
+	}{
+		{"MATCH (n) CALL { RETURN n }", "CALL subquery compatibility is not proven"},
+		{"MATCH (n) WHERE EXISTS { RETURN n }", "nested EXISTS subquery compatibility is not proven"},
+		{"MATCH (n) WHERE n IS NOT TYPED", "type predicate compatibility is not proven"},
+		{"MATCH (n) FILTER n", "clause is outside the AGE 1.6 compatibility catalog"},
+		{"MATCH (n) SHOW n", "SHOW"},
+		{"MATCH (n) USING INDEX n:Person(id)", "USING <planner-hint>"},
+		{"CREATE INDEX idx", "CREATE INDEX"},
+		{"DROP INDEX idx", "DROP INDEX"},
+	} {
+		t.Run(test.query, func(t *testing.T) {
+			result := Query{}
+			analyzeSpecialSyntax(lexSingleTokens(t, test.query), Options{}, &result)
+			found := false
+			for _, finding := range result.Findings {
+				if strings.Contains(finding.Evidence, test.evidence) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatalf("analyzeSpecialSyntax(%q) findings = %#v", test.query, result.Findings)
+			}
+		})
+	}
+}
+
+func TestPredicatePatternsRequireKnownLabelAndOperand(t *testing.T) {
+	variables := map[string][]string{"n": {"Person"}}
+	for _, test := range []struct {
+		query    string
+		operator string
+	}{
+		{"n.age >= 18", ">="},
+		{"18 < n.age", ">"},
+		{"n.name STARTS WITH 'a'", "STARTS WITH"},
+		{"n.name IN ['a']", "IN"},
+	} {
+		t.Run(test.query, func(t *testing.T) {
+			patterns := inferPredicatePatterns(lexSingleTokens(t, test.query), variables)
+			if len(patterns) != 1 || patterns[0].Kind != "predicate" ||
+				patterns[0].Label != "Person" || patterns[0].Operator != test.operator {
+				t.Fatalf("inferPredicatePatterns(%q) = %#v", test.query, patterns)
+			}
+		})
+	}
+	for _, test := range []struct {
+		query     string
+		variables map[string][]string
+	}{
+		{"n.age = 18", nil},
+		{"n.age = 18", map[string][]string{"n": {"Person", "User"}}},
+		{"n.age = +", variables},
+		{"n.age CONTAINS", variables},
+	} {
+		if patterns := inferPredicatePatterns(lexSingleTokens(t, test.query), test.variables); len(patterns) != 0 {
+			t.Errorf("inferPredicatePatterns(%q) = %#v, want none", test.query, patterns)
+		}
+	}
+}
+
+func TestProjectionDropsAmbiguousBindings(t *testing.T) {
+	variables := map[string][]string{"n": {"Person"}, "m": {"Company"}}
+	for _, test := range []struct {
+		projection string
+		want       map[string][]string
+	}{
+		{"*", variables},
+		{"DISTINCT n AS person", map[string][]string{"person": {"Person"}}},
+		{"n, m", variables},
+		{"n.name AS name", map[string][]string{}},
+		{"n AS person, m AS person", map[string][]string{}},
+		{"n AS person, m AS company", map[string][]string{
+			"person": {"Person"}, "company": {"Company"},
+		}},
+	} {
+		t.Run(test.projection, func(t *testing.T) {
+			got := projectPatternBindings(lexSingleTokens(t, test.projection), variables)
+			if !reflect.DeepEqual(got, test.want) {
+				t.Fatalf("projectPatternBindings(%q) = %#v, want %#v", test.projection, got, test.want)
 			}
 		})
 	}
