@@ -12,13 +12,21 @@ evidence.
 
 ## Current execution status
 
-This change has created no HorizonDB resources and has run no HorizonDB migration.
-Azure CLI resource discovery failed with `AADSTS135010`. The alternative MCP
-account did not expose the intended subscription, so no other subscription was
-used. The existing controlled Azure GitHub runner is offline. Authentication,
-resource inventory, capacity, current-month spend and network access remain
-unverified. The configurations below are **conditional cost scenarios, not
-validated deployment recommendations**.
+The initial Azure CLI discovery failed with `AADSTS135010`. After the user
+reauthenticated on 2026-11-18, the intended subscription was accessible.
+Historical test resources and registered GitHub runners were absent.
+Japan East advertises PG17/PG18 and two-vCore pools; the tiny D8ds v5 has
+unrestricted availability and sufficient regional/family quota.
+
+An isolated tiny-only environment is being provisioned using
+[`horizondb-tiny.bicep`](../infra/horizondb-tiny.bicep), after successful ARM
+validation and a Create-only what-if. It contains two two-vCore single-writer
+clusters, one private runner VM, private DNS/endpoints and a serverless Cosmos
+fixture account with local authentication disabled. The public IP is used only
+by the outbound NAT, not assigned to a VM. These preparation steps are not
+migration qualification. The larger configurations below remain
+**conditional cost scenarios, not validated deployment recommendations**;
+their complete SKU restrictions and remaining monthly budget are unverified.
 
 Restore the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Then inspect only the approved subscription and confirm
@@ -319,15 +327,33 @@ unfunded run.
 
 ## Tiny and release resumption
 
-After authentication and capacity are restored, use two isolated 2-vCore,
-single-writer HorizonDB clusters and a bounded loader/source environment.
+Use two isolated 2-vCore, single-writer HorizonDB clusters and a bounded
+loader/source environment.
 The compute-only six-hour scenario for both clusters plus one D8ds v5 worker
 is approximately $8.46; allow roughly $15 including small storage/network
 usage, subject to the actual resource quote and lifecycle. This is a cost
 forecast for the approved tiny work, not permission to run P0.
 
 Run all twelve actual tiny routes and the applicable smaller regression
-fixtures. Retain SQL version observations and full outcomes. Only after every
+fixtures. The strict live suite is
+`go test -count=1 -v ./production-simulation -run '^TestHorizonDBTinyIntegration$'`
+with `AGEFREIGHTER_REQUIRE_HORIZON_TINY=1`. It refuses missing settings, existing
+fixture output, non-HorizonDB targets or a generated dataset outside 160/400.
+It seeds isolated PostgreSQL/Neo4j/Cosmos fixtures, verifies all twelve exact
+loads and retains full target canonical comparisons. Offline configuration
+checks do not count as live results.
+
+The HorizonDB API requires default parameters during pool creation. Deploy
+the template once with its default `configureAGE=false`, then with
+`configureAGE=true` and the observed runner `administratorObjectId`. Explicitly
+restart both pools to apply the static preload change and check actual SQL
+readiness. Do not redeploy the first-pass settings over initialized pools.
+Source bootstrap refuses non-tiny VM metadata and existing credentials.
+Install the guarded pool-stop helper as a five-hour emergency systemd timer;
+the VM has a separate UTC auto-shutdown schedule. Stopping compute retains data
+and does not authorize deleting resources or evidence.
+
+Retain SQL version observations and full outcomes. Only after every
 required tiny route passes may the release proceed: finalize the compatibility
 evidence/release notes and installation examples, merge the reviewed change,
 then create the v2.4.2 tag and use the existing signing, notarization, quality,
