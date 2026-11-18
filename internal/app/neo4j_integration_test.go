@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/neo4j/neo4j-go-driver/v6/neo4j"
+	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
 	"go.yaml.in/yaml/v3"
@@ -154,14 +155,8 @@ func TestNeo4jCreateIntegration(t *testing.T) {
 		t.Fatalf("acquire AGE target: %v", err)
 	}
 	defer connection.Release()
-	if _, err := connection.Exec(ctx, "LOAD 'age'"); err != nil {
-		t.Fatalf("load AGE extension: %v", err)
-	}
-	if _, err := connection.Exec(
-		ctx,
-		`SET search_path = ag_catalog, "$user", public`,
-	); err != nil {
-		t.Fatalf("set AGE search path: %v", err)
+	if err := age.InitializeSession(ctx, connection.Conn()); err != nil {
+		t.Fatalf("initialize AGE verification session: %v", err)
 	}
 	assertCypherCount(t, connection.Conn(), graph, "MATCH (n:Person) RETURN count(n)", 2)
 	assertCypherCount(
