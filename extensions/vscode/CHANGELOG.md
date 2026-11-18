@@ -4,7 +4,9 @@
 
 - Accept PostgreSQL 17 with Apache AGE 1.8.x in the CLI capability and
   diagnostic probes, including the pairing documented for Azure HorizonDB.
-  Actual HorizonDB tiny qualification is required before publication.
+  All twelve actual HorizonDB tiny routes and the selected smaller
+  mode/type/recovery regressions passed on PostgreSQL 17.11 and 18.6/AGE 1.8.0.
+  Publication still follows the protected release gates.
 - Include the dependency and Go 1.27.4 updates since 2.4.1.
 - Keep the guided workflow's pinned 2.4.0 Linux runner and private PostgreSQL
   18 Flexible Server target unchanged. Use the updated CLI with an explicit

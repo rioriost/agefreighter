@@ -41,7 +41,8 @@ patch using the following official Community image indexes.
 | 17.x | 1.7.x | `apache/age@sha256:92a5d223965bc2e436f9eee436e0bd2c0d81f3b59124b3d197ec94706f3450a8` | PostgreSQL 17.11, AGE 1.7.0 |
 | 18.x | 1.7.x | `apache/age@sha256:e7de1717e487dac7c1be93a1cd5360a2cf07ff4170342c2af2ac4713c21baf00` | PostgreSQL 18.1, AGE 1.7.0 |
 | 18.x | 1.8.x | `apache/age@sha256:c7255d32a10de6b5d84daa12346aa545e062b223fa3e574fe96a5c428f249894` | PostgreSQL 18.6, AGE 1.8.0 |
-| 17.x | 1.8.x | Azure HorizonDB managed service; admitted starting in 2.4.2 | Live tiny qualification pending; not yet release-qualified |
+| 17.x | 1.8.x | Azure HorizonDB managed service; admitted starting in 2.4.2 | PostgreSQL 17.11, AGE 1.8.0; twelve-route tiny qualification below |
+| 18.x | 1.8.x | Azure HorizonDB managed service | PostgreSQL 18.6, AGE 1.8.0; twelve-route tiny qualification below |
 
 Azure HorizonDB became generally available in November 2026. Its
 [extension matrix](https://learn.microsoft.com/azure/horizondb/extensions/concepts-extensions-by-engine)
@@ -57,8 +58,25 @@ PostgreSQL 17, both Neo4j versions, Cosmos NoSQL, and Gremlin backing documents
 through the NoSQL API) against both managed target versions. No native Cosmos
 Gremlin protocol support is implied. The PostgreSQL 17 admission change is
 covered by unit and diagnostic-probe regressions, but those are not substitutes
-for this twelve-path live qualification. See the
+for this twelve-path live qualification.
+
+On 2026-11-18, all twelve managed-service routes passed in Japan East with
+exactly 160 vertices and 400 edges per route, zero failed batches, built-in
+verification and full canonical digest comparisons. Each target used one
+2-vCore writer without HA, HorizonDB build `532bbf654b7`, verified TLS and
+managed-identity authentication. The 24 selected existing top-level mode,
+typed-property and recovery scenarios also passed (66 including subtests),
+without skips. Failed preparation attempts and the two corrected test-harness
+issues are retained separately; they are not counted as passes. See the
+[machine-readable qualification evidence](../../production-simulation/docs/horizondb-tiny-20261118.json)
+and the
 [HorizonDB qualification plan](../../production-simulation/docs/horizondb-parallel-plan.md).
+This qualifies only tiny and the smaller listed regressions, not P0-P3 capacity,
+throughput, HA or Private Link. The live Private Link creation failed with a
+provider API-version mismatch; HorizonDB used a dedicated single-NAT-IPv4
+firewall during qualification, then public access was disabled again. Cosmos
+remained private. Pool stop/restart APIs returned `PowerOperationNotEnabled`;
+no automatic HorizonDB compute-cost cap is claimed.
 
 HorizonDB is an explicit CLI LoadJob target. The VS Code guided provisioning
 workflow still deploys its existing private PostgreSQL 18 Flexible Server

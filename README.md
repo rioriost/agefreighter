@@ -17,9 +17,11 @@ does not provide Cypher. This target remains experimental: the retained 2.3.1
 qualification used the digest-pinned official PostgreSQL 19 Beta 3 image. That
 beta-image evidence does not qualify a PostgreSQL 19 GA build.
 
-The unreleased [2.4.2 patch](docs/releases/2.4.2.md) adds PostgreSQL 17/AGE
-1.8.x version admission. Actual HorizonDB tiny qualification and publication
-are pending; installation examples below still refer to published 2.4.1.
+The [2.4.2 candidate](docs/releases/2.4.2.md) adds PostgreSQL 17/AGE 1.8.x
+admission and has passed all twelve actual HorizonDB tiny migration routes,
+plus the selected smaller mode/type/recovery scenarios. Publication still
+requires the protected release gates; installation examples below refer to
+published 2.4.1 until those gates complete.
 See the [HorizonDB qualification plan](production-simulation/docs/horizondb-parallel-plan.md)
 for the approved tiny scope and the separately proposed larger parallel runs.
 

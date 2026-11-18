@@ -18,7 +18,7 @@ Historical test resources and registered GitHub runners were absent.
 Japan East advertises PG17/PG18 and two-vCore pools; the tiny D8ds v5 has
 unrestricted availability and sufficient regional/family quota.
 
-An isolated tiny-only environment is being provisioned using
+An isolated tiny-only environment was provisioned using
 [`horizondb-tiny.bicep`](../infra/horizondb-tiny.bicep), after successful ARM
 validation and a Create-only what-if. It contains two two-vCore single-writer
 clusters, one private runner VM and a private-endpoint serverless Cosmos
@@ -30,15 +30,20 @@ static IPv4 in each pool firewall, with verified TLS and Entra authentication.
 It never adds an all-Azure or Internet-wide firewall rule. The public IP remains
 outbound-only for the VM, which has no public IP or inbound access.
 The default template still requests private-only HorizonDB access.
-These preparation steps are not
-migration qualification. The larger configurations below remain
+All twelve actual tiny routes and all 24 selected existing top-level
+mode/type/recovery scenarios subsequently passed without skips. The
+[qualification evidence](horizondb-tiny-20261118.json) records exact counts,
+versions and canonical roots; raw failed and successful attempts were retained.
+Public HorizonDB access was disabled after qualification. These tiny results
+do not validate the larger configurations below, which remain
 **conditional cost scenarios, not validated deployment recommendations**;
 their complete SKU restrictions and remaining monthly budget are unverified.
 
 SQL preflight observed PostgreSQL 17.11 and 18.6, AGE 1.8.0 available,
 the AGE library already preloaded and `pending_restart=false`. However,
-pool restart returned HTTP 501 `PowerOperationNotEnabled`, explicitly stating
-that start, stop and restart are unavailable for these clusters.
+pool restart and the actual post-qualification stop requests returned HTTP 501
+`PowerOperationNotEnabled`, explicitly stating that start, stop and restart are
+unavailable for these clusters.
 The emergency timer therefore **cannot cap HorizonDB charges on these
 clusters**. Their four total vCores continue at approximately $0.825624/hour,
 plus storage/networking, until supported lifecycle control or explicitly
@@ -366,6 +371,11 @@ canonical verification, not a row-count-only substitute. A deliberate retry
 may set `AGEFREIGHTER_HORIZON_TINY_REUSE_FIXTURE` to the earlier output directory:
 its verified fixture hash must match, no sources are reseeded or deleted, and
 the new output directory and target graph names remain unique.
+The immutable-source retry passed all twelve complete canonical comparisons.
+The smaller existing source assertions initially attempted superuser-only
+`LOAD 'age'`; switching their setup to the existing hosted AGE session
+initializer preserved all assertions and allowed all 24 top-level scenarios
+(66 including subtests) to pass on both actual targets.
 
 The HorizonDB API requires default parameters during pool creation. Deploy
 the template once with its default `configureAGE=false`, then with
