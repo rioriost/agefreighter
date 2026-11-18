@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.2 (unreleased)
+
+- Accept PostgreSQL 17 with Apache AGE 1.8.x in the CLI capability and
+  diagnostic probes, including the pairing documented for Azure HorizonDB.
+  Actual HorizonDB tiny qualification is required before publication.
+- Include the dependency and Go 1.27.4 updates since 2.4.1.
+- Keep the guided workflow's pinned 2.4.0 Linux runner and private PostgreSQL
+  18 Flexible Server target unchanged. Use the updated CLI with an explicit
+  LoadJob for HorizonDB; installing the extension does not upgrade a runner.
+
 ## 2.4.1
 
 - Show **Working...** immediately after step 5-2 approval, including price,

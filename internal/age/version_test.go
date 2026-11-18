@@ -26,6 +26,8 @@ func TestSupportedTargetVersionSeries(t *testing.T) {
 		{160015, Version{Major: 1, Minor: 6}},
 		{170011, Version{Major: 1, Minor: 6}},
 		{170011, Version{Major: 1, Minor: 7}},
+		{170011, Version{Major: 1, Minor: 8}},
+		{170011, Version{Major: 1, Minor: 8, Patch: 1}},
 		{180006, Version{Major: 1, Minor: 7}},
 		{180006, Version{Major: 1, Minor: 8}},
 	}
@@ -77,7 +79,7 @@ func TestVersionRejectsUnsupportedAndMalformedValues(t *testing.T) {
 	}{
 		{140024, Version{Major: 1, Minor: 7}},
 		{160015, Version{Major: 1, Minor: 8}},
-		{170011, Version{Major: 1, Minor: 8}},
+		{170011, Version{Major: 1, Minor: 9}},
 		{180006, Version{Major: 1, Minor: 6}},
 	} {
 		if err := ValidateVersions(test.postgresVersion, test.ageVersion); err == nil {

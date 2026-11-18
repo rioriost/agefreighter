@@ -33,33 +33,33 @@ func TestDegradedProbeIntegration(t *testing.T) {
 }
 
 func TestDegradedProbeClassifiesSupportedTarget(t *testing.T) {
-	database := &probeScript{
-		rows: []pgx.Row{
-			stubRow(func(dest ...any) error {
-				*dest[0].(*string) = "170009"
-				*dest[1].(*string) = "17.9"
-				return nil
-			}),
-			stubRow(func(dest ...any) error {
-				*dest[0].(*string) = "1.6.0"
-				return nil
-			}),
-			stubRow(func(dest ...any) error {
-				*dest[0].(*string) = "age, pg_stat_statements"
-				return nil
-			}),
-		},
-	}
-	result, err := probeDegradedCapabilities(t.Context(), database)
-	if err != nil {
-		t.Fatalf("probeDegradedCapabilities() error = %v", err)
-	}
-	if result.PostgreSQLStatus != ProbePass ||
-		result.AGEPresenceStatus != ProbePass ||
-		result.AGEVersionStatus != ProbePass ||
-		result.AGELoadabilityStatus != ProbePass ||
-		result.AGEPreloadStatus != PreloadConfigured {
-		t.Fatalf("probe = %#v", result)
+	for _, ageVersion := range []string{"1.6.0", "1.8.0"} {
+		t.Run(ageVersion, func(t *testing.T) {
+			database := &probeScript{
+				rows: []pgx.Row{
+					versionProbeRow(),
+					stubRow(func(dest ...any) error {
+						*dest[0].(*string) = ageVersion
+						return nil
+					}),
+					stubRow(func(dest ...any) error {
+						*dest[0].(*string) = "age, pg_stat_statements"
+						return nil
+					}),
+				},
+			}
+			result, err := probeDegradedCapabilities(t.Context(), database)
+			if err != nil {
+				t.Fatalf("probeDegradedCapabilities() error = %v", err)
+			}
+			if result.PostgreSQLStatus != ProbePass ||
+				result.AGEPresenceStatus != ProbePass ||
+				result.AGEVersionStatus != ProbePass ||
+				result.AGELoadabilityStatus != ProbePass ||
+				result.AGEPreloadStatus != PreloadConfigured {
+				t.Fatalf("probe = %#v", result)
+			}
+		})
 	}
 }
 
