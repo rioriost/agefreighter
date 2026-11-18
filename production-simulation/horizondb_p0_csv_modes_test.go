@@ -118,6 +118,28 @@ func TestHorizonDBP0CSVModeIntegration(t *testing.T) {
 					defer conn.Close(context.Background())
 					var number int
 					var pg, age string
+					if err := conn.QueryRow(ctx, `SELECT current_setting('server_version_num')::integer`).Scan(&number); err != nil {
+						t.Fatal(err)
+					}
+					if number/10000 != major {
+						t.Fatal("effective PostgreSQL major differs before extension initialization")
+					}
+					if _, err := conn.Exec(ctx, `CREATE EXTENSION IF NOT EXISTS age`); err != nil {
+						t.Fatal(err)
+					}
+					var preloaded string
+					var pendingRestart bool
+					if err := conn.QueryRow(ctx, `SELECT setting,pending_restart FROM pg_settings
+						WHERE name='shared_preload_libraries'`).Scan(&preloaded, &pendingRestart); err != nil {
+						t.Fatal(err)
+					}
+					agePreloaded := false
+					for _, library := range strings.Split(preloaded, ",") {
+						agePreloaded = agePreloaded || strings.TrimSpace(library) == "age"
+					}
+					if !agePreloaded || pendingRestart {
+						t.Fatal("AGE must actually be preloaded without an unsupported pending restart")
+					}
 					if err := conn.QueryRow(ctx, `SELECT current_setting('server_version_num')::integer,
 						version(),extversion FROM pg_extension WHERE extname='age'`).Scan(&number, &pg, &age); err != nil {
 						t.Fatal(err)
