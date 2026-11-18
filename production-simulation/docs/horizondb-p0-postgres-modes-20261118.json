@@ -152,12 +152,21 @@
     "privateManagedIdentityReadBack": "passed"
   },
   "retirement": {
-    "status": "in-progress",
+    "status": "verified-absent",
     "leaseId": "c5866b78-d5ef-4814-ab05-00e52a0130ca",
     "earlyClosedAtUtc": "2026-11-18T10:18:39.695221+00:00",
     "guardJob": "3519f548-edcc-4887-a2c3-5d58082377a2",
+    "guardJobStatus": "Completed",
+    "deleteRequestedAtUtc": "2026-11-18T10:19:22.1759812+00:00",
+    "independentJobFinal404AtUtc": "2026-11-18T10:57:29.5496037+00:00",
+    "verifiedAtUtc": "2026-11-18T10:57:35.464220+00:00",
     "deleteObservationLimitMinutes": 45,
+    "resourceGroupFinalHTTP404": true,
+    "pg17FinalHTTP404": true,
+    "pg18FinalHTTP404": true,
+    "excludedOldGroupVMDiskCosmosStorageVerifiedPresent": true,
     "deletionScope": "new disposable qualification resource group only",
+    "excludedVMExternalShutdownEnabled": true,
     "excludedVMExternalShutdownUTC": "12:15"
   },
   "completedRoutes": ["postgresql-pg17", "postgresql-pg18"],

@@ -384,8 +384,15 @@ All allowlisted nonsecret raw evidence was privately uploaded and independently
 digest-read-back verified: 32,772 bytes, SHA-256
 `ab5bf0ff07c784f78d97a88ae62b2290c9e177f0f455ba72cd2c139d779f5c28`.
 After preservation the lease closed early at 10:18:39 UTC. Independent
-exact-group retirement job `3519f548-edcc-4887-a2c3-5d58082377a2` is in progress;
-no final-404 claim is made for this wave yet.
+exact-group retirement job `3519f548-edcc-4887-a2c3-5d58082377a2` **completed**:
+it issued DELETE at 10:19:22 UTC and actually polled the owned group through
+its final 404 at 10:57:29 UTC, within the forty-five-minute observation budget.
+Separate operator requests confirmed final 404s for the disposable group and
+both target clusters at **10:57:35 UTC (19:57:35 JST)**. The excluded old group,
+VM, OS disk, Cosmos account and evidence Storage account were explicitly
+verified present. The retained VM's external shutdown remained **Enabled at
+12:15 UTC (21:15 JST)**. No new resource group or target remains from this
+wave; retained resources and delayed postings can still incur charges.
 
 The campaign is now **20/60 unique P0 cases and 4/12 P0 routes**, with zero
 complete phases. The remaining forty P0 cases are the Neo4j 4.4/5.26 and both
