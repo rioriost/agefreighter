@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "dateUTC": "2026-11-18",
+  "region": "japaneast",
+  "status": "partial-fail",
+  "coverage": "Nineteen passing Neo4j P0 cases and one failed pre-SIGKILL worker; three complete routes, not a complete P0 phase",
+  "candidateCommit": "5ecbc3b20b26ffa68daea4c4553371606bd069ac",
+  "binarySha256": "22cc91ac911f36525271d8ba9baf17451b55c8593dcffb80aaefed84640aa076",
+  "publishedReleaseBinary": false,
+  "sources": {
+    "neo4j44": {
+      "version": "4.4.48",
+      "image": "neo4j@sha256:5098db94262985f26a71d4ff573116cf893bce636e879bceb8ec9ba02a5a1553",
+      "loopbackPort": 7689,
+      "passedCases": 10,
+      "failedCases": 0
+    },
+    "neo4j526": {
+      "version": "5.26.30",
+      "image": "neo4j@sha256:037cf5756f0135cbfd66b739b6df7c7c4bb100f9ce11602f6f9538e17e02c74d",
+      "loopbackPort": 7690,
+      "passedCases": 9,
+      "failedCases": 1
+    }
+  },
+  "sourcePreparation": {
+    "immutableRunScopedLabelsAndTypes": true,
+    "maximumSeedBatchRows": 512,
+    "consumedFileHashesAndActualTableCountsVerified": true,
+    "writtenJobConfigurationsReloadedBeforeProductionIteratorScan": true,
+    "sourceCPUQuotaCoresEach": 1,
+    "sourceMemoryLimitBytesEach": 2147483648,
+    "sourceOOMOrRestarts": 0,
+    "retainedTinyInstancesUntouched": true
+  },
+  "dataset": {
+    "phase": "p0",
+    "seed": 20260829,
+    "shards": 4,
+    "vertices": 100000,
+    "edges": 358000,
+    "fixtureRootSha256": "f5c55737a9b8abe9259937920c43504351db48c56b29afd031a813e403b20b1d",
+    "appendRecords": 4580,
+    "upsertRecords": 4580,
+    "incrementalFinalRecords": 462580
+  },
+  "targetVersions": {
+    "17": {"postgresql": "17.11", "age": "1.8.0"},
+    "18": {"postgresql": "18.6", "age": "1.8.0"}
+  },
+  "targetCompute": {
+    "vCoresPerWriter": 8,
+    "writersPerTarget": 1,
+    "highAvailability": false
+  },
+  "verification": {
+    "method": "Independent raw-fixture scenario oracle versus read-only SQL canonical snapshot of actual AGE properties and physical endpoints",
+    "allEighteenLeavesComparedForEveryPassingCase": true,
+    "allNineteenPassingRootsMatchCSVAndPostgresCases": true,
+    "failedCaseCanonicallyVerified": false,
+    "passingCaseFailedBatches": 0,
+    "replaceChangedGeneration": true,
+    "appendAndUpsertPreservedGeneration": true,
+    "canonicalRoots": {
+      "create": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+      "replace": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+      "append": "8b645c2f59670d8b677fc8acdd22cd77ee52ca3fedbd550130c6a89a68440675",
+      "upsert": "7061ff76ae2dbeeb35a188d3f6d366f28486f2d33c230adfc470419b8b53762a",
+      "resume": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4"
+    }
+  },
+  "cases": [
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 17, "mode": "create", "status": "pass",
+      "jobId": "2fbaf1cf-9438-43c9-9a84-6eb788ab6839",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 35.914
+    },
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 17, "mode": "replace", "status": "pass",
+      "jobId": "e7d6c83a-e1ec-46e9-9ea8-bff871eff8e1",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 245.581
+    },
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 17, "mode": "append", "status": "pass",
+      "jobId": "2a64c219-855d-47d3-a776-2bec7f5f6769",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 26.904
+    },
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 17, "mode": "upsert", "status": "pass",
+      "jobId": "d9a5eea2-5344-45d2-8991-2792d24db43d",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 26.134
+    },
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 17, "mode": "resume", "status": "pass",
+      "jobId": "add71942-910f-4430-8cc4-531e3f532ceb",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 17,
+      "loadAndVerificationSeconds": 246.331,
+      "recovery": {
+        "fault": "SIGKILL", "committedBeforeKill": 120000,
+        "durableCommittedBeforeResume": 120000, "recordsCommittedAfterResume": 338000,
+        "sameJobId": true
+      }
+    },
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 18, "mode": "create", "status": "pass",
+      "jobId": "eec742ad-0355-4c35-bb96-cecdd8bfc7f5",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 269.323
+    },
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 18, "mode": "replace", "status": "pass",
+      "jobId": "ce69cce6-f200-4510-a466-bbea96abd089",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 97.373
+    },
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 18, "mode": "append", "status": "pass",
+      "jobId": "a3ffd6f5-3b5c-4e05-83f9-19b95f5113a5",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 27.662
+    },
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 18, "mode": "upsert", "status": "pass",
+      "jobId": "5147d419-5444-48b5-a1e0-ba97977eb161",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 27.861
+    },
+    {
+      "source": "neo4j44", "targetPostgreSQLMajor": 18, "mode": "resume", "status": "pass",
+      "jobId": "a3cc8736-df88-4644-a246-674c2bdb1b59",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 17,
+      "loadAndVerificationSeconds": 199.01,
+      "recovery": {
+        "fault": "SIGKILL", "committedBeforeKill": 120000,
+        "durableCommittedBeforeResume": 120000, "recordsCommittedAfterResume": 338000,
+        "sameJobId": true
+      }
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 17, "mode": "create", "status": "pass",
+      "jobId": "4d0be773-9fbd-4353-a50b-948da0fb76ef",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 53.859
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 17, "mode": "replace", "status": "pass",
+      "jobId": "5fdd03d3-dab3-45ae-8fcc-788e6ad74771",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 260.234
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 17, "mode": "append", "status": "pass",
+      "jobId": "ac5c6bb4-a1bf-4e62-bd41-1967d922e5e0",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 29.792
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 17, "mode": "upsert", "status": "pass",
+      "jobId": "4ac3cfe6-3934-434a-a5ac-69cecd2459b1",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 26.555
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 17, "mode": "resume", "status": "fail",
+      "jobId": "6f488ce7-5285-4e8e-9362-ed9a7c1ee370",
+      "failure": "edge-endpoint-resolution-operation-timeout",
+      "operationTimeoutSeconds": 300,
+      "maximumCommittedRowsObserved": 100000,
+      "faultInjected": false,
+      "sameJobResumePerformed": false,
+      "canonicalVerificationExists": false,
+      "workerError": "sink_write write records for batch 6: iterate resolved edge endpoints: timeout: context deadline exceeded",
+      "harnessError": "worker exited before the required fault: exit status 1",
+      "underlyingPlannerStatisticsOrServiceCauseEstablished": false,
+      "postClosureReadOnlyDiagnostics": {
+        "targetEndpointsNoLongerResolvedDuringRetirement": true,
+        "queryPlanOrStatisticsCaptured": false,
+        "retirementDelayedOrReversed": false
+      }
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 18, "mode": "create", "status": "pass",
+      "jobId": "31a23f3a-ec85-4452-b9d2-2dde8dba86bf",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 35.038
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 18, "mode": "replace", "status": "pass",
+      "jobId": "bf514f5a-54db-4ccb-8fb9-f206ca288572",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 234.669
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 18, "mode": "append", "status": "pass",
+      "jobId": "c98ee5ae-1512-42df-933d-2060a8891ff5",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 27.184
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 18, "mode": "upsert", "status": "pass",
+      "jobId": "54f56422-85a7-417c-b394-66a2f0e04f3f",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 27.25
+    },
+    {
+      "source": "neo4j526", "targetPostgreSQLMajor": 18, "mode": "resume", "status": "pass",
+      "jobId": "c10464dd-3b26-42e9-b24f-1ff821501316",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 17,
+      "loadAndVerificationSeconds": 320.787,
+      "recovery": {
+        "fault": "SIGKILL", "committedBeforeKill": 120000,
+        "durableCommittedBeforeResume": 120000, "recordsCommittedAfterResume": 338000,
+        "sameJobId": true
+      }
+    }
+  ],
+  "loaders": {
+    "neo4j44": {
+      "cpuQuotaCores": 3,
+      "hardMemoryLimitBytes": 2147483648,
+      "maximumProcessRSSBytes": 161763328,
+      "maximumCgroupMemoryBytes": 542879744,
+      "swapBytes": 0,
+      "oomEvents": 0,
+      "maximumDiskPercent": 20
+    },
+    "neo4j526": {
+      "cpuQuotaCores": 3,
+      "hardMemoryLimitBytes": 2147483648,
+      "maximumProcessRSSBytes": 162058240,
+      "maximumCgroupMemoryBytes": 547942400,
+      "swapBytes": 0,
+      "oomEvents": 0,
+      "maximumDiskPercent": 20
+    }
+  },
+  "parallelism": "Two separately bounded source/loader pairs share one retained Standard_D8ds_v5; not four isolated performance lanes",
+  "metricIntervalSeconds": 15,
+  "progressStallLimitSeconds": 840,
+  "transport": {
+    "tls": "verify-full",
+    "authentication": "managed-identity",
+    "longRunningTokenRenewalQualified": false,
+    "horizonIngress": "approved single static NAT IPv4 only"
+  },
+  "retainedRawEvidence": {
+    "neo4j44": {
+      "bytes": 37208,
+      "sha256": "b5510fa20c077e7955d840ed19fd11b0565411f76d3a001570a23d5c3f3443f5",
+      "blob": "afhs-20261118/p0-neo4j44/r20261118p0n44b/428b242fffd0/p0-neo4j44-modes-evidence-428b242fffd0.tar.xz",
+      "privateManagedIdentityReadBack": "passed"
+    },
+    "neo4j526": {
+      "bytes": 37856,
+      "sha256": "68540c363ecdb568aaa917c1de752a112d7bb2b9ca50432cef6ac7110c082cef",
+      "blob": "afhs-20261118/p0-neo4j526/r20261118p0n526b/faab77c1acf4/p0-neo4j526-modes-evidence-faab77c1acf4.tar.xz",
+      "privateManagedIdentityReadBack": "passed",
+      "includesFailedWorkerIdentityProgressConfigurationAndLog": true,
+      "existingSummaryRecoveredReadOnlyAfterResponseSizeLimit": true
+    }
+  },
+  "earlierFailedAttempts": {
+    "candidateCommit": "5f5438f92da28dfaa71cd68fb7a72b7f626e7d46",
+    "status": "failed-attempts-preserved",
+    "sources": ["neo4j44", "neo4j526"],
+    "successfulP0Cases": 0,
+    "reason": "Serialized jobs lost internal InitialQuery; first-page null comparison returned zero rows",
+    "retainedRawEvidence": {
+      "bytes": 24936,
+      "sha256": "837761a845b51fd9e788e32d96288f09bf0f0a7f40d3a0c2d6b34beb99197376",
+      "blob": "afhs-20261118/p0-neo4j/failed-initial/b8f750f9e14a/p0-neo4j-initial-failed-attempts-b8f750f9e14a.tar.xz",
+      "privateManagedIdentityReadBack": "passed"
+    }
+  },
+  "budgetAdmission": {
+    "reportedMtdUSD": 120.64319793952,
+    "conservativeWithFullWindowAndReservesUSD": 538.0052426338691,
+    "monthlyLimitUSD": 3750,
+    "finalBillKnown": false
+  },
+  "retirement": {
+    "status": "in-progress",
+    "leaseId": "48b7cdca-6333-40c0-8ac2-7b12291ba2c5",
+    "earlyClosedAtUtc": "2026-11-18T13:35:00.968884+00:00",
+    "guardJob": "2ce526f4-4a53-42de-aa75-a35fb46947e2",
+    "scope": "exact disposable scale resource group only",
+    "externalVMShutdownUTC": "15:34",
+    "retainedResourcesAndDelayedPostingsMayStillIncurCharges": true
+  },
+  "completedRoutes": ["neo4j44-pg17", "neo4j44-pg18", "neo4j526-pg18"],
+  "campaignP0": {
+    "uniquePassingCases": 39,
+    "failedCases": 1,
+    "unexecutedCases": 20,
+    "totalCases": 60,
+    "fullyQualifiedRoutes": 7,
+    "totalRoutes": 12,
+    "completedPhases": []
+  },
+  "largerPhasesExecuted": false,
+  "remaining": [
+    "Diagnose and qualify the Neo4j5.26 PG17 pre-SIGKILL endpoint timeout without weakening gates",
+    "Twenty Cosmos NoSQL and Gremlin-document P0 cases",
+    "Long-running credentials, isolated lanes, disposable-worker snapshots, RU calibration and further fault/promotion gates",
+    "Gated P1/P2/P3; not queued"
+  ]
+}

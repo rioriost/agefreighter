@@ -1,9 +1,10 @@
 # HorizonDB qualification and parallel execution plan
 
 Prepared 2026-11-18. **P0-P3 execution is approved; technical and cost
-promotion gates remain mandatory. CSV and PostgreSQL-source P0 routes passed
-all five scenarios: twenty of sixty P0 cases, four of twelve routes, no
-complete phase.**
+promotion gates remain mandatory. P0 currently has thirty-nine passing cases,
+one failed case and twenty unexecuted cases: seven of twelve fully qualified
+routes, no complete phase. Neo4j 5.26 to PG17 failed before the required
+SIGKILL; no recovery success is claimed for that case.**
 After successful tiny qualification and publication of 2.4.2, the user
 approved all four larger phases on 2026-11-18. Existing tiny HorizonDB clusters
 may be reused, or deleted if replacing them with new clusters is preferable.
@@ -394,11 +395,11 @@ verified present. The retained VM's external shutdown remained **Enabled at
 12:15 UTC (21:15 JST)**. No new resource group or target remains from this
 wave; retained resources and delayed postings can still incur charges.
 
-The campaign is now **20/60 unique P0 cases and 4/12 P0 routes**, with zero
-complete phases. The remaining forty P0 cases are the Neo4j 4.4/5.26 and both
-Cosmos layouts into both target majors. They and P1-P3 are not queued; the
-remaining bulk adapters, four-lane controller, long-running credential,
-disposable-worker snapshot, RU and fault/promotion gates remain outstanding.
+At the PostgreSQL checkpoint, the campaign had **20/60 unique P0 cases and
+4/12 P0 routes**, with zero complete phases. The following Neo4j wave adds
+nineteen passing cases and one failed recovery prerequisite. Cosmos bulk
+adapters, the four-lane controller, long-running credentials, disposable-worker
+snapshots, RU and fault/promotion gates remain outstanding; P1-P3 are not queued.
 
 [horizon-quota]: https://learn.microsoft.com/azure/horizondb/configure-maintain/how-to-request-quota-increase
 
@@ -420,8 +421,8 @@ Both select `neo4j44` or `neo4j526` through
 `AGEFREIGHTER_HORIZON_NEO4J_SOURCE`. The shared target suite retains the exact
 lease, version, canonical, generation, resource and actual process-kill gates.
 The paired source suites start on opposite PostgreSQL majors before swapping.
-This preparation is not a migration result or larger-phase admission; the
-campaign coverage above remains unchanged until actual target cases pass.
+Source-only preparation is not a migration result or larger-phase admission;
+the actual target results below are counted separately.
 
 Both source-only preflights passed for candidate
 `5f5438f92da28dfaa71cd68fb7a72b7f626e7d46`, but its first actual target
@@ -433,8 +434,78 @@ The adapter now puts the first-page null guard in the persisted query itself,
 and source preflights reload the written configuration before scanning.
 A focused regression checks preservation of both vertex and edge query plans
 across serialization for both source versions and all three datasets.
-These failed attempts are retained, are not successful P0 cases, and require
-a fresh candidate/preflight and new run IDs before retrying.
+These failed attempts are retained and are not successful P0 cases. The
+corrected actual runs below used a fresh candidate/preflight and new run IDs.
+
+### Neo4j P0 modes: nineteen passes, one pre-fault failure
+
+Corrected candidate `5ecbc3b20b26ffa68daea4c4553371606bd069ac`, native SHA-256
+`22cc91ac911f36525271d8ba9baf17451b55c8593dcffb80aaefed84640aa076`,
+passed both actual serialized source-only preflights and all three isolated SQL
+contracts before target execution. It is not the published 2.4.2 binary.
+The [actual redacted report](horizondb-p0-neo4j-modes-20261118.json) records:
+
+| Source | PG17.11 + AGE 1.8.0 | PG18.6 + AGE 1.8.0 |
+|---|---|---|
+| Neo4j 4.4.48 | All five cases passed | All five cases passed |
+| Neo4j 5.26.30 | Create, replace, append and upsert passed; resume prerequisite failed | All five cases passed |
+
+Every one of the nineteen passing cases matched all eighteen independent
+canonical leaves, including properties and actual physical edge endpoints.
+Their roots also match every corresponding CSV and PostgreSQL-source result.
+All three successful recovery cases actually SIGKILLed their worker at 120,000
+committed records and resumed the same UUID for the remaining 338,000 records.
+Append and upsert each consumed exactly 4,580 records; final graphs remained
+462,580 records, not 102% of the base.
+
+The Neo4j 5.26 PG17 recovery worker instead exited at **100,000 committed
+records, before SIGKILL**. Batch six failed with
+`iterate resolved edge endpoints: timeout: context deadline exceeded`, at the
+existing 300-second operation bound. The parent reported
+`worker exited before the required fault: exit status 1`; no fault receipt or
+canonical verification exists for this case. The failing boundary is the SQL
+edge-endpoint resolver, not the previously fixed zero-row source adapter.
+The underlying planner/statistics/service cause is **not established**. No
+timeout increase, forced plan, speculative statistics fix or success-shaped
+retry was used to make this case green. A subsequent bounded read-only
+diagnostic during retirement could no longer resolve either target endpoint;
+no execution plan or statistics were captured and retirement was not delayed.
+
+Both source/loader pairs ran concurrently on the retained D8ds v5, each with a
+one-core/two-GiB source and three-core/two-GiB loader. This is **not four isolated
+performance lanes**. Maximum loader RSS was 161,763,328 / 162,058,240 bytes and
+cgroup memory 542,879,744 / 547,942,400 bytes for 4.4 / 5.26 respectively.
+Both had zero swap/OOM, no source restarts and maximum disk usage 20%.
+Fifteen-second CPU/IO/progress telemetry and the existing fences remained active.
+
+Both success and partial-failure raw archives were uploaded privately and
+managed-identity SHA-256-read-back verified before lease closure:
+
+| Evidence | Bytes | SHA-256 |
+|---|---:|---|
+| Neo4j 4.4, ten passes | 37,208 | `b5510fa20c077e7955d840ed19fd11b0565411f76d3a001570a23d5c3f3443f5` |
+| Neo4j 5.26, nine passes plus failed worker | 37,856 | `68540c363ecdb568aaa917c1de752a112d7bb2b9ca50432cef6ac7110c082cef` |
+| Original serialization failures, no added passes | 24,936 | `837761a845b51fd9e788e32d96288f09bf0f0a7f40d3a0c2d6b34beb99197376` |
+
+The partial archive includes the failed worker log, immutable job identity,
+configuration and durable progress. Its full public-summary packet exceeded
+the bounded Run Command response **after** the archive/read-back succeeded.
+The same existing summary was recovered read-only in two digest-checked chunks;
+neither archive was regenerated and no successful recovery was fabricated.
+
+Fresh actual MTD was USD120.6432; the conservative full-window/reserve envelope
+was **USD538.0052**, not a final bill. Independent current-lease retain jobs
+passed before execution, honoring Cost Management backoff. Evidence preservation
+preceded early lease closure at **13:35:00 UTC**. Exact-new-group-only independent
+cleanup job `2ce526f4-4a53-42de-aa75-a35fb46947e2` is running; final absence has
+not yet been verified. The retained VM's separate shutdown is Enabled at
+**15:34 UTC / November 19 00:34 JST**.
+
+The campaign now has **39/60 passing P0 cases, one failed case and twenty
+unexecuted cases; 7/12 fully qualified routes, zero complete phases**.
+Neo4j 5.26 PG17 cannot be promoted on this evidence. The two Cosmos layouts
+account for the remaining twenty unexecuted P0 cases. P1-P3 remain unexecuted
+and not queued; the independent technical and cost promotion gates still apply.
 
 Keep the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Inspect only the approved subscription and confirm the
@@ -813,8 +884,9 @@ then passed signing, notarization, quality, live Cosmos, packaging and
 provenance gates and published 2.4.2 on 2026-11-18. The protected Azure runner
 was restored for its gate rather than bypassing it. P0-P3 execution was
 subsequently approved, including the fixed-NAT and evidence-preserving
-budget/deadline teardown scopes described above. The two CSV P0 routes have
-since passed. Broader scale execution still requires implementing and
+budget/deadline teardown scopes described above. Seven P0 routes have since
+passed, with the partial failure and remaining coverage recorded above.
+Broader scale execution still requires implementing and
 verifying the remaining technical gates.
 
 [extensions]: https://learn.microsoft.com/azure/horizondb/extensions/concepts-extensions-by-engine
