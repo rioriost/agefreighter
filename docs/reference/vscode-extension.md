@@ -6,7 +6,7 @@ deterministic Go engine; it is not a second migration engine. Guided operations
 run on a dedicated Linux Azure VM. Existing LoadJob commands use a separately
 installed CLI in the extension-host environment.
 
-## Guided migration (2.4.1)
+## Guided migration (2.4.2)
 
 1. Run **AGEFreighter: New Guided Migration** without first selecting a project
    folder or CLI. Choose CSV, Neo4j, PostgreSQL or Cosmos DB for NoSQL. For
@@ -74,15 +74,15 @@ compatibility and release publication are separate M6 checks.
 Install the matching reviewed release VSIX:
 
 ```sh
-code --install-extension agefreighter-2.4.1.vsix
+code --install-extension agefreighter-2.4.2.vsix
 ```
 
 GitHub release assets and Marketplace publication have separate availability.
 Check the actual publication result rather than assuming one implies the other.
-The 2.4.1 extension retains the pinned 2.4.0 Linux runner; it does not upgrade
+The 2.4.2 extension retains the pinned 2.4.0 Linux runner; it does not upgrade
 existing runners or implicitly authorize any new cloud operation.
 Use VS Code 1.105 or newer. The guided workflow needs no local CLI; the advanced
-LoadJob workflow needs a compatible installed CLI (2.4.0 is recommended).
+LoadJob workflow needs a compatible installed CLI (2.4.2 is recommended).
 PostgreSQL checkpoints predating the 2.3.1 floating-point fix must not be resumed
 with the changed fingerprint.
 
@@ -158,6 +158,6 @@ from the CLI signing status below.
 ## Windows binary status
 
 The extension itself is TypeScript/JavaScript. The separately downloaded
-AGEFreighter 2.4.1 Windows CLI binaries remain unsigned because the SignPath
+AGEFreighter 2.4.2 Windows CLI binaries remain unsigned because the SignPath
 Foundation application was not approved. They are still distributed; verify
 the release checksum and GitHub provenance before selecting the executable.

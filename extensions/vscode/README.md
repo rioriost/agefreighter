@@ -111,9 +111,9 @@ VS Code workspace trust is required for deployment, but opening the wizard does
 not require an output folder. The final flow will choose that folder only after
 target review. CSV files can be selected earlier without upload.
 
-**Advanced local LoadJob commands only:** CLI 2.4.0 or 2.4.1 is recommended; select it with
-**AGEFreighter: Select CLI Binary**, or put it on `PATH`. Installing the extension
-does not install or upgrade the desktop CLI.
+**Advanced local LoadJob commands only:** CLI 2.4.2 is recommended; select it
+with **AGEFreighter: Select CLI Binary**, or put it on `PATH`. Installing the
+extension does not install or upgrade the desktop CLI.
 
 For the latest released CLI on macOS, the Homebrew installation is:
 
@@ -126,10 +126,10 @@ Linux and Windows release archives are available from the
 Windows CLI binaries are provided without an Authenticode signature;
 verify their checksum and GitHub build-provenance attestation before use.
 
-## Start a new migration in 2.4.1
+## Start a new migration in 2.4.2
 
-Extension 2.4.1 is a guided-UI update and retains the pinned **2.4.0 Linux
-runner** release/protocol. Updating the extension does not upgrade existing
+Extension 2.4.2 retains the guided UI and pinned **2.4.0 Linux runner**
+release/protocol. Updating the extension does not upgrade existing
 runners or rewrite saved workflows. New released runners still require the
 reviewed 2.4.0 archive and checksum; no fallback release is selected.
 Explicitly approved, hash-pinned development artifacts remain separate.

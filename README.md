@@ -17,11 +17,9 @@ does not provide Cypher. This target remains experimental: the retained 2.3.1
 qualification used the digest-pinned official PostgreSQL 19 Beta 3 image. That
 beta-image evidence does not qualify a PostgreSQL 19 GA build.
 
-The [2.4.2 candidate](docs/releases/2.4.2.md) adds PostgreSQL 17/AGE 1.8.x
+The [2.4.2 release](docs/releases/2.4.2.md) adds PostgreSQL 17/AGE 1.8.x
 admission and has passed all twelve actual HorizonDB tiny migration routes,
-plus the selected smaller mode/type/recovery scenarios. Publication still
-requires the protected release gates; installation examples below refer to
-published 2.4.1 until those gates complete.
+plus the selected smaller mode/type/recovery scenarios.
 See the [HorizonDB qualification plan](production-simulation/docs/horizondb-parallel-plan.md)
 for the approved tiny scope and the separately proposed larger parallel runs.
 
@@ -61,7 +59,7 @@ desired [GitHub release](https://github.com/rioriost/agefreighter/releases),
 extract it, and install both binaries:
 
 ```sh
-tar -xzf agefreighter_v2.4.1_darwin_arm64.tar.gz
+tar -xzf agefreighter_v2.4.2_darwin_arm64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
@@ -70,17 +68,17 @@ sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 Download the `linux_amd64` or `linux_arm64` archive for the host architecture:
 
 ```sh
-tar -xzf agefreighter_v2.4.1_linux_amd64.tar.gz
+tar -xzf agefreighter_v2.4.2_linux_amd64.tar.gz
 sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
 ```
 
 ### Windows
 
-Download `agefreighter_v2.4.1_windows_amd64.zip`, extract
+Download `agefreighter_v2.4.2_windows_amd64.zip`, extract
 `agefreighter.exe` and `agefreighter-tools.exe`, and place their directory on
 `PATH`.
 
-> **Windows signing status:** The Windows binaries in v2.4.1 are intentionally
+> **Windows signing status:** The Windows binaries in v2.4.2 are intentionally
 > provided without an Authenticode signature. The SignPath Foundation
 > application was not approved, so Windows code signing remains planned for a
 > later release through a future eligible application or another signing
@@ -89,12 +87,12 @@ Download `agefreighter_v2.4.1_windows_amd64.zip`, extract
 > use. See the [code signing policy](docs/code-signing-policy.md).
 
 ```powershell
-Expand-Archive .\agefreighter_v2.4.1_windows_amd64.zip -DestinationPath .\agefreighter
+Expand-Archive .\agefreighter_v2.4.2_windows_amd64.zip -DestinationPath .\agefreighter
 Get-AuthenticodeSignature .\agefreighter\agefreighter.exe
 .\agefreighter\agefreighter.exe version
 ```
 
-For v2.4.1, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
+For v2.4.2, `Get-AuthenticodeSignature` is expected to report `NotSigned`.
 
 ### Build from source
 
@@ -103,8 +101,8 @@ With the Go version declared in `go.mod` installed:
 ```sh
 git clone https://github.com/rioriost/agefreighter.git
 cd agefreighter
-git checkout v2.4.1
-make build VERSION=2.4.1
+git checkout v2.4.2
+make build VERSION=2.4.2
 ```
 
 See the [installation guide](docs/reference/installation.md) for archive names,
@@ -112,7 +110,7 @@ checksum and provenance verification, and source-build details.
 
 ### Visual Studio Code
 
-AGEFreighter 2.4.1 includes an open-source VS Code extension with two workflows:
+AGEFreighter 2.4.2 includes an open-source VS Code extension with two workflows:
 
 - **Guided Azure runner:** configure CSV, Neo4j, PostgreSQL or Cosmos DB for
   NoSQL, approve a private Linux runner, review complete source inventory and a
@@ -127,7 +125,7 @@ cannot start, resume or clean up migrations. Target creation, source reads,
 migration and recovery retain separate reviews and durable evidence.
 
 Install the matching VSIX from the [GitHub release](https://github.com/rioriost/agefreighter/releases)
-with `code --install-extension agefreighter-2.4.1.vsix`, then open the AGEFreighter
+with `code --install-extension agefreighter-2.4.2.vsix`, then open the AGEFreighter
 activity-bar view. See the [extension guide](docs/reference/vscode-extension.md)
 for the two workflows, prerequisites and operating limits. Marketplace
 availability is separate from the GitHub release and must be checked there.
