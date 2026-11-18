@@ -19,6 +19,7 @@ type PoolOptions struct {
 	MaxConnections   int32
 	ConnectTimeout   time.Duration
 	OperationTimeout time.Duration
+	BeforeConnect    func(context.Context, *pgx.ConnConfig) error
 }
 
 type Capabilities struct {
@@ -71,6 +72,7 @@ func Open(ctx context.Context, dsn string, options PoolOptions) (*Adapter, error
 	config.MinConns = options.MinConnections
 	config.MaxConns = options.MaxConnections
 	config.ConnConfig.ConnectTimeout = options.ConnectTimeout
+	config.BeforeConnect = options.BeforeConnect
 	config.AfterConnect = InitializeSession
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)

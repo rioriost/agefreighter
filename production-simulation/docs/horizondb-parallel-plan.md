@@ -5,7 +5,9 @@ promotion gates remain mandatory. No P0-P3 migration has started.**
 After successful tiny qualification and publication of 2.4.2, the user
 approved all four larger phases on 2026-11-18. Existing tiny HorizonDB clusters
 may be reused, or deleted if replacing them with new clusters is preferable.
-That conditional replacement approval is not unrestricted teardown authority.
+The user subsequently approved the exact fixed-NAT fallback and the bounded
+cleanup scope below. Neither approval waives correctness, cost or lifecycle
+gates.
 
 Read with the existing [test plan](test-plan.md),
 [acceptance criteria](acceptance.md) and [dataset contract](dataset.md).
@@ -80,10 +82,28 @@ was deleted, no replacement was deployed, and no migration load was started.
 An 8-vCore profile is a candidate for reusing the existing targets. There is
 no verified evidence that replacing them would resolve the Private Link
 incompatibility. Before proceeding, either restore working Private Link or
-approve extending the exact fixed-NAT-IPv4, verified-TLS, managed-identity
-fallback beyond tiny. The approved larger-run lifecycle must also cover the
-owned resources needed to enforce deadlines and budget limits, including
-reused targets; unsupported stop operations cannot enforce those limits.
+use the approved fixed-NAT alternative. On 2026-11-18 the user explicitly
+approved extending the sole existing static NAT IPv4, verified-TLS,
+managed-identity fallback to all four phases. No additional public IP,
+all-Azure rule, public VM IP or public Cosmos endpoint is approved.
+
+The same approval authorizes deletion, after evidence preservation, at
+completion, budget limit or deadline of the new dedicated scale resource
+group and the two reused tiny HorizonDB clusters. The existing tiny resource
+group itself, its Cosmos account, VM, disks and retained evidence are excluded.
+An independent guard must be installed and its actual lifecycle path verified
+before admitting paid scale workers; unsupported stop operations cannot
+enforce those limits.
+
+Long-running authentication is another preparation gate. Released 2.4.2
+captures its target password when opening the connection pool. A short-lived
+Entra token therefore cannot simply be embedded in a DSN for a many-hour
+load. The scale branch adds password refresh from an atomically replaced
+target connection file before each new pooled connection, retaining the
+original connection identity and TLS settings. This is unreleased code, not
+an additional claim about the published 2.4.2 artifacts. Record the exact
+candidate commit and verify actual reconnection/token renewal before
+promotion.
 
 Restore the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Then inspect only the approved subscription and confirm
@@ -445,9 +465,9 @@ change was merged. The protected
 then passed signing, notarization, quality, live Cosmos, packaging and
 provenance gates and published 2.4.2 on 2026-11-18. The protected Azure runner
 was restored for its gate rather than bypassing it. P0-P3 execution was
-subsequently approved, but remains blocked on the scale preflight above.
-Deletion of the existing tiny clusters is approved only if replacement is
-preferable; broader budget/deadline teardown still needs an approved scope.
+subsequently approved, including the fixed-NAT and evidence-preserving
+budget/deadline teardown scopes described above. Scale execution remains
+blocked on implementing and verifying the remaining technical gates.
 
 [extensions]: https://learn.microsoft.com/azure/horizondb/extensions/concepts-extensions-by-engine
 [quickstart]: https://learn.microsoft.com/azure/horizondb/configure-maintain/quickstart-create-cluster

@@ -37,6 +37,15 @@ connection:
   file: /run/secrets/age-dsn
 ```
 
+For target connection files, each new pooled connection rereads the file and
+uses its current password. An external credential provider can atomically
+replace the file to renew short-lived tokens during a long load. The host,
+port, user and database must stay unchanged; the original TLS and other
+connection settings remain in force. Missing or invalid rotated credentials
+fail the connection rather than falling back to an old token. Existing
+connections are not disconnected by rotation. Environment references retain
+their process-local behavior.
+
 ## Runtime concurrency
 
 `maxSourceConcurrency` is fixed at `1`. Every connector assigns checkpoints,

@@ -18,6 +18,7 @@ type PoolOptions struct {
 	MaxConnections   int32
 	ConnectTimeout   time.Duration
 	OperationTimeout time.Duration
+	BeforeConnect    func(context.Context, *pgx.ConnConfig) error
 }
 
 type Adapter struct {
@@ -51,6 +52,7 @@ func Open(ctx context.Context, dsn string, options PoolOptions) (*Adapter, error
 	config.MinConns = options.MinConnections
 	config.MaxConns = options.MaxConnections
 	config.ConnConfig.ConnectTimeout = options.ConnectTimeout
+	config.BeforeConnect = options.BeforeConnect
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("create PostgreSQL property graph pool: %w", err)
