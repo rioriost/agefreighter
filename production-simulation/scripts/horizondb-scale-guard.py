@@ -178,7 +178,7 @@ class Client:
 
     def operation(self, method, path, body=None):
         result, headers = self.request(method, path, body, missing_ok=method == "DELETE")
-        end = time.monotonic() + 1200
+        end = time.monotonic() + (2700 if method == "DELETE" else 1200)
         if method == "DELETE":
             # Verify the owned resource, without subscription-wide operation-read rights.
             while time.monotonic() < end:
@@ -189,7 +189,7 @@ class Client:
                 if properties.get("provisioningState") in ("Failed", "Canceled") or properties.get("state") == "Failed":
                     raise RuntimeError("ARM resource deletion failed")
                 time.sleep(10)
-            raise RuntimeError("ARM deletion was not verified absent within 20 minutes")
+            raise RuntimeError("ARM deletion was not verified absent within 45 minutes")
         status_operation = headers.get("Azure-AsyncOperation")
         operation = status_operation or headers.get("Location")
         while operation:

@@ -210,10 +210,35 @@ class ScopeAndBudgetTests(unittest.TestCase):
         with patch.object(client, "request", return_value=(
             {"properties": {"state": "Deleting"}}, {}
         )), patch.object(guard.time, "sleep"), patch.object(
+            guard.time, "monotonic", side_effect=[0, 0, 2700]
+        ):
+            with self.assertRaisesRegex(RuntimeError, "not verified absent within 45 minutes"):
+                client.operation("DELETE", CLUSTER)
+
+    def test_slow_group_deletion_can_complete_after_twenty_minutes(self):
+        client = guard.Client()
+        with patch.object(client, "request", side_effect=[
+            ({}, {"Location": guard.ARM + "/unowned-global-operation"}),
+            ({"properties": {"provisioningState": "Deleting"}}, {}),
+            (None, {}),
+        ]) as request, patch.object(guard.time, "sleep"), patch.object(
             guard.time, "monotonic", side_effect=[0, 0, 1201]
         ):
-            with self.assertRaisesRegex(RuntimeError, "not verified absent"):
-                client.operation("DELETE", CLUSTER)
+            client.operation("DELETE", NEW)
+            self.assertEqual(request.call_args_list, [
+                unittest.mock.call("DELETE", NEW, None, missing_ok=True),
+                unittest.mock.call("GET", NEW, missing_ok=True),
+                unittest.mock.call("GET", NEW, missing_ok=True),
+            ])
+
+    def test_non_delete_lifecycle_retains_twenty_minute_bound(self):
+        client = guard.Client()
+        with patch.object(client, "request", return_value=(
+            {}, {"Azure-AsyncOperation": guard.ARM + "/operation"}
+        )) as request, patch.object(guard.time, "monotonic", side_effect=[0, 1200]):
+            with self.assertRaisesRegex(RuntimeError, "lifecycle operation exceeded 20 minutes"):
+                client.operation("POST", "/publish", {})
+            request.assert_called_once_with("POST", "/publish", {}, missing_ok=False)
 
 
 if __name__ == "__main__":

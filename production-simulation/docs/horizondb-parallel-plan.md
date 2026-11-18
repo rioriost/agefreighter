@@ -1,8 +1,8 @@
 # HorizonDB qualification and parallel execution plan
 
 Prepared 2026-11-18. **P0-P3 execution is approved; technical and cost
-promotion gates remain mandatory. Two P0 CSV clean-create cases passed;
-no complete route or phase has passed.**
+promotion gates remain mandatory. Both CSV P0 routes passed all five
+scenarios: ten of sixty P0 cases, two of twelve routes, no complete phase.**
 After successful tiny qualification and publication of 2.4.2, the user
 approved all four larger phases on 2026-11-18. Existing tiny HorizonDB clusters
 may be reused, or deleted if replacing them with new clusters is preferable.
@@ -147,11 +147,12 @@ evidence is not a HorizonDB migration result. Subsequent scenario preparation
 now adds separately pinned append/upsert fixtures and a streaming full-graph
 oracle, without changing the qualified base fixture hashes.
 
-The executed opt-in P0 harness covered **only CSV clean-create into PG17 and
-PG18**, not all twelve routes or any complete phase. Both cases actually passed,
-as recorded below. A new explicitly gated CSV sequence covers create, replace,
-one-percent append/upsert and process-kill/resume; its implementation is not
-itself live qualification evidence. Full-phase execution still requires all-source
+The original opt-in P0 harness covered **only CSV clean-create into PG17 and
+PG18**, as recorded below. The subsequent explicitly gated CSV sequence
+actually passed create, replace, one-percent append/upsert and
+process-kill/resume on both majors. These ten unique cases complete the two
+CSV P0 routes, not all twelve routes or any complete phase.
+Full-phase execution still requires all-source
 bulk seeders, long-running credential-renewal evidence, isolated-lane control and
 the remaining faults/telemetry. Do not count preparation or the original two
 bounded cases as a complete P0 pass.
@@ -217,10 +218,10 @@ matching SHA-256:
 The 14,244-byte archive excludes credentials and regenerable bulk CSV data.
 Source files also remain on the excluded original evidence disk.
 
-These are **two of sixty planned P0 scenario cases**, with zero complete source
-routes or phases. CSV replace, one-percent append/upsert and interrupted/resumed
-load remain unexecuted, as do the other larger source configurations and all
-P1-P3 cases. No complete campaign is queued or running automatically.
+At this initial checkpoint, these were **two of sixty planned P0 scenario
+cases**, with zero complete source routes or phases. The remaining CSV modes
+were subsequently qualified below. The other larger source configurations and
+all P1-P3 cases remain incomplete; no complete campaign is queued automatically.
 
 The execution lease was initially scheduled to end at 08:00 UTC (17:00 JST). After preserving
 evidence, this bounded calibration window was ended early at 06:51:33 UTC
@@ -228,25 +229,103 @@ because no further cases met the implementation/admission gates. The guard's
 initial deletion requests were accepted, but its job failed while polling
 HorizonDB's subscription-scoped asynchronous-operation URL: the identity's
 exact-cluster permissions did not authorize that unrelated global read.
-No subscription-wide permission was added. Deletion verification now polls
-the owned resource itself with a twenty-minute bound and requires a final 404;
-other asynchronous operations retain strict completion-status checks.
+No subscription-wide permission was added. Deletion verification was changed
+to poll the owned resource itself with a twenty-minute bound and require a
+final 404. The later retirement below increased only DELETE's observation
+budget to forty-five minutes; other asynchronous operations retain their
+twenty-minute bound and strict completion-status checks.
 
 The original deletes completed asynchronously. Independent reconciliation job
 `4fb88991-d5de-44f7-8f18-87b83f49e5ec` completed and verified both scoped resource
 GETs returned 404. Separate operator HTTP requests confirmed both final 404s at
-06:57:45 UTC. The absent-resource reconciliation was exercised live; the new
-in-progress resource-polling loop has contract coverage, not an additional live
-deletion qualification. The disposable probe group was already verified absent
-at 06:01 UTC.
+06:57:45 UTC. This original reconciliation exercised the already-absent path;
+the later retirement below also exercised live in-progress resource polling.
+The disposable probe group was already verified absent at 06:01 UTC.
 
-The old group, private Cosmos account, VM, disks and evidence remain present
-and excluded from deletion. The retained VM's external shutdown remains enabled
-for 08:15 UTC (17:15 JST). Unposted charges and retained storage/network/safety
-resources can still incur costs; deletion is not a zero-bill claim. No migration
-is currently running or queued. Another paid wave requires a new bounded lease
+The old group, private Cosmos account, VM, disks and evidence remained present
+and excluded from deletion. At this original retirement, the retained VM's
+external shutdown was enabled for 08:15 UTC (17:15 JST); the later bounded
+window below explicitly revised it. Unposted charges and retained
+storage/network/safety resources can still incur costs; deletion is not a
+zero-bill claim. No full P0-P3 campaign was queued. Another paid wave requires a new bounded lease
 and fresh safety and remaining-work cost checks; the remaining harness is not
 implemented automatically by the guard.
+
+### P0 CSV five-scenario qualification
+
+The approved continuation qualified both complete CSV P0 routes using native
+candidate `2d6d1f246de520431cfca3573cf65a50cf35e7e1`, not the released 2.4.2
+binary. PG17.11 and PG18.6 both actually reported AGE 1.8.0 and effective AGE
+preloading without pending restart. All ten selected cases passed without skips,
+rejected rows, failed batches, duplicate records or missing endpoints.
+See [the redacted evidence](horizondb-p0-csv-modes-20261118.json).
+
+| Scenario | PG17 load + verification | PG18 load + verification | Final records |
+|---|---:|---:|---:|
+| Create | 30.810 s | 33.455 s | 458,000 |
+| Replace | 208.979 s | 194.366 s | 458,000 |
+| Append 1% | 24.610 s | 25.247 s | 462,580 |
+| Upsert 1% | 24.004 s | 26.033 s | 462,580 |
+| SIGKILL / same-job resume | 209.932 s | 196.384 s | 458,000 |
+
+Each case compared all eighteen canonical leaves against an independent
+raw-fixture oracle. Corresponding roots match across PostgreSQL majors;
+create/replace/recovery also match the earlier full base root. Append covers
+old-old, old-new, new-old and new-new endpoints. Replace created a new
+generation; append/upsert preserved it and yielded 101%, not 102%.
+Both recovery workers were actually signal-killed after 120,000 committed
+records, then resumed their original UUID and committed the remaining 338,000,
+without duplication. Checkpoint, termination and durable pre-resume receipts
+are retained.
+
+Peak process RSS was 169,684,992 bytes (about 162 MiB), whole-cgroup memory
+562,511,872 bytes (about 536 MiB), swap/OOM zero and disk 12%. Fifteen-second
+checkpoint/RSS/CPU/IO telemetry, a fourteen-minute progress-stall fence,
+per-case fifteen-minute contexts, a ninety-minute suite timeout and a
+two-GiB/no-swap systemd limit were active. Tokens had to outlive each bounded
+case; **this does not qualify long-running token renewal**.
+
+Only the two new eight-vCore targets and their parameter/authentication/firewall
+children were created in the disposable group. The retained VM/network/Cosmos
+resources were not redeployed. Administrator individual GET returned a provider
+HTTP500; the collection API independently verified the exact object, tenant,
+principal type and Succeeded provisioning without weakening the gate.
+The sole approved NAT rule, verified TLS and persisted Enabled Entra state were
+read back. Current-lease independent guard jobs completed with budget/retain
+decisions before execution.
+
+Fresh actual MTD was USD120.6432; the conservative full-window plus
+lag/deletion-reserve envelope was USD441.5271, below USD3750. Current compute
+was estimated at USD3.886496/hour, excluding storage/network/control-plane
+charges. These are admission observations, not the final bill.
+The initial target deadline was 10:30 UTC (19:30 JST); the VM's independent
+shutdown was explicitly moved to 10:45 UTC (19:45 JST).
+All allowlisted nonsecret raw evidence was uploaded privately and independently
+hash-read-back verified: 32,552 bytes, SHA-256
+`0ec9ff25019c489ead283b7849bf42d314b0f40448aa038215fee4e0b56891aa`.
+The lease was closed early at 08:49:17 UTC after evidence preservation.
+Initial guard job `fcc74ab5-142e-4e63-9ba3-9d0f6c36c324` issued the group
+DELETE at 08:50:02 UTC but failed its twenty-minute final-404 observation budget
+at 09:10:12 UTC; Azure deletion continued asynchronously. The failure receipt
+is retained and is not reported as a successful cleanup.
+
+DELETE's owned-resource observation budget was increased to forty-five minutes,
+without broadening permissions or changing other lifecycle operations'
+twenty-minute budget. Independent reconciliation job
+`df26453e-e055-456d-b7ac-bf4bdf5c9dd2` actually observed the still-existing
+group, issued its idempotent DELETE and polled until the final 404 at 09:28:07 UTC.
+This exercised live in-progress polling, not just already-absent reconciliation.
+The original group deletion took about thirty-eight minutes.
+Separate operator requests confirmed final 404s for the group and both target
+clusters at 09:28:09 UTC. The excluded old group, VM, OS disk, Cosmos account and
+evidence Storage account were explicitly verified present; the retained VM's
+external shutdown remained Enabled at 10:45 UTC. Retained resources and delayed
+cost postings mean this is not a zero-bill claim.
+
+This is **10/60 unique P0 cases and 2/12 P0 routes**. The earlier repeated
+clean-create samples are not two additional unique cases. Other P0 routes and
+P1-P3 remain incomplete and are not queued. Further admission still requires
+the outstanding technical and actual remaining-work cost gates.
 
 Keep the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Inspect only the approved subscription and confirm the
@@ -489,8 +568,12 @@ versus the provisional 24-hour clean-P3 objective. This is a warning, **not a
 measured P3 runtime or a forecast for the other sources**. The earlier
 22-hour non-Cosmos group assumption and the totals below remain unvalidated;
 do not use the central estimate as admission evidence. Complete the missing
-P0 modes and calibrate/tune actual routes at P1/P2 before freezing a revised
+P0 routes and calibrate/tune actual routes at P1/P2 before freezing a revised
 remaining-work and monthly-budget forecast.
+The later five-scenario CSV sequence above measured much faster fresh-target
+creates but 194-210-second replace/recovery cases at the same size. This
+mode/history variance is further reason not to extrapolate either sample as a
+P3 runtime, a target-sizing guarantee or a complete-campaign budget.
 
 | Complete P0-P3 cost component | 3 RU/read central case | 5 RU/read higher-cost case |
 |---|---:|---:|
@@ -621,8 +704,9 @@ then passed signing, notarization, quality, live Cosmos, packaging and
 provenance gates and published 2.4.2 on 2026-11-18. The protected Azure runner
 was restored for its gate rather than bypassing it. P0-P3 execution was
 subsequently approved, including the fixed-NAT and evidence-preserving
-budget/deadline teardown scopes described above. Scale execution remains
-blocked on implementing and verifying the remaining technical gates.
+budget/deadline teardown scopes described above. The two CSV P0 routes have
+since passed. Broader scale execution still requires implementing and
+verifying the remaining technical gates.
 
 [extensions]: https://learn.microsoft.com/azure/horizondb/extensions/concepts-extensions-by-engine
 [quickstart]: https://learn.microsoft.com/azure/horizondb/configure-maintain/quickstart-create-cluster
