@@ -1,8 +1,11 @@
 # HorizonDB qualification and parallel execution plan
 
-Prepared 2026-11-18. **Plan only for P0-P3; no large run is authorized.**
-The user approved tiny migrations and their charges, with publication of
-2.4.2 conditional on successful actual HorizonDB tiny qualification.
+Prepared 2026-11-18. **P0-P3 execution is approved; technical and cost
+promotion gates remain mandatory. No P0-P3 migration has started.**
+After successful tiny qualification and publication of 2.4.2, the user
+approved all four larger phases on 2026-11-18. Existing tiny HorizonDB clusters
+may be reused, or deleted if replacing them with new clusters is preferable.
+That conditional replacement approval is not unrestricted teardown authority.
 
 Read with the existing [test plan](test-plan.md),
 [acceptance criteria](acceptance.md) and [dataset contract](dataset.md).
@@ -53,6 +56,35 @@ plus storage/networking, until supported lifecycle control or explicitly
 approved cleanup is available. The six-hour figure below is not an enforced
 upper bound. Do not start any larger phase without a verified lifecycle path.
 
+### Approved scale preflight
+
+The authenticated subscription's month-to-date cost query now succeeds; its
+actual cost response is retained privately rather than published here.
+Japan East advertises the required 8-vCore/64-GiB Intel generation-1
+provisioned HorizonDB profile. The D8ds v5, E8bds v5 and E16bds v5 VM SKUs have
+no subscription/zone restrictions. Regional VM quota is 101 vCPUs with 8 in
+use, and the loader/source family quotas are 100 each. The largest proposed
+group plus the retained tiny VM would use 88/101 regional vCPUs, above the 80%
+advisory threshold but below the limit. These checks do not prove HorizonDB
+allocation capacity, Cosmos throughput capacity or the larger-run forecast.
+
+Private Link remains blocked by the live provider. Both a manual-approval
+private endpoint through Azure CLI and an explicit request using the latest
+advertised Network API, `2026-07-01`, fail with `ApiVersionMismatch`: the
+network provider calls HorizonDB with `2026-01-20-preview`, incompatible with
+the current clusters. The original automatic-approval attempt also failed.
+The failed probes created no private endpoint resource. Both existing
+HorizonDB clusters remain `Ready` with public access `Disabled`; no cluster
+was deleted, no replacement was deployed, and no migration load was started.
+
+An 8-vCore profile is a candidate for reusing the existing targets. There is
+no verified evidence that replacing them would resolve the Private Link
+incompatibility. Before proceeding, either restore working Private Link or
+approve extending the exact fixed-NAT-IPv4, verified-TLS, managed-identity
+fallback beyond tiny. The approved larger-run lifecycle must also cover the
+owned resources needed to enforce deadlines and budget limits, including
+reused targets; unsupported stop operations cannot enforce those limits.
+
 Restore the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Then inspect only the approved subscription and confirm
 the current account before any write. Do not copy tokens or passwords into
@@ -85,10 +117,10 @@ and its checks; do not bypass its version interlock.
 | Phase | Base vertices | Base edges | Required route scenarios |
 |---|---:|---:|---|
 | tiny, approved | 160 | 400 | Actual generated load on all twelve routes; existing smaller mode, type, paging, identity and committed-batch resume fixtures within the approved cap |
-| P0, proposed | 100,000 | 358,000 | Clean create, full replace, 1% append, 1% upsert, one interrupted/resumed full load, exact-count harness checks |
-| P1, proposed | 1,600,000 | 4,000,000 | Same modes and recovery; full canonical ranged digest and capacity/RU calibration |
-| P2, proposed | 16,000,000 | 40,000,000 | Clean create, full replace, 1% append/upsert; four separate full-load recovery cases where applicable; freeze tuning and P3 forecast |
-| P3, proposed | 160,000,000 | 400,000,000 | One clean and one combined-fault recovery load per route; full independent digests on both |
+| P0, approved | 100,000 | 358,000 | Clean create, full replace, 1% append, 1% upsert, one interrupted/resumed full load, exact-count harness checks |
+| P1, approved | 1,600,000 | 4,000,000 | Same modes and recovery; full canonical ranged digest and capacity/RU calibration |
+| P2, approved | 16,000,000 | 40,000,000 | Clean create, full replace, 1% append/upsert; four separate full-load recovery cases where applicable; freeze tuning and P3 forecast |
+| P3, approved | 160,000,000 | 400,000,000 | One clean and one combined-fault recovery load per route; full independent digests on both |
 
 Append adds 1% of the base vertices and edges; upsert changes 1% of existing
 records. The expected final graph after append is 101% of the base, not 102%.
@@ -112,7 +144,8 @@ tiny -> P0 -> P1 -> P2 -> approved P3
 Different routes may progress concurrently. No route skips its previous-phase
 correctness, capacity or cost gate. A shared implementation defect pauses all
 affected routes; an isolated source failure need not discard other evidence.
-Human approval is still required for each larger phase and its exact envelope.
+The four phases are approved, but changes beyond the approved execution
+envelope still require review; approval does not waive a failed promotion gate.
 
 ## Parallel layout
 
@@ -310,10 +343,11 @@ approval delays. This is not a promised completion date.
 
 ## Monthly budget and stop envelope
 
-The **$3,750/month budget is not all known to be available**: current spend and
-unposted accrual could not be queried. Provisionally allocate $3,000 to test
-consumption and retain $750 as monthly reserve, subtracting unrelated spend
-first. Do not treat the budget or alerts as automatic enforcement.
+The **$3,750/month budget is not all available**: month-to-date reported spend
+is now queryable, but unposted accrual must still be estimated. Provisionally
+allocate $3,000 to test consumption and retain $750 as monthly reserve,
+subtracting unrelated spend first. Do not treat the budget or alerts as
+automatic enforcement.
 
 The central estimate fits only if these assumptions are validated. The higher
 case exceeds the monthly budget: split remaining waves across billing months,
@@ -410,8 +444,10 @@ change was merged. The protected
 [release workflow](https://github.com/rioriost/agefreighter/actions/runs/44221531718)
 then passed signing, notarization, quality, live Cosmos, packaging and
 provenance gates and published 2.4.2 on 2026-11-18. The protected Azure runner
-was restored for its gate rather than bypassing it. P0-P3 execution and
-resource deletion remain separately gated and unauthorized.
+was restored for its gate rather than bypassing it. P0-P3 execution was
+subsequently approved, but remains blocked on the scale preflight above.
+Deletion of the existing tiny clusters is approved only if replacement is
+preferable; broader budget/deadline teardown still needs an approved scope.
 
 [extensions]: https://learn.microsoft.com/azure/horizondb/extensions/concepts-extensions-by-engine
 [quickstart]: https://learn.microsoft.com/azure/horizondb/configure-maintain/quickstart-create-cluster
