@@ -6,9 +6,12 @@ shell commands, passwords, webhooks or worker-supplied deletion paths are used.
 
 import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
+from email.utils import parsedate_to_datetime
 import hashlib
+import http.client
 import ipaddress
 import json
+import math
 import os
 import re
 import time
@@ -24,6 +27,10 @@ COMPUTE_API = "2026-04-01"
 DISK_API = "2026-10-02"
 SNAPSHOT_API = "2026-10-02"
 UTC = dt.timezone.utc
+OPERATION_ERRORS = (
+    RuntimeError, urllib.error.URLError, TimeoutError, ConnectionError,
+    http.client.HTTPException, KeyError, ValueError,
+)
 
 
 def timestamp(value):
@@ -35,6 +42,7 @@ def timestamp(value):
 
 def validate(settings):
     subscription = str(uuid.UUID(settings["subscriptionId"]))
+    uuid.UUID(settings["leaseId"])
     date = settings["date"]
     if not re.fullmatch(r"\d{8}", date):
         raise ValueError("invalid campaign date")
@@ -82,6 +90,32 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise RuntimeError("redirect refused for an authenticated request")
 
 
+def retry_delay(headers, attempt):
+    delays = [2 ** attempt]
+    for name, value in headers.items():
+        name = name.lower()
+        if name != "retry-after" and not (
+            name.startswith("x-ms-ratelimit-microsoft.costmanagement-") and name.endswith("-retry-after")
+        ):
+            continue
+        try:
+            seconds = float(value)
+        except ValueError:
+            if name != "retry-after":
+                raise ValueError("invalid Cost Management retry interval")
+            retry_at = parsedate_to_datetime(value)
+            if retry_at.tzinfo is None:
+                raise ValueError("Retry-After date must include a time zone")
+            seconds = max(0, (retry_at - dt.datetime.now(UTC)).total_seconds())
+        if not math.isfinite(seconds) or seconds < 0:
+            raise ValueError("invalid ARM retry interval")
+        delays.append(math.ceil(seconds))
+    delay = max(delays)
+    if delay > 60:
+        raise RuntimeError("ARM retry interval exceeds the guard's bounded 60-second retry wait: " + str(delay))
+    return delay
+
+
 class Client:
     def __init__(self):
         self.http = urllib.request.build_opener(
@@ -126,12 +160,16 @@ class Client:
             try:
                 with self.http.open(request, timeout=60) as response:
                     raw = response.read()
+                    if "X-Qualification-HTTP-Status" in response.headers:
+                        del response.headers["X-Qualification-HTTP-Status"]
+                    response.headers["X-Qualification-HTTP-Status"] = str(response.status)
                     return (json.loads(raw) if raw else {}), response.headers
             except urllib.error.HTTPError as error:
                 if error.code == 404 and missing_ok:
                     return None, {}
                 if error.code in (408, 429, 500, 502, 503, 504) and attempt < 4:
-                    wait = min(60, max(2 ** attempt, int(error.headers.get("Retry-After", "0"))))
+                    wait = retry_delay(error.headers, attempt)
+                    error.close()
                     print(json.dumps({"retry": attempt + 1, "http": error.code, "waitSeconds": wait}), flush=True)
                     time.sleep(wait)
                     continue
@@ -140,16 +178,34 @@ class Client:
 
     def operation(self, method, path, body=None):
         result, headers = self.request(method, path, body, missing_ok=method == "DELETE")
-        operation = headers.get("Azure-AsyncOperation") or headers.get("Location")
         end = time.monotonic() + 1200
+        if method == "DELETE":
+            # Verify the owned resource, without subscription-wide operation-read rights.
+            while time.monotonic() < end:
+                remaining, _ = self.request("GET", path, missing_ok=True)
+                if remaining is None:
+                    return {}
+                properties = remaining.get("properties", {})
+                if properties.get("provisioningState") in ("Failed", "Canceled") or properties.get("state") == "Failed":
+                    raise RuntimeError("ARM resource deletion failed")
+                time.sleep(10)
+            raise RuntimeError("ARM deletion was not verified absent within 20 minutes")
+        status_operation = headers.get("Azure-AsyncOperation")
+        operation = status_operation or headers.get("Location")
         while operation:
             if time.monotonic() >= end:
                 raise RuntimeError("ARM lifecycle operation exceeded 20 minutes")
             time.sleep(10)
-            result, _ = self.request("GET", operation)
+            result, poll_headers = self.request("GET", operation)
             state = result.get("status", result.get("properties", {}).get("provisioningState"))
             if state == "Succeeded":
                 break
+            # Location-only polling can complete without a JSON status.
+            http_status = poll_headers.get("X-Qualification-HTTP-Status")
+            if not status_operation and state is None and http_status in ("200", "201", "204"):
+                break
+            if not status_operation and state is None and http_status == "202":
+                continue
             if state not in ("Accepted", "InProgress", "Running", "Updating", "Deleting", "Creating"):
                 raise RuntimeError("ARM lifecycle operation did not succeed: " + json.dumps(result))
         return result
@@ -178,6 +234,8 @@ def preserve_worker_evidence(client, settings, preserved, disposable):
         return []
     if group.get("tags", {}).get("campaign") != "afhs-" + settings["date"]:
         raise RuntimeError("disposable group ownership differs")
+    if group.get("tags", {}).get("qualificationLease") != settings["leaseId"]:
+        raise RuntimeError("disposable group belongs to a different execution lease")
     workers = []
     for resource in list_resources(client, disposable):
         if resource["type"].lower() != "microsoft.compute/virtualmachines":
@@ -251,16 +309,19 @@ def main(settings):
     now = dt.datetime.now(UTC)
     accrued = max(0, (now - timestamp(settings["startedAtUtc"])).total_seconds()) / 3600 * settings["maxHourlyUSD"]
     reason = "deadline" if now >= timestamp(settings["deadlineUtc"]) else None
-    try:
-        reported = reported_cost(client, settings)
-        conservative = max(reported, settings["baselineCostUSD"] + accrued) + settings["lagReserveUSD"]
-        if conservative + settings["deletionReserveUSD"] + settings["maxHourlyUSD"] / 2 >= 3750:
-            reason = reason or "budget"
-        print(json.dumps({"reportedMtdUSD": reported, "conservativeMtdUSD": conservative,
-                          "deadlineUtc": settings["deadlineUtc"], "decision": reason or "retain"}), flush=True)
-    except (RuntimeError, urllib.error.URLError, KeyError, ValueError) as error:
-        print(json.dumps({"costMonitoringError": str(error)}), flush=True)
-        reason = reason or "budget-monitor-unavailable"
+    if reason:
+        print(json.dumps({"deadlineUtc": settings["deadlineUtc"], "decision": reason}), flush=True)
+    else:
+        try:
+            reported = reported_cost(client, settings)
+            conservative = max(reported, settings["baselineCostUSD"] + accrued) + settings["lagReserveUSD"]
+            if conservative + settings["deletionReserveUSD"] + settings["maxHourlyUSD"] / 2 >= 3750:
+                reason = "budget"
+            print(json.dumps({"reportedMtdUSD": reported, "conservativeMtdUSD": conservative,
+                              "deadlineUtc": settings["deadlineUtc"], "decision": reason or "retain"}), flush=True)
+        except OPERATION_ERRORS as error:
+            print(json.dumps({"costMonitoringError": str(error)}), flush=True)
+            reason = "budget-monitor-unavailable"
     if not reason:
         return
     preserve_worker_evidence(client, settings, preserved, disposable)
@@ -270,7 +331,10 @@ def main(settings):
         try:
             resource, _ = client.request("GET", target + "?api-version=" + api, missing_ok=True)
             if resource is None:
+                print(json.dumps({"deleted": target, "verifiedAbsent": True, "alreadyAbsent": True}), flush=True)
                 continue
+            if resource.get("tags", {}).get("qualificationLease") != settings["leaseId"]:
+                raise RuntimeError("resource belongs to a different execution lease")
             if target.lower() != disposable.lower():
                 tags = resource.get("tags", {})
                 if tags.get("application") != "agefreighter" or tags.get("run") != "afht-" + settings["date"]:
@@ -281,7 +345,7 @@ def main(settings):
             if remaining is not None:
                 raise RuntimeError("deletion has not been verified by a final 404")
             print(json.dumps({"deleted": target, "verifiedAbsent": True}), flush=True)
-        except (RuntimeError, urllib.error.URLError, KeyError, ValueError) as error:
+        except OPERATION_ERRORS as error:
             failures.append({"resourceId": target, "error": str(error)})
     if failures:
         raise RuntimeError("incomplete scoped cleanup: " + json.dumps(failures))

@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "dateUTC": "2026-11-18",
+  "region": "japaneast",
+  "status": "partial-pass",
+  "coverage": "P0 CSV clean-create only, PG17 and PG18; not a complete route or phase",
+  "candidateCommit": "8546bf3754884508ab3fa439bb37b86b67b21289",
+  "binarySha256": "1ba8ddd90de695a5ad8a145c2854caae84e026f1f7313ce4304adebc809958f3",
+  "dataset": {
+    "phase": "p0",
+    "seed": 20260829,
+    "vertices": 100000,
+    "edges": 358000,
+    "fixtureRootSha256": "f5c55737a9b8abe9259937920c43504351db48c56b29afd031a813e403b20b1d",
+    "shards": 4
+  },
+  "targetCompute": {
+    "vCoresPerWriter": 8,
+    "writersPerTarget": 1,
+    "highAvailability": false
+  },
+  "loader": {
+    "vmSKU": "Standard_D8ds_v5",
+    "cpuQuotaCores": 6,
+    "hardMemoryLimitBytes": 2147483648,
+    "maximumRSSBytes": 180277248,
+    "swapBytes": 0,
+    "oomEvents": 0,
+    "maximumDiskPercent": 11,
+    "metricIntervalSeconds": 15
+  },
+  "transport": {
+    "tls": "verify-full",
+    "authentication": "managed-identity",
+    "horizonIngress": "approved single static NAT IPv4 only"
+  },
+  "cases": [
+    {
+      "targetPostgreSQLMajor": 17,
+      "source": "csv",
+      "mode": "create",
+      "postgresql": "PostgreSQL 17.11 (Azure HorizonDB (532bbf654b7)(release)) on x86_64-pc-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit",
+      "age": "1.8.0",
+      "jobId": "f7095aa2-5ad6-408c-9673-8f97f81e9557",
+      "records": 458000,
+      "committedBatches": 23,
+      "failedBatches": 0,
+      "sourceTelemetry": {
+        "connector": "csv",
+        "pages": 18,
+        "rawInputBytes": 94491574,
+        "decodedInputBytes": 94491574,
+        "requestCharge": 0,
+        "failedRequestAttempts": 0,
+        "throttledRequests": 0
+      },
+      "canonicalComparison": {
+        "status": "pass",
+        "fixtureRootSha256": "f5c55737a9b8abe9259937920c43504351db48c56b29afd031a813e403b20b1d",
+        "expectedRootSha256": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+        "actualRootSha256": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+        "expectedRows": 458000,
+        "actualRows": 458000,
+        "leaves": 18
+      },
+      "perLabelCounts": [
+        {
+          "kind": "v",
+          "name": "Supplier",
+          "rows": 2500
+        },
+        {
+          "kind": "v",
+          "name": "Facility",
+          "rows": 1250
+        },
+        {
+          "kind": "v",
+          "name": "Product",
+          "rows": 12500
+        },
+        {
+          "kind": "v",
+          "name": "PurchaseOrder",
+          "rows": 28125
+        },
+        {
+          "kind": "v",
+          "name": "Shipment",
+          "rows": 21875
+        },
+        {
+          "kind": "v",
+          "name": "Lot",
+          "rows": 31250
+        },
+        {
+          "kind": "v",
+          "name": "Location",
+          "rows": 625
+        },
+        {
+          "kind": "v",
+          "name": "Carrier",
+          "rows": 63
+        },
+        {
+          "kind": "v",
+          "name": "Customer",
+          "rows": 1812
+        },
+        {
+          "kind": "e",
+          "name": "SUPPLIES",
+          "rows": 35800
+        },
+        {
+          "kind": "e",
+          "name": "PRODUCED_AT",
+          "rows": 26850
+        },
+        {
+          "kind": "e",
+          "name": "PLACED_WITH",
+          "rows": 40275
+        },
+        {
+          "kind": "e",
+          "name": "CONTAINS",
+          "rows": 89500
+        },
+        {
+          "kind": "e",
+          "name": "FULFILLS",
+          "rows": 40275
+        },
+        {
+          "kind": "e",
+          "name": "ORIGINATES_AT",
+          "rows": 31325
+        },
+        {
+          "kind": "e",
+          "name": "DESTINED_FOR",
+          "rows": 31325
+        },
+        {
+          "kind": "e",
+          "name": "CARRIED_BY",
+          "rows": 31325
+        },
+        {
+          "kind": "e",
+          "name": "INCLUDED_IN",
+          "rows": 31325
+        }
+      ],
+      "startedAtUtc": "2026-11-18T06:25:30.334315+00:00",
+      "completedAtUtc": "2026-11-18T06:28:58.111952+00:00",
+      "loadWallSecondsApprox": 194.048,
+      "totalLoadAndVerificationSeconds": 207.778
+    },
+    {
+      "targetPostgreSQLMajor": 18,
+      "source": "csv",
+      "mode": "create",
+      "postgresql": "PostgreSQL 18.6 (Azure HorizonDB (532bbf654b7)(release)) on x86_64-pc-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit",
+      "age": "1.8.0",
+      "jobId": "cb7e013a-33ce-4ae4-8ce8-72a20ceae369",
+      "records": 458000,
+      "committedBatches": 23,
+      "failedBatches": 0,
+      "sourceTelemetry": {
+        "connector": "csv",
+        "pages": 18,
+        "rawInputBytes": 94491574,
+        "decodedInputBytes": 94491574,
+        "requestCharge": 0,
+        "failedRequestAttempts": 0,
+        "throttledRequests": 0
+      },
+      "canonicalComparison": {
+        "status": "pass",
+        "fixtureRootSha256": "f5c55737a9b8abe9259937920c43504351db48c56b29afd031a813e403b20b1d",
+        "expectedRootSha256": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+        "actualRootSha256": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+        "expectedRows": 458000,
+        "actualRows": 458000,
+        "leaves": 18
+      },
+      "perLabelCounts": [
+        {
+          "kind": "v",
+          "name": "Supplier",
+          "rows": 2500
+        },
+        {
+          "kind": "v",
+          "name": "Facility",
+          "rows": 1250
+        },
+        {
+          "kind": "v",
+          "name": "Product",
+          "rows": 12500
+        },
+        {
+          "kind": "v",
+          "name": "PurchaseOrder",
+          "rows": 28125
+        },
+        {
+          "kind": "v",
+          "name": "Shipment",
+          "rows": 21875
+        },
+        {
+          "kind": "v",
+          "name": "Lot",
+          "rows": 31250
+        },
+        {
+          "kind": "v",
+          "name": "Location",
+          "rows": 625
+        },
+        {
+          "kind": "v",
+          "name": "Carrier",
+          "rows": 63
+        },
+        {
+          "kind": "v",
+          "name": "Customer",
+          "rows": 1812
+        },
+        {
+          "kind": "e",
+          "name": "SUPPLIES",
+          "rows": 35800
+        },
+        {
+          "kind": "e",
+          "name": "PRODUCED_AT",
+          "rows": 26850
+        },
+        {
+          "kind": "e",
+          "name": "PLACED_WITH",
+          "rows": 40275
+        },
+        {
+          "kind": "e",
+          "name": "CONTAINS",
+          "rows": 89500
+        },
+        {
+          "kind": "e",
+          "name": "FULFILLS",
+          "rows": 40275
+        },
+        {
+          "kind": "e",
+          "name": "ORIGINATES_AT",
+          "rows": 31325
+        },
+        {
+          "kind": "e",
+          "name": "DESTINED_FOR",
+          "rows": 31325
+        },
+        {
+          "kind": "e",
+          "name": "CARRIED_BY",
+          "rows": 31325
+        },
+        {
+          "kind": "e",
+          "name": "INCLUDED_IN",
+          "rows": 31325
+        }
+      ],
+      "startedAtUtc": "2026-11-18T06:28:58.529997+00:00",
+      "completedAtUtc": "2026-11-18T06:32:42.914996+00:00",
+      "loadWallSecondsApprox": 208.998,
+      "totalLoadAndVerificationSeconds": 224.385
+    }
+  ],
+  "completedPhases": [],
+  "largerPhasesExecuted": false,
+  "remaining": [
+    "CSV replace/one-percent append/upsert/interrupted-resumed load",
+    "all remaining source configurations",
+    "complete P0 then gated P1/P2/P3"
+  ],
+  "retainedRawEvidence": {
+    "bytes": 14244,
+    "sha256": "1a43179f43f47dcfe49d8e67e557e5d3a167b2ea19985adbd18783af7ed1dd9b",
+    "blob": "afhs-20261118/p0-csv/r20261118p0csv01/d4e7b3275da1/p0-csv-evidence-d4e7b3275da1.tar.xz",
+    "privateManagedIdentityReadBack": "passed"
+  },
+  "retirement": {
+    "status": "verified-retired",
+    "executionWindowClosedAtUtc": "2026-11-18T06:51:33.705457+00:00",
+    "reason": "End the bounded partial P0 calibration; remaining harness and promotion gates are incomplete",
+    "initialGuardJob": "a7d94262-c32e-4f4e-997d-331b0bfb412d",
+    "initialGuardOutcome": "Deletes accepted; global asynchronous-operation polling failed with HTTP403",
+    "reconciliationGuardJob": "4fb88991-d5de-44f7-8f18-87b83f49e5ec",
+    "reconciliationGuardStatus": "Completed",
+    "reconciliation": "Scoped managed-identity GETs and independent operator GETs both confirmed HTTP404; no subscription-wide permissions added",
+    "publishedGuardSha256": "c9106fc76812c01da1677c3fc6babf18b10058260341eee8e4451c3a946fdf95",
+    "clusters": [
+      {
+        "name": "afht-20261118-pg17",
+        "httpStatus": 404,
+        "verifiedAtUtc": "2026-11-18T06:57:45.756828+00:00"
+      },
+      {
+        "name": "afht-20261118-pg18",
+        "httpStatus": 404,
+        "verifiedAtUtc": "2026-11-18T06:57:45.735648+00:00"
+      }
+    ],
+    "excludedResourcesPreserved": [
+      "existing tiny resource group",
+      "existing Cosmos account",
+      "existing VM",
+      "existing OS/evidence disk",
+      "private Blob evidence"
+    ],
+    "retainedVMExternalShutdownUtc": "2026-11-18T08:15:00+00:00",
+    "fullCampaignQueued": false
+  }
+}

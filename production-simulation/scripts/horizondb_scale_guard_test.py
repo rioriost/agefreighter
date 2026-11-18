@@ -18,12 +18,14 @@ OLD = SUB + "/resourceGroups/rg-agefreighter-horizon-tiny-20261118"
 NEW = SUB + "/resourceGroups/rg-agefreighter-horizon-scale-20261118"
 CLUSTER = OLD + "/providers/Microsoft.HorizonDb/clusters/afht-20261118-pg17"
 DISK = OLD + "/providers/Microsoft.Compute/disks/preserved"
+LEASE = "00000000-0000-0000-0000-000000000002"
 
 
 def settings(expired=False):
     now = dt.datetime.now(dt.timezone.utc)
     return {
         "subscriptionId": SUB.split("/")[-1], "date": "20261118",
+        "leaseId": LEASE,
         "deleteTargets": [NEW, CLUSTER], "preservedEvidenceDiskId": DISK,
         "startedAtUtc": (now - dt.timedelta(hours=2)).isoformat(),
         "deadlineUtc": (now + dt.timedelta(hours=-1 if expired else 2)).isoformat(),
@@ -54,7 +56,7 @@ class FakeClient:
         if resource == DISK:
             return {"properties": {"provisioningState": "Succeeded"}}, {}
         if resource == NEW:
-            return {"tags": {"campaign": "afhs-20261118"}}, {}
+            return {"tags": {"campaign": "afhs-20261118", "qualificationLease": LEASE}}, {}
         if resource == NEW + "/resources":
             return {"value": ([{"id": NEW + "/providers/Microsoft.Compute/virtualMachines/loader",
                                 "type": "Microsoft.Compute/virtualMachines"}]
@@ -69,7 +71,7 @@ class FakeClient:
         if "/snapshots/" in resource:
             return self.snapshots.get(resource), {}
         if resource == CLUSTER:
-            return {"tags": {"application": "agefreighter", "run": "afht-20261118"}}, {}
+            return {"tags": {"application": "agefreighter", "run": "afht-20261118", "qualificationLease": LEASE}}, {}
         raise AssertionError("unexpected request: " + method + " " + path)
 
     def operation(self, method, path, body=None):
@@ -116,12 +118,38 @@ class ScopeAndBudgetTests(unittest.TestCase):
         client = FakeClient()
         self.run_guard(settings(expired=True), client)
         self.assertEqual(client.deleted, {NEW, CLUSTER})
+        self.assertFalse(any("/Microsoft.CostManagement/" in path for _, path in client.calls))
+
+    def test_cost_management_specific_retry_header_is_respected(self):
+        self.assertEqual(guard.retry_delay({
+            "Retry-After": "1",
+            "x-ms-ratelimit-microsoft.costmanagement-qpu-retry-after": "45",
+            "x-ms-ratelimit-microsoft.costmanagement-entity-retry-after": "30",
+        }, 0), 45)
+        with self.assertRaises(RuntimeError):
+            guard.retry_delay({"Retry-After": "120"}, 0)
+        with self.assertRaises(ValueError):
+            guard.retry_delay({"x-ms-ratelimit-microsoft.costmanagement-qpu-retry-after": "NaN"}, 0)
+        self.assertEqual(guard.retry_delay({
+            "Retry-After": "Thu, 01 Jan 1970 00:00:00 GMT",
+        }, 0), 1)
+        with self.assertRaises(ValueError):
+            guard.retry_delay({"Retry-After": "Wed, 18 Nov 2026 08:00:00"}, 0)
 
     def test_monitoring_failure_enforces_budget_safety(self):
         client = FakeClient()
         client.cost_available = False
         self.run_guard(settings(), client)
         self.assertEqual(client.deleted, {NEW, CLUSTER})
+
+    def test_cost_read_transport_failures_enforce_budget_safety(self):
+        for error in (TimeoutError("cost response timed out"),
+                      guard.http.client.IncompleteRead(b"", 1)):
+            with self.subTest(error=type(error).__name__):
+                client = FakeClient()
+                with patch.object(guard, "reported_cost", side_effect=error):
+                    self.run_guard(settings(), client)
+                self.assertEqual(client.deleted, {NEW, CLUSTER})
 
     def test_worker_stops_and_external_snapshot_precedes_deletion(self):
         client = FakeClient()
@@ -141,6 +169,51 @@ class ScopeAndBudgetTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.run_guard(settings(expired=True), client)
         self.assertEqual(client.deleted, set())
+
+    def test_expired_job_cannot_delete_a_reenrolled_campaign(self):
+        client = FakeClient()
+        cfg = settings(expired=True)
+        cfg["leaseId"] = "00000000-0000-0000-0000-000000000003"
+        with self.assertRaises(RuntimeError):
+            self.run_guard(cfg, client)
+        self.assertEqual(client.deleted, set())
+
+    def test_location_polling_accepts_documented_empty_completion_only(self):
+        client = guard.Client()
+        with patch.object(client, "request", side_effect=[
+            ({}, {"Location": guard.ARM + "/operation"}),
+            ({}, {"X-Qualification-HTTP-Status": "202"}),
+            ({}, {"X-Qualification-HTTP-Status": "204"}),
+        ]) as request, patch.object(guard.time, "sleep"):
+            client.operation("POST", "/publish", {})
+            self.assertEqual(request.call_count, 3)
+        with patch.object(client, "request", side_effect=[
+            ({}, {"Azure-AsyncOperation": guard.ARM + "/operation"}),
+            ({}, {"X-Qualification-HTTP-Status": "200"}),
+        ]), patch.object(guard.time, "sleep"):
+            with self.assertRaises(RuntimeError):
+                client.operation("POST", "/publish", {})
+
+    def test_deletion_polls_owned_resource_until_final_404(self):
+        client = guard.Client()
+        with patch.object(client, "request", side_effect=[
+            ({}, {"Azure-AsyncOperation": guard.ARM + "/unowned-global-operation"}),
+            ({"properties": {"state": "Deleting"}}, {}),
+            (None, {}),
+        ]) as request, patch.object(guard.time, "sleep"):
+            client.operation("DELETE", CLUSTER)
+            self.assertEqual(request.call_args_list, [
+                unittest.mock.call("DELETE", CLUSTER, None, missing_ok=True),
+                unittest.mock.call("GET", CLUSTER, missing_ok=True),
+                unittest.mock.call("GET", CLUSTER, missing_ok=True),
+            ])
+        with patch.object(client, "request", return_value=(
+            {"properties": {"state": "Deleting"}}, {}
+        )), patch.object(guard.time, "sleep"), patch.object(
+            guard.time, "monotonic", side_effect=[0, 0, 1201]
+        ):
+            with self.assertRaisesRegex(RuntimeError, "not verified absent"):
+                client.operation("DELETE", CLUSTER)
 
 
 if __name__ == "__main__":
