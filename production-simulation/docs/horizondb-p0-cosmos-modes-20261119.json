@@ -91,6 +91,10 @@
   "retirement": {
     "leaseClosedUtc": "2026-11-19T03:15:28.023806+00:00",
     "guardJob": "b86058ae-0f80-4b99-9581-7b19655619cf",
-    "deleteIssuedForDisposableGroup": true
+    "guardJobCompletedUtc": "2026-11-19T03:54:16.1619148+00:00",
+    "verifiedAtUtc": "2026-11-19T03:54:40.599847+00:00",
+    "disposableGroupAndBothTargetsHTTP404": true,
+    "retainedDiskPrivateCosmosAndEvidenceIntact": true,
+    "runnerDeallocated": true
   }
 }

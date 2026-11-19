@@ -44,8 +44,10 @@ association and Enabled Entra authentication were verified. An Automation
 link ID returned 404 after publication; the authoritative list still showed all
 four enabled links, and a real scheduled job used the current lease. No extra
 links were created. Both partial archives were privately read back by SHA-256
-before the lease closed; the deletion was issued only against the disposable
-group, not the rebuilt source/worker/evidence group.
+before the lease closed. Guard job `b86058ae-0f80-4b99-9581-7b19655619cf`
+completed the disposable group deletion. Separate final checks verified 404
+for the group and both targets, retained the private source and evidence,
+and confirmed the runner was deallocated at **03:54:40 UTC / 12:54:40 JST**.
 
 ### November 19: support environment rebuilt
 
