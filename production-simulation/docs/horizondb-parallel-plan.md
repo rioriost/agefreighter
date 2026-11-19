@@ -261,8 +261,9 @@ do not use an operator's shorter polling timeout as evidence of cloud failure.
 
 The preparation exposed HTTP 429 responses from Cost Management. The guard
 now honors its service-specific retry headers as well as `Retry-After`, rejects
-delays beyond its bounded retry window instead of retrying early, and treats
-transport failures as unavailable monitoring. Deadline cleanup does not wait
+delays beyond its bounded retry window instead of retrying early, and retries
+a cost-query read timeout at most once within that same request budget. A
+persistent transport failure still triggers cleanup. Deadline cleanup does not wait
 for an unnecessary cost query. A live cloud job exercised the corrected
 backoff and recovered actual cost access. Monitoring failure still blocks new
 admissions; stale or unavailable cost data is not replaced with zero.

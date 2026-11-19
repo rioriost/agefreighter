@@ -145,12 +145,13 @@ class Client:
         self.token = token["access_token"]
         self.expires = float(token["expires_on"])
 
-    def request(self, method, path, body=None, missing_ok=False):
+    def request(self, method, path, body=None, missing_ok=False, *, retry_read_timeout=False):
         url = path if path.startswith("https://") else ARM + path
         parsed = urllib.parse.urlsplit(url)
         if parsed.scheme != "https" or parsed.netloc != "management.azure.com":
             raise RuntimeError("unexpected authenticated request origin")
         self.authenticate()
+        retried_timeout = False
         for attempt in range(5):
             request = urllib.request.Request(
                 url, method=method,
@@ -174,6 +175,13 @@ class Client:
                     time.sleep(wait)
                     continue
                 raise RuntimeError("ARM HTTP " + str(error.code) + ": " + error.read().decode()) from error
+            except (TimeoutError, urllib.error.URLError) as error:
+                reason = error.reason if isinstance(error, urllib.error.URLError) else error
+                if not retry_read_timeout or retried_timeout or attempt == 4 or not isinstance(reason, TimeoutError):
+                    raise
+                retried_timeout = True
+                print(json.dumps({"retry": attempt + 1, "error": "read-timeout", "waitSeconds": 2}), flush=True)
+                time.sleep(2)
         raise RuntimeError("ARM retry budget exhausted")
 
     def operation(self, method, path, body=None):
@@ -320,6 +328,7 @@ def reported_cost(client, settings):
         + "/providers/Microsoft.CostManagement/query?api-version=2025-03-01",
         {"type": "ActualCost", "timeframe": "MonthToDate",
          "dataset": {"granularity": "None", "aggregation": {"cost": {"name": "PreTaxCost", "function": "Sum"}}}},
+        retry_read_timeout=True,
     )
     properties = result["properties"]
     columns = [c["name"] for c in properties["columns"]]

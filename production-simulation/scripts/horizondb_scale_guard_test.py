@@ -5,7 +5,7 @@ import importlib.util
 import io
 from pathlib import Path
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location(
     "guard", Path(__file__).with_name("horizondb-scale-guard.py")
@@ -47,7 +47,7 @@ class FakeClient:
         self.worker_stopped = False
         self.cost_available = True
 
-    def request(self, method, path, body=None, missing_ok=False):
+    def request(self, method, path, body=None, missing_ok=False, *, retry_read_timeout=False):
         self.calls.append((method, path))
         resource = path.split("?")[0]
         if resource.endswith("/Microsoft.CostManagement/query"):
@@ -162,6 +162,32 @@ class ScopeAndBudgetTests(unittest.TestCase):
                 with patch.object(guard, "reported_cost", side_effect=error):
                     self.run_guard(settings(), client)
                 self.assertEqual(client.deleted, {NEW, CLUSTER})
+
+    def test_cost_query_recovers_after_throttling_and_one_read_timeout(self):
+        client = guard.Client()
+        client.token = "test-token"
+        throttled = guard.urllib.error.HTTPError(guard.ARM, 429, "throttled", {"Retry-After": "3"}, io.BytesIO())
+        timed_out = Mock()
+        timed_out.read.side_effect = TimeoutError("read timed out")
+        response = Mock(status=200, headers={})
+        response.read.return_value = b'{"properties":{"columns":[{"name":"PreTaxCost"},{"name":"Currency"}],"rows":[[100,"USD"]]}}'
+        stages = [throttled, contextlib.nullcontext(timed_out), contextlib.nullcontext(response)]
+        with (patch.object(client, "authenticate"),
+              patch.object(client.http, "open", side_effect=stages) as request,
+              patch.object(guard.time, "sleep") as sleep, contextlib.redirect_stdout(io.StringIO())):
+            self.assertEqual(guard.reported_cost(client, settings()), 100)
+        self.assertEqual(request.call_count, 3)
+        self.assertEqual([call.args for call in sleep.call_args_list], [(3,), (2,)])
+
+    def test_second_cost_query_timeout_is_not_retried(self):
+        client = guard.Client()
+        client.token = "test-token"
+        with (patch.object(client, "authenticate"),
+              patch.object(client.http, "open", side_effect=TimeoutError()) as request,
+              patch.object(guard.time, "sleep"), contextlib.redirect_stdout(io.StringIO())):
+            with self.assertRaises(TimeoutError):
+                guard.reported_cost(client, settings())
+        self.assertEqual(request.call_count, 2)
 
     def test_worker_stops_and_external_snapshot_precedes_deletion(self):
         client = FakeClient()
