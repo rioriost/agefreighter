@@ -62,27 +62,44 @@ func validateHorizonP0PostgresSource(dsn string) error {
 }
 
 func horizonP0PostgresQueries(job *config.LoadJob, schema string) error {
+	if !regexp.MustCompile(`^hs_p0_pg_r[a-z0-9]{6,30}_(base|append|upsert)$`).MatchString(schema) {
+		return errors.New("P0 PostgreSQL source requires a run-scoped immutable schema")
+	}
+	return horizonPostgresQueries(job, schema)
+}
+
+func horizonPostgresQueries(job *config.LoadJob, schema string) error {
 	if job.Source.Type != config.SourcePostgreSQL || job.Source.PostgreSQL == nil ||
-		!regexp.MustCompile(`^hs_p0_pg_r[a-z0-9]{6,30}_(base|append|upsert)$`).MatchString(schema) {
-		return errors.New("P0 PostgreSQL source and run-scoped immutable schema required")
+		!regexp.MustCompile(`^hs_p[01]_pg_r[a-z0-9]{6,30}_(base|append|upsert)$`).MatchString(schema) {
+		return errors.New("PostgreSQL source and run-scoped immutable schema required")
 	}
 	pg := job.Source.PostgreSQL
 	pg.FetchRows = 20_000
 	for i := range pg.Vertices {
 		q := &pg.Vertices[i]
-		q.Query = "SELECT * FROM " + pgx.Identifier{schema, q.Label}.Sanitize() + " ORDER BY source_key"
+		q.Query = horizonPostgresQuery(schema, q.Label)
 	}
 	for i := range pg.Edges {
 		q := &pg.Edges[i]
-		q.Query = "SELECT * FROM " + pgx.Identifier{schema, q.Label}.Sanitize() + " ORDER BY source_key"
+		q.Query = horizonPostgresQuery(schema, q.Label)
 	}
 	return nil
+}
+
+func horizonPostgresQuery(schema, table string) string {
+	return "SELECT * FROM " + pgx.Identifier{schema, table}.Sanitize() + " ORDER BY source_key"
 }
 
 func seedHorizonP0Postgres(ctx context.Context, paths rangedigest.Scenario, manifests map[string]portable.Manifest,
 	directories map[string]string, run, output string,
 ) error {
-	dsn := os.Getenv("AGEFREIGHTER_POSTGRES_TEST_DSN")
+	return seedHorizonPostgres(ctx, paths, manifests, directories, run, output,
+		os.Getenv("AGEFREIGHTER_POSTGRES_TEST_DSN"), fixture.PhaseP0)
+}
+
+func seedHorizonPostgres(ctx context.Context, paths rangedigest.Scenario, manifests map[string]portable.Manifest,
+	directories map[string]string, run, output, dsn string, phase fixture.Phase,
+) error {
 	if err := validateHorizonP0PostgresSource(dsn); err != nil {
 		return err
 	}
@@ -96,8 +113,8 @@ func seedHorizonP0Postgres(ctx context.Context, paths rangedigest.Scenario, mani
 	if err := conn.QueryRow(ctx, "SELECT current_setting('server_version_num')::integer,version()").Scan(&number, &version); err != nil {
 		return err
 	}
-	if number/10000 != 17 {
-		return errors.New("PostgreSQL 17 fixture source required")
+	if number/10000 != 17 || phase == fixture.PhaseP1 && number != 170006 {
+		return errors.New("source must run the approved PostgreSQL fixture version")
 	}
 	datasets := map[string]any{}
 	receipt := map[string]any{"sourceVersion": version, "datasets": datasets}
@@ -108,12 +125,12 @@ func seedHorizonP0Postgres(ctx context.Context, paths rangedigest.Scenario, mani
 			return err
 		}
 		manifest, ok := manifests[name]
-		if !ok || f.Plan.Phase != fixture.PhaseP0 || manifest.FixtureRoot != f.RootSHA256 {
-			return errors.New("verified P0 portable provenance required before source writes")
+		if !ok || f.Plan.Phase != phase || manifest.FixtureRoot != f.RootSHA256 {
+			return errors.New("verified portable provenance required before source writes")
 		}
-		schema := "hs_p0_pg_" + run + "_" + name
+		schema := "hs_" + string(phase) + "_pg_" + run + "_" + name
 		job := tinyJob(manifest, directories[name], "postgresql", 17)
-		if err := horizonP0PostgresQueries(&job, schema); err != nil {
+		if err := horizonPostgresQueries(&job, schema); err != nil {
 			return err
 		}
 		if _, err := conn.Exec(ctx, "CREATE SCHEMA "+pgx.Identifier{schema}.Sanitize()); err != nil {
@@ -167,7 +184,7 @@ func seedHorizonP0Postgres(ctx context.Context, paths rangedigest.Scenario, mani
 			count += actual
 		}
 		if count != f.Plan.VertexTotal+f.Plan.EdgeTotal {
-			return errors.New("seeded P0 dataset count differs")
+			return errors.New("seeded PostgreSQL dataset count differs")
 		}
 		if _, err := fixture.Verify(path); err != nil {
 			return err

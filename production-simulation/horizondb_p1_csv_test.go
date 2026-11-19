@@ -36,6 +36,7 @@ import (
 const (
 	p1Gate          = "AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG17"
 	p1GatePG18      = "AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG18"
+	p1PGGate        = "AGEFREIGHTER_REQUIRE_HORIZON_P1_POSTGRES_PG17"
 	p1ReceiptEnv    = "AGEFREIGHTER_HORIZON_P1_RECEIPT"
 	p1Role          = "afhs-20261118-p1-csv"
 	p1BaseVertices  = 1_600_000
@@ -72,16 +73,18 @@ type p1Admission struct {
 	FixturePreparationSHA256 string    `json:"fixturePreparationSha256"`
 	SnapshotID               string    `json:"lifecycleProbeSnapshotId"`
 	WriterReadyAt            time.Time `json:"writerReadyAtUtc"`
+	Source                   string    `json:"source,omitempty"`
 }
 
 func (a p1Admission) validate(now time.Time, needed time.Duration, major int) error {
 	if !p1RunPattern.MatchString(a.RunID) || major == 0 || a.writerMajor() != major ||
+		(a.Source != "" && (a.Source != "postgresql" || major != 17)) ||
 		!p1UUIDPattern.MatchString(a.IdentityClientID) ||
 		!p1CommitPattern.MatchString(a.Commit) ||
 		!p1SHA.MatchString(a.ExecutableSHA256) || !p1SHA.MatchString(a.GuardSettingsSHA256) ||
 		!p1SHA.MatchString(a.FixturePreparationSHA256) ||
 		!regexp.MustCompile(`^/subscriptions/[a-f0-9-]{36}/resourceGroups/rg-agefreighter-horizon-tiny-20261118/providers/Microsoft\.Compute/snapshots/afhs-20261118-[a-f0-9]{16}$`).MatchString(a.SnapshotID) {
-		return errors.New("require the independently admitted P1 CSV writer for the configured PostgreSQL major, candidate, identity, guard and snapshot evidence")
+		return errors.New("require the independently admitted P1 route, writer major, candidate, identity, guard and snapshot evidence")
 	}
 	if a.TokenValidThroughLease {
 		if a.RenewalEvidenceSHA256 != "" {
@@ -102,12 +105,15 @@ func (a p1Admission) validate(now time.Time, needed time.Duration, major int) er
 	return nil
 }
 
-func readP1Admission(t *testing.T, needed time.Duration, major int) p1Admission {
+func readP1Admission(t *testing.T, needed time.Duration, major int, source string) p1Admission {
 	t.Helper()
 	var a p1Admission
 	p1ReadJSON(t, os.Getenv(p1ReceiptEnv), &a)
 	if err := a.validate(time.Now(), needed, major); err != nil {
 		t.Fatal(err)
+	}
+	if a.source() != source {
+		t.Fatal("configured P1 source differs from the admitted route")
 	}
 	if runtime.GOOS != "linux" {
 		t.Fatal("the P1 pilot requires the isolated Linux runner for RSS and fault evidence")
@@ -121,6 +127,13 @@ func readP1Admission(t *testing.T, needed time.Duration, major int) p1Admission 
 
 func (a p1Admission) database() string { return "hs_p1_" + a.RunID }
 
+func (a p1Admission) source() string {
+	if a.Source == "" {
+		return "csv"
+	}
+	return a.Source
+}
+
 func (a p1Admission) writerMajor() int {
 	m := p1HostPattern.FindStringSubmatch(a.Host)
 	if m == nil {
@@ -132,17 +145,21 @@ func (a p1Admission) writerMajor() int {
 	return 18
 }
 
-func p1EnabledMajor(t *testing.T) int {
+func p1EnabledRoute(t *testing.T) (int, string) {
 	t.Helper()
-	switch pg17, pg18 := os.Getenv(p1Gate) == "1", os.Getenv(p1GatePG18) == "1"; {
-	case pg17 && pg18:
-		t.Fatal("require exactly one P1 CSV writer major")
-	case pg17:
-		return 17
-	case pg18:
-		return 18
+	major, source := 0, ""
+	for _, route := range []struct {
+		gate, source string
+		major        int
+	}{{p1Gate, "csv", 17}, {p1GatePG18, "csv", 18}, {p1PGGate, "postgresql", 17}} {
+		if os.Getenv(route.gate) == "1" {
+			if major != 0 {
+				t.Fatal("require exactly one P1 source and writer route")
+			}
+			major, source = route.major, route.source
+		}
 	}
-	return 0
+	return major, source
 }
 
 type p1Case struct {
@@ -168,19 +185,19 @@ var p1Expected = map[string]struct{ raw, canonical string }{
 }
 
 func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
-	runHorizonDBP1CSV(t, 17)
+	runHorizonDBP1(t, 17, "csv")
 }
 
 func TestHorizonDBP1CSVPG18Integration(t *testing.T) {
-	runHorizonDBP1CSV(t, 18)
+	runHorizonDBP1(t, 18, "csv")
 }
 
-func runHorizonDBP1CSV(t *testing.T, targetMajor int) {
+func runHorizonDBP1(t *testing.T, targetMajor int, source string) {
 	t.Helper()
-	if p1EnabledMajor(t) != targetMajor {
-		t.Skipf("explicit P1 CSV PG%d admission required", targetMajor)
+	if major, enabled := p1EnabledRoute(t); major != targetMajor || enabled != source {
+		t.Skipf("explicit P1 %s PG%d admission required", source, targetMajor)
 	}
-	a := readP1Admission(t, p1RunTime+time.Hour, targetMajor)
+	a := readP1Admission(t, p1RunTime+time.Hour, targetMajor, source)
 	fixtureReceipt := filepath.Join(a.FixtureDir, p1FixtureReceiptName)
 	if p1FileSHA(t, fixtureReceipt) != a.FixturePreparationSHA256 {
 		t.Fatal("worker fixture preparation receipt SHA-256 differs from admission")
@@ -200,6 +217,10 @@ func runHorizonDBP1CSV(t *testing.T, targetMajor int) {
 	var requireMetricsSince time.Time
 	defer func() { stopTelemetry(requireMetricsSince) }()
 	paths, expected, exports := prepareP1CSV(t, ctx, a.FixtureDir, a.Output)
+	var verifySource func()
+	if source == "postgresql" {
+		verifySource = prepareP1Postgres(t, ctx, a, paths, exports)
+	}
 	secret := filepath.Join(p1SecretDir(t), "target.dsn")
 	stopCredentials := startP1Credentials(t, ctx, cancel, a, secret)
 	defer stopCredentials()
@@ -234,8 +255,14 @@ func runHorizonDBP1CSV(t *testing.T, targetMajor int) {
 			}
 			caseCtx, stop := context.WithTimeout(ctx, c.bound)
 			defer stop()
-			job := tinyJob(exports[c.dataset], filepath.Join(a.Output, "csv-"+c.dataset), "csv", targetMajor)
-			job.Metadata.Name = fmt.Sprintf("horizon-p1-csv-pg%d-%s-%s", targetMajor, c.name, a.RunID)
+			job := tinyJob(exports[c.dataset], filepath.Join(a.Output, "csv-"+c.dataset), source, targetMajor)
+			if source == "postgresql" {
+				if err := horizonPostgresQueries(&job, p1PostgresSchema(a, c.dataset)); err != nil {
+					t.Fatal(err)
+				}
+				job.Source.PostgreSQL.Connection = config.SecretRef{File: p1PostgresReader}
+			}
+			job.Metadata.Name = fmt.Sprintf("horizon-p1-%s-pg%d-%s-%s", source, targetMajor, c.name, a.RunID)
 			job.Target.Mode, job.Target.Graph = c.mode, p1Graph(a, c)
 			job.Target.Connection = config.SecretRef{File: secret}
 			job.Runtime.BatchRows, job.Runtime.BatchBytes, job.Runtime.MaxTargetConnections = 20_000, 64<<20, 4
@@ -284,6 +311,9 @@ func runHorizonDBP1CSV(t *testing.T, targetMajor int) {
 	}
 	for _, name := range p1FixtureOrder {
 		p1CSVIntegrity(t, a.Output, name, exports[name])
+	}
+	if verifySource != nil {
+		verifySource()
 	}
 	requireMetricsSince = startedCases
 }
@@ -553,11 +583,12 @@ func runP1Process(t *testing.T, ctx context.Context, conn *pgx.Conn, a p1Admissi
 }
 
 func TestHorizonDBP1CSVWorker(t *testing.T) {
-	mode, major := os.Getenv("AGEFREIGHTER_HORIZON_P1_WORKER"), p1EnabledMajor(t)
+	mode := os.Getenv("AGEFREIGHTER_HORIZON_P1_WORKER")
+	major, source := p1EnabledRoute(t)
 	if mode == "" || major == 0 {
 		t.Skip("only the admitted P1 pilot may start a loader worker")
 	}
-	a := readP1Admission(t, time.Minute, major)
+	a := readP1Admission(t, time.Minute, major, source)
 	id := os.Getenv("AGEFREIGHTER_HORIZON_P1_JOB_ID")
 	resume := os.Getenv("AGEFREIGHTER_HORIZON_P1_WORKER_RESUME")
 	for _, c := range p1Cases {
@@ -570,20 +601,31 @@ func TestHorizonDBP1CSVWorker(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !p1UUIDPattern.MatchString(id) || (resume != "true" && resume != "false") || (resume == "true" && !c.recovery) ||
-			job.Source.Type != config.SourceCSV || job.Source.CSV == nil || job.Target.Type != config.TargetApacheAGE ||
+			job.Target.Type != config.TargetApacheAGE ||
 			job.Target.Mode != c.mode || job.Target.Graph != p1Graph(a, c) ||
 			!p1SecretPath.MatchString(job.Target.Connection.File) {
 			t.Fatal("loader worker is outside the admitted P1 case")
 		}
-		for _, v := range job.Source.CSV.Vertices {
-			if filepath.Dir(v.Path) != filepath.Join(a.Output, "csv-"+c.dataset) {
-				t.Fatal("vertex CSV is outside the admitted dataset")
+		switch source {
+		case "csv":
+			if job.Source.Type != config.SourceCSV || job.Source.CSV == nil {
+				t.Fatal("loader source is not the admitted CSV connector")
 			}
-		}
-		for _, e := range job.Source.CSV.Edges {
-			if filepath.Dir(e.Path) != filepath.Join(a.Output, "csv-"+c.dataset) {
-				t.Fatal("edge CSV is outside the admitted dataset")
+			for _, v := range job.Source.CSV.Vertices {
+				if filepath.Dir(v.Path) != filepath.Join(a.Output, "csv-"+c.dataset) {
+					t.Fatal("vertex CSV is outside the admitted dataset")
+				}
 			}
+			for _, e := range job.Source.CSV.Edges {
+				if filepath.Dir(e.Path) != filepath.Join(a.Output, "csv-"+c.dataset) {
+					t.Fatal("edge CSV is outside the admitted dataset")
+				}
+			}
+		case "postgresql":
+			if err := validateP1PostgresJob(job, p1PostgresSchema(a, c.dataset)); err != nil {
+				t.Fatal(err)
+			}
+			p1PostgresDSN(t, p1PostgresReader, "p1_reader")
 		}
 		body, err := os.ReadFile(job.Target.Connection.File)
 		target, parseErr := url.Parse(string(body))

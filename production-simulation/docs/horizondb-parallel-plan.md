@@ -945,6 +945,16 @@ Mode elapsed times including independent verification were 344.2s, 346.0s,
 Together the CSV lanes account for 10/60 P1 cases at `6a6f8b3` (PG17) and
 `f7cc3da` (PG18), not credential renewal or throughput on any other route.
 
+For the PostgreSQL 17.6 source to PG17 writer lane, run
+`TestHorizonDBP1PostgresPG17Integration` with
+`AGEFREIGHTER_REQUIRE_HORIZON_P1_POSTGRES_PG17=1` as the sole route gate,
+and set `source: postgresql` in the same admission receipt. Bootstrap the
+pinned source container on the isolated Linux worker, bound to loopback
+only. Seed three run-scoped schemas by typed COPY of the verified exports.
+The loader uses a separate SELECT-only login and ordered COPY queries;
+retain source COPY counts and ordered binary digests before and after the
+five cases along with the independent target range and root comparisons.
+
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
 storage samples from that allocation. The worker's separate system identity
