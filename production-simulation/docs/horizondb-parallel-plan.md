@@ -866,6 +866,30 @@ independent fixture oracle; its source role cannot pass a target comparison.
 The actual source-only replay matched all 5,600,000 records and 64 ranges at
 root `bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
 
+After the live renewal passes, stage the isolated worker under the pilot
+lease before allocating its writer. Build a single Linux test binary from
+the clean, pinned candidate. Using that binary, regenerate the raw fixtures
+on the worker's durable disk with no live admission or database credentials:
+
+```bash
+AGEFREIGHTER_HORIZON_P1_PREPARE_COMMIT="$CANDIDATE_COMMIT" \
+AGEFREIGHTER_HORIZON_P1_PREPARE_DIR="$NEW_ABSOLUTE_FIXTURE_DIR" \
+  ./horizon-p1.test -test.run '^TestHorizonDBP1PrepareWorkerFixture$' \
+  -test.v -test.timeout=35m
+```
+
+It refuses an existing directory and requires room for fixture and CSV
+staging below the 80% disk stop. Expect 1,600,000 vertices and 4,000,000
+edges in the base, and 16,000 vertices and 40,000 edges in each delta.
+The source-only receipt `worker-fixture.json` is written only after the
+raw file hashes and all three independent canonical roots match. Record
+the receipt SHA-256 as `fixturePreparationSha256` in the later admission
+JSON; it must identify the same candidate and executable and predate the
+current lease's writer readiness. The pilot checks the receipt and
+revalidates the inputs before exporting CSV. Partial fixture output has no
+receipt and is not admissible. Do not allocate a writer on a failed or
+incomplete preparation.
+
 The opt-in `TestHorizonDBP1ManagedIdentityRenewalIntegration` in `internal/app`
 uses `AGEFREIGHTER_REQUIRE_HORIZON_P1_REFRESH=1` and
 `AGEFREIGHTER_HORIZON_P1_REFRESH_{HOST,USER,CLIENT_ID,DEADLINE_UTC,INITIAL_EXPIRY_UTC}`.

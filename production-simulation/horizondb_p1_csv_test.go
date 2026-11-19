@@ -28,7 +28,6 @@ import (
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
 	"github.com/rioriost/agefreighter/internal/pipeline"
-	"github.com/rioriost/agefreighter/production-simulation/internal/fixture"
 	"github.com/rioriost/agefreighter/production-simulation/internal/portable"
 	"github.com/rioriost/agefreighter/production-simulation/internal/rangedigest"
 )
@@ -37,8 +36,10 @@ const (
 	p1Gate          = "AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG17"
 	p1ReceiptEnv    = "AGEFREIGHTER_HORIZON_P1_RECEIPT"
 	p1Role          = "afhs-20261118-p1-csv"
-	p1BaseRows      = 5_600_000
-	p1DeltaRows     = 56_000
+	p1BaseVertices  = 1_600_000
+	p1BaseEdges     = 4_000_000
+	p1BaseRows      = p1BaseVertices + p1BaseEdges
+	p1DeltaRows     = p1BaseRows / 100
 	p1MaxRSSKiB     = 2 << 20
 	p1FullCaseTime  = 75 * time.Minute
 	p1DeltaCaseTime = 30 * time.Minute
@@ -46,34 +47,36 @@ const (
 )
 
 var (
-	p1RunPattern  = regexp.MustCompile(`^r[a-z0-9]{6,30}$`)
-	p1UUIDPattern = regexp.MustCompile(`^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$`)
-	p1HostPattern = regexp.MustCompile(`^afhs-20261118-pg17\.rw\.[a-z0-9]+\.japaneast\.horizondb\.azure\.com$`)
-	p1SHA         = regexp.MustCompile(`^[a-f0-9]{64}$`)
-	p1SecretPath  = regexp.MustCompile(`^/dev/shm/agefreighter-p1-[0-9]+/target\.dsn$`)
+	p1RunPattern    = regexp.MustCompile(`^r[a-z0-9]{6,30}$`)
+	p1UUIDPattern   = regexp.MustCompile(`^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$`)
+	p1CommitPattern = regexp.MustCompile(`^[a-f0-9]{40}$`)
+	p1HostPattern   = regexp.MustCompile(`^afhs-20261118-pg17\.rw\.[a-z0-9]+\.japaneast\.horizondb\.azure\.com$`)
+	p1SHA           = regexp.MustCompile(`^[a-f0-9]{64}$`)
+	p1SecretPath    = regexp.MustCompile(`^/dev/shm/agefreighter-p1-[0-9]+/target\.dsn$`)
 )
 
 type p1Admission struct {
-	RunID                 string    `json:"runId"`
-	Deadline              time.Time `json:"deadlineUtc"`
-	FixtureDir            string    `json:"fixtureDir"`
-	Output                string    `json:"output"`
-	Host                  string    `json:"writerHost"`
-	IdentityClientID      string    `json:"identityClientId"`
-	Commit                string    `json:"candidateCommit"`
-	ExecutableSHA256      string    `json:"executableSha256"`
-	GuardSettingsSHA256   string    `json:"guardSettingsSha256"`
-	RenewalEvidenceSHA256 string    `json:"renewalEvidenceSha256"`
-	SnapshotID            string    `json:"lifecycleProbeSnapshotId"`
-	WriterReadyAt         time.Time `json:"writerReadyAtUtc"`
+	RunID                    string    `json:"runId"`
+	Deadline                 time.Time `json:"deadlineUtc"`
+	FixtureDir               string    `json:"fixtureDir"`
+	Output                   string    `json:"output"`
+	Host                     string    `json:"writerHost"`
+	IdentityClientID         string    `json:"identityClientId"`
+	Commit                   string    `json:"candidateCommit"`
+	ExecutableSHA256         string    `json:"executableSha256"`
+	GuardSettingsSHA256      string    `json:"guardSettingsSha256"`
+	RenewalEvidenceSHA256    string    `json:"renewalEvidenceSha256"`
+	FixturePreparationSHA256 string    `json:"fixturePreparationSha256"`
+	SnapshotID               string    `json:"lifecycleProbeSnapshotId"`
+	WriterReadyAt            time.Time `json:"writerReadyAtUtc"`
 }
 
 func (a p1Admission) validate(now time.Time, needed time.Duration) error {
 	if !p1RunPattern.MatchString(a.RunID) || !p1HostPattern.MatchString(a.Host) ||
 		!p1UUIDPattern.MatchString(a.IdentityClientID) ||
-		!regexp.MustCompile(`^[a-f0-9]{40}$`).MatchString(a.Commit) ||
+		!p1CommitPattern.MatchString(a.Commit) ||
 		!p1SHA.MatchString(a.ExecutableSHA256) || !p1SHA.MatchString(a.GuardSettingsSHA256) ||
-		!p1SHA.MatchString(a.RenewalEvidenceSHA256) ||
+		!p1SHA.MatchString(a.RenewalEvidenceSHA256) || !p1SHA.MatchString(a.FixturePreparationSHA256) ||
 		!regexp.MustCompile(`^/subscriptions/[a-f0-9-]{36}/resourceGroups/rg-agefreighter-horizon-tiny-20261118/providers/Microsoft\.Compute/snapshots/afhs-20261118-[a-f0-9]{16}$`).MatchString(a.SnapshotID) {
 		return errors.New("require the independently admitted P1 CSV PG17 writer, candidate, identity, guard, renewal and snapshot evidence")
 	}
@@ -135,6 +138,15 @@ func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
 		t.Skip("explicit P1 CSV PG17 admission required")
 	}
 	a := readP1Admission(t, p1RunTime+time.Hour)
+	fixtureReceipt := filepath.Join(a.FixtureDir, p1FixtureReceiptName)
+	if p1FileSHA(t, fixtureReceipt) != a.FixturePreparationSHA256 {
+		t.Fatal("worker fixture preparation receipt SHA-256 differs from admission")
+	}
+	var prepared p1FixturePreparation
+	p1ReadJSON(t, fixtureReceipt, &prepared)
+	if err := prepared.validate(a, time.Now()); err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithDeadline(t.Context(), a.Deadline.Add(-15*time.Minute))
 	defer cancel()
 	if err := os.Mkdir(a.Output, 0700); err != nil {
@@ -225,7 +237,7 @@ func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
 			t.Fatal("P1 pilot requires all five cases, in order, without skips or failed prerequisites")
 		}
 	}
-	for _, name := range []string{"base", "append", "upsert"} {
+	for _, name := range p1FixtureOrder {
 		p1CSVIntegrity(t, a.Output, name, exports[name])
 	}
 	requireMetricsSince = startedCases
@@ -233,26 +245,9 @@ func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
 
 func prepareP1CSV(t *testing.T, ctx context.Context, fixtureDir, output string) (map[string]string, map[string]rangedigest.Manifest, map[string]portable.Manifest) {
 	t.Helper()
-	paths := map[string]string{}
-	expected := map[string]rangedigest.Manifest{}
+	paths, expected, _ := verifiedP1Fixtures(t, ctx, fixtureDir)
 	exports := map[string]portable.Manifest{}
-	for _, name := range []string{"base", "append", "upsert"} {
-		paths[name] = filepath.Join(fixtureDir, name, "manifest.json")
-		input, err := fixture.Verify(paths[name])
-		if err != nil {
-			t.Fatal(err)
-		}
-		if input.Plan.Phase != fixture.PhaseP1 || input.Seed != 20260829 || input.Shards != 64 || input.RootSHA256 != p1Expected[name].raw {
-			t.Fatal("fixture is not the pinned P1 input")
-		}
-		digest, err := rangedigest.ScenarioManifest(ctx, p1Scenario(paths, name), 100_000, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if digest.RootSHA256 != p1Expected[name].canonical {
-			t.Fatal("independent P1 fixture canonical root differs")
-		}
-		expected[name] = digest
+	for _, name := range p1FixtureOrder {
 		export, err := portable.Export(ctx, paths[name], filepath.Join(output, "csv-"+name))
 		if err != nil {
 			t.Fatal(err)
@@ -716,7 +711,7 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 		RunID: "rp1test01", Deadline: now.Add(7 * time.Hour), Output: "/evidence/new", FixtureDir: "/fixture",
 		Host: "afhs-20261118-pg17.rw.scope.japaneast.horizondb.azure.com", Commit: hash[:40],
 		IdentityClientID: "00000000-0000-0000-0000-000000000001", ExecutableSHA256: hash,
-		GuardSettingsSHA256: hash, RenewalEvidenceSHA256: hash,
+		GuardSettingsSHA256: hash, RenewalEvidenceSHA256: hash, FixturePreparationSHA256: hash,
 		SnapshotID:    "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-agefreighter-horizon-tiny-20261118/providers/Microsoft.Compute/snapshots/afhs-20261118-0123456789abcdef",
 		WriterReadyAt: now.Add(-15 * time.Minute),
 	}
@@ -734,6 +729,7 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 		{"unbounded deadline", func(a *p1Admission) { a.Deadline = now.Add(9 * time.Hour) }},
 		{"mutable fixture path", func(a *p1Admission) { a.Output = "/fixture/output" }},
 		{"no renewal proof", func(a *p1Admission) { a.RenewalEvidenceSHA256 = "" }},
+		{"no fixture receipt", func(a *p1Admission) { a.FixturePreparationSHA256 = "" }},
 		{"no measured snapshot", func(a *p1Admission) { a.SnapshotID = strings.Replace(a.SnapshotID, "-tiny-", "-scale-", 1) }},
 		{"stale writer readiness", func(a *p1Admission) { a.WriterReadyAt = now.Add(-2 * time.Hour) }},
 	} {
