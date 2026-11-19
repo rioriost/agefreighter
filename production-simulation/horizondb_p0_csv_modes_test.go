@@ -215,11 +215,11 @@ func horizonP0ModeIntegration(t *testing.T, source string) {
 						if err := horizonP0Neo4jQueries(&job, exports[dataset], source, run, dataset); err != nil {
 							t.Fatal(err)
 						}
-						if isCosmos {
-							if err := horizonP0CosmosJob(&job, source, os.Getenv("AGEFREIGHTER_HORIZON_COSMOS_SOURCE_RUN_ID"),
-								dataset, exports[dataset].Plan.VertexTotal+exports[dataset].Plan.EdgeTotal); err != nil {
-								t.Fatal(err)
-							}
+					}
+					if isCosmos {
+						if err := horizonP0CosmosJob(&job, source, os.Getenv("AGEFREIGHTER_HORIZON_COSMOS_SOURCE_RUN_ID"),
+							dataset, exports[dataset].Plan.VertexTotal+exports[dataset].Plan.EdgeTotal); err != nil {
+							t.Fatal(err)
 						}
 					}
 					job.Metadata.Name = fmt.Sprintf("horizon-p0-%s-pg%d-%s-%s", source, major, name, run)
