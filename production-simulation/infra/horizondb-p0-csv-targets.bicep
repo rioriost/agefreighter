@@ -6,7 +6,7 @@ param leaseId string
 param configureAGE bool = false
 param administratorObjectId string
 
-@allowed(['csv', 'postgresql', 'neo4j'])
+@allowed(['csv', 'postgresql', 'neo4j', 'cosmos'])
 param source string = 'csv'
 
 var versions = ['17', '18']

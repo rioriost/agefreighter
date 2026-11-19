@@ -526,6 +526,29 @@ other shared sessions. Inspect only the approved subscription and confirm the
 current account before writes. Do not copy tokens or passwords into logs,
 jobs, plans or Git.
 
+### Cosmos P0 continuation preparation
+
+The explicit `AGEFREIGHTER_REQUIRE_HORIZON_P0_COSMOS_SOURCE=1` gate prepares
+only new run-scoped containers in the retained private, managed-identity-only
+Cosmos fixture account; tiny containers are never overwritten. The existing
+`cosmosfixtureload` streaming tool is reused with mandatory empty-container
+checks, sixteen workers, a thirty-minute deadline and a ten-million-observed-RU
+ceiling per dataset. Every consumed document-file hash and actual table/total
+count must match the immutable manifest. RU is checked on responses, so
+bounded in-flight requests and billing lag remain covered by the cost reserve.
+The existing tool's default unbounded P1 mode is unchanged.
+
+Written user job configurations are reloaded before the actual production
+iterator scans all three datasets. Gremlin retains its serializable discovery
+configuration: internal generated mappings with `yaml:"-"` fields cannot be
+copied into a job file. Its partition-aware identities are checked with the
+existing independent Gremlin scenario oracle, not the ordinary-source hash.
+Actual target cases use the separate
+`AGEFREIGHTER_REQUIRE_HORIZON_P0_COSMOS_MODES=1` gate and reuse only source
+fixtures verified for that exact candidate, without reseeding them.
+These adapters and source-only checks are not additional HorizonDB passes;
+coverage changes only after actual target verification.
+
 ## Coverage and gates
 
 Six source configurations each target both HorizonDB PostgreSQL 17/AGE 1.8

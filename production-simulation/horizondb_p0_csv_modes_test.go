@@ -52,10 +52,22 @@ func TestHorizonDBP0Neo4jModeIntegration(t *testing.T) {
 	horizonP0ModeIntegration(t, source)
 }
 
+func TestHorizonDBP0CosmosModeIntegration(t *testing.T) {
+	if os.Getenv("AGEFREIGHTER_REQUIRE_HORIZON_P0_COSMOS_MODES") != "1" {
+		t.Skip("explicit Cosmos P0 source preflight and independent lease required")
+	}
+	source := os.Getenv("AGEFREIGHTER_HORIZON_COSMOS_SOURCE")
+	if source != "cosmos" && source != "gremlin" {
+		t.Fatal("explicit NoSQL or Gremlin-document source required")
+	}
+	horizonP0ModeIntegration(t, source)
+}
+
 func horizonP0ModeIntegration(t *testing.T, source string) {
 	t.Helper()
 	isNeo4j := source == "neo4j44" || source == "neo4j526"
-	if source != "csv" && source != "postgresql" && !isNeo4j {
+	isCosmos := source == "cosmos" || source == "gremlin"
+	if source != "csv" && source != "postgresql" && !isNeo4j && !isCosmos {
 		t.Fatal("source has no qualified P0 fixture adapter")
 	}
 	output := os.Getenv("AGEFREIGHTER_HORIZON_SCALE_OUTPUT")
@@ -83,7 +95,21 @@ func horizonP0ModeIntegration(t *testing.T, source string) {
 	if err := os.Mkdir(output, 0700); err != nil {
 		t.Fatal(err)
 	}
-	paths, exports, directories := horizonP0Fixtures(t, output)
+	var paths rangedigest.Scenario
+	var exports map[string]portable.Manifest
+	var directories map[string]string
+	if isCosmos {
+		paths, exports, directories = horizonP0CosmosFixtures(t, output, source)
+	} else {
+		paths, exports, directories = horizonP0Fixtures(t, output)
+	}
+	if isCosmos {
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Minute)
+		defer cancel()
+		if err := prepareHorizonP0Cosmos(t, ctx, paths, exports, directories, source, output, false); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if source == "postgresql" {
 		ctx, cancel := context.WithTimeout(t.Context(), 15*time.Minute)
 		defer cancel()
@@ -103,7 +129,7 @@ func horizonP0ModeIntegration(t *testing.T, source string) {
 		t.Fatal(err)
 	}
 	majors := []int{17, 18}
-	if source == "neo4j526" {
+	if source == "neo4j526" || source == "gremlin" {
 		majors = []int{18, 17}
 	}
 	for _, major := range majors {
@@ -189,6 +215,12 @@ func horizonP0ModeIntegration(t *testing.T, source string) {
 						if err := horizonP0Neo4jQueries(&job, exports[dataset], source, run, dataset); err != nil {
 							t.Fatal(err)
 						}
+						if isCosmos {
+							if err := horizonP0CosmosJob(&job, source, os.Getenv("AGEFREIGHTER_HORIZON_COSMOS_SOURCE_RUN_ID"),
+								dataset, exports[dataset].Plan.VertexTotal+exports[dataset].Plan.EdgeTotal); err != nil {
+								t.Fatal(err)
+							}
+						}
 					}
 					job.Metadata.Name = fmt.Sprintf("horizon-p0-%s-pg%d-%s-%s", source, major, name, run)
 					job.Target.Graph = fmt.Sprintf("hs_p0_%s_pg%d_%s", source, major, run)
@@ -253,15 +285,19 @@ func horizonP0ModeIntegration(t *testing.T, source string) {
 					if _, err := app.Verify(ctx, path, id); err != nil {
 						t.Fatal(err)
 					}
-					expected, err := rangedigest.ScenarioManifest(ctx, expectedPaths, 100000, false)
+					expected, err := rangedigest.ScenarioManifest(ctx, expectedPaths, 100000, source == "gremlin")
 					if err != nil {
 						t.Fatal(err)
 					}
-					actual, err := rangedigest.ScaleScenarioTargetManifest(ctx, u.String(), expectedPaths, id, 100000, false)
+					actual, err := rangedigest.ScaleScenarioTargetManifest(ctx, u.String(), expectedPaths, id, 100000, source == "gremlin")
 					if err != nil {
 						t.Fatal(err)
 					}
-					comparison, compareErr := rangedigest.Compare(expected, actual)
+					compare := rangedigest.Compare
+					if source == "gremlin" {
+						compare = rangedigest.CompareGremlinTarget
+					}
+					comparison, compareErr := compare(expected, actual)
 					writeTinyJSON(t, filepath.Join(output, job.Metadata.Name+"-verification.json"), map[string]any{
 						"coverage": "P0 " + source + " only; no complete twelve-route phase claim", "mode": name,
 						"candidateCommit": commit, "jobId": id, "startedAtUtc": start, "completedAtUtc": time.Now().UTC(),

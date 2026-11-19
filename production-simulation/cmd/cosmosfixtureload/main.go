@@ -8,21 +8,27 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"hash/fnv"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos"
 )
@@ -41,13 +47,17 @@ type workItem struct {
 const countProjection = "SELECT VALUE 1 FROM c"
 
 type result struct {
-	SchemaVersion int            `json:"schemaVersion"`
-	FinishedAt    string         `json:"finishedAt"`
-	Rows          int64          `json:"rows"`
-	RemoteRows    int64          `json:"remoteRows"`
-	Files         map[string]int `json:"files"`
-	Workers       int            `json:"workers"`
-	ElapsedSecs   float64        `json:"elapsedSeconds"`
+	SchemaVersion int               `json:"schemaVersion"`
+	FinishedAt    string            `json:"finishedAt"`
+	Rows          int64             `json:"rows"`
+	RemoteRows    int64             `json:"remoteRows"`
+	Files         map[string]int    `json:"files"`
+	Hashes        map[string]string `json:"consumedFileSha256"`
+	Workers       int               `json:"workers"`
+	ElapsedSecs   float64           `json:"elapsedSeconds"`
+	RequestCharge float64           `json:"observedRequestCharge,omitempty"`
+	Throttled     int64             `json:"throttledResponses,omitempty"`
+	ChargeLimit   float64           `json:"requestChargeLimit,omitempty"`
 }
 
 func main() {
@@ -66,6 +76,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	input := flags.String("input", "", "directory containing JSONL files")
 	workers := flags.Int("workers", 64, "concurrent upsert workers")
 	requireEmpty := flags.Bool("require-empty", false, "refuse writes unless the entire target container is empty")
+	maxCharge := flags.Float64("max-request-charge", 0, "stop after this observed RU budget; zero leaves the existing unbounded mode")
+	timeout := flags.Duration("timeout", 0, "bound complete preparation, including remote verification")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -74,6 +86,17 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	}
 	if *workers < 1 || *workers > 256 {
 		return errors.New("workers must be between 1 and 256")
+	}
+	if math.IsNaN(*maxCharge) || math.IsInf(*maxCharge, 0) || *maxCharge < 0 || *timeout < 0 {
+		return errors.New("request-charge limit and timeout must be finite and nonnegative")
+	}
+	if *maxCharge > 0 && (*timeout == 0 || !*requireEmpty) {
+		return errors.New("RU-bounded preparation requires a timeout and empty-container preflight")
+	}
+	if *timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, *timeout)
+		defer cancel()
 	}
 
 	files, err := filepath.Glob(filepath.Join(*input, "*.jsonl"))
@@ -89,7 +112,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("create managed identity credential: %w", err)
 	}
-	client, err := azcosmos.NewClient(*endpoint, credential, nil)
+	charges := &chargeBudget{limit: *maxCharge}
+	var options *azcosmos.ClientOptions
+	if *maxCharge > 0 {
+		options = &azcosmos.ClientOptions{ClientOptions: policy.ClientOptions{
+			PerRetryPolicies: []policy.Policy{charges},
+		}}
+	}
+	client, err := azcosmos.NewClient(*endpoint, credential, options)
 	if err != nil {
 		return fmt.Errorf("create Cosmos client: %w", err)
 	}
@@ -139,7 +169,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	}
 
 	fileCounts := make(map[string]int, len(files))
-	readErr := streamFiles(loadCtx, files, items, fileCounts)
+	hashes := make(map[string]string, len(files))
+	readErr := streamFiles(loadCtx, files, items, fileCounts, hashes)
 	close(items)
 	group.Wait()
 	select {
@@ -158,15 +189,70 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if remoteRows != loaded.Load() {
 		return fmt.Errorf("container count mismatch: wrote %d, queried %d", loaded.Load(), remoteRows)
 	}
+	charges.mu.Lock()
+	observed, throttled := charges.total, charges.throttled
+	charges.mu.Unlock()
 	return json.NewEncoder(stdout).Encode(result{
 		SchemaVersion: 1,
 		FinishedAt:    time.Now().UTC().Format(time.RFC3339),
 		Rows:          loaded.Load(),
 		RemoteRows:    remoteRows,
 		Files:         fileCounts,
+		Hashes:        hashes,
 		Workers:       *workers,
 		ElapsedSecs:   time.Since(started).Seconds(),
+		RequestCharge: observed, Throttled: throttled, ChargeLimit: *maxCharge,
 	})
+}
+
+type chargeBudget struct {
+	mu        sync.Mutex
+	limit     float64
+	total     float64
+	throttled int64
+}
+
+func (budget *chargeBudget) charge(response *http.Response, required bool) error {
+	budget.mu.Lock()
+	defer budget.mu.Unlock()
+	if response.StatusCode == http.StatusTooManyRequests {
+		budget.throttled++
+	}
+	raw := response.Header.Get("x-ms-request-charge")
+	if raw == "" {
+		if required && response.StatusCode >= 200 && response.StatusCode < 300 {
+			return errors.New("Cosmos data response omitted request charge")
+		}
+		return nil
+	}
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil || math.IsNaN(value) || math.IsInf(value, 0) || value < 0 {
+		return errors.New("Cosmos response contains an invalid request charge")
+	}
+	budget.total += value
+	if budget.total > budget.limit {
+		return fmt.Errorf("Cosmos observed request charge %.3f exceeds limit %.3f", budget.total, budget.limit)
+	}
+	return nil
+}
+
+func (budget *chargeBudget) Do(request *policy.Request) (*http.Response, error) {
+	budget.mu.Lock()
+	exhausted := budget.total > budget.limit
+	budget.mu.Unlock()
+	if exhausted {
+		return nil, errors.New("Cosmos observed request-charge budget exhausted")
+	}
+	response, err := request.Next()
+	if response != nil {
+		if chargeErr := budget.charge(response, strings.HasPrefix(request.Raw().URL.Path, "/dbs/")); chargeErr != nil {
+			if response.Body != nil {
+				response.Body.Close()
+			}
+			return nil, errors.Join(err, chargeErr)
+		}
+	}
+	return response, err
 }
 
 type itemPager interface {
@@ -247,13 +333,14 @@ func retryDelay(attempt int, key string) time.Duration {
 	return base + jitter
 }
 
-func streamFiles(ctx context.Context, files []string, items chan<- workItem, counts map[string]int) error {
+func streamFiles(ctx context.Context, files []string, items chan<- workItem, counts map[string]int, hashes map[string]string) error {
 	for _, path := range files {
 		file, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf("open %s: %w", filepath.Base(path), err)
 		}
-		reader := bufio.NewReaderSize(file, 1<<20)
+		hash := sha256.New()
+		reader := bufio.NewReaderSize(io.TeeReader(file, hash), 1<<20)
 		for {
 			line, readErr := reader.ReadBytes('\n')
 			line = bytes.TrimSpace(line)
@@ -279,6 +366,7 @@ func streamFiles(ctx context.Context, files []string, items chan<- workItem, cou
 			if readErr != nil {
 				file.Close()
 				if errors.Is(readErr, io.EOF) {
+					hashes[filepath.Base(path)] = hex.EncodeToString(hash.Sum(nil))
 					break
 				}
 				return fmt.Errorf("read %s: %w", filepath.Base(path), readErr)
