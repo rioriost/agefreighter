@@ -5,6 +5,7 @@ package simulation_test
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -168,22 +169,24 @@ func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
 	secret := filepath.Join(p1SecretDir(t), "target.dsn")
 	stopCredentials := startP1Credentials(t, ctx, cancel, a, secret)
 	defer stopCredentials()
-	conn := connectP1(t, ctx, secret)
+	conn := connectP1(t, ctx, secret, a.Host)
 	defer conn.Close(context.Background())
 	var major int
 	var pg, age, database, role, preload string
-	var pending, writable, encrypted, empty bool
+	var pending, writable, empty bool
 	err := conn.QueryRow(ctx, `SELECT current_setting('server_version_num')::integer / 10000,
 		version(), (SELECT extversion FROM pg_extension WHERE extname='age'), current_database(), current_user,
 		setting, pending_restart, NOT pg_is_in_recovery(),
-		(SELECT ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()),
 		to_regnamespace('agefreighter_meta') IS NULL AND NOT EXISTS (SELECT 1 FROM ag_catalog.ag_graph)
 		FROM pg_settings WHERE name='shared_preload_libraries'`).
-		Scan(&major, &pg, &age, &database, &role, &preload, &pending, &writable, &encrypted, &empty)
-	if err != nil || major != 17 || !strings.HasPrefix(age, "1.8.") || database != a.database() ||
-		role != p1Role || pending || !writable || !encrypted || !empty ||
+		Scan(&major, &pg, &age, &database, &role, &preload, &pending, &writable, &empty)
+	if err != nil {
+		p1DatabaseFailure(t, "P1 writer SQL admission", err)
+	}
+	if major != 17 || !strings.HasPrefix(age, "1.8.") || database != a.database() ||
+		role != p1Role || pending || !writable || !empty ||
 		!strings.Contains(","+strings.ReplaceAll(preload, " ", "")+",", ",age,") {
-		t.Fatal("SQL did not prove the fresh verified-TLS PostgreSQL 17/AGE 1.8 writer and dedicated identity")
+		t.Fatal("SQL did not prove the fresh PostgreSQL 17/AGE 1.8 writer and dedicated identity")
 	}
 
 	startedCases := time.Now()
@@ -657,7 +660,7 @@ func startP1Credentials(t *testing.T, ctx context.Context, cancelPilot context.C
 	}
 }
 
-func connectP1(t *testing.T, ctx context.Context, path string) *pgx.Conn {
+func connectP1(t *testing.T, ctx context.Context, path, host string) *pgx.Conn {
 	t.Helper()
 	dsn, err := os.ReadFile(path)
 	if err != nil {
@@ -669,6 +672,16 @@ func connectP1(t *testing.T, ctx context.Context, path string) *pgx.Conn {
 	if err != nil {
 		p1DatabaseFailure(t, "P1 writer connection", err)
 	}
+	// HorizonDB's backend pg_stat_ssl does not describe the client-facing TLS session.
+	wire, ok := conn.PgConn().Conn().(*tls.Conn)
+	if ok {
+		state := wire.ConnectionState()
+		if state.HandshakeComplete && state.ServerName == host && len(state.VerifiedChains) > 0 {
+			return conn
+		}
+	}
+	_ = conn.Close(connectCtx)
+	t.Fatal("require a verified TLS connection to the admitted HorizonDB hostname")
 	return conn
 }
 

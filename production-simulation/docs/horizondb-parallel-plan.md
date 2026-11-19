@@ -853,7 +853,9 @@ or another source. Admit the following operations separately:
    a numeric quota through `az quota`. Confirm only the intended allocation,
    never four speculative writers. Verify authoritative ReadWrite hostname,
    effective PG17/AGE 1.8, the exact approved identity, working guard settings,
-   fresh cost and independent telemetry/stop controls before loading. Run
+   fresh cost and independent telemetry/stop controls before loading. Verify
+   `sslmode=verify-full` on the client connection to that hostname; backend
+   `pg_stat_ssl` does not report the client-facing TLS session. Run
    under an eight-hour maximum lease; require at least 5h45m remaining at
    pilot admission. Seal private evidence with SHA-256 readback, then confirm
    exact scoped retirement. Do not treat retained resources as disposable.
