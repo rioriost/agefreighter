@@ -889,6 +889,28 @@ the production 300-second SQL operation bound. They capture committed progress,
 worker peak RSS and exact SIGKILL/same-ID recovery, and require independent
 SQL canonical parity on every case.
 
+For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
+fresh ARM-verified writer. Before starting any case, require live CPU and
+storage samples from that allocation. The worker's separate system identity
+needs `Microsoft.Insights/metrics/read` scoped to the one leased writer
+cluster; do not grant Azure Monitor rights to the PostgreSQL identity.
+Poll every 30 seconds; [HorizonDB platform metrics][horizon-metrics] use
+one-minute buckets, not 30-second granularity. Capture writer CPU, page and
+WAL I/O rates, commit and WAL-flush latency (microseconds), and storage.
+Allow null I/O buckets during idle, but require observed I/O and latency
+data during the pilot for a pass. Missing or older-than-five-minute CPU or
+storage data, a failed telemetry request, active swap, kernel OOM, loss of a
+fixture/evidence directory, or storage at 80% cancels the run. The writer
+storage threshold is 80% of a 128-GiB **pilot allowance**, not a claim about
+HorizonDB's autoscaling capacity. The loader records cumulative guest CPU
+and Linux block-device counters, and checkpoint-derived rows/bytes per second
+at 15-second intervals; the 15-minute checkpoint stop and independent
+Automation deadline/cost guard still apply. The actual Azure metric series
+and scoped read permission must be verified before running the pilot.
+Read the live cluster metric definitions during the read-only renewal lease
+if available without delaying the renewal. Those operator reads do not
+prove that the separate pilot VM identity can read telemetry.
+
 At the published Japan East rates, writer plus loader compute is
 `$2.235248/hour`, or `$17.88` for eight hours before retirement. Allow about
 `$30` for compute, disks, modeled data/backup, and 90 minutes of cleanup
@@ -901,6 +923,7 @@ cost guard or taking unpriced resource retention as approved. This is not
 a quote, actual spend, or an estimate for the remaining eleven P1 routes.
 
 [mi-token-cache]: https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview-for-developers#guidelines-if-youre-handling-tokens-directly
+[horizon-metrics]: https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/microsoft-horizondb-clusters-metrics
 
 ## Faults, verification and evidence
 

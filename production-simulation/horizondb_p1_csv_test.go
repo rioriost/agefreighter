@@ -65,6 +65,7 @@ type p1Admission struct {
 	GuardSettingsSHA256   string    `json:"guardSettingsSha256"`
 	RenewalEvidenceSHA256 string    `json:"renewalEvidenceSha256"`
 	SnapshotID            string    `json:"lifecycleProbeSnapshotId"`
+	WriterReadyAt         time.Time `json:"writerReadyAtUtc"`
 }
 
 func (a p1Admission) validate(now time.Time, needed time.Duration) error {
@@ -81,6 +82,9 @@ func (a p1Admission) validate(now time.Time, needed time.Duration) error {
 		rel != ".." && !strings.HasPrefix(rel, "../") ||
 		a.Deadline.Sub(now) < needed || a.Deadline.Sub(now) > 8*time.Hour {
 		return errors.New("require separate absolute fixture/evidence paths and sufficient time in an at-most-eight-hour lease")
+	}
+	if a.WriterReadyAt.Before(a.Deadline.Add(-8*time.Hour)) || !a.WriterReadyAt.Before(now) {
+		return errors.New("require a writer readiness timestamp in the current P1 lease")
 	}
 	return nil
 }
@@ -137,6 +141,9 @@ func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeTinyJSON(t, filepath.Join(a.Output, "admission.json"), a)
+	stopTelemetry := startP1Telemetry(t, ctx, cancel, a)
+	var requireMetricsSince time.Time
+	defer func() { stopTelemetry(requireMetricsSince) }()
 	paths, expected, exports := prepareP1CSV(t, ctx, a.FixtureDir, a.Output)
 	secret := filepath.Join(p1SecretDir(t), "target.dsn")
 	stopCredentials := startP1Credentials(t, ctx, cancel, a, secret)
@@ -159,6 +166,7 @@ func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
 		t.Fatal("SQL did not prove the fresh verified-TLS PostgreSQL 17/AGE 1.8 writer and dedicated identity")
 	}
 
+	startedCases := time.Now()
 	var activeGeneration int64
 	for _, c := range p1Cases {
 		executed := false
@@ -220,6 +228,7 @@ func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
 	for _, name := range []string{"base", "append", "upsert"} {
 		p1CSVIntegrity(t, a.Output, name, exports[name])
 	}
+	requireMetricsSince = startedCases
 }
 
 func prepareP1CSV(t *testing.T, ctx context.Context, fixtureDir, output string) (map[string]string, map[string]rangedigest.Manifest, map[string]portable.Manifest) {
@@ -394,6 +403,7 @@ func runP1Process(t *testing.T, ctx context.Context, conn *pgx.Conn, a p1Admissi
 	var fault meta.Job
 	var injectedAt time.Time
 	lastSample, lastProgress := time.Time{}, start
+	sampledAt, sampledRows, sampledBytes := start, previous.CommittedRows, previous.CommittedBytes
 	tableExists := resume
 	for {
 		select {
@@ -449,19 +459,20 @@ func runP1Process(t *testing.T, ctx context.Context, conn *pgx.Conn, a p1Admissi
 				err = conn.QueryRow(queryCtx, `SELECT to_regclass('agefreighter_meta.load_job') IS NOT NULL`).Scan(&tableExists)
 			}
 			if err == nil && tableExists {
-				err = conn.QueryRow(queryCtx, `SELECT status,committed_rows,next_batch_id,resume_token
+				err = conn.QueryRow(queryCtx, `SELECT status,committed_rows,committed_bytes,next_batch_id,resume_token,rejected_rows,source_rejected_rows
 					FROM agefreighter_meta.load_job WHERE job_id=$1::uuid`, id).
-					Scan(&current.Status, &current.CommittedRows, &current.NextBatchID, &current.ResumeToken)
+					Scan(&current.Status, &current.CommittedRows, &current.CommittedBytes, &current.NextBatchID, &current.ResumeToken,
+						&current.RejectedRows, &current.SourceRejectedRows)
 			}
 			stop()
 			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 				p1DatabaseFailure(t, "P1 progress", err)
 			}
 			if current.CommittedRows < previous.CommittedRows || current.NextBatchID < previous.NextBatchID ||
-				current.CommittedRows > c.rows {
+				current.CommittedRows > c.rows || current.CommittedBytes < previous.CommittedBytes {
 				t.Fatal("P1 checkpoint regressed or exceeded the case bounds")
 			}
-			now := time.Now().UTC()
+			now := time.Now()
 			if current.CommittedRows > previous.CommittedRows {
 				lastProgress = now
 			}
@@ -470,13 +481,21 @@ func runP1Process(t *testing.T, ctx context.Context, conn *pgx.Conn, a p1Admissi
 				t.Fatal("P1 committed checkpoint did not advance for fifteen minutes")
 			}
 			if now.Sub(lastSample) >= 15*time.Second {
+				elapsed := now.Sub(sampledAt).Seconds()
 				if err := progress.Encode(map[string]any{
-					"atUtc": now, "jobId": id, "status": current.Status, "committedRows": current.CommittedRows,
-					"nextBatchId": current.NextBatchID, "checkpoint": current.ResumeToken,
+					"atUtc": now.UTC(), "jobId": id, "status": current.Status, "committedRows": current.CommittedRows,
+					"nextBatchId": current.NextBatchID, "checkpoint": current.ResumeToken, "committedBytes": current.CommittedBytes,
+					"recordsPerSecond": float64(current.CommittedRows-sampledRows) / elapsed,
+					"bytesPerSecond":   float64(current.CommittedBytes-sampledBytes) / elapsed,
+					"rejectedRows":     current.RejectedRows, "sourceRejectedRows": current.SourceRejectedRows,
 				}); err != nil {
 					t.Fatal(err)
 				}
 				lastSample = now
+				sampledAt, sampledRows, sampledBytes = now, current.CommittedRows, current.CommittedBytes
+			}
+			if current.RejectedRows != 0 || current.SourceRejectedRows != 0 {
+				t.Fatal("P1 worker reported a rejected record")
 			}
 			if c.recovery && !resume && current.CommittedRows >= c.rows/4 {
 				if current.Status != meta.JobRunning || current.CommittedRows >= c.rows/2 ||
@@ -486,7 +505,7 @@ func runP1Process(t *testing.T, ctx context.Context, conn *pgx.Conn, a p1Admissi
 				if err := child.Process.Kill(); err != nil {
 					t.Fatal(err)
 				}
-				killed, fault, injectedAt = true, current, now
+				killed, fault, injectedAt = true, current, now.UTC()
 			}
 			ticker.Reset(interval)
 		}
@@ -698,7 +717,8 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 		Host: "afhs-20261118-pg17.rw.scope.japaneast.horizondb.azure.com", Commit: hash[:40],
 		IdentityClientID: "00000000-0000-0000-0000-000000000001", ExecutableSHA256: hash,
 		GuardSettingsSHA256: hash, RenewalEvidenceSHA256: hash,
-		SnapshotID: "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-agefreighter-horizon-tiny-20261118/providers/Microsoft.Compute/snapshots/afhs-20261118-0123456789abcdef",
+		SnapshotID:    "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-agefreighter-horizon-tiny-20261118/providers/Microsoft.Compute/snapshots/afhs-20261118-0123456789abcdef",
+		WriterReadyAt: now.Add(-15 * time.Minute),
 	}
 	if err := a.validate(now, p1RunTime+time.Hour); err != nil {
 		t.Fatal(err)
@@ -715,6 +735,7 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 		{"mutable fixture path", func(a *p1Admission) { a.Output = "/fixture/output" }},
 		{"no renewal proof", func(a *p1Admission) { a.RenewalEvidenceSHA256 = "" }},
 		{"no measured snapshot", func(a *p1Admission) { a.SnapshotID = strings.Replace(a.SnapshotID, "-tiny-", "-scale-", 1) }},
+		{"stale writer readiness", func(a *p1Admission) { a.WriterReadyAt = now.Add(-2 * time.Hour) }},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			bad := a
