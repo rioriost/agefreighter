@@ -6,6 +6,8 @@ param location string = 'japaneast'
 param existingVnetName string
 param existingSubnetName string = 'tiny'
 param evidenceWriterPrincipalId string
+@description('Protect the new evidence account against accidental ARM deletion, including deletion of its group.')
+param protectEvidenceAccount bool = false
 
 var tags = {
   application: 'agefreighter'
@@ -14,10 +16,10 @@ var tags = {
   retain: 'evidence'
 }
 
-resource vnet 'Microsoft.Network/virtualNetworks@2026-07-01' existing = {
+resource vnet 'Microsoft.Network/virtualNetworks@2024-07-01' existing = {
   name: existingVnetName
 }
-resource subnet 'Microsoft.Network/virtualNetworks/subnets@2026-07-01' existing = {
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' existing = {
   parent: vnet
   name: existingSubnetName
 }
@@ -72,7 +74,7 @@ resource link 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01'
   location: 'global'
   properties: { registrationEnabled: false, virtualNetwork: { id: vnet.id } }
 }
-resource endpoint 'Microsoft.Network/privateEndpoints@2026-07-01' = {
+resource endpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
   name: '${prefix}-evidence'
   location: location
   tags: tags
@@ -86,10 +88,18 @@ resource endpoint 'Microsoft.Network/privateEndpoints@2026-07-01' = {
     ]
   }
 }
-resource dns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2026-07-01' = {
+resource dns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-07-01' = {
   parent: endpoint
   name: 'default'
   properties: { privateDnsZoneConfigs: [{ name: 'blob', properties: { privateDnsZoneId: zone.id } }] }
+}
+resource evidenceLock 'Microsoft.Authorization/locks@2016-09-01' = if (protectEvidenceAccount) {
+  name: 'retain-qualification-evidence'
+  scope: evidence
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Remove deliberately only after qualification evidence is preserved elsewhere.'
+  }
 }
 resource automation 'Microsoft.Automation/automationAccounts@2024-10-23' = {
   name: '${prefix}-guard'

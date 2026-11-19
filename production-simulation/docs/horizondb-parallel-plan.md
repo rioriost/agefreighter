@@ -21,6 +21,38 @@ evidence.
 
 ## Current execution status
 
+### November 19: support environment rebuilt; replacement ingress pending
+
+The operator confirmed the old-group deletion was intentional and requested
+redeployment. The runner, outbound-only static NAT, private Cosmos source and
+private Blob evidence storage were rebuilt, with fresh managed identities.
+The first base ARM deployment reported failure on two HorizonDB private
+endpoints whose clusters did not exist. Both endpoints were absent; the
+support resources were separately verified. The corrected support-only
+template preview contains no HorizonDB cluster, endpoint or firewall change.
+
+The pinned PostgreSQL and Neo4j sources are ready on the replacement runner.
+The new runner identity queried the empty Cosmos source over Private Link and
+verified a private Blob write by reading back its SHA-256. The new evidence
+account has an ARM `CanNotDelete` lock; the deleted account name was not
+reused. No historical archive or P0 fixture was restored.
+
+The new Automation identity read the actual month-to-date cost and
+independently deleted an empty, lease-tagged disposable probe group. Separate
+GETs confirmed 404 while the replacement OS disk remained intact. All four
+staggered schedules were verified enabled and linked; this probe does not
+requalify deletion of a populated HorizonDB group. At admission, posted MTD
+cost was USD 151.64 and the conservative bound with the full bootstrap window
+and reserves was USD 789.10 against USD 3,750. The replacement runner was
+deallocated at **02:08:01 UTC / 11:08:01 JST**.
+
+The old permitted NAT address was deleted. **No HorizonDB targets or public
+firewall rules are active.** The new static address requires its own explicit
+single-IP approval before target deployment. The next wave needs a fresh
+guard lease, shutdown window and source fixtures bound to the new identities;
+old operation receipts and hard-coded identity bindings must not be reused.
+P0 remains 39 historical passes, one failure and twenty unexecuted cases.
+
 ### November 19: halted after retained infrastructure deletion
 
 The bounded Cosmos continuation at candidate
@@ -53,9 +85,9 @@ that group and both targets returned **404 at 01:37:09 UTC / 10:37:09 JST**.
 This was operator cleanup, **not** a successful independent Automation cleanup.
 The [halt record](horizondb-p0-cosmos-preparation-20261119.json) preserves that
 distinction. The twenty Cosmos migration cases and all P1-P3 cases remain
-unexecuted. **Do not recreate infrastructure, restore resources, reuse the stale
-lease or resume paid qualification until the conflicting deletion is coordinated
-with the operator and fresh evidence/lifecycle gates are established.**
+unexecuted. At the halt, redeployment and resumption were blocked pending
+operator coordination and fresh evidence/lifecycle controls. Historical
+lease and identity bindings remain invalid.
 
 ### Historical execution through November 18
 

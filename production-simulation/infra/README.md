@@ -43,3 +43,18 @@ No deployment wrapper is included before review. This intentionally prevents a
 repository command from turning the candidate sizing into live resources by
 accident. A reviewed deployment entry point can be added after the first
 `what-if` output and budget are approved.
+
+## Rebuilding HorizonDB qualification support
+
+Set `deployTinyTargets=false` on `horizondb-tiny.bicep` to provision only the
+runner, network, shutdown schedule, and private Cosmos source. This mode does
+not create HorizonDB clusters, private endpoints, or firewall rules. A
+replacement NAT allocation does not inherit approval of the previous IP for
+HorizonDB ingress. Verify the new static address before requesting that rule.
+
+Deploy `horizondb-scale-safety.bicep` with the new runner identity and a fresh
+prefix. Use `protectEvidenceAccount=true` to add an ARM deletion lock to the
+new evidence account. Do not reuse the name of a deleted evidence account when
+its recovery may still be needed. Publish a fresh guard lease bound to the
+actual new disk and verify cost access, private evidence read-back, and
+exact-scope cleanup before provisioning paid targets.
