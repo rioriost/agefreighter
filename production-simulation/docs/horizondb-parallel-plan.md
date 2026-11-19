@@ -936,8 +936,14 @@ same canonical root as the clean load. Mode elapsed times including independent
 verification were 329.2s, 330.8s, 270.1s, 275.2s and 334.6s, respectively.
 The private evidence archive passed SHA-256 readback
 (`e8f0401eeabe36cf17b3940be9cb64d0ee44e49a167a1b1289fae25b08ffac51`).
-That establishes 5/60 P1 cases at candidate `6a6f8b3`, not credential renewal
-or throughput on any other route.
+The separate PG18 lane also passed all five on 2026-11-19 (PG18, AGE 1.8.0).
+Its same-ID resume began at 1,400,000 durable records after SIGKILL and reached
+the PG17 canonical root; the other four modes also matched their PG17 roots.
+Mode elapsed times including independent verification were 344.2s, 346.0s,
+286.1s, 288.3s and 346.2s. Its private archive passed SHA-256 readback
+(`aa884de689c7e0bc0b8d96a31627eb0b133b636de8203e42c918a2a695206ab1`).
+Together the CSV lanes account for 10/60 P1 cases at `6a6f8b3` (PG17) and
+`f7cc3da` (PG18), not credential renewal or throughput on any other route.
 
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
