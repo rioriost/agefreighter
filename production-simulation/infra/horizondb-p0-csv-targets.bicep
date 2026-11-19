@@ -4,7 +4,12 @@ targetScope = 'resourceGroup'
 param location string = 'japaneast'
 param leaseId string
 param configureAGE bool = false
-param administratorObjectId string
+
+@description('The single independently verified, operator-approved runner NAT IPv4; no CIDR or range.')
+param approvedRunnerNatIPv4 string
+
+@description('Leave empty on initial deployment; enroll the runner only after the writer and Entra auth are ready.')
+param administratorObjectId string = ''
 
 @allowed(['csv', 'postgresql', 'neo4j', 'cosmos'])
 param source string = 'csv'
@@ -67,8 +72,8 @@ resource pools 'Microsoft.HorizonDb/clusters/pools@2026-10-01-preview' = [for (v
 resource firewall 'Microsoft.HorizonDb/clusters/pools/firewallRules@2026-10-01-preview' = [for (version, i) in versions: {
   name: '${pools[i].name}/approved-runner-nat-only'
   properties: {
-    startIpAddress: '20.46.166.175'
-    endIpAddress: '20.46.166.175'
+    startIpAddress: approvedRunnerNatIPv4
+    endIpAddress: approvedRunnerNatIPv4
   }
 }]
 
@@ -78,7 +83,7 @@ resource authentication 'Microsoft.HorizonDb/clusters/authentications@2026-10-01
   dependsOn: [pools[i]]
 }]
 
-resource administrators 'Microsoft.HorizonDb/clusters/microsoftEntraAdministrators@2026-10-01-preview' = [for (version, i) in versions: {
+resource administrators 'Microsoft.HorizonDb/clusters/microsoftEntraAdministrators@2026-10-01-preview' = [for (version, i) in versions: if (!empty(administratorObjectId)) {
   name: '${clusters[i].name}/${administratorObjectId}'
   properties: {
     principalName: 'afht-20261118-runner'

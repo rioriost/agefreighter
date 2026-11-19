@@ -58,3 +58,9 @@ new evidence account. Do not reuse the name of a deleted evidence account when
 its recovery may still be needed. Publish a fresh guard lease bound to the
 actual new disk and verify cost access, private evidence read-back, and
 exact-scope cleanup before provisioning paid targets.
+
+For `horizondb-p0-csv-targets.bicep`, supply the approved NAT IPv4 without
+the `/32` suffix. The rule uses the same address for both endpoints. Leave
+`administratorObjectId` empty on initial provisioning; only enroll the new
+runner identity after the writer is Ready and Entra authentication is
+persisted as Enabled.

@@ -21,7 +21,7 @@ evidence.
 
 ## Current execution status
 
-### November 19: support environment rebuilt; replacement ingress pending
+### November 19: support environment rebuilt
 
 The operator confirmed the old-group deletion was intentional and requested
 redeployment. The runner, outbound-only static NAT, private Cosmos source and
@@ -46,12 +46,14 @@ cost was USD 151.64 and the conservative bound with the full bootstrap window
 and reserves was USD 789.10 against USD 3,750. The replacement runner was
 deallocated at **02:08:01 UTC / 11:08:01 JST**.
 
-The old permitted NAT address was deleted. **No HorizonDB targets or public
-firewall rules are active.** The new static address requires its own explicit
-single-IP approval before target deployment. The next wave needs a fresh
-guard lease, shutdown window and source fixtures bound to the new identities;
-old operation receipts and hard-coded identity bindings must not be reused.
-P0 remains 39 historical passes, one failure and twenty unexecuted cases.
+The old permitted NAT address was deleted. At support rebuild completion, no
+HorizonDB targets or public firewall rules were active. The operator then
+explicitly approved only the replacement static NAT IPv4 on November 19.
+The target template now takes the approved IPv4 as a mandatory single-address
+parameter. Initial deployment leaves the Entra administrator absent; enroll
+only the new runner identity after the writer is Ready and Entra is Enabled.
+Fresh guard leases, shutdown windows and source fixtures remain distinct from
+the deleted environment. This approval adds no migration cases.
 
 ### November 19: halted after retained infrastructure deletion
 
