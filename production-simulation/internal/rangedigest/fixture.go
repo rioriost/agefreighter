@@ -33,6 +33,9 @@ func fixtureManifest(ctx context.Context, manifestPath string, rangeRows int64, 
 	if err != nil {
 		return Manifest{}, err
 	}
+	if fixtureManifest.Delta != nil {
+		return Manifest{}, errors.New("delta digests require their base scenario")
+	}
 	builder, err := newRangeBuilder(rangeRows)
 	if err != nil {
 		return Manifest{}, err
@@ -109,6 +112,16 @@ func digestFixtureFiles(
 	convert func([]string) (int64, []byte, error),
 	builder *rangeBuilder,
 ) (int64, error) {
+	return visitFixtureFiles(ctx, root, paths, func(row []string) error {
+		key, canonical, err := convert(row)
+		if err != nil {
+			return err
+		}
+		return builder.add(key, canonical)
+	})
+}
+
+func visitFixtureFiles(ctx context.Context, root string, paths []string, visit func([]string) error) (int64, error) {
 	var rows int64
 	for _, relative := range paths {
 		file, err := os.Open(filepath.Join(root, filepath.FromSlash(relative)))
@@ -129,14 +142,9 @@ func digestFixtureFiles(
 				_ = file.Close()
 				return rows, fmt.Errorf("read %s: %w", relative, readErr)
 			}
-			key, canonical, convertErr := convert(row)
-			if convertErr != nil {
+			if err := visit(row); err != nil {
 				_ = file.Close()
-				return rows, fmt.Errorf("convert %s row %d: %w", relative, rows+1, convertErr)
-			}
-			if err := builder.add(key, canonical); err != nil {
-				_ = file.Close()
-				return rows, err
+				return rows, fmt.Errorf("convert %s row %d: %w", relative, rows+1, err)
 			}
 			rows++
 		}
@@ -296,5 +304,5 @@ func fixtureExternalID(spec fixturemodel.VertexSpec, key int64) (string, error) 
 	if local < 0 || local >= spec.Count {
 		return "", fmt.Errorf("endpoint key %d is outside %s", key, spec.Label)
 	}
-	return strings.ToLower(spec.Label) + "-" + fmt.Sprintf("%012d", local+1), nil
+	return strings.ToLower(spec.Label) + "-" + fmt.Sprintf("%012d", spec.IDOffset+local+1), nil
 }

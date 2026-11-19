@@ -19,6 +19,9 @@ param imageVersion string
 @description('UTC daily emergency shutdown time, HHmm.')
 param shutdownTime string
 
+@description('Disable to rebuild the runner and private Cosmos source before admitting any paid HorizonDB targets.')
+param deployTinyTargets bool = true
+
 @description('Enable only on a second deployment after pools finish initial creation.')
 param configureAGE bool = false
 
@@ -32,6 +35,7 @@ var versions = [
   '17'
   '18'
 ]
+var clusterNames = [for version in versions: '${prefix}-pg${version}']
 var tags = {
   application: 'agefreighter'
   purpose: 'horizondb-qualification'
@@ -39,8 +43,10 @@ var tags = {
   run: prefix
 }
 var cosmosName = '${replace(prefix, '-', '')}${uniqueString(resourceGroup().id)}'
-var dnsNames = [
+var dnsNames = deployTinyTargets ? [
   'privatelink.horizondb.azure.com'
+  'privatelink.documents.azure.com'
+] : [
   'privatelink.documents.azure.com'
 ]
 
@@ -203,8 +209,8 @@ resource shutdown 'Microsoft.DevTestLab/schedules@2018-09-15' = {
   }
 }
 
-resource clusters 'Microsoft.HorizonDb/clusters@2026-10-01-preview' = [for version in versions: {
-  name: '${prefix}-pg${version}'
+resource clusters 'Microsoft.HorizonDb/clusters@2026-10-01-preview' = [for (version, i) in versions: if (deployTinyTargets) {
+  name: clusterNames[i]
   location: location
   tags: tags
   properties: {
@@ -217,7 +223,7 @@ resource clusters 'Microsoft.HorizonDb/clusters@2026-10-01-preview' = [for versi
   }
 }]
 
-resource ageParameters 'Microsoft.HorizonDb/parameterGroups@2026-10-01-preview' = [for version in versions: {
+resource ageParameters 'Microsoft.HorizonDb/parameterGroups@2026-10-01-preview' = [for version in versions: if (deployTinyTargets) {
   name: '${prefix}-pg${version}-age'
   location: location
   tags: tags
@@ -231,7 +237,7 @@ resource ageParameters 'Microsoft.HorizonDb/parameterGroups@2026-10-01-preview' 
   }
 }]
 
-resource pools 'Microsoft.HorizonDb/clusters/pools@2026-10-01-preview' = [for (version, i) in versions: {
+resource pools 'Microsoft.HorizonDb/clusters/pools@2026-10-01-preview' = [for (version, i) in versions: if (deployTinyTargets) {
   name: '${clusters[i].name}/writer'
   properties: {
     computeModel: {
@@ -251,13 +257,13 @@ resource pools 'Microsoft.HorizonDb/clusters/pools@2026-10-01-preview' = [for (v
   }
 }]
 
-resource authentications 'Microsoft.HorizonDb/clusters/authentications@2026-10-01-preview' = [for (version, i) in versions: {
+resource authentications 'Microsoft.HorizonDb/clusters/authentications@2026-10-01-preview' = [for (version, i) in versions: if (deployTinyTargets) {
   name: '${clusters[i].name}/microsoftEntra'
   properties: { state: 'Enabled' }
   dependsOn: [pools[i]]
 }]
 
-resource horizonFirewallRules 'Microsoft.HorizonDb/clusters/pools/firewallRules@2026-10-01-preview' = [for (version, i) in versions: if (allowTinyNATFallback) {
+resource horizonFirewallRules 'Microsoft.HorizonDb/clusters/pools/firewallRules@2026-10-01-preview' = [for (version, i) in versions: if (deployTinyTargets && allowTinyNATFallback) {
   name: '${pools[i].name}/tiny-runner-nat-only'
   properties: {
     startIpAddress: outboundIP.properties.ipAddress
@@ -265,7 +271,7 @@ resource horizonFirewallRules 'Microsoft.HorizonDb/clusters/pools/firewallRules@
   }
 }]
 
-resource administrators 'Microsoft.HorizonDb/clusters/microsoftEntraAdministrators@2026-10-01-preview' = [for (version, i) in versions: if (!empty(administratorObjectId)) {
+resource administrators 'Microsoft.HorizonDb/clusters/microsoftEntraAdministrators@2026-10-01-preview' = [for (version, i) in versions: if (deployTinyTargets && !empty(administratorObjectId)) {
   name: '${clusters[i].name}/${administratorObjectId}'
   properties: {
     principalName: runner.name
@@ -275,7 +281,7 @@ resource administrators 'Microsoft.HorizonDb/clusters/microsoftEntraAdministrato
   dependsOn: [authentications[i]]
 }]
 
-resource deadlineRoles 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for (version, i) in versions: {
+resource deadlineRoles 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for (version, i) in versions: if (deployTinyTargets) {
   scope: clusters[i]
   name: guid(clusters[i].id, runner.id, 'tiny-compute-deadline')
   properties: {
@@ -350,7 +356,7 @@ resource links 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01
   dependsOn: [zones[i]]
 }]
 
-resource horizonEndpoints 'Microsoft.Network/privateEndpoints@2024-07-01' = [for (version, i) in versions: if (!allowTinyNATFallback) {
+resource horizonEndpoints 'Microsoft.Network/privateEndpoints@2024-07-01' = [for (version, i) in versions: if (deployTinyTargets && !allowTinyNATFallback) {
   name: '${prefix}-pg${version}-pe'
   location: location
   tags: tags
@@ -369,7 +375,7 @@ resource horizonEndpoints 'Microsoft.Network/privateEndpoints@2024-07-01' = [for
   dependsOn: [pools[i]]
 }]
 
-resource horizonDNS 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-07-01' = [for (version, i) in versions: if (!allowTinyNATFallback) {
+resource horizonDNS 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-07-01' = [for (version, i) in versions: if (deployTinyTargets && !allowTinyNATFallback) {
   name: '${horizonEndpoints[i].name}/horizon'
   properties: {
     privateDnsZoneConfigs: [
@@ -406,7 +412,7 @@ resource cosmosDNS 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024
     privateDnsZoneConfigs: [
       {
         name: 'cosmos'
-        properties: { privateDnsZoneId: zones[1].id }
+        properties: {         privateDnsZoneId: zones[deployTinyTargets ? 1 : 0].id }
       }
     ]
   }
@@ -414,5 +420,5 @@ resource cosmosDNS 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024
 
 output runnerName string = runner.name
 output runnerPrincipalId string = runner.identity.principalId
-output clusterNames array = [for (version, i) in versions: clusters[i].name]
+output clusterNames array = deployTinyTargets ? clusterNames : []
 output cosmosEndpointURL string = cosmos.outputs.endpoint

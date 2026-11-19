@@ -1,8 +1,13 @@
 # HorizonDB qualification and parallel execution plan
 
-Prepared 2026-11-18. **Plan only for P0-P3; no large run is authorized.**
-The user approved tiny migrations and their charges, with publication of
-2.4.2 conditional on successful actual HorizonDB tiny qualification.
+Prepared 2026-11-18. **P0 passed all 60 cases across all 12 routes.
+P1–P3 have not run; their technical and cost promotion gates remain mandatory.**
+After successful tiny qualification and publication of 2.4.2, the user
+approved all four larger phases on 2026-11-18. Existing tiny HorizonDB clusters
+may be reused, or deleted if replacing them with new clusters is preferable.
+The user subsequently approved the exact fixed-NAT fallback and the bounded
+cleanup scope below. Neither approval waives correctness, cost or lifecycle
+gates.
 
 Read with the existing [test plan](test-plan.md),
 [acceptance criteria](acceptance.md) and [dataset contract](dataset.md).
@@ -11,6 +16,145 @@ is documented here; the historical Flexible Server result is not HorizonDB
 evidence.
 
 ## Current execution status
+
+### November 19: all P0 cases passed
+
+The [redacted requalification evidence](horizondb-p0-requalification-20261119.json)
+records 25 fresh passes on `32f944c` and 35 carried-forward passes with unchanged
+production code and dependencies. This covers all six source configurations,
+both PostgreSQL 17.11 and 18.6 with AGE 1.8.0, and all five P0 modes.
+
+Both Cosmos layouts passed all five modes on both targets. NoSQL matched the
+ordinary-source roots; Gremlin backing documents matched their independent
+partition-aware oracle on both majors. All four Cosmos recovery workers were
+actually SIGKILLed and resumed from their durable checkpoint with the same job ID.
+
+The Neo4j 5.26 PG17 recovery-only selection first failed on an uninitialized
+metadata table in the fresh database. Rerunning the five cases in the original
+order passed on the same candidate: the worker was SIGKILLed at 120,000
+committed rows and the same job committed the remaining 338,000. The original
+300-second resolver bound stayed in place. The earlier resolver timeout did
+not recur and its cause remains unproven. The failed isolated attempt and
+all three successful suites were archived with private SHA-256 read-back.
+
+The first cleanup job issued the exact scoped DELETE but timed out waiting
+for the group to disappear. A scheduled guard job completed the same-lease
+cleanup; separate group and both target GETs returned 404 at **07:03:04 UTC /
+16:03:04 JST**. The runner was deallocated and private source, evidence
+storage and the retained disk were preserved.
+
+This closes the P0 correctness gate, not the P1 readiness gates for isolated
+capacity, credential renewal/reconnection, evidence snapshots, or the cost
+and RU admission controls.
+
+### November 19: rebuilt Cosmos wave added eight P0 passes
+
+The [redacted evidence](horizondb-p0-cosmos-modes-20261119.json) records eight
+passes at candidate `2e9d8a825d18efe804c0f19d7d9d4fbf79688c9d`: create, replace,
+append and upsert for NoSQL to PostgreSQL 17.11, and for Gremlin backing
+documents to PostgreSQL 18.6. Both targets ran AGE 1.8.0. All cases passed their
+independent canonical comparison. NoSQL also matched the corresponding CSV
+roots. The Gremlin oracle is partition-aware; cross-major parity is untested.
+
+Both resume children rejected their persisted jobs at zero committed rows:
+the worker recognized CSV, PostgreSQL and Neo4j but had no `SourceCosmos`
+branch. Neither failure reached SIGKILL or same-job recovery. The suite
+stopped at that prerequisite, so NoSQL to PG18 and Gremlin to PG17 are
+unexecuted. The worker now accepts only the admitted private Cosmos endpoint
+and exact base container for either layout, while keeping the explicit
+execution gate. At the close of this earlier wave, the corrected candidate
+had not yet been requalified and the Neo4j 5.26 PG17 route remained incomplete.
+
+The paired eight-vCore writers were admitted under a fresh guard lease. The
+initial create-only deployment deferred managed-identity enrollment until AGE
+association and Enabled Entra authentication were verified. An Automation
+link ID returned 404 after publication; the authoritative list still showed all
+four enabled links, and a real scheduled job used the current lease. No extra
+links were created. Both partial archives were privately read back by SHA-256
+before the lease closed. Guard job `b86058ae-0f80-4b99-9581-7b19655619cf`
+completed the disposable group deletion. Separate final checks verified 404
+for the group and both targets, retained the private source and evidence,
+and confirmed the runner was deallocated at **03:54:40 UTC / 12:54:40 JST**.
+
+### November 19: support environment rebuilt
+
+The operator confirmed the old-group deletion was intentional and requested
+redeployment. The runner, outbound-only static NAT, private Cosmos source and
+private Blob evidence storage were rebuilt, with fresh managed identities.
+The first base ARM deployment reported failure on two HorizonDB private
+endpoints whose clusters did not exist. Both endpoints were absent; the
+support resources were separately verified. The corrected support-only
+template preview contains no HorizonDB cluster, endpoint or firewall change.
+
+The pinned PostgreSQL and Neo4j sources are ready on the replacement runner.
+The new runner identity queried the empty Cosmos source over Private Link and
+verified a private Blob write by reading back its SHA-256. The new evidence
+account has an ARM `CanNotDelete` lock; the deleted account name was not
+reused. No historical archive or P0 fixture was restored.
+
+The new Automation identity read the actual month-to-date cost and
+independently deleted an empty, lease-tagged disposable probe group. Separate
+GETs confirmed 404 while the replacement OS disk remained intact. All four
+staggered schedules were verified enabled and linked; this probe does not
+requalify deletion of a populated HorizonDB group. At admission, posted MTD
+cost was USD 151.64 and the conservative bound with the full bootstrap window
+and reserves was USD 789.10 against USD 3,750. The replacement runner was
+deallocated at **02:08:01 UTC / 11:08:01 JST**.
+
+The old permitted NAT address was deleted. At support rebuild completion, no
+HorizonDB targets or public firewall rules were active. The operator then
+explicitly approved only the replacement static NAT IPv4 on November 19.
+The target template now takes the approved IPv4 as a mandatory single-address
+parameter. Initial deployment leaves the Entra administrator absent; enroll
+only the new runner identity after the writer is Ready and Entra is Enabled.
+Fresh guard leases, shutdown windows and source fixtures remain distinct from
+the deleted environment. This approval adds no migration cases.
+
+Both replacement Cosmos layouts passed the source-only preflight at the same
+native candidate and binary SHA-256 as the previous attempt. Fresh NoSQL and
+Gremlin container scopes each held exactly 458,000 base records and 4,580 in
+each delta. The preflights verified the serialized production iterators and
+all three isolated SQL contracts. Observed base seed charges were 4.851 million
+RU for NoSQL and 6.041 million RU for Gremlin. These are preparation results,
+not HorizonDB migration passes or P1–P3 throughput estimates.
+
+### November 19: halted after retained infrastructure deletion
+
+The bounded Cosmos continuation at candidate
+`2e9d8a825d18efe804c0f19d7d9d4fbf79688c9d` passed both actual source-only
+preflights: 458,000 base records and 4,580 records in each immutable delta,
+consumed-file hashes, written-configuration round trips and complete production
+iterator counts. All three isolated SQL verification contracts and exact-candidate
+CI passed. These checks add **zero HorizonDB migration cases**.
+
+The two eight-vCore targets passed the twelve-Create-only what-if and were
+provisioned under a fresh independently verified lease. Initial PG17 managed
+identity administrator creation failed with `InvalidGrantOperation`; no
+migration was started. During diagnosis, the excluded old resource group
+`rg-agefreighter-horizon-tiny-20261118` was independently observed **Deleting**
+at **01:34:22 UTC / 10:34:22 JST**. Its VM, protected OS disk, evidence Storage
+and Automation account returned 404; Cosmos was also Deleting. Activity Log
+recorded a separate Azure Portal-client deletion correlation. This qualification
+execution did not request deletion of that old group or those excluded resources.
+No administrator reconciliation write followed the missing-guard check.
+
+The original raw-evidence destination is now unavailable; historical upload
+and read-back receipts below do not prove current recoverability. Recovery has
+not been attempted. The source-only summary and control-plane diagnostics
+survive locally, but the removed worker's full preparation artifacts cannot
+currently be retrieved.
+
+Fail-closed operator cleanup targeted **only** the previously approved new
+group, `rg-agefreighter-horizon-scale-20261118`. Separate final GETs confirmed
+that group and both targets returned **404 at 01:37:09 UTC / 10:37:09 JST**.
+This was operator cleanup, **not** a successful independent Automation cleanup.
+The [halt record](horizondb-p0-cosmos-preparation-20261119.json) preserves that
+distinction. The twenty Cosmos migration cases and all P1-P3 cases remain
+unexecuted. At the halt, redeployment and resumption were blocked pending
+operator coordination and fresh evidence/lifecycle controls. Historical
+lease and identity bindings remain invalid.
+
+### Historical execution through November 18
 
 The initial Azure CLI discovery failed with `AADSTS135010`. After the user
 reauthenticated on 2026-11-18, the intended subscription was accessible.
@@ -36,8 +180,9 @@ mode/type/recovery scenarios subsequently passed without skips. The
 versions and canonical roots; raw failed and successful attempts were retained.
 Public HorizonDB access was disabled after qualification. These tiny results
 do not validate the larger configurations below, which remain
-**conditional cost scenarios, not validated deployment recommendations**;
-their complete SKU restrictions and remaining monthly budget are unverified.
+**conditional cost scenarios, not validated deployment recommendations**.
+The subsequent scale preflight below records SKU/quota checks; actual
+four-lane allocation and the larger-run forecast remain unverified.
 The protected 2.4.2 release gates subsequently passed. After the live Cosmos
 gate completed, the one-job Azure runner was removed and its VM was
 deallocated, retaining its disks and qualification evidence.
@@ -47,16 +192,497 @@ the AGE library already preloaded and `pending_restart=false`. However,
 pool restart and the actual post-qualification stop requests returned HTTP 501
 `PowerOperationNotEnabled`, explicitly stating that start, stop and restart are
 unavailable for these clusters.
-The emergency timer therefore **cannot cap HorizonDB charges on these
-clusters**. Their four total vCores continue at approximately $0.825624/hour,
-plus storage/networking, until supported lifecycle control or explicitly
-approved cleanup is available. The six-hour figure below is not an enforced
-upper bound. Do not start any larger phase without a verified lifecycle path.
+The original emergency timer therefore **could not cap HorizonDB charges on
+these clusters**. Immediately after tiny qualification, their four total
+vCores cost approximately $0.825624/hour plus storage/networking. The subsequent
+scale preparation below verified independent deletion and resized both writers
+to eight vCores; their combined compute during P0 cost approximately
+$3.302496/hour. Both clusters were subsequently deleted after evidence
+preservation, as recorded below. Unsupported stop operations and the original
+six-hour figure are not enforced upper bounds.
 
-Restore the intended Azure CLI tenant/subscription session without logging out
-other shared sessions. Then inspect only the approved subscription and confirm
-the current account before any write. Do not copy tokens or passwords into
-logs, jobs, plans or Git.
+### Approved scale preflight
+
+The authenticated subscription's month-to-date cost query now succeeds; its
+actual cost response is retained privately rather than published here.
+Japan East advertises the required 8-vCore/64-GiB Intel generation-1
+provisioned HorizonDB profile. The D8ds v5, E8bds v5 and E16bds v5 VM SKUs have
+no subscription/zone restrictions. Regional VM quota is 101 vCPUs with 8 in
+use, and the loader/source family quotas are 100 each. The largest proposed
+group plus the retained tiny VM would use 88/101 regional vCPUs, above the 80%
+advisory threshold but below the limit. These checks do not prove HorizonDB
+allocation capacity, Cosmos throughput capacity or the larger-run forecast.
+
+Private Link remains blocked by the live provider. Both a manual-approval
+private endpoint through Azure CLI and an explicit request using the latest
+advertised Network API, `2026-07-01`, fail with `ApiVersionMismatch`: the
+network provider calls HorizonDB with `2026-01-20-preview`, incompatible with
+the current clusters. The original automatic-approval attempt also failed.
+The failed probes created no private endpoint resource. At that preflight,
+both existing HorizonDB clusters were `Ready` with public access `Disabled`;
+no replacement or larger migration had been started. The subsequent admitted
+P0 cases used the approved fixed-NAT fallback, as recorded below.
+
+An 8-vCore profile is a candidate for reusing the existing targets. There is
+no verified evidence that replacing them would resolve the Private Link
+incompatibility. Before proceeding, either restore working Private Link or
+use the approved fixed-NAT alternative. On 2026-11-18 the user explicitly
+approved extending the sole existing static NAT IPv4, verified-TLS,
+managed-identity fallback to all four phases. No additional public IP,
+all-Azure rule, public VM IP or public Cosmos endpoint is approved.
+
+The same approval authorizes deletion, after evidence preservation, at
+completion, budget limit or deadline of the new dedicated scale resource
+group and the two reused tiny HorizonDB clusters. The existing tiny resource
+group itself, its Cosmos account, VM, disks and retained evidence are excluded.
+An independent guard must be installed and its actual lifecycle path verified
+before admitting paid scale workers; unsupported stop operations cannot
+enforce those limits.
+
+The retained safety deployment now provides private, keyless Blob evidence
+storage and an independent managed-identity Azure Automation guard. Actual
+VM-to-Blob uploads and SHA-256 read-backs passed, including the independent SQL
+contract log. Manual and scheduled cloud guard jobs completed with actual
+month-to-date cost access. Four hourly schedules, staggered by fifteen minutes,
+run independently of the loaders. Cleanup checks exact resource IDs and
+matching execution-lease tags, rejecting resources owned by another lease.
+The old resource group, Cosmos account, VM and evidence disks remain excluded
+from deletion. Actual disposable-worker evidence-snapshot preservation is
+still a gate before deploying disposable workers.
+
+An isolated, private PG17 capacity probe reached `Ready` with one eight-vCore
+Intel generation-1 provisioned writer. This proves one actual allocation, not
+four-lane capacity, a PG18 allocation or a migration. The independent
+deadline-driven deletion also passed: cloud job
+`3eeddfe3-2f85-473a-acc7-8435ea6a4d7a` completed on 2026-11-18 at 06:01 UTC,
+with final 404s independently confirmed for both the disposable group and
+its HorizonDB cluster. Group cleanup took approximately nineteen minutes;
+do not use an operator's shorter polling timeout as evidence of cloud failure.
+
+The preparation exposed HTTP 429 responses from Cost Management. The guard
+now honors its service-specific retry headers as well as `Retry-After`, rejects
+delays beyond its bounded retry window instead of retrying early, and treats
+transport failures as unavailable monitoring. Deadline cleanup does not wait
+for an unnecessary cost query. A live cloud job exercised the corrected
+backoff and recovered actual cost access. Monitoring failure still blocks new
+admissions; stale or unavailable cost data is not replaced with zero.
+
+Long-running authentication is another preparation gate. Released 2.4.2
+captures its target password when opening the connection pool. A short-lived
+Entra token therefore cannot simply be embedded in a DSN for a many-hour
+load. The scale branch adds password refresh from an atomically replaced
+target connection file before each new pooled connection, retaining the
+original connection identity and TLS settings. This is unreleased code, not
+an additional claim about the published 2.4.2 artifacts. Record the exact
+candidate commit and verify actual reconnection/token renewal before
+promotion.
+
+Candidate `8546bf3754884508ab3fa439bb37b86b67b21289` also adds a bounded-client-memory
+SQL canonical verifier for P0-P3 base fixtures. Its bounded Gremlin, streaming
+Gremlin and streaming ordinary-identity SQL contracts passed against isolated
+PostgreSQL databases without changing the original tiny fixtures. SQL-contract
+evidence is not a HorizonDB migration result. Subsequent scenario preparation
+now adds separately pinned append/upsert fixtures and a streaming full-graph
+oracle, without changing the qualified base fixture hashes.
+
+The original opt-in P0 harness covered **only CSV clean-create into PG17 and
+PG18**, as recorded below. The subsequent explicitly gated CSV sequence
+actually passed create, replace, one-percent append/upsert and
+process-kill/resume on both majors. These ten unique cases complete the two
+CSV P0 routes, not all twelve routes or any complete phase.
+Full-phase execution still requires all-source
+bulk seeders, long-running credential-renewal evidence, isolated-lane control and
+the remaining faults/telemetry. Do not count preparation or the original two
+bounded cases as a complete P0 pass.
+
+The immutable delta generator is limited to the approved P0-P2 incremental
+scenarios. It inherits the base seed/sharding, pins the base SHA-256, refuses
+existing outputs, and includes its mode/provenance in its digest. Append uses
+new key/ID suffixes and all four old/new endpoint combinations. Upsert changes
+one percent of existing records without changing their identities or endpoints.
+The independent oracle streams raw fixture rows, overlays those updates and
+unions appended rows, yielding 101% after append/upsert, never 102%. SQL target
+verification uses the corresponding final per-label counts and actual endpoints.
+Offline P0 parity against the production CSV connector, Gremlin appended
+partition decoding and the unchanged original base hash are checked; none of
+these offline checks is an additional HorizonDB migration pass.
+
+Example reproducible preparation, always using new output paths:
+
+```bash
+go run ./production-simulation/cmd/fixturegen delta --base BASE/manifest.json --kind append --output APPEND
+go run ./production-simulation/cmd/fixturegen delta --base BASE/manifest.json --kind upsert --output UPSERT
+go run ./production-simulation/cmd/rangedigest fixture --manifest BASE/manifest.json \
+  --append-manifest APPEND/manifest.json --upsert-manifest UPSERT/manifest.json --output expected.json
+go run ./production-simulation/cmd/rangedigest target --scale --manifest BASE/manifest.json \
+  --append-manifest APPEND/manifest.json --upsert-manifest UPSERT/manifest.json \
+  --job-id JOB_UUID --dsn-env TARGET_DSN --output actual.json
+```
+
+`horizondb-p0-csv-targets.bicep` supports CSV, PostgreSQL, Neo4j and Cosmos source waves
+and contains only the two disposable targets, their AGE parameter groups,
+Entra configuration and sole approved NAT firewall rule. It never redeploys
+the old VM, disks, VNet or Cosmos account. Create with
+default parameter groups first, then associate AGE groups after writer creation.
+A fresh exact-group lease and successful independent guard/cost admission are
+mandatory before provisioning; this template is not an automatic campaign.
+
+### P0 CSV clean-create results
+
+The [redacted evidence](horizondb-p0-csv-20261118.json) records two successful
+native executions of candidate `8546bf3754884508ab3fa439bb37b86b67b21289`.
+Each migrated 100,000 vertices and 358,000 edges, with 23 committed batches,
+zero failed batches and an independent full canonical comparison including
+actual edge endpoints. Both roots were
+`e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4`.
+
+| Target, effective SQL version | AGE | Approximate load seconds | Load plus verification seconds |
+|---|---|---:|---:|
+| HorizonDB PostgreSQL 17.11 | 1.8.0 | 194.048 | 207.778 |
+| HorizonDB PostgreSQL 18.6 | 1.8.0 | 208.998 | 224.385 |
+
+Load duration is estimated from the load-report file timestamp; it is not an
+instrumented per-batch timing. Each reused target had one eight-vCore writer,
+no reader/HA node, verified TLS, managed-identity authentication and only the
+approved single NAT IPv4 firewall rule. Cases ran sequentially on the retained
+D8ds v5 runner, not four isolated performance lanes. Across the native test
+process, maximum RSS was 180,277,248 bytes (about 172 MiB), with zero swap/OOM
+and maximum disk usage of 11%. Metrics were sampled every fifteen seconds.
+This does not qualify the missing long-duration and four-lane telemetry.
+
+The explicitly allowlisted raw reports, manifests, configurations and telemetry
+were archived to private keyless Blob storage and independently read back with
+matching SHA-256:
+`1a43179f43f47dcfe49d8e67e557e5d3a167b2ea19985adbd18783af7ed1dd9b`.
+The 14,244-byte archive excludes credentials and regenerable bulk CSV data.
+Source files also remain on the excluded original evidence disk.
+
+At this initial checkpoint, these were **two of sixty planned P0 scenario
+cases**, with zero complete source routes or phases. The remaining CSV modes
+were subsequently qualified below. The other larger source configurations and
+all P1-P3 cases remain incomplete; no complete campaign is queued automatically.
+
+The execution lease was initially scheduled to end at 08:00 UTC (17:00 JST). After preserving
+evidence, this bounded calibration window was ended early at 06:51:33 UTC
+because no further cases met the implementation/admission gates. The guard's
+initial deletion requests were accepted, but its job failed while polling
+HorizonDB's subscription-scoped asynchronous-operation URL: the identity's
+exact-cluster permissions did not authorize that unrelated global read.
+No subscription-wide permission was added. Deletion verification was changed
+to poll the owned resource itself with a twenty-minute bound and require a
+final 404. The later retirement below increased only DELETE's observation
+budget to forty-five minutes; other asynchronous operations retain their
+twenty-minute bound and strict completion-status checks.
+
+The original deletes completed asynchronously. Independent reconciliation job
+`4fb88991-d5de-44f7-8f18-87b83f49e5ec` completed and verified both scoped resource
+GETs returned 404. Separate operator HTTP requests confirmed both final 404s at
+06:57:45 UTC. This original reconciliation exercised the already-absent path;
+the later retirement below also exercised live in-progress resource polling.
+The disposable probe group was already verified absent at 06:01 UTC.
+
+The old group, private Cosmos account, VM, disks and evidence remained present
+and excluded from deletion. At this original retirement, the retained VM's
+external shutdown was enabled for 08:15 UTC (17:15 JST); the later bounded
+window below explicitly revised it. Unposted charges and retained
+storage/network/safety resources can still incur costs; deletion is not a
+zero-bill claim. No full P0-P3 campaign was queued. Another paid wave requires a new bounded lease
+and fresh safety and remaining-work cost checks; the remaining harness is not
+implemented automatically by the guard.
+
+### P0 CSV five-scenario qualification
+
+The approved continuation qualified both complete CSV P0 routes using native
+candidate `2d6d1f246de520431cfca3573cf65a50cf35e7e1`, not the released 2.4.2
+binary. PG17.11 and PG18.6 both actually reported AGE 1.8.0 and effective AGE
+preloading without pending restart. All ten selected cases passed without skips,
+rejected rows, failed batches, duplicate records or missing endpoints.
+See [the redacted evidence](horizondb-p0-csv-modes-20261118.json).
+
+| Scenario | PG17 load + verification | PG18 load + verification | Final records |
+|---|---:|---:|---:|
+| Create | 30.810 s | 33.455 s | 458,000 |
+| Replace | 208.979 s | 194.366 s | 458,000 |
+| Append 1% | 24.610 s | 25.247 s | 462,580 |
+| Upsert 1% | 24.004 s | 26.033 s | 462,580 |
+| SIGKILL / same-job resume | 209.932 s | 196.384 s | 458,000 |
+
+Each case compared all eighteen canonical leaves against an independent
+raw-fixture oracle. Corresponding roots match across PostgreSQL majors;
+create/replace/recovery also match the earlier full base root. Append covers
+old-old, old-new, new-old and new-new endpoints. Replace created a new
+generation; append/upsert preserved it and yielded 101%, not 102%.
+Both recovery workers were actually signal-killed after 120,000 committed
+records, then resumed their original UUID and committed the remaining 338,000,
+without duplication. Checkpoint, termination and durable pre-resume receipts
+are retained.
+
+Peak process RSS was 169,684,992 bytes (about 162 MiB), whole-cgroup memory
+562,511,872 bytes (about 536 MiB), swap/OOM zero and disk 12%. Fifteen-second
+checkpoint/RSS/CPU/IO telemetry, a fourteen-minute progress-stall fence,
+per-case fifteen-minute contexts, a ninety-minute suite timeout and a
+two-GiB/no-swap systemd limit were active. Tokens had to outlive each bounded
+case; **this does not qualify long-running token renewal**.
+
+Only the two new eight-vCore targets and their parameter/authentication/firewall
+children were created in the disposable group. The retained VM/network/Cosmos
+resources were not redeployed. Administrator individual GET returned a provider
+HTTP500; the collection API independently verified the exact object, tenant,
+principal type and Succeeded provisioning without weakening the gate.
+The sole approved NAT rule, verified TLS and persisted Enabled Entra state were
+read back. Current-lease independent guard jobs completed with budget/retain
+decisions before execution.
+
+Fresh actual MTD was USD120.6432; the conservative full-window plus
+lag/deletion-reserve envelope was USD441.5271, below USD3750. Current compute
+was estimated at USD3.886496/hour, excluding storage/network/control-plane
+charges. These are admission observations, not the final bill.
+The initial target deadline was 10:30 UTC (19:30 JST); the VM's independent
+shutdown was explicitly moved to 10:45 UTC (19:45 JST).
+All allowlisted nonsecret raw evidence was uploaded privately and independently
+hash-read-back verified: 32,552 bytes, SHA-256
+`0ec9ff25019c489ead283b7849bf42d314b0f40448aa038215fee4e0b56891aa`.
+The lease was closed early at 08:49:17 UTC after evidence preservation.
+Initial guard job `fcc74ab5-142e-4e63-9ba3-9d0f6c36c324` issued the group
+DELETE at 08:50:02 UTC but failed its twenty-minute final-404 observation budget
+at 09:10:12 UTC; Azure deletion continued asynchronously. The failure receipt
+is retained and is not reported as a successful cleanup.
+
+DELETE's owned-resource observation budget was increased to forty-five minutes,
+without broadening permissions or changing other lifecycle operations'
+twenty-minute budget. Independent reconciliation job
+`df26453e-e055-456d-b7ac-bf4bdf5c9dd2` actually observed the still-existing
+group, issued its idempotent DELETE and polled until the final 404 at 09:28:07 UTC.
+This exercised live in-progress polling, not just already-absent reconciliation.
+The original group deletion took about thirty-eight minutes.
+Separate operator requests confirmed final 404s for the group and both target
+clusters at 09:28:09 UTC. The excluded old group, VM, OS disk, Cosmos account and
+evidence Storage account were explicitly verified present; the retained VM's
+external shutdown remained Enabled at 10:45 UTC. Retained resources and delayed
+cost postings mean this is not a zero-bill claim.
+
+At this checkpoint, this was **10/60 unique P0 cases and 2/12 P0 routes**.
+The earlier repeated clean-create samples are not two additional unique cases.
+The PostgreSQL-source continuation below adds another ten cases. Other P0 routes
+and P1-P3 remain incomplete and are not queued. Further admission still requires
+the outstanding technical and actual remaining-work cost gates.
+
+### PostgreSQL P0 five-scenario qualification
+
+The shared five-scenario harness also has an explicitly gated PostgreSQL-source
+adapter. It streams hash-verified portable CSV through native COPY into new,
+run-scoped base/append/upsert schemas, checks effective PostgreSQL 17 and every
+table count, and never overwrites the retained tiny schema. Effective connection
+targets, including URI overrides and fallbacks, must remain the dedicated local
+fixture database. A separate opt-in source-only preflight performs no HorizonDB
+migration and does not advance route coverage. Target execution requires a
+fresh independent lease and all effective-version and canonical gates above.
+
+The actual source reported PostgreSQL **17.6**. Native candidate
+`b26fd80d343bdb4facdfe361109620613c9fef0c` passed all ten target cases on
+HorizonDB PG17.11 and PG18.6 / AGE 1.8.0 without skips or rejected/failed batches.
+All eighteen leaves per case matched the independent raw-fixture oracle, and
+every scenario root matched both PostgreSQL majors **and the earlier CSV
+routes**. See [the redacted evidence](horizondb-p0-postgres-modes-20261118.json).
+
+| Scenario | PG17 load + verification | PG18 load + verification | Final records |
+|---|---:|---:|---:|
+| Create | 37.176 s | 37.565 s | 458,000 |
+| Replace | 243.597 s | 231.068 s | 458,000 |
+| Append 1% | 26.432 s | 26.492 s | 462,580 |
+| Upsert 1% | 26.611 s | 27.127 s | 462,580 |
+| SIGKILL / same-job resume | 36.201 s | 36.356 s | 458,000 |
+
+Both workers were actually SIGKILLed at 120,000 committed records and resumed
+the same UUID for the remaining 338,000. Replace changed generation; incremental
+modes retained it and ended at 101%. Peak process RSS was 156,921,856 bytes
+(about 150 MiB), whole-cgroup memory 535,601,152 bytes (about 511 MiB), swap/OOM
+zero and disk 13%. Existing fifteen-second telemetry and resource/progress
+fences remained active. The large create/replace/recovery timing variation
+across these waves is not a P3 forecast or long-running token-renewal proof.
+
+The previous disposable group was absent and old active guard jobs were
+quiescent before replacement. The new lease was published before creating
+replacement resources, and all four independent schedules were verified enabled.
+Fresh actual MTD remained USD120.6432; the conservative full-window plus reserve
+envelope was USD471.5271, below USD3750. Completed guard job
+`d4f8d94f-741a-4c86-8ddc-7b8a95f8dd16` verified the current configuration and
+budget/retain decision. The initial target deadline was 12:00 UTC (21:00 JST);
+the retained VM's external stop was explicitly moved to 12:15 UTC (21:15 JST).
+No new VM or public ingress was created.
+
+The HorizonDB quota CLI returned `BadRequest`; this is not unlimited quota.
+The service's [quota guidance][horizon-quota] describes support-mediated
+increases, not a published numeric entitlement. Both actual eight-vCore writer
+allocations reached Ready before migration; this proves these two allocations,
+not four-lane or larger capacity.
+
+All allowlisted nonsecret raw evidence was privately uploaded and independently
+digest-read-back verified: 32,772 bytes, SHA-256
+`ab5bf0ff07c784f78d97a88ae62b2290c9e177f0f455ba72cd2c139d779f5c28`.
+After preservation the lease closed early at 10:18:39 UTC. Independent
+exact-group retirement job `3519f548-edcc-4887-a2c3-5d58082377a2` **completed**:
+it issued DELETE at 10:19:22 UTC and actually polled the owned group through
+its final 404 at 10:57:29 UTC, within the forty-five-minute observation budget.
+Separate operator requests confirmed final 404s for the disposable group and
+both target clusters at **10:57:35 UTC (19:57:35 JST)**. The excluded old group,
+VM, OS disk, Cosmos account and evidence Storage account were explicitly
+verified present. The retained VM's external shutdown remained **Enabled at
+12:15 UTC (21:15 JST)**. No new resource group or target remains from this
+wave; retained resources and delayed postings can still incur charges.
+
+At the PostgreSQL checkpoint, the campaign had **20/60 unique P0 cases and
+4/12 P0 routes**, with zero complete phases. The following Neo4j wave adds
+nineteen passing cases and one failed recovery prerequisite. Cosmos bulk
+adapters, the four-lane controller, long-running credentials, disposable-worker
+snapshots, RU and fault/promotion gates remain outstanding; P1-P3 are not queued.
+
+[horizon-quota]: https://learn.microsoft.com/azure/horizondb/configure-maintain/how-to-request-quota-increase
+
+### Neo4j P0 route preparation
+
+The explicitly gated Neo4j adapter targets only dedicated loopback fixtures:
+4.4.48 on port 7689 and 5.26.30 on port 7690, never the retained tiny instances.
+It streams hash-verified portable documents in batches of at most 512 into
+new run-scoped labels/types, checks every actual creation/table count and scans
+each dataset with the production keyset iterator. Scalar projections preserve
+the ordinary external IDs, typed properties and actual physical edge endpoints;
+bookkeeping labels never enter discovery. Base/append endpoint lookups exclude
+the upsert-only copies, preventing duplicate physical endpoint matches.
+
+The source-only preflight requires
+`AGEFREIGHTER_REQUIRE_HORIZON_P0_NEO4J_SOURCE=1`; the separately gated five-mode
+target suite requires `AGEFREIGHTER_REQUIRE_HORIZON_P0_NEO4J_MODES=1`.
+Both select `neo4j44` or `neo4j526` through
+`AGEFREIGHTER_HORIZON_NEO4J_SOURCE`. The shared target suite retains the exact
+lease, version, canonical, generation, resource and actual process-kill gates.
+The paired source suites start on opposite PostgreSQL majors before swapping.
+Source-only preparation is not a migration result or larger-phase admission;
+the actual target results below are counted separately.
+
+Both source-only preflights passed for candidate
+`5f5438f92da28dfaa71cd68fb7a72b7f626e7d46`, but its first actual target
+attempts correctly failed the exact-count gate: each first create read and
+committed zero records. The in-memory preflight had an internal `InitialQuery`
+that is deliberately absent from serialized job configurations; the persisted
+keyset query compared its first key with null and returned no rows.
+The adapter now puts the first-page null guard in the persisted query itself,
+and source preflights reload the written configuration before scanning.
+A focused regression checks preservation of both vertex and edge query plans
+across serialization for both source versions and all three datasets.
+These failed attempts are retained and are not successful P0 cases. The
+corrected actual runs below used a fresh candidate/preflight and new run IDs.
+
+### Neo4j P0 modes: nineteen passes, one pre-fault failure
+
+Corrected candidate `5ecbc3b20b26ffa68daea4c4553371606bd069ac`, native SHA-256
+`22cc91ac911f36525271d8ba9baf17451b55c8593dcffb80aaefed84640aa076`,
+passed both actual serialized source-only preflights and all three isolated SQL
+contracts before target execution. It is not the published 2.4.2 binary.
+The [actual redacted report](horizondb-p0-neo4j-modes-20261118.json) records:
+
+| Source | PG17.11 + AGE 1.8.0 | PG18.6 + AGE 1.8.0 |
+|---|---|---|
+| Neo4j 4.4.48 | All five cases passed | All five cases passed |
+| Neo4j 5.26.30 | Create, replace, append and upsert passed; resume prerequisite failed | All five cases passed |
+
+Every one of the nineteen passing cases matched all eighteen independent
+canonical leaves, including properties and actual physical edge endpoints.
+Their roots also match every corresponding CSV and PostgreSQL-source result.
+All three successful recovery cases actually SIGKILLed their worker at 120,000
+committed records and resumed the same UUID for the remaining 338,000 records.
+Append and upsert each consumed exactly 4,580 records; final graphs remained
+462,580 records, not 102% of the base.
+
+The Neo4j 5.26 PG17 recovery worker instead exited at **100,000 committed
+records, before SIGKILL**. Batch six failed with
+`iterate resolved edge endpoints: timeout: context deadline exceeded`, at the
+existing 300-second operation bound. The parent reported
+`worker exited before the required fault: exit status 1`; no fault receipt or
+canonical verification exists for this case. The failing boundary is the SQL
+edge-endpoint resolver, not the previously fixed zero-row source adapter.
+The underlying planner/statistics/service cause is **not established**. No
+timeout increase, forced plan, speculative statistics fix or success-shaped
+retry was used to make this case green. A subsequent bounded read-only
+diagnostic during retirement could no longer resolve either target endpoint;
+no execution plan or statistics were captured and retirement was not delayed.
+A separate local PostgreSQL17 temporary-table probe returned all 20,000
+endpoint references against 100,000 identities in 839 / 139 / 83 milliseconds
+with neither / identity-only / both tables analyzed. It did **not** reproduce
+the HorizonDB timeout or establish its cause; persistent source tables were
+untouched and this diagnostic adds no qualification cases.
+
+Both source/loader pairs ran concurrently on the retained D8ds v5, each with a
+one-core/two-GiB source and three-core/two-GiB loader. This is **not four isolated
+performance lanes**. Maximum loader RSS was 161,763,328 / 162,058,240 bytes and
+cgroup memory 542,879,744 / 547,942,400 bytes for 4.4 / 5.26 respectively.
+Both had zero swap/OOM, no source restarts and maximum disk usage 20%.
+Fifteen-second CPU/IO/progress telemetry and the existing fences remained active.
+
+Both success and partial-failure raw archives were uploaded privately and
+managed-identity SHA-256-read-back verified before lease closure:
+
+| Evidence | Bytes | SHA-256 |
+|---|---:|---|
+| Neo4j 4.4, ten passes | 37,208 | `b5510fa20c077e7955d840ed19fd11b0565411f76d3a001570a23d5c3f3443f5` |
+| Neo4j 5.26, nine passes plus failed worker | 37,856 | `68540c363ecdb568aaa917c1de752a112d7bb2b9ca50432cef6ac7110c082cef` |
+| Original serialization failures, no added passes | 24,936 | `837761a845b51fd9e788e32d96288f09bf0f0a7f40d3a0c2d6b34beb99197376` |
+
+The partial archive includes the failed worker log, immutable job identity,
+configuration and durable progress. Its full public-summary packet exceeded
+the bounded Run Command response **after** the archive/read-back succeeded.
+The same existing summary was recovered read-only in two digest-checked chunks;
+neither archive was regenerated and no successful recovery was fabricated.
+
+Fresh actual MTD was USD120.6432; the conservative full-window/reserve envelope
+was **USD538.0052**, not a final bill. Independent current-lease retain jobs
+passed before execution, honoring Cost Management backoff. Evidence preservation
+preceded early lease closure at **13:35:00 UTC**. Exact-new-group-only independent
+cleanup job `2ce526f4-4a53-42de-aa75-a35fb46947e2` **Completed**, having issued DELETE at
+13:35:44 UTC and polled the owned group until its final 404 at 14:13:55 UTC,
+within the forty-five-minute bound. Separate operator requests confirmed final
+404s for the disposable group and **both** target clusters at **14:14:02 UTC
+/ 23:14:02 JST**. The excluded old group, VM, OS disk, Cosmos account and
+evidence Storage account were verified present. The retained VM's separate
+shutdown remained Enabled at **15:34 UTC / November 19 00:34 JST**.
+The idle retained VM was then **deallocated, not deleted**, independently
+verified at **14:16:05 UTC / 23:16:05 JST**, with its protected OS disk still
+attached and the external shutdown schedule unchanged.
+No new target or disposable group remains from this wave; retained resources
+and delayed postings can still incur charges.
+
+At the end of that wave the campaign had **39/60 passing P0 cases, one failed
+case and twenty unexecuted cases; 7/12 fully qualified routes, zero complete
+phases**. That evidence alone did not qualify Neo4j 5.26 PG17. The two Cosmos
+layouts accounted for the twenty then-unexecuted cases.
+
+Keep the intended Azure CLI tenant/subscription session without logging out
+other shared sessions. Inspect only the approved subscription and confirm the
+current account before writes. Do not copy tokens or passwords into logs,
+jobs, plans or Git.
+
+### Cosmos P0 continuation preparation
+
+The explicit `AGEFREIGHTER_REQUIRE_HORIZON_P0_COSMOS_SOURCE=1` gate prepares
+only new run-scoped containers in the retained private, managed-identity-only
+Cosmos fixture account; tiny containers are never overwritten. The existing
+`cosmosfixtureload` streaming tool is reused with mandatory empty-container
+checks, sixteen workers, a thirty-minute deadline and a ten-million-observed-RU
+ceiling per dataset. Every consumed document-file hash and actual table/total
+count must match the immutable manifest. RU is checked on responses, so
+bounded in-flight requests and billing lag remain covered by the cost reserve.
+The existing tool's default unbounded P1 mode is unchanged.
+
+Written user job configurations are reloaded before the actual production
+iterator scans all three datasets. Gremlin retains its serializable discovery
+configuration: internal generated mappings with `yaml:"-"` fields cannot be
+copied into a job file. Its partition-aware identities are checked with the
+existing independent Gremlin scenario oracle, not the ordinary-source hash.
+Actual target cases use the separate
+`AGEFREIGHTER_REQUIRE_HORIZON_P0_COSMOS_MODES=1` gate and reuse only source
+fixtures verified for that exact candidate, without reseeding them.
+These adapters and source-only checks are not additional HorizonDB passes;
+coverage changes only after actual target verification.
 
 ## Coverage and gates
 
@@ -85,10 +711,10 @@ and its checks; do not bypass its version interlock.
 | Phase | Base vertices | Base edges | Required route scenarios |
 |---|---:|---:|---|
 | tiny, approved | 160 | 400 | Actual generated load on all twelve routes; existing smaller mode, type, paging, identity and committed-batch resume fixtures within the approved cap |
-| P0, proposed | 100,000 | 358,000 | Clean create, full replace, 1% append, 1% upsert, one interrupted/resumed full load, exact-count harness checks |
-| P1, proposed | 1,600,000 | 4,000,000 | Same modes and recovery; full canonical ranged digest and capacity/RU calibration |
-| P2, proposed | 16,000,000 | 40,000,000 | Clean create, full replace, 1% append/upsert; four separate full-load recovery cases where applicable; freeze tuning and P3 forecast |
-| P3, proposed | 160,000,000 | 400,000,000 | One clean and one combined-fault recovery load per route; full independent digests on both |
+| P0, approved | 100,000 | 358,000 | Clean create, full replace, 1% append, 1% upsert, one interrupted/resumed full load, exact-count harness checks |
+| P1, approved | 1,600,000 | 4,000,000 | Same modes and recovery; full canonical ranged digest and capacity/RU calibration |
+| P2, approved | 16,000,000 | 40,000,000 | Clean create, full replace, 1% append/upsert; four separate full-load recovery cases where applicable; freeze tuning and P3 forecast |
+| P3, approved | 160,000,000 | 400,000,000 | One clean and one combined-fault recovery load per route; full independent digests on both |
 
 Append adds 1% of the base vertices and edges; upsert changes 1% of existing
 records. The expected final graph after append is 101% of the base, not 102%.
@@ -112,7 +738,8 @@ tiny -> P0 -> P1 -> P2 -> approved P3
 Different routes may progress concurrently. No route skips its previous-phase
 correctness, capacity or cost gate. A shared implementation defect pauses all
 affected routes; an isolated source failure need not discard other evidence.
-Human approval is still required for each larger phase and its exact envelope.
+The four phases are approved, but changes beyond the approved execution
+envelope still require review; approval does not waive a failed promotion gate.
 
 ## Parallel layout
 
@@ -141,12 +768,12 @@ Cost-scenario resources, based on the earlier P3 engineering baseline:
 
 | Role | Conditional configuration | Quota status |
 |---|---|---|
-| HorizonDB, each lane | One `Standard_E8ds_v6` writer, 8 vCores/64 GiB; no reader/HA node | Unverified; blocked |
-| Loader, each lane | `Standard_D8ds_v5`, 8 vCPU/32 GiB | Unverified; blocked |
-| Neo4j 4.4 source, each target route | `Standard_E8bds_v5`, 8 vCPU/64 GiB | Unverified; blocked |
-| Neo4j 5.26 source, each target route | `Standard_E16bds_v5`, 16 vCPU/128 GiB | Unverified; blocked |
-| PostgreSQL source, each target route | `Standard_E16bds_v5` capacity placeholder, to be calibrated at P0/P1 | Unverified; blocked |
-| Stateful source disk | 1,024 GiB Premium SSD v2, 10,000 IOPS/750 MB/s | Capacity and policy unverified |
+| HorizonDB, each lane | One Intel generation-1 provisioned writer, 8 vCores/64 GiB; no reader/HA node | PG17 probe allocation and both reused writer resizes verified; four-lane capacity unverified |
+| Loader, each lane | `Standard_D8ds_v5`, 8 vCPU/32 GiB | SKU/quota checked; isolated lanes not deployed |
+| Neo4j 4.4 source, each target route | `Standard_E8bds_v5`, 8 vCPU/64 GiB | SKU/quota checked; source lanes not deployed |
+| Neo4j 5.26 source, each target route | `Standard_E16bds_v5`, 16 vCPU/128 GiB | SKU/quota checked; source lanes not deployed |
+| PostgreSQL source, each target route | `Standard_E16bds_v5` capacity placeholder, to be calibrated at P0/P1 | SKU/quota checked; source lanes not deployed |
+| Stateful source disk | 1,024 GiB Premium SSD v2, 10,000 IOPS/750 MB/s | Advertised SKU limits/restrictions checked; allocation unverified |
 | Large Cosmos source | Separate single-region manual-provisioned account, up to 200,000 RU/s aggregate | Account/partition throughput quota unverified |
 
 Single-writer HorizonDB keeps this a migration correctness/recovery qualification,
@@ -154,9 +781,11 @@ not an HA/failover qualification. Adding one equal-sized reader per cluster
 doubles the HorizonDB compute component; reapprove that scenario. Do not use
 Spot or temporary disks for the sole copy of state/evidence.
 
-Keep all data-plane traffic in Japan East with private endpoints, private DNS,
-TLS and minimum scoped identities. Use no public VM IP or public database
-exposure. HorizonDB uses Private Link, not Flexible Server delegated-subnet
+Keep all data-plane traffic in Japan East with TLS and minimum scoped
+identities. Source services and retained evidence use private endpoints/private
+DNS; no public VM IP or public Cosmos endpoint is approved. HorizonDB may use
+only the explicitly approved single-NAT-IPv4 fallback while its Private Link
+provider mismatch persists. HorizonDB uses Private Link, not Flexible Server delegated-subnet
 network injection. Its resource provider is `Microsoft.HorizonDb`; the
 [current quickstart][quickstart] uses REST API `2026-10-01-preview`, with no
 dedicated Azure CLI command. Do not deploy the Flexible Server template under
@@ -168,6 +797,110 @@ vCores separately. Discover actual quota names and SKU/zone restrictions using
 the intended subscription; neither a public price nor an earlier successful
 deployment proves current capacity. Do not provision until both regional and
 family quotas, HorizonDB capacity and Cosmos partition limits are verified.
+
+### First P1 lane: CSV to PostgreSQL 17
+
+P1 fixture preparation started on 2026-11-19 after the 60-case P0 pass.
+The frozen base is 1,600,000 vertices and 4,000,000 edges (64 shards, seed
+`20260829`); append and upsert are each 16,000 vertices and 40,000 edges.
+The independent ordinary and partition-aware oracles produced all six
+base/append/upsert roots. The final incremental graph is 5,656,000 records.
+This is source evidence only: no P1 HorizonDB case has been executed.
+
+The first live attempt is one `CSV -> PG17/AGE 1.8` lane in Japan East, with
+no source database or Cosmos charge. It must not be used to qualify PG18
+or another source. Admit the following operations separately:
+
+1. **Lifecycle canary, no database.** Use the exact disposable
+   `rg-agefreighter-horizon-scale-20261118` scope, after independently verifying
+   that the prior lease is absent. A single `Standard_D8ds_v5` test VM
+   `afhs-20261118-p1-canary` with a 128-GiB P10 LRS managed OS disk and a
+   two-hour lease must actually be deallocated by the existing independent
+   guard. Both the canary and pilot use Trusted Launch, Canonical Ubuntu 24.04
+   `server:24.04.202610250`, and the existing `afht-20261118-vnet/tiny`
+   subnet, without a public IP or a new inbound rule. Verify the canary's
+   retained `Standard_LRS` incremental snapshot, source
+   disk ID, network access disabled and `Succeeded` state before the guard
+   deletes the disposable group. Independently confirm the final group 404
+   and surviving evidence. Empty-group cleanup alone is not this proof.
+   The live canary passed on 2026-11-19: Automation requested deallocation,
+   verified it and the private snapshot, and deleted only the leased group.
+   An independent read confirmed the group 404 at 07:35 UTC.
+2. **Real credential renewal.** Use a dedicated proposed user-assigned
+   identity `afhs-20261118-p1-csv` in the retained group, not a new password
+   or permissions on the existing runner identity. This new identity and
+   any temporary runner attachment need explicit scope approval. Prime it
+   for the PostgreSQL audience from the retained runner during a bounded
+   start, record only the observed expiry, and deallocate while waiting.
+   [Azure documents a 24-hour managed identity token cache][mi-token-cache];
+   a new VM or repeated SDK request does not prove rotation. Near the
+   observed expiry, prove the same client ID gets a distinct later-expiring
+   token and creates a fresh `verify-full` PostgreSQL session through the
+   production `BeforeConnect` hook. Use the same identity for the pilot.
+   If a fresh token already outlives the lease, stop rather than substituting
+   a cached token or extending the live lease. Never copy a token into
+   evidence, logs, a command line or a managed-disk snapshot.
+   The approved identity was primed without assigning Azure resource roles.
+   The retained runner is deallocated again, the temporary assignment was
+   removed, and its original shutdown schedule was restored. The first
+   observed credential expires at `2026-11-20T07:31:12Z`; renewal and
+   reconnect have not yet been verified.
+3. **One full lane.** Use an isolated `Standard_D8ds_v5` worker
+   `afhs-20261118-p1-csv` with the same OS disk shape as the canary and one
+   standalone 8-vCore PG17 writer `afhs-20261118-pg17` in the disposable
+   group, with the existing approved sole NAT ingress and a fresh run-scoped
+   database. The regional VM quota read 8/101 used; HorizonDB does not expose
+   a numeric quota through `az quota`. Confirm only the intended allocation,
+   never four speculative writers. Verify authoritative ReadWrite hostname,
+   effective PG17/AGE 1.8, the exact approved identity, working guard settings,
+   fresh cost and independent telemetry/stop controls before loading. Run
+   under an eight-hour maximum lease; require at least 5h45m remaining at
+   pilot admission. Seal private evidence with SHA-256 readback, then confirm
+   exact scoped retirement. Do not treat retained resources as disposable.
+
+The opt-in source-only check is `TestHorizonDBP1CSVSourcePreflight` with
+absolute `AGEFREIGHTER_HORIZON_P1_FIXTURE_DIR` and a new absolute
+`AGEFREIGHTER_HORIZON_P1_PREFLIGHT_OUTPUT`. It verifies portable CSV hashes
+and replays the full base through AGEFreighter's CSV connector against the
+independent fixture oracle; its source role cannot pass a target comparison.
+The actual source-only replay matched all 5,600,000 records and 64 ranges at
+root `bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+
+The opt-in `TestHorizonDBP1ManagedIdentityRenewalIntegration` in `internal/app`
+uses `AGEFREIGHTER_REQUIRE_HORIZON_P1_REFRESH=1` and
+`AGEFREIGHTER_HORIZON_P1_REFRESH_{HOST,USER,CLIENT_ID,DEADLINE_UTC,INITIAL_EXPIRY_UTC}`.
+The read-only probe uses the PG17-only renewal template and the retained
+runner, not the isolated migration worker. The writer start window is 65 to
+45 minutes before the observed expiry; the guard lease ends 20 minutes after
+it. Leave the default PG17 parameter group in place and run read-only SQL
+against `postgres`. If the first observed expiry is not reproduced or there
+is insufficient time for a verified reconnect, stop and retire the
+disposable scope rather than extending it. The probe does not qualify AGE
+or count toward the CSV migration cases.
+The `TestHorizonDBP1CSVPG17Integration` Linux test binary requires
+`AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG17=1` and
+`AGEFREIGHTER_HORIZON_P1_RECEIPT` pointing to the externally verified admission
+JSON (see `p1Admission`). Check the receipt against authoritative ARM, the
+independent scheduled guard job, the same-identity renewal log, and the actual
+retained snapshot; the receipt is not a substitute for those checks. Run the
+whole test, without mode subfilters, with `-test.timeout=8h`. The five cases
+use 75-minute full-case and 30-minute incremental bounds, without relaxing
+the production 300-second SQL operation bound. They capture committed progress,
+worker peak RSS and exact SIGKILL/same-ID recovery, and require independent
+SQL canonical parity on every case.
+
+At the published Japan East rates, writer plus loader compute is
+`$2.235248/hour`, or `$17.88` for eight hours before retirement. Allow about
+`$30` for compute, disks, modeled data/backup, and 90 minutes of cleanup
+including the canary and bounded retained-runner wakeups. Two retained
+128-GiB disk snapshots (canary and pilot), conservatively billed at full
+size, cost about `$42` for a month at `$0.152/GB-month`; actual incremental
+snapshots can be smaller. Round the first-lane planning allowance up to
+`$100`, including headroom, without reducing the independent monthly
+cost guard or taking unpriced resource retention as approved. This is not
+a quote, actual spend, or an estimate for the remaining eleven P1 routes.
+
+[mi-token-cache]: https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview-for-developers#guidelines-if-youre-handling-tokens-directly
 
 ## Faults, verification and evidence
 
@@ -284,6 +1017,20 @@ are inputs to replace at P0/P1:
   for `source-read RU / (200000*.70*3600) + 8` hours; those eight hours are
   provisional setup/digest allowance, to be replaced by measurements.
 
+The two P0 CSV samples now measured approximately 2,190-2,360 committed
+records/second during loading. Simple linear scaling would put a single
+560-million-record CSV load at approximately 66-71 hours, before verification,
+versus the provisional 24-hour clean-P3 objective. This is a warning, **not a
+measured P3 runtime or a forecast for the other sources**. The earlier
+22-hour non-Cosmos group assumption and the totals below remain unvalidated;
+do not use the central estimate as admission evidence. Complete the missing
+P0 routes and calibrate/tune actual routes at P1/P2 before freezing a revised
+remaining-work and monthly-budget forecast.
+The later five-scenario CSV sequence above measured much faster fresh-target
+creates but 194-210-second replace/recovery cases at the same size. This
+mode/history variance is further reason not to extrapolate either sample as a
+P3 runtime, a target-sizing guarantee or a complete-campaign budget.
+
 | Complete P0-P3 cost component | 3 RU/read central case | 5 RU/read higher-cost case |
 |---|---:|---:|
 | Eight non-Cosmos routes, target/loader/source VM compute | $753.57 | $753.57 |
@@ -310,10 +1057,11 @@ approval delays. This is not a promised completion date.
 
 ## Monthly budget and stop envelope
 
-The **$3,750/month budget is not all known to be available**: current spend and
-unposted accrual could not be queried. Provisionally allocate $3,000 to test
-consumption and retain $750 as monthly reserve, subtracting unrelated spend
-first. Do not treat the budget or alerts as automatic enforcement.
+The **$3,750/month budget is not all available**: month-to-date reported spend
+is now queryable, but unposted accrual must still be estimated. Provisionally
+allocate $3,000 to test consumption and retain $750 as monthly reserve,
+subtracting unrelated spend first. Do not treat the budget or alerts as
+automatic enforcement.
 
 The central estimate fits only if these assumptions are validated. The higher
 case exceeds the monthly budget: split remaining waves across billing months,
@@ -410,8 +1158,12 @@ change was merged. The protected
 [release workflow](https://github.com/rioriost/agefreighter/actions/runs/44221531718)
 then passed signing, notarization, quality, live Cosmos, packaging and
 provenance gates and published 2.4.2 on 2026-11-18. The protected Azure runner
-was restored for its gate rather than bypassing it. P0-P3 execution and
-resource deletion remain separately gated and unauthorized.
+was restored for its gate rather than bypassing it. P0-P3 execution was
+subsequently approved, including the fixed-NAT and evidence-preserving
+budget/deadline teardown scopes described above. Seven P0 routes have since
+passed, with the partial failure and remaining coverage recorded above.
+Broader scale execution still requires implementing and
+verifying the remaining technical gates.
 
 [extensions]: https://learn.microsoft.com/azure/horizondb/extensions/concepts-extensions-by-engine
 [quickstart]: https://learn.microsoft.com/azure/horizondb/configure-maintain/quickstart-create-cluster

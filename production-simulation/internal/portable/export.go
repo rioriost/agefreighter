@@ -73,9 +73,18 @@ func export(ctx context.Context, manifestPath, output string, gremlin bool) (Man
 	if gremlin {
 		result.DocumentFormat = GremlinDocumentFormat
 	}
-	vertices := map[string]fixture.VertexSpec{}
-	for _, v := range input.Plan.VertexSpecs {
-		vertices[v.Label] = v
+	vertices := map[string][]fixture.VertexSpec{}
+	endpoints, err := input.EndpointPlan()
+	if err != nil {
+		return Manifest{}, err
+	}
+	for _, v := range endpoints.VertexSpecs {
+		vertices[v.Label] = append(vertices[v.Label], v)
+	}
+	if input.Delta != nil && input.Delta.Kind == fixture.DeltaAppend {
+		for _, v := range input.Plan.VertexSpecs {
+			vertices[v.Label] = append(vertices[v.Label], v)
+		}
 	}
 	for _, v := range input.Plan.VertexSpecs {
 		result.Tables = append(result.Tables, Table{Name: v.Label, Kind: "node", Rows: v.Count,
@@ -125,7 +134,7 @@ func (manifest Manifest) CSVSource() config.CSVSource {
 	return source
 }
 
-func exportTable(ctx context.Context, root, output string, entries []fixture.FileEntry, table *Table, vertices map[string]fixture.VertexSpec, gremlin bool) error {
+func exportTable(ctx context.Context, root, output string, entries []fixture.FileEntry, table *Table, vertices map[string][]fixture.VertexSpec, gremlin bool) error {
 	table.CSV = table.Name + ".csv"
 	table.Documents = table.Name + ".jsonl"
 	cf, err := os.OpenFile(filepath.Join(output, table.CSV), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
@@ -186,11 +195,17 @@ func exportTable(ctx context.Context, root, output string, entries []fixture.Fil
 					if err != nil {
 						return err
 					}
-					v := vertices[label]
-					if key < v.FirstKey || key >= v.FirstKey+v.Count {
+					found := false
+					for _, v := range vertices[label] {
+						if key >= v.FirstKey && key < v.FirstKey+v.Count {
+							row[i+2] = fmt.Sprintf("%s-%012d", strings.ToLower(label), key-v.FirstKey+v.IDOffset+1)
+							found = true
+							break
+						}
+					}
+					if !found {
 						return errors.New("fixture endpoint outside label range")
 					}
-					row[i+2] = fmt.Sprintf("%s-%012d", strings.ToLower(label), key-v.FirstKey+1)
 				}
 			}
 			if err := cw.Write(row); err != nil {

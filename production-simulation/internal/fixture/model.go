@@ -21,6 +21,7 @@ type VertexSpec struct {
 	Label    string `json:"label"`
 	Count    int64  `json:"count"`
 	FirstKey int64  `json:"firstKey"`
+	IDOffset int64  `json:"idOffset,omitempty"`
 }
 
 type EdgeSpec struct {
@@ -29,6 +30,7 @@ type EdgeSpec struct {
 	End      string `json:"end"`
 	Count    int64  `json:"count"`
 	FirstKey int64  `json:"firstKey"`
+	IDOffset int64  `json:"idOffset,omitempty"`
 }
 
 type Plan struct {

@@ -65,6 +65,12 @@ func (*gremlinSQLTrace) TraceQueryEnd(context.Context, *pgx.Conn, pgx.TraceQuery
 // catalogs/graphid/agtype storage; otherwise AGE-shaped text tables are used.
 // Neither mode is a migration/Azure/GUI qualification. Each run keeps a new DB.
 func TestGremlinTargetSQLContract(t *testing.T) {
+	for _, mode := range []string{"bounded-gremlin", "scale-gremlin", "scale-ordinary"} {
+		t.Run(mode, func(t *testing.T) { testGremlinTargetSQLContract(t, mode) })
+	}
+}
+
+func testGremlinTargetSQLContract(t *testing.T, mode string) {
 	dsn := os.Getenv("AF_GREMLIN_SQL_TEST_ADMIN_DSN")
 	if dsn == "" {
 		t.Skip("requires isolated local PostgreSQL admin DSN")
@@ -77,6 +83,16 @@ func TestGremlinTargetSQLContract(t *testing.T) {
 		t.Fatal("local contract server required")
 	}
 	ctx := t.Context()
+	snapshot := gremlinTargetSnapshot
+	if mode != "bounded-gremlin" {
+		snapshot = func(ctx context.Context, conn *pgx.Conn, f fixture.Manifest, job string, rows int64) (Manifest, error) {
+			return scaleTargetSnapshot(ctx, conn, f, job, rows, mode == "scale-gremlin")
+		}
+	}
+	compare := CompareGremlinTarget
+	if mode == "scale-ordinary" {
+		compare = Compare
+	}
 	admin, err := pgx.ConnectConfig(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -102,6 +118,9 @@ func TestGremlinTargetSQLContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	expected, err := GremlinFixtureManifest(ctx, filepath.Join(root, "manifest.json"), 100000)
+	if mode == "scale-ordinary" {
+		expected, err = FixtureManifest(ctx, filepath.Join(root, "manifest.json"), 100000)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,11 +232,11 @@ func TestGremlinTargetSQLContract(t *testing.T) {
 	}
 	defer reader.Close(context.Background())
 	trace.queries = nil
-	actual, err := gremlinTargetSnapshot(ctx, reader, f, job, 100000)
+	actual, err := snapshot(ctx, reader, f, job, 100000)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := CompareGremlinTarget(expected, actual); err != nil {
+	if _, err := compare(expected, actual); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(trace.queries[0], "repeatable read read only") {
@@ -246,6 +265,9 @@ func TestGremlinTargetSQLContract(t *testing.T) {
 		tests = append(tests, struct{ name, apply, undo string }{"extra-label", `INSERT INTO ag_catalog.ag_label VALUES(1,'extra','v')`, `DELETE FROM ag_catalog.ag_label WHERE name='extra'`})
 	}
 	for _, tc := range tests {
+		if mode == "scale-ordinary" && tc.name == "wrong-partition" {
+			continue // Ordinary sources can retain opaque operational identities.
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			if _, err := conn.Exec(ctx, tc.apply); err != nil {
 				t.Fatal(err)
@@ -255,9 +277,9 @@ func TestGremlinTargetSQLContract(t *testing.T) {
 					t.Error(err)
 				}
 			}()
-			a, err := gremlinTargetSnapshot(ctx, reader, f, job, 100000)
+			a, err := snapshot(ctx, reader, f, job, 100000)
 			if err == nil {
-				_, err = CompareGremlinTarget(expected, a)
+				_, err = compare(expected, a)
 			}
 			if err == nil {
 				t.Fatal("corrupted target accepted")
@@ -275,9 +297,9 @@ func TestGremlinTargetSQLContract(t *testing.T) {
 	p["name"] = "changed"
 	bad, _ := json.Marshal(p)
 	exec(`UPDATE gremlin_contract."Supplier" SET properties=`+prop("$1")+` WHERE id::text::bigint=$2`, string(bad), graphID)
-	a, err := gremlinTargetSnapshot(ctx, reader, f, job, 100000)
+	a, err := snapshot(ctx, reader, f, job, 100000)
 	if err == nil {
-		_, err = CompareGremlinTarget(expected, a)
+		_, err = compare(expected, a)
 	}
 	if err == nil {
 		t.Fatal("property mutation accepted")
@@ -294,11 +316,11 @@ func TestGremlinTargetSQLContract(t *testing.T) {
 	}
 	exec(`UPDATE gremlin_contract."SUPPLIES" SET end_id=`+gid("$1")+` WHERE id::text::bigint=$2`, newEnd, edgeID)
 	exec(`UPDATE agefreighter_meta.edge_identity SET end_graph_id=$1 WHERE graph_id=$2`, newEnd, edgeID)
-	a, err = gremlinTargetSnapshot(ctx, reader, f, job, 100000)
+	a, err = snapshot(ctx, reader, f, job, 100000)
 	if err != nil {
 		t.Fatal("valid substituted endpoint should reach digest comparison", err)
 	}
-	if _, err := CompareGremlinTarget(expected, a); err == nil {
+	if _, err := compare(expected, a); err == nil {
 		t.Fatal("consistent wrong endpoint accepted")
 	}
 	exec(`UPDATE gremlin_contract."SUPPLIES" SET end_id=`+gid("$1")+` WHERE id::text::bigint=$2`, oldEnd, edgeID)

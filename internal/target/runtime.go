@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
@@ -18,6 +19,7 @@ type Options struct {
 	MaxConnections   int32
 	ConnectTimeout   time.Duration
 	OperationTimeout time.Duration
+	BeforeConnect    func(context.Context, *pgx.ConnConfig) error
 }
 
 // Runtime is the backend-neutral connection and metadata boundary used by the
@@ -122,6 +124,7 @@ func openPGGraph(
 	adapter, err := pggraph.Open(ctx, dsn, pggraph.PoolOptions{
 		MinConnections: 1, MaxConnections: options.MaxConnections,
 		ConnectTimeout: options.ConnectTimeout, OperationTimeout: options.OperationTimeout,
+		BeforeConnect: options.BeforeConnect,
 	})
 	if err != nil {
 		return nil, err
@@ -193,6 +196,7 @@ func openAGE(
 		MaxConnections:   options.MaxConnections,
 		ConnectTimeout:   options.ConnectTimeout,
 		OperationTimeout: options.OperationTimeout,
+		BeforeConnect:    options.BeforeConnect,
 	})
 	if err != nil {
 		return nil, err

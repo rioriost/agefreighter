@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"os"
@@ -65,13 +67,18 @@ func TestStreamFiles(t *testing.T) {
 	}
 	items := make(chan workItem, 1)
 	counts := map[string]int{}
-	if err := streamFiles(context.Background(), []string{path}, items, counts); err != nil {
+	hashes := map[string]string{}
+	if err := streamFiles(context.Background(), []string{path}, items, counts, hashes); err != nil {
 		t.Fatal(err)
 	}
 	close(items)
 	item := <-items
 	if item.partitionKey != "Supplier-0" || counts["Supplier.jsonl"] != 1 {
 		t.Fatalf("item=%#v counts=%#v", item, counts)
+	}
+	digest := sha256.Sum256([]byte("{\"id\":\"1\",\"partitionKey\":\"Supplier-0\"}\n"))
+	if hashes["Supplier.jsonl"] != hex.EncodeToString(digest[:]) {
+		t.Fatal("consumed byte hash differs from the immutable input")
 	}
 }
 
@@ -96,7 +103,27 @@ func TestStreamFilesRejectsMissingPartitionKey(t *testing.T) {
 	if err := os.WriteFile(path, []byte("{\"id\":\"1\"}\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := streamFiles(context.Background(), []string{path}, make(chan workItem, 1), map[string]int{}); err == nil {
+	if err := streamFiles(context.Background(), []string{path}, make(chan workItem, 1), map[string]int{}, map[string]string{}); err == nil {
 		t.Fatal("streamFiles accepted a document without partitionKey")
+	}
+}
+
+func TestChargeBudget(t *testing.T) {
+	budget := &chargeBudget{limit: 5}
+	response := &http.Response{StatusCode: 429, Header: http.Header{"X-Ms-Request-Charge": {"3"}}}
+	if err := budget.charge(response, true); err != nil || budget.total != 3 || budget.throttled != 1 {
+		t.Fatalf("first charged retry: %+v / %v", budget, err)
+	}
+	if err := budget.charge(response, true); err == nil || budget.total != 6 || budget.throttled != 2 {
+		t.Fatal("failed to account for and reject the over-budget retry")
+	}
+	for _, value := range []string{"NaN", "Inf", "-1", "invalid", ""} {
+		response = &http.Response{StatusCode: 200, Header: http.Header{"X-Ms-Request-Charge": {value}}}
+		if err := (&chargeBudget{limit: 5}).charge(response, true); err == nil {
+			t.Fatalf("accepted invalid or missing charged data response %q", value)
+		}
+	}
+	if err := (&chargeBudget{limit: 5}).charge(&http.Response{StatusCode: 200, Header: http.Header{}}, false); err != nil {
+		t.Fatal("account metadata does not carry item request charge:", err)
 	}
 }

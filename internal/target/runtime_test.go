@@ -2,10 +2,12 @@ package target
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/rioriost/agefreighter/internal/age"
 	"github.com/rioriost/agefreighter/internal/config"
 	"github.com/rioriost/agefreighter/internal/meta"
@@ -26,6 +28,26 @@ func (fakeRuntime) Close()                                {}
 type fakeAGERuntime struct{ fakeRuntime }
 
 func (fakeAGERuntime) AGEAdapter() *age.Adapter { return nil }
+
+func TestOpenAGERefreshesCredentialBeforeConnecting(t *testing.T) {
+	expected := errors.New("credential provider unavailable")
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	runtime, err := Open(ctx, config.TargetApacheAGE,
+		"postgresql://loader@127.0.0.1:1/fixture?sslmode=disable",
+		Options{
+			MaxConnections: 2, ConnectTimeout: time.Second, OperationTimeout: time.Second,
+			BeforeConnect: func(context.Context, *pgx.ConnConfig) error { return expected },
+		},
+	)
+	if runtime != nil {
+		runtime.Close()
+		t.Fatal("connection unexpectedly succeeded")
+	}
+	if !errors.Is(err, expected) {
+		t.Fatalf("credential provider was bypassed: %v", err)
+	}
+}
 
 func TestOpenPropertyGraphRequiresConnectionAndOptions(t *testing.T) {
 	runtime, err := Open(

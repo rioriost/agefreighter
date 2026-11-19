@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "dateUTC": "2026-11-18",
+  "region": "japaneast",
+  "status": "partial-pass",
+  "coverage": "Two CSV P0 routes, five scenarios each; not a complete twelve-route P0 phase",
+  "candidateCommit": "2d6d1f246de520431cfca3573cf65a50cf35e7e1",
+  "binarySha256": "17ff02463bf066db844dcbe5df8643299494911be59043ac2faf859aa9e0013e",
+  "publishedReleaseBinary": false,
+  "dataset": {
+    "phase": "p0",
+    "seed": 20260829,
+    "shards": 4,
+    "vertices": 100000,
+    "edges": 358000,
+    "fixtureRootSha256": "f5c55737a9b8abe9259937920c43504351db48c56b29afd031a813e403b20b1d",
+    "appendVertices": 1000,
+    "appendEdges": 3580,
+    "upsertVertices": 1000,
+    "upsertEdges": 3580,
+    "finalVerticesAfterIncrementalCases": 101000,
+    "finalEdgesAfterIncrementalCases": 361580
+  },
+  "targetVersions": {
+    "17": {"postgresql": "17.11", "age": "1.8.0"},
+    "18": {"postgresql": "18.6", "age": "1.8.0"}
+  },
+  "targetCompute": {
+    "vCoresPerWriter": 8,
+    "writersPerTarget": 1,
+    "highAvailability": false
+  },
+  "verification": {
+    "method": "Independent raw-fixture scenario oracle versus read-only SQL canonical snapshot of actual AGE properties and physical endpoints",
+    "allEighteenLeavesComparedPerCase": true,
+    "allPostgreSQLMajorPairsMatch": true,
+    "rejectedRows": 0,
+    "failedBatches": 0,
+    "replaceChangedGeneration": true,
+    "appendAndUpsertPreservedGeneration": true,
+    "canonicalRoots": {
+      "create": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+      "replace": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+      "append": "8b645c2f59670d8b677fc8acdd22cd77ee52ca3fedbd550130c6a89a68440675",
+      "upsert": "7061ff76ae2dbeeb35a188d3f6d366f28486f2d33c230adfc470419b8b53762a",
+      "resume": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4"
+    }
+  },
+  "cases": [
+    {
+      "targetPostgreSQLMajor": 17, "mode": "create", "status": "pass",
+      "jobId": "50e50067-6e86-49ce-8600-f5057a9d5757",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 30.810
+    },
+    {
+      "targetPostgreSQLMajor": 17, "mode": "replace", "status": "pass",
+      "jobId": "4cc6c59d-b067-48a3-a4eb-fb458bdcc30f",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 208.979
+    },
+    {
+      "targetPostgreSQLMajor": 17, "mode": "append", "status": "pass",
+      "jobId": "4347cfd7-c02b-470f-b854-ecd158321de4",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 24.610
+    },
+    {
+      "targetPostgreSQLMajor": 17, "mode": "upsert", "status": "pass",
+      "jobId": "d57e94f2-43cc-4eea-856b-24ec392e937c",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 24.004
+    },
+    {
+      "targetPostgreSQLMajor": 17, "mode": "resume", "status": "pass",
+      "jobId": "339856e9-31df-4a1d-8e8e-c6fa1bec93f8",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 17,
+      "loadAndVerificationSeconds": 209.932,
+      "recovery": {
+        "fault": "SIGKILL", "committedBeforeKill": 120000,
+        "durableCommittedBeforeResume": 120000, "recordsCommittedAfterResume": 338000,
+        "sameJobId": true
+      }
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "create", "status": "pass",
+      "jobId": "dc61ba64-57e5-49a7-afda-46d05fb5013d",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 33.455
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "replace", "status": "pass",
+      "jobId": "db43ea4b-920e-476a-b12f-b5d80efb5fd7",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 23,
+      "loadAndVerificationSeconds": 194.366
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "append", "status": "pass",
+      "jobId": "8ed77c99-bfd2-43f6-a66a-cbc3b8738d43",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 25.247
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "upsert", "status": "pass",
+      "jobId": "32c6cc42-12fd-4526-b813-590fadf926c2",
+      "committedRows": 4580, "finalRows": 462580, "committedBatches": 1,
+      "loadAndVerificationSeconds": 26.033
+    },
+    {
+      "targetPostgreSQLMajor": 18, "mode": "resume", "status": "pass",
+      "jobId": "de600121-c43e-443e-9913-8f2f1f861657",
+      "committedRows": 458000, "finalRows": 458000, "committedBatches": 17,
+      "loadAndVerificationSeconds": 196.384,
+      "recovery": {
+        "fault": "SIGKILL", "committedBeforeKill": 120000,
+        "durableCommittedBeforeResume": 120000, "recordsCommittedAfterResume": 338000,
+        "sameJobId": true
+      }
+    }
+  ],
+  "loader": {
+    "vmSKU": "Standard_D8ds_v5",
+    "cpuQuotaCores": 6,
+    "hardMemoryLimitBytes": 2147483648,
+    "maximumProcessRSSBytes": 169684992,
+    "maximumCgroupMemoryBytes": 562511872,
+    "swapBytes": 0,
+    "oomEvents": 0,
+    "maximumDiskPercent": 12,
+    "metricIntervalSeconds": 15,
+    "progressStallLimitSeconds": 840
+  },
+  "transport": {
+    "tls": "verify-full",
+    "authentication": "managed-identity",
+    "longRunningTokenRenewalQualified": false,
+    "horizonIngress": "approved single static NAT IPv4 only"
+  },
+  "retainedRawEvidence": {
+    "bytes": 32552,
+    "sha256": "0ec9ff25019c489ead283b7849bf42d314b0f40448aa038215fee4e0b56891aa",
+    "blob": "afhs-20261118/p0-csv/r20261118p0csv02/a5caf07f080d/p0-csv-modes-evidence-a5caf07f080d.tar.xz",
+    "privateManagedIdentityReadBack": "passed"
+  },
+  "retirement": {
+    "status": "verified-absent",
+    "leaseId": "90836323-56fe-4d7a-a609-3d3b144239c0",
+    "earlyClosedAtUtc": "2026-11-18T08:49:17.057629+00:00",
+    "initialAttempt": {
+      "guardJob": "fcc74ab5-142e-4e63-9ba3-9d0f6c36c324",
+      "status": "Failed",
+      "deleteRequestedAtUtc": "2026-11-18T08:50:02+00:00",
+      "failure": "Final-404 observation exceeded the original twenty-minute bound; Azure deletion continued asynchronously"
+    },
+    "guardJob": "df26453e-e055-456d-b7ac-bf4bdf5c9dd2",
+    "guardStatus": "Completed",
+    "guardVerifiedAbsentAtUtc": "2026-11-18T09:28:07.5238601+00:00",
+    "operatorVerifiedAtUtc": "2026-11-18T09:28:09.578826+00:00",
+    "liveInProgressPolling": true,
+    "deleteObservationLimitMinutes": 45,
+    "nonDeleteLifecycleLimitMinutes": 20,
+    "publishedGuardSourceSha256": "ee70ba2bd1c4716cdfd381a0fbd67ec6fac38d62e7ec3b40ab07e1a0bedfe045",
+    "resourceGroupFinalHTTP404": true,
+    "pg17FinalHTTP404": true,
+    "pg18FinalHTTP404": true,
+    "excludedOldGroupVMDiskCosmosStorageVerifiedPresent": true,
+    "deletionScope": "new disposable qualification resource group only",
+    "excludedVMExternalShutdownUTC": "10:45"
+  },
+  "completedRoutes": ["csv-pg17", "csv-pg18"],
+  "uniqueCompletedP0ScenarioCases": 10,
+  "remainingP0ScenarioCases": 50,
+  "completedPhases": [],
+  "largerPhasesExecuted": false
+}

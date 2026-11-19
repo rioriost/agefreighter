@@ -27,6 +27,8 @@ type GenerateConfig struct {
 	Shards  int
 	Workers int
 	Seed    uint64
+	delta   *Delta
+	base    string
 }
 
 type FileEntry struct {
@@ -46,6 +48,7 @@ type Manifest struct {
 	Plan       Plan        `json:"plan"`
 	Files      []FileEntry `json:"files"`
 	RootSHA256 string      `json:"rootSha256"`
+	Delta      *Delta      `json:"delta,omitempty"`
 }
 
 type generationTask struct {
@@ -55,6 +58,14 @@ type generationTask struct {
 }
 
 func Generate(ctx context.Context, config GenerateConfig) (Manifest, error) {
+	plan, err := BuildPlan(config.Phase)
+	if err != nil {
+		return Manifest{}, err
+	}
+	return generate(ctx, config, plan)
+}
+
+func generate(ctx context.Context, config GenerateConfig, plan Plan) (Manifest, error) {
 	if ctx == nil {
 		return Manifest{}, errors.New("context is required")
 	}
@@ -69,10 +80,6 @@ func Generate(ctx context.Context, config GenerateConfig) (Manifest, error) {
 	}
 	if config.Workers < 1 || config.Workers > 256 {
 		return Manifest{}, fmt.Errorf("workers must be from 1 to 256")
-	}
-	plan, err := BuildPlan(config.Phase)
-	if err != nil {
-		return Manifest{}, err
 	}
 	if err := os.MkdirAll(filepath.Dir(config.Output), 0o750); err != nil {
 		return Manifest{}, fmt.Errorf("create output parent: %w", err)
@@ -169,9 +176,18 @@ func Generate(ctx context.Context, config GenerateConfig) (Manifest, error) {
 	sort.Slice(entries, func(left, right int) bool { return entries[left].Path < entries[right].Path })
 	manifest := Manifest{
 		Version: ManifestVersion, CreatedAt: time.Now().UTC().Format(time.RFC3339),
-		Seed: config.Seed, Shards: config.Shards, Plan: plan, Files: entries,
+		Seed: config.Seed, Shards: config.Shards, Plan: plan, Files: entries, Delta: config.delta,
 	}
-	manifest.RootSHA256 = manifestRoot(entries)
+	if config.delta != nil {
+		base, err := Verify(config.base)
+		if err != nil {
+			return Manifest{}, fmt.Errorf("reverify delta base: %w", err)
+		}
+		if base.RootSHA256 != config.delta.BaseRoot {
+			return Manifest{}, errors.New("delta base changed during generation")
+		}
+	}
+	manifest.RootSHA256 = manifestDigest(manifest)
 	if err := writeManifest(filepath.Join(config.Output, "manifest.json"), manifest); err != nil {
 		return Manifest{}, err
 	}
@@ -247,7 +263,7 @@ func writeNodeShard(ctx context.Context, config GenerateConfig, item VertexSpec,
 					status = ""
 				}
 				row := []string{
-					strconv.FormatInt(key, 10), externalID(item.Label, local),
+					strconv.FormatInt(key, 10), externalID(item.Label, item.IDOffset+local),
 					fmt.Sprintf("%s-%d-東京", item.Label, local+1), regions[(hashed>>8)%uint64(len(regions))],
 					timestamp(hashed), status,
 					strconv.FormatFloat(float64(hashed%1_000_000)/10_000, 'f', 4, 64),
@@ -255,6 +271,9 @@ func writeNodeShard(ctx context.Context, config GenerateConfig, item VertexSpec,
 					fmt.Sprintf("tier-%d;segment-%d", hashed%5, (hashed>>12)%17),
 					fmt.Sprintf("%d;%d;%d", 1+hashed%7, 1+(hashed>>7)%31, 1+(hashed>>14)%127),
 					description(item.Label, hashed),
+				}
+				if config.delta != nil && config.delta.Kind == DeltaUpsert {
+					row[5] = "updated"
 				}
 				if err := writer.Write(row); err != nil {
 					return err
@@ -268,6 +287,17 @@ func writeEdgeShard(ctx context.Context, config GenerateConfig, plan Plan, item 
 	start, end := partition(item.Count, config.Shards, shard)
 	if start == end {
 		return FileEntry{}, nil
+	}
+	deltaVertices := map[string]VertexSpec{}
+	if config.delta != nil {
+		for _, spec := range plan.VertexSpecs {
+			deltaVertices[spec.Label] = spec
+		}
+		var err error
+		plan, err = BuildPlan(config.Phase)
+		if err != nil {
+			return FileEntry{}, err
+		}
 	}
 	vertices := make(map[string]VertexSpec, len(plan.VertexSpecs))
 	for _, vertex := range plan.VertexSpecs {
@@ -292,14 +322,28 @@ func writeEdgeShard(ctx context.Context, config GenerateConfig, plan Plan, item 
 				hashed := splitMix64(config.Seed ^ uint64(key)*0xd6e8feb86659fd93 ^ hashString(item.Type))
 				startLocal := endpointIndex(hashed, startVertex.Count, isSkewed(item.Start))
 				endLocal := endpointIndex(splitMix64(hashed), endVertex.Count, isSkewed(item.End))
+				startKey, endKey := startVertex.FirstKey+startLocal, endVertex.FirstKey+endLocal
+				if config.delta != nil && config.delta.Kind == DeltaAppend {
+					if hashed&1 != 0 {
+						spec := deltaVertices[item.Start]
+						startKey = spec.FirstKey + int64(hashed%uint64(spec.Count))
+					}
+					if hashed&2 != 0 {
+						spec := deltaVertices[item.End]
+						endKey = spec.FirstKey + int64(splitMix64(hashed)%uint64(spec.Count))
+					}
+				}
 				row := []string{
-					strconv.FormatInt(key, 10), relationshipID(item.Type, local),
-					strconv.FormatInt(startVertex.FirstKey+startLocal, 10),
-					strconv.FormatInt(endVertex.FirstKey+endLocal, 10),
+					strconv.FormatInt(key, 10), relationshipID(item.Type, item.IDOffset+local),
+					strconv.FormatInt(startKey, 10),
+					strconv.FormatInt(endKey, 10),
 					timestamp(hashed), strconv.FormatUint(1+(hashed%10_000), 10),
 					[]string{"planned", "in_transit", "complete", "exception"}[(hashed>>9)%4],
 					strconv.FormatFloat(float64(hashed%2_000_000)/100, 'f', 2, 64),
 					description(item.Type, hashed>>3),
+				}
+				if config.delta != nil && config.delta.Kind == DeltaUpsert {
+					row[6] = "updated"
 				}
 				if err := writer.Write(row); err != nil {
 					return err

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "dateUTC": "2026-11-19",
+  "status": "blocked-retained-infrastructure-removed",
+  "candidateCommit": "2e9d8a825d18efe804c0f19d7d9d4fbf79688c9d",
+  "nativeBinarySha256": "0f4c416fbc1a7eaf9a04080d3dcbdefcc39a32162a9f415fa07611c0abf67570",
+  "seedBinarySha256": "2e805f1ac441d832235e1c41dfaa5dcae9e2d211a017ffd10a32464ca7bb74f9",
+  "candidateCI": {
+    "run": 44432159882,
+    "conclusion": "success",
+    "codeQLRun": 44432156918,
+    "codeQLConclusion": "success"
+  },
+  "sourceOnlyPreflights": {
+    "status": "passed",
+    "layouts": ["cosmos", "gremlin"],
+    "recordsPerLayout": {"base": 458000, "append": 4580, "upsert": 4580},
+    "consumedDocumentFileHashesVerified": true,
+    "serializedConfigRoundTripVerified": true,
+    "productionIteratorVerified": true,
+    "independentSQLContractsPassed": ["bounded-gremlin", "scale-gremlin", "scale-ordinary"],
+    "maximumSeedWorkersPerLayout": 16,
+    "seedTimeoutSecondsPerDataset": 1800,
+    "observedRequestChargeLimitPerDataset": 10000000,
+    "observedBaseSeedRequestCharge": {
+      "cosmos": 4853104.908998743,
+      "gremlin": 6006541.248962555
+    },
+    "qualificationCasesAdded": 0,
+    "workerArtifactsCurrentlyRetrievable": false
+  },
+  "paidTargetAdmission": {
+    "leaseId": "24b667c1-b594-4e1b-9875-e40b023ced57",
+    "independentRetainJob": "cf6f736d-5b82-48b4-b7eb-ff4b96c09f14",
+    "guardSettingsSha256": "78363c3ec64d347ec265d07a2ac679e6c5eb023b56b8b04780bd90f431030bde",
+    "reportedMtdUSDAtAdmission": 151.424307024057,
+    "conservativeWithFullWindowAndReservesUSD": 795.3060636227581,
+    "monthlyLimitUSD": 3750,
+    "whatIf": "12 Create only, within the approved disposable group",
+    "targets": 2,
+    "vCoresPerWriter": 8,
+    "numericHorizonQuotaProven": false
+  },
+  "initialDeployment": {
+    "status": "failed",
+    "failedResource": "PG17 originally approved managed-identity administrator",
+    "errorCode": "EntraAdministratorCreationFailed",
+    "errorReason": "InvalidGrantOperation",
+    "correlationId": "80906562-8a8e-4b4b-8aba-b54cb4abc8ff",
+    "bothWriterPoolsSubsequentlyObservedReady": true,
+    "administratorReconciliationWritePerformed": false,
+    "serviceSideRootCauseProven": false
+  },
+  "halt": {
+    "observedAtUtc": "2026-11-19T01:34:22.746684+00:00",
+    "excludedOldGroupState": "Deleting",
+    "excludedResourcesHTTP404": ["runnerVM", "protectedOSDisk", "evidenceStorage", "automationAccount"],
+    "excludedCosmosState": "Deleting",
+    "activityLogDeletionCorrelationId": "43fde307-014e-4544-af89-624e798a5dc0",
+    "activityLogClient": "Azure Portal",
+    "oldGroupDeletionRequestedByThisQualificationExecution": false,
+    "independentLifecycleGuardAvailable": false,
+    "historicalRawEvidenceDestinationAvailable": false,
+    "rawEvidenceRecoverabilityAssessed": false,
+    "restorationOrRecreationAttempted": false
+  },
+  "operatorCleanup": {
+    "scope": "rg-agefreighter-horizon-scale-20261118 only",
+    "finalHTTP404VerifiedAtUtc": "2026-11-19T01:37:09.771542+00:00",
+    "resourceGroupHTTP404": true,
+    "pg17HTTP404": true,
+    "pg18HTTP404": true,
+    "independentAutomationCleanup": false,
+    "excludedResourcesPreservationGatePassed": false
+  },
+  "coverage": {
+    "cosmosMigrationCasesStarted": 0,
+    "historicalP0PassingCases": 39,
+    "historicalP0FailedCases": 1,
+    "p0UnexecutedCases": 20,
+    "historicallyQualifiedRoutes": 7,
+    "completedPhases": [],
+    "p1P2P3Executed": false,
+    "promotionBlocked": true
+  },
+  "nextGate": "Operator coordination and fresh preserved evidence/lifecycle controls; no automatic restoration, recreation or paid restart."
+}

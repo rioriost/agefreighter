@@ -1097,6 +1097,7 @@ func openRuntime(
 		MaxConnections:   int32(job.Runtime.MaxTargetConnections),
 		ConnectTimeout:   time.Duration(job.Runtime.OperationTimeout),
 		OperationTimeout: time.Duration(job.Runtime.OperationTimeout),
+		BeforeConnect:    targetCredentialRefresher(job.Target.Connection),
 	})
 	if err != nil {
 		return nil, err

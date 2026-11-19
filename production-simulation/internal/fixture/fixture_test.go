@@ -2,11 +2,151 @@ package fixture
 
 import (
 	"context"
+	"encoding/csv"
+	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
+
+func TestOnePercentDeltasPreserveBaseAndIdentityDomains(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "base", "manifest.json")
+	base, err := Generate(t.Context(), GenerateConfig{
+		Phase: PhaseP0, Output: filepath.Dir(path), Shards: 4, Workers: 2, Seed: 20260829,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if base.RootSHA256 != "f5c55737a9b8abe9259937920c43504351db48c56b29afd031a813e403b20b1d" {
+		t.Fatal("the previously qualified P0 base fixture changed")
+	}
+	for _, kind := range []DeltaKind{DeltaAppend, DeltaUpsert} {
+		t.Run(string(kind), func(t *testing.T) {
+			output := filepath.Join(dir, string(kind))
+			delta, err := GenerateDelta(t.Context(), path, output, kind)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if delta.Plan.VertexTotal != base.Plan.VertexTotal/100 || delta.Plan.EdgeTotal != base.Plan.EdgeTotal/100 {
+				t.Fatal("delta is not exactly one percent of each base total")
+			}
+			if delta.Delta.BaseRoot != base.RootSHA256 {
+				t.Fatal("delta does not pin its base")
+			}
+			if _, err := Verify(filepath.Join(output, "manifest.json")); err != nil {
+				t.Fatal(err)
+			}
+			seen := map[string]int64{}
+			var endpointMix [4]int
+			for _, entry := range delta.Files {
+				if entry.Kind != "node" && entry.Kind != "edge" {
+					continue
+				}
+				var first, offset int64
+				for _, spec := range delta.Plan.VertexSpecs {
+					if spec.Label == entry.Name {
+						first, offset = spec.FirstKey, spec.IDOffset
+					}
+				}
+				for _, spec := range delta.Plan.EdgeSpecs {
+					if spec.Type == entry.Name {
+						first, offset = spec.FirstKey, spec.IDOffset
+					}
+				}
+				f, err := os.Open(filepath.Join(output, entry.Path))
+				if err != nil {
+					t.Fatal(err)
+				}
+				reader := csv.NewReader(f)
+				for {
+					row, err := reader.Read()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+					local := seen[entry.Name]
+					if row[0] != strconv.FormatInt(first+local, 10) {
+						t.Fatal("source keys are not the frozen prefix/suffix")
+					}
+					want, status := externalID(entry.Name, offset+local), 5
+					if entry.Kind == "edge" {
+						want, status = relationshipID(entry.Name, offset+local), 6
+						if kind == DeltaAppend {
+							start, e1 := strconv.ParseInt(row[2], 10, 64)
+							end, e2 := strconv.ParseInt(row[3], 10, 64)
+							if e1 != nil || e2 != nil {
+								t.Fatal("invalid endpoint key")
+							}
+							category := 0
+							if start > base.Plan.VertexTotal {
+								category |= 1
+							}
+							if end > base.Plan.VertexTotal {
+								category |= 2
+							}
+							endpointMix[category]++
+						}
+					}
+					if row[1] != want || (kind == DeltaUpsert && row[status] != "updated") {
+						t.Fatal("delta changed identity or failed to update a selected record")
+					}
+					seen[entry.Name]++
+				}
+				if err := f.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if kind == DeltaAppend {
+				for _, count := range endpointMix {
+					if count == 0 {
+						t.Fatal("append omitted an old/new endpoint combination")
+					}
+				}
+			}
+			again, err := GenerateDelta(t.Context(), path, filepath.Join(dir, string(kind)+"-repeat"), kind)
+			if err != nil || again.RootSHA256 != delta.RootSHA256 {
+				t.Fatalf("delta is not deterministic: %v", err)
+			}
+			if _, err := GenerateDelta(t.Context(), path, output, kind); err == nil {
+				t.Fatal("an existing delta was overwritten")
+			}
+			delta.Delta.BaseRoot = strings.Repeat("0", 64)
+			tampered := filepath.Join(output, "tampered.json")
+			if err := writeManifest(tampered, delta); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := Verify(tampered); err == nil {
+				t.Fatal("delta provenance is not covered by its digest")
+			}
+		})
+	}
+	after, err := Verify(path)
+	if err != nil || after.RootSHA256 != base.RootSHA256 {
+		t.Fatalf("base fixture changed: %v", err)
+	}
+	for _, phase := range []Phase{PhaseP0, PhaseP1, PhaseP2} {
+		for _, kind := range []DeltaKind{DeltaAppend, DeltaUpsert} {
+			delta, err := deltaPlan(phase, kind)
+			if err != nil {
+				t.Fatal(err)
+			}
+			base, _ := BuildPlan(phase)
+			if delta.VertexTotal*100 != base.VertexTotal || delta.EdgeTotal*100 != base.EdgeTotal {
+				t.Fatal("larger-phase delta was rounded to the wrong total")
+			}
+		}
+	}
+	for _, phase := range []Phase{PhaseTiny, PhaseP3} {
+		if _, err := deltaPlan(phase, DeltaAppend); err == nil {
+			t.Fatal("unapproved incremental envelope accepted")
+		}
+	}
+}
 
 func TestPlansHaveExactTotalsAndContiguousKeys(t *testing.T) {
 	for _, phase := range []Phase{PhaseTiny, PhaseP0, PhaseP1, PhaseP2, PhaseP3} {

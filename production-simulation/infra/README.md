@@ -43,3 +43,33 @@ No deployment wrapper is included before review. This intentionally prevents a
 repository command from turning the candidate sizing into live resources by
 accident. A reviewed deployment entry point can be added after the first
 `what-if` output and budget are approved.
+
+## Rebuilding HorizonDB qualification support
+
+Set `deployTinyTargets=false` on `horizondb-tiny.bicep` to provision only the
+runner, network, shutdown schedule, and private Cosmos source. This mode does
+not create HorizonDB clusters, private endpoints, or firewall rules. A
+replacement NAT allocation does not inherit approval of the previous IP for
+HorizonDB ingress. Verify the new static address before requesting that rule.
+
+Deploy `horizondb-scale-safety.bicep` with the new runner identity and a fresh
+prefix. Use `protectEvidenceAccount=true` to add an ARM deletion lock to the
+new evidence account. Do not reuse the name of a deleted evidence account when
+its recovery may still be needed. Publish a fresh guard lease bound to the
+actual new disk and verify cost access, private evidence read-back, and
+exact-scope cleanup before provisioning paid targets.
+
+For `horizondb-p0-csv-targets.bicep`, supply the approved NAT IPv4 without
+the `/32` suffix. The rule uses the same address for both endpoints. Leave
+`administratorObjectId` empty on initial provisioning; only enroll the new
+runner identity after the writer is Ready and Entra authentication is
+persisted as Enabled.
+
+The P1 CSV credential renewal probe uses `horizondb-p1-pg17-writer.bicep`,
+not the P0 two-writer template. Verify the independent lease and an exact
+four-resource Create-only preview (cluster, writer, single approved NAT
+firewall rule, Entra authentication). Enroll only the approved identity
+against an empty administrator collection after `Ready`. This read-only
+probe leaves the default PG17 parameter group in place and does not create
+a database, initialize AGE, or load a graph. See the
+[P1 lane plan](../docs/horizondb-parallel-plan.md#first-p1-lane-csv-to-postgresql-17).
