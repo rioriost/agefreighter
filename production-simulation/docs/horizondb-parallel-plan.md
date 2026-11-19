@@ -2,9 +2,10 @@
 
 Prepared 2026-11-18. **P0-P3 execution is approved; technical and cost
 promotion gates remain mandatory. P0 currently has thirty-nine passing cases,
-one failed case and twenty unexecuted cases: seven of twelve fully qualified
+one failed case and twenty unexecuted cases: seven of twelve historically qualified
 routes, no complete phase. Neo4j 5.26 to PG17 failed before the required
-SIGKILL; no recovery success is claimed for that case.**
+SIGKILL; no recovery success is claimed for that case. Execution is now
+blocked by removal of the retained worker, evidence and independent guard.**
 After successful tiny qualification and publication of 2.4.2, the user
 approved all four larger phases on 2026-11-18. Existing tiny HorizonDB clusters
 may be reused, or deleted if replacing them with new clusters is preferable.
@@ -19,6 +20,44 @@ is documented here; the historical Flexible Server result is not HorizonDB
 evidence.
 
 ## Current execution status
+
+### November 19: halted after retained infrastructure deletion
+
+The bounded Cosmos continuation at candidate
+`2e9d8a825d18efe804c0f19d7d9d4fbf79688c9d` passed both actual source-only
+preflights: 458,000 base records and 4,580 records in each immutable delta,
+consumed-file hashes, written-configuration round trips and complete production
+iterator counts. All three isolated SQL verification contracts and exact-candidate
+CI passed. These checks add **zero HorizonDB migration cases**.
+
+The two eight-vCore targets passed the twelve-Create-only what-if and were
+provisioned under a fresh independently verified lease. Initial PG17 managed
+identity administrator creation failed with `InvalidGrantOperation`; no
+migration was started. During diagnosis, the excluded old resource group
+`rg-agefreighter-horizon-tiny-20261118` was independently observed **Deleting**
+at **01:34:22 UTC / 10:34:22 JST**. Its VM, protected OS disk, evidence Storage
+and Automation account returned 404; Cosmos was also Deleting. Activity Log
+recorded a separate Azure Portal-client deletion correlation. This qualification
+execution did not request deletion of that old group or those excluded resources.
+No administrator reconciliation write followed the missing-guard check.
+
+The original raw-evidence destination is now unavailable; historical upload
+and read-back receipts below do not prove current recoverability. Recovery has
+not been attempted. The source-only summary and control-plane diagnostics
+survive locally, but the removed worker's full preparation artifacts cannot
+currently be retrieved.
+
+Fail-closed operator cleanup targeted **only** the previously approved new
+group, `rg-agefreighter-horizon-scale-20261118`. Separate final GETs confirmed
+that group and both targets returned **404 at 01:37:09 UTC / 10:37:09 JST**.
+This was operator cleanup, **not** a successful independent Automation cleanup.
+The [halt record](horizondb-p0-cosmos-preparation-20261119.json) preserves that
+distinction. The twenty Cosmos migration cases and all P1-P3 cases remain
+unexecuted. **Do not recreate infrastructure, restore resources, reuse the stale
+lease or resume paid qualification until the conflicting deletion is coordinated
+with the operator and fresh evidence/lifecycle gates are established.**
+
+### Historical execution through November 18
 
 The initial Azure CLI discovery failed with `AADSTS135010`. After the user
 reauthenticated on 2026-11-18, the intended subscription was accessible.
