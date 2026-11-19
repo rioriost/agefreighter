@@ -66,6 +66,7 @@ type p1Admission struct {
 	ExecutableSHA256         string    `json:"executableSha256"`
 	GuardSettingsSHA256      string    `json:"guardSettingsSha256"`
 	RenewalEvidenceSHA256    string    `json:"renewalEvidenceSha256"`
+	TokenValidThroughLease   bool      `json:"tokenValidThroughLease,omitempty"`
 	FixturePreparationSHA256 string    `json:"fixturePreparationSha256"`
 	SnapshotID               string    `json:"lifecycleProbeSnapshotId"`
 	WriterReadyAt            time.Time `json:"writerReadyAtUtc"`
@@ -76,9 +77,16 @@ func (a p1Admission) validate(now time.Time, needed time.Duration) error {
 		!p1UUIDPattern.MatchString(a.IdentityClientID) ||
 		!p1CommitPattern.MatchString(a.Commit) ||
 		!p1SHA.MatchString(a.ExecutableSHA256) || !p1SHA.MatchString(a.GuardSettingsSHA256) ||
-		!p1SHA.MatchString(a.RenewalEvidenceSHA256) || !p1SHA.MatchString(a.FixturePreparationSHA256) ||
+		!p1SHA.MatchString(a.FixturePreparationSHA256) ||
 		!regexp.MustCompile(`^/subscriptions/[a-f0-9-]{36}/resourceGroups/rg-agefreighter-horizon-tiny-20261118/providers/Microsoft\.Compute/snapshots/afhs-20261118-[a-f0-9]{16}$`).MatchString(a.SnapshotID) {
 		return errors.New("require the independently admitted P1 CSV PG17 writer, candidate, identity, guard, renewal and snapshot evidence")
+	}
+	if a.TokenValidThroughLease {
+		if a.RenewalEvidenceSHA256 != "" {
+			return errors.New("a lease covered by the initial token does not establish credential renewal")
+		}
+	} else if !p1SHA.MatchString(a.RenewalEvidenceSHA256) {
+		return errors.New("require either verified renewal evidence or actual initial-token coverage for the entire lease")
 	}
 	rel, err := filepath.Rel(a.FixtureDir, a.Output)
 	if !filepath.IsAbs(a.Output) || !filepath.IsAbs(a.FixtureDir) || err != nil ||
@@ -609,6 +617,15 @@ func startP1Credentials(t *testing.T, ctx context.Context, cancelPilot context.C
 		stop()
 		t.Fatal("initial P1 managed identity credential must be valid for at least five minutes")
 	}
+	if a.TokenValidThroughLease && expires.Before(a.Deadline.Add(5*time.Minute)) {
+		stop()
+		t.Fatal("initial P1 credential does not cover the full admitted lease plus five minutes")
+	}
+	writeTinyJSON(t, filepath.Join(a.Output, "credential-validity.json"), map[string]any{
+		"clientId": a.IdentityClientID, "initialExpiresAtUtc": expires.UTC(),
+		"leaseDeadlineUtc": a.Deadline, "initialTokenCoversLease": !expires.Before(a.Deadline.Add(5 * time.Minute)),
+		"verifiedRenewalEvidence": a.RenewalEvidenceSHA256 != "",
+	})
 	done := make(chan error, 1)
 	go func() {
 		for {
@@ -718,6 +735,11 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 	if err := a.validate(now, p1RunTime+time.Hour); err != nil {
 		t.Fatal(err)
 	}
+	covered := a
+	covered.TokenValidThroughLease, covered.RenewalEvidenceSHA256 = true, ""
+	if err := covered.validate(now, p1RunTime+time.Hour); err != nil {
+		t.Fatal(err)
+	}
 	for _, tt := range []struct {
 		name   string
 		change func(*p1Admission)
@@ -729,6 +751,7 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 		{"unbounded deadline", func(a *p1Admission) { a.Deadline = now.Add(9 * time.Hour) }},
 		{"mutable fixture path", func(a *p1Admission) { a.Output = "/fixture/output" }},
 		{"no renewal proof", func(a *p1Admission) { a.RenewalEvidenceSHA256 = "" }},
+		{"initial token confused with renewal proof", func(a *p1Admission) { a.TokenValidThroughLease = true }},
 		{"no fixture receipt", func(a *p1Admission) { a.FixturePreparationSHA256 = "" }},
 		{"no measured snapshot", func(a *p1Admission) { a.SnapshotID = strings.Replace(a.SnapshotID, "-tiny-", "-scale-", 1) }},
 		{"stale writer readiness", func(a *p1Admission) { a.WriterReadyAt = now.Add(-2 * time.Hour) }},

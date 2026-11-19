@@ -5,15 +5,19 @@ param leaseId string
 param sshPublicKey string
 param fallbackShutdownTime string
 param administratorUsername string
+@allowed(['lifecycle-canary', 'csv-worker'])
+param purpose string = 'lifecycle-canary'
+param postgresIdentityResourceId string = ''
 
 var location = 'japaneast'
-var name = 'afhs-20261118-p1-canary'
+var isWorker = purpose == 'csv-worker'
+var name = isWorker ? 'afhs-20261118-p1-csv' : 'afhs-20261118-p1-canary'
 var tags = {
   application: 'agefreighter'
   campaign: 'afhs-20261118'
   qualificationLease: leaseId
   phase: 'p1'
-  purpose: 'lifecycle-canary'
+  purpose: purpose
 }
 
 resource vnet 'Microsoft.Network/virtualNetworks@2024-07-01' existing = {
@@ -45,6 +49,12 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   name: name
   location: location
   tags: tags
+  identity: isWorker ? {
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${postgresIdentityResourceId}': {}
+    }
+  } : null
   properties: {
     hardwareProfile: { vmSize: 'Standard_D8ds_v5' }
     securityProfile: {

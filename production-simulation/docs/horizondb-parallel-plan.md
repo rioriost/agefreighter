@@ -866,8 +866,8 @@ independent fixture oracle; its source role cannot pass a target comparison.
 The actual source-only replay matched all 5,600,000 records and 64 ranges at
 root `bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
 
-After the live renewal passes, stage the isolated worker under the pilot
-lease before allocating its writer. Build a single Linux test binary from
+Stage the isolated worker under the pilot lease before loading its writer.
+Build a single Linux test binary from
 the clean, pinned candidate. Using that binary, regenerate the raw fixtures
 on the worker's durable disk with no live admission or database credentials:
 
@@ -912,6 +912,11 @@ use 75-minute full-case and 30-minute incremental bounds, without relaxing
 the production 300-second SQL operation bound. They capture committed progress,
 worker peak RSS and exact SIGKILL/same-ID recovery, and require independent
 SQL canonical parity on every case.
+For an initial bounded pilot that cannot cross token expiry, use
+`tokenValidThroughLease: true` and leave `renewalEvidenceSha256` empty.
+The loader verifies that the actual managed-identity token obtained on its
+worker is valid through the admitted end plus five minutes. This permits
+the migration but is not evidence that credential renewal works.
 
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
