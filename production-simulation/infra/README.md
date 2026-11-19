@@ -64,3 +64,12 @@ the `/32` suffix. The rule uses the same address for both endpoints. Leave
 `administratorObjectId` empty on initial provisioning; only enroll the new
 runner identity after the writer is Ready and Entra authentication is
 persisted as Enabled.
+
+The P1 CSV credential renewal probe uses `horizondb-p1-pg17-writer.bicep`,
+not the P0 two-writer template. Verify the independent lease and an exact
+four-resource Create-only preview (cluster, writer, single approved NAT
+firewall rule, Entra authentication). Enroll only the approved identity
+against an empty administrator collection after `Ready`. This read-only
+probe leaves the default PG17 parameter group in place and does not create
+a database, initialize AGE, or load a graph. See the
+[P1 lane plan](../docs/horizondb-parallel-plan.md#first-p1-lane-csv-to-postgresql-17).

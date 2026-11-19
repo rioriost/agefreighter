@@ -40,7 +40,11 @@ class FakeClient:
         self.deleted = set()
         self.snapshots = {}
         self.snapshot_ok = True
+        self.snapshot_private = True
         self.with_worker = False
+        self.worker_lease = LEASE
+        self.worker_stop_ok = True
+        self.worker_stopped = False
         self.cost_available = True
 
     def request(self, method, path, body=None, missing_ok=False):
@@ -62,13 +66,25 @@ class FakeClient:
                                 "type": "Microsoft.Compute/virtualMachines"}]
                               if self.with_worker else [])}, {}
         if resource.endswith("/virtualMachines/loader"):
-            return {"tags": {"campaign": "afhs-20261118"},
+            return {"tags": {"campaign": "afhs-20261118", "qualificationLease": self.worker_lease},
                     "properties": {"storageProfile": {"osDisk": {"managedDisk": {
                         "id": NEW + "/providers/Microsoft.Compute/disks/loader-os"
                     }}}}}, {}
+        if resource.endswith("/virtualMachines/loader/instanceView"):
+            return {"statuses": [{"code": "PowerState/deallocated" if self.worker_stopped else "PowerState/running"}]}, {}
+        if resource.endswith("/virtualMachines/loader/deallocate"):
+            self.worker_stopped = self.worker_stop_ok
+            return {}, {}
         if resource.endswith("/disks/loader-os"):
             return {"properties": {"diskSizeGB": 128}}, {}
         if "/snapshots/" in resource:
+            if method == "PUT":
+                props = copy.deepcopy(body["properties"])
+                props["provisioningState"] = "Succeeded" if self.snapshot_ok else "Failed"
+                if not self.snapshot_private:
+                    props["publicNetworkAccess"] = "Enabled"
+                self.snapshots[resource] = {"properties": props, "sku": body["sku"]}
+                return {}, {}
             return self.snapshots.get(resource), {}
         if resource == CLUSTER:
             return {"tags": {"application": "agefreighter", "run": "afht-20261118", "qualificationLease": LEASE}}, {}
@@ -79,10 +95,6 @@ class FakeClient:
         resource = path.split("?")[0]
         if method == "DELETE":
             self.deleted.add(resource)
-        if method == "PUT":
-            props = copy.deepcopy(body["properties"])
-            props["provisioningState"] = "Succeeded" if self.snapshot_ok else "Failed"
-            self.snapshots[resource] = {"properties": props}
 
 
 class ScopeAndBudgetTests(unittest.TestCase):
@@ -158,7 +170,9 @@ class ScopeAndBudgetTests(unittest.TestCase):
         methods = [method for method, _ in client.calls]
         self.assertLess(methods.index("PUT"), methods.index("DELETE"))
         stop = next(i for i, (method, path) in enumerate(client.calls) if path.endswith("/deallocate?api-version=" + guard.COMPUTE_API))
-        self.assertLess(stop, methods.index("PUT"))
+        confirmed = next(i for i, (_, path) in enumerate(client.calls) if i > stop and "/loader/instanceView?" in path)
+        self.assertLess(stop, confirmed)
+        self.assertLess(confirmed, methods.index("PUT"))
         self.assertEqual(len(client.snapshots), 1)
         self.assertTrue(all(path.startswith(OLD + "/") for path in client.snapshots))
 
@@ -168,6 +182,33 @@ class ScopeAndBudgetTests(unittest.TestCase):
         client.snapshot_ok = False
         with self.assertRaises(RuntimeError):
             self.run_guard(settings(expired=True), client)
+        self.assertEqual(client.deleted, set())
+
+    def test_snapshot_without_privacy_prevents_deletion(self):
+        client = FakeClient()
+        client.with_worker = True
+        client.snapshot_private = False
+        with self.assertRaisesRegex(RuntimeError, "snapshot identity or privacy differs"):
+            self.run_guard(settings(expired=True), client)
+        self.assertEqual(client.deleted, set())
+
+    def test_worker_must_reach_deallocated_before_snapshot(self):
+        client = FakeClient()
+        client.with_worker = True
+        client.worker_stop_ok = False
+        with patch.object(guard.time, "monotonic", side_effect=[0, 1200]):
+            with self.assertRaisesRegex(RuntimeError, "worker deallocation was not verified"):
+                self.run_guard(settings(expired=True), client)
+        self.assertEqual(client.deleted, set())
+        self.assertFalse(client.snapshots)
+
+    def test_worker_from_another_lease_is_not_stopped(self):
+        client = FakeClient()
+        client.with_worker = True
+        client.worker_lease = "00000000-0000-0000-0000-000000000003"
+        with self.assertRaisesRegex(RuntimeError, "worker ownership or execution lease differs"):
+            self.run_guard(settings(expired=True), client)
+        self.assertFalse(any(method == "POST" and "/deallocate?" in path for method, path in client.calls))
         self.assertEqual(client.deleted, set())
 
     def test_expired_job_cannot_delete_a_reenrolled_campaign(self):

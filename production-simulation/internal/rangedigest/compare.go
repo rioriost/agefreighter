@@ -6,6 +6,10 @@ func Compare(expected, actual Manifest) (Comparison, error) {
 	return compareManifests(expected, actual, CanonicalVersion, "apache-age")
 }
 
+func CompareCSV(expected, actual Manifest) (Comparison, error) {
+	return compareManifests(expected, actual, CanonicalVersion, "csv")
+}
+
 func compareManifests(expected, actual Manifest, canonicalVersion, actualRole string) (Comparison, error) {
 	result := Comparison{
 		Status: "fail", FixtureRoot: expected.FixtureRoot,

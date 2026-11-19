@@ -241,8 +241,9 @@ def preserve_worker_evidence(client, settings, preserved, disposable):
         if resource["type"].lower() != "microsoft.compute/virtualmachines":
             continue
         vm, _ = client.request("GET", resource["id"] + "?api-version=" + COMPUTE_API)
-        if vm.get("tags", {}).get("campaign") != "afhs-" + settings["date"]:
-            raise RuntimeError("worker ownership differs")
+        tags = vm.get("tags", {})
+        if tags.get("campaign") != "afhs-" + settings["date"] or tags.get("qualificationLease") != settings["leaseId"]:
+            raise RuntimeError("worker ownership or execution lease differs")
         os_disk = vm["properties"]["storageProfile"]["osDisk"]
         if os_disk.get("diffDiskSettings", {}).get("option") == "Local":
             raise RuntimeError("worker evidence cannot be on an ephemeral OS disk")
@@ -254,21 +255,39 @@ def preserve_worker_evidence(client, settings, preserved, disposable):
             raise RuntimeError("worker evidence snapshot exceeds the reviewed 128GiB bound")
         workers.append((resource["id"], disk_id))
     with ThreadPoolExecutor(max_workers=8) as pool:
-        list(pool.map(lambda item: client.operation(
-            "POST", item[0] + "/deallocate?api-version=" + COMPUTE_API, {}
-        ), workers))
+        list(pool.map(lambda item: deallocate_worker(client, item[0]), workers))
         snapshots = list(pool.map(
             lambda item: preserve_snapshot(client, settings, preserved, item[1]), workers
         ))
     return snapshots
 
 
+def deallocate_worker(client, vm_id):
+    status_path = vm_id + "/instanceView?api-version=" + COMPUTE_API
+
+    def deallocated():
+        instance, _ = client.request("GET", status_path)
+        return any(s["code"] == "PowerState/deallocated" for s in instance["statuses"])
+
+    requested = not deallocated()
+    if requested:
+        # Poll the scoped VM instead of requiring a subscription-level operation read.
+        client.request("POST", vm_id + "/deallocate?api-version=" + COMPUTE_API, {})
+        end = time.monotonic() + 1200
+        while not deallocated():
+            if time.monotonic() >= end:
+                raise RuntimeError("worker deallocation was not verified within 20 minutes")
+            time.sleep(10)
+    print(json.dumps({"deallocatedWorker": vm_id, "requestedDeallocation": requested}), flush=True)
+
+
 def preserve_snapshot(client, settings, preserved, disk_id):
     suffix = hashlib.sha256((settings["startedAtUtc"] + disk_id.lower()).encode()).hexdigest()[:16]
     snapshot_id = preserved + "/providers/Microsoft.Compute/snapshots/afhs-" + settings["date"] + "-" + suffix
-    snapshot, _ = client.request("GET", snapshot_id + "?api-version=" + SNAPSHOT_API, missing_ok=True)
+    path = snapshot_id + "?api-version=" + SNAPSHOT_API
+    snapshot, _ = client.request("GET", path, missing_ok=True)
     if snapshot is None:
-        client.operation("PUT", snapshot_id + "?api-version=" + SNAPSHOT_API, {
+        client.request("PUT", path, {
             "location": "japaneast", "sku": {"name": "Standard_LRS"},
             "tags": {"application": "agefreighter", "campaign": "afhs-" + settings["date"], "retain": "evidence"},
             "properties": {
@@ -276,10 +295,20 @@ def preserve_snapshot(client, settings, preserved, disk_id):
                 "incremental": True, "networkAccessPolicy": "DenyAll", "publicNetworkAccess": "Disabled",
             },
         })
-    snapshot, _ = client.request("GET", snapshot_id + "?api-version=" + SNAPSHOT_API)
-    props = snapshot["properties"]
-    if props["provisioningState"] != "Succeeded" or props["creationData"]["sourceResourceId"].lower() != disk_id.lower():
-        raise RuntimeError("external evidence snapshot is not verified")
+    end = time.monotonic() + 1200
+    while True:
+        snapshot, _ = client.request("GET", path)
+        props = snapshot["properties"]
+        state = props["provisioningState"]
+        if state == "Succeeded":
+            break
+        if state in ("Failed", "Canceled") or time.monotonic() >= end:
+            raise RuntimeError("external evidence snapshot did not succeed")
+        time.sleep(10)
+    if (props["creationData"]["sourceResourceId"].lower() != disk_id.lower()
+            or props["incremental"] is not True or props["networkAccessPolicy"] != "DenyAll"
+            or props["publicNetworkAccess"] != "Disabled" or snapshot["sku"]["name"] != "Standard_LRS"):
+        raise RuntimeError("external evidence snapshot identity or privacy differs")
     result = {"id": snapshot_id, "sourceDiskId": disk_id, "state": "Succeeded"}
     print(json.dumps({"preservedEvidenceSnapshot": result}), flush=True)
     return result

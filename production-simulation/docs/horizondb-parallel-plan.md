@@ -798,6 +798,110 @@ the intended subscription; neither a public price nor an earlier successful
 deployment proves current capacity. Do not provision until both regional and
 family quotas, HorizonDB capacity and Cosmos partition limits are verified.
 
+### First P1 lane: CSV to PostgreSQL 17
+
+P1 fixture preparation started on 2026-11-19 after the 60-case P0 pass.
+The frozen base is 1,600,000 vertices and 4,000,000 edges (64 shards, seed
+`20260829`); append and upsert are each 16,000 vertices and 40,000 edges.
+The independent ordinary and partition-aware oracles produced all six
+base/append/upsert roots. The final incremental graph is 5,656,000 records.
+This is source evidence only: no P1 HorizonDB case has been executed.
+
+The first live attempt is one `CSV -> PG17/AGE 1.8` lane in Japan East, with
+no source database or Cosmos charge. It must not be used to qualify PG18
+or another source. Admit the following operations separately:
+
+1. **Lifecycle canary, no database.** Use the exact disposable
+   `rg-agefreighter-horizon-scale-20261118` scope, after independently verifying
+   that the prior lease is absent. A single `Standard_D8ds_v5` test VM
+   `afhs-20261118-p1-canary` with a 128-GiB P10 LRS managed OS disk and a
+   two-hour lease must actually be deallocated by the existing independent
+   guard. Both the canary and pilot use Trusted Launch, Canonical Ubuntu 24.04
+   `server:24.04.202610250`, and the existing `afht-20261118-vnet/tiny`
+   subnet, without a public IP or a new inbound rule. Verify the canary's
+   retained `Standard_LRS` incremental snapshot, source
+   disk ID, network access disabled and `Succeeded` state before the guard
+   deletes the disposable group. Independently confirm the final group 404
+   and surviving evidence. Empty-group cleanup alone is not this proof.
+   The live canary passed on 2026-11-19: Automation requested deallocation,
+   verified it and the private snapshot, and deleted only the leased group.
+   An independent read confirmed the group 404 at 07:35 UTC.
+2. **Real credential renewal.** Use a dedicated proposed user-assigned
+   identity `afhs-20261118-p1-csv` in the retained group, not a new password
+   or permissions on the existing runner identity. This new identity and
+   any temporary runner attachment need explicit scope approval. Prime it
+   for the PostgreSQL audience from the retained runner during a bounded
+   start, record only the observed expiry, and deallocate while waiting.
+   [Azure documents a 24-hour managed identity token cache][mi-token-cache];
+   a new VM or repeated SDK request does not prove rotation. Near the
+   observed expiry, prove the same client ID gets a distinct later-expiring
+   token and creates a fresh `verify-full` PostgreSQL session through the
+   production `BeforeConnect` hook. Use the same identity for the pilot.
+   If a fresh token already outlives the lease, stop rather than substituting
+   a cached token or extending the live lease. Never copy a token into
+   evidence, logs, a command line or a managed-disk snapshot.
+   The approved identity was primed without assigning Azure resource roles.
+   The retained runner is deallocated again, the temporary assignment was
+   removed, and its original shutdown schedule was restored. The first
+   observed credential expires at `2026-11-20T07:31:12Z`; renewal and
+   reconnect have not yet been verified.
+3. **One full lane.** Use an isolated `Standard_D8ds_v5` worker
+   `afhs-20261118-p1-csv` with the same OS disk shape as the canary and one
+   standalone 8-vCore PG17 writer `afhs-20261118-pg17` in the disposable
+   group, with the existing approved sole NAT ingress and a fresh run-scoped
+   database. The regional VM quota read 8/101 used; HorizonDB does not expose
+   a numeric quota through `az quota`. Confirm only the intended allocation,
+   never four speculative writers. Verify authoritative ReadWrite hostname,
+   effective PG17/AGE 1.8, the exact approved identity, working guard settings,
+   fresh cost and independent telemetry/stop controls before loading. Run
+   under an eight-hour maximum lease; require at least 5h45m remaining at
+   pilot admission. Seal private evidence with SHA-256 readback, then confirm
+   exact scoped retirement. Do not treat retained resources as disposable.
+
+The opt-in source-only check is `TestHorizonDBP1CSVSourcePreflight` with
+absolute `AGEFREIGHTER_HORIZON_P1_FIXTURE_DIR` and a new absolute
+`AGEFREIGHTER_HORIZON_P1_PREFLIGHT_OUTPUT`. It verifies portable CSV hashes
+and replays the full base through AGEFreighter's CSV connector against the
+independent fixture oracle; its source role cannot pass a target comparison.
+The actual source-only replay matched all 5,600,000 records and 64 ranges at
+root `bf6bb2aa48ffb240333f0a9e3e12aa62086e4f99c9f083b5432f42be9e08bf70`.
+
+The opt-in `TestHorizonDBP1ManagedIdentityRenewalIntegration` in `internal/app`
+uses `AGEFREIGHTER_REQUIRE_HORIZON_P1_REFRESH=1` and
+`AGEFREIGHTER_HORIZON_P1_REFRESH_{HOST,USER,CLIENT_ID,DEADLINE_UTC,INITIAL_EXPIRY_UTC}`.
+The read-only probe uses the PG17-only renewal template and the retained
+runner, not the isolated migration worker. The writer start window is 65 to
+45 minutes before the observed expiry; the guard lease ends 20 minutes after
+it. Leave the default PG17 parameter group in place and run read-only SQL
+against `postgres`. If the first observed expiry is not reproduced or there
+is insufficient time for a verified reconnect, stop and retire the
+disposable scope rather than extending it. The probe does not qualify AGE
+or count toward the CSV migration cases.
+The `TestHorizonDBP1CSVPG17Integration` Linux test binary requires
+`AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG17=1` and
+`AGEFREIGHTER_HORIZON_P1_RECEIPT` pointing to the externally verified admission
+JSON (see `p1Admission`). Check the receipt against authoritative ARM, the
+independent scheduled guard job, the same-identity renewal log, and the actual
+retained snapshot; the receipt is not a substitute for those checks. Run the
+whole test, without mode subfilters, with `-test.timeout=8h`. The five cases
+use 75-minute full-case and 30-minute incremental bounds, without relaxing
+the production 300-second SQL operation bound. They capture committed progress,
+worker peak RSS and exact SIGKILL/same-ID recovery, and require independent
+SQL canonical parity on every case.
+
+At the published Japan East rates, writer plus loader compute is
+`$2.235248/hour`, or `$17.88` for eight hours before retirement. Allow about
+`$30` for compute, disks, modeled data/backup, and 90 minutes of cleanup
+including the canary and bounded retained-runner wakeups. Two retained
+128-GiB disk snapshots (canary and pilot), conservatively billed at full
+size, cost about `$42` for a month at `$0.152/GB-month`; actual incremental
+snapshots can be smaller. Round the first-lane planning allowance up to
+`$100`, including headroom, without reducing the independent monthly
+cost guard or taking unpriced resource retention as approved. This is not
+a quote, actual spend, or an estimate for the remaining eleven P1 routes.
+
+[mi-token-cache]: https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview-for-developers#guidelines-if-youre-handling-tokens-directly
+
 ## Faults, verification and evidence
 
 Retain the existing checkpoint-relative schedule: process termination near 25%,
