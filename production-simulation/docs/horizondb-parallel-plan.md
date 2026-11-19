@@ -1,10 +1,7 @@
 # HorizonDB qualification and parallel execution plan
 
-Prepared 2026-11-18. **P0-P3 execution is approved; technical and cost
-promotion gates remain mandatory. P0 currently has 47 passing cases, three
-failed cases and ten unexecuted cases: seven of twelve qualified routes and
-no complete phase. None of the three failed resume cases reached SIGKILL.
-P1–P3 have not run.**
+Prepared 2026-11-18. **P0 passed all 60 cases across all 12 routes.
+P1–P3 have not run; their technical and cost promotion gates remain mandatory.**
 After successful tiny qualification and publication of 2.4.2, the user
 approved all four larger phases on 2026-11-18. Existing tiny HorizonDB clusters
 may be reused, or deleted if replacing them with new clusters is preferable.
@@ -19,6 +16,36 @@ is documented here; the historical Flexible Server result is not HorizonDB
 evidence.
 
 ## Current execution status
+
+### November 19: all P0 cases passed
+
+The [redacted requalification evidence](horizondb-p0-requalification-20261119.json)
+records 25 fresh passes on `32f944c` and 35 carried-forward passes with unchanged
+production code and dependencies. This covers all six source configurations,
+both PostgreSQL 17.11 and 18.6 with AGE 1.8.0, and all five P0 modes.
+
+Both Cosmos layouts passed all five modes on both targets. NoSQL matched the
+ordinary-source roots; Gremlin backing documents matched their independent
+partition-aware oracle on both majors. All four Cosmos recovery workers were
+actually SIGKILLed and resumed from their durable checkpoint with the same job ID.
+
+The Neo4j 5.26 PG17 recovery-only selection first failed on an uninitialized
+metadata table in the fresh database. Rerunning the five cases in the original
+order passed on the same candidate: the worker was SIGKILLed at 120,000
+committed rows and the same job committed the remaining 338,000. The original
+300-second resolver bound stayed in place. The earlier resolver timeout did
+not recur and its cause remains unproven. The failed isolated attempt and
+all three successful suites were archived with private SHA-256 read-back.
+
+The first cleanup job issued the exact scoped DELETE but timed out waiting
+for the group to disappear. A scheduled guard job completed the same-lease
+cleanup; separate group and both target GETs returned 404 at **07:03:04 UTC /
+16:03:04 JST**. The runner was deallocated and private source, evidence
+storage and the retained disk were preserved.
+
+This closes the P0 correctness gate, not the P1 readiness gates for isolated
+capacity, credential renewal/reconnection, evidence snapshots, or the cost
+and RU admission controls.
 
 ### November 19: rebuilt Cosmos wave added eight P0 passes
 
@@ -35,8 +62,8 @@ branch. Neither failure reached SIGKILL or same-job recovery. The suite
 stopped at that prerequisite, so NoSQL to PG18 and Gremlin to PG17 are
 unexecuted. The worker now accepts only the admitted private Cosmos endpoint
 and exact base container for either layout, while keeping the explicit
-execution gate. The corrected candidate has not been requalified on Azure.
-The separate Neo4j 5.26 PG17 endpoint-resolution failure remains open.
+execution gate. At the close of this earlier wave, the corrected candidate
+had not yet been requalified and the Neo4j 5.26 PG17 route remained incomplete.
 
 The paired eight-vCore writers were admitted under a fresh guard lease. The
 initial create-only deployment deferred managed-identity enrollment until AGE
@@ -624,11 +651,10 @@ attached and the external shutdown schedule unchanged.
 No new target or disposable group remains from this wave; retained resources
 and delayed postings can still incur charges.
 
-The campaign now has **39/60 passing P0 cases, one failed case and twenty
-unexecuted cases; 7/12 fully qualified routes, zero complete phases**.
-Neo4j 5.26 PG17 cannot be promoted on this evidence. The two Cosmos layouts
-account for the remaining twenty unexecuted P0 cases. P1-P3 remain unexecuted
-and not queued; the independent technical and cost promotion gates still apply.
+At the end of that wave the campaign had **39/60 passing P0 cases, one failed
+case and twenty unexecuted cases; 7/12 fully qualified routes, zero complete
+phases**. That evidence alone did not qualify Neo4j 5.26 PG17. The two Cosmos
+layouts accounted for the twenty then-unexecuted cases.
 
 Keep the intended Azure CLI tenant/subscription session without logging out
 other shared sessions. Inspect only the approved subscription and confirm the
