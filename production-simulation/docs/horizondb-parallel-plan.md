@@ -55,6 +55,14 @@ only the new runner identity after the writer is Ready and Entra is Enabled.
 Fresh guard leases, shutdown windows and source fixtures remain distinct from
 the deleted environment. This approval adds no migration cases.
 
+Both replacement Cosmos layouts passed the source-only preflight at the same
+native candidate and binary SHA-256 as the previous attempt. Fresh NoSQL and
+Gremlin container scopes each held exactly 458,000 base records and 4,580 in
+each delta. The preflights verified the serialized production iterators and
+all three isolated SQL contracts. Observed base seed charges were 4.851 million
+RU for NoSQL and 6.041 million RU for Gremlin. These are preparation results,
+not HorizonDB migration passes or P1–P3 throughput estimates.
+
 ### November 19: halted after retained infrastructure deletion
 
 The bounded Cosmos continuation at candidate
@@ -256,7 +264,7 @@ go run ./production-simulation/cmd/rangedigest target --scale --manifest BASE/ma
   --job-id JOB_UUID --dsn-env TARGET_DSN --output actual.json
 ```
 
-`horizondb-p0-csv-targets.bicep` supports CSV, PostgreSQL and Neo4j source waves
+`horizondb-p0-csv-targets.bicep` supports CSV, PostgreSQL, Neo4j and Cosmos source waves
 and contains only the two disposable targets, their AGE parameter groups,
 Entra configuration and sole approved NAT firewall rule. It never redeploys
 the old VM, disks, VNet or Cosmos account. Create with
