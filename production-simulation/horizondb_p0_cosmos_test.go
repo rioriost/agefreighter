@@ -105,6 +105,40 @@ func horizonP0CosmosJob(job *config.LoadJob, source, run, dataset string, record
 	return nil
 }
 
+func validateHorizonP0CosmosWorker(c *config.CosmosSource, source, run string) error {
+	container, err := horizonP0CosmosContainer(source, run, "base")
+	if err != nil {
+		return err
+	}
+	if c == nil || c.Database != "agefreighter" || c.Credential != "default-azure" {
+		return errors.New("worker Cosmos database or credential differs")
+	}
+	if err := validateHorizonP0CosmosEndpoint(c.Endpoint); err != nil {
+		return err
+	}
+	if source == "gremlin" {
+		if c.Gremlin == nil || !c.Gremlin.Enabled || c.Gremlin.Container != container ||
+			c.Gremlin.MaxDiscoveryDocuments != 458000 || len(c.Vertices) != 0 || len(c.Edges) != 0 {
+			return errors.New("worker requires only the admitted Gremlin base fixture")
+		}
+		return nil
+	}
+	if c.Gremlin != nil || len(c.Vertices) == 0 || len(c.Edges) == 0 {
+		return errors.New("worker requires the admitted NoSQL base fixture")
+	}
+	for _, vertex := range c.Vertices {
+		if vertex.Container != container {
+			return errors.New("worker Cosmos vertex container differs from the admitted base")
+		}
+	}
+	for _, edge := range c.Edges {
+		if edge.Container != container {
+			return errors.New("worker Cosmos edge container differs from the admitted base")
+		}
+	}
+	return nil
+}
+
 func horizonP0CosmosFixtures(t *testing.T, output, source string) (rangedigest.Scenario, map[string]portable.Manifest, map[string]string) {
 	t.Helper()
 	if source != "cosmos" && source != "gremlin" {
@@ -388,8 +422,13 @@ func TestHorizonP0CosmosConfigScope(t *testing.T) {
 			Columns: []string{"source_key", "relationship_id", "start_id", "end_id", "quantity"}},
 	}}
 	for _, source := range []string{"cosmos", "gremlin"} {
+		t.Setenv("AGEFREIGHTER_HORIZON_COSMOS_SOURCE", source)
+		t.Setenv("AGEFREIGHTER_HORIZON_COSMOS_SOURCE_RUN_ID", "r20261119p0c01")
+		t.Setenv("AGEFREIGHTER_REQUIRE_HORIZON_P0_COSMOS_MODES", "1")
 		for _, dataset := range []string{"base", "append", "upsert"} {
 			job := tinyJob(manifest, t.TempDir(), source, 17)
+			job.Target.Graph = "hs_p0_" + source + "_worker_recovery"
+			job.Target.Connection = config.SecretRef{File: filepath.Join(t.TempDir(), "target.dsn")}
 			records := int64(4580)
 			if dataset == "base" {
 				records = 458000
@@ -405,6 +444,20 @@ func TestHorizonP0CosmosConfigScope(t *testing.T) {
 			}
 			if !reflect.DeepEqual(job.Source.Cosmos, loaded.Source.Cosmos) {
 				t.Fatal("serialized source configuration differs from the preflight")
+			}
+			workerErr := validateHorizonP0ModeWorker(path, loaded)
+			if dataset == "base" && workerErr != nil {
+				t.Fatalf("%s recovery worker rejected its persisted base job: %v", source, workerErr)
+			}
+			if dataset != "base" && workerErr == nil {
+				t.Fatalf("%s recovery worker accepted the %s fixture", source, dataset)
+			}
+			if dataset == "base" {
+				t.Setenv("AGEFREIGHTER_REQUIRE_HORIZON_P0_COSMOS_MODES", "0")
+				if err := validateHorizonP0ModeWorker(path, loaded); err == nil {
+					t.Fatal("recovery worker accepted a job without explicit admission")
+				}
+				t.Setenv("AGEFREIGHTER_REQUIRE_HORIZON_P0_COSMOS_MODES", "1")
 			}
 			container, err := horizonP0CosmosContainer(source, "r20261119p0c01", dataset)
 			if err != nil || container == "tiny-explicit" || container == "tiny-gremlin" {

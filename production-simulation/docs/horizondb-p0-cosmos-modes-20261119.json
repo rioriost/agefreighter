@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "dateUTC": "2026-11-19",
+  "status": "partial-fail",
+  "candidateCommit": "2e9d8a825d18efe804c0f19d7d9d4fbf79688c9d",
+  "nativeBinarySha256": "0f4c416fbc1a7eaf9a04080d3dcbdefcc39a32162a9f415fa07611c0abf67570",
+  "dataset": {"baseVertices": 100000, "baseEdges": 358000, "deltaRecords": 4580, "incrementalFinalRecords": 462580},
+  "targetAdmission": {
+    "whatIf": "10 Create only; Entra administrators enrolled separately",
+    "writers": 2,
+    "vCoresPerWriter": 8,
+    "numericHorizonQuotaProven": false,
+    "authentication": "managed-identity",
+    "tls": "verify-full",
+    "horizonIngress": "approved single static NAT IPv4 only",
+    "reportedMtdUSDAtAdmission": 151.635567106662,
+    "conservativeWithFullWindowAndReservesUSD": 828.058587761647,
+    "monthlyLimitUSD": 3750,
+    "leaseId": "0849b922-cff6-4d60-9e82-86e6c5a6f43c",
+    "leaseOriginalDeadlineUtc": "2026-11-19T05:34:35.661299+00:00",
+    "runnerExternalShutdownUtc": "2026-11-19T05:49:00+00:00"
+  },
+  "outcomes": [
+    {
+      "source": "Cosmos NoSQL",
+      "targetPostgreSQL": "17.11",
+      "targetAGE": "1.8.0",
+      "canonicalOracle": "ordinary logical IDs; all four corresponding CSV roots matched",
+      "passingModes": ["create", "replace", "append", "upsert"],
+      "loadAndVerificationSeconds": {"create": 280.185, "replace": 271.182, "append": 33.386, "upsert": 32.844},
+      "canonicalRootsSha256": {
+        "createAndReplace": "e3ba24bcb05a138e6ab46ff6ddca0cda93872e4e74e40d4541c89dd4c6ab4fb4",
+        "append": "8b645c2f59670d8b677fc8acdd22cd77ee52ca3fedbd550130c6a89a68440675",
+        "upsert": "7061ff76ae2dbeeb35a188d3f6d366f28486f2d33c230adfc470419b8b53762a"
+      },
+      "failedMode": {
+        "mode": "resume",
+        "jobId": "e4425b6f-eaa5-4e2a-b7db-2537d70d13ae",
+        "maximumCommittedRowsObserved": 0,
+        "sigkillInjected": false
+      },
+      "unexecutedTargetPostgreSQLMajor": 18,
+      "maximumCgroupMemoryBytes": 439123968,
+      "retainedRawEvidence": {
+        "bytes": 37544,
+        "sha256": "fbaaa71d49d48b72f480fa655bea54da4e4167dbefde6d0bb6c914f2647a6886",
+        "privateManagedIdentityReadBack": "passed"
+      }
+    },
+    {
+      "source": "Cosmos Gremlin backing documents",
+      "targetPostgreSQL": "18.6",
+      "targetAGE": "1.8.0",
+      "canonicalOracle": "partition-aware Gremlin oracle; no cross-major parity claimed",
+      "passingModes": ["create", "replace", "append", "upsert"],
+      "loadAndVerificationSeconds": {"create": 310.119, "replace": 317.224, "append": 36.347, "upsert": 35.859},
+      "canonicalRootsSha256": {
+        "createAndReplace": "d5add6d5f85be1738e54d84ccdf0d4400ac59c6fbfcdf3615e738cc0a010f03e",
+        "append": "f36ce7cc1cedb8fabda6a5b5e8184c962539448afcfc7db3bd1cc24ade86e21a",
+        "upsert": "b304d7abb738711bf0e61b69b9f337d8adb072bbf9ae7e5cb0db303b63042df9"
+      },
+      "failedMode": {
+        "mode": "resume",
+        "jobId": "9b3ceee4-81f1-4786-9dc5-95ea2adc72a3",
+        "maximumCommittedRowsObserved": 0,
+        "sigkillInjected": false
+      },
+      "unexecutedTargetPostgreSQLMajor": 17,
+      "maximumCgroupMemoryBytes": 787050496,
+      "retainedRawEvidence": {
+        "bytes": 37852,
+        "sha256": "c5e3559469c1c0652c71ed6c5073a48127a5440a50436faedb28915718a33f40",
+        "privateManagedIdentityReadBack": "passed"
+      }
+    }
+  ],
+  "failureDiagnosis": {
+    "workerMessage": "worker is outside its admitted source/create scope",
+    "parentMessage": "worker exited before the required fault: exit status 1",
+    "rootCause": "The native recovery worker did not handle SourceCosmos even though both parent suites used it.",
+    "sameJobRecoveryProven": false,
+    "fixedCandidateLiveRequalified": false
+  },
+  "resources": {"lanes": "two loaders sharing one VM; not isolated performance lanes", "swapBytes": 0, "oomEvents": 0, "maximumDiskPercent": 8},
+  "coverage": {
+    "wave": {"passing": 8, "failed": 2, "unexecuted": 10, "qualifiedRoutes": 0},
+    "p0Total": {"passing": 47, "failed": 3, "unexecuted": 10, "required": 60, "qualifiedRoutes": 7, "requiredRoutes": 12},
+    "completedPhases": [],
+    "p1P2P3Executed": false
+  },
+  "retirement": {
+    "leaseClosedUtc": "2026-11-19T03:15:28.023806+00:00",
+    "guardJob": "b86058ae-0f80-4b99-9581-7b19655619cf",
+    "deleteIssuedForDisposableGroup": true
+  }
+}

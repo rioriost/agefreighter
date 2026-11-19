@@ -508,6 +508,15 @@ func TestHorizonDBP0ModeWorker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := validateHorizonP0ModeWorker(path, job); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.LoadWithID(t.Context(), path, id); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func validateHorizonP0ModeWorker(path string, job config.LoadJob) error {
 	source, gate := "", ""
 	switch job.Source.Type {
 	case config.SourceCSV:
@@ -517,18 +526,21 @@ func TestHorizonDBP0ModeWorker(t *testing.T) {
 	case config.SourceNeo4j:
 		source, gate = os.Getenv("AGEFREIGHTER_HORIZON_NEO4J_SOURCE"), "AGEFREIGHTER_REQUIRE_HORIZON_P0_NEO4J_MODES"
 		if job.Source.Neo4j == nil || job.Source.Neo4j.SourceID != "horizon-p0-"+source {
-			t.Fatal("worker Neo4j source identity differs")
+			return errors.New("worker Neo4j source identity differs")
 		}
 		if err := validateHorizonP0Neo4jURI(source, job.Source.Neo4j.URI); err != nil {
-			t.Fatal(err)
+			return err
+		}
+	case config.SourceCosmos:
+		source, gate = os.Getenv("AGEFREIGHTER_HORIZON_COSMOS_SOURCE"), "AGEFREIGHTER_REQUIRE_HORIZON_P0_COSMOS_MODES"
+		if err := validateHorizonP0CosmosWorker(job.Source.Cosmos, source, os.Getenv("AGEFREIGHTER_HORIZON_COSMOS_SOURCE_RUN_ID")); err != nil {
+			return err
 		}
 	}
 	if source == "" || !filepath.IsAbs(path) || job.Target.Type != config.TargetApacheAGE ||
 		job.Target.Mode != config.LoadCreate || !strings.HasPrefix(job.Target.Graph, "hs_p0_"+source+"_") ||
 		job.Target.Connection.File == "" || os.Getenv(gate) != "1" {
-		t.Fatal("worker is outside its admitted source/create scope")
+		return errors.New("worker is outside its admitted source/create scope")
 	}
-	if _, err := app.LoadWithID(t.Context(), path, id); err != nil {
-		t.Fatal(err)
-	}
+	return nil
 }

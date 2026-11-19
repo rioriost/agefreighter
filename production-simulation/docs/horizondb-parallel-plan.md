@@ -1,11 +1,10 @@
 # HorizonDB qualification and parallel execution plan
 
 Prepared 2026-11-18. **P0-P3 execution is approved; technical and cost
-promotion gates remain mandatory. P0 currently has thirty-nine passing cases,
-one failed case and twenty unexecuted cases: seven of twelve historically qualified
-routes, no complete phase. Neo4j 5.26 to PG17 failed before the required
-SIGKILL; no recovery success is claimed for that case. Execution is now
-blocked by removal of the retained worker, evidence and independent guard.**
+promotion gates remain mandatory. P0 currently has 47 passing cases, three
+failed cases and ten unexecuted cases: seven of twelve qualified routes and
+no complete phase. None of the three failed resume cases reached SIGKILL.
+P1–P3 have not run.**
 After successful tiny qualification and publication of 2.4.2, the user
 approved all four larger phases on 2026-11-18. Existing tiny HorizonDB clusters
 may be reused, or deleted if replacing them with new clusters is preferable.
@@ -20,6 +19,33 @@ is documented here; the historical Flexible Server result is not HorizonDB
 evidence.
 
 ## Current execution status
+
+### November 19: rebuilt Cosmos wave added eight P0 passes
+
+The [redacted evidence](horizondb-p0-cosmos-modes-20261119.json) records eight
+passes at candidate `2e9d8a825d18efe804c0f19d7d9d4fbf79688c9d`: create, replace,
+append and upsert for NoSQL to PostgreSQL 17.11, and for Gremlin backing
+documents to PostgreSQL 18.6. Both targets ran AGE 1.8.0. All cases passed their
+independent canonical comparison. NoSQL also matched the corresponding CSV
+roots. The Gremlin oracle is partition-aware; cross-major parity is untested.
+
+Both resume children rejected their persisted jobs at zero committed rows:
+the worker recognized CSV, PostgreSQL and Neo4j but had no `SourceCosmos`
+branch. Neither failure reached SIGKILL or same-job recovery. The suite
+stopped at that prerequisite, so NoSQL to PG18 and Gremlin to PG17 are
+unexecuted. The worker now accepts only the admitted private Cosmos endpoint
+and exact base container for either layout, while keeping the explicit
+execution gate. The corrected candidate has not been requalified on Azure.
+The separate Neo4j 5.26 PG17 endpoint-resolution failure remains open.
+
+The paired eight-vCore writers were admitted under a fresh guard lease. The
+initial create-only deployment deferred managed-identity enrollment until AGE
+association and Enabled Entra authentication were verified. An Automation
+link ID returned 404 after publication; the authoritative list still showed all
+four enabled links, and a real scheduled job used the current lease. No extra
+links were created. Both partial archives were privately read back by SHA-256
+before the lease closed; the deletion was issued only against the disposable
+group, not the rebuilt source/worker/evidence group.
 
 ### November 19: support environment rebuilt
 
