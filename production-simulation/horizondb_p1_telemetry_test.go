@@ -106,7 +106,8 @@ func p1ReadWriterMetrics(r io.Reader, resource string, notBefore, now time.Time)
 
 func (a p1Admission) writerResource() string {
 	subscription := strings.SplitN(a.SnapshotID, "/resourceGroups/", 2)[0]
-	return subscription + "/resourceGroups/rg-agefreighter-horizon-scale-20261118/providers/" + p1MetricsProvider + "/afhs-20261118-pg17"
+	return fmt.Sprintf("%s/resourceGroups/rg-agefreighter-horizon-scale-20261118/providers/%s/afhs-20261118-pg%d",
+		subscription, p1MetricsProvider, a.writerMajor())
 }
 
 func readP1Metrics(ctx context.Context, client *http.Client, identity *azidentity.ManagedIdentityCredential, a p1Admission) (map[string]p1Metric, error) {
@@ -332,7 +333,10 @@ func startP1Telemetry(t *testing.T, ctx context.Context, cancelPilot context.Can
 func TestHorizonDBP1WriterMetricScopeAndFreshness(t *testing.T) {
 	now := time.Date(2026, 11, 20, 7, 35, 40, 0, time.UTC)
 	notBefore := now.Truncate(time.Minute).Add(-3 * time.Minute)
-	resource := p1Admission{SnapshotID: "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/retained"}.writerResource()
+	resource := p1Admission{
+		Host:       "afhs-20261118-pg17.rw.scope.japaneast.horizondb.azure.com",
+		SnapshotID: "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/retained",
+	}.writerResource()
 	for _, tt := range []struct {
 		name    string
 		change  func(values []map[string]any)

@@ -921,6 +921,24 @@ The loader verifies that the actual managed-identity token obtained on its
 worker is valid through the admitted end plus five minutes. This permits
 the migration but is not evidence that credential renewal works.
 
+After the PG17 pilot, run the same five CSV cases in a separate PG18-only
+lease using `TestHorizonDBP1CSVPG18Integration` and
+`AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG18=1`, never both major-specific gates.
+The receipt, live SQL version and independently scoped metrics must all
+identify the same PG18 writer. The writer template takes `postgresMajor=18`;
+the read-only PG17 renewal probe still uses the default `17`.
+
+The first live CSV → PG17 lane passed all five cases on 2026-11-19 (PG17,
+AGE 1.8.0). Create, replace and resume each verified 5,600,000 target records;
+append and upsert each verified 5,656,000. The resume case committed 1,400,000
+records before real SIGKILL and resumed the same job and generation to the
+same canonical root as the clean load. Mode elapsed times including independent
+verification were 329.2s, 330.8s, 270.1s, 275.2s and 334.6s, respectively.
+The private evidence archive passed SHA-256 readback
+(`e8f0401eeabe36cf17b3940be9cb64d0ee44e49a167a1b1289fae25b08ffac51`).
+That establishes 5/60 P1 cases at candidate `6a6f8b3`, not credential renewal
+or throughput on any other route.
+
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
 storage samples from that allocation. The worker's separate system identity

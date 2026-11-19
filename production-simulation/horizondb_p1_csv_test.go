@@ -35,6 +35,7 @@ import (
 
 const (
 	p1Gate          = "AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG17"
+	p1GatePG18      = "AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG18"
 	p1ReceiptEnv    = "AGEFREIGHTER_HORIZON_P1_RECEIPT"
 	p1Role          = "afhs-20261118-p1-csv"
 	p1BaseVertices  = 1_600_000
@@ -51,7 +52,7 @@ var (
 	p1RunPattern    = regexp.MustCompile(`^r[a-z0-9]{6,30}$`)
 	p1UUIDPattern   = regexp.MustCompile(`^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$`)
 	p1CommitPattern = regexp.MustCompile(`^[a-f0-9]{40}$`)
-	p1HostPattern   = regexp.MustCompile(`^afhs-20261118-pg17\.rw\.[a-z0-9]+\.japaneast\.horizondb\.azure\.com$`)
+	p1HostPattern   = regexp.MustCompile(`^afhs-20261118-pg(17|18)\.rw\.[a-z0-9]+\.japaneast\.horizondb\.azure\.com$`)
 	p1SHA           = regexp.MustCompile(`^[a-f0-9]{64}$`)
 	p1SecretPath    = regexp.MustCompile(`^/dev/shm/agefreighter-p1-[0-9]+/target\.dsn$`)
 )
@@ -73,14 +74,14 @@ type p1Admission struct {
 	WriterReadyAt            time.Time `json:"writerReadyAtUtc"`
 }
 
-func (a p1Admission) validate(now time.Time, needed time.Duration) error {
-	if !p1RunPattern.MatchString(a.RunID) || !p1HostPattern.MatchString(a.Host) ||
+func (a p1Admission) validate(now time.Time, needed time.Duration, major int) error {
+	if !p1RunPattern.MatchString(a.RunID) || major == 0 || a.writerMajor() != major ||
 		!p1UUIDPattern.MatchString(a.IdentityClientID) ||
 		!p1CommitPattern.MatchString(a.Commit) ||
 		!p1SHA.MatchString(a.ExecutableSHA256) || !p1SHA.MatchString(a.GuardSettingsSHA256) ||
 		!p1SHA.MatchString(a.FixturePreparationSHA256) ||
 		!regexp.MustCompile(`^/subscriptions/[a-f0-9-]{36}/resourceGroups/rg-agefreighter-horizon-tiny-20261118/providers/Microsoft\.Compute/snapshots/afhs-20261118-[a-f0-9]{16}$`).MatchString(a.SnapshotID) {
-		return errors.New("require the independently admitted P1 CSV PG17 writer, candidate, identity, guard, renewal and snapshot evidence")
+		return errors.New("require the independently admitted P1 CSV writer for the configured PostgreSQL major, candidate, identity, guard and snapshot evidence")
 	}
 	if a.TokenValidThroughLease {
 		if a.RenewalEvidenceSHA256 != "" {
@@ -101,11 +102,11 @@ func (a p1Admission) validate(now time.Time, needed time.Duration) error {
 	return nil
 }
 
-func readP1Admission(t *testing.T, needed time.Duration) p1Admission {
+func readP1Admission(t *testing.T, needed time.Duration, major int) p1Admission {
 	t.Helper()
 	var a p1Admission
 	p1ReadJSON(t, os.Getenv(p1ReceiptEnv), &a)
-	if err := a.validate(time.Now(), needed); err != nil {
+	if err := a.validate(time.Now(), needed, major); err != nil {
 		t.Fatal(err)
 	}
 	if runtime.GOOS != "linux" {
@@ -119,6 +120,30 @@ func readP1Admission(t *testing.T, needed time.Duration) p1Admission {
 }
 
 func (a p1Admission) database() string { return "hs_p1_" + a.RunID }
+
+func (a p1Admission) writerMajor() int {
+	m := p1HostPattern.FindStringSubmatch(a.Host)
+	if m == nil {
+		return 0
+	}
+	if m[1] == "17" {
+		return 17
+	}
+	return 18
+}
+
+func p1EnabledMajor(t *testing.T) int {
+	t.Helper()
+	switch pg17, pg18 := os.Getenv(p1Gate) == "1", os.Getenv(p1GatePG18) == "1"; {
+	case pg17 && pg18:
+		t.Fatal("require exactly one P1 CSV writer major")
+	case pg17:
+		return 17
+	case pg18:
+		return 18
+	}
+	return 0
+}
 
 type p1Case struct {
 	name, dataset, digest string
@@ -143,10 +168,19 @@ var p1Expected = map[string]struct{ raw, canonical string }{
 }
 
 func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
-	if os.Getenv(p1Gate) != "1" {
-		t.Skip("explicit P1 CSV PG17 admission required")
+	runHorizonDBP1CSV(t, 17)
+}
+
+func TestHorizonDBP1CSVPG18Integration(t *testing.T) {
+	runHorizonDBP1CSV(t, 18)
+}
+
+func runHorizonDBP1CSV(t *testing.T, targetMajor int) {
+	t.Helper()
+	if p1EnabledMajor(t) != targetMajor {
+		t.Skipf("explicit P1 CSV PG%d admission required", targetMajor)
 	}
-	a := readP1Admission(t, p1RunTime+time.Hour)
+	a := readP1Admission(t, p1RunTime+time.Hour, targetMajor)
 	fixtureReceipt := filepath.Join(a.FixtureDir, p1FixtureReceiptName)
 	if p1FileSHA(t, fixtureReceipt) != a.FixturePreparationSHA256 {
 		t.Fatal("worker fixture preparation receipt SHA-256 differs from admission")
@@ -183,10 +217,10 @@ func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
 	if err != nil {
 		p1DatabaseFailure(t, "P1 writer SQL admission", err)
 	}
-	if major != 17 || !strings.HasPrefix(age, "1.8.") || database != a.database() ||
+	if major != targetMajor || !strings.HasPrefix(age, "1.8.") || database != a.database() ||
 		role != p1Role || pending || !writable || !empty ||
 		!strings.Contains(","+strings.ReplaceAll(preload, " ", "")+",", ",age,") {
-		t.Fatal("SQL did not prove the fresh PostgreSQL 17/AGE 1.8 writer and dedicated identity")
+		t.Fatalf("SQL did not prove the fresh PostgreSQL %d/AGE 1.8 writer and dedicated identity", targetMajor)
 	}
 
 	startedCases := time.Now()
@@ -200,8 +234,8 @@ func TestHorizonDBP1CSVPG17Integration(t *testing.T) {
 			}
 			caseCtx, stop := context.WithTimeout(ctx, c.bound)
 			defer stop()
-			job := tinyJob(exports[c.dataset], filepath.Join(a.Output, "csv-"+c.dataset), "csv", 17)
-			job.Metadata.Name = "horizon-p1-csv-pg17-" + c.name + "-" + a.RunID
+			job := tinyJob(exports[c.dataset], filepath.Join(a.Output, "csv-"+c.dataset), "csv", targetMajor)
+			job.Metadata.Name = fmt.Sprintf("horizon-p1-csv-pg%d-%s-%s", targetMajor, c.name, a.RunID)
 			job.Target.Mode, job.Target.Graph = c.mode, p1Graph(a, c)
 			job.Target.Connection = config.SecretRef{File: secret}
 			job.Runtime.BatchRows, job.Runtime.BatchBytes, job.Runtime.MaxTargetConnections = 20_000, 64<<20, 4
@@ -519,11 +553,11 @@ func runP1Process(t *testing.T, ctx context.Context, conn *pgx.Conn, a p1Admissi
 }
 
 func TestHorizonDBP1CSVWorker(t *testing.T) {
-	mode := os.Getenv("AGEFREIGHTER_HORIZON_P1_WORKER")
-	if mode == "" || os.Getenv(p1Gate) != "1" {
+	mode, major := os.Getenv("AGEFREIGHTER_HORIZON_P1_WORKER"), p1EnabledMajor(t)
+	if mode == "" || major == 0 {
 		t.Skip("only the admitted P1 pilot may start a loader worker")
 	}
-	a := readP1Admission(t, time.Minute)
+	a := readP1Admission(t, time.Minute, major)
 	id := os.Getenv("AGEFREIGHTER_HORIZON_P1_JOB_ID")
 	resume := os.Getenv("AGEFREIGHTER_HORIZON_P1_WORKER_RESUME")
 	for _, c := range p1Cases {
@@ -745,13 +779,21 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 		SnapshotID:    "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-agefreighter-horizon-tiny-20261118/providers/Microsoft.Compute/snapshots/afhs-20261118-0123456789abcdef",
 		WriterReadyAt: now.Add(-15 * time.Minute),
 	}
-	if err := a.validate(now, p1RunTime+time.Hour); err != nil {
+	if err := a.validate(now, p1RunTime+time.Hour, 17); err != nil {
 		t.Fatal(err)
 	}
 	covered := a
 	covered.TokenValidThroughLease, covered.RenewalEvidenceSHA256 = true, ""
-	if err := covered.validate(now, p1RunTime+time.Hour); err != nil {
+	if err := covered.validate(now, p1RunTime+time.Hour, 17); err != nil {
 		t.Fatal(err)
+	}
+	pg18 := covered
+	pg18.Host = strings.Replace(covered.Host, "-pg17.", "-pg18.", 1)
+	if err := pg18.validate(now, p1RunTime+time.Hour, 18); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(pg18.writerResource(), "/afhs-20261118-pg18") {
+		t.Fatal("PG18 admission must be monitored on its own writer")
 	}
 	for _, tt := range []struct {
 		name   string
@@ -772,7 +814,7 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			bad := a
 			tt.change(&bad)
-			if err := bad.validate(now, p1RunTime+time.Hour); err == nil {
+			if err := bad.validate(now, p1RunTime+time.Hour, 17); err == nil {
 				t.Fatal("accepted out-of-scope P1 admission")
 			}
 		})
