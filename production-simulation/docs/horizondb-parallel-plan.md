@@ -1006,7 +1006,9 @@ disk-only archive passed SHA-256 readback
 without Blob grants. The independent guard retained private incremental
 snapshot `afhs-20261118-94a286d86827ee76` and verified the disposable group
 was absent at `2026-11-20T09:20:21Z`; the temporary metrics role was
-removed. P1 is at **25/60**; timed credential renewal is still unverified.
+removed. The separate PG18 admission reuses the same pinned source, five
+cases, canonical roots, and snapshot-only evidence policy. P1 is at
+**25/60**; timed credential renewal is still unverified.
 
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and

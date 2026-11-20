@@ -33,6 +33,10 @@ func TestHorizonDBP1Neo4j44PG17Integration(t *testing.T) {
 	runHorizonDBP1(t, 17, "neo4j44")
 }
 
+func TestHorizonDBP1Neo4j44PG18Integration(t *testing.T) {
+	runHorizonDBP1(t, 18, "neo4j44")
+}
+
 func setP1Neo4jConnection(job *config.LoadJob) {
 	job.Source.Neo4j.URI = p1Neo4jURI
 	job.Source.Neo4j.Password = &config.SecretRef{File: p1Neo4jPassword}

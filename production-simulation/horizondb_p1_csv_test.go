@@ -39,6 +39,7 @@ const (
 	p1PGGate        = "AGEFREIGHTER_REQUIRE_HORIZON_P1_POSTGRES_PG17"
 	p1PGGatePG18    = "AGEFREIGHTER_REQUIRE_HORIZON_P1_POSTGRES_PG18"
 	p1Neo4j44Gate   = "AGEFREIGHTER_REQUIRE_HORIZON_P1_NEO4J44_PG17"
+	p1Neo4j44PG18   = "AGEFREIGHTER_REQUIRE_HORIZON_P1_NEO4J44_PG18"
 	p1ReceiptEnv    = "AGEFREIGHTER_HORIZON_P1_RECEIPT"
 	p1Role          = "afhs-20261118-p1-csv"
 	p1BaseVertices  = 1_600_000
@@ -80,7 +81,7 @@ type p1Admission struct {
 
 func (a p1Admission) validate(now time.Time, needed time.Duration, major int) error {
 	if !p1RunPattern.MatchString(a.RunID) || major == 0 || a.writerMajor() != major ||
-		(a.Source != "" && a.Source != "postgresql" && (a.Source != "neo4j44" || major != 17)) ||
+		(a.Source != "" && a.Source != "postgresql" && a.Source != "neo4j44") ||
 		!p1UUIDPattern.MatchString(a.IdentityClientID) ||
 		!p1CommitPattern.MatchString(a.Commit) ||
 		!p1SHA.MatchString(a.ExecutableSHA256) || !p1SHA.MatchString(a.GuardSettingsSHA256) ||
@@ -153,7 +154,7 @@ var p1Routes = []struct {
 }{
 	{p1Gate, "csv", 17}, {p1GatePG18, "csv", 18},
 	{p1PGGate, "postgresql", 17}, {p1PGGatePG18, "postgresql", 18},
-	{p1Neo4j44Gate, "neo4j44", 17},
+	{p1Neo4j44Gate, "neo4j44", 17}, {p1Neo4j44PG18, "neo4j44", 18},
 }
 
 func p1EnabledRoute(t *testing.T) (int, string) {
@@ -866,6 +867,17 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 	}
 	if err := pg18.validate(now, p1RunTime+time.Hour, 17); err == nil {
 		t.Fatal("accepted a PostgreSQL source PG18 admission for a PG17 writer")
+	}
+	pg18.Source = "neo4j44"
+	t.Setenv(p1Neo4j44PG18, "1")
+	if major, source := p1EnabledRoute(t); major != 18 || source != pg18.source() {
+		t.Fatal("Neo4j PG18 requires its own live route gate")
+	}
+	if err := pg18.validate(now, p1RunTime+time.Hour, 18); err != nil {
+		t.Fatal(err)
+	}
+	if err := pg18.validate(now, p1RunTime+time.Hour, 17); err == nil {
+		t.Fatal("accepted a Neo4j source PG18 admission for a PG17 writer")
 	}
 	for _, tt := range []struct {
 		name   string
