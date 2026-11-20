@@ -1006,9 +1006,24 @@ disk-only archive passed SHA-256 readback
 without Blob grants. The independent guard retained private incremental
 snapshot `afhs-20261118-94a286d86827ee76` and verified the disposable group
 was absent at `2026-11-20T09:20:21Z`; the temporary metrics role was
-removed. The separate PG18 admission reuses the same pinned source, five
-cases, canonical roots, and snapshot-only evidence policy. P1 is at
-**25/60**; timed credential renewal is still unverified.
+removed.
+
+The first Neo4j 4.4.48 → PG18 attempt stopped before any migration case:
+Docker's 30-second stop grace expired while Neo4j was shutting down after
+seeding (exit 137, not OOM). The guard preserved the partial evidence
+and verified scope retirement. The retry allowed up to 180 seconds for a
+clean source shutdown, still requiring exit 0 before restarting read-only.
+The corrected `r20261120p1neo44pg18b` run at `b4e87d2` passed all five
+modes on PG18/AGE 1.8.0. It verified unchanged source digests and the same
+target counts and canonical roots as PG17. An actual SIGKILL at 1,400,000
+durable rows resumed to 5,600,000 on the same job and graph generation.
+Case times including independent verification were 346.3s, 347.8s, 249.2s,
+249.4s, and 355.2s in mode order. The disk-only archive passed SHA-256
+readback (`33bcd5dc96b3a904cbcd165b091071c652b7ddb423ddbc0dcbce6ce52dd8b8a9`)
+without Blob grants. The independent guard retained private incremental
+snapshot `afhs-20261118-1ba6fefe9d39b446` and verified the disposable group
+was absent at `2026-11-20T15:33:14Z`; the temporary metrics role was
+removed. P1 is at **30/60**; timed credential renewal is still unverified.
 
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
