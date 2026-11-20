@@ -105,8 +105,12 @@ func TestHorizonDBP1PrepareWorkerFixture(t *testing.T) {
 		t.Skip("explicit P1 worker fixture preparation required")
 	}
 	commit := os.Getenv("AGEFREIGHTER_HORIZON_P1_PREPARE_COMMIT")
-	if os.Getenv(p1Gate) != "" || os.Getenv(p1GatePG18) != "" || os.Getenv(p1PGGate) != "" || os.Getenv(p1PGGatePG18) != "" ||
-		os.Getenv(p1ReceiptEnv) != "" ||
+	for _, route := range p1Routes {
+		if os.Getenv(route.gate) != "" {
+			t.Fatal("fixture preparation must not enable a live P1 route")
+		}
+	}
+	if os.Getenv(p1ReceiptEnv) != "" ||
 		!filepath.IsAbs(root) || filepath.Clean(root) != root || !p1CommitPattern.MatchString(commit) {
 		t.Fatal("require a new absolute fixture directory, exact candidate commit and no live pilot admission")
 	}

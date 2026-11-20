@@ -122,14 +122,14 @@ func prepareP1Postgres(t *testing.T, ctx context.Context, a p1Admission, paths m
 	}
 }
 
-type p1PostgresTable struct {
+type p1SourceTable struct {
 	Dataset string `json:"dataset"`
 	Table   string `json:"table"`
 	Rows    int64  `json:"rows"`
 	SHA256  string `json:"sha256"`
 }
 
-func hashP1Postgres(ctx context.Context, dsn string, a p1Admission, exports map[string]portable.Manifest) ([]p1PostgresTable, error) {
+func hashP1Postgres(ctx context.Context, dsn string, a p1Admission, exports map[string]portable.Manifest) ([]p1SourceTable, error) {
 	conn, err := pgx.Connect(ctx, dsn)
 	if err != nil {
 		return nil, err
@@ -144,7 +144,7 @@ func hashP1Postgres(ctx context.Context, dsn string, a p1Admission, exports map[
 	if !restricted {
 		return nil, errors.New("expected the PostgreSQL 17.6 read-only fixture role")
 	}
-	records := []p1PostgresTable{}
+	records := []p1SourceTable{}
 	for _, dataset := range p1FixtureOrder {
 		schema := p1PostgresSchema(a, dataset)
 		for _, table := range exports[dataset].Tables {
@@ -164,7 +164,7 @@ func hashP1Postgres(ctx context.Context, dsn string, a p1Admission, exports map[
 			if tag.RowsAffected() != table.Rows {
 				return nil, fmt.Errorf("source %s/%s row count differs", dataset, table.Name)
 			}
-			records = append(records, p1PostgresTable{dataset, table.Name, tag.RowsAffected(), hex.EncodeToString(hash.Sum(nil))})
+			records = append(records, p1SourceTable{dataset, table.Name, tag.RowsAffected(), hex.EncodeToString(hash.Sum(nil))})
 		}
 	}
 	return records, nil

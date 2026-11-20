@@ -59,33 +59,42 @@ func validateHorizonP0Neo4jURI(source, uri string) error {
 		return errors.New("pinned Neo4j 4.4 or 5.26 source required")
 	}
 	if uri != expected {
-		return errors.New("dedicated loopback P0 Neo4j endpoint required")
+		return errors.New("dedicated loopback Neo4j fixture endpoint required")
 	}
 	return nil
 }
 
 func horizonP0Neo4jScope(source, run, dataset string) (string, error) {
+	return horizonNeo4jScope(source, run, dataset, fixture.PhaseP0)
+}
+
+func horizonNeo4jScope(source, run, dataset string, phase fixture.Phase) (string, error) {
 	if (source != "neo4j44" && source != "neo4j526") ||
+		(phase != fixture.PhaseP0 && phase != fixture.PhaseP1) ||
 		!regexp.MustCompile(`^r[a-z0-9]{6,30}$`).MatchString(run) ||
 		(dataset != "base" && dataset != "append" && dataset != "upsert") {
-		return "", errors.New("new run-scoped immutable P0 Neo4j dataset required")
+		return "", errors.New("new run-scoped immutable Neo4j dataset required")
 	}
-	return "hs_p0_" + source + "_" + run + "_" + dataset, nil
+	return "hs_" + string(phase) + "_" + source + "_" + run + "_" + dataset, nil
 }
 
 func horizonP0Neo4jQueries(job *config.LoadJob, manifest portable.Manifest, source, run, dataset string) error {
-	scope, err := horizonP0Neo4jScope(source, run, dataset)
+	return horizonNeo4jQueries(job, manifest, source, run, dataset, fixture.PhaseP0)
+}
+
+func horizonNeo4jQueries(job *config.LoadJob, manifest portable.Manifest, source, run, dataset string, phase fixture.Phase) error {
+	scope, err := horizonNeo4jScope(source, run, dataset, phase)
 	if err != nil {
 		return err
 	}
 	if job.Source.Type != config.SourceNeo4j || job.Source.Neo4j == nil {
-		return errors.New("explicit P0 Neo4j source required")
+		return errors.New("explicit Neo4j source required")
 	}
 	n := job.Source.Neo4j
 	if err := validateHorizonP0Neo4jURI(source, n.URI); err != nil {
 		return err
 	}
-	n.Discovery, n.SourceID, n.FetchRows = nil, "horizon-p0-"+source, 20_000
+	n.Discovery, n.SourceID, n.FetchRows = nil, "horizon-"+string(phase)+"-"+source, 20_000
 	n.Vertices, n.Edges = nil, nil
 	identifier := regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*$`)
 	for _, table := range manifest.Tables {
@@ -117,6 +126,11 @@ func horizonP0Neo4jQueries(job *config.LoadJob, manifest portable.Manifest, sour
 		}
 		projection := " RETURN " + strings.Join(columns, ",") + " ORDER BY source_key LIMIT $pageRows"
 		query := match + " WHERE $afterKey IS NULL OR " + entity + ".source_key > $afterKey" + projection
+		if phase == fixture.PhaseP1 {
+			// The initial page must stay index-backed after the job is serialized.
+			query = match + " USING INDEX " + entity + ":`" + scope + "_" + table.Name + "`(source_key)" +
+				" WHERE " + entity + ".source_key > coalesce($afterKey, -1)" + projection
+		}
 		if table.Kind == "node" {
 			n.Vertices = append(n.Vertices, config.VertexQuery{Label: table.Name, KeyField: "source_key",
 				Query: query, IDField: "external_id", Properties: props})
@@ -133,7 +147,18 @@ func horizonP0Neo4jQueries(job *config.LoadJob, manifest portable.Manifest, sour
 func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Scenario,
 	manifests map[string]portable.Manifest, directories map[string]string, source, run, output string,
 ) error {
+	return seedHorizonNeo4j(t, ctx, paths, manifests, directories, source, run, output,
+		os.Getenv("AGEFREIGHTER_NEO4J_PASSWORD"), fixture.PhaseP0)
+}
+
+func seedHorizonNeo4j(t *testing.T, ctx context.Context, paths rangedigest.Scenario,
+	manifests map[string]portable.Manifest, directories map[string]string, source, run, output, password string, phase fixture.Phase,
+) error {
 	t.Helper()
+	seedRows := horizonP0Neo4jSeedRows
+	if phase == fixture.PhaseP1 {
+		seedRows = 4096
+	}
 	scopes, jobs := map[string]string{}, map[string]config.LoadJob{}
 	for _, dataset := range []string{"base", "append", "upsert"} {
 		manifest, ok := manifests[dataset]
@@ -142,11 +167,14 @@ func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Sce
 		if err != nil {
 			return err
 		}
-		if !ok || f.Plan.Phase != fixture.PhaseP0 || manifest.FixtureRoot != f.RootSHA256 {
-			return errors.New("verified P0 portable provenance required before Neo4j source writes")
+		if !ok || f.Plan.Phase != phase || manifest.FixtureRoot != f.RootSHA256 {
+			return errors.New("verified portable provenance required before Neo4j source writes")
 		}
 		job := tinyJob(manifest, directories[dataset], source, 17)
-		if err := horizonP0Neo4jQueries(&job, manifest, source, run, dataset); err != nil {
+		if phase == fixture.PhaseP1 {
+			setP1Neo4jConnection(&job)
+		}
+		if err := horizonNeo4jQueries(&job, manifest, source, run, dataset, phase); err != nil {
 			return err
 		}
 		configPath := filepath.Join(output, "neo4j-"+dataset+"-source.json")
@@ -155,14 +183,13 @@ func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Sce
 		if err != nil {
 			return err
 		}
-		scopes[dataset], err = horizonP0Neo4jScope(source, run, dataset)
+		scopes[dataset], err = horizonNeo4jScope(source, run, dataset, phase)
 		if err != nil {
 			return err
 		}
 		jobs[dataset] = job
 	}
 	uri := jobs["base"].Source.Neo4j.URI
-	password := os.Getenv("AGEFREIGHTER_NEO4J_PASSWORD")
 	if password == "" {
 		return errors.New("private Neo4j fixture password required")
 	}
@@ -171,7 +198,7 @@ func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Sce
 		return err
 	}
 	defer driver.Close(context.Background())
-	session := driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j", FetchSize: horizonP0Neo4jSeedRows})
+	session := driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j", FetchSize: seedRows})
 	defer session.Close(context.Background())
 	result, err := session.Run(ctx, "CALL dbms.components() YIELD versions RETURN versions[0] AS version", nil)
 	if err != nil {
@@ -245,7 +272,7 @@ func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Sce
 			hash := sha256.New()
 			decoder := json.NewDecoder(io.TeeReader(file, hash))
 			decoder.UseNumber()
-			rows := make([]map[string]any, 0, horizonP0Neo4jSeedRows)
+			rows := make([]map[string]any, 0, seedRows)
 			var read int64
 			flush := func() error {
 				if len(rows) == 0 {
@@ -296,7 +323,7 @@ func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Sce
 					}
 					rows = append(rows, map[string]any{"props": props, "start": doc["start_id"], "end": doc["end_id"]})
 					read++
-					if len(rows) == horizonP0Neo4jSeedRows {
+					if len(rows) == seedRows {
 						if err := flush(); err != nil {
 							return err
 						}
@@ -324,10 +351,12 @@ func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Sce
 			count += read
 		}
 		if count != manifest.Plan.VertexTotal+manifest.Plan.EdgeTotal {
-			return errors.New("seeded P0 Neo4j dataset count differs")
+			return errors.New("seeded Neo4j dataset count differs")
 		}
-		if err := verifyHorizonP0Neo4jIterator(ctx, jobs[dataset], password, count); err != nil {
-			return err
+		if phase == fixture.PhaseP0 {
+			if err := verifyHorizonP0Neo4jIterator(ctx, jobs[dataset], password, count); err != nil {
+				return err
+			}
 		}
 		path := map[string]string{"base": paths.Base, "append": paths.Append, "upsert": paths.Upsert}[dataset]
 		if _, err := fixture.Verify(path); err != nil {
@@ -337,7 +366,7 @@ func seedHorizonP0Neo4j(t *testing.T, ctx context.Context, paths rangedigest.Sce
 			"fixtureRootSha256": manifest.FixtureRoot, "tablesVerified": len(manifest.Tables)}
 	}
 	body, err := json.MarshalIndent(map[string]any{"source": source, "sourceVersion": version,
-		"maximumSeedBatchRows": horizonP0Neo4jSeedRows, "productionIteratorVerified": true,
+		"maximumSeedBatchRows": seedRows, "productionIteratorVerified": phase == fixture.PhaseP0,
 		"configRoundTripVerified": true, "datasets": datasets}, "", "  ")
 	if err != nil {
 		return err

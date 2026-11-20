@@ -984,6 +984,15 @@ passed SHA-256 readback on the worker
 The guard preserved the private incremental snapshot and verified the
 disposable group was absent. Timed credential renewal remains unverified.
 
+The Neo4j 4.4.48 → PG17 lane uses its pinned Community image on the isolated
+worker, with Bolt limited to loopback and separate base, append, and upsert
+labels/types. The source database is restarted in read-only mode after
+seeding. Both initial and resumed keyset queries must plan an indexed range
+seek without sorting, with a bound of 20,000 rows per page. The harness
+rejects an attempted write and compares ordered native source property and
+physical endpoint digests before and after the five cases. Evidence is
+sealed to a private incremental disk snapshot without Blob grants.
+
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
 storage samples from that allocation. The worker's separate system identity
