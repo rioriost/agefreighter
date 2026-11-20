@@ -984,14 +984,29 @@ passed SHA-256 readback on the worker
 The guard preserved the private incremental snapshot and verified the
 disposable group was absent. Timed credential renewal remains unverified.
 
-The Neo4j 4.4.48 → PG17 lane uses its pinned Community image on the isolated
-worker, with Bolt limited to loopback and separate base, append, and upsert
-labels/types. The source database is restarted in read-only mode after
-seeding. Both initial and resumed keyset queries must plan an indexed range
-seek without sorting, with a bound of 20,000 rows per page. The harness
-rejects an attempted write and compares ordered native source property and
-physical endpoint digests before and after the five cases. Evidence is
-sealed to a private incremental disk snapshot without Blob grants.
+The first Neo4j 4.4.48 → PG17 run stopped before committing any rows:
+the loader worker looked for `manifest.json` instead of the portable
+exporter's `portable-manifest.json`. Its partial evidence was preserved and
+the disposable scope retired before the corrected run.
+
+The corrected Neo4j 4.4.48 → PG17/AGE 1.8.0 run
+`r20261120p1neo44pg17b` at `704148a` passed all five P1 modes. It used the
+pinned Community image on the isolated worker, loopback-only Bolt, and
+separate base, append, and upsert labels/types. After seeding, the source
+database rejected a write, and both initial and continued keyset queries
+used indexed range seeks without sorting with a 20,000-row page limit.
+Ordered source property and physical endpoint digests were unchanged.
+Independent target results matched the existing fixture roots for
+5,600,000 full and 5,656,000 final incremental records. The resume case
+used an actual SIGKILL at 1,400,000 durable rows, then continued with the
+same job and generation. Case times including independent verification
+were 349.4s, 348.4s, 255.0s, 258.1s, and 537.9s in mode order. The
+disk-only archive passed SHA-256 readback
+(`5e030cd86c900980b9254e6a20179534da78a99d7dfde5241b3f429957911d94`)
+without Blob grants. The independent guard retained private incremental
+snapshot `afhs-20261118-94a286d86827ee76` and verified the disposable group
+was absent at `2026-11-20T09:20:21Z`; the temporary metrics role was
+removed. P1 is at **25/60**; timed credential renewal is still unverified.
 
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
