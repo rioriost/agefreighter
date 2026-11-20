@@ -973,6 +973,17 @@ archive was sealed and SHA-256 verified on the worker disk
 before the independent guard preserved the disk as a private incremental
 snapshot. The two temporary Blob grants were removed.
 
+The fresh PostgreSQL 17.6 → HorizonDB PG18/AGE 1.8.0 run at `08a153c`
+passed all five cases on 2026-11-20, bringing P1 to 20/60. The source
+digests were unchanged and the target roots matched PG17. After SIGKILL
+at 1,400,000 durable records, the same job and generation resumed to
+5,600,000 records. Case elapsed times including independent verification
+were 357.3s, 356.2s, 244.3s, 260.1s, and 359.5s, respectively. The archive
+passed SHA-256 readback on the worker
+(`bfd72abbce0d562f9207f18b7bf08ce68d4e50537fa3e89b99f4e30b81bdaf66`).
+The guard preserved the private incremental snapshot and verified the
+disposable group was absent. Timed credential renewal remains unverified.
+
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
 storage samples from that allocation. The worker's separate system identity
