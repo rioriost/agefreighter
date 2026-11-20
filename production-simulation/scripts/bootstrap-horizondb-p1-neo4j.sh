@@ -14,6 +14,13 @@ conf="$PWD/neo4j-conf"
 mounts=(--mount "type=bind,source=$data,target=/data"
         --mount "type=bind,source=$conf,target=/conf,readonly")
 
+verify_loopback_bolt() {
+  case "$(ss -H -ltn 'sport = :7689' | awk '{print $4}')" in
+    127.0.0.1:7689|'[::ffff:127.0.0.1]:7689') return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 case "${1:-start}" in
   start)
     test ! -e neo4j-source-runtime.json
@@ -46,6 +53,14 @@ CONF
       -c 'IFS= read -r password; exec /var/lib/neo4j/bin/neo4j-admin set-initial-password "$password"'
     unset password
     ;;
+  verify)
+    test ! -e neo4j-source-runtime.json
+    test ! -e neo4j-source-frozen.json
+    [[ "$(docker inspect --format '{{.Config.Image}} {{.State.Running}} {{.State.OOMKilled}}' "$container")" == "$image true false" ]]
+    verify_loopback_bolt
+    printf '{"image":"%s","bind":"127.0.0.1:7689"}\n' "$image" >neo4j-source-runtime.json
+    exit 0
+    ;;
   freeze)
     test ! -e neo4j-source-frozen.json
     [[ "$(docker inspect --format '{{.Config.Image}} {{.State.Running}} {{.State.OOMKilled}}' "$container")" == "$image true false" ]]
@@ -62,12 +77,12 @@ docker run --detach --name "$container" --network host --user 7474:7474 \
   --memory 8g --memory-swap 8g --ulimit core=0 --log-opt max-size=16m --log-opt max-file=2 \
   "${mounts[@]}" --env NEO4J_CONF=/conf --entrypoint /var/lib/neo4j/bin/neo4j "$image" console >/dev/null
 for _ in $(seq 1 60); do
-  if [[ "$(ss -H -ltn 'sport = :7689' | awk '{print $4}')" == 127.0.0.1:7689 ]]; then
+  if verify_loopback_bolt; then
     break
   fi
   sleep 2
 done
-[[ "$(ss -H -ltn 'sport = :7689' | awk '{print $4}')" == 127.0.0.1:7689 ]]
+verify_loopback_bolt
 [[ "$(docker inspect --format '{{.Config.Image}} {{.State.Running}} {{.State.OOMKilled}}' "$container")" == "$image true false" ]]
 if [[ "${1:-start}" == freeze ]]; then
   printf '{"image":"%s","bind":"127.0.0.1:7689","readOnlyConfigured":true}\n' "$image" >neo4j-source-frozen.json
