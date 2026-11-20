@@ -3,6 +3,7 @@
 package simulation_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -90,7 +91,12 @@ func prepareP1Neo4j(t *testing.T, ctx context.Context, a p1Admission, paths map[
 	cmd := exec.CommandContext(seedCtx, "/bin/bash",
 		filepath.Join(root, "candidate", "production-simulation", "scripts", "bootstrap-horizondb-p1-neo4j.sh"), "freeze")
 	cmd.Dir = root
+	var diagnostic bytes.Buffer
+	cmd.Stderr = &diagnostic
 	if err := cmd.Run(); err != nil {
+		if strings.TrimSpace(diagnostic.String()) == "Neo4j source did not shut down cleanly" {
+			t.Fatal("Neo4j source did not shut down cleanly before read-only restart")
+		}
 		failP1Neo4j(t, "Neo4j read-only restart", err)
 	}
 	before, err := hashP1Neo4j(seedCtx, a, exports, password)

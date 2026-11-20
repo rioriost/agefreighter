@@ -6,7 +6,8 @@ umask 077
 case "$(pwd -P)" in
   /var/lib/agefreighter-p1/r20261120p1neo44pg17|\
   /var/lib/agefreighter-p1/r20261120p1neo44pg17b|\
-  /var/lib/agefreighter-p1/r20261120p1neo44pg18) ;;
+  /var/lib/agefreighter-p1/r20261120p1neo44pg18|\
+  /var/lib/agefreighter-p1/r20261120p1neo44pg18b) ;;
   *) exit 1 ;;
 esac
 [[ "$(wc -l </proc/swaps)" -eq 1 ]]
@@ -69,8 +70,13 @@ CONF
   freeze)
     test ! -e neo4j-source-frozen.json
     [[ "$(docker inspect --format '{{.Config.Image}} {{.State.Running}} {{.State.OOMKilled}}' "$container")" == "$image true false" ]]
-    docker stop --time 30 "$container" >/dev/null
-    [[ "$(docker inspect --format '{{.State.ExitCode}} {{.State.OOMKilled}}' "$container")" == "0 false" ]]
+    # Flushing the seeded store and indexes can take longer than Docker's usual stop grace.
+    docker stop --time 180 "$container" >/dev/null
+    shutdown=$(docker inspect --format '{{.State.ExitCode}} {{.State.OOMKilled}}' "$container")
+    if [[ "$shutdown" != "0 false" ]]; then
+      echo "Neo4j source did not shut down cleanly" >&2
+      exit 1
+    fi
     docker rm "$container" >/dev/null
     printf 'dbms.databases.read_only=neo4j\n' >>"$conf/neo4j.conf"
     ;;
