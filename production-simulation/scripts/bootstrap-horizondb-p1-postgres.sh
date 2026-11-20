@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 [[ "$(hostname -s)" == afhs-20261118-p1-csv && "$(id -u)" == 0 ]]
-[[ "$(pwd -P)" =~ ^/var/lib/agefreighter-p1/r[0-9]{8}p1postgres(17|18)$ ]]
+[[ "$(pwd -P)" =~ ^/var/lib/agefreighter-p1/r[0-9]{8}p1postgres(17|18b?)$ ]]
 [[ "$(wc -l </proc/swaps)" -eq 1 ]]
 [[ "$(findmnt -no FSTYPE --target /dev/shm)" == tmpfs ]]
 secrets=/dev/shm/agefreighter-p1-postgres

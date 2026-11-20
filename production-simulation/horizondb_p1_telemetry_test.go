@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,7 +30,10 @@ const (
 	p1MetricsProvider  = "Microsoft.HorizonDB/clusters"
 	p1StorageBudget    = 128 << 30
 	p1MaximumMetricAge = 5 * time.Minute
+	p1MetricAttempt    = 14 * time.Second
 )
+
+var errP1MetricTimeout = errors.New("HorizonDB metrics request timed out")
 
 var p1WriterMetrics = []string{
 	"CpuUtilization", "StorageUsed", "PageReadIops", "PageReadThroughput",
@@ -131,13 +135,35 @@ func readP1Metrics(ctx context.Context, client *http.Client, identity *azidentit
 	req.Header.Set("Authorization", "Bearer "+token.Token)
 	result, err := client.Do(req)
 	if err != nil {
+		var timeout net.Error
+		if errors.As(err, &timeout) && timeout.Timeout() {
+			return nil, errP1MetricTimeout
+		}
 		return nil, errors.New("HorizonDB metrics request did not complete")
 	}
 	defer result.Body.Close()
 	if result.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HorizonDB metrics unavailable (HTTP %d)", result.StatusCode)
 	}
-	return p1ReadWriterMetrics(io.LimitReader(result.Body, 1<<20), resource, a.WriterReadyAt.Truncate(time.Minute).Add(time.Minute), now)
+	return p1ReadWriterMetrics(io.LimitReader(result.Body, 1<<20), resource,
+		a.WriterReadyAt.Truncate(time.Minute).Add(time.Minute), time.Now().UTC())
+}
+
+func readP1MetricsWithRetry(ctx context.Context, read func(context.Context) (map[string]p1Metric, error)) (map[string]p1Metric, bool, error) {
+	attempt := func() (map[string]p1Metric, error) {
+		probe, cancel := context.WithTimeout(ctx, p1MetricAttempt)
+		defer cancel()
+		return read(probe)
+	}
+	metrics, err := attempt()
+	if !errors.Is(err, errP1MetricTimeout) || ctx.Err() != nil {
+		return metrics, false, err
+	}
+	metrics, err = attempt()
+	if err != nil {
+		return nil, true, fmt.Errorf("HorizonDB metrics retry after timeout: %w", err)
+	}
+	return metrics, true, nil
 }
 
 type p1HostSample struct {
@@ -287,13 +313,15 @@ func startP1Telemetry(t *testing.T, ctx context.Context, cancelPilot context.Can
 		if err != nil {
 			return err
 		}
-		probe, cancel := context.WithTimeout(monitor, 20*time.Second)
-		defer cancel()
-		metrics, err := readP1Metrics(probe, client, identity, a)
+		metrics, retried, err := readP1MetricsWithRetry(monitor, func(probe context.Context) (map[string]p1Metric, error) {
+			return readP1Metrics(probe, client, identity, a)
+		})
 		if err != nil {
 			return err
 		}
-		if err := encoder.Encode(map[string]any{"observedAtUtc": time.Now().UTC(), "worker": host, "writer": metrics}); err != nil {
+		if err := encoder.Encode(map[string]any{
+			"observedAtUtc": time.Now().UTC(), "worker": host, "writer": metrics, "metricsReadRetried": retried,
+		}); err != nil {
 			return err
 		}
 		for name, point := range metrics {
@@ -327,6 +355,41 @@ func startP1Telemetry(t *testing.T, ctx context.Context, cancelPilot context.Can
 				}
 			}
 		}
+	}
+}
+
+func TestHorizonDBP1WriterMetricTimeoutRetry(t *testing.T) {
+	forbidden := errors.New("HorizonDB metrics unavailable (HTTP 403)")
+	for _, tt := range []struct {
+		name                string
+		first, second, want error
+		cancel, retry       bool
+	}{
+		{name: "timeout then fresh read", first: errP1MetricTimeout, retry: true},
+		{name: "persistent timeout", first: errP1MetricTimeout, second: errP1MetricTimeout, want: errP1MetricTimeout, retry: true},
+		{name: "authorization failure", first: forbidden, want: forbidden},
+		{name: "parent canceled", first: errP1MetricTimeout, want: errP1MetricTimeout, cancel: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			calls := 0
+			metrics, retried, err := readP1MetricsWithRetry(ctx, func(context.Context) (map[string]p1Metric, error) {
+				calls++
+				if calls == 1 {
+					if tt.cancel {
+						cancel()
+					}
+					return nil, tt.first
+				}
+				return map[string]p1Metric{"CpuUtilization": {Maximum: 42}}, tt.second
+			})
+			if retried != tt.retry || calls > 2 || !errors.Is(err, tt.want) ||
+				(err == nil && (calls != 2 || metrics["CpuUtilization"].Maximum != 42)) ||
+				(err != nil && metrics != nil) {
+				t.Fatalf("unexpected metrics retry outcome: calls=%d retried=%t err=%v", calls, retried, err)
+			}
+		})
 	}
 }
 

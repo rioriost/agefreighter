@@ -957,6 +957,9 @@ five cases along with the independent target range and root comparisons.
 For the separate PG18 writer lease, use `TestHorizonDBP1PostgresPG18Integration`
 and `AGEFREIGHTER_REQUIRE_HORIZON_P1_POSTGRES_PG18=1` instead, with the same
 source profile and the `postgresMajor=18` writer template parameter.
+The first PostgreSQL-source PG18 attempt stopped before `create` when the
+worker could not complete an Azure Monitor metrics request. It qualified no
+cases; the retry requires a fresh worker, writer, and run ID.
 
 PostgreSQL 17.6 → HorizonDB PG17/AGE 1.8.0 passed all five P1 cases at
 `c4395f7` on 2026-11-20, bringing the P1 total to 15/60. The source's
@@ -979,9 +982,11 @@ Poll every 30 seconds; [HorizonDB platform metrics][horizon-metrics] use
 one-minute buckets, not 30-second granularity. Capture writer CPU, page and
 WAL I/O rates, commit and WAL-flush latency (microseconds), and storage.
 Allow null I/O buckets during idle, but require observed I/O and latency
-data during the pilot for a pass. Missing or older-than-five-minute CPU or
-storage data, a failed telemetry request, active swap, kernel OOM, loss of a
-fixture/evidence directory, or storage at 80% cancels the run. The writer
+data during the pilot for a pass. A metrics transport timeout may be retried
+once within the 30-second collection interval (two attempts of at most 14
+seconds each). Missing or older-than-five-minute CPU or storage data, a
+failed collection, active swap, kernel OOM, loss of a fixture/evidence
+directory, or storage at 80% cancels the run. The writer
 storage threshold is 80% of a 128-GiB **pilot allowance**, not a claim about
 HorizonDB's autoscaling capacity. The loader records cumulative guest CPU
 and Linux block-device counters, and checkpoint-derived rows/bytes per second
