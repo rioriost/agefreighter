@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 [[ "$(hostname -s)" == afhs-20261118-p1-csv && "$(id -u)" == 0 ]]
-[[ "$(pwd -P)" == /var/lib/agefreighter-p1/r20261120p1neo44pg17 ]]
+[[ "$(pwd -P)" =~ ^/var/lib/agefreighter-p1/r20261120p1neo44pg17b?$ ]]
 [[ "$(wc -l </proc/swaps)" -eq 1 ]]
 [[ "$(findmnt -no FSTYPE --target /dev/shm)" == tmpfs ]]
 container=afh-p1-neo4j44

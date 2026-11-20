@@ -22,6 +22,8 @@ import (
 	"github.com/rioriost/agefreighter/production-simulation/internal/fixture"
 )
 
+const ManifestFilename = "portable-manifest.json"
+
 type Table struct {
 	Name          string            `json:"name"`
 	Kind          string            `json:"kind"`
@@ -105,7 +107,7 @@ func export(ctx context.Context, manifestPath, output string, gremlin bool) (Man
 	if _, err := fixture.Verify(manifestPath); err != nil {
 		return Manifest{}, err
 	}
-	if err := writeJSON(filepath.Join(output, "portable-manifest.json"), result); err != nil {
+	if err := writeJSON(filepath.Join(output, ManifestFilename), result); err != nil {
 		return Manifest{}, err
 	}
 	if err := writeJSON(filepath.Join(output, "csv-source.json"), result.CSVSource()); err != nil {

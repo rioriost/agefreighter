@@ -646,9 +646,7 @@ func TestHorizonDBP1CSVWorker(t *testing.T) {
 			}
 			p1PostgresDSN(t, p1PostgresReader, "p1_reader")
 		case "neo4j44":
-			var sourceManifest portable.Manifest
-			p1ReadJSON(t, filepath.Join(a.Output, "csv-"+c.dataset, "manifest.json"), &sourceManifest)
-			if err := validateP1Neo4jJob(job, sourceManifest, a, c.dataset); err != nil {
+			if err := validateP1Neo4jWorker(t, job, a, c.dataset, p1Expected[c.dataset].raw); err != nil {
 				t.Fatal(err)
 			}
 		}

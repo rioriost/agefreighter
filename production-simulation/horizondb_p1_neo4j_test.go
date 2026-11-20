@@ -43,7 +43,13 @@ func configureP1Neo4jJob(job *config.LoadJob, manifest portable.Manifest, a p1Ad
 	return horizonNeo4jQueries(job, manifest, "neo4j44", a.RunID, dataset, fixture.PhaseP1)
 }
 
-func validateP1Neo4jJob(job config.LoadJob, manifest portable.Manifest, a p1Admission, dataset string) error {
+func validateP1Neo4jWorker(t *testing.T, job config.LoadJob, a p1Admission, dataset, fixtureRoot string) error {
+	t.Helper()
+	var manifest portable.Manifest
+	p1ReadJSON(t, filepath.Join(a.Output, "csv-"+dataset, portable.ManifestFilename), &manifest)
+	if manifest.FixtureRoot == "" || manifest.FixtureRoot != fixtureRoot {
+		return errors.New("Neo4j loader fixture root differs from its admitted dataset")
+	}
 	want := tinyJob(manifest, "", "neo4j44", 17)
 	if err := configureP1Neo4jJob(&want, manifest, a, dataset); err != nil {
 		return err
@@ -247,28 +253,42 @@ func digestP1Neo4jTable(ctx context.Context, session neo4j.Session, query string
 }
 
 func TestHorizonDBP1Neo4jWorkerScope(t *testing.T) {
-	a := p1Admission{RunID: "rp1test01"}
-	manifest := portable.Manifest{Tables: []portable.Table{{
-		Kind: "node", Name: "Sample", Columns: []string{"source_key", "external_id"},
-	}}}
+	a := p1Admission{RunID: "rp1test01", Output: t.TempDir()}
+	fixtureDir := filepath.Join(a.Output, "fixture")
+	if _, err := fixture.Generate(t.Context(), fixture.GenerateConfig{
+		Phase: fixture.PhaseTiny, Output: fixtureDir, Seed: 20260829, Shards: 1, Workers: 1,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(fixtureDir, "manifest.json")
+	manifest, err := portable.Export(t.Context(), path, filepath.Join(a.Output, "csv-append"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := portable.Export(t.Context(), path, filepath.Join(a.Output, "csv-base")); err != nil {
+		t.Fatal(err)
+	}
 	job := tinyJob(manifest, "", "neo4j44", 17)
 	if err := configureP1Neo4jJob(&job, manifest, a, "append"); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(t.TempDir(), "job.json")
+	path = filepath.Join(a.Output, "job.json")
 	writeTinyJSON(t, path, job)
 	loaded, err := config.Load(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := validateP1Neo4jJob(loaded, manifest, a, "append"); err != nil {
+	if err := validateP1Neo4jWorker(t, loaded, a, "append", manifest.FixtureRoot); err != nil {
 		t.Fatal(err)
 	}
-	if validateP1Neo4jJob(loaded, manifest, a, "base") == nil {
+	if validateP1Neo4jWorker(t, loaded, a, "base", manifest.FixtureRoot) == nil {
 		t.Fatal("accepted a different Neo4j dataset")
 	}
+	if validateP1Neo4jWorker(t, loaded, a, "append", "unadmitted-root") == nil {
+		t.Fatal("accepted an unadmitted fixture root")
+	}
 	loaded.Source.Neo4j.URI = "bolt://127.0.0.1:7687"
-	if validateP1Neo4jJob(loaded, manifest, a, "append") == nil {
+	if validateP1Neo4jWorker(t, loaded, a, "append", manifest.FixtureRoot) == nil {
 		t.Fatal("accepted a different Neo4j endpoint")
 	}
 }
