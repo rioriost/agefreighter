@@ -955,6 +955,18 @@ The loader uses a separate SELECT-only login and ordered COPY queries;
 retain source COPY counts and ordered binary digests before and after the
 five cases along with the independent target range and root comparisons.
 
+PostgreSQL 17.6 → HorizonDB PG17/AGE 1.8.0 passed all five P1 cases at
+`c4395f7` on 2026-11-20, bringing the P1 total to 15/60. The source's
+ordered binary COPY digests and row counts were unchanged. All five target
+roots matched the independent fixture roots, including the same-ID resume
+from 1,400,000 durable records after real SIGKILL. Case elapsed times,
+including target verification, were 367.1s, 369.3s, 254.4s, 268.9s and
+374.1s, respectively. The private Blob upload returned HTTP 403, so the
+archive was sealed and SHA-256 verified on the worker disk
+(`32b3808c160b051b8f154af7af5f3b183f9929927ab1eeaf36c244349846b11b`)
+before the independent guard preserved the disk as a private incremental
+snapshot. The two temporary Blob grants were removed.
+
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
 storage samples from that allocation. The worker's separate system identity
