@@ -37,6 +37,7 @@ const (
 	p1Gate          = "AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG17"
 	p1GatePG18      = "AGEFREIGHTER_REQUIRE_HORIZON_P1_CSV_PG18"
 	p1PGGate        = "AGEFREIGHTER_REQUIRE_HORIZON_P1_POSTGRES_PG17"
+	p1PGGatePG18    = "AGEFREIGHTER_REQUIRE_HORIZON_P1_POSTGRES_PG18"
 	p1ReceiptEnv    = "AGEFREIGHTER_HORIZON_P1_RECEIPT"
 	p1Role          = "afhs-20261118-p1-csv"
 	p1BaseVertices  = 1_600_000
@@ -78,7 +79,7 @@ type p1Admission struct {
 
 func (a p1Admission) validate(now time.Time, needed time.Duration, major int) error {
 	if !p1RunPattern.MatchString(a.RunID) || major == 0 || a.writerMajor() != major ||
-		(a.Source != "" && (a.Source != "postgresql" || major != 17)) ||
+		(a.Source != "" && a.Source != "postgresql") ||
 		!p1UUIDPattern.MatchString(a.IdentityClientID) ||
 		!p1CommitPattern.MatchString(a.Commit) ||
 		!p1SHA.MatchString(a.ExecutableSHA256) || !p1SHA.MatchString(a.GuardSettingsSHA256) ||
@@ -151,7 +152,7 @@ func p1EnabledRoute(t *testing.T) (int, string) {
 	for _, route := range []struct {
 		gate, source string
 		major        int
-	}{{p1Gate, "csv", 17}, {p1GatePG18, "csv", 18}, {p1PGGate, "postgresql", 17}} {
+	}{{p1Gate, "csv", 17}, {p1GatePG18, "csv", 18}, {p1PGGate, "postgresql", 17}, {p1PGGatePG18, "postgresql", 18}} {
 		if os.Getenv(route.gate) == "1" {
 			if major != 0 {
 				t.Fatal("require exactly one P1 source and writer route")
@@ -836,6 +837,13 @@ func TestHorizonDBP1AdmissionScope(t *testing.T) {
 	}
 	if !strings.HasSuffix(pg18.writerResource(), "/afhs-20261118-pg18") {
 		t.Fatal("PG18 admission must be monitored on its own writer")
+	}
+	pg18.Source = "postgresql"
+	if err := pg18.validate(now, p1RunTime+time.Hour, 18); err != nil {
+		t.Fatal(err)
+	}
+	if err := pg18.validate(now, p1RunTime+time.Hour, 17); err == nil {
+		t.Fatal("accepted a PostgreSQL source PG18 admission for a PG17 writer")
 	}
 	for _, tt := range []struct {
 		name   string

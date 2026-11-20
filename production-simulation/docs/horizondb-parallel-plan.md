@@ -954,6 +954,9 @@ only. Seed three run-scoped schemas by typed COPY of the verified exports.
 The loader uses a separate SELECT-only login and ordered COPY queries;
 retain source COPY counts and ordered binary digests before and after the
 five cases along with the independent target range and root comparisons.
+For the separate PG18 writer lease, use `TestHorizonDBP1PostgresPG18Integration`
+and `AGEFREIGHTER_REQUIRE_HORIZON_P1_POSTGRES_PG18=1` instead, with the same
+source profile and the `postgresMajor=18` writer template parameter.
 
 PostgreSQL 17.6 → HorizonDB PG17/AGE 1.8.0 passed all five P1 cases at
 `c4395f7` on 2026-11-20, bringing the P1 total to 15/60. The source's

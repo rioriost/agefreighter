@@ -30,6 +30,10 @@ func TestHorizonDBP1PostgresPG17Integration(t *testing.T) {
 	runHorizonDBP1(t, 17, "postgresql")
 }
 
+func TestHorizonDBP1PostgresPG18Integration(t *testing.T) {
+	runHorizonDBP1(t, 18, "postgresql")
+}
+
 func p1PostgresSchema(a p1Admission, dataset string) string {
 	return "hs_p1_pg_" + a.RunID + "_" + dataset
 }
