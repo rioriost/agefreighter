@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -29,7 +30,10 @@ import (
 	"github.com/rioriost/agefreighter/production-simulation/internal/rangedigest"
 )
 
-const p1CosmosDatabase = "agefreighter"
+const (
+	p1CosmosDatabase      = "agefreighter"
+	p1CosmosSeedWriteRate = 1800
+)
 
 func TestHorizonDBP1CosmosPG17Integration(t *testing.T)  { runHorizonDBP1(t, 17, "cosmos") }
 func TestHorizonDBP1CosmosPG18Integration(t *testing.T)  { runHorizonDBP1(t, 18, "cosmos") }
@@ -107,6 +111,7 @@ type p1CosmosSeed struct {
 	RequestCharge    float64           `json:"observedRequestCharge"`
 	Throttled        int64             `json:"throttledResponses"`
 	ChargeLimit      float64           `json:"requestChargeLimit"`
+	MaxWrites        int               `json:"maxWritesPerSecond"`
 }
 
 type p1CosmosSeedReceipt struct {
@@ -157,7 +162,8 @@ func TestHorizonDBP1SeedCosmos(t *testing.T) {
 		}
 		command := exec.CommandContext(ctx, filepath.Join(root, "cosmosfixtureload"),
 			"--endpoint", p1CosmosEndpoint(a.RunID), "--database", p1CosmosDatabase, "--container", dataset,
-			"--input", dir, "--workers", "64", "--require-empty", "--max-request-charge", limit, "--timeout", "70m")
+			"--input", dir, "--workers", "64", "--require-empty", "--max-request-charge", limit,
+			"--max-writes-per-second", strconv.Itoa(p1CosmosSeedWriteRate), "--timeout", "70m")
 		command.Stderr = os.Stderr
 		body, err := command.Output()
 		if err != nil {
@@ -171,7 +177,7 @@ func TestHorizonDBP1SeedCosmos(t *testing.T) {
 		spec := specs[dataset]
 		if err := json.Unmarshal(body, &proof); err != nil || proof.Rows != spec.Vertices+spec.Edges ||
 			proof.RemoteRows != proof.Rows || proof.ChargeLimit != chargeLimit || proof.RequestCharge <= 0 ||
-			proof.RequestCharge > chargeLimit || proof.Throttled < 0 ||
+			proof.RequestCharge > chargeLimit || proof.Throttled < 0 || proof.MaxWrites != p1CosmosSeedWriteRate ||
 			len(proof.Files) != len(manifest.Tables) || len(proof.Hashes) != len(manifest.Tables) {
 			t.Fatal("Cosmos seed did not prove admitted counts or RU usage")
 		}
@@ -314,7 +320,7 @@ func prepareP1Cosmos(t *testing.T, ctx context.Context, a p1Admission, exports m
 	for _, dataset := range p1FixtureOrder {
 		proof, spec := seed.Datasets[dataset], p1FixtureSpecification(dataset)
 		if proof.Rows != spec.Vertices+spec.Edges || proof.RemoteRows != proof.Rows ||
-			proof.RequestCharge <= 0 || proof.RequestCharge > proof.ChargeLimit {
+			proof.RequestCharge <= 0 || proof.RequestCharge > proof.ChargeLimit || proof.MaxWrites != p1CosmosSeedWriteRate {
 			t.Fatal("Cosmos seed counts or charge differ from the admitted dataset")
 		}
 	}

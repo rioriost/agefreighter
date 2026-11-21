@@ -8,10 +8,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos"
 )
 
@@ -126,4 +130,52 @@ func TestChargeBudget(t *testing.T) {
 	if err := (&chargeBudget{limit: 5}).charge(&http.Response{StatusCode: 200, Header: http.Header{}}, false); err != nil {
 		t.Fatal("account metadata does not carry item request charge:", err)
 	}
+}
+
+type pacedTransport func(*http.Request) (*http.Response, error)
+
+func (f pacedTransport) Do(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestPaceCosmosUpsertRetries(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		start := time.Now()
+		budget := &chargeBudget{limit: 100, writeSlots: pacedWriteSlots(ctx, 100)}
+		var writes atomic.Int32
+		pipeline := runtime.NewPipeline("test", "1", runtime.PipelineOptions{}, &policy.ClientOptions{
+			PerRetryPolicies: []policy.Policy{budget},
+			Retry:            policy.RetryOptions{MaxRetries: 1},
+			Transport: pacedTransport(func(r *http.Request) (*http.Response, error) {
+				status := http.StatusOK
+				h := http.Header{"X-Ms-Request-Charge": {"1"}}
+				if r.Header.Get("x-ms-documentdb-is-upsert") == "true" && writes.Add(1) == 1 {
+					status = http.StatusTooManyRequests
+					h.Set("x-ms-retry-after-ms", "1")
+				}
+				return &http.Response{StatusCode: status, Header: h, Body: http.NoBody}, nil
+			}),
+		})
+		newPost := func(ctx context.Context) *policy.Request {
+			r, err := runtime.NewRequest(ctx, http.MethodPost, "https://example.invalid/dbs/test/colls/test/docs")
+			if err != nil {
+				t.Fatal(err)
+			}
+			return r
+		}
+		if _, err := pipeline.Do(newPost(ctx)); err != nil || time.Since(start) != 0 {
+			t.Fatalf("a query POST must not consume a write slot: %v", err)
+		}
+		upsert := newPost(ctx)
+		upsert.Raw().Header.Set("x-ms-documentdb-is-upsert", "true")
+		if _, err := pipeline.Do(upsert); err != nil || writes.Load() != 2 || time.Since(start) < 20*time.Millisecond {
+			t.Fatalf("both write attempts must be paced: writes=%d elapsed=%s err=%v", writes.Load(), time.Since(start), err)
+		}
+		cancel()
+		cancelled := newPost(ctx)
+		cancelled.Raw().Header.Set("x-ms-documentdb-is-upsert", "true")
+		if _, err := pipeline.Do(cancelled); !errors.Is(err, context.Canceled) || writes.Load() != 2 {
+			t.Fatalf("cancelled upsert reached transport: writes=%d err=%v", writes.Load(), err)
+		}
+	})
 }

@@ -54,6 +54,7 @@ type result struct {
 	Files         map[string]int    `json:"files"`
 	Hashes        map[string]string `json:"consumedFileSha256"`
 	Workers       int               `json:"workers"`
+	MaxWrites     int               `json:"maxWritesPerSecond,omitempty"`
 	ElapsedSecs   float64           `json:"elapsedSeconds"`
 	RequestCharge float64           `json:"observedRequestCharge,omitempty"`
 	Throttled     int64             `json:"throttledResponses,omitempty"`
@@ -77,6 +78,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	workers := flags.Int("workers", 64, "concurrent upsert workers")
 	requireEmpty := flags.Bool("require-empty", false, "refuse writes unless the entire target container is empty")
 	maxCharge := flags.Float64("max-request-charge", 0, "stop after this observed RU budget; zero leaves the existing unbounded mode")
+	maxWrites := flags.Int("max-writes-per-second", 0, "pace all item write attempts, including retries; zero disables pacing")
 	timeout := flags.Duration("timeout", 0, "bound complete preparation, including remote verification")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -92,6 +94,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	}
 	if *maxCharge > 0 && (*timeout == 0 || !*requireEmpty) {
 		return errors.New("RU-bounded preparation requires a timeout and empty-container preflight")
+	}
+	if *maxWrites < 0 || *maxWrites > 100_000 || (*maxWrites > 0 && *maxCharge == 0) {
+		return errors.New("write pacing requires an RU budget and a rate from 1 to 100000 writes per second")
 	}
 	if *timeout > 0 {
 		var cancel context.CancelFunc
@@ -115,6 +120,11 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	charges := &chargeBudget{limit: *maxCharge}
 	var options *azcosmos.ClientOptions
 	if *maxCharge > 0 {
+		if *maxWrites > 0 {
+			pacerCtx, stop := context.WithCancel(ctx)
+			defer stop()
+			charges.writeSlots = pacedWriteSlots(pacerCtx, *maxWrites)
+		}
 		options = &azcosmos.ClientOptions{ClientOptions: policy.ClientOptions{
 			PerRetryPolicies: []policy.Policy{charges},
 		}}
@@ -200,16 +210,40 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		Files:         fileCounts,
 		Hashes:        hashes,
 		Workers:       *workers,
+		MaxWrites:     *maxWrites,
 		ElapsedSecs:   time.Since(started).Seconds(),
 		RequestCharge: observed, Throttled: throttled, ChargeLimit: *maxCharge,
 	})
 }
 
 type chargeBudget struct {
-	mu        sync.Mutex
-	limit     float64
-	total     float64
-	throttled int64
+	mu         sync.Mutex
+	limit      float64
+	total      float64
+	throttled  int64
+	writeSlots <-chan struct{}
+}
+
+func pacedWriteSlots(ctx context.Context, perSecond int) <-chan struct{} {
+	// A short batch avoids sub-millisecond timers and caps the burst after an idle period.
+	batch := max(1, perSecond/100)
+	interval := (time.Second*time.Duration(batch) + time.Duration(perSecond) - 1) / time.Duration(perSecond)
+	slots := make(chan struct{}, batch)
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				for range batch - len(slots) {
+					slots <- struct{}{}
+				}
+			}
+		}
+	}()
+	return slots
 }
 
 func (budget *chargeBudget) charge(response *http.Response, required bool) error {
@@ -237,6 +271,18 @@ func (budget *chargeBudget) charge(response *http.Response, required bool) error
 }
 
 func (budget *chargeBudget) Do(request *policy.Request) (*http.Response, error) {
+	raw := request.Raw()
+	// Cosmos marks SDK upserts with this header; query POSTs are not writes.
+	if budget.writeSlots != nil && raw.Header.Get("x-ms-documentdb-is-upsert") == "true" {
+		select {
+		case <-raw.Context().Done():
+			return nil, raw.Context().Err()
+		case <-budget.writeSlots:
+		}
+		if err := raw.Context().Err(); err != nil {
+			return nil, err
+		}
+	}
 	budget.mu.Lock()
 	exhausted := budget.total > budget.limit
 	budget.mu.Unlock()
@@ -245,7 +291,7 @@ func (budget *chargeBudget) Do(request *policy.Request) (*http.Response, error) 
 	}
 	response, err := request.Next()
 	if response != nil {
-		if chargeErr := budget.charge(response, strings.HasPrefix(request.Raw().URL.Path, "/dbs/")); chargeErr != nil {
+		if chargeErr := budget.charge(response, strings.HasPrefix(raw.URL.Path, "/dbs/")); chargeErr != nil {
 			if response.Body != nil {
 				response.Body.Close()
 			}

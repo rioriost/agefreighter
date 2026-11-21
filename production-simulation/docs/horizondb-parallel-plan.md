@@ -1038,6 +1038,23 @@ the same rejected-write probe, ordered node and directed relationship index
 plans for initial and resumed pages, and before/after source digests as 4.4.
 Each lane needs its own fresh writer and lease-covering token.
 
+The corrected Neo4j 5.26.30 runs at `1cfc57c` passed all five modes
+against both PG17 and PG18/AGE 1.8.0, bringing P1 to **40/60**. Both
+verified unchanged source digests and all target counts and canonical roots.
+Each recovery resumed the same job and graph generation after an actual
+SIGKILL at 1,400,000 durable rows.
+
+| Target | Run | Case seconds (create, replace, append, upsert, resume) | Private snapshot |
+| --- | --- | --- | --- |
+| PG17 | `r20261121p1neo526pg17b` | 401.6, 330.9, 252.4, 245.6, 326.2 | `afhs-20261118-4316fb5e9e7829de` |
+| PG18 | `r20261121p1neo526pg18` | 344.5, 345.0, 282.8, 285.4, 347.5 | `afhs-20261118-c9952095604578ad` |
+
+The disk archives passed SHA-256 readback (`3614d3f5317ee08bce9d3710de53dd8775277ac34fc36573de394b0a230dc196`
+and `fa61103d2e53c5ca75fd0f9da9c422b27add5770a03608e4f663850ee898d5a1`).
+Both disposable scopes were verified absent. The PG18 metrics-role point
+read briefly returned the deleted definition, so the next lease waited
+for stable absence. Neither run establishes timed credential renewal.
+
 For the P1 Cosmos routes, create one leased NoSQL account with 60,000
 shared manual RU/s, private networking, and local authentication disabled.
 Seed only the new base, append, and upsert containers before creating the
@@ -1049,6 +1066,13 @@ minutes stop the lane. The Gremlin document layout uses the independent
 partition-aware oracle; NoSQL uses the ordinary-source oracle. Keep the
 evidence in the private worker snapshot and retire the leased source
 account along with the writer and worker.
+
+The first Cosmos NoSQL → PG17 source seed stopped before migration after
+all six physical partitions reached 100% normalized RU consumption and
+429 responses persisted for five consecutive minutes. The retry starts
+with empty containers and caps item write attempts, including SDK retries,
+at 1,800/s, without increasing provisioned throughput or changing the
+fixtures, RU budgets, or five-minute stop rule.
 
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
