@@ -137,7 +137,12 @@ func horizonNeo4jQueries(job *config.LoadJob, manifest portable.Manifest, source
 		query := match + " WHERE $afterKey IS NULL OR " + entity + ".source_key > $afterKey" + projection
 		if phase == fixture.PhaseP1 {
 			// The initial page must stay index-backed after the job is serialized.
-			query = match + " USING INDEX " + entity + ":`" + scope + "_" + table.Name + "`(source_key)" +
+			hint := " USING INDEX "
+			if source == "neo4j526" {
+				// An ordinary index hint also permits a filtered scan on Neo4j 5.26.
+				hint = " USING INDEX SEEK "
+			}
+			query = match + hint + entity + ":`" + scope + "_" + table.Name + "`(source_key)" +
 				" WHERE " + entity + ".source_key > coalesce($afterKey, -1)" + projection
 		}
 		if table.Kind == "node" {

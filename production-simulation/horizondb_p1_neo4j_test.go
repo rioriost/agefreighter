@@ -27,6 +27,8 @@ import (
 
 const p1Neo4jPassword = "/dev/shm/agefreighter-p1-neo4j/password"
 
+var errP1Neo4jKeyset = errors.New("Neo4j keyset must limit an ordered index range seek without scanning or sorting")
+
 func TestHorizonDBP1Neo4j44PG17Integration(t *testing.T) {
 	runHorizonDBP1(t, 17, "neo4j44")
 }
@@ -126,6 +128,9 @@ func prepareP1Neo4j(t *testing.T, ctx context.Context, a p1Admission, paths map[
 
 func failP1Neo4j(t *testing.T, step string, err error) {
 	t.Helper()
+	if errors.Is(err, errP1Neo4jKeyset) {
+		t.Fatalf("%s failed: %s", step, errP1Neo4jKeyset)
+	}
 	var neoErr *neo4j.Neo4jError
 	if errors.As(err, &neoErr) && regexp.MustCompile(`^Neo\.[A-Za-z.]+$`).MatchString(neoErr.Code) {
 		t.Fatalf("%s failed (%s)", step, neoErr.Code)
@@ -211,7 +216,13 @@ func requireP1Neo4jKeyset(ctx context.Context, session neo4j.Session, query, see
 	if err != nil {
 		return err
 	}
-	plan := summary.Plan()
+	if !p1Neo4jKeysetPlan(summary.Plan(), seek) {
+		return errP1Neo4jKeyset
+	}
+	return nil
+}
+
+func p1Neo4jKeysetPlan(plan neo4j.Plan, seek string) bool {
 	limited := false
 	for plan != nil {
 		op, _, _ := strings.Cut(plan.Operator(), "@")
@@ -219,9 +230,9 @@ func requireP1Neo4jKeyset(ctx context.Context, session neo4j.Session, query, see
 			limited = true
 		}
 		if op == seek && limited && len(plan.Children()) == 0 {
-			return nil
+			return true
 		}
-		if op != "ProduceResults" && op != "Projection" && op != "Limit" {
+		if op != "ProduceResults" && op != "Projection" && op != "CacheProperties" && op != "Limit" {
 			break
 		}
 		children := plan.Children()
@@ -230,7 +241,41 @@ func requireP1Neo4jKeyset(ctx context.Context, session neo4j.Session, query, see
 		}
 		plan = children[0]
 	}
-	return errors.New("Neo4j keyset must limit an ordered index range seek without scanning or sorting")
+	return false
+}
+
+type p1Neo4jTestPlan struct {
+	operator string
+	children []neo4j.Plan
+}
+
+func (p p1Neo4jTestPlan) Operator() string          { return p.operator }
+func (p p1Neo4jTestPlan) Children() []neo4j.Plan    { return p.children }
+func (p p1Neo4jTestPlan) Arguments() map[string]any { return nil }
+func (p p1Neo4jTestPlan) Identifiers() []string     { return nil }
+
+func TestHorizonDBP1Neo4jKeysetPlan(t *testing.T) {
+	const seek = "DirectedRelationshipIndexSeekByRange"
+	for _, tc := range []struct {
+		name string
+		ops  []string
+		want bool
+	}{
+		{"cached-properties", []string{"Projection", "CacheProperties", "Limit", seek}, true},
+		{"filtered-scan", []string{"Projection", "CacheProperties", "Limit", "Filter", "DirectedRelationshipIndexScan"}, false},
+		{"sort-before-limit", []string{"Projection", "Limit", "Sort", seek}, false},
+		{"unbounded-seek", []string{"Projection", "CacheProperties", seek}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			plan := p1Neo4jTestPlan{operator: tc.ops[len(tc.ops)-1]}
+			for i := len(tc.ops) - 2; i >= 0; i-- {
+				plan = p1Neo4jTestPlan{operator: tc.ops[i], children: []neo4j.Plan{plan}}
+			}
+			if got := p1Neo4jKeysetPlan(plan, seek); got != tc.want {
+				t.Fatalf("plan %v: got %t, want %t", tc.ops, got, tc.want)
+			}
+		})
+	}
 }
 
 func digestP1Neo4jTable(ctx context.Context, session neo4j.Session, query string) (int64, string, error) {

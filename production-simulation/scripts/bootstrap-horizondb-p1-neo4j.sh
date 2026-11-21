@@ -16,6 +16,7 @@ case "$(pwd -P)" in
     admin=(set-initial-password)
     ;;
   /var/lib/agefreighter-p1/r20261121p1neo526pg17|\
+  /var/lib/agefreighter-p1/r20261121p1neo526pg17b|\
   /var/lib/agefreighter-p1/r20261121p1neo526pg18)
     container=afh-p1-neo4j526
     image='neo4j@sha256:037cf5756f0135cbfd66b739b6df7c7c4bb100f9ce11602f6f9538e17e02c74d'

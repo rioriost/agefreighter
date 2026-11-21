@@ -1025,6 +1025,13 @@ snapshot `afhs-20261118-1ba6fefe9d39b446` and verified the disposable group
 was absent at `2026-11-20T15:33:14Z`; the temporary metrics role was
 removed. P1 is at **30/60**; timed credential renewal is still unverified.
 
+The first Neo4j 5.26.30 → PG17 run seeded the fixture but failed its initial
+source check before any migration case. Reproducing the full projections on
+5.26.30 showed property caching above the limit, and a plain index hint
+allowed a filtered relationship index scan for non-null checkpoints. The
+5.26 lane now explicitly requires `USING INDEX SEEK`. The plan check admits
+property caching but still rejects filters, scans, sorts, and unbounded seeks.
+
 The Neo4j 5.26.30 P1 lanes use the pinned image on loopback port 7690 and
 the 5.x `server.databases.read_only` setting. Both target majors require
 the same rejected-write probe, ordered node and directed relationship index
