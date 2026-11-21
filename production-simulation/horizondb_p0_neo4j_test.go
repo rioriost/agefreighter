@@ -51,11 +51,20 @@ func TestHorizonDBP0Neo4jSourceIntegration(t *testing.T) {
 	t.Log("P0 Neo4j source hashes, actual counts and production iterator verified; no HorizonDB migration")
 }
 
+func horizonNeo4jURI(source string) string {
+	switch source {
+	case "neo4j44":
+		return "bolt://127.0.0.1:7689"
+	case "neo4j526":
+		return "bolt://127.0.0.1:7690"
+	default:
+		return ""
+	}
+}
+
 func validateHorizonP0Neo4jURI(source, uri string) error {
-	expected := "bolt://127.0.0.1:7689"
-	if source == "neo4j526" {
-		expected = "bolt://127.0.0.1:7690"
-	} else if source != "neo4j44" {
+	expected := horizonNeo4jURI(source)
+	if expected == "" {
 		return errors.New("pinned Neo4j 4.4 or 5.26 source required")
 	}
 	if uri != expected {
@@ -172,7 +181,7 @@ func seedHorizonNeo4j(t *testing.T, ctx context.Context, paths rangedigest.Scena
 		}
 		job := tinyJob(manifest, directories[dataset], source, 17)
 		if phase == fixture.PhaseP1 {
-			setP1Neo4jConnection(&job)
+			setP1Neo4jConnection(&job, source)
 		}
 		if err := horizonNeo4jQueries(&job, manifest, source, run, dataset, phase); err != nil {
 			return err

@@ -40,6 +40,8 @@ const (
 	p1PGGatePG18    = "AGEFREIGHTER_REQUIRE_HORIZON_P1_POSTGRES_PG18"
 	p1Neo4j44Gate   = "AGEFREIGHTER_REQUIRE_HORIZON_P1_NEO4J44_PG17"
 	p1Neo4j44PG18   = "AGEFREIGHTER_REQUIRE_HORIZON_P1_NEO4J44_PG18"
+	p1Neo4j526PG17  = "AGEFREIGHTER_REQUIRE_HORIZON_P1_NEO4J526_PG17"
+	p1Neo4j526PG18  = "AGEFREIGHTER_REQUIRE_HORIZON_P1_NEO4J526_PG18"
 	p1ReceiptEnv    = "AGEFREIGHTER_HORIZON_P1_RECEIPT"
 	p1Role          = "afhs-20261118-p1-csv"
 	p1BaseVertices  = 1_600_000
@@ -81,7 +83,7 @@ type p1Admission struct {
 
 func (a p1Admission) validate(now time.Time, needed time.Duration, major int) error {
 	if !p1RunPattern.MatchString(a.RunID) || major == 0 || a.writerMajor() != major ||
-		(a.Source != "" && a.Source != "postgresql" && a.Source != "neo4j44") ||
+		(a.Source != "" && a.Source != "postgresql" && a.Source != "neo4j44" && a.Source != "neo4j526") ||
 		!p1UUIDPattern.MatchString(a.IdentityClientID) ||
 		!p1CommitPattern.MatchString(a.Commit) ||
 		!p1SHA.MatchString(a.ExecutableSHA256) || !p1SHA.MatchString(a.GuardSettingsSHA256) ||
@@ -155,6 +157,7 @@ var p1Routes = []struct {
 	{p1Gate, "csv", 17}, {p1GatePG18, "csv", 18},
 	{p1PGGate, "postgresql", 17}, {p1PGGatePG18, "postgresql", 18},
 	{p1Neo4j44Gate, "neo4j44", 17}, {p1Neo4j44PG18, "neo4j44", 18},
+	{p1Neo4j526PG17, "neo4j526", 17}, {p1Neo4j526PG18, "neo4j526", 18},
 }
 
 func p1EnabledRoute(t *testing.T) (int, string) {
@@ -207,7 +210,7 @@ func runHorizonDBP1(t *testing.T, targetMajor int, source string) {
 		t.Skipf("explicit P1 %s PG%d admission required", source, targetMajor)
 	}
 	needed := p1RunTime + time.Hour
-	if source == "neo4j44" {
+	if horizonNeo4jURI(source) != "" {
 		needed += 40 * time.Minute
 	}
 	a := readP1Admission(t, needed, targetMajor, source)
@@ -234,7 +237,7 @@ func runHorizonDBP1(t *testing.T, targetMajor int, source string) {
 	switch source {
 	case "postgresql":
 		verifySource = prepareP1Postgres(t, ctx, a, paths, exports)
-	case "neo4j44":
+	case "neo4j44", "neo4j526":
 		verifySource = prepareP1Neo4j(t, ctx, a, paths, exports)
 	}
 	secret := filepath.Join(p1SecretDir(t), "target.dsn")
@@ -277,7 +280,7 @@ func runHorizonDBP1(t *testing.T, targetMajor int, source string) {
 					t.Fatal(err)
 				}
 				job.Source.PostgreSQL.Connection = config.SecretRef{File: p1PostgresReader}
-			} else if source == "neo4j44" {
+			} else if horizonNeo4jURI(source) != "" {
 				if err := configureP1Neo4jJob(&job, exports[c.dataset], a, c.dataset); err != nil {
 					t.Fatal(err)
 				}
@@ -646,7 +649,7 @@ func TestHorizonDBP1CSVWorker(t *testing.T) {
 				t.Fatal(err)
 			}
 			p1PostgresDSN(t, p1PostgresReader, "p1_reader")
-		case "neo4j44":
+		case "neo4j44", "neo4j526":
 			if err := validateP1Neo4jWorker(t, job, a, c.dataset, p1Expected[c.dataset].raw); err != nil {
 				t.Fatal(err)
 			}

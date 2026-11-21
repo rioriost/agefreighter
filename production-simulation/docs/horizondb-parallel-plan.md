@@ -1025,6 +1025,12 @@ snapshot `afhs-20261118-1ba6fefe9d39b446` and verified the disposable group
 was absent at `2026-11-20T15:33:14Z`; the temporary metrics role was
 removed. P1 is at **30/60**; timed credential renewal is still unverified.
 
+The Neo4j 5.26.30 P1 lanes use the pinned image on loopback port 7690 and
+the 5.x `server.databases.read_only` setting. Both target majors require
+the same rejected-write probe, ordered node and directed relationship index
+plans for initial and resumed pages, and before/after source digests as 4.4.
+Each lane needs its own fresh writer and lease-covering token.
+
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
 storage samples from that allocation. The worker's separate system identity

@@ -25,10 +25,7 @@ import (
 	"github.com/rioriost/agefreighter/production-simulation/internal/portable"
 )
 
-const (
-	p1Neo4jURI      = "bolt://127.0.0.1:7689"
-	p1Neo4jPassword = "/dev/shm/agefreighter-p1-neo4j/password"
-)
+const p1Neo4jPassword = "/dev/shm/agefreighter-p1-neo4j/password"
 
 func TestHorizonDBP1Neo4j44PG17Integration(t *testing.T) {
 	runHorizonDBP1(t, 17, "neo4j44")
@@ -38,14 +35,22 @@ func TestHorizonDBP1Neo4j44PG18Integration(t *testing.T) {
 	runHorizonDBP1(t, 18, "neo4j44")
 }
 
-func setP1Neo4jConnection(job *config.LoadJob) {
-	job.Source.Neo4j.URI = p1Neo4jURI
+func TestHorizonDBP1Neo4j526PG17Integration(t *testing.T) {
+	runHorizonDBP1(t, 17, "neo4j526")
+}
+
+func TestHorizonDBP1Neo4j526PG18Integration(t *testing.T) {
+	runHorizonDBP1(t, 18, "neo4j526")
+}
+
+func setP1Neo4jConnection(job *config.LoadJob, source string) {
+	job.Source.Neo4j.URI = horizonNeo4jURI(source)
 	job.Source.Neo4j.Password = &config.SecretRef{File: p1Neo4jPassword}
 }
 
 func configureP1Neo4jJob(job *config.LoadJob, manifest portable.Manifest, a p1Admission, dataset string) error {
-	setP1Neo4jConnection(job)
-	return horizonNeo4jQueries(job, manifest, "neo4j44", a.RunID, dataset, fixture.PhaseP1)
+	setP1Neo4jConnection(job, a.source())
+	return horizonNeo4jQueries(job, manifest, a.source(), a.RunID, dataset, fixture.PhaseP1)
 }
 
 func validateP1Neo4jWorker(t *testing.T, job config.LoadJob, a p1Admission, dataset, fixtureRoot string) error {
@@ -55,7 +60,7 @@ func validateP1Neo4jWorker(t *testing.T, job config.LoadJob, a p1Admission, data
 	if manifest.FixtureRoot == "" || manifest.FixtureRoot != fixtureRoot {
 		return errors.New("Neo4j loader fixture root differs from its admitted dataset")
 	}
-	want := tinyJob(manifest, "", "neo4j44", 17)
+	want := tinyJob(manifest, "", a.source(), a.writerMajor())
 	if err := configureP1Neo4jJob(&want, manifest, a, dataset); err != nil {
 		return err
 	}
@@ -83,7 +88,7 @@ func prepareP1Neo4j(t *testing.T, ctx context.Context, a p1Admission, paths map[
 	seedCtx, stopSeed := context.WithTimeout(ctx, 50*time.Minute)
 	defer stopSeed()
 	if err := seedHorizonNeo4j(t, seedCtx, p1Scenario(paths, "upsert"), exports, directories,
-		"neo4j44", a.RunID, a.Output, password, fixture.PhaseP1); err != nil {
+		a.source(), a.RunID, a.Output, password, fixture.PhaseP1); err != nil {
 		failP1Neo4j(t, "Neo4j fixture seed", err)
 	}
 	t.Log("Pinned Neo4j source fixture seeded and counted")
@@ -136,7 +141,7 @@ type p1Neo4jEvidence struct {
 
 func hashP1Neo4j(ctx context.Context, a p1Admission, exports map[string]portable.Manifest, password string) (p1Neo4jEvidence, error) {
 	var evidence p1Neo4jEvidence
-	driver, err := neo4j.NewDriverWithContext(p1Neo4jURI, neo4j.BasicAuth("neo4j", password, ""))
+	driver, err := neo4j.NewDriverWithContext(horizonNeo4jURI(a.source()), neo4j.BasicAuth("neo4j", password, ""))
 	if err != nil {
 		return evidence, err
 	}
@@ -162,7 +167,7 @@ func hashP1Neo4j(ctx context.Context, a p1Admission, exports map[string]portable
 	defer session.Close(context.Background())
 	for _, dataset := range p1FixtureOrder {
 		manifest := exports[dataset]
-		job := tinyJob(manifest, "", "neo4j44", 17)
+		job := tinyJob(manifest, "", a.source(), a.writerMajor())
 		if err := configureP1Neo4jJob(&job, manifest, a, dataset); err != nil {
 			return evidence, err
 		}
@@ -263,7 +268,8 @@ func digestP1Neo4jTable(ctx context.Context, session neo4j.Session, query string
 }
 
 func TestHorizonDBP1Neo4jWorkerScope(t *testing.T) {
-	a := p1Admission{RunID: "rp1test01", Output: t.TempDir()}
+	a := p1Admission{RunID: "rp1test01", Output: t.TempDir(),
+		Host: "afhs-20261118-pg17.rw.scope.japaneast.horizondb.azure.com"}
 	fixtureDir := filepath.Join(a.Output, "fixture")
 	if _, err := fixture.Generate(t.Context(), fixture.GenerateConfig{
 		Phase: fixture.PhaseTiny, Output: fixtureDir, Seed: 20260829, Shards: 1, Workers: 1,
@@ -278,27 +284,39 @@ func TestHorizonDBP1Neo4jWorkerScope(t *testing.T) {
 	if _, err := portable.Export(t.Context(), path, filepath.Join(a.Output, "csv-base")); err != nil {
 		t.Fatal(err)
 	}
-	job := tinyJob(manifest, "", "neo4j44", 17)
-	if err := configureP1Neo4jJob(&job, manifest, a, "append"); err != nil {
-		t.Fatal(err)
-	}
-	path = filepath.Join(a.Output, "job.json")
-	writeTinyJSON(t, path, job)
-	loaded, err := config.Load(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := validateP1Neo4jWorker(t, loaded, a, "append", manifest.FixtureRoot); err != nil {
-		t.Fatal(err)
-	}
-	if validateP1Neo4jWorker(t, loaded, a, "base", manifest.FixtureRoot) == nil {
-		t.Fatal("accepted a different Neo4j dataset")
-	}
-	if validateP1Neo4jWorker(t, loaded, a, "append", "unadmitted-root") == nil {
-		t.Fatal("accepted an unadmitted fixture root")
-	}
-	loaded.Source.Neo4j.URI = "bolt://127.0.0.1:7687"
-	if validateP1Neo4jWorker(t, loaded, a, "append", manifest.FixtureRoot) == nil {
-		t.Fatal("accepted a different Neo4j endpoint")
+	for _, source := range []string{"neo4j44", "neo4j526"} {
+		t.Run(source, func(t *testing.T) {
+			a := a
+			a.Source = source
+			job := tinyJob(manifest, "", source, a.writerMajor())
+			if err := configureP1Neo4jJob(&job, manifest, a, "append"); err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(a.Output, source+"-job.json")
+			writeTinyJSON(t, path, job)
+			loaded, err := config.Load(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := validateP1Neo4jWorker(t, loaded, a, "append", manifest.FixtureRoot); err != nil {
+				t.Fatal(err)
+			}
+			if validateP1Neo4jWorker(t, loaded, a, "base", manifest.FixtureRoot) == nil {
+				t.Fatal("accepted a different Neo4j dataset")
+			}
+			if validateP1Neo4jWorker(t, loaded, a, "append", "unadmitted-root") == nil {
+				t.Fatal("accepted an unadmitted fixture root")
+			}
+			other := map[string]string{"neo4j44": "neo4j526", "neo4j526": "neo4j44"}[source]
+			wrongRoute := a
+			wrongRoute.Source = other
+			if validateP1Neo4jWorker(t, loaded, wrongRoute, "append", manifest.FixtureRoot) == nil {
+				t.Fatal("accepted a different Neo4j route")
+			}
+			loaded.Source.Neo4j.URI = horizonNeo4jURI(other)
+			if validateP1Neo4jWorker(t, loaded, a, "append", manifest.FixtureRoot) == nil {
+				t.Fatal("accepted a different Neo4j endpoint")
+			}
+		})
 	}
 }
