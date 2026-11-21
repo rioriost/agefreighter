@@ -1038,6 +1038,18 @@ the same rejected-write probe, ordered node and directed relationship index
 plans for initial and resumed pages, and before/after source digests as 4.4.
 Each lane needs its own fresh writer and lease-covering token.
 
+For the P1 Cosmos routes, create one leased NoSQL account with 60,000
+shared manual RU/s, private networking, and local authentication disabled.
+Seed only the new base, append, and upsert containers before creating the
+writer. Replace the worker's temporary data contributor with a reader and
+prove that a write is denied. Check each label's item identity and ETag
+digest before and after the cases, and require source RU/throttle telemetry
+from both the seeder and the live reads. Five consecutive throttled
+minutes stop the lane. The Gremlin document layout uses the independent
+partition-aware oracle; NoSQL uses the ordinary-source oracle. Keep the
+evidence in the private worker snapshot and retire the leased source
+account along with the writer and worker.
+
 For the CSV pilot, bind `writerReadyAtUtc` in the admission receipt to the
 fresh ARM-verified writer. Before starting any case, require live CPU and
 storage samples from that allocation. The worker's separate system identity

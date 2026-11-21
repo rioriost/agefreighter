@@ -296,7 +296,7 @@ func prepareHorizonP0Cosmos(t *testing.T, ctx context.Context, paths rangedigest
 		if err != nil {
 			return err
 		}
-		observed := &horizonCosmosQueries{SDKQueryClient: client}
+		observed := &horizonCosmosQueries{SDKQueryClient: client, maxCharge: 2_000_000}
 		verificationErr := verifyHorizonP0CosmosIterator(ctx, job, m, observed, container, records)
 		if err := errors.Join(verificationErr, client.Close()); err != nil {
 			return err
@@ -317,8 +317,8 @@ func prepareHorizonP0Cosmos(t *testing.T, ctx context.Context, paths rangedigest
 
 type horizonCosmosQueries struct {
 	*cosmossource.SDKQueryClient
-	charge float64
-	pages  int
+	charge, maxCharge float64
+	pages             int
 }
 
 func (client *horizonCosmosQueries) NewQueryPager(container, query string, params []cosmossource.Parameter, options cosmossource.QueryOptions) (cosmossource.Pager, error) {
@@ -342,7 +342,7 @@ func (pager *horizonCosmosPager) NextPage(ctx context.Context) (cosmossource.Pag
 	pager.client.pages++
 	pager.client.charge += page.RequestCharge
 	if math.IsNaN(page.RequestCharge) || math.IsInf(page.RequestCharge, 0) || page.RequestCharge < 0 ||
-		pager.client.charge > 2_000_000 {
+		pager.client.charge > pager.client.maxCharge {
 		return cosmossource.Page{}, errors.New("Cosmos source-query RU budget exceeded or invalid")
 	}
 	return page, nil

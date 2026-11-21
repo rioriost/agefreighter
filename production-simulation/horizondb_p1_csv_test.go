@@ -42,6 +42,10 @@ const (
 	p1Neo4j44PG18   = "AGEFREIGHTER_REQUIRE_HORIZON_P1_NEO4J44_PG18"
 	p1Neo4j526PG17  = "AGEFREIGHTER_REQUIRE_HORIZON_P1_NEO4J526_PG17"
 	p1Neo4j526PG18  = "AGEFREIGHTER_REQUIRE_HORIZON_P1_NEO4J526_PG18"
+	p1CosmosPG17    = "AGEFREIGHTER_REQUIRE_HORIZON_P1_COSMOS_PG17"
+	p1CosmosPG18    = "AGEFREIGHTER_REQUIRE_HORIZON_P1_COSMOS_PG18"
+	p1GremlinPG17   = "AGEFREIGHTER_REQUIRE_HORIZON_P1_GREMLIN_PG17"
+	p1GremlinPG18   = "AGEFREIGHTER_REQUIRE_HORIZON_P1_GREMLIN_PG18"
 	p1ReceiptEnv    = "AGEFREIGHTER_HORIZON_P1_RECEIPT"
 	p1Role          = "afhs-20261118-p1-csv"
 	p1BaseVertices  = 1_600_000
@@ -76,6 +80,7 @@ type p1Admission struct {
 	RenewalEvidenceSHA256    string    `json:"renewalEvidenceSha256"`
 	TokenValidThroughLease   bool      `json:"tokenValidThroughLease,omitempty"`
 	FixturePreparationSHA256 string    `json:"fixturePreparationSha256"`
+	CosmosSeedSHA256         string    `json:"cosmosSeedSha256,omitempty"`
 	SnapshotID               string    `json:"lifecycleProbeSnapshotId"`
 	WriterReadyAt            time.Time `json:"writerReadyAtUtc"`
 	Source                   string    `json:"source,omitempty"`
@@ -83,13 +88,16 @@ type p1Admission struct {
 
 func (a p1Admission) validate(now time.Time, needed time.Duration, major int) error {
 	if !p1RunPattern.MatchString(a.RunID) || major == 0 || a.writerMajor() != major ||
-		(a.Source != "" && a.Source != "postgresql" && a.Source != "neo4j44" && a.Source != "neo4j526") ||
+		(a.Source != "" && a.Source != "postgresql" && horizonNeo4jURI(a.Source) == "" && !p1IsCosmos(a.Source)) ||
 		!p1UUIDPattern.MatchString(a.IdentityClientID) ||
 		!p1CommitPattern.MatchString(a.Commit) ||
 		!p1SHA.MatchString(a.ExecutableSHA256) || !p1SHA.MatchString(a.GuardSettingsSHA256) ||
 		!p1SHA.MatchString(a.FixturePreparationSHA256) ||
 		!regexp.MustCompile(`^/subscriptions/[a-f0-9-]{36}/resourceGroups/rg-agefreighter-horizon-tiny-20261118/providers/Microsoft\.Compute/snapshots/afhs-20261118-[a-f0-9]{16}$`).MatchString(a.SnapshotID) {
 		return errors.New("require the independently admitted P1 route, writer major, candidate, identity, guard and snapshot evidence")
+	}
+	if p1IsCosmos(a.Source) && !p1SHA.MatchString(a.CosmosSeedSHA256) || !p1IsCosmos(a.Source) && a.CosmosSeedSHA256 != "" {
+		return errors.New("require seed receipt evidence for the admitted Cosmos source only")
 	}
 	if a.TokenValidThroughLease {
 		if a.RenewalEvidenceSHA256 != "" {
@@ -158,6 +166,8 @@ var p1Routes = []struct {
 	{p1PGGate, "postgresql", 17}, {p1PGGatePG18, "postgresql", 18},
 	{p1Neo4j44Gate, "neo4j44", 17}, {p1Neo4j44PG18, "neo4j44", 18},
 	{p1Neo4j526PG17, "neo4j526", 17}, {p1Neo4j526PG18, "neo4j526", 18},
+	{p1CosmosPG17, "cosmos", 17}, {p1CosmosPG18, "cosmos", 18},
+	{p1GremlinPG17, "gremlin", 17}, {p1GremlinPG18, "gremlin", 18},
 }
 
 func p1EnabledRoute(t *testing.T) (int, string) {
@@ -212,6 +222,8 @@ func runHorizonDBP1(t *testing.T, targetMajor int, source string) {
 	needed := p1RunTime + time.Hour
 	if horizonNeo4jURI(source) != "" {
 		needed += 40 * time.Minute
+	} else if p1IsCosmos(source) {
+		needed += 20 * time.Minute
 	}
 	a := readP1Admission(t, needed, targetMajor, source)
 	fixtureReceipt := filepath.Join(a.FixtureDir, p1FixtureReceiptName)
@@ -232,13 +244,24 @@ func runHorizonDBP1(t *testing.T, targetMajor int, source string) {
 	stopTelemetry := startP1Telemetry(t, ctx, cancel, a)
 	var requireMetricsSince time.Time
 	defer func() { stopTelemetry(requireMetricsSince) }()
+	if p1IsCosmos(source) {
+		subscription := strings.SplitN(a.SnapshotID, "/resourceGroups/", 2)[0]
+		monitor := startP1CosmosTelemetry(t, ctx, cancel, p1CosmosResource(strings.TrimPrefix(subscription, "/subscriptions/"), a.RunID), a.Output)
+		defer func() { monitor(!requireMetricsSince.IsZero()) }()
+	}
 	paths, expected, exports := prepareP1CSV(t, ctx, a.FixtureDir, a.Output)
+	gremlin := source == "gremlin"
+	if gremlin {
+		expected = p1GremlinExpected(t, ctx, paths)
+	}
 	var verifySource func()
 	switch source {
 	case "postgresql":
 		verifySource = prepareP1Postgres(t, ctx, a, paths, exports)
 	case "neo4j44", "neo4j526":
 		verifySource = prepareP1Neo4j(t, ctx, a, paths, exports)
+	case "cosmos", "gremlin":
+		verifySource = prepareP1Cosmos(t, ctx, a, exports)
 	}
 	secret := filepath.Join(p1SecretDir(t), "target.dsn")
 	stopCredentials := startP1Credentials(t, ctx, cancel, a, secret)
@@ -284,6 +307,12 @@ func runHorizonDBP1(t *testing.T, targetMajor int, source string) {
 				if err := configureP1Neo4jJob(&job, exports[c.dataset], a, c.dataset); err != nil {
 					t.Fatal(err)
 				}
+			} else if p1IsCosmos(source) {
+				var err error
+				job, err = p1CosmosJob(exports[c.dataset], a, c.dataset)
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 			job.Metadata.Name = fmt.Sprintf("horizon-p1-%s-pg%d-%s-%s", source, targetMajor, c.name, a.RunID)
 			job.Target.Mode, job.Target.Graph = c.mode, p1Graph(a, c)
@@ -307,6 +336,13 @@ func runHorizonDBP1(t *testing.T, targetMajor int, source string) {
 			if err := validateP1Commit(c, id, activeGeneration, before, stored, result); err != nil {
 				t.Fatal(err)
 			}
+			if p1IsCosmos(source) {
+				usage := result.SourceTelemetry
+				if usage == nil || usage.Connector != "cosmos-nosql" || usage.Pages < 1 ||
+					usage.RequestCharge <= 0 || usage.ThrottledRequests < 0 {
+					t.Fatal("Cosmos loader did not report request charge, pages and throttling")
+				}
+			}
 			if !c.recovery {
 				activeGeneration = stored.GraphGenerationID
 			}
@@ -314,7 +350,7 @@ func runHorizonDBP1(t *testing.T, targetMajor int, source string) {
 			if err != nil {
 				t.Fatal("could not read current private connection file")
 			}
-			actual, err := rangedigest.ScaleScenarioTargetManifest(caseCtx, string(dsn), p1Scenario(paths, c.digest), id, 100_000, false)
+			actual, err := rangedigest.ScaleScenarioTargetManifest(caseCtx, string(dsn), p1Scenario(paths, c.digest), id, 100_000, gremlin)
 			if err != nil {
 				p1DatabaseFailure(t, "independent canonical verification", err)
 			}
@@ -651,6 +687,10 @@ func TestHorizonDBP1CSVWorker(t *testing.T) {
 			p1PostgresDSN(t, p1PostgresReader, "p1_reader")
 		case "neo4j44", "neo4j526":
 			if err := validateP1Neo4jWorker(t, job, a, c.dataset, p1Expected[c.dataset].raw); err != nil {
+				t.Fatal(err)
+			}
+		case "cosmos", "gremlin":
+			if err := validateP1CosmosWorker(t, job, a, c.dataset, p1Expected[c.dataset].raw); err != nil {
 				t.Fatal(err)
 			}
 		}
